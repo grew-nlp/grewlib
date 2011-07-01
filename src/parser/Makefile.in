@@ -1,0 +1,42 @@
+all: parser_global.cmx gr_grs_parser.cmx lexer.cmx grew_parser.cmx
+
+byte: parser_global.cmo gr_grs_parser.cmo lexer.cmo grew_parser.cmo
+
+include ../../config/Makefile
+
+parser_global.cmo: parser_global.ml
+	ocamlc -c $(BYTE_FLAGS) parser_global.ml
+
+parser_global.cmx: parser_global.ml
+	ocamlopt -c $(OPT_FLAGS) parser_global.ml
+
+gr_grs_parser.cmx: gr_grs_parser.mly ../utils.cmx ../ast.cmx parser_global.cmo
+	menhir --infer --ocamlc "ocamlc -c -I .. utils.cmo ast.cmo parser_global.cmo"  gr_grs_parser.mly
+	ocamlopt -c $(OPT_FLAGS) -I .. utils.cmx ast.cmx gr_grs_parser.mli
+	ocamlopt -c $(OPT_FLAGS) -I .. utils.cmx ast.cmx gr_grs_parser.ml
+
+gr_grs_parser.cmo: gr_grs_parser.mly ../utils.cmo ../ast.cmx parser_global.cmo
+	menhir --infer --ocamlc "ocamlc -c -I .. utils.cmo ast.cmo parser_global.cmo"  gr_grs_parser.mly
+	ocamlc -c $(BYTE_FLAGS) -I .. utils.cmo ast.cmo gr_grs_parser.mli
+	ocamlc -c $(BYTE_FLAGS) -I .. utils.cmo ast.cmo gr_grs_parser.ml
+
+lexer.cmx: gr_grs_parser.cmx lexer.mll ../ast.cmx
+	ocamllex lexer.mll
+	ocamlopt -c $(OPT_FLAGS) lexer.ml
+
+lexer.cmo: gr_grs_parser.cmo lexer.mll ../ast.cmo
+	ocamllex lexer.mll
+	ocamlc -c $(BYTE_FLAGS) lexer.ml
+
+grew_parser.cmx: gr_grs_parser.cmx lexer.cmx grew_parser.ml ../ast.cmx
+	ocamlopt -c $(OPT_FLAGS) grew_parser.ml
+
+grew_parser.cmo: gr_grs_parser.cmo lexer.cmo grew_parser.ml ../ast.cmo
+	ocamlc -c $(BYTE_FLAGS) grew_parser.ml
+
+clean:
+	rm -rf *.cmi *.cmx *.cmo lexer.ml gr_grs_parser.ml *.o *.mli *.annot
+
+
+#	ocamlopt -c rules_to_html.ml
+#	ocamlopt -o main str.cmxa ast.cmx rules_to_html.cmx lexer.cmx gr_grs_parser.cmx main.ml

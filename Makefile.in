@@ -1,0 +1,86 @@
+
+
+all:
+	@make -C src libgrew.cmxa
+	@make -C src libgrew.cma
+
+
+include config/Makefile
+
+conf:
+	cd config && aclocal
+	autoconf -o configure config/configure.in
+
+purge_makefile:
+	@make -C src purge_makefile
+	@make purge
+	@make -C config purge
+
+clean:
+	@make -C src clean
+	@make cleanup
+
+uninstall:
+	rm -rf $(OCAMLFIND_DIR)/for_mac_libgrew
+	ocamlfind remove libgrew > /dev/null
+
+uninstall_dev:
+	rm -rf $(OCAMLFIND_DIR)/for_mac_libgrew
+	ocamlfind remove libgrew_dev > /dev/null
+
+LIB_DEP = libgrew.cma libgrew.cmxa libgrew.a libgrew.cmi
+
+install: uninstall
+	cp META META_
+	sed -itmp "s|@VERSION@|$(VERSION)|g" META 
+	rm -rf METAtmp
+ifneq ($(DESTDIR),)
+	mkdir -p $(DESTDIR)$(OCAMLFIND_DIR)
+	touch $(DESTDIR)$(OCAMLFIND_DIR)/for_mac_libgrew
+endif
+	mkdir -p $(DESTDIR)$(DATA_DIR)/
+	cp data/style.css $(DESTDIR)$(DATA_DIR)/
+	cd src && ocamlfind install libgrew ../META $(LIB_DEP)
+	mv META_ META
+
+install_dev: uninstall_dev
+	cp META META_
+	sed -itmp "s|@VERSION@|$(VERSION)|g" META 
+	sed -itmp "s|@DEV@|_dev|g" META 
+	rm -rf METAtmp
+	cd src && ocamlfind install libgrew_dev ../META $(LIB_DEP)
+	mv META_ META
+	cp data/style.css $(DESTDIR)$(DATA_DIR)/
+
+
+.PHONY: doc
+
+doc:
+	@make -C src doc
+
+################################################################################
+################## PACKAGING ###################################################
+################################################################################
+
+
+targz: clean conf purge_makefile
+	rm -rf libcaml-grew-$(VERSION)
+	mkdir -p libcaml-grew-$(VERSION)
+	cp -r config libcaml-grew-$(VERSION)/
+	cp configure libcaml-grew-$(VERSION)/
+	cp Makefile.in libcaml-grew-$(VERSION)/
+	cp META libcaml-grew-$(VERSION)/
+	cp -r src libcaml-grew-$(VERSION)/
+	cp -r data libcaml-grew-$(VERSION)/
+	cd libcaml-grew-$(VERSION)/ && find . -name .svn -print0 | xargs -0 rm -rf
+	cd libcaml-grew-$(VERSION)/ && find . -name autom4te.cache -print0 | xargs -0 rm -rf
+	tar -czvf packaging/libcaml-grew-$(VERSION).tar.gz libcaml-grew-$(VERSION)
+	rm -rf libcaml-grew-$(VERSION)
+
+
+portfile: targz
+	cd packaging && sh create_portfile.sh $(VERSION)
+
+
+pack_deb: targz
+	sh packaging/make_deb.sh $(VERSION) $(INSTALL_DIR) $(DATA_DIR) $(DOC_DIR)

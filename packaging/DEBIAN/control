@@ -1,0 +1,9 @@
+Package: libcaml-grew
+Version: @VERSION@
+Section: base
+Priority: optional
+Architecture: all
+Depends: ocaml, libcaml-ansiterminal (=@libcaml-ansiterminal-VERSION@), libcaml-log (=@libcaml-log-VERSION@),libcaml-dep2pict (=@libcaml-dep2pict-VERSION@), menhir
+Maintainer: Paul MASSON <paul.masson@loria.fr>
+Description: LibGrew is an OCaml library prototype for graph rewriting
+ 

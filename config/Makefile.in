@@ -1,0 +1,62 @@
+
+LOG_DIR = @LOG_INCLUDE@
+LOG_BYTE = $(LOG_DIR) log.cma
+LOG_OPT = $(LOG_DIR) log.cmxa
+
+
+DEP2PICT_DIR = @DEP2PICT_INCLUDE@
+DEP2PICT_BYTE = $(DEP2PICT_DIR) dep2pict.cma
+DEP2PICT_OPT = $(DEP2PICT_DIR) dep2pict.cmxa
+
+ANSITERMINAL_DIR = @ANSITERMINAL_INCLUDE@
+ANSITERMINAL_BYTE = $(ANSITERMINAL_DIR) ANSITerminal.cma
+ANSITERMINAL_OPT = $(ANSITERMINAL_DIR) ANSITerminal.cmxa
+
+INSTALL_DIR_LIB = @OCAMLLIB@
+INSTALL_DIR = @prefix@/bin/
+DATA_DIR = @prefix@@datarootdir@/libgrew/
+DOC_DIR = @prefix@@datarootdir@/libgrew-doc/
+
+
+BYTE_FLAGS = -g -dtypes
+OPT_FLAGS = -g -dtypes
+
+DEBUG = @DEBUG@
+WARNING = @WARNING@
+MESSAGE = @MESSAGE@
+INFO = @INFO@
+
+OCAMLFIND_DIR=`ocamlfind printconf destdir`
+
+VERSION = 0.9.1
+
+cleanup:
+	rm -rf *.cmo *.cmx *.cmi *.annot *.o *.*~
+
+purge:
+	rm -rf Makefile
+
+
+infos:
+	@echo ""
+	@echo "version              -> " $(VERSION)
+	@echo ""
+	@echo "prefix               -> " @prefix@
+	@echo "exec install dir     -> " $(INSTALL_DIR)
+	@echo "lib install dir      -> " $(INSTALL_DIR_LIB)
+	@echo "data install dir     -> " $(DATA_DIR)
+	@echo "doc install dir      -> " $(DOC_DIR)
+	@echo ""
+	@echo "log                  -> " $(LOG_OPT)
+	@echo "dep2pict             -> " $(DEP2PICT_OPT)
+	@echo "ansiterminal         -> " $(ANSITERMINAL_OPT)
+	@echo ""
+	@echo "byte compil flags    -> " $(BYTE_FLAGS)
+	@echo "native compil flags  -> " $(OPT_FLAGS)
+	@echo ""
+	@echo "DEBUG                -> " $(DEBUG)
+	@echo "WARNING              -> " $(WARNING)
+	@echo "MESSAGE              -> " $(MESSAGE)
+	@echo "INFO                 -> " $(INFO)
+	@echo ""
+

@@ -1,0 +1,311 @@
+
+FILES_DEP = utils ast grew_fs grew_edge grew_node graph grew_types command rule grs
+FILES_ML = $(FILES_DEP:%=%.ml)
+FILES_MLI = $(FILES_DEP:%=%.mli)
+FILES_CMI = $(FILES_DEP:%=%.cmi)
+FILES_CMO = $(FILES_DEP:%=%.cmo)
+FILES_CMX = $(FILES_DEP:%=%.cmx)
+
+PARSER_DEP = parser_global lexer gr_grs_parser grew_parser
+PARSER_ML = $(PARSER_DEP:%=%.ml)
+PARSER_MLI = $(PARSER_DEP:%=%.mli)
+PARSER_CMI = $(PARSER_DEP:%=%.cmi)
+PARSER_CMO = $(PARSER_DEP:%=%.cmo)
+PARSER_CMX = $(PARSER_DEP:%=%.cmx)
+
+.PHONY: parser HTMLer checker
+
+all: utils.cmx ast.cmx parser checker HTMLer grew test
+byte: utils.cmo ast.cmo parser.byte checker.byte HTMLer.byte grew.byte test.byte
+
+
+include ../config/Makefile
+
+
+
+#executables
+
+grew.byte: $(FILES_CMO) parser/parser_global.cmo parser_byte parser/grew_parser.cmo checker/checker.cmo HTMLer/HTMLer.cmo grew.ml
+	ocamlc $(BYTE_FLAGS) -o grew.byte $(ANSITERMINAL_BYTE) $(LOG_BYTE)  \
+	$(FILES_CMO) -I parser $(PARSER_CMO) -I HTMLer HTMLer.cmo -I checker checker.cmo \
+	grew.ml
+
+grew: $(FILES_CMX) parser/parser_global.cmx parser_opt parser/grew_parser.cmx checker/checker.cmx HTMLer/HTMLer.cmx grew.ml
+	ocamlopt $(OPT_FLAGS) -o grew str.cmxa unix.cmxa $(ANSITERMINAL_OPT) $(LOG_OPT) \
+	$(FILES_CMX) -I parser $(PARSER_CMX) -I HTMLer HTMLer.cmx -I checker checker.cmx \
+	grew.ml
+
+test.byte: parser/parser_global.cmo parser_byte parser/grew_parser.cmo checker/checker.cmo HTMLer/HTMLer.cmo $(FILES_CMO) $(FILES_CMI) test.ml
+	ocamlc $(BYTE_FLAGS) -o test.byte $(ANSITERMINAL_BYTE) $(LOG_BYTE) \
+	$(FILES_CMO) -I parser $(PARSER_CMO) -I HTMLer HTMLer.cmo -I checker checker.cmo \
+	test.ml
+
+test: parser/parser_global.cmx parser_opt parser/grew_parser.cmx checker/checker.cmx HTMLer/HTMLer.cmx $(FILES_CMX) $(FILES_CMI) test.ml
+	ocamlopt $(OPT_FLAGS) -o test str.cmxa unix.cmxa $(ANSITERMINAL_OPT) $(LOG_OPT) \
+	$(FILES_CMX) -I parser $(PARSER_CMX) -I HTMLer HTMLer.cmx -I checker checker.cmx \
+	test.ml
+
+#parser
+parser_opt: 
+	@make -C parser
+
+parser_byte: 
+	@make -C parser byte
+
+#checker
+checker_opt: 
+	@make -C checker
+
+checker_byte: 
+	@make -C checker byte
+
+#HTMLer
+HTMLer_opt: 
+	@make -C HTMLer
+
+HTMLer_byte: 
+	@make -C HTMLer byte
+
+# librairie
+
+libgrew.mli : grew_types.mli
+	rm -rf libgrew.mli
+	touch libgrew.mli
+	echo "(** Grew Library" > libgrew.mli
+	echo "@author paul.masson\@inria.fr" >> libgrew.mli
+	echo "@author bruno.guillaumme\@inria.fr" >> libgrew.mli
+	echo "@version 1.0.0" >> libgrew.mli
+	echo "*)" >> libgrew.mli
+	echo "" >> libgrew.mli
+	cat grew_types.mli >> libgrew.mli
+	echo "" >> libgrew.mli
+	echo "" >> libgrew.mli
+	cat libgrew_.mli >> libgrew.mli
+
+libgrew.cma : $(FILES_CMO) parser_byte checker_byte HTMLer_byte libgrew.mli libgrew.ml
+	rm libgrew.mli
+	@make libgrew.mli
+	ocamlc -c $(FILES_CMO) str.cma -I parser $(PARSER_CMO) -I HTMLer HTMLer.cmo -I checker checker.cmo libgrew.mli
+	ocamlc -a -o libgrew.cma -pp 'camlp4o pa_macro.cmo -DDATA_DIR=\"$(DATA_DIR)\"' -linkall $(FILES_CMO) -I parser $(PARSER_CMO) -I HTMLer HTMLer.cmo -I checker checker.cmo libgrew.ml
+
+
+libgrew.cmxa : $(FILES_CMX) parser_opt checker_opt HTMLer_opt libgrew.mli libgrew.ml
+	rm libgrew.mli
+	@make libgrew.mli
+	ocamlopt -c $(FILES_CMX) str.cmxa -I parser $(PARSER_CMX) -I HTMLer HTMLer.cmx -I checker checker.cmx libgrew.mli
+	ocamlopt -a -o libgrew.cmxa -pp 'camlp4o pa_macro.cmo -DDATA_DIR=\"$(DATA_DIR)\"' -linkall $(FILES_CMX) -I parser $(PARSER_CMX) -I HTMLer HTMLer.cmx -I checker checker.cmx libgrew.ml
+
+DEPENDS_DIR= -I parser -I checker -I HTMLer
+
+###### grew_core.ml ##############################################################
+GREW_CORE_DEP = grew_types
+GREW_CORE_CMI = $(GREW_CORE_DEP:%=%.cmi)
+GREW_CORE_CMO = $(GREW_CORE_DEP:%=%.cmo)
+GREW_CORE_CMX = $(GREW_CORE_DEP:%=%.cmx)
+
+grew_core.cmi: $(GREW_CORE_CMI) grew_core.mli
+	ocamlc -c grew_core.mli
+
+grew_core.cmo: $(GREW_CORE_CMO) parser_byte grew_core.cmi grew_core.ml
+	ocamlc $(BYTE_FLAGS) -c $(DEPENDS_DIR) $(GREW_CORE_CMO) grew_core.ml
+
+grew_core.cmx: $(GREW_CORE_CMX) parser_opt grew_core.cmi grew_core.ml
+	ocamlopt $(OPT_FLAGS) -c $(DEPENDS_DIR) $(GREW_CORE_CMX) grew_core.ml
+################################################################################
+
+###### utils.ml ##############################################################
+UTILS_DEP = 
+UTILS_CMI = $(UTILS_DEP:%=%.cmi)
+UTILS_CMO = $(UTILS_DEP:%=%.cmo)
+UTILS_CMX = $(UTILS_DEP:%=%.cmx)
+
+utils.cmi: $(UTILS_CMI) utils.mli
+	ocamlc -c utils.mli
+
+utils.cmo: $(UTILS_CMO) utils.cmi utils.ml
+	ocamlc $(BYTE_FLAGS) -c $(DEPENDS_DIR) utils.ml
+
+utils.cmx: $(UTILS_CMX) utils.cmi utils.ml
+	ocamlopt $(OPT_FLAGS) -c $(DEPENDS_DIR) utils.ml
+################################################################################
+
+
+###### ast.ml ##############################################################
+AST_DEP = utils
+AST_CMI = $(AST_DEP:%=%.cmi)
+AST_CMO = $(AST_DEP:%=%.cmo)
+AST_CMX = $(AST_DEP:%=%.cmx)
+
+ast.cmi: $(AST_CMI) ast.mli
+	ocamlc -c ast.mli
+
+ast.cmo: $(AST_CMO) ast.cmi ast.ml
+	ocamlc $(BYTE_FLAGS) -c $(DEPENDS_DIR) ast.ml
+
+ast.cmx: $(AST_CMX) ast.cmi ast.ml
+	ocamlopt $(OPT_FLAGS) -c $(DEPENDS_DIR) ast.ml
+################################################################################
+
+
+###### grew_fs.ml ##############################################################
+GREW_FS_DEP = utils ast
+GREW_FS_CMI = $(GREW_FS_DEP:%=%.cmi)
+GREW_FS_CMO = $(GREW_FS_DEP:%=%.cmo)
+GREW_FS_CMX = $(GREW_FS_DEP:%=%.cmx)
+
+grew_fs.cmi: $(GREW_FS_CMI) grew_fs.mli
+	ocamlc -c grew_fs.mli
+
+grew_fs.cmo: $(GREW_FS_CMO) grew_fs.cmi grew_fs.ml
+	ocamlc $(BYTE_FLAGS) -c $(DEPENDS_DIR) grew_fs.ml
+
+grew_fs.cmx: $(GREW_FS_CMX) grew_fs.cmi grew_fs.ml
+	ocamlopt $(OPT_FLAGS) -c $(DEPENDS_DIR) grew_fs.ml
+################################################################################
+
+
+###### grew_edge.ml ##############################################################
+GREW_EDGE_DEP = utils ast
+GREW_EDGE_CMI = $(GREW_EDGE_DEP:%=%.cmi)
+GREW_EDGE_CMO = $(GREW_EDGE_DEP:%=%.cmo)
+GREW_EDGE_CMX = $(GREW_EDGE_DEP:%=%.cmx)
+
+grew_edge.cmi: $(GREW_EDGE_CMI) grew_edge.mli
+	ocamlc -c grew_edge.mli
+
+grew_edge.cmo: $(GREW_EDGE_CMO) grew_edge.cmi grew_edge.ml
+	ocamlc $(BYTE_FLAGS) -c $(DEPENDS_DIR) grew_edge.ml
+
+grew_edge.cmx: $(GREW_EDGE_CMX) grew_edge.cmi grew_edge.ml
+	ocamlopt $(OPT_FLAGS) -c $(DEPENDS_DIR) grew_edge.ml
+################################################################################
+
+
+###### grew_node.ml ##############################################################
+GREW_NODE_DEP = utils ast grew_fs grew_edge
+GREW_NODE_CMI = $(GREW_NODE_DEP:%=%.cmi)
+GREW_NODE_CMO = $(GREW_NODE_DEP:%=%.cmo)
+GREW_NODE_CMX = $(GREW_NODE_DEP:%=%.cmx)
+
+grew_node.cmi: $(GREW_NODE_CMI) grew_node.mli
+	ocamlc -c grew_node.mli
+
+grew_node.cmo: $(GREW_NODE_CMO) grew_node.cmi grew_node.ml
+	ocamlc $(BYTE_FLAGS) -c $(DEPENDS_DIR) grew_node.ml
+
+grew_node.cmx: $(GREW_NODE_CMX) grew_node.cmi grew_node.ml
+	ocamlopt $(OPT_FLAGS) -c $(DEPENDS_DIR) grew_node.ml
+################################################################################
+
+
+###### graph.ml ##############################################################
+GRAPH_DEP = utils ast command grew_edge grew_fs grew_node 
+GRAPH_CMI = $(GRAPH_DEP:%=%.cmi)
+GRAPH_CMO = $(GRAPH_DEP:%=%.cmo)
+GRAPH_CMX = $(GRAPH_DEP:%=%.cmx)
+
+graph.cmi: $(GRAPH_CMI) graph.mli
+	ocamlc -c graph.mli
+
+graph.cmo: $(GRAPH_CMO) graph.cmi graph.ml
+	ocamlc $(BYTE_FLAGS) -c $(DEPENDS_DIR) graph.ml
+
+graph.cmx: $(GRAPH_CMX) graph.cmi graph.ml
+	ocamlopt $(OPT_FLAGS) -c $(DEPENDS_DIR) graph.ml
+################################################################################
+
+
+###### grew_types.ml ##############################################################
+GREW_TYPES_DEP = graph 
+GREW_TYPES_CMI = $(GREW_TYPES_DEP:%=%.cmi)
+GREW_TYPES_CMO = $(GREW_TYPES_DEP:%=%.cmo)
+GREW_TYPES_CMX = $(GREW_TYPES_DEP:%=%.cmx)
+
+grew_types.cmi: $(GREW_TYPES_CMI) grew_types.mli
+	ocamlc -c grew_types.mli
+
+grew_types.cmo: $(GREW_TYPES_CMO) grew_types.cmi grew_types.ml
+	ocamlc $(BYTE_FLAGS) -c $(DEPENDS_DIR) grew_types.ml
+
+grew_types.cmx: $(GREW_TYPES_CMX) grew_types.cmi grew_types.ml
+	ocamlopt $(OPT_FLAGS) -c $(DEPENDS_DIR) grew_types.ml
+################################################################################
+
+
+###### command.ml ##############################################################
+COMMAND_DEP = utils ast grew_edge grew_fs
+COMMAND_CMI = $(COMMAND_DEP:%=%.cmi)
+COMMAND_CMO = $(COMMAND_DEP:%=%.cmo)
+COMMAND_CMX = $(COMMAND_DEP:%=%.cmx)
+
+command.cmi: $(COMMAND_CMI) command.mli
+	ocamlc -c command.mli
+
+command.cmo: $(COMMAND_CMO) command.cmi command.ml
+	ocamlc $(BYTE_FLAGS) -c $(DEPENDS_DIR) command.ml
+
+command.cmx: $(COMMAND_CMX) command.cmi command.ml
+	ocamlopt $(OPT_FLAGS) -c $(DEPENDS_DIR) command.ml
+################################################################################
+
+
+###### rule.ml ##############################################################
+RULE_DEP = utils ast command grew_edge grew_fs grew_node grew_types graph
+RULE_CMI = $(RULE_DEP:%=%.cmi)
+RULE_CMO = $(RULE_DEP:%=%.cmo)
+RULE_CMX = $(RULE_DEP:%=%.cmx)
+
+rule.cmi: $(RULE_CMI) rule.mli
+	ocamlc -c rule.mli
+
+rule.cmo: $(RULE_CMO) rule.cmi rule.ml
+	ocamlc $(BYTE_FLAGS) -c $(DEPENDS_DIR) $(DEP2PICT_BYTE) rule.ml
+
+rule.cmx: $(RULE_CMX) rule.cmi rule.ml
+	ocamlopt $(OPT_FLAGS) -c $(DEPENDS_DIR) $(DEP2PICT_OPT) rule.ml
+################################################################################
+
+
+###### grs.ml ##############################################################
+GRS_DEP = utils grew_edge grew_types graph rule
+GRS_CMI = $(GRS_DEP:%=%.cmi)
+GRS_CMO = $(GRS_DEP:%=%.cmo)
+GRS_CMX = $(GRS_DEP:%=%.cmx)
+
+grs.cmi: $(GRS_CMI) grs.mli
+	ocamlc -c grs.mli
+
+grs.cmo: $(GRS_CMO) grs.cmi grs.ml
+	ocamlc $(BYTE_FLAGS) -pp 'camlp4o pa_macro.cmo -DDATA_DIR=\"$(DATA_DIR)\"' -c $(DEPENDS_DIR) grs.ml
+
+grs.cmx: $(GRS_CMX) grs.cmi grs.ml
+	ocamlopt $(OPT_FLAGS) -pp 'camlp4o pa_macro.cmo -DDATA_DIR=\"$(DATA_DIR)\"' -c $(DEPENDS_DIR) grs.ml
+################################################################################
+
+# others
+
+dep:
+	rm depend
+	ocamldep *.ml* > depend
+
+
+clean: 
+	@make -C checker cleanup
+	@make -C HTMLer cleanup
+	@make -C parser clean
+	rm -rf *.cmi *.cmo *.cmxa *.cma *.cmx *.o *.annot
+	rm -f grew grew.byte
+	rm -f test test.byte
+	rm -f *.nf *.png *.html
+
+purge_makefile:
+	@make -C checker purge
+	@make -C HTMLer purge
+	@make -C parser purge
+	@make purge
+
+doc:
+	rm libgrew.mli
+	@make libgrew.mli
+	mkdir -p ../doc
+	ocamldoc -html -d ../doc libgrew.mli

@@ -1,0 +1,32 @@
+PortSystem          1.0
+
+name                libcaml-grew
+
+version             @VERSION@
+
+categories          textproc
+
+platforms           darwin
+
+maintainers         inria.fr:paul.masson
+                    
+description         LibGrew : Ocaml prototype for graph rewriting
+
+long_description    Ocaml prototype for graph rewriting
+
+homepage            http://wikilligramme.loria.fr
+
+master_sites        http://wikilligramme.loria.fr/macport/@repos@/archive/libcaml-grew
+
+checksums           md5      @MD5_SUM@ \
+                    sha1     @SHA1_SUM@ \
+                    rmd160   @RMD160_SUM@
+
+depends_build	    port:ocaml \
+					port:libcaml-ansiterminal \
+					port:libcaml-log \
+					port:caml-menhir
+					
+                   
+use_parallel_build  no
+

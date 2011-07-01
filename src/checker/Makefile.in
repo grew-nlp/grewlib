@@ -1,0 +1,15 @@
+all: checker.cmx
+
+byte: checker.cmo
+
+include ../../config/Makefile
+
+
+
+checker.cmx: checker.ml ../ast.cmx
+	ocamlopt -c $(OPT_FLAGS) -I .. ast.cmx checker.ml
+
+
+
+checker.cmo: checker.ml ../ast.cmo
+	ocamlc -c $(BYTE_FLAGS) -I .. ast.cmo checker.ml

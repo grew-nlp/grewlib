@@ -1,0 +1,12 @@
+all: HTMLer.cmx
+
+byte: HTMLer.cmo
+
+include ../../config/Makefile
+
+HTMLer.cmx: HTMLer.ml ../ast.cmx
+	ocamlopt -c $(OPT_FLAGS) -pp 'camlp4o pa_macro.cmo -DDATA_DIR=\"$(DATA_DIR)\"' -I .. ast.cmx HTMLer.ml
+
+
+HTMLer.cmo: HTMLer.ml ../ast.cmo
+	ocamlc -c $(BYTE_FLAGS) -pp 'camlp4o pa_macro.cmo -DDATA_DIR=\"$(DATA_DIR)\"' -I .. ast.cmo HTMLer.ml

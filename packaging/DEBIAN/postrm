@@ -1,0 +1,3 @@
+#! /bin/bash 
+
+ocamlfind remove libgrew > /dev/null
