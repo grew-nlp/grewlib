@@ -16,7 +16,7 @@ exception File_dont_exists of string
 
 exception Build of string * (string * int) option
 exception Run of string * (string * int) option
-exception Bug of string
+exception Bug of string * (string * int) option
 
 type grs = Grs.t
 type gr = Instance.t
@@ -34,8 +34,8 @@ let grs file doc_output_dir =
 		with 
 		| Grew_parser.Parse_error msg -> raise (Parsing_err msg)
 		| Utils.Build (msg,loc) -> raise (Build (msg,loc))
-		| Utils.Bug msg -> raise (Bug msg)
-		| exc -> raise (Bug (Printf.sprintf "UNCATCHED EXCEPTION: %s" (Printexc.to_string exc)))
+		| Utils.Bug (msg, loc) -> raise (Bug (msg,loc))
+		| exc -> raise (Bug (Printf.sprintf "UNCATCHED EXCEPTION: %s" (Printexc.to_string exc), None))
 	) else (
 		raise (File_dont_exists file)
 	)
@@ -54,8 +54,8 @@ let gr file =
 		with
 		| Grew_parser.Parse_error msg -> raise (Parsing_err msg)
 		| Utils.Build (msg,loc) -> raise (Build (msg,loc))
-		| Utils.Bug msg -> raise (Bug msg)
-		| exc -> raise (Bug (Printf.sprintf "UNCATCHED EXCEPTION: %s" (Printexc.to_string exc)))
+		| Utils.Bug (msg, loc) -> raise (Bug (msg,loc))
+		| exc -> raise (Bug (Printf.sprintf "UNCATCHED EXCEPTION: %s" (Printexc.to_string exc), None))
 
 	) else (
 		raise (File_dont_exists file)
@@ -66,14 +66,15 @@ let rewrite ~gr ~grs ~seq =
     Grs.build_rew_display grs seq gr
   with
   | Utils.Run (msg,loc) -> raise (Run (msg,loc))
-  | Utils.Bug msg -> raise (Bug msg)
-  | exc -> raise (Bug (Printf.sprintf "UNCATCHED EXCEPTION: %s" (Printexc.to_string exc)))
+  | Utils.Bug (msg, loc) -> raise (Bug (msg,loc))
+  | exc -> raise (Bug (Printf.sprintf "UNCATCHED EXCEPTION: %s" (Printexc.to_string exc), None))
   
   
 let rewrite_to_html ?main_feat input_dir grs output_dir no_init current_grs_file current_grs seq title =
-  let rewrite_to_html_intern ?(no_init=false) grs_file grs seq input output nb_sentence previous next = 
+  try
+    let rewrite_to_html_intern ?(no_init=false) grs_file grs seq input output nb_sentence previous next = 
     
-    let buff = Buffer.create 16 in
+      let buff = Buffer.create 16 in
     
     let head = Printf.sprintf "<div class=\"navbar\">%s<a href=\"index.html\">Up</a>%s</div><br/>" 
 	(if previous <> "" then (Printf.sprintf "<a href=\"%s.html\">Sentence %d</a> -- " previous (nb_sentence-1)) else "") 
@@ -201,7 +202,11 @@ let rewrite_to_html ?main_feat input_dir grs output_dir no_init current_grs_file
 	close_out out_ch;
 	()
   
-  
+  with
+  | Utils.Run (msg,loc) -> raise (Run (msg,loc))
+  | Utils.Bug (msg, loc) -> raise (Bug (msg,loc))
+  | exc -> raise (Bug (Printf.sprintf "UNCATCHED EXCEPTION: %s" (Printexc.to_string exc), None))
+
   
   
 let get_css_file = Filename.concat DATA_DIR "style.css"

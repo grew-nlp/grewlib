@@ -151,14 +151,14 @@ module Rule = struct
       Deco.edges = List.fold_left (fun acc (_,edge) -> edge::acc) matching.a_match matching.e_match;
     }
 
-  let find cnode (matching, created_nodes) =
+  let find cnode ?loc (matching, created_nodes) =
     match cnode with
     | Command.Pid pid -> 
 	(try IntMap.find pid matching.n_match
-	with Not_found -> Error.bug "Inconsistent matching pid '%d' not found" pid)
+	with Not_found -> Error.bug ?loc "Inconsistent matching pid '%d' not found" pid)
     | Command.New name -> 
 	try List.assoc name created_nodes 
-	with Not_found -> Error.run "Identifier '%s' not found" name
+	with Not_found -> Error.run ?loc "Identifier '%s' not found" name
   
 
   let down_deco (matching,created_nodes) commands =
@@ -328,7 +328,7 @@ exception Command_execution_fail
 
 (** [apply_command instance matching created_nodes command] returns [(new_instance, new_created_nodes)] *)
 let apply_command (command,loc) instance matching created_nodes =
-  let node_find cnode = find cnode (matching, created_nodes) in
+  let node_find cnode = find ~loc cnode (matching, created_nodes) in
 
   match command with
   | Command.ADD_EDGE (src_cn,tar_cn,edge) -> 

@@ -348,7 +348,7 @@ end
 
 exception Build of (string * Loc.t option)
 exception Run of (string * Loc.t option)
-exception Bug of string
+exception Bug of (string * Loc.t option)
 
 module Error = struct
   let build_ ?loc message = 
@@ -359,8 +359,8 @@ module Error = struct
   let run_ ?loc message = raise (Run (message, loc))
   let run ?loc = Printf.ksprintf (run_ ?loc)
 
-  let bug_ message = raise (Bug message)
-  let bug x = Printf.ksprintf bug_ x
+  let bug_ ?loc message = raise (Bug (message, loc))
+  let bug ?loc = Printf.ksprintf (bug_ ?loc)
 end
 
 

@@ -15,7 +15,7 @@ exception Build of string * (string * int) option
 (** raised during rewriting when a command is undefined *) 
 exception Run of string * (string * int) option
 
-exception Bug of string
+exception Bug of string * (string * int) option
 
 (**/**)
 type grs = Grs.t

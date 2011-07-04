@@ -110,12 +110,13 @@ end
     
 exception Build of (string * Loc.t option)
 exception Run of (string * Loc.t option)
-exception Bug of string
+exception Bug of (string * Loc.t option)
+
 
 module Error: sig
   val build: ?loc: Loc.t -> ('a, unit, string, 'b) format4 -> 'a
   val run: ?loc: Loc.t -> ('a, unit, string, 'b) format4 -> 'a
-  val bug: ('a, unit, string, 'b) format4 -> 'a
+  val bug: ?loc: Loc.t -> ('a, unit, string, 'b) format4 -> 'a
 end
 
 
