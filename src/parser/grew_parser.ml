@@ -38,6 +38,7 @@ module Grew_parser = struct
 			begin
 			try
 				Parser_global.current_file := file;
+				Parser_global.current_line := 0;
 			  	let res = Gr_grs_parser.grs Lexer.global to_parse in close_in in_ch; res
 			with
 				| Lexer.Error msg -> raise (Parse_error msg)
@@ -77,6 +78,7 @@ module Grew_parser = struct
 			begin
 			try
 				Parser_global.current_file := file;
+				Parser_global.current_line := 0;
 			  	let res = Gr_grs_parser.gr Lexer.global to_parse in close_in in_ch; res
 			with
 				| Lexer.Error msg -> raise (Parse_error msg)

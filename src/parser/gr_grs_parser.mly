@@ -86,15 +86,12 @@ gr:
 	  	
 gr_item:
 	| id = IDENT position = option(delimited(LPAREN,index,RPAREN)) feats = delimited(LBRACKET,separated_list(COMA,node_features),RBRACKET) 
-	    (* { Graph_node (id, position, feats,(!Parser_global.current_file, !Parser_global.current_line+1)) } *)
 	    { Graph_node (localize {node_id = id; position=position; fs=feats}) }
 
 	| n1 = IDENT labels = delimited(LTR_EDGE_LEFT_NEG,separated_nonempty_list(PIPE,IDENT),LTR_EDGE_RIGHT) n2 = IDENT
-	    (* { Graph_edge (None, (n1,n2,true,labels),(!Parser_global.current_file,!Parser_global.current_line+1)) } *)
 	    { Graph_edge (localize {edge_id = None; src=n1; edge_labels=labels; tar=n2; negative=true; }) }
 
 	| n1 = IDENT labels = delimited(LTR_EDGE_LEFT,separated_nonempty_list(PIPE,IDENT),LTR_EDGE_RIGHT) n2 = IDENT
-	    (* { Graph_edge (None, (n1,n2,false,labels),(!Parser_global.current_file,!Parser_global.current_line+1)) } *)
 	    { Graph_edge (localize {edge_id = None; src=n1; edge_labels=labels; tar=n2; negative=false; }) }
 
 index:
