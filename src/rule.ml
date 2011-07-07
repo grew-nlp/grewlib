@@ -139,10 +139,10 @@ module Rule = struct
     a_match = match1.a_match @ match2.a_match;
   }
 
-  let e_match_add edge_id matching =
+  let e_match_add ?pos edge_id matching =
     match List_.usort_insert ~compare:e_comp edge_id matching.e_match with
     | Some new_e_match -> { matching with e_match = new_e_match }
-    | None -> Log.fcritical "The edge identifier '%s' is binded twice in the same pattern" (fst edge_id)
+    | None -> Error.bug "The edge identifier '%s' is binded twice in the same pattern" (fst edge_id)
 	  
   let a_match_add edge matching = {matching with a_match = edge::matching.a_match }
 
@@ -241,7 +241,7 @@ module Rule = struct
 
 
   (* returns all extension of the partial input matching *)
-  let rec extend_matching (pos,neg) (graph:Graph.t) (partial:partial) =
+  let rec extend_matching (positive,neg) (graph:Graph.t) (partial:partial) =
     match (partial.unmatched_edges, partial.unmatched_nodes) with
     | [], [] -> 
 	(* (\* DEBUG *\) Printf.printf "==<1>==\n%!"; *)
@@ -267,7 +267,7 @@ module Rule = struct
 		    (fun label ->
 		      {partial with sub = e_match_add (id,(src_gid,label,tar_gid)) partial.sub; unmatched_edges = tail_ue }
 		    ) labels 
-	    in List_.flat_map (extend_matching (pos,neg) graph) new_partials
+	    in List_.flat_map (extend_matching (positive,neg) graph) new_partials
 	  with Not_found -> (* p_edge goes to an unmatched node *)
 	    let candidates = (* candidates (of type (gid, matching)) for m(tar_pid) = gid) with new partial matching m *)
 	      let src_gid = IntMap.find src_pid partial.sub.n_match in
@@ -281,27 +281,27 @@ module Rule = struct
 		      (gid_next, a_match_add (src_gid, label, gid_next) partial.sub) :: acc 
 		  | Edge.Binds (id,[label]) -> (* g_edge fits with an extended matching *)
 		      (gid_next, e_match_add (id, (src_gid, label, gid_next)) partial.sub) :: acc
-		  | _ -> Log.critical "Edge.match_ must return exactly one label"
+		  | _ -> Error.bug "Edge.match_ must return exactly one label"
 		) [] src_gnode.Node.next in
 	    List_.flat_map
 	      (fun (gid_next, matching) -> 
-		extend_matching_from (pos,neg) graph tar_pid gid_next
+		extend_matching_from (positive,neg) graph tar_pid gid_next
 		  {partial with sub=matching; unmatched_edges = tail_ue}
 	      ) candidates
 	end
     | [], pid :: _ -> 
 	IntMap.fold	  
 	  (fun gid _ acc ->
-	    (extend_matching_from (pos,neg) graph pid gid partial) @ acc
+	    (extend_matching_from (positive,neg) graph pid gid partial) @ acc
 	  ) graph.Graph.map []
     
-  and extend_matching_from (pos,neg) (graph:Graph.t) pid gid partial =
+  and extend_matching_from (positive,neg) (graph:Graph.t) pid gid partial =
     if List.mem gid partial.already_matched_gids
     then [] (* the required association pid -> gid is not injective *)
     else
       let p_node = 
 	if pid >= 0 
-	then try Graph.find pid pos with Not_found -> failwith "POS"
+	then try Graph.find pid positive with Not_found -> failwith "POS"
 	else try Graph.find pid neg with Not_found -> failwith "NEG" in
       let g_node = try Graph.find gid graph with Not_found -> failwith "INS" in
       if not (Node.is_a p_node g_node) 
@@ -319,7 +319,7 @@ module Rule = struct
 	  already_matched_gids = gid :: partial.already_matched_gids;
 	  sub = {partial.sub with n_match = IntMap.add pid gid partial.sub.n_match};
 	} in
-	extend_matching (pos,neg) graph new_partial
+	extend_matching (positive,neg) graph new_partial
 
 
 
@@ -362,7 +362,7 @@ let apply_command (command,loc) instance matching created_nodes =
   | Command.DEL_EDGE_NAME edge_ident ->
       let (src_gid,label,tar_gid) = 
 	try List.assoc edge_ident matching.e_match 
-	with Not_found -> Log.fcritical "The edge identifier '%s' is undefined %s" edge_ident (Loc.to_string loc) in
+	with Not_found -> Error.bug "The edge identifier '%s' is undefined %s" edge_ident (Loc.to_string loc) in
       let edge = Edge.of_label label in
       (
        {instance with 

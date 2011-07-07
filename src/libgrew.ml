@@ -73,46 +73,33 @@ let rewrite ~gr ~grs ~seq =
 let rewrite_to_html ?main_feat input_dir grs output_dir no_init current_grs_file current_grs seq title =
   try
     let rewrite_to_html_intern ?(no_init=false) grs_file grs seq input output nb_sentence previous next = 
-    
       let buff = Buffer.create 16 in
-    
-    let head = Printf.sprintf "<div class=\"navbar\">%s<a href=\"index.html\">Up</a>%s</div><br/>" 
-	(if previous <> "" then (Printf.sprintf "<a href=\"%s.html\">Sentence %d</a> -- " previous (nb_sentence-1)) else "") 
-	(if next <> "" then (Printf.sprintf " -- <a href=\"%s.html\">Sentence %d</a>" next (nb_sentence+1)) else "")
-    in
 
-    let title = "Sentence "^(string_of_int nb_sentence) in
+      let head = Printf.sprintf "
+	  <div class=\"navbar\">%s<a href=\"index.html\">Up</a>%s</div><br/>" 
+	      (if previous <> "" then (Printf.sprintf "<a href=\"%s.html\">Sentence %d</a> -- " previous (nb_sentence-1)) else "") 
+	      (if next <> "" then (Printf.sprintf " -- <a href=\"%s.html\">Sentence %d</a>" next (nb_sentence+1)) else "") in
 
-		let buff = Buffer.create 16 in
+      let title = "Sentence "^(string_of_int nb_sentence) in
 
-		let head = Printf.sprintf "
-		<div class=\"navbar\">%s<a href=\"index.html\">Up</a>%s</div><br/>" 
-			(if previous <> "" then (Printf.sprintf "<a href=\"%s.html\">Sentence %d</a> -- " previous (nb_sentence-1)) else "") 
-			(if next <> "" then (Printf.sprintf " -- <a href=\"%s.html\">Sentence %d</a>" next (nb_sentence+1)) else "")
-		in
-
-		let title = "Sentence "^(string_of_int nb_sentence) in
-
-		Printf.bprintf buff "%s\n" head;
-		Printf.bprintf buff "<b>GRS file</b>: <a href=\"file:///%s\">%s</a></h2><br/>\n" (Filename.concat (Filename.dirname output) (Filename.basename grs_file)) (Filename.basename grs_file);
-		Printf.bprintf buff "<b>Input file</b>: <a href=\"file:///%s\">%s</a></h2>\n" (Filename.concat (Filename.dirname output) (Filename.basename input)) (Filename.basename input);
-		ignore(Sys.command(Printf.sprintf "cp %s %s" input (Filename.concat (Filename.dirname output) (Filename.basename input))));
-
-		let init = 
-		let ast_gr = 
-			Grew_parser.parse_file_to_gr input in	
-		 	(* Checker.check_gr ast_gr; *)
-			Instance.build ast_gr 
-		in
-		let rew_hist = Grs.rewrite grs seq init in
-		(* let _ = Grs.build_rew_display grs seq init in *)
-		let stats = if (no_init) then (
-			Rewrite_history.save_html ~mode:Rewrite_history.Only_nfs ~header:(Buffer.contents buff) ~title output rew_hist
-		) else (
-			Rewrite_history.save_html ~mode:Rewrite_history.Normal ~header:(Buffer.contents buff) ~title output rew_hist
-		) in
-		stats
-	in
+      Printf.bprintf buff "%s\n" head;
+      Printf.bprintf buff "<b>GRS file</b>: <a href=\"file:///%s\">%s</a></h2><br/>\n" (Filename.concat (Filename.dirname output) (Filename.basename grs_file)) (Filename.basename grs_file);
+      Printf.bprintf buff "<b>Input file</b>: <a href=\"file:///%s\">%s</a></h2>\n" (Filename.concat (Filename.dirname output) (Filename.basename input)) (Filename.basename input);
+      ignore(Sys.command(Printf.sprintf "cp %s %s" input (Filename.concat (Filename.dirname output) (Filename.basename input))));
+      
+      let init = 
+	let ast_gr = 
+	  Grew_parser.parse_file_to_gr input in	
+	(* Checker.check_gr ast_gr; *)
+	Instance.build ast_gr 
+      in
+      let rew_hist = Grs.rewrite grs seq init in
+      (* let _ = Grs.build_rew_display grs seq init in *)
+      let stats = 
+	if no_init
+	then Rewrite_history.save_html ?main_feat ~mode:Rewrite_history.Only_nfs ~header:(Buffer.contents buff) ~title output rew_hist
+	else Rewrite_history.save_html ?main_feat ~mode:Rewrite_history.Normal ~header:(Buffer.contents buff) ~title output rew_hist in
+      stats in
 	
   (* get ALL gr files *)
   let gr_files = Array.to_list (Sys.readdir input_dir) in
