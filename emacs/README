@@ -1,8 +1,14 @@
-To install the grew mode for emacs put the lines below (change *** by the appropriate dir) in some emacs init file (like ~/.emacs) 
+== Installation of the grew emacs mode ==
 
-;; mode pour grew
-(load-file "***/grew.el")
-(setq auto-mode-alist
-      (cons '("\\.lex$" . grew-mode) auto-mode-alist))
-(autoload 'grew-mode "grew" "Major mode for editing grew files." t)
+The grew emacs mode is defined in the file grew.el. You should put this file in a directory that emacs kowns, for instance:
+
+  mkdir -p ~/.emacs.d         # Make the directory unless it exists
+  mv grew.el ~/.emacs.d/      # Move grew.el into that directory
+
+To install the grew mode for emacs put the lines below in some emacs init file (like ~/.emacs) 
+
+  ;; mode pour grew
+  (load-file "~/.emacs.d/grew.el")
+  (setq auto-mode-alist (cons '("\\.gr[s]?$" . grew-mode) auto-mode-alist))
+  (autoload 'grew-mode "grew" "Major mode for editing grew files." t)
 
