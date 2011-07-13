@@ -9,29 +9,29 @@ module IntMap =
   struct 
     include Map.Make (struct type t = int let compare = Pervasives.compare end)
 (** returns the image of a map [m]*)
-	
+
     exception True
     let exists fct map =
       try
-	iter 
-	  (fun key value -> 
-	    if fct key value 
-	    then raise True
-	  ) map;
-	false
+        iter 
+          (fun key value -> 
+            if fct key value 
+            then raise True
+          ) map;
+        false
       with True -> true
 
     let range key_set m = 
       IntSet.fold (fun k s -> (IntSet.add (find k m) s)) key_set IntSet.empty
-	
+
     let keys m = 
       fold (fun k v s -> (IntSet.add k s)) m IntSet.empty
-	
+
 (* union of two maps*)
     let union_map m m' = fold (fun k v m'' -> (add k v m'')) m m'
-	
+
     exception MatchNotInjective
-	
+
 (*
  * union of two injective maps having different ranges :
  * \forall x \neq y \in m: m(x) \neq m(y)
@@ -45,13 +45,13 @@ module IntMap =
       let inter_keys = IntSet.inter keys_m keys_m' in
       if IntSet.for_all (fun elt -> (find elt m) = (find elt m')) inter_keys
       then 
-	let keys_s_m' = IntSet.diff keys_m' inter_keys in
-	let range_m = range keys_m m in 
-	let range_m' = range keys_s_m' m' in
-	if (IntSet.inter range_m range_m') = IntSet.empty
-	then union_map m m'
-	else raise MatchNotInjective
-      else raise MatchNotInjective	  
+        let keys_s_m' = IntSet.diff keys_m' inter_keys in
+        let range_m = range keys_m m in 
+        let range_m' = range keys_s_m' m' in
+        if (IntSet.inter range_m range_m') = IntSet.empty
+        then union_map m m'
+        else raise MatchNotInjective
+      else raise MatchNotInjective          
   end
     
 module Loc = struct
@@ -82,10 +82,10 @@ module Array_ = struct
       (if low > high 
       then false
       else
-	match (low+high)/2 with
-	| middle when array.(middle) = elt -> true
-	| middle when array.(middle) < elt -> loop (middle+1) high
-	| middle -> loop low (middle - 1)
+        match (low+high)/2 with
+        | middle when array.(middle) = elt -> true
+        | middle when array.(middle) < elt -> loop (middle+1) high
+        | middle -> loop low (middle - 1)
       ) in 
     loop 0 ((Array.length array) - 1)
 
@@ -124,9 +124,9 @@ module List_ = struct
   let rec opt_map f = function
     | [] -> []
     | x::t -> 
-	match f x with
-	| None -> opt_map f t
-	| Some r -> r :: (opt_map f t)
+        match f x with
+        | None -> opt_map f t
+        | Some r -> r :: (opt_map f t)
 
   let rec flat_map f = function
     | [] -> []
@@ -147,19 +147,19 @@ module List_ = struct
   let foldi_left f init l =
     fst 
       (List.fold_left 
-	 (fun (acc,i) elt -> (f i acc elt, i+1))
-	 (init,0) l
+         (fun (acc,i) elt -> (f i acc elt, i+1))
+         (init,0) l
       )
 
   let rec remove elt = function
     | [] -> raise Not_found
     | a::tail when a = elt -> tail
     | a::tail -> a::(remove elt tail)
-		      
+
   let to_string string_of_item sep = function
     | [] -> ""
     | h::t -> List.fold_left (fun acc elt -> acc ^ sep ^ (string_of_item elt)) (string_of_item h) t
-	  
+
   let rec sort_insert elt = function
     | [] -> [elt]
     | h::t when elt<h -> elt::h::t 
@@ -169,7 +169,7 @@ module List_ = struct
     | [] -> false
     | h::_ when elt<h -> false
     | h::_ when elt=h -> true
-    | h::t (* when elt>h *) -> sort_mem elt t		   
+    | h::t (* when elt>h *) -> sort_mem elt t
   exception Usort
 
   let rec usort_remove key = function 
@@ -185,14 +185,14 @@ module List_ = struct
       | x::t when compare elt x > 0 -> x :: (loop t)
     | _ -> raise Usort in
     try Some (loop l) with Usort -> None
-	
+
   let rec sort_disjoint l1 l2 = 
     match (l1,l2) with
     | [], _ | _, [] -> true
     | h1::t1 , h2::t2 when h1<h2 -> sort_disjoint t1 l2
     | h1::t1 , h2::t2 when h1>h2 -> sort_disjoint l1 t2
     | _ -> false 
-	  
+
   let sort_is_empty_inter l1 l2 = 
     let rec loop = function
       | [], _ | _, [] -> true
@@ -252,7 +252,7 @@ module Massoc = struct
   (* Massoc is implemented with caml lists *)
   (* invariant: we suppose that all 'a list in the structure are not empty! *) 
   type 'a t = (int * 'a list) list
-	
+
   let empty = []
 
   let is_empty t = (t=[])
@@ -266,37 +266,37 @@ module Massoc = struct
   let to_string elt_to_string t = 
     List_.to_string 
       (fun (i,elt_list) -> 
-	sprintf "%d -> [%s]" i (List_.to_string elt_to_string "," elt_list)
+        sprintf "%d -> [%s]" i (List_.to_string elt_to_string "," elt_list)
       ) "; " t
     
   let iter fct t =
     List.iter 
       (fun (key,list) ->
-	List.iter 
-	  (fun elt -> fct key elt)
-	  list
+        List.iter 
+          (fun elt -> fct key elt)
+          list
       ) t
-	
+
   let rec add key elt = function
     | [] -> Some [(key, [elt])]
     | (h,list)::t when h=key -> 
-	(match List_.usort_insert elt list with 
-	| Some new_list -> Some ((h, new_list)::t)
-	| None -> None
-	)
+        (match List_.usort_insert elt list with 
+        | Some new_list -> Some ((h, new_list)::t)
+        | None -> None
+        )
     | ((h,_)::_) as t when key<h -> Some ((key,[elt])::t)
     | (h,l)::t (* when key>h *) -> 
-	match (add key elt t) with Some t' -> Some ((h,l)::t') | None -> None
-	    
+        match (add key elt t) with Some t' -> Some ((h,l)::t') | None -> None
+
   let fold_left fct init t =
     List.fold_left 
       (fun acc (key,list) ->
-	List.fold_left 
-	  (fun acc2 elt ->
-	    fct acc2 key elt)
-	  acc list)
+        List.fold_left 
+          (fun acc2 elt ->
+            fct acc2 key elt)
+          acc list)
       init t
-	    
+
   let rec remove key value = function
     | [] -> raise Not_found 
     | (h,_)::_ when key<h -> raise Not_found 
@@ -309,7 +309,7 @@ module Massoc = struct
     | (h,_)::_ when key<h -> raise Not_found 
     | (h,list)::t when key=h -> t
     | (h,list)::t (* when key>h *) -> (h,list) :: (remove_key key t)
-	  
+
   let rec mem key value = function
     | [] -> false
     | (h,_)::_ when key<h -> false
@@ -329,8 +329,8 @@ module Massoc = struct
       | ((h1,l1)::t1, (h2,l2)::t2) when h1 < h2 -> (h1,l1)::(loop (t1,((h2,l2)::t2)))
       | ((h1,l1)::t1, (h2,l2)::t2) when h1 > h2 -> (h2,l2)::(loop (((h1,l1)::t1),t2))
       | ((h1,l1)::t1, (h2,l2)::t2) (* when h1=h2*) ->
-	  try (h1,List_.sort_disjoint_union l1 l2)::(loop (t1, t2))
-	  with List_.Not_disjoint -> raise Not_disjoint
+          try (h1,List_.sort_disjoint_union l1 l2)::(loop (t1, t2))
+          with List_.Not_disjoint -> raise Not_disjoint
     in loop (t1, t2)
 
   exception Duplicate
@@ -380,3 +380,26 @@ module Id = struct
     try Some (Array_.dicho_find string table)
     with Not_found -> None
 end
+
+module Html = struct
+  let css = "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />\n<link rel=\"stylesheet\" href=\"style.css\" type=\"text/css\">" 
+      
+  let enter out_ch ?title ?header base_name =
+    fprintf out_ch "<html>\n";
+    (match title with
+    | Some t -> fprintf out_ch "<head>\n%s\n<title>%s</title>\n</head>\n" css t
+    | None -> fprintf out_ch "<head>\n%s\n</head>\n" css
+    );
+    fprintf out_ch "<body>\n";
+
+    (match header with None -> () | Some s -> fprintf out_ch "%s\n" s);
+
+    (match title with
+    | Some t -> fprintf out_ch "<h1>%s</h1>\n" t 
+    | None -> ()
+    )
+  let leave out_ch = 
+    fprintf out_ch "</body>\n";
+    fprintf out_ch "</html>\n";
+end      
+

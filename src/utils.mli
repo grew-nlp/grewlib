@@ -71,7 +71,7 @@ end
 associated with a set of values *)
 module Massoc: sig
   type 'a t
-	
+
   val empty: 'a t
 
   (* an empty list returned if the key is undefined *) 
@@ -134,3 +134,7 @@ module Id: sig
   val build_opt: name -> table -> t option 
 end
 
+module Html: sig
+  val enter: out_channel -> ?title: string -> ?header: string -> string -> unit
+  val leave: out_channel -> unit
+end

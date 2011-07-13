@@ -4,7 +4,6 @@ open Command
 open Grew_edge
 open Grew_fs
 
-
 module Instance : sig
   type t = {
       graph: Graph.t;
@@ -12,13 +11,12 @@ module Instance : sig
       rules: string list;
       big_step: Grew_types.big_step option; 
     }
-    
-    
+        
   val empty:t
 
   val build: Ast.gr -> t	
 
-   (* rev_steps reverse the small step list: during rewriting, the last rule is in the head of the list and the reverse is needed for display *) 
+  (* rev_steps reverse the small step list: during rewriting, the last rule is in the head of the list and the reverse is needed for display *) 
   val rev_steps: t -> t
 
   val clear: t -> t 
@@ -30,7 +28,6 @@ module Instance : sig
 end
 
 module Instance_set : Set.S with type elt = Instance.t
-
 
 module Rule : sig
   type t

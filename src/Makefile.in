@@ -85,15 +85,15 @@ libgrew.mli : grew_types.mli
 libgrew.cma : $(FILES_CMO) parser_byte checker_byte HTMLer_byte libgrew.mli libgrew.ml
 	rm libgrew.mli
 	@make libgrew.mli
-	ocamlc -c $(FILES_CMO) str.cma -I parser $(PARSER_CMO) -I HTMLer HTMLer.cmo -I checker checker.cmo libgrew.mli
-	ocamlc -a -o libgrew.cma -pp 'camlp4o pa_macro.cmo -DDATA_DIR=\"$(DATA_DIR)\"' -linkall $(FILES_CMO) -I parser $(PARSER_CMO) -I HTMLer HTMLer.cmo -I checker checker.cmo libgrew.ml
+	ocamlc -c $(BYPE_FLAGS) $(FILES_CMO) str.cma -I parser $(PARSER_CMO) -I HTMLer HTMLer.cmo -I checker checker.cmo libgrew.mli
+	ocamlc -a -o libgrew.cma $(BYPE_FLAGS) -pp 'camlp4o pa_macro.cmo -DDATA_DIR=\"$(DATA_DIR)\"' -linkall $(FILES_CMO) -I parser $(PARSER_CMO) -I HTMLer HTMLer.cmo -I checker checker.cmo libgrew.ml
 
 
 libgrew.cmxa : $(FILES_CMX) parser_opt checker_opt HTMLer_opt libgrew.mli libgrew.ml
 	rm libgrew.mli
 	@make libgrew.mli
-	ocamlopt -c $(FILES_CMX) str.cmxa -I parser $(PARSER_CMX) -I HTMLer HTMLer.cmx -I checker checker.cmx libgrew.mli
-	ocamlopt -a -o libgrew.cmxa -pp 'camlp4o pa_macro.cmo -DDATA_DIR=\"$(DATA_DIR)\"' -linkall $(FILES_CMX) -I parser $(PARSER_CMX) -I HTMLer HTMLer.cmx -I checker checker.cmx libgrew.ml
+	ocamlopt -c $(OPT_FLAGS) $(FILES_CMX) str.cmxa -I parser $(PARSER_CMX) -I HTMLer HTMLer.cmx -I checker checker.cmx libgrew.mli
+	ocamlopt -a -o libgrew.cmxa $(OPT_FLAGS) -pp 'camlp4o pa_macro.cmo -DDATA_DIR=\"$(DATA_DIR)\"' -linkall $(FILES_CMX) -I parser $(PARSER_CMX) -I HTMLer HTMLer.cmx -I checker checker.cmx libgrew.ml
 
 DEPENDS_DIR= -I parser -I checker -I HTMLer
 
