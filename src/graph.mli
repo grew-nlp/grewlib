@@ -54,9 +54,9 @@ module Graph : sig
   val merge_node : Loc.t -> t -> int -> int -> t option
   val shift_edges : Loc.t -> t -> int -> int -> t
 
-  (** [cpy_feat src_id tar_id feat_name] copy the feature value associated with [feat_name] from 
-   the node [src_id] to the node [tar_id] *)
-  val cpy_feat : t -> int -> int -> string -> t
+  (** [cpy_feat src_id tar_id src_feat_name tar_feat_name] copy the feature value associated with [src_feat_name] from 
+   the node [src_id] to the node [tar_id] with feature name [tar_feat_name] *)
+  val cpy_feat : t -> int -> int -> string -> string -> t
 
   val add_feat : t -> int -> string -> string -> t
   val del_feat : t -> int -> string -> t

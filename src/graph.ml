@@ -302,13 +302,14 @@ module Graph = struct
 	Some {se_graph with map = new_map}
     | None -> None 
       
-  let cpy_feat graph src_id tar_id feat_name = 
+  (* TODO: with copy_feat from different feature name, correctness of fs wrt domain can be broken: add the check against domain *)
+  let cpy_feat graph src_id tar_id src_feat_name tar_feat_name = 
     let src = IntMap.find src_id graph.map in
     let tar = IntMap.find tar_id graph.map in
     let new_f = 
-      try Feature_structure.set_feat feat_name 
-	  (Feature_structure.get feat_name src.Node.fs) tar.Node.fs 
-      with Not_found -> Log.fcritical "[RUN] [Graph.cpy_feat] no feature \"%s\" in node \"%s\"" feat_name (Node.to_string src) in
+      try Feature_structure.set_feat tar_feat_name 
+	  (Feature_structure.get src_feat_name src.Node.fs) tar.Node.fs 
+      with Not_found -> Log.fcritical "[RUN] [Graph.cpy_feat] no feature \"%s\" in node \"%s\"" src_feat_name (Node.to_string src) in
     {graph with map = IntMap.add tar_id {tar with Node.fs = new_f} graph.map}
       
   let add_feat graph node_id feat_name feat_value = 

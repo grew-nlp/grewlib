@@ -165,7 +165,7 @@ module Rule = struct
     {
      Deco.nodes = List.fold_left
        (fun acc -> function
-         | (Command.CPY_FEAT (tar_cn,_,_),loc)
+         | (Command.COPY_FEAT (tar_cn,_,_,_),loc)
          | (Command.ADD_FEAT (tar_cn,_,_),loc)
          | (Command.DEL_FEAT (tar_cn,_),loc)
          | (Command.SHIFT_EDGE (_,tar_cn),loc) -> 
@@ -397,13 +397,13 @@ module Rule = struct
         | None -> raise Command_execution_fail
         )
           
-    | Command.CPY_FEAT (tar_cn,src_cn,feat_name) ->
+    | Command.COPY_FEAT (tar_cn,src_cn,tar_feat_name, src_feat_name) ->
         let src_gid = node_find src_cn in
         let tar_gid = node_find tar_cn in
         (
          {instance with 
-          Instance.graph = Graph.cpy_feat instance.Instance.graph src_gid tar_gid feat_name;
-          commands = List_.sort_insert (Command.H_CPY_FEAT (tar_gid,src_gid,feat_name)) instance.Instance.commands
+          Instance.graph = Graph.cpy_feat instance.Instance.graph src_gid tar_gid src_feat_name tar_feat_name;
+          commands = List_.sort_insert (Command.H_COPY_FEAT (tar_gid,src_gid,tar_feat_name,src_feat_name)) instance.Instance.commands
         },
          created_nodes
         )     

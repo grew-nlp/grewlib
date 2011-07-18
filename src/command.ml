@@ -20,7 +20,7 @@ module Command  = struct
     | DEL_EDGE_EXPL of (cnode * cnode *Edge.t) 
     | DEL_EDGE_NAME of string
     | ADD_EDGE of (cnode * cnode * Edge.t)
-    | CPY_FEAT of (cnode * cnode * string) 
+    | COPY_FEAT of (cnode * cnode * string * string) 
     | ADD_FEAT of (cnode * string * string)
     | DEL_FEAT of (cnode *string)
     | NEW_NEIGHBOUR of (string * Edge.t * pid)
@@ -35,7 +35,7 @@ module Command  = struct
     | H_DEL_EDGE_EXPL of (gid * gid *Edge.t) 
     | H_DEL_EDGE_NAME of string
     | H_ADD_EDGE of (gid * gid * Edge.t)
-    | H_CPY_FEAT of (gid * gid * string) 
+    | H_COPY_FEAT of (gid * gid * string * string) 
     | H_ADD_FEAT of (gid * string * string)
     | H_DEL_FEAT of (gid *string)
     | H_NEW_NEIGHBOUR of (string * Edge.t * gid)
@@ -96,8 +96,9 @@ module Command  = struct
 	  | [node_1; feat_name_1] ->
 	      begin
 		match Str.split (Str.regexp "\\.") feat2 with
-		| [node_2; feat_name_2] when feat_name_1 = feat_name_2 -> (CPY_FEAT (get_pid node_1, get_pid node_2, feat_name_1), loc)
-		| [node_2; feat_name_2] -> Log.fcritical "[GRS] Copy feat through different feature name not implemented %s" (Loc.to_string loc)
+		| [node_2; feat_name_2] (* when feat_name_1 = feat_name_2 *) -> 
+                    (COPY_FEAT (get_pid node_1, get_pid node_2, feat_name_1, feat_name_2), loc)
+		(* | [node_2; feat_name_2] -> Log.fcritical "[GRS] Copy feat through different feature name not implemented %s" (Loc.to_string loc) *)
 		| _ -> Log.fcritical "[GRS] \"%s\" is not a feature %s" feat2 (Loc.to_string loc)
 	      end
 	  | _ -> Log.fcritical "[GRS] \"%s\" is not a feature %s" feat1 (Loc.to_string loc)

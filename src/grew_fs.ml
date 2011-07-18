@@ -83,16 +83,20 @@ module Feature_structure = struct
 	     (function Feature.Equal (f, _) | Feature.Different (f, _) when f=main -> true | _ -> false)
 	     t
 	  ) with
-	| Feature.Equal (_,[ph]) | Feature.Different (_,[ph]) -> Str.global_replace (Str.regexp_string  "//PV//") ";" ph
+	| Feature.Equal (_,[ph]) | Feature.Different (_,[ph]) -> 
+            Str.global_replace (Str.regexp_string  "//PV//") ";" 
+              (Str.global_replace (Str.regexp_string  "//AND//") "&amp;" ph)
 	| _ -> raise Not_found
       with Not_found -> "" in
     let fs = 
       Str.global_replace (Str.regexp_string  "//PV//") ";"
-	(Str.global_replace (Str.regexp_string  "__") ":C:"
-	   (List_.to_string string_of_feature "#" 
-	      (List.filter 
-		 (function Feature.Equal (f, _) | Feature.Different (f, _) when f=main -> false | _ -> true) t)
-	   )
+        (Str.global_replace (Str.regexp_string  "//AND//") "&amp;"
+	   (Str.global_replace (Str.regexp_string  "__") ":C:"
+	      (List_.to_string string_of_feature "#" 
+	         (List.filter 
+		    (function Feature.Equal (f, _) | Feature.Different (f, _) when f=main -> false | _ -> true) t)
+	      )
+           )
 	) in
     match fs with 
     | "" ->  Printf.sprintf " word=\"%s\"; " wordform
