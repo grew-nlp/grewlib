@@ -58,7 +58,7 @@ module Rewrite_history = struct
     loop true ([],[]) t;
     List.rev !nfs
       
-  let save_html ?main_feat ?(init_graph=true) ?title ?header prefix t =
+  let save_html ?main_feat ?(init_graph=true) ?header prefix t =
     
     let stats = ref [] in
     
@@ -68,12 +68,15 @@ module Rewrite_history = struct
     let _ = Unix.system (sprintf "rm -f %s*.png" prefix) in
     
     let nf_files = save_all_dep ?main_feat ~init_graph prefix t in
+    let l = List.length nf_files in
+
     let local = Filename.basename prefix in
     
     (* All normal forms view *)
     let html_ch = open_out (sprintf "%s.html" prefix) in
 
-    let () = Html.enter html_ch ?title ?header prefix in
+    let title = sprintf "Sentence: %s --- %d Normal form%s" local l (if l>1 then "s" else "") in
+    let () = Html.enter html_ch ~title ?header prefix in
 
     if init_graph
     then

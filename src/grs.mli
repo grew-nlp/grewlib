@@ -9,7 +9,7 @@ module Rewrite_history: sig
       bad_nf: Instance.t list;
     }
 
-  val save_html: ?main_feat:string -> ?init_graph:bool -> ?title:string -> ?header:string -> string -> t -> (string*string list) list
+  val save_html: ?main_feat:string -> ?init_graph:bool -> ?header:string -> string -> t -> (string*string list) list
 end
 
 

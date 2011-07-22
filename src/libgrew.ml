@@ -95,13 +95,13 @@ let rewrite_to_html ?main_feat input_dir grs output_dir no_init current_grs_file
         (* let _ = Grs.build_rew_display grs seq init in *)
         let stats = 
           if no_init
-          then Some (Rewrite_history.save_html ?main_feat ~init_graph:false ~header:(Buffer.contents buff) ~title output rew_hist)
-          else Some (Rewrite_history.save_html ?main_feat ~header:(Buffer.contents buff) ~title output rew_hist) in
+          then Some (Rewrite_history.save_html ?main_feat ~init_graph:false ~header:(Buffer.contents buff) output rew_hist)
+          else Some (Rewrite_history.save_html ?main_feat ~header:(Buffer.contents buff) output rew_hist) in
         stats 
       with 
       | Utils.Run (msg, Some (loc_file,loc_line)) -> 
           let html_ch = open_out (sprintf "%s.html" output) in
-          let () = Html.enter html_ch ~title ~header:(Buffer.contents buff) output in
+          let () = Html.enter html_ch ~header:(Buffer.contents buff) output in
           fprintf html_ch "<h6>Initial graph</h6>\n";
           Instance.save_dep_png ?main_feat output init;
           fprintf html_ch "<div width=100%% style=\"overflow-x:auto\"><IMG SRC=\"%s.png\"></div>\n" (Filename.basename output);
@@ -114,7 +114,7 @@ let rewrite_to_html ?main_feat input_dir grs output_dir no_init current_grs_file
           None
       | exc -> 
           let html_ch = open_out (sprintf "%s.html" output) in
-          let () = Html.enter html_ch ~title ~header:(Buffer.contents buff) output in
+          let () = Html.enter html_ch ~header:(Buffer.contents buff) output in
           fprintf html_ch "<h1>UNEXPECTED EXCEPTION: %s</h1>" (Printexc.to_string exc);
           Html.leave html_ch;
           close_out html_ch;
