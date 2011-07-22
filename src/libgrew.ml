@@ -95,8 +95,8 @@ let rewrite_to_html ?main_feat input_dir grs output_dir no_init current_grs_file
         (* let _ = Grs.build_rew_display grs seq init in *)
         let stats = 
           if no_init
-          then Some (Rewrite_history.save_html ?main_feat ~mode:Rewrite_history.Only_nfs ~header:(Buffer.contents buff) ~title output rew_hist)
-          else Some (Rewrite_history.save_html ?main_feat ~mode:Rewrite_history.Normal ~header:(Buffer.contents buff) ~title output rew_hist) in
+          then Some (Rewrite_history.save_html ?main_feat ~init_graph:false ~header:(Buffer.contents buff) ~title output rew_hist)
+          else Some (Rewrite_history.save_html ?main_feat ~header:(Buffer.contents buff) ~title output rew_hist) in
         stats 
       with 
       | Utils.Run (msg, Some (loc_file,loc_line)) -> 

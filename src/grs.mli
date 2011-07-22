@@ -9,12 +9,7 @@ module Rewrite_history: sig
       bad_nf: Instance.t list;
     }
 
-  type html_mode =
-    | Normal
-    | Only_nfs
-    | Full
-
-  val save_html: ?main_feat:string -> ?mode:html_mode -> ?title:string -> ?header:string -> string -> t -> (string*string list) list
+  val save_html: ?main_feat:string -> ?init_graph:bool -> ?title:string -> ?header:string -> string -> t -> (string*string list) list
 end
 
 

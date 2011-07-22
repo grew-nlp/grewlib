@@ -30,13 +30,8 @@ module Rewrite_history = struct
              ) l
           )
 
-  type html_mode =
-    | Normal
-    | Only_nfs
-    | Full
-
   (* warning: path are returned in reverse order *)
-  let save_all_dep ?main_feat ?(mode=Normal) base_name t = 
+  let save_all_dep ?main_feat ?(init_graph=true) base_name t = 
     let nfs = ref [] in
     let rec loop first (rev_path, rev_rules) t =
       let file = 
@@ -45,10 +40,10 @@ module Rewrite_history = struct
         | l -> sprintf "%s_%s" base_name (List_.to_string string_of_int "_" l) in
 
       begin
-        match (first, mode) with
-        | (_, Full) | (true, Normal)
+        match (first, init_graph) with
+        | (true, true)
           -> Instance.save_dep_png ?main_feat file t.instance
-        | _ when t.good_nf = [] 
+        | _ when t.good_nf = []  (* t is a leaf of the tree history *)
           -> Instance.save_dep_png ?main_feat file t.instance
         | _ -> ()
       end;
@@ -63,7 +58,7 @@ module Rewrite_history = struct
     loop true ([],[]) t;
     List.rev !nfs
       
-  let save_html ?main_feat ?(mode=Normal) ?title ?header prefix t =
+  let save_html ?main_feat ?(init_graph=true) ?title ?header prefix t =
     
     let stats = ref [] in
     
@@ -72,7 +67,7 @@ module Rewrite_history = struct
     let _ = Unix.system (sprintf "rm -f %s*.dep" prefix) in
     let _ = Unix.system (sprintf "rm -f %s*.png" prefix) in
     
-    let nf_files = save_all_dep ?main_feat ~mode prefix t in
+    let nf_files = save_all_dep ?main_feat ~init_graph prefix t in
     let local = Filename.basename prefix in
     
     (* All normal forms view *)
@@ -80,22 +75,31 @@ module Rewrite_history = struct
 
     let () = Html.enter html_ch ?title ?header prefix in
 
-    if mode <> Only_nfs 
+    if init_graph
     then
       begin
         fprintf html_ch "<h6>Initial graph</h6>\n";
         fprintf html_ch "<div width=100%% style=\"overflow-x:auto\"><IMG SRC=\"%s.png\"></div>\n" local
       end;
     
-    
-    let sol_counter = ref 1 in
+    List_.iteri 
+      (fun i (_,rules_list,file_name) -> 
+        fprintf html_ch "<h6>Solution %d</h6>\n" (i+1);
 
-    List.iter 
-      (fun (_,rules_list,file_name) -> 
-        fprintf html_ch "<h6>Solution %d</h6>\n" !sol_counter;
-        incr sol_counter;
         let local_name = Filename.basename file_name in
+        
+        (* the png file *)
+        fprintf html_ch "<div width=100%% style=\"overflow-x:auto\"><IMG SRC=\"%s.png\"></div>\n" local_name;
+
+        (* the modules list *)
         fprintf html_ch "<b>Modules applied</b>: %d<br/>\n" (List.length rules_list);
+        
+        let id =sprintf "id_%d" (i+1) in
+        
+        fprintf html_ch "<a style=\"cursor:pointer;\" onClick=\"if (document.getElementById('%s').style.display == 'none') { document.getElementById('%s').style.display = 'block'; document.getElementById('p_%s').innerHTML = 'Hide'; } else { document.getElementById('%s').style.display = 'none';; document.getElementById('p_%s').innerHTML = 'Show'; }\"><b><p id=\"p_%s\">Show</p></b></a>\n" id id id id id id;
+
+        fprintf html_ch " <div id=\"%s\" style=\"display:none;\">\n" id;
+
         List.iter 
           (fun (mod_name,rules) -> 
             fprintf html_ch "<p><b><font color=\"red\">%s: </font></b><font color=\"green\">%s</font></p>\n" 
@@ -104,36 +108,13 @@ module Rewrite_history = struct
             stats := (mod_name,rules)::(!stats)
           )
           rules_list;
-        if mode = Full then fprintf html_ch "<p><a href=\"%s.html\">Show history</a></p>\n" local_name;
-        fprintf html_ch "<div width=100%% style=\"overflow-x:auto\"><IMG SRC=\"%s.png\"></div>\n" local_name;
+        fprintf html_ch " </div>\n"
+
+        
       ) nf_files;
     Html.leave html_ch;
     close_out html_ch;
 
-    if mode = Full
-    then 
-      (* All derivation view *)
-      List.iter
-        (fun (rev_path, _, file) ->
-          let html_ch =  open_out (sprintf "%s.html" file) in
-          let () = Html.enter html_ch ?header file in
-          fprintf html_ch "<h1>Rewriting history for normal form: %s</h1>\n" file;
-          let rec loop = function
-            | [] -> 
-                fprintf html_ch "<h6>Initial form: %s</h6>\n" local;
-                fprintf html_ch "<p><IMG SRC=\"%s.png\"></p>\n" local;
-                ""
-            | x::t -> 
-                let string = loop t in
-                let new_string = Printf.sprintf "%s_%d" string x in
-                let file = Printf.sprintf "%s%s" local new_string in
-                fprintf html_ch "<h6>Graph: %s</h6>\n" file;
-                fprintf html_ch "<p><IMG SRC=\"%s.png\"></p>\n" file;
-                new_string
-          in ignore (loop rev_path);
-          Html.leave html_ch;
-          close_out html_ch
-        ) nf_files;
     List.rev !stats
       
 end

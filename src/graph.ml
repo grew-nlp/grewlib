@@ -66,7 +66,9 @@ module Graph = struct
 	  let edge = Edge.build ~locals (ast_edge, loc) in
 	  (match map_add_edge acc i1 edge i2 with
 	  | Some g -> g
-	  | None -> Log.fcritical "[GRS] [Graph.build] try to build a graph with twice the same edge %s" (Edge.to_string edge)
+	  | None -> Log.fcritical "[GRS] [Graph.build] try to build a graph with twice the same edge %s %s" 
+                (Edge.to_string edge)
+                (Loc.to_string loc)
 	  )
 	) map_without_edges full_edge_list in
     
