@@ -250,6 +250,6 @@ let rewrite_to_html ?main_feat input_dir grs output_dir no_init current_grs_file
   | Utils.Run (msg,loc) -> raise (Run (msg,loc))
   | Utils.Bug (msg, loc) -> raise (Bug (msg,loc))
   | exc -> raise (Bug (Printf.sprintf "UNCATCHED EXCEPTION: %s" (Printexc.to_string exc), None))
-
+ENDIF
 let get_css_file = Filename.concat DATA_DIR "style.css"
 
