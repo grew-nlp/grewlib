@@ -3,7 +3,7 @@ LOG_DIR = @LOG_INCLUDE@
 LOG_BYTE = $(LOG_DIR) log.cma
 LOG_OPT = $(LOG_DIR) log.cmxa
 
-
+DEP2PICT=@DEP2PICT@
 DEP2PICT_DIR = @DEP2PICT_INCLUDE@
 DEP2PICT_BYTE = $(DEP2PICT_DIR) dep2pict.cma
 DEP2PICT_OPT = $(DEP2PICT_DIR) dep2pict.cmxa
@@ -59,4 +59,5 @@ infos:
 	@echo "MESSAGE              -> " $(MESSAGE)
 	@echo "INFO                 -> " $(INFO)
 	@echo ""
+	@echo "use dep2pict         -> " $(DEP2PICT)
 

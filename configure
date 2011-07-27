@@ -571,6 +571,7 @@ INFO
 MESSAGE
 WARNING
 DEBUG
+DEP2PICT
 MENHIR
 OCAMLFIND
 target_alias
@@ -615,6 +616,7 @@ ac_subst_files=''
 ac_user_opts='
 enable_option_checking
 enable_config
+enable_dep2pict
 enable_debug
 enable_warning
 enable_message
@@ -1235,6 +1237,7 @@ Optional Features:
   --disable-FEATURE       do not include FEATURE (same as --enable-FEATURE=no)
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
   --enable-config         Enable configuration check (default is yes)
+  --enable-dep2pict       Enable dep2pict (default is yes)
   --enable-debug          Display debug trace
   --enable-warning        Display warning trace
   --enable-message        Display message trace
@@ -1681,6 +1684,15 @@ else
 fi
 
 
+
+# Check whether --enable-dep2pict was given.
+if test "${enable_dep2pict+set}" = set; then :
+  enableval=$enable_dep2pict; dep2pict=$enableval
+else
+  dep2pict=yes
+fi
+
+
 if test "$config" = yes ; then
 
 	# Look for ocamlfind
@@ -1840,34 +1852,45 @@ $as_echo "ocamlfind" >&6; }
 	fi
 	rm c_check_log.* >& /dev/null
 
-	#Look for Dep2pict
-	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for dep2pict" >&5
+
+	DEP2PICT="no"
+	if test "$dep2pict" = yes ; then
+		#Look for Dep2pict
+		{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for dep2pict" >&5
 $as_echo_n "checking for dep2pict... " >&6; }
-	if test -f c_check_dep2pict.ml ; then
-		if test -w c_check_dep2pict.ml ; then
-			rm c_check_dep2pict.* >& /dev/null
-		else
-			as_fn_error $? "Cannot remove c_check_dep2pict.ml. Please change its right with chmod 666 c_check_dep2pict.ml" "$LINENO" 5
+		if test -f c_check_dep2pict.ml ; then
+			if test -w c_check_dep2pict.ml ; then
+				rm c_check_dep2pict.* >& /dev/null
+			else
+				as_fn_error $? "Cannot remove c_check_dep2pict.ml. Please change its right with chmod 666 c_check_dep2pict.ml" "$LINENO" 5
+			fi
 		fi
-	fi
-	echo "open Dep2pict;;" > c_check_dep2pict.ml
-	if (ocamlc -c dep2pict.cma  c_check_dep2pict.ml >& /dev/null) ; then
-		{ $as_echo "$as_me:${as_lineno-$LINENO}: result: standard" >&5
+		echo "open Dep2pict;;" > c_check_dep2pict.ml
+		if (ocamlc -c dep2pict.cma  c_check_dep2pict.ml >& /dev/null) ; then
+			{ $as_echo "$as_me:${as_lineno-$LINENO}: result: standard" >&5
 $as_echo "standard" >&6; }
-	else
-		if test "$OCAMLFIND" = no ; then
-		            as_fn_error $? "The dep2pict library is missing." "$LINENO" 5
-		    else
-		            if $OCAMLFIND query dep2pict > /dev/null 2>&1 ; then
-		                    DEP2PICT_INCLUDE="-I `$OCAMLFIND query dep2pict`"
-		                    { $as_echo "$as_me:${as_lineno-$LINENO}: result: ocamlfind" >&5
+			DEP2PICT="yes"
+		else
+			if test "$OCAMLFIND" = no ; then
+				        { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: The dep2pict library is missing." >&5
+$as_echo "$as_me: WARNING: The dep2pict library is missing." >&2;}
+						DEP2PICT="no"
+				else
+				        if $OCAMLFIND query dep2pict > /dev/null 2>&1 ; then
+				                DEP2PICT_INCLUDE="-I `$OCAMLFIND query dep2pict`"
+				                { $as_echo "$as_me:${as_lineno-$LINENO}: result: ocamlfind" >&5
 $as_echo "ocamlfind" >&6; }
-		            else
-		                    as_fn_error $? "The dep2pict library is missing." "$LINENO" 5
-		            fi
-		    fi
+								DEP2PICT="yes"
+				        else
+				                { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: The dep2pict library is missing." >&5
+$as_echo "$as_me: WARNING: The dep2pict library is missing." >&2;}
+								DEP2PICT="no"
+				        fi
+				fi
+		fi
+		rm c_check_dep2pict.* >& /dev/null
 	fi
-	rm c_check_dep2pict.* >& /dev/null
+
 
 fi
 

@@ -48,7 +48,9 @@ val gr : string -> gr
 @return a structure {b {i easily}} displayable *)
 val rewrite : gr:gr -> grs:grs -> seq:string -> rew_display
 
+IFDEF DEP2PICT THEN
 val rewrite_to_html :
 	?main_feat:string -> string -> string -> string -> bool -> string -> Grs.t -> string -> string -> unit 
+ENDIF
 
 val get_css_file: string

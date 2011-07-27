@@ -13,6 +13,15 @@ AC_ARG_ENABLE(
 	[config=$enableval],
 	[config=yes])
 
+
+AC_ARG_ENABLE(
+	[dep2pict],
+ 	[AS_HELP_STRING(
+		[--enable-dep2pict],
+		[Enable dep2pict (default is yes)])],
+	[dep2pict=$enableval],
+	[dep2pict=yes])
+	
 if test "$config" = yes ; then
 
 	# Look for ocamlfind
@@ -84,32 +93,41 @@ if test "$config" = yes ; then
 	fi
 	rm c_check_log.* >& /dev/null
 	
-	#Look for Dep2pict
-	AC_MSG_CHECKING([for dep2pict])
-	if test -f c_check_dep2pict.ml ; then
-		if test -w c_check_dep2pict.ml ; then
-			rm c_check_dep2pict.* >& /dev/null
-		else
-			AC_MSG_ERROR(Cannot remove c_check_dep2pict.ml. Please change its right with chmod 666 c_check_dep2pict.ml)
+	
+	DEP2PICT="no"
+	if test "$dep2pict" = yes ; then
+		#Look for Dep2pict
+		AC_MSG_CHECKING([for dep2pict])
+		if test -f c_check_dep2pict.ml ; then
+			if test -w c_check_dep2pict.ml ; then
+				rm c_check_dep2pict.* >& /dev/null
+			else
+				AC_MSG_ERROR(Cannot remove c_check_dep2pict.ml. Please change its right with chmod 666 c_check_dep2pict.ml)
+			fi
 		fi
+		echo "open Dep2pict;;" > c_check_dep2pict.ml
+		if (ocamlc -c dep2pict.cma  c_check_dep2pict.ml >& /dev/null) ; then
+			AC_MSG_RESULT(standard)
+			DEP2PICT="yes"
+		else
+			if test "$OCAMLFIND" = no ; then
+				        AC_MSG_WARN(The dep2pict library is missing.)
+						DEP2PICT="no"
+				else
+				        if $OCAMLFIND query dep2pict > /dev/null 2>&1 ; then
+				                DEP2PICT_INCLUDE="-I `$OCAMLFIND query dep2pict`"
+				                AC_MSG_RESULT(ocamlfind)
+								DEP2PICT="yes"
+				        else
+				                AC_MSG_WARN(The dep2pict library is missing.)
+								DEP2PICT="no"
+				        fi
+				fi
+		fi
+		rm c_check_dep2pict.* >& /dev/null
 	fi
-	echo "open Dep2pict;;" > c_check_dep2pict.ml
-	if (ocamlc -c dep2pict.cma  c_check_dep2pict.ml >& /dev/null) ; then
-		AC_MSG_RESULT(standard)
-	else
-		if test "$OCAMLFIND" = no ; then
-		            AC_MSG_ERROR(The dep2pict library is missing.)
-		    else
-		            if $OCAMLFIND query dep2pict > /dev/null 2>&1 ; then
-		                    DEP2PICT_INCLUDE="-I `$OCAMLFIND query dep2pict`"
-		                    AC_MSG_RESULT(ocamlfind)
-		            else
-		                    AC_MSG_ERROR(The dep2pict library is missing.)
-		            fi
-		    fi
-	fi
-	rm c_check_dep2pict.* >& /dev/null
-
+	AC_SUBST(DEP2PICT)
+	
 fi
 
 AC_ARG_ENABLE(

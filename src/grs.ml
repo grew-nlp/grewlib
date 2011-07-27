@@ -30,6 +30,8 @@ module Rewrite_history = struct
              ) l
           )
 
+
+IFDEF DEP2PICT THEN
   (* warning: path are returned in reverse order *)
   let save_all_dep ?main_feat ?(init_graph=true) base_name t = 
     let nfs = ref [] in
@@ -117,6 +119,7 @@ module Rewrite_history = struct
       ) nf_files;
     Html.leave html_ch;
     close_out html_ch;
+
 
     List.rev !stats
       

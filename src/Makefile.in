@@ -85,15 +85,24 @@ libgrew.mli : grew_types.mli
 libgrew.cma : $(FILES_CMO) parser_byte checker_byte HTMLer_byte libgrew.mli libgrew.ml
 	rm libgrew.mli
 	@make libgrew.mli
-	ocamlc -c $(BYPE_FLAGS) $(FILES_CMO) str.cma -I parser $(PARSER_CMO) -I HTMLer HTMLer.cmo -I checker checker.cmo libgrew.mli
+ifeq (@DEP2PICT@,no) 
+	ocamlc -c -pp 'camlp4o pa_macro.cmo' $(BYPE_FLAGS) $(FILES_CMO) str.cma -I parser $(PARSER_CMO) -I HTMLer HTMLer.cmo -I checker checker.cmo libgrew.mli
 	ocamlc -a -o libgrew.cma $(BYPE_FLAGS) -pp 'camlp4o pa_macro.cmo -DDATA_DIR=\"$(DATA_DIR)\"' -linkall $(FILES_CMO) -I parser $(PARSER_CMO) -I HTMLer HTMLer.cmo -I checker checker.cmo libgrew.ml
-
+else
+	ocamlc -c -pp 'camlp4o pa_macro.cmo -DDEP2PICT' $(FILES_CMO) str.cma -I parser $(PARSER_CMO) -I HTMLer HTMLer.cmo -I checker checker.cmo libgrew.mli
+	ocamlc -a -o libgrew.cma -pp 'camlp4o pa_macro.cmo -DDATA_DIR=\"$(DATA_DIR)\" -DDEP2PICT' -linkall $(FILES_CMO) -I parser $(PARSER_CMO) -I HTMLer HTMLer.cmo -I checker checker.cmo libgrew.ml
+endif
 
 libgrew.cmxa : $(FILES_CMX) parser_opt checker_opt HTMLer_opt libgrew.mli libgrew.ml
 	rm libgrew.mli
 	@make libgrew.mli
-	ocamlopt -c $(OPT_FLAGS) $(FILES_CMX) str.cmxa -I parser $(PARSER_CMX) -I HTMLer HTMLer.cmx -I checker checker.cmx libgrew.mli
+ifeq (@DEP2PICT@,no)
+	ocamlopt -c -pp 'camlp4o pa_macro.cmo' $(OPT_FLAGS) $(FILES_CMX) str.cmxa -I parser $(PARSER_CMX) -I HTMLer HTMLer.cmx -I checker checker.cmx libgrew.mli
 	ocamlopt -a -o libgrew.cmxa $(OPT_FLAGS) -pp 'camlp4o pa_macro.cmo -DDATA_DIR=\"$(DATA_DIR)\"' -linkall $(FILES_CMX) -I parser $(PARSER_CMX) -I HTMLer HTMLer.cmx -I checker checker.cmx libgrew.ml
+else
+	ocamlopt -c -pp 'camlp4o pa_macro.cmo -DDEP2PICT' $(FILES_CMX) str.cmxa -I parser $(PARSER_CMX) -I HTMLer HTMLer.cmx -I checker checker.cmx libgrew.mli
+	ocamlopt -a -o libgrew.cmxa -pp 'camlp4o pa_macro.cmo -DDATA_DIR=\"$(DATA_DIR)\" -DDEP2PICT' -linkall $(FILES_CMX) -I parser $(PARSER_CMX) -I HTMLer HTMLer.cmx -I checker checker.cmx libgrew.ml
+endif
 
 DEPENDS_DIR= -I parser -I checker -I HTMLer
 
@@ -256,13 +265,25 @@ RULE_CMO = $(RULE_DEP:%=%.cmo)
 RULE_CMX = $(RULE_DEP:%=%.cmx)
 
 rule.cmi: $(RULE_CMI) rule.mli
-	ocamlc -c rule.mli
+ifeq (@DEP2PICT@,no)
+	ocamlc -c -pp 'camlp4o pa_macro.cmo' rule.mli
+else
+	ocamlc -c -pp 'camlp4o pa_macro.cmo -DDEP2PICT' rule.mli
+endif
 
 rule.cmo: $(RULE_CMO) rule.cmi rule.ml
-	ocamlc $(BYTE_FLAGS) -c $(DEPENDS_DIR) $(DEP2PICT_BYTE) rule.ml
+ifeq (@DEP2PICT@,no)
+	ocamlc -pp 'camlp4o pa_macro.cmo' $(BYTE_FLAGS) -c $(DEPENDS_DIR) rule.ml
+else
+	ocamlc -pp 'camlp4o pa_macro.cmo -DDEP2PICT' $(BYTE_FLAGS) -c $(DEPENDS_DIR) $(DEP2PICT_BYTE) rule.ml
+endif
 
 rule.cmx: $(RULE_CMX) rule.cmi rule.ml
-	ocamlopt $(OPT_FLAGS) -c $(DEPENDS_DIR) $(DEP2PICT_OPT) rule.ml
+ifeq (@DEP2PICT@,no)
+	ocamlopt -pp 'camlp4o pa_macro.cmo' $(OPT_FLAGS) -c $(DEPENDS_DIR) rule.ml
+else
+	ocamlopt -pp 'camlp4o pa_macro.cmo -DDEP2PICT' $(OPT_FLAGS) -c $(DEPENDS_DIR) $(DEP2PICT_OPT) rule.ml
+endif
 ################################################################################
 
 
@@ -273,13 +294,25 @@ GRS_CMO = $(GRS_DEP:%=%.cmo)
 GRS_CMX = $(GRS_DEP:%=%.cmx)
 
 grs.cmi: $(GRS_CMI) grs.mli
-	ocamlc -c grs.mli
+ifeq (@DEP2PICT@,no)
+	ocamlc -c -pp 'camlp4o pa_macro.cmo' grs.mli
+else
+	ocamlc -c -pp 'camlp4o pa_macro.cmo -DDEP2PICT' grs.mli
+endif
 
 grs.cmo: $(GRS_CMO) grs.cmi grs.ml
+ifeq (@DEP2PICT@,no)
 	ocamlc $(BYTE_FLAGS) -pp 'camlp4o pa_macro.cmo -DDATA_DIR=\"$(DATA_DIR)\"' -c $(DEPENDS_DIR) grs.ml
+else
+	ocamlc $(BYTE_FLAGS) -pp 'camlp4o pa_macro.cmo -DDATA_DIR=\"$(DATA_DIR)\" -DDEP2PICT' -c $(DEPENDS_DIR) grs.ml
+endif
 
 grs.cmx: $(GRS_CMX) grs.cmi grs.ml
+ifeq (@DEP2PICT@,no)
 	ocamlopt $(OPT_FLAGS) -pp 'camlp4o pa_macro.cmo -DDATA_DIR=\"$(DATA_DIR)\"' -c $(DEPENDS_DIR) grs.ml
+else
+	ocamlopt $(OPT_FLAGS) -pp 'camlp4o pa_macro.cmo -DDATA_DIR=\"$(DATA_DIR)\" -DDEP2PICT' -c $(DEPENDS_DIR) grs.ml
+endif
 ################################################################################
 
 # others

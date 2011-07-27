@@ -23,8 +23,10 @@ module Instance : sig
   val from_graph: Graph.t -> t
   val get_graph: t -> Graph.t
 
+IFDEF DEP2PICT THEN
   (* [save_dep_png base t] writes a file "base.png" with the dep representation of [t] *)
   val save_dep_png: ?main_feat: string -> string -> t -> unit
+ENDIF
 end
 
 module Instance_set : Set.S with type elt = Instance.t

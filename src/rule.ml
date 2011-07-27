@@ -9,7 +9,9 @@ open Command
 open Grew_node
 open Graph
 
+IFDEF DEP2PICT THEN
 open Dep2pict
+ENDIF
 
 
 module Instance = struct
@@ -40,8 +42,11 @@ module Instance = struct
   (* only graph rewrited from the same init graph can be "compared" *)
   let compare t1 t2 = Pervasives.compare t1.commands t2.commands
 
-  let save_dep_png ?main_feat base t =
-    ignore (Dep2pict.fromDepStringToPng (Graph.to_dep ?main_feat t.graph) (base^".png"))
+IFDEF DEP2PICT THEN
+  let save_dep_png ?main_feat base t = 
+	    ignore (Dep2pict.fromDepStringToPng (Graph.to_dep ?main_feat t.graph) (base^".png"))
+ENDIF
+
 end
 
 module Instance_set = Set.Make (Instance)

@@ -72,6 +72,7 @@ let rewrite ~gr ~grs ~seq =
   | exc -> raise (Bug (Printf.sprintf "UNCATCHED EXCEPTION: %s" (Printexc.to_string exc), None))
         
         
+IFDEF DEP2PICT THEN
 let rewrite_to_html ?main_feat input_dir grs output_dir no_init current_grs_file current_grs seq title =
   try
     let rewrite_to_html_intern ?(no_init=false) grs_file grs seq input output nb_sentence previous next = 
@@ -237,6 +238,9 @@ let rewrite_to_html ?main_feat input_dir grs output_dir no_init current_grs_file
     Printf.fprintf out_ch "</td>\n";
     Printf.fprintf out_ch "</tr>";
 
+
+  
+  
     Printf.fprintf out_ch "</table></center>\n";
 
     close_out out_ch;
