@@ -122,7 +122,7 @@ IFDEF DEP2PICT THEN
 
 
     List.rev !stats
-      
+ENDIF
 end
 
 
