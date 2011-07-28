@@ -49,6 +49,11 @@ val gr : string -> gr
 val rewrite : gr:gr -> grs:grs -> seq:string -> rew_display
 
 IFDEF DEP2PICT THEN
+
+
+val rewrite_to_html_intern :
+	?no_init:bool -> ?main_feat:string -> string -> Grs.t -> string -> string -> string -> int -> string -> string -> (string * string list) list option
+	
 val rewrite_to_html :
 	?main_feat:string -> string -> string -> string -> bool -> string -> Grs.t -> string -> string -> unit 
 ENDIF

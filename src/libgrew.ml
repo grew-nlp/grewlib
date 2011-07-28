@@ -73,55 +73,54 @@ let rewrite ~gr ~grs ~seq =
         
         
 IFDEF DEP2PICT THEN
+let rewrite_to_html_intern ?(no_init=false) ?main_feat grs_file grs seq input output nb_sentence previous next = 
+  let buff = Buffer.create 16 in
+
+  let head = Printf.sprintf "
+      <div class=\"navbar\">%s<a href=\"index.html\">Up</a>%s</div><br/>" 
+          (if previous <> "" then (Printf.sprintf "<a href=\"%s.html\">Sentence %d</a> -- " previous (nb_sentence-1)) else "") 
+          (if next <> "" then (Printf.sprintf " -- <a href=\"%s.html\">Sentence %d</a>" next (nb_sentence+1)) else "") in
+
+
+  Printf.bprintf buff "%s\n" head;
+  Printf.bprintf buff "<b>GRS file</b>: <a href=\"file:///%s\">%s</a></h2><br/>\n" (Filename.concat (Filename.dirname output) (Filename.basename grs_file)) (Filename.basename grs_file);
+  Printf.bprintf buff "<b>Input file</b>: <a href=\"file:///%s\">%s</a></h2>\n" (Filename.concat (Filename.dirname output) (Filename.basename input)) (Filename.basename input);
+  ignore(Sys.command(Printf.sprintf "cp %s %s" input (Filename.concat (Filename.dirname output) (Filename.basename input))));
+  
+  let init = Instance.build (Grew_parser.parse_file_to_gr input) in
+  try
+    let rew_hist = Grs.rewrite grs seq init in
+    (* let _ = Grs.build_rew_display grs seq init in *)
+    let stats = 
+      if no_init
+      then Some (Rewrite_history.save_html ?main_feat ~init_graph:false ~header:(Buffer.contents buff) output rew_hist)
+      else Some (Rewrite_history.save_html ?main_feat ~header:(Buffer.contents buff) output rew_hist) in
+    stats 
+  with 
+  | Utils.Run (msg, Some (loc_file,loc_line)) -> 
+      let html_ch = open_out (sprintf "%s.html" output) in
+      let () = Html.enter html_ch ~header:(Buffer.contents buff) output in
+      fprintf html_ch "<h6>Initial graph</h6>\n";
+      Instance.save_dep_png ?main_feat output init;
+      fprintf html_ch "<div width=100%% style=\"overflow-x:auto\"><IMG SRC=\"%s.png\"></div>\n" (Filename.basename output);
+      fprintf html_ch "<h2>ERROR during rewriting:</h2>\n";
+      fprintf html_ch "<p>Message: %s</p>\n" msg;
+      fprintf html_ch "<p>File: %s</p>\n" loc_file;
+      fprintf html_ch "<p>Line: %d</p>\n" loc_line;
+      Html.leave html_ch;
+      close_out html_ch;
+      None
+  | exc -> 
+      let html_ch = open_out (sprintf "%s.html" output) in
+      let () = Html.enter html_ch ~header:(Buffer.contents buff) output in
+      fprintf html_ch "<h1>UNEXPECTED EXCEPTION: %s</h1>" (Printexc.to_string exc);
+      Html.leave html_ch;
+      close_out html_ch;
+      None
+
+
 let rewrite_to_html ?main_feat input_dir grs output_dir no_init current_grs_file current_grs seq title =
   try
-    let rewrite_to_html_intern ?(no_init=false) grs_file grs seq input output nb_sentence previous next = 
-      let buff = Buffer.create 16 in
-
-      let head = Printf.sprintf "
-          <div class=\"navbar\">%s<a href=\"index.html\">Up</a>%s</div><br/>" 
-              (if previous <> "" then (Printf.sprintf "<a href=\"%s.html\">Sentence %d</a> -- " previous (nb_sentence-1)) else "") 
-              (if next <> "" then (Printf.sprintf " -- <a href=\"%s.html\">Sentence %d</a>" next (nb_sentence+1)) else "") in
-
-      let title = "Sentence "^(string_of_int nb_sentence) in
-
-      Printf.bprintf buff "%s\n" head;
-      Printf.bprintf buff "<b>GRS file</b>: <a href=\"file:///%s\">%s</a></h2><br/>\n" (Filename.concat (Filename.dirname output) (Filename.basename grs_file)) (Filename.basename grs_file);
-      Printf.bprintf buff "<b>Input file</b>: <a href=\"file:///%s\">%s</a></h2>\n" (Filename.concat (Filename.dirname output) (Filename.basename input)) (Filename.basename input);
-      ignore(Sys.command(Printf.sprintf "cp %s %s" input (Filename.concat (Filename.dirname output) (Filename.basename input))));
-      
-      let init = Instance.build (Grew_parser.parse_file_to_gr input) in
-      try
-        let rew_hist = Grs.rewrite grs seq init in
-        (* let _ = Grs.build_rew_display grs seq init in *)
-        let stats = 
-          if no_init
-          then Some (Rewrite_history.save_html ?main_feat ~init_graph:false ~header:(Buffer.contents buff) output rew_hist)
-          else Some (Rewrite_history.save_html ?main_feat ~header:(Buffer.contents buff) output rew_hist) in
-        stats 
-      with 
-      | Utils.Run (msg, Some (loc_file,loc_line)) -> 
-          let html_ch = open_out (sprintf "%s.html" output) in
-          let () = Html.enter html_ch ~header:(Buffer.contents buff) output in
-          fprintf html_ch "<h6>Initial graph</h6>\n";
-          Instance.save_dep_png ?main_feat output init;
-          fprintf html_ch "<div width=100%% style=\"overflow-x:auto\"><IMG SRC=\"%s.png\"></div>\n" (Filename.basename output);
-          fprintf html_ch "<h2>ERROR during rewriting:</h2>\n";
-          fprintf html_ch "<p>Message: %s</p>\n" msg;
-          fprintf html_ch "<p>File: %s</p>\n" loc_file;
-          fprintf html_ch "<p>Line: %d</p>\n" loc_line;
-          Html.leave html_ch;
-          close_out html_ch;
-          None
-      | exc -> 
-          let html_ch = open_out (sprintf "%s.html" output) in
-          let () = Html.enter html_ch ~header:(Buffer.contents buff) output in
-          fprintf html_ch "<h1>UNEXPECTED EXCEPTION: %s</h1>" (Printexc.to_string exc);
-          Html.leave html_ch;
-          close_out html_ch;
-          None
-
-    in
     
     (* get ALL gr files *)
     let all_files = Array.to_list (Sys.readdir input_dir) in
@@ -146,6 +145,7 @@ let rewrite_to_html ?main_feat input_dir grs output_dir no_init current_grs_file
             seq
             (Filename.concat input_dir input)
             (Filename.concat output_dir (Filename.chop_extension input))
+            ?main_feat
             !sentence_counter
             (if !sentence_counter > 1 then (Filename.chop_extension (List.nth gr_files (!sentence_counter-2))) else "")
             (if !sentence_counter < nb_files then (Filename.chop_extension (List.nth gr_files (!sentence_counter)))  else "") 
