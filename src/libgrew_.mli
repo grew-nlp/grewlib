@@ -30,6 +30,7 @@ val empty_grs : grs
 @raise File_dont_exists if the file doesn't exists
 *)
 val grs : string -> string -> grs
+val grs_only : string -> grs
 
 val get_available_seq : grs -> (string * string list) list
 

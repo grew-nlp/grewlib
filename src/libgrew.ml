@@ -41,6 +41,22 @@ let grs file doc_output_dir =
    ) else (
     raise (File_dont_exists file)
    )
+   
+let grs_only file = 
+  if (Sys.file_exists file) then (
+    try
+      let ast = Grew_parser.parse_file_to_grs file in
+      (* Checker.check_grs ast; *)
+      let grs = Grs.build ast in
+      grs
+    with 
+    | Grew_parser.Parse_error msg -> raise (Parsing_err msg)
+    | Utils.Build (msg,loc) -> raise (Build (msg,loc))
+    | Utils.Bug (msg, loc) -> raise (Bug (msg,loc))
+    | exc -> raise (Bug (Printf.sprintf "UNCATCHED EXCEPTION: %s" (Printexc.to_string exc), None))
+   ) else (
+    raise (File_dont_exists file)
+   )
       
 let get_available_seq grs = Grs.sequences grs
     
