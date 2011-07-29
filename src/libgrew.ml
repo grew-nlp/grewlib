@@ -99,7 +99,7 @@ let rewrite_to_html_intern ?(no_init=false) ?main_feat grs_file grs seq input ou
 
 
   Printf.bprintf buff "%s\n" head;
-  Printf.bprintf buff "<b>GRS file</b>: <a href=\"%s\">%s</a></h2><br/>\n" (Filename.basename grs_file) (Filename.basename grs_file);
+  Printf.bprintf buff "<b>GRS file</b>: <a href=\"file://%s\">%s</a></h2><br/>\n" (Filename.basename grs_file) (Filename.basename grs_file);
   Printf.bprintf buff "<b>Input file</b>: <a href=\"%s\">%s</a></h2>\n" (Filename.basename input) (Filename.basename input);
   ignore(Sys.command(Printf.sprintf "cp %s %s" input (Filename.concat (Filename.dirname output) (Filename.basename input))));
 
@@ -110,8 +110,8 @@ let rewrite_to_html_intern ?(no_init=false) ?main_feat grs_file grs seq input ou
       (* let _ = Grs.build_rew_display grs seq init in *)
       let stats = 
         if no_init
-        then Some (Rewrite_history.save_html ?main_feat ~init_graph:false ~header:(Buffer.contents buff) output rew_hist)
-        else Some (Rewrite_history.save_html ?main_feat ~header:(Buffer.contents buff) output rew_hist) in
+        then Some (Rewrite_history.save_html ?main_feat ~init_graph:false ~header:(Buffer.contents buff) output nb_sentence rew_hist)
+        else Some (Rewrite_history.save_html ?main_feat ~header:(Buffer.contents buff) output nb_sentence rew_hist) in
       stats 
     with 
       | Utils.Run (msg, Some (loc_file,loc_line)) -> 

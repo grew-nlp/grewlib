@@ -10,7 +10,7 @@ module Rewrite_history: sig
     }
 
 IFDEF DEP2PICT THEN
-  val save_html: ?main_feat:string -> ?init_graph:bool -> ?header:string -> string -> t -> (string*string list) list
+  val save_html: ?main_feat:string -> ?init_graph:bool -> ?header:string -> string -> int -> t -> (string*string list) list
   
 ENDIF 
 end

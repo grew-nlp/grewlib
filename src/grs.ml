@@ -60,7 +60,7 @@ IFDEF DEP2PICT THEN
     loop true ([],[]) t;
     List.rev !nfs
       
-  let save_html ?main_feat ?(init_graph=true) ?header prefix t =
+  let save_html ?main_feat ?(init_graph=true) ?header prefix number t =
     
     let stats = ref [] in
     
@@ -77,7 +77,7 @@ IFDEF DEP2PICT THEN
     (* All normal forms view *)
     let html_ch = open_out (sprintf "%s.html" prefix) in
 
-    let title = sprintf "Sentence: %s --- %d Normal form%s" local l (if l>1 then "s" else "") in
+    let title = sprintf "Sentence %d : %s --- %d Normal form%s" number local l (if l>1 then "s" else "") in
     let () = Html.enter html_ch ~title ?header prefix in
 
     if init_graph
