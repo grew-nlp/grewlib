@@ -102,37 +102,41 @@ let rewrite_to_html_intern ?(no_init=false) ?main_feat grs_file grs seq input ou
   Printf.bprintf buff "<b>GRS file</b>: <a href=\"file:///%s\">%s</a></h2><br/>\n" (Filename.concat (Filename.dirname output) (Filename.basename grs_file)) (Filename.basename grs_file);
   Printf.bprintf buff "<b>Input file</b>: <a href=\"file:///%s\">%s</a></h2>\n" (Filename.concat (Filename.dirname output) (Filename.basename input)) (Filename.basename input);
   ignore(Sys.command(Printf.sprintf "cp %s %s" input (Filename.concat (Filename.dirname output) (Filename.basename input))));
-  
-  let init = Instance.build (Grew_parser.parse_file_to_gr input) in
+
   try
-    let rew_hist = Grs.rewrite grs seq init in
-    (* let _ = Grs.build_rew_display grs seq init in *)
-    let stats = 
-      if no_init
-      then Some (Rewrite_history.save_html ?main_feat ~init_graph:false ~header:(Buffer.contents buff) output rew_hist)
-      else Some (Rewrite_history.save_html ?main_feat ~header:(Buffer.contents buff) output rew_hist) in
-    stats 
+  	let init = Instance.build (Grew_parser.parse_file_to_gr input) in
+  	try
+      let rew_hist = Grs.rewrite grs seq init in
+      (* let _ = Grs.build_rew_display grs seq init in *)
+      let stats = 
+        if no_init
+        then Some (Rewrite_history.save_html ?main_feat ~init_graph:false ~header:(Buffer.contents buff) output rew_hist)
+        else Some (Rewrite_history.save_html ?main_feat ~header:(Buffer.contents buff) output rew_hist) in
+      stats 
+    with 
+      | Utils.Run (msg, Some (loc_file,loc_line)) -> 
+          let html_ch = open_out (sprintf "%s.html" output) in
+          let () = Html.enter html_ch ~header:(Buffer.contents buff) output in
+          fprintf html_ch "<h6>Initial graph</h6>\n";
+          Instance.save_dep_png ?main_feat output init;
+          fprintf html_ch "<div width=100%% style=\"overflow-x:auto\"><IMG SRC=\"%s.png\"></div>\n" (Filename.basename output);
+          fprintf html_ch "<h2>ERROR during rewriting:</h2>\n";
+          fprintf html_ch "<p>Message: %s</p>\n" msg;
+          fprintf html_ch "<p>File: %s</p>\n" loc_file;
+          fprintf html_ch "<p>Line: %d</p>\n" loc_line;
+          Html.leave html_ch;
+          close_out html_ch;
+          None
   with 
-  | Utils.Run (msg, Some (loc_file,loc_line)) -> 
-      let html_ch = open_out (sprintf "%s.html" output) in
-      let () = Html.enter html_ch ~header:(Buffer.contents buff) output in
-      fprintf html_ch "<h6>Initial graph</h6>\n";
-      Instance.save_dep_png ?main_feat output init;
-      fprintf html_ch "<div width=100%% style=\"overflow-x:auto\"><IMG SRC=\"%s.png\"></div>\n" (Filename.basename output);
-      fprintf html_ch "<h2>ERROR during rewriting:</h2>\n";
-      fprintf html_ch "<p>Message: %s</p>\n" msg;
-      fprintf html_ch "<p>File: %s</p>\n" loc_file;
-      fprintf html_ch "<p>Line: %d</p>\n" loc_line;
-      Html.leave html_ch;
-      close_out html_ch;
-      None
-  | exc -> 
+    | exc -> 
       let html_ch = open_out (sprintf "%s.html" output) in
       let () = Html.enter html_ch ~header:(Buffer.contents buff) output in
       fprintf html_ch "<h1>UNEXPECTED EXCEPTION: %s</h1>" (Printexc.to_string exc);
       Html.leave html_ch;
       close_out html_ch;
       None
+  	  
+ 
 
 
 let rewrite_to_html ?main_feat input_dir grs output_dir no_init current_grs_file current_grs seq title =
