@@ -91,13 +91,11 @@ module Feature_structure = struct
     let fs = 
       Str.global_replace (Str.regexp_string  "//PV//") ";"
         (Str.global_replace (Str.regexp_string  "//AND//") "&amp;"
-	   (Str.global_replace (Str.regexp_string  "__") ":C:"
-	      (List_.to_string string_of_feature "#" 
-	         (List.filter 
-		    (function Feature.Equal (f, _) | Feature.Different (f, _) when f=main -> false | _ -> true) t)
-	      )
-           )
-	) in
+	   (List_.to_string string_of_feature "#" 
+	      (List.filter 
+		 (function Feature.Equal (f, _) | Feature.Different (f, _) when f=main -> false | _ -> true) t)
+	   )
+        ) in
     match fs with 
     | "" ->  Printf.sprintf " word=\"%s\"; " wordform
     | s -> Printf.sprintf " word=\"%s\"; subword=\"%s\"; " wordform s
