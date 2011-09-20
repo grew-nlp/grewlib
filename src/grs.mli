@@ -1,3 +1,4 @@
+open Utils
 open Graph
 open Rule
 
@@ -10,6 +11,8 @@ module Rewrite_history: sig
     }
 
   val rules: t -> (string * string list) list
+
+  val rules_stat: t -> int StringMap.t
 
 IFDEF DEP2PICT THEN
   val save_html: ?main_feat:string -> ?init_graph:bool -> ?header:string -> string -> int -> t -> (string*string list) list

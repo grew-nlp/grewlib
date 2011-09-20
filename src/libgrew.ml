@@ -71,18 +71,22 @@ let rewrite ~gr ~grs ~seq =
   | Utils.Bug (msg, loc) -> raise (Bug (msg,loc))
   | exc -> raise (Bug (Printf.sprintf "UNCATCHED EXCEPTION: %s" (Printexc.to_string exc), None))
 
-let rew_stat grs_file grs seq input =
+let rules_stat grs_file grs seq input =
   try
     let init = Instance.build (Grew_parser.parse_file_to_gr input) in
     let rew_hist = Grs.rewrite grs seq init in
-    Rewrite_history.rules rew_hist
+    StringMap.fold
+      (fun key value acc ->
+        (key,value)::acc
+      ) 
+      (Rewrite_history.rules_stat rew_hist) 
+      []
   with
   | Utils.Run (msg, Some (loc_file,loc_line)) ->
       Log.fmessage "[file: %s, line: %d] Utils.run: %s\n" loc_file loc_line msg; []
   | exc ->
       Log.fmessage "Unexpected exception: %s\n" (Printexc.to_string exc); []
-
-
+        
         IFDEF DEP2PICT THEN
 let rewrite_to_html_intern ?(no_init=false) ?main_feat grs_file grs seq input output nb_sentence previous next =
   let buff = Buffer.create 16 in
@@ -145,7 +149,7 @@ let rewrite_to_html ?main_feat input_dir grs output_dir no_init current_grs_file
     ignore(Sys.command(Printf.sprintf "cp %s %s" grs (Filename.concat output_dir (Filename.basename grs))));
     let sentence_counter = ref 1 in
 
-    let stats = ref Utils.StringMap.empty in
+    let stats = ref StringMap.empty in
     let errors = ref [] in
 
     List.iter
@@ -169,14 +173,14 @@ let rewrite_to_html ?main_feat input_dir grs output_dir no_init current_grs_file
             List.iter
               (fun (module_name, rule_list) ->
                 let old_rule_list =
-                  try ref (Utils.StringMap.find module_name !stats)
-                  with Not_found -> ref Utils.StringMap.empty in
+                  try ref (StringMap.find module_name !stats)
+                  with Not_found -> ref StringMap.empty in
                 List.iter
                   (fun rule ->
-                    let old = try Utils.StringMap.find rule !old_rule_list with Not_found -> [] in
-                    old_rule_list := Utils.StringMap.add rule (input::old) !old_rule_list
+                    let old = try StringMap.find rule !old_rule_list with Not_found -> [] in
+                    old_rule_list := StringMap.add rule (input::old) !old_rule_list
                   ) rule_list;
-                stats := Utils.StringMap.add module_name !old_rule_list !stats
+                stats := StringMap.add module_name !old_rule_list !stats
               ) module_list
         | None -> errors := input :: !errors
       ) gr_files;
@@ -194,11 +198,11 @@ let rewrite_to_html ?main_feat input_dir grs output_dir no_init current_grs_file
     Printf.fprintf out_ch "<b>Grs file</b>:%s\n<br/>\n" (Filename.basename current_grs_file);
     Printf.fprintf out_ch "<b>%d Sentences</b><br/>\n<br/>\n" nb_files;
     Printf.fprintf out_ch "<center><table cellpadding=10 cellspacing=0 width=90%%>\n";
-    Utils.StringMap.iter
+    StringMap.iter
       (fun modul rules ->
         Printf.fprintf out_ch "<tr><td colspan=5><h6>Module %s</h6></td>\n" modul;
         Printf.fprintf out_ch "<tr><th class=\"first\" width=10>Rule</th><th width=10>#occ</th><th width=10>#files</th><th width=10>Ratio</th><th width=10>Files</th></tr>\n";
-        Utils.StringMap.iter
+        StringMap.iter
           (fun rule files ->
             let tmp = ref "" in
             let counter = ref 0 in

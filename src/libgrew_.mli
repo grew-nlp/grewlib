@@ -1,7 +1,7 @@
 (* include Grew_types *)
 
 (** {2 Grew's core} *)
-
+open Utils
 open Graph
 open Rule
 open Grs
@@ -48,7 +48,7 @@ val load_gr : string -> gr
 @return a structure {b {i easily}} displayable *)
 val rewrite : gr:gr -> grs:grs -> seq:string -> rew_display
 
-val rew_stat: string -> Grs.t -> string -> string -> (string * string list) list
+val rules_stat: string -> Grs.t -> string -> string ->  (string * int) list
 
 IFDEF DEP2PICT THEN
 

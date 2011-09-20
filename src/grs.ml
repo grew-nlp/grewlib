@@ -36,6 +36,28 @@ module Rewrite_history = struct
     | [] -> [local]
     | l -> local :: (List.flatten (List.map rules l))
 
+  let add_one_module modul rules stat =
+    List.fold_left
+      (fun acc rule ->
+        let key = sprintf "%s.%s" modul rule in
+        let old = try StringMap.find key acc with Not_found -> 0 in
+        StringMap.add key (old+1) acc
+      ) stat rules
+
+  let max_stat stat1 stat2 =
+    StringMap.fold
+      (fun key value acc ->
+        let old = try StringMap.find key acc with Not_found -> 0 in
+        StringMap.add key (max old value) acc
+      ) stat1 stat2
+
+  let rec rules_stat t =
+    let sub_stat = 
+      match List.map rules_stat t.good_nf with 
+      | [] -> StringMap.empty
+      | h::t -> List.fold_left max_stat h t in
+    add_one_module t.module_name t.instance.Instance.rules sub_stat
+
 IFDEF DEP2PICT THEN
   (* warning: path are returned in reverse order *)
   let save_all_dep ?main_feat ?(init_graph=true) base_name t = 
