@@ -29,8 +29,7 @@ val empty_grs : grs
 @raise Parsing_err if libgrew can't parse the file
 @raise File_dont_exists if the file doesn't exists
 *)
-val grs : string -> string -> grs
-val grs_only : string -> grs
+val load_grs : ?doc_output_dir:string -> string -> grs
 
 val get_available_seq : grs -> (string * string list) list
 
@@ -40,7 +39,7 @@ val empty_gr : gr
 @raise Parsing_err if libgrew can't parse the file
 @raise File_dont_exists if the file doesn't exists
 *)
-val gr : string -> gr
+val load_gr : string -> gr
 
 (** rewrite a gr with a grs in a rew_display 
 @param gr the grapth to rewrite
@@ -48,6 +47,8 @@ val gr : string -> gr
 @param seq the name of the sequence to apply
 @return a structure {b {i easily}} displayable *)
 val rewrite : gr:gr -> grs:grs -> seq:string -> rew_display
+
+val rew_stat: string -> Grs.t -> string -> string -> (string * string list) list
 
 IFDEF DEP2PICT THEN
 

@@ -30,6 +30,11 @@ module Rewrite_history = struct
              ) l
           )
 
+  let rec rules t = 
+    let local = (t.module_name, t.instance.Instance.rules) in
+    match t.good_nf with 
+    | [] -> [local]
+    | l -> local :: (List.flatten (List.map rules l))
 
 IFDEF DEP2PICT THEN
   (* warning: path are returned in reverse order *)

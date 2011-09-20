@@ -9,6 +9,8 @@ module Rewrite_history: sig
       bad_nf: Instance.t list;
     }
 
+  val rules: t -> (string * string list) list
+
 IFDEF DEP2PICT THEN
   val save_html: ?main_feat:string -> ?init_graph:bool -> ?header:string -> string -> int -> t -> (string*string list) list
   
