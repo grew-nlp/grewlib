@@ -100,11 +100,21 @@ type sequence = {
 (** 
     a GRS: graph rewriting system 
 *)
+type module_or_include = 
+  | Modul of modul
+  | Includ of string
+
+type grs_with_include = {
+    domain_wi: domain;
+    labels_wi: (string * string option) list;    (* the list of global edge labels *)
+    modules_wi: module_or_include list; 
+    sequences_wi: sequence list;
+  }
 
 type grs = {
     domain: domain;
-    labels: (string * string option) list;    (* the list of global edge labels *)
-    modules: modul list;    (* the ordered list of modules used from rewriting *)
+    labels: (string * string option) list;
+    modules: modul list;
     sequences: sequence list;
   }
 

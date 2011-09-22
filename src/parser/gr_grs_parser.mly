@@ -38,6 +38,7 @@ let localize t = (t,get_loc ())
 %token RTL_EDGE_RIGHT              /* ]- */
 %token LONGARROW                   /* ==> */
 
+%token INCLUDE                     /* include */
 %token FEATURES                    /* features */
 %token LABELS                      /* labels */
 %token BAD_LABELS                  /* bad_labels */
@@ -66,9 +67,10 @@ let localize t = (t,get_loc ())
 
 %token EOF                         /* end of file */
 
+%start <Ast.grs_with_include> grs_with_include
 %start <Ast.grs> grs
 %start <Ast.gr> gr
-
+%start <Ast.modul list> included
 %%
 
 /*=============================================================================================*/
@@ -111,6 +113,16 @@ index:
 /*=============================================================================================*/
 
 
+grs_with_include:
+        | f = features_group g = global_labels m = module_or_include_list s = sequences EOF 
+            {
+             { Ast.domain_wi=List_.opt f; 
+               labels_wi=g; 
+               modules_wi=m; 
+               sequences_wi=s;
+             }
+           }
+     
 grs:
         | f = features_group g = global_labels m = modules s = sequences EOF 
             {
@@ -120,7 +132,13 @@ grs:
                sequences=s;
              }
            }
-            
+       
+module_or_include_list:
+        | x = list(module_or_include) { x }
+
+module_or_include:
+        | m = grew_module        { Modul m }
+        | INCLUDE file = STRING  { Includ file } 
 
 
 /*=============================================================================================*/
@@ -187,6 +205,9 @@ global_labels:
 /* }                                                                                           */
 /*                                                                                             */
 /*=============================================================================================*/
+
+included:
+            | x = list(grew_module) EOF { x }
 
 modules:
         | x = list(grew_module) { x }

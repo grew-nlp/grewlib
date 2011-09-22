@@ -29,10 +29,10 @@ lexer.cmo: gr_grs_parser.cmo lexer.mll ../ast.cmo
 	ocamlc -c $(BYTE_FLAGS) lexer.ml
 
 grew_parser.cmx: gr_grs_parser.cmx lexer.cmx grew_parser.ml ../ast.cmx
-	ocamlopt -c $(OPT_FLAGS) grew_parser.ml
+	ocamlopt -c $(OPT_FLAGS) -I .. ast.cmx grew_parser.ml
 
 grew_parser.cmo: gr_grs_parser.cmo lexer.cmo grew_parser.ml ../ast.cmo
-	ocamlc -c $(BYTE_FLAGS) grew_parser.ml
+	ocamlc -c $(BYTE_FLAGS) -I .. ast.cmo grew_parser.ml
 
 clean:
 	rm -rf *.cmi *.cmx *.cmo lexer.ml gr_grs_parser.ml *.o *.mli *.annot

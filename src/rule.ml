@@ -550,8 +550,6 @@ module Rule = struct
             (pos_graph,Graph.empty) 
             instance.Instance.graph 
             (init rule.pos) in
-        
-        (* Printf.printf "XXX -> | matching_list | = %d\n" (List.length matching_list); *)
 
         let filtered_matching_list =
           List.filter
@@ -564,7 +562,6 @@ module Rule = struct
                 ) rule.neg
             ) matching_list in
         
-        (* Printf.printf "XXX -> | filtered_matching_list | = %d\n" (List.length filtered_matching_list); *)
         List.fold_left 
           (fun acc1 (matching,_) -> 
             try (apply_rule instance matching rule) :: acc1 

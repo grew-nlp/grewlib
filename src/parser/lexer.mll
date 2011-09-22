@@ -50,6 +50,7 @@ and global = parse
 | '\n' { incr Parser_global.current_line; Lexing.new_line lexbuf; global lexbuf}
 
 
+| "include"	{ INCLUDE }
 | "features"	{ FEATURES }
 | "labels"	{ LABELS }
 | "bad_labels" { BAD_LABELS }
