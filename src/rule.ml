@@ -114,6 +114,8 @@ module Rule = struct
       commands: Command.t list;
     }
 
+  let get_name t = t.name
+
   let build ?domain ?(locals=[||]) rule_ast = 
     (* (\* DEBUG *\) Printf.printf "==<Rule.build |neg|=%d>==\n%!" (List.length rule_ast.Ast.neg_patterns); *)
 

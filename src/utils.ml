@@ -1,6 +1,7 @@
 open Log
 open Printf 
 
+module StringSet = Set.Make (String)
 module StringMap = Map.Make (String)
 
 module IntSet = Set.Make (struct type t = int let compare = Pervasives.compare end)
@@ -73,6 +74,17 @@ module File = struct
     let out_ch = open_out name in
     fprintf out_ch "%s\n" data;
     close_out out_ch
+
+  let read file = 
+    let in_ch = open_in file in
+    let rev_lines = ref [] in
+    try
+      while true do
+        rev_lines := (input_line in_ch) :: !rev_lines
+      done; assert false
+    with End_of_file -> 
+      close_in in_ch;
+      List.rev !rev_lines
  end
 
 

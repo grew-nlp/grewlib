@@ -34,6 +34,8 @@ module Instance_set : Set.S with type elt = Instance.t
 module Rule : sig
   type t
 
+  val get_name: t -> string
+
   val build: ?domain:Ast.domain -> ?locals:Label.decl array -> Ast.rule -> t
 
   (* raise Stop if some command fails to apply *)

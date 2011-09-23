@@ -20,7 +20,19 @@ exception Bug of string * (string * int) option
 (**/**)
 type grs = Grs.t
 type gr = Instance.t
+type rew_history
 (**/**)
+
+val rewrite: gr:gr -> grs:grs -> seq:string -> rew_history
+
+(** display a gr with a grs in a rew_display 
+@param gr the grapth to rewrite
+@param grs the graph rewriting system
+@param seq the name of the sequence to apply
+@return a structure {b {i easily}} displayable *)
+val display: gr:gr -> grs:grs -> seq:string -> rew_display
+
+val write_stat: string -> rew_history -> unit
 
 val empty_grs : grs
 
@@ -41,23 +53,23 @@ val empty_gr : gr
 *)
 val load_gr : string -> gr
 
-(** rewrite a gr with a grs in a rew_display 
-@param gr the grapth to rewrite
-@param grs the graph rewriting system
-@param seq the name of the sequence to apply
-@return a structure {b {i easily}} displayable *)
-val rewrite : gr:gr -> grs:grs -> seq:string -> rew_display
+(* OLD val rules_stat: Grs.t -> string -> string ->  (string * int) list *)
 
-val rules_stat: string -> Grs.t -> string -> string ->  (string * int) list
+val write_html: 
+    ?no_init:bool -> ?main_feat:string -> header: string -> rew_history -> string -> unit
+
+val make_index: 
+    title: string ->
+    grs_file: string -> 
+    html: bool -> 
+    grs: grs -> 
+    output_dir: string -> 
+    base_names: string list -> 
+      unit
 
 IFDEF DEP2PICT THEN
-
-
-val rewrite_to_html_intern :
-	?no_init:bool -> ?main_feat:string -> string -> Grs.t -> string -> string -> string -> int -> string -> string -> (string * string list) list option
-	
-val rewrite_to_html :
-	?main_feat:string -> string -> string -> string -> bool -> string -> Grs.t -> string -> string -> unit 
+val dummy: unit
+(* FIXME: build whitout dep2pict *)
 ENDIF
 
 val get_css_file: string

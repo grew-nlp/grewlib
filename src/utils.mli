@@ -9,6 +9,7 @@ module IntMap : sig
   end
 
 module StringMap : Map.S with type key = string
+module StringSet : Set.S with type elt = string
 
 module Loc: sig
   type t = string * int 
@@ -20,6 +21,8 @@ end
 
 module File: sig 
   val write: string -> string -> unit
+
+  val read: string -> string list
 end
 
 module Array_: sig
