@@ -246,12 +246,18 @@ module Gr_stat = struct
   let add_one_module modul_opt rules stat =
     match modul_opt with
     | Some modul ->
+(try
         List.fold_left
           (fun acc rule ->
             let key = sprintf "%s.%s" modul rule in
             let old = try StringMap.find key acc with Not_found -> 0 in
             StringMap.add key (old+1) acc
           ) stat rules
+with Not_found -> 
+  Log.fcritical "Gr_stat.add modul='%s' rules='%s'" 
+    modul 
+    (List.fold_left (fun acc r -> acc^"#"^r) "" rules)
+)
     | None when rules = [] -> stat
     | None -> Log.fcritical "Unconsistent rewrite history"
 
@@ -318,6 +324,7 @@ module Corpus_stat = struct
     { map = map; num = 0 }
         
   let add modul rule file num map = 
+try
     let old_rule_map = StringMap.find modul map in
     let (old_num, old_file_set) = StringMap.find rule old_rule_map in
     StringMap.add 
@@ -327,7 +334,8 @@ module Corpus_stat = struct
          (old_num + num, StringSet.add file old_file_set)
          old_rule_map
       ) map
-      
+with Not_found -> Log.fcritical "Corpus_stat.add modul='%s' rule='%s' file='%s'" modul rule file
+   
   let add_gr_stat base_name gr_stat t = 
     let new_map = 
       StringMap.fold
@@ -360,7 +368,7 @@ module Corpus_stat = struct
     fprintf out_ch "<center><table cellpadding=10 cellspacing=0 width=90%%>\n";
     StringMap.iter
       (fun modul rules ->
-        fprintf out_ch "<tr><td colspan=5><h6>Module %s</h6></td>\n" modul;
+        fprintf out_ch "<tr><td colspan=\"5\" style=\"padding: 0px;\"><h6>Module %s</h6></td>\n" modul;
         fprintf out_ch "<tr><th class=\"first\" width=10>Rule</th><th width=10>#occ</th><th width=10>#files</th><th width=10>Ratio</th><th width=10>Files</th></tr>\n";
         StringMap.iter
           (fun rule (occ_num, file_set) ->
