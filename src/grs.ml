@@ -39,7 +39,7 @@ module Rewrite_history = struct
 
 IFDEF DEP2PICT THEN
   (* warning: path are returned in reverse order *)
-  let save_all_dep ?main_feat ?(init_graph=true) base_name t = 
+  let save_all_dep ?main_feat base_name t = 
     let nfs = ref [] in
     let rec loop first (rev_path, rev_rules) t =
       let file = 
@@ -47,17 +47,11 @@ IFDEF DEP2PICT THEN
         | [] -> base_name 
         | l -> sprintf "%s_%s" base_name (List_.to_string string_of_int "_" l) in
 
-      begin
-        match (first, init_graph) with
-        | (true, true)
-          -> Instance.save_dep_png ?main_feat file t.instance
-        | _ when t.good_nf = []  (* t is a leaf of the tree history *)
-          -> Instance.save_dep_png ?main_feat file t.instance
-        | _ -> ()
-      end;
-      
+
       match t.good_nf with
-      | [] -> nfs := (rev_path,List.rev rev_rules,file) :: !nfs
+      | [] -> (* t is a leaf of the tree history *)
+          Instance.save_dep_png ?main_feat file t.instance;
+          nfs := (rev_path,List.rev rev_rules,file) :: !nfs
       | l ->
           List_.iteri 
             (fun i t' ->
@@ -66,13 +60,44 @@ IFDEF DEP2PICT THEN
     loop true ([],[]) t;
     List.rev !nfs
       
+  let error_html ?main_feat ?(init_graph=true) ?header prefix msg inst_opt =
+    (* remove files from previous runs *)
+    let _ = Unix.system (sprintf "rm -f %s*.html" prefix) in
+    let _ = Unix.system (sprintf "rm -f %s*.dep" prefix) in
+    let _ = Unix.system (sprintf "rm -f %s*.png" prefix) in
+
+    (match inst_opt, init_graph with
+    | (Some inst, true) -> Instance.save_dep_png ?main_feat prefix inst
+    | _ -> ());
+
+    let local = Filename.basename prefix in
+    
+    (* All normal forms view *)
+    let html_ch = open_out (sprintf "%s.html" prefix) in
+
+    let title = sprintf "Sentence: %s --- ERROR" local in
+    let () = Html.enter html_ch ~title ?header prefix in
+
+    if init_graph
+    then
+      begin
+        fprintf html_ch "<h6>Initial graph</h6>\n";
+        fprintf html_ch "<div width=100%% style=\"overflow-x:auto\"><IMG SRC=\"%s.png\"></div>\n" local
+      end;
+    fprintf html_ch "<h2>ERROR: %s</h2>\n" msg;
+    Html.leave html_ch;
+    close_out html_ch
+
   let save_html ?main_feat ?(init_graph=true) ?header prefix t =
     (* remove files from previous runs *)
     let _ = Unix.system (sprintf "rm -f %s*.html" prefix) in
     let _ = Unix.system (sprintf "rm -f %s*.dep" prefix) in
     let _ = Unix.system (sprintf "rm -f %s*.png" prefix) in
     
-    let nf_files = save_all_dep ?main_feat ~init_graph prefix t in
+    (if init_graph then Instance.save_dep_png ?main_feat prefix t.instance);
+
+    let nf_files = save_all_dep ?main_feat prefix t in
+    
     let l = List.length nf_files in
 
     let local = Filename.basename prefix in
@@ -241,26 +266,22 @@ end
 module Gr_stat = struct
 
   (** the type [gr] stores the stats for the rewriting of one gr file *)
-  type t = int StringMap.t 
+  type t = 
+    | Stat of int StringMap.t 
+    | Error of string
 
   let add_one_module modul_opt rules stat =
     match modul_opt with
     | Some modul ->
-(try
         List.fold_left
           (fun acc rule ->
             let key = sprintf "%s.%s" modul rule in
             let old = try StringMap.find key acc with Not_found -> 0 in
             StringMap.add key (old+1) acc
           ) stat rules
-with Not_found -> 
-  Log.fcritical "Gr_stat.add modul='%s' rules='%s'" 
-    modul 
-    (List.fold_left (fun acc r -> acc^"#"^r) "" rules)
-)
     | None when rules = [] -> stat
     | None -> Log.fcritical "Unconsistent rewrite history"
-
+          
   let max_stat stat1 stat2 =
     StringMap.fold
       (fun key value acc ->
@@ -268,14 +289,6 @@ with Not_found ->
         StringMap.add key (max old value) acc
       ) stat1 stat2
       
-  (* let rec from_rew_history t = *)
-  (*   let sub_stat =  *)
-  (*     match List.map from_rew_history t.Rewrite_history.good_nf with  *)
-  (*     | [] -> StringMap.empty *)
-  (*     | h::t -> List.fold_left max_stat h t in *)
-  (*   add_one_module t.Rewrite_history.module_name t.Rewrite_history.instance.Instance.rules sub_stat *)
-
-
   let from_rew_history rew_history =
     let rec loop prev_module rh =
       let sub_stat = 
@@ -283,21 +296,28 @@ with Not_found ->
         | [] -> StringMap.empty
         | h::t -> List.fold_left max_stat h t in
       add_one_module prev_module rh.Rewrite_history.instance.Instance.rules sub_stat
-    in loop None rew_history
+    in Stat (loop None rew_history)
 
-
-  let save stat_file t = 
+  let save stat_file t =
     let out_ch = open_out stat_file in
-    StringMap.iter (fun rule_name occ -> fprintf out_ch "%s:%d\n%!" rule_name occ) t;
+    (match t with
+    | Error msg -> fprintf out_ch "ERROR\n%s" msg 
+    | Stat map -> StringMap.iter (fun rule_name occ -> fprintf out_ch "%s:%d\n%!" rule_name occ) map);
     close_out out_ch
 
-  let load stat_file =
-    List.fold_left 
-      (fun acc line ->
-        match Str.split (Str.regexp ":") line with
-        | [modu_rule; num] -> StringMap.add modu_rule (int_of_string num) acc
-        | _ -> Log.fcritical "invalid stat line: %s" line
-      ) StringMap.empty (File.read stat_file)
+  let load stat_file = 
+    let lines = File.read stat_file in
+    match lines with
+    | "ERROR" :: msg_lines -> Error (List_.to_string (fun x->x) "\n" msg_lines)
+    | _ -> 
+        Stat 
+          (List.fold_left 
+             (fun acc line ->
+               match Str.split (Str.regexp ":") line with
+               | [modu_rule; num] -> StringMap.add modu_rule (int_of_string num) acc
+               | _ -> Log.fcritical "invalid stat line: %s" line
+             ) StringMap.empty lines
+          )
 end (* module Gr_stat *)
 
 module Corpus_stat = struct
@@ -308,6 +328,7 @@ module Corpus_stat = struct
      value: [occ_nul, file_list] the totat number of rule applications and the set of gr files concerned *)
   type t = {
       map: (int * StringSet.t) StringMap.t StringMap.t;
+      error: (string * string) list;   (* (file, msg) *)
       num: int;
     }
 
@@ -321,10 +342,9 @@ module Corpus_stat = struct
               ) StringMap.empty modul.Modul.rules in
           StringMap.add modul.Modul.name rule_map acc
         ) StringMap.empty grs.Grs.modules in
-    { map = map; num = 0 }
+    { map = map; error = []; num = 0 }
         
   let add modul rule file num map = 
-try
     let old_rule_map = StringMap.find modul map in
     let (old_num, old_file_set) = StringMap.find rule old_rule_map in
     StringMap.add 
@@ -334,20 +354,19 @@ try
          (old_num + num, StringSet.add file old_file_set)
          old_rule_map
       ) map
-with Not_found -> Log.fcritical "Corpus_stat.add modul='%s' rule='%s' file='%s'" modul rule file
-   
+        
   let add_gr_stat base_name gr_stat t = 
-    let new_map = 
-      StringMap.fold
-        (fun modul_rule num_occ acc ->
-          match Str.split (Str.regexp "\\.") modul_rule with
-          | [modul; rule] -> add modul rule base_name num_occ acc
-          | _ -> Log.fcritical "illegal modul_rule spec \"%s\"" modul_rule 
-        ) gr_stat t.map in
-    { map = new_map; num = t.num+1 }
-      
-
-
+    match gr_stat with
+    | Gr_stat.Error msg -> { t with error = (base_name, msg) :: t.error; num = t.num+1 }
+    | Gr_stat.Stat map -> 
+        let new_map = 
+          StringMap.fold
+            (fun modul_rule num_occ acc ->
+              match Str.split (Str.regexp "\\.") modul_rule with
+              | [modul; rule] -> add modul rule base_name num_occ acc
+              | _ -> Log.fcritical "illegal modul_rule spec \"%s\"" modul_rule 
+            ) map t.map in
+        { t with map = new_map; num = t.num+1 }
 
   let save_html ~title ~grs_file ~html ~output_dir t =
 
@@ -422,26 +441,34 @@ with Not_found -> Log.fcritical "Corpus_stat.add modul='%s' rule='%s' file='%s'"
           ) rules;
       ) t.map;
 
-(* FIXME error in index.html *)
-    (* (\* add a subtalbe for sentence that produces an error *\) *)
-    (* let nb_errors = List.length !errors in *)
-    (* fprintf out_ch "<tr><td colspan=5><h6>ERRORS</h6></td>\n"; *)
-    (* fprintf out_ch "<tr><th class=\"first\" width=10>Rule</th><th colspan=2 width=20>#files</th><th width=10>Ratio</th><th>Files</th></tr>\n"; *)
 
-    (* fprintf out_ch "<tr>\n"; *)
-    (* fprintf out_ch "<td class=\"first_stats\">Errors</td>\n"; *)
-    (* fprintf out_ch "<td class=\"stats\" colspan=2>%d</td>\n" nb_errors; *)
-    (* fprintf out_ch "<td class=\"stats\">%.2f%%</td>\n" (ratio nb_errors); *)
-    (* fprintf out_ch "<td class=\"stats\">"; *)
-    (* List.iter *)
-    (*   (fun err -> *)
-    (*     fprintf out_ch "<a href=\"%s.html\">%s</a><br/>" (Filename.chop_extension err) (Filename.chop_extension err) *)
-    (*   ) (List.rev !errors); *)
-    (* fprintf out_ch "</td>\n"; *)
-    (* fprintf out_ch "</tr>"; *)
+    (* add a subtlabe for sentence that produces an error *)
+    let nb_errors = List.length t.error in
+    fprintf out_ch "<tr><td colspan=5><h6>ERRORS</h6></td>\n";
+    fprintf out_ch "<tr><th class=\"first\" width=10>Rule</th><th colspan=2 width=20>#files</th><th width=10>Ratio</th><th>Files</th></tr>\n";
+
+    fprintf out_ch "<tr>\n";
+    fprintf out_ch "<td class=\"first_stats\">Errors</td>\n";
+    fprintf out_ch "<td class=\"stats\" colspan=2>%d</td>\n" nb_errors;
+    fprintf out_ch "<td class=\"stats\">%.2f%%</td>\n" (ratio nb_errors);
+    fprintf out_ch "<td class=\"stats\">";
+    List.iter
+      (fun (file,err) ->
+        if html 
+        then
+          fprintf out_ch "<a href=\"%s.html\">%s</a>: %s<br/>" 
+            file 
+            file
+            err
+        else 
+          fprintf out_ch "%s: %s<br/>" file 
+            err
+
+      ) (List.rev t.error);
+    fprintf out_ch "</td>\n";
+    fprintf out_ch "</tr>";
 
     fprintf out_ch "</table></center>\n";
-
     close_out out_ch;
     ()
 

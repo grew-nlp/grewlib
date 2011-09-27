@@ -58,6 +58,9 @@ val load_gr : string -> gr
 val write_html: 
     ?no_init:bool -> ?main_feat:string -> header: string -> rew_history -> string -> unit
 
+val error_html: 
+    ?no_init:bool -> ?main_feat:string -> header: string -> string -> ?init:Instance.t -> string -> unit
+
 val make_index: 
     title: string ->
     grs_file: string -> 

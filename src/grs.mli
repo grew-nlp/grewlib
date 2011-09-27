@@ -16,6 +16,8 @@ module Rewrite_history: sig
 
 
 IFDEF DEP2PICT THEN
+  val error_html: ?main_feat:string -> ?init_graph:bool -> ?header:string -> string -> string -> Instance.t option -> unit
+
   val save_html: ?main_feat:string -> ?init_graph:bool -> ?header:string -> string -> t -> unit
   
 ENDIF 
@@ -41,9 +43,7 @@ end
     
 module Gr_stat: sig
   
-  (** the type [gr] stores the stats for the rewriting of one gr file:
-      map of [mod.rule] to the max usage in  applied during a rewriting. *)
-  type t = int StringMap.t
+  type t
 
   val from_rew_history: Rewrite_history.t -> t
 

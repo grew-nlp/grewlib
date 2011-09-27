@@ -64,7 +64,14 @@ let load_gr file =
     raise (File_dont_exists file)
    )
 
-let rewrite ~gr ~grs ~seq = Grs.rewrite grs seq gr
+let rewrite ~gr ~grs ~seq = 
+  try
+    Grs.rewrite grs seq gr
+  with
+  | Utils.Run (msg,loc) -> raise (Run (msg,loc))
+  | Utils.Bug (msg, loc) -> raise (Bug (msg,loc))
+  | exc -> raise (Bug (sprintf "UNCATCHED EXCEPTION: %s" (Printexc.to_string exc), None))
+
 
 let display ~gr ~grs ~seq =
   try
@@ -100,13 +107,28 @@ let write_html
     ~header
     rew_hist
     output_base =
-ignore (
+  ignore (
   Rewrite_history.save_html 
     ?main_feat 
     ~init_graph: (not no_init)
     ~header
     output_base rew_hist
     )
+
+let error_html 
+    ?(no_init=false) ?main_feat 
+    ~header
+    msg ?init
+    output_base =
+  ignore (
+  Rewrite_history.error_html 
+    ?main_feat 
+    ~init_graph: (not no_init)
+    ~header
+    output_base msg init
+    )
+
+
         IFDEF DEP2PICT THEN
 let dummy = ()
 
