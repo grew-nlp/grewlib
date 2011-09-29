@@ -59,7 +59,7 @@ module Rule = struct
   type pid = int
   type gid = int
 
-  let max_depth = ref 50
+  let max_depth = ref 500
   exception Bound_reached
 
   type const = 
