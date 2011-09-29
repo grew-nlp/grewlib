@@ -12,8 +12,15 @@ module Feature_structure: sig
       val empty: t
       val to_string: t -> string
       val to_dep: ?main_feat: string -> t -> string
+
+      (** [set_feat feature_name atoms t] adds the feature ([feature_name],[atoms]) in [t].
+          If [t] already contains a feature named [feature_name], the old value is erased by the new one. *)
       val set_feat:  string -> string list -> t ->  t
+
+      (** [del_feat feature_name t] remove the feature with name [feature_name] in [t].
+          If [t] does not contain such a feature, [t] is returned unchanged. *)
       val del_feat:  string -> t ->  t
+
       val compatible: t -> t -> bool
 
 

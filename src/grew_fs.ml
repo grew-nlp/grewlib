@@ -110,8 +110,9 @@ module Feature_structure = struct
 
   let rec del_feat feature_name = function
     | [] -> []
-    | (Feature.Equal (fn,_))::t when feature_name <= fn -> t
-    | (Feature.Equal (fn,ats))::t -> (Feature.Equal (fn,ats)):: (del_feat feature_name t) 
+    | ((Feature.Equal (fn,_))::_) as t when feature_name < fn -> t
+    | (Feature.Equal (fn,_))::t when feature_name = fn -> t
+    | Feature.Equal (fn,ats)::t -> Feature.Equal (fn,ats):: (del_feat feature_name t) 
     | _ -> Log.bug "[Feature_structure.set_feat]: Disequality not allowed in graph features"; exit 2
 
   (* WARNING: different from prev implem: does not fail when pattern contains a feature_name or in instance *)
