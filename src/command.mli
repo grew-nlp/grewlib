@@ -16,6 +16,7 @@ module Command : sig
     | DEL_EDGE_NAME of string
     | ADD_EDGE of (cnode * cnode * Edge.t)
     | COPY_FEAT of (cnode * cnode * string * string) 
+    | CONCAT_FEAT of (cnode * cnode * cnode * string * string * string) 
     | ADD_FEAT of (cnode * string * string)
     | DEL_FEAT of (cnode *string)
     | NEW_NEIGHBOUR of (string * Edge.t * pid)
@@ -30,6 +31,7 @@ module Command : sig
     | H_DEL_EDGE_NAME of string
     | H_ADD_EDGE of (gid * gid * Edge.t)
     | H_COPY_FEAT of (gid * gid * string * string) 
+    | H_CONCAT_FEAT of (gid * gid * gid * string * string * string) 
     | H_ADD_FEAT of (gid * string * string)
     | H_DEL_FEAT of (gid *string)
     | H_NEW_NEIGHBOUR of (string * Edge.t * gid)

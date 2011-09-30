@@ -39,7 +39,9 @@ type edge = u_edge * Loc.t
 
 type u_const = 
    | Start of Id.name * string list (* (source, labels) *)
+   | No_out of Id.name
    | End of Id.name * string list (* (target, labels) *)
+   | No_in of Id.name
 
 type const = u_const * Loc.t
 
@@ -61,6 +63,7 @@ type command =
 
   | New_feat of string * string 
   | Copy_feat of string * string
+  | Concat_feat of string * string * string
   | Del_feat of string
  
 type rule = {

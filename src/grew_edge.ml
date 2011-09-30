@@ -42,6 +42,8 @@ module Edge = struct
       under_label: under_label;
     }
 
+  let all = {id=None; under_label=Neg []}
+
   let compare = Pervasives.compare
 
   let make ?(id=None) ?(neg=false) ?(locals=[||]) = function

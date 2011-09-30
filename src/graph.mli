@@ -54,15 +54,19 @@ module Graph : sig
   val merge_node : Loc.t -> t -> int -> int -> t option
   val shift_edges : Loc.t -> t -> int -> int -> t
 
-  (** [cpy_feat src_id tar_id src_feat_name tar_feat_name] copy the feature value associated with [src_feat_name] from 
+  (** [cpy_feat tar_id src_id tar_feat_name src_feat_name] copy the feature value associated with [src_feat_name] from 
    the node [src_id] to the node [tar_id] with feature name [tar_feat_name] *)
-  val cpy_feat : t -> int -> int -> string -> string -> t
+  val copy_feat : t -> int -> int -> string -> string -> t
+
+  val concat_feat : t -> int -> int -> int -> string -> string -> string -> t
+
 
   val add_feat : t -> int -> string -> string -> t
   val del_feat : t -> int -> string -> t
 
   val equals : t -> t -> bool
 
+  (** [edge_out t id edge] returns true iff there is an out-edge from the node [id] with a label compatible with [edge] *)
   val edge_out: t -> int -> Edge.t -> bool
 
   val roots: t -> int list

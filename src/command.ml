@@ -21,8 +21,9 @@ module Command  = struct
     | DEL_EDGE_NAME of string
     | ADD_EDGE of (cnode * cnode * Edge.t)
     | COPY_FEAT of (cnode * cnode * string * string) 
+    | CONCAT_FEAT of (cnode * cnode * cnode * string * string * string) 
     | ADD_FEAT of (cnode * string * string)
-    | DEL_FEAT of (cnode *string)
+    | DEL_FEAT of (cnode * string)
     | NEW_NEIGHBOUR of (string * Edge.t * pid)
     | SHIFT_EDGE of (cnode * cnode)
     | MERGE_NODE of (cnode * cnode)
@@ -36,13 +37,18 @@ module Command  = struct
     | H_DEL_EDGE_NAME of string
     | H_ADD_EDGE of (gid * gid * Edge.t)
     | H_COPY_FEAT of (gid * gid * string * string) 
+    | H_CONCAT_FEAT of (gid * gid * gid * string * string * string) 
     | H_ADD_FEAT of (gid * string * string)
     | H_DEL_FEAT of (gid *string)
     | H_NEW_NEIGHBOUR of (string * Edge.t * gid)
     | H_SHIFT_EDGE of (gid * gid)
     | H_MERGE_NODE of (gid * gid)
 
- 
+  let parse_feat loc string_feat = 
+    match Str.split (Str.regexp "\\.") string_feat with
+    | [node; feat_name] -> (node, feat_name)
+    | _ -> Log.fcritical "[GRS] \"%s\" is not a feature %s" string_feat (Loc.to_string loc)
+
   let build ?domain table locals ast_command = 
     let get_pid node_name =
       match Id.build_opt node_name table with
@@ -82,32 +88,21 @@ module Command  = struct
 	(DEL_NODE (get_pid n), loc)
 	  
     | (Ast.New_feat (feat, value), loc) ->
-	begin
-	  match (Str.split (Str.regexp "\\.") feat ) with
-	  | [node; feat_name] -> 
-	      Feature.check ?domain loc feat_name [value];
-	      (ADD_FEAT (get_pid node, feat_name, value), loc)
-	  | _ -> Log.fcritical "[GRS] \"%s\" is not a valid feature %s" feat (Loc.to_string loc)
-	end
-	  
+        let (node, feat_name) = parse_feat loc feat in
+        (ADD_FEAT (get_pid node, feat_name, value), loc)
+
     | (Ast.Copy_feat (feat1, feat2), loc) ->
-	begin
-	  match Str.split (Str.regexp "\\.") feat1 with
-	  | [node_1; feat_name_1] ->
-	      begin
-		match Str.split (Str.regexp "\\.") feat2 with
-		| [node_2; feat_name_2] (* when feat_name_1 = feat_name_2 *) -> 
-                    (COPY_FEAT (get_pid node_1, get_pid node_2, feat_name_1, feat_name_2), loc)
-		(* | [node_2; feat_name_2] -> Log.fcritical "[GRS] Copy feat through different feature name not implemented %s" (Loc.to_string loc) *)
-		| _ -> Log.fcritical "[GRS] \"%s\" is not a feature %s" feat2 (Loc.to_string loc)
-	      end
-	  | _ -> Log.fcritical "[GRS] \"%s\" is not a feature %s" feat1 (Loc.to_string loc)
-	end
+        let (node_1, feat_name_1) = parse_feat loc feat1 
+        and (node_2, feat_name_2) = parse_feat loc feat2 in
+        (COPY_FEAT (get_pid node_1, get_pid node_2, feat_name_1, feat_name_2), loc)
+
+    | (Ast.Concat_feat (feat1, feat2, feat3), loc) ->
+        let (node_1, feat_name_1) = parse_feat loc feat1 
+        and (node_2, feat_name_2) = parse_feat loc feat2 
+        and (node_3, feat_name_3) = parse_feat loc feat3 in
+        (CONCAT_FEAT (get_pid node_1, get_pid node_2, get_pid node_3, feat_name_1, feat_name_2, feat_name_3), loc)
 
     | (Ast.Del_feat (feat), loc) ->
-	begin
-	  match Str.split (Str.regexp "\\.") feat with
-	  | [node; feat_name] -> (DEL_FEAT (get_pid node, feat_name), loc)
-	  | _ -> Log.fcritical "[GRS] \"%s\" is not a feature %s" feat (Loc.to_string loc)
-	end
+        let (node, feat_name) = parse_feat loc feat in
+        (DEL_FEAT (get_pid node, feat_name), loc)
 end

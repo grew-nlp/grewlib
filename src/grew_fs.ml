@@ -56,6 +56,11 @@ module Feature_structure = struct
     | Feature.Equal _ :: _ -> raise Not_found 
     | Feature.Different _ :: _ -> failwith "[Feature_structure.get] this fs contains 'Different' constructor"
 
+  let get_atom name t =
+    match get name t with
+    | [one] -> Some one
+    | _ -> None
+
   let string_of_feature = function
     | Feature.Equal (feat_name, atoms) -> 
 	Printf.sprintf "%s=%s" feat_name

@@ -27,6 +27,7 @@ let localize t = (t,get_loc ())
 %token COMA                        /* , */
 %token SEMIC                       /* ; */
 %token STAR                        /* * */
+%token PLUS                        /* + */
 %token EQUAL                       /* = */
 %token DISEQUAL                    /* <> */
 %token PIPE                        /* | */
@@ -343,32 +344,26 @@ feature_value:
 full_edge:
         (* "e: A -> B" *)
         | id = edge_id n1 = IDENT GOTO_NODE n2 = IDENT
-            (* { (Some id, (n1,n2,true,[]),(!Parser_global.current_file,!Parser_global.current_line+1)) } *)
-            { localize ({edge_id = Some id; src=n1; edge_labels=[]; tar=n2; negative=true}) }
+               { localize ({edge_id = Some id; src=n1; edge_labels=[]; tar=n2; negative=true}) }
 
         (* "A -> B" *)
         | n1 = IDENT GOTO_NODE n2 = IDENT
-             (* { (None, (n1,n2,true,[]),(!Parser_global.current_file,!Parser_global.current_line+1)) } *)
-            { localize ({edge_id = None; src=n1; edge_labels=[]; tar=n2; negative=true}) }
+               { localize ({edge_id = None; src=n1; edge_labels=[]; tar=n2; negative=true}) }
 
         (* "e: A -[^X|Y]-> B" *)
         | id = edge_id n1 = IDENT labels = delimited(LTR_EDGE_LEFT_NEG,separated_nonempty_list(PIPE,IDENT),LTR_EDGE_RIGHT) n2 = IDENT
-            (* { (Some id, (n1,n2,true,labels),(!Parser_global.current_file,!Parser_global.current_line+1)) } *)
-            { localize ({edge_id = Some id; src=n1; edge_labels=labels; tar=n2; negative=true}) }
+               { localize ({edge_id = Some id; src=n1; edge_labels=labels; tar=n2; negative=true}) }
             
         (* "A -[^X|Y]-> B"*)
         | n1 = IDENT labels = delimited(LTR_EDGE_LEFT_NEG,separated_nonempty_list(PIPE,IDENT),LTR_EDGE_RIGHT) n2 = IDENT
-            (* { (None, (n1,n2,true,labels),(!Parser_global.current_file,!Parser_global.current_line+1)) } *)
             { localize ({edge_id = None; src=n1; edge_labels=labels; tar=n2; negative=true}) }
 
         (* "e: A -[X|Y]-> B" *)
         | id = edge_id n1 = IDENT labels = delimited(LTR_EDGE_LEFT,separated_nonempty_list(PIPE,IDENT),LTR_EDGE_RIGHT) n2 = IDENT
-            (* { (Some id, (n1,n2,false,labels),(!Parser_global.current_file,!Parser_global.current_line+1)) } *)
             { localize ({edge_id = Some id; src=n1; edge_labels=labels; tar=n2; negative=false}) }       
 
         (* "A -[X|Y]-> B" *)
         | n1 = IDENT labels = delimited(LTR_EDGE_LEFT,separated_nonempty_list(PIPE,IDENT),LTR_EDGE_RIGHT) n2 = IDENT
-            (* { (None, (n1,n2,false,labels),(!Parser_global.current_file,!Parser_global.current_line+1)) } *)
             { localize ({edge_id = None; src=n1; edge_labels=labels; tar=n2; negative=false}) }
 
 
@@ -377,11 +372,21 @@ edge_id:
                 
 
 full_const:
+        (* "A -[X|Y]-> *" *)
         | n1 = IDENT labels = delimited(LTR_EDGE_LEFT,separated_nonempty_list(PIPE,IDENT),LTR_EDGE_RIGHT) STAR
             { localize (Start (n1,labels)) }
+
+        (* "A -> *" *)
+        | n1 = IDENT GOTO_NODE STAR
+            { localize (No_out n1) }
+
+        (* "* -[X|Y]-> A" *)
         | STAR labels = delimited(LTR_EDGE_LEFT,separated_nonempty_list(PIPE,IDENT),LTR_EDGE_RIGHT) n2 = IDENT
             { localize (End (n2,labels)) }
 
+        (* "* -> A" *)
+        | STAR GOTO_NODE n2 = IDENT
+            { localize (No_in n2) }
 
 /*=============================================================================================*/
 /*                                                                                             */
@@ -429,6 +434,8 @@ command:
             { localize (New_neighbour (n1,n2,label)) }
         | DEL_FEAT feat = FEAT 
             { localize (Del_feat feat) }
+        | feat1 = FEAT EQUAL feat2 = FEAT PLUS feat3 = FEAT
+            { localize (Concat_feat (feat1, feat2, feat3)) }
         | feat1 = FEAT EQUAL feat2 = FEAT 
             { localize (Copy_feat (feat1, feat2)) }
         | feat = FEAT EQUAL value = feature_value 

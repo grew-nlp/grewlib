@@ -41,7 +41,9 @@ type edge = u_edge * Loc.t
 
 type u_const = 
    | Start of Id.name * string list (* (source, labels) *)
+   | No_out of Id.name
    | End of Id.name * string list (* (target, labels) *)
+   | No_in of Id.name
 
 type const = u_const * Loc.t
 
@@ -68,6 +70,7 @@ type command =
 
   | New_feat of string * string 
   | Copy_feat of string * string
+  | Concat_feat of string * string * string
   | Del_feat of string
  
  
@@ -221,6 +224,9 @@ module AST_HTML = struct
 				| (Copy_feat (f1,f2))::t ->
 					"            "^f1^"="^f2^" ;\n"^
 					compute t
+				| (Concat_feat (f1,f2,f3))::t ->
+					"            "^f1^"="^f2^"+"^f3^" ;\n"^
+					compute t
 				| (Del_feat (feat))::t ->
 					"            del_feat "^feat^" ;\n"^
 					compute t
@@ -264,6 +270,9 @@ module AST_HTML = struct
 				| (Copy_feat (f1,f2))::t ->
 					"<li>"^f1^" = "^f2^" ;</li>"^
 					compute t
+				| (Concat_feat (f1,f2,f3))::t ->
+					"<li>"^f1^"="^f2^"+"^f3^" ;</li>"^
+					compute t
 				| (Del_feat (feat))::t ->
 					"<li>del_feat "^feat^" ;</li>"^
 					compute t
@@ -304,7 +313,9 @@ module AST_HTML = struct
 	let pat_const_to_string pc = 
 		match pc with
 			| Start (id,labels) -> "            "^id^" -["^(tab_to_html_pipe labels)^"]-> *\n"
+                        | No_out id -> "            "^id^" -> *\n"
 			| End (id,labels) -> "            * -["^(tab_to_html_pipe labels)^"]-> "^id^"\n"
+			| No_in id -> "            * -> "^id^"\n"
 	
 	let rec to_html_const pat_const = 
 		match pat_const with

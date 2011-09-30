@@ -412,8 +412,8 @@ module Corpus_stat = struct
                    );
                   incr counter;
                   if html 
-                  then tmp := sprintf "%s\n    <a href=\"%s.html\">%s</a> &nbsp; &nbsp;" !tmp h h 
-                  else tmp := sprintf "%s\n    %s &nbsp; &nbsp;" !tmp h
+                  then tmp := sprintf "%s\n    <a href=\"%s.html\">%s</a>&nbsp;&nbsp;" !tmp h h 
+                  else tmp := sprintf "%s\n    %s&nbsp;&nbsp;" !tmp h
                  );
                 compute t
             in compute (List.rev file_list);

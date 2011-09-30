@@ -87,6 +87,7 @@ and global = parse
 | ':'	{ DDOT }
 | ';'	{ SEMIC }
 | ','	{ COMA }
+| '+'	{ PLUS }
 | '*'	{ STAR }
 | '='	{ EQUAL }
 | "<>"	{ DISEQUAL }

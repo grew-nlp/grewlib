@@ -69,7 +69,9 @@ module Rule = struct
 
   let build_constraint ?locals table = function 
     | (Ast.Start (node_name, labels), loc) -> No_out (Id.build ~loc node_name table, Edge.make ?locals labels)
+    | (Ast.No_out node_name, loc) -> No_out (Id.build ~loc node_name table, Edge.all)
     | (Ast.End (node_name, labels),loc) -> No_in (Id.build ~loc node_name table, Edge.make ?locals labels)
+    | (Ast.No_in node_name, loc) -> No_in (Id.build ~loc node_name table, Edge.all)
 
   type pattern = 
       { graph: Graph.t;
@@ -92,7 +94,9 @@ module Rule = struct
       match Id.build_opt string_id pos_table with Some i -> i | None -> -1-(Id.build ~loc string_id neg_table) in
     match const with
     | (Ast.Start (node_name, labels),loc) -> No_out (id_build loc node_name, Edge.make ?locals labels)
+    | (Ast.No_out node_name, loc) -> No_out (id_build loc node_name, Edge.all)
     | (Ast.End (node_name, labels),loc) -> No_in (id_build loc node_name, Edge.make ?locals labels)
+    | (Ast.No_in node_name, loc) -> No_in (id_build loc node_name, Edge.all)
 
   let build_neg_pattern ?domain ?(locals=[||]) pos_table pattern_ast =
     let (extension, neg_table) =
@@ -233,21 +237,11 @@ module Rule = struct
             List.exists (fun e -> Edge.compatible edge e) (Massoc.assoc gid node.Node.next)
           ) graph.Graph.map
     | Filter (pid, fs) ->
-        (* (\* DEBUG *\) Printf.printf "==<Filter>==%!"; *)
         let gid = IntMap.find pid matching.n_match in
         let gnode = IntMap.find gid graph.Graph.map in
-(* (\* DEBUG *\) let res =  *)
         Feature_structure.filter fs gnode.Node.fs
-(* (\* DEBUG *\) in  *)
-(* (\* DEBUG *\)  *)
-(* (\* DEBUG *\) Printf.printf " %b\n%!" res;  *)
-(* (\* DEBUG *\) Printf.printf " fs = %s\n" (Feature_structure.to_string fs); *)
-(* (\* DEBUG *\) Printf.printf " gnode.Node.fs = %s\n" (Feature_structure.to_string gnode.Node.fs); *)
-(* (\* DEBUG *\) res *)
-(* (\* DEBUG *\) *)
 
-
-          (* returns all extension of the partial input matching *)
+  (* returns all extension of the partial input matching *)
   let rec extend_matching (positive,neg) (graph:Graph.t) (partial:partial) =
     match (partial.unmatched_edges, partial.unmatched_nodes) with
     | [], [] -> 
@@ -409,8 +403,23 @@ module Rule = struct
         let tar_gid = node_find tar_cn in
         (
          {instance with 
-          Instance.graph = Graph.cpy_feat instance.Instance.graph src_gid tar_gid src_feat_name tar_feat_name;
+          Instance.graph = Graph.copy_feat instance.Instance.graph tar_gid src_gid tar_feat_name src_feat_name;
           commands = List_.sort_insert (Command.H_COPY_FEAT (tar_gid,src_gid,tar_feat_name,src_feat_name)) instance.Instance.commands
+        },
+         created_nodes
+        )     
+
+    | Command.CONCAT_FEAT (tar_cn,src1_cn,src2_cn,tar_feat_name, src1_feat_name, src2_feat_name) ->
+        let src1_gid = node_find src1_cn in
+        let src2_gid = node_find src2_cn in
+        let tar_gid = node_find tar_cn in
+        (
+         {instance with 
+          Instance.graph = Graph.concat_feat 
+            instance.Instance.graph tar_gid src1_gid src2_gid tar_feat_name src1_feat_name src2_feat_name;
+          commands = List_.sort_insert 
+            (Command.H_CONCAT_FEAT (tar_gid,src1_gid,src2_gid,tar_feat_name,src1_feat_name,src2_feat_name))
+            instance.Instance.commands
         },
          created_nodes
         )     

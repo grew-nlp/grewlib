@@ -7,8 +7,12 @@ end
 module Feature_structure: sig
   type t
 
-      val build: ?domain:Ast.domain -> Ast.feature list -> t
-      val get: string -> t -> string list
+  val build: ?domain:Ast.domain -> Ast.feature list -> t
+      
+  val get: string -> t -> string list
+      
+  val get_atom: string -> t -> string option
+
       val empty: t
       val to_string: t -> string
       val to_dep: ?main_feat: string -> t -> string
