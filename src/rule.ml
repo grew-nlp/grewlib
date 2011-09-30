@@ -44,7 +44,7 @@ module Instance = struct
 
 IFDEF DEP2PICT THEN
   let save_dep_png ?main_feat base t = 
-	    ignore (Dep2pict.fromDepStringToPng (Graph.to_dep ?main_feat t.graph) (base^".png"))
+    ignore (Dep2pict.fromDepStringToPng (Graph.to_dep ?main_feat t.graph) (base^".png"))
 ENDIF
 
 end

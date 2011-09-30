@@ -85,6 +85,30 @@ td.first_stats {
 	border-left-style:dotted; 
 	border-left-color:black; 
 }
+
+td.total { 
+        background-color: #DDDDDD;
+	border-right-width: 1px; r
+	border-right-style:dotted; 
+	border-right-color:black; 
+	border-bottom-width: 1px; 
+	border-bottom-style:dotted; 
+	border-bottom-color:black; 
+}
+td.first_total { 
+        background-color: #DDDDDD;
+	border-right-width: 1px; 
+	border-right-style:dotted; 
+	border-right-color:black; 
+	border-bottom-width: 1px; 
+	border-bottom-style:dotted; 
+	border-bottom-color:black; 
+	border-left-width: 1px; 
+	border-left-style:dotted; 
+	border-left-color:black; 
+}
+
+
 td.typefieldcomment { background-color : #FFFFFF }
 pre { margin-bottom: 4px }
 div.sig_block {margin-left: 2em}

@@ -36,7 +36,7 @@ module IntMap =
 (*
  * union of two injective maps having different ranges :
  * \forall x \neq y \in m: m(x) \neq m(y)
- * \forall x' \neq y' \in m': m'(x) \neq m'(y)
+ * \forall x' \neq y' \in m': m'(x) \neq m'(y)W
  * \forall x \in m /\ m': m(x) = m'(x)
  * \forall x \in m : x \not\in\m' => \forall y \in m' m(x) \neq m'(y)
  *)
@@ -257,6 +257,12 @@ module List_ = struct
       | x1::t1, x2::t2 -> loop (t1, t2) in
     loop (l1,l2)
 
+  let foldi_left f init l =
+    fst 
+      (List.fold_left 
+	 (fun (acc,i) elt -> (f i acc elt, i+1))
+	 (init,0) l
+      )
 end
 
 

@@ -68,6 +68,7 @@ module List_: sig
   val sort_included_diff: 'a list -> 'a list -> 'a list
   val sort_diff: 'a list -> 'a list -> 'a list
 
+  val foldi_left: (int -> 'a -> 'b -> 'a) -> 'a -> 'b list -> 'a
 end
 
 (* module Massoc implements multi-association data: keys are int and the same key can be

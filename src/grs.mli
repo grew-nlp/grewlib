@@ -12,15 +12,11 @@ module Rewrite_history: sig
       bad_nf: Instance.t list;
     }
 
-  val rules: t -> (string * string list) list
-
-
 IFDEF DEP2PICT THEN
   val error_html: ?main_feat:string -> ?init_graph:bool -> ?header:string -> string -> string -> Instance.t option -> unit
 
   val save_html: ?main_feat:string -> ?init_graph:bool -> ?header:string -> string -> t -> unit
-  
-ENDIF 
+ENDIF
 end
 
 

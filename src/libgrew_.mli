@@ -1,4 +1,4 @@
-(* include Grew_types *)
+
 
 (** {2 Grew's core} *)
 open Utils
@@ -53,8 +53,6 @@ val empty_gr : gr
 *)
 val load_gr : string -> gr
 
-(* OLD val rules_stat: Grs.t -> string -> string ->  (string * int) list *)
-
 val write_html: 
     ?no_init:bool -> ?main_feat:string -> header: string -> rew_history -> string -> unit
 
@@ -69,10 +67,5 @@ val make_index:
     output_dir: string -> 
     base_names: string list -> 
       unit
-
-IFDEF DEP2PICT THEN
-val dummy: unit
-(* FIXME: build whitout dep2pict *)
-ENDIF
 
 val get_css_file: string

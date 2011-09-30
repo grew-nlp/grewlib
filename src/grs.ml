@@ -17,49 +17,29 @@ module Rewrite_history = struct
       bad_nf: Instance.t list;
     }
 
-  let rec get_nfs t =
-    match t.good_nf with 
-    | [] -> [([], t.instance)]
-    | l -> 
-        List.flatten
-          (List_.mapi 
-             (fun i t' ->
-               List.map 
-                 (fun (path,x) -> (i::path,x)) 
-                 (get_nfs t') 
-             ) l
-          )
-
-  let rec rules t = 
-    let local = (t.module_name, t.instance.Instance.rules) in
-    match t.good_nf with 
-    | [] -> [local]
-    | l -> local :: (List.flatten (List.map rules l))
-
-
 IFDEF DEP2PICT THEN
-  (* warning: path are returned in reverse order *)
-  let save_all_dep ?main_feat base_name t = 
-    let nfs = ref [] in
-    let rec loop first (rev_path, rev_rules) t =
-      let file = 
-        match List.rev rev_path with
-        | [] -> base_name 
-        | l -> sprintf "%s_%s" base_name (List_.to_string string_of_int "_" l) in
 
-
+  (** [save_nfs ?main_feat base_name t] does two things:
+      - write PNG files of normal forms
+      - returns a list of couples (rules, file)
+   *)
+  let save_nfs ?main_feat base_name t = 
+    let rec loop file_name rules t =
       match t.good_nf with
-      | [] -> (* t is a leaf of the tree history *)
-          Instance.save_dep_png ?main_feat file t.instance;
-          nfs := (rev_path,List.rev rev_rules,file) :: !nfs
-      | l ->
-          List_.iteri 
-            (fun i t' ->
-              loop false (i::rev_path,(t.module_name, t'.instance.Instance.rules)::rev_rules) t'
-            ) l in
-    loop true ([],[]) t;
-    List.rev !nfs
-      
+      | [] -> Instance.save_dep_png ?main_feat file_name t.instance; [rules, file_name] 
+      | l -> 
+          List_.foldi_left
+            (fun i acc son -> 
+              (* Instance.save_dep_png ?main_feat (sprintf "%s_%d" file_name i) son.instance; *)
+              let nfs = loop 
+                  (sprintf "%s_%d" file_name i) 
+                  (rules @ [t.module_name, son.instance.Instance.rules]) 
+                  son in
+              nfs @ acc
+            )
+            [] l
+    in loop base_name [] t
+
   let error_html ?main_feat ?(init_graph=true) ?header prefix msg inst_opt =
     (* remove files from previous runs *)
     let _ = Unix.system (sprintf "rm -f %s*.html" prefix) in
@@ -96,7 +76,7 @@ IFDEF DEP2PICT THEN
     
     (if init_graph then Instance.save_dep_png ?main_feat prefix t.instance);
 
-    let nf_files = save_all_dep ?main_feat prefix t in
+    let nf_files = save_nfs ?main_feat prefix t in
     
     let l = List.length nf_files in
 
@@ -116,7 +96,7 @@ IFDEF DEP2PICT THEN
       end;
     
     List_.iteri 
-      (fun i (_,rules_list,file_name) -> 
+      (fun i (rules_list,file_name) -> 
         fprintf html_ch "<h6>Solution %d</h6>\n" (i+1);
 
         let local_name = Filename.basename file_name in
@@ -129,7 +109,14 @@ IFDEF DEP2PICT THEN
         
         let id = sprintf "id_%d" (i+1) in
         
-        fprintf html_ch "<a style=\"cursor:pointer;\" onClick=\"if (document.getElementById('%s').style.display == 'none') { document.getElementById('%s').style.display = 'block'; document.getElementById('p_%s').innerHTML = 'Hide'; } else { document.getElementById('%s').style.display = 'none';; document.getElementById('p_%s').innerHTML = 'Show'; }\"><b><p id=\"p_%s\">Show</p></b></a>\n" id id id id id id;
+        (* fprintf html_ch "<a style=\"cursor:pointer;\" onClick=\"if (document.getElementById('%s').style.display == 'none') { document.getElementById('%s').style.display = 'block'; document.getElementById('p_%s').innerHTML = 'Hide'; } else { document.getElementById('%s').style.display = 'none';; document.getElementById('p_%s').innerHTML = 'Show'; }\"><b><p id=\"p_%s\">Show</p></b></a>\n" id id id id id id; *)
+
+        fprintf html_ch "<a style=\"cursor:pointer;\"\n";
+        fprintf html_ch "  onClick=\"if (document.getElementById('%s').style.display == 'none')\n" id;
+        fprintf html_ch "      { document.getElementById('%s').style.display = 'block'; document.getElementById('p_%s').innerHTML = 'Hide'; }\n" id id;
+        fprintf html_ch " else { document.getElementById('%s').style.display = 'none';; document.getElementById('p_%s').innerHTML = 'Show'; }\">" id id;
+        fprintf html_ch "         <b><p id=\"p_%s\">Show</p></b>\n" id;
+        fprintf html_ch "</a>\n";
 
         fprintf html_ch " <div id=\"%s\" style=\"display:none;\">\n" id;
 
@@ -384,11 +371,24 @@ module Corpus_stat = struct
     fprintf out_ch "<b>Grs file</b>:<a href =\"%s\">%s</a>\n<br/>\n" grs_file (Filename.basename grs_file);
     fprintf out_ch "<b>%d Sentences</b><br/>\n<br/>\n" t.num;
 
-    fprintf out_ch "<center><table cellpadding=10 cellspacing=0 width=90%%>\n";
+    fprintf out_ch "<center><table cellpadding=3 cellspacing=0 width=95%%>\n";
     StringMap.iter
       (fun modul rules ->
         fprintf out_ch "<tr><td colspan=\"5\" style=\"padding: 0px;\"><h6>Module %s</h6></td>\n" modul;
-        fprintf out_ch "<tr><th class=\"first\" width=10>Rule</th><th width=10>#occ</th><th width=10>#files</th><th width=10>Ratio</th><th width=10>Files</th></tr>\n";
+        fprintf out_ch "<tr><th class=\"first\">Rule</th><th>#occ</th><th>#files</th><th>Ratio</th><th>Files</th></tr>\n";
+        let (tot_occ, full_sent) = 
+          StringMap.fold
+            (fun _ (occ_num, file_set) (acc_occ, acc_sent) -> (acc_occ + occ_num, StringSet.union acc_sent file_set))
+            rules (0,StringSet.empty) in
+        let tot_sent = StringSet.cardinal full_sent in
+        fprintf out_ch "<tr>\n";
+        fprintf out_ch "<td class=\"first_total\">Total for module</td>\n";
+        fprintf out_ch "<td class=\"total\">%d</td>" tot_occ;
+        fprintf out_ch "<td class=\"total\">%d</td>" tot_sent;
+        fprintf out_ch "<td class=\"total\">%.2f%%</td>" (ratio tot_sent);
+        fprintf out_ch "<td class=\"total\">&nbsp;</td>\n";
+        fprintf out_ch "</tr>\n";
+
         StringMap.iter
           (fun rule (occ_num, file_set) ->
             let file_list = StringSet.elements file_set in
@@ -403,8 +403,8 @@ module Corpus_stat = struct
                  );
                 incr counter;
                 if html 
-                then tmp := sprintf "%s<a href=\"%s.html\">%s</a>" !tmp h h
-                else tmp := sprintf "%s%s" !tmp h
+                then tmp := sprintf "%s&nbsp;&nbsp;<a href=\"%s.html\">%s</a>" !tmp h h
+                else tmp := sprintf "%s&nbsp;&nbsp;%s" !tmp h
             | h::t ->
                 if (not (List.mem h t)) then ( (*avoid doublons*)
                   if (!counter = 10) then (
@@ -412,8 +412,8 @@ module Corpus_stat = struct
                    );
                   incr counter;
                   if html 
-                  then tmp := sprintf "%s<a href=\"%s.html\">%s</a>" !tmp h h
-                  else tmp := sprintf "%s%s" !tmp h
+                  then tmp := sprintf "&nbsp;&nbsp;<a href=\"%s.html\">%s</a>%s" h h !tmp
+                  else tmp := sprintf "%s&nbsp;&nbsp;%s" !tmp h
                  );
                 compute t
             in compute (List.rev file_list);
@@ -423,10 +423,10 @@ module Corpus_stat = struct
             let file_num = List.length file_list in
 
             fprintf out_ch "<tr>\n";
-            fprintf out_ch "<td class=\"first_stats\" width=10 valign=top>%s</td>\n" rule;
-            fprintf out_ch "<td class=\"stats\" width=10 valign=top>%d</td>\n" occ_num;
-            fprintf out_ch "<td class=\"stats\" width=10 valign=top>%d</td>\n" file_num;
-            fprintf out_ch "<td class=\"stats\" width=10 valign=top>%.2f%%</td>\n" (ratio file_num);
+            fprintf out_ch "<td class=\"first_stats\"  valign=top>%s</td>\n" rule;
+            fprintf out_ch "<td class=\"stats\"  valign=top>%d</td>\n" occ_num;
+            fprintf out_ch "<td class=\"stats\"  valign=top>%d</td>\n" file_num;
+            fprintf out_ch "<td class=\"stats\"  valign=top>%.2f%%</td>\n" (ratio file_num);
             
             fprintf out_ch "<td class=\"stats\">%s" !tmp;
             if (!counter > 10)
@@ -445,32 +445,30 @@ module Corpus_stat = struct
     (* add a subtlabe for sentence that produces an error *)
     let nb_errors = List.length t.error in
     fprintf out_ch "<tr><td colspan=5><h6>ERRORS</h6></td>\n";
-    fprintf out_ch "<tr><th class=\"first\" width=10>Rule</th><th colspan=2 width=20>#files</th><th width=10>Ratio</th><th>Files</th></tr>\n";
+    fprintf out_ch "<tr><th class=\"first\" >Rule</th><th colspan=2 width=20>#files</th><th >Ratio</th><th>Files</th></tr>\n";
 
     fprintf out_ch "<tr>\n";
     fprintf out_ch "<td class=\"first_stats\">Errors</td>\n";
     fprintf out_ch "<td class=\"stats\" colspan=2>%d</td>\n" nb_errors;
     fprintf out_ch "<td class=\"stats\">%.2f%%</td>\n" (ratio nb_errors);
     fprintf out_ch "<td class=\"stats\">";
-    List.iter
-      (fun (file,err) ->
-        if html 
-        then
-          fprintf out_ch "<a href=\"%s.html\">%s</a>: %s<br/>" 
-            file 
-            file
-            err
-        else 
-          fprintf out_ch "%s: %s<br/>" file 
-            err
 
-      ) (List.rev t.error);
-    fprintf out_ch "</td>\n";
-    fprintf out_ch "</tr>";
-
-    fprintf out_ch "</table></center>\n";
-    close_out out_ch;
-    ()
-
+    match t.error with 
+    | [] -> fprintf out_ch "&nbsp;"
+    | l ->
+        List.iter
+          (fun (file,err) ->
+            if html 
+            then fprintf out_ch "<a href=\"%s.html\">%s</a>: %s<br/>" file file err
+            else fprintf out_ch "%s: %s<br/>" file err
+          ) (List.rev l);
+        
+        fprintf out_ch "</td>\n";
+        fprintf out_ch "</tr>";
+        
+        fprintf out_ch "</table></center>\n";
+        close_out out_ch;
+        ()
+          
 
 end (* module Stat *)
