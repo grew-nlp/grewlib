@@ -403,8 +403,8 @@ module Corpus_stat = struct
                  );
                 incr counter;
                 if html 
-                then tmp := sprintf "%s&nbsp;&nbsp;<a href=\"%s.html\">%s</a>" !tmp h h
-                else tmp := sprintf "%s&nbsp;&nbsp;%s" !tmp h
+                then tmp := sprintf "%s\n    <a href=\"%s.html\">%s</a> &nbsp; &nbsp;" !tmp h h
+                else tmp := sprintf "%s\n    %s &nbsp; &nbsp;" !tmp h
             | h::t ->
                 if (not (List.mem h t)) then ( (*avoid doublons*)
                   if (!counter = 10) then (
@@ -412,8 +412,8 @@ module Corpus_stat = struct
                    );
                   incr counter;
                   if html 
-                  then tmp := sprintf "&nbsp;&nbsp;<a href=\"%s.html\">%s</a>%s" h h !tmp
-                  else tmp := sprintf "%s&nbsp;&nbsp;%s" !tmp h
+                  then tmp := sprintf "%s\n    <a href=\"%s.html\">%s</a> &nbsp; &nbsp;" !tmp h h 
+                  else tmp := sprintf "%s\n    %s &nbsp; &nbsp;" !tmp h
                  );
                 compute t
             in compute (List.rev file_list);

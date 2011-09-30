@@ -70,21 +70,25 @@ module Grew_parser = struct
 	    raise (Parse_error (Printf.sprintf "Syntax error\nFile %s\nLine %d\n%s\n%!" file cp.Lexing.pos_lnum msg))
 	| err -> raise (Parse_error (Printexc.to_string err))
       end
-    with Sys_error msg-> raise (Parse_error msg)
+    with Sys_error msg -> raise (Parse_error msg)
 
         
-      (**
-	 [parse_string file] where [file] is a file following the grew syntax
-	 @param file the file to parse
-	 @return a syntactic tree of the parsed file
-       *)
-  let parse_file_to_grs file =
-    let grs_with_includes = parse_file_to_grs_with_includes file in
+  (**
+     [parse_string file] where [file] is a file following the grew syntax
+     @param file the file to parse
+     @return a syntactic tree of the parsed file
+   *)
+  let parse_file_to_grs main_file =
+    let grs_with_includes = parse_file_to_grs_with_includes main_file in
     let rec flatten_modules = function
       | [] -> []
       | Ast.Modul m :: tail -> m :: (flatten_modules tail)
-      | Ast.Includ file :: tail -> 
-          (parse_file_to_module_list file)
+      | Ast.Includ inc_file :: tail -> 
+          let sub_file = 
+            if Filename.is_relative inc_file
+            then Filename.concat (Filename.dirname main_file) inc_file
+            else inc_file in
+          (parse_file_to_module_list sub_file)
           @ (flatten_modules tail) in
     {
      Ast.domain = grs_with_includes.Ast.domain_wi;
