@@ -455,7 +455,7 @@ module Rule = struct
          (created_name,new_gid) :: created_nodes
         )
 
-    | Command.SHIFT_EDGE (src_cn,tar_cn) -> 
+    | Command.SHIFT_EDGE (src_cn,tar_cn) ->
         let src_gid = node_find src_cn in
         let tar_gid = node_find tar_cn in
         (

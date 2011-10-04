@@ -17,6 +17,9 @@ module Rewrite_history = struct
       bad_nf: Instance.t list;
     }
 
+  let rec is_empty t = 
+    (t.instance.Instance.rules = []) && List.for_all is_empty t.good_nf
+      
 IFDEF DEP2PICT THEN
 
   (** [save_nfs ?main_feat base_name t] does two things:
@@ -289,22 +292,25 @@ module Gr_stat = struct
     let out_ch = open_out stat_file in
     (match t with
     | Error msg -> fprintf out_ch "ERROR\n%s" msg 
-    | Stat map -> StringMap.iter (fun rule_name occ -> fprintf out_ch "%s:%d\n%!" rule_name occ) map);
+    | Stat map -> 
+        StringMap.iter (fun rule_name occ -> fprintf out_ch "%s:%d\n%!" rule_name occ) map);
     close_out out_ch
 
   let load stat_file = 
-    let lines = File.read stat_file in
-    match lines with
-    | "ERROR" :: msg_lines -> Error (List_.to_string (fun x->x) "\n" msg_lines)
-    | _ -> 
-        Stat 
-          (List.fold_left 
-             (fun acc line ->
-               match Str.split (Str.regexp ":") line with
-               | [modu_rule; num] -> StringMap.add modu_rule (int_of_string num) acc
-               | _ -> Log.fcritical "invalid stat line: %s" line
-             ) StringMap.empty lines
-          )
+    try
+      let lines = File.read stat_file in
+      match lines with
+      | "ERROR" :: msg_lines -> Error (List_.to_string (fun x->x) "\n" msg_lines)
+      | _ -> 
+          Stat 
+            (List.fold_left 
+               (fun acc line ->
+                 match Str.split (Str.regexp ":") line with
+                 | [modu_rule; num] -> StringMap.add modu_rule (int_of_string num) acc
+                 | _ -> Log.fcritical "invalid stat line: %s" line
+               ) StringMap.empty lines
+            )
+    with Sys_error msg -> Error (sprintf "Sys_error: %s" msg)
 end (* module Gr_stat *)
 
 module Corpus_stat = struct
@@ -319,18 +325,22 @@ module Corpus_stat = struct
       num: int;
     }
 
-  let empty grs =
+  let empty ~grs ~seq =
+    let modules = try List.assoc seq grs.Grs.sequences with Not_found -> [seq] in
     let map = List.fold_left 
         (fun acc modul ->
-          let rule_map = 
-            List.fold_left
-              (fun acc2 rule ->
-              StringMap.add (Rule.get_name rule) (0,StringSet.empty) acc2
-              ) StringMap.empty modul.Modul.rules in
-          StringMap.add modul.Modul.name rule_map acc
+          if List.mem modul.Modul.name modules 
+          then
+            let rule_map = 
+              List.fold_left
+                (fun acc2 rule ->
+                  StringMap.add (Rule.get_name rule) (0,StringSet.empty) acc2
+                ) StringMap.empty modul.Modul.rules in
+            StringMap.add modul.Modul.name rule_map acc
+          else acc
         ) StringMap.empty grs.Grs.modules in
     { map = map; error = []; num = 0 }
-        
+      
   let add modul rule file num map = 
     let old_rule_map = StringMap.find modul map in
     let (old_num, old_file_set) = StringMap.find rule old_rule_map in
@@ -416,7 +426,7 @@ module Corpus_stat = struct
                   else tmp := sprintf "%s\n    %s&nbsp;&nbsp;" !tmp h
                  );
                 compute t
-            in compute (List.rev file_list);
+            in compute file_list;
 
             if file_list = [] then tmp := "&nbsp;";
 
@@ -431,10 +441,10 @@ module Corpus_stat = struct
             fprintf out_ch "<td class=\"stats\">%s" !tmp;
             if (!counter > 10)
             then (
-              fprintf out_ch "</div><a style=\"cursor:pointer;\" onClick=\"if (document.getElementById('%s_%s').style.display == 'none') { %s } else { %s }\"><b><p id=\"p_%s_%s\">+ Show more +</p></b></a>\n"
+              fprintf out_ch "</div><a style=\"cursor:pointer;\" onClick=\"if (document.getElementById('%s_%s').style.display == 'none') { %s } else { %s }\"><b><p id=\"p_%s_%s\">+ Show all +</p></b></a>\n"
                 modul rule
-                (sprintf "document.getElementById('%s_%s').style.display = 'block'; document.getElementById('p_%s_%s').innerHTML = '- Show less -';" modul rule modul rule)
-                (sprintf "document.getElementById('%s_%s').style.display = 'none';; document.getElementById('p_%s_%s').innerHTML = '+ Show more +';" modul rule modul rule)
+                (sprintf "document.getElementById('%s_%s').style.display = 'block'; document.getElementById('p_%s_%s').innerHTML = '- Show first ten -';" modul rule modul rule)
+                (sprintf "document.getElementById('%s_%s').style.display = 'none';; document.getElementById('p_%s_%s').innerHTML = '+ Show all +';" modul rule modul rule)
                 modul rule;
              );
             fprintf out_ch "</td></tr>\n";

@@ -43,6 +43,7 @@ module Graph : sig
 	(extention * Id.table)
 
   val find: int -> t -> Node.t
+  val to_gr: t -> string
   val to_dot: ?deco:Deco.t -> t -> string
   val to_dep: ?main_feat:string -> ?deco:Deco.t -> t -> string
 

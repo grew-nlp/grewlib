@@ -24,6 +24,8 @@ type grs = Grs.t
 type gr = Instance.t
 type rew_history = Rewrite_history.t
 
+let is_empty = Rewrite_history.is_empty
+
 let empty_grs = Grs.empty
 
 let load_grs ?doc_output_dir file =
@@ -82,6 +84,11 @@ let display ~gr ~grs ~seq =
 
 let write_stat filename rew_hist = Gr_stat.save filename (Gr_stat.from_rew_history rew_hist) 
 
+let save_index ~dirname ~base_names =
+  let out_ch = open_out (Filename.concat dirname "index") in
+  List.iter (fun f -> fprintf out_ch "%s\n" f) base_names;
+  close_out out_ch
+
 let write_html 
     ?(no_init=false) ?main_feat 
     ~header
@@ -118,8 +125,8 @@ ENDIF
 
 
 
-let make_index ~title ~grs_file ~html ~grs ~output_dir ~base_names  =
-  let init = Corpus_stat.empty grs in
+let make_index ~title ~grs_file ~html ~grs ~seq ~output_dir ~base_names  =
+  let init = Corpus_stat.empty grs seq in
   let corpus_stat =
     List.fold_left
       (fun acc base_name -> 

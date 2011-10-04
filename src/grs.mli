@@ -12,6 +12,8 @@ module Rewrite_history: sig
       bad_nf: Instance.t list;
     }
 
+  val is_empty: t -> bool
+
 IFDEF DEP2PICT THEN
   val error_html: ?main_feat:string -> ?init_graph:bool -> ?header:string -> string -> string -> Instance.t option -> unit
 
@@ -53,7 +55,7 @@ module Corpus_stat: sig
 
   type t
 
-  val empty: Grs.t -> t
+  val empty: grs:Grs.t -> seq:string -> t
 
   val add_gr_stat: string -> Gr_stat.t -> t -> t
 

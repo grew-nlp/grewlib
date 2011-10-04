@@ -126,6 +126,32 @@ module Graph = struct
   (* ---------------------------------------------------------------------------------------------------- *)
   (* Output functions *)
   (* ---------------------------------------------------------------------------------------------------- *)
+  let to_gr graph =
+    let buff = Buffer.create 32 in
+    
+    bprintf buff "graph {\n";
+
+    (* list of the nodes *)
+    IntMap.iter
+      (fun id node ->
+	bprintf buff "N%d %s [%s];\n" 
+	  id 
+          (match node.Node.pos with Some i -> sprintf "(%d)" i | None -> "")
+          (Feature_structure.to_gr node.Node.fs)
+      ) graph.map;
+    (* list of the edges *)
+    IntMap.iter
+      (fun id node ->
+	Massoc.iter
+	  (fun tar edge -> 
+	    bprintf buff "N%d -[%s]-> N%d;\n" id (Edge.to_string edge) tar
+	  ) node.Node.next
+      ) graph.map;
+    
+    bprintf buff "}\n";
+    Buffer.contents buff
+
+
   let to_dot ?(deco=Deco.empty) graph = 
     let buff = Buffer.create 32 in
     

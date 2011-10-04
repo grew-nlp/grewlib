@@ -25,6 +25,8 @@ type rew_history
 
 val rewrite: gr:gr -> grs:grs -> seq:string -> rew_history
 
+val is_empty: rew_history -> bool
+
 (** display a gr with a grs in a rew_display 
 @param gr the grapth to rewrite
 @param grs the graph rewriting system
@@ -53,6 +55,8 @@ val empty_gr : gr
 *)
 val load_gr : string -> gr
 
+val save_index: dirname:string -> base_names: string list -> unit
+
 val write_html: 
     ?no_init:bool -> ?main_feat:string -> header: string -> rew_history -> string -> unit
 
@@ -64,6 +68,7 @@ val make_index:
     grs_file: string -> 
     html: bool -> 
     grs: grs -> 
+    seq: string ->
     output_dir: string -> 
     base_names: string list -> 
       unit

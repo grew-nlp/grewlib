@@ -15,6 +15,7 @@ module Feature_structure: sig
 
       val empty: t
       val to_string: t -> string
+      val to_gr: t -> string
       val to_dep: ?main_feat: string -> t -> string
 
       (** [set_feat feature_name atoms t] adds the feature ([feature_name],[atoms]) in [t].

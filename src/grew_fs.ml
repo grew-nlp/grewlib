@@ -1,3 +1,4 @@
+open Printf
 open Log
 open Utils
 open Ast
@@ -63,13 +64,13 @@ module Feature_structure = struct
 
   let string_of_feature = function
     | Feature.Equal (feat_name, atoms) -> 
-	Printf.sprintf "%s=%s" feat_name
+	sprintf "%s=%s" feat_name
 	  (match atoms with
 	  | [] -> "*"
 	  | h::t -> List.fold_right (fun atom acc -> atom^"|"^acc) t h
 	  )
     | Feature.Different (feat_name, atoms) -> 
-	Printf.sprintf "%s<>%s" feat_name
+	sprintf "%s<>%s" feat_name
 	  (match atoms with
 	  | [] -> "EMPTY"
 	  | h::t -> List.fold_right (fun atom acc -> atom^"|"^acc) t h
@@ -77,6 +78,12 @@ module Feature_structure = struct
 
 
   let to_string t = List_.to_string string_of_feature "\\n" t
+
+  let gr_of_feature = function
+    | Feature.Equal (feat_name, [one]) -> sprintf "%s=\"%s\"" feat_name one
+    | _ -> Log.critical "[Feature_structure.gr_of_feature] all feature in gr must be atomic value"
+
+  let to_gr t = List_.to_string gr_of_feature ", " t
 
   let to_dep ?main_feat t = 
     let main = match main_feat with None -> "label" | Some mf -> mf in
@@ -102,8 +109,8 @@ module Feature_structure = struct
 	   )
         ) in
     match fs with 
-    | "" ->  Printf.sprintf " word=\"%s\"; " wordform
-    | s -> Printf.sprintf " word=\"%s\"; subword=\"%s\"; " wordform s
+    | "" -> sprintf " word=\"%s\"; " wordform
+    | s -> sprintf " word=\"%s\"; subword=\"%s\"; " wordform s
 
 
   let rec set_feat feature_name atoms = function
