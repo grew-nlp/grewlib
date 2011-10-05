@@ -52,7 +52,7 @@ type pattern = {
   }
 
     
-type command = 
+type u_command = 
   | Del_edge_expl of (Id.name * Id.name * string)
   | Del_edge_name of string
   | Add_edge of (Id.name * Id.name * string)
@@ -66,11 +66,12 @@ type command =
   | Concat_feat of string * string * string
   | Del_feat of string
  
+type command = u_command * Loc.t
 type rule = {
     rule_id:Id.name;
     pos_pattern: pattern;
     neg_patterns: pattern list;
-    commands: (command * Loc.t) list;
+    commands: command list;
     rule_doc:string;
     rule_loc: Loc.t;
   }

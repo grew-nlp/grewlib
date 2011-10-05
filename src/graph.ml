@@ -379,7 +379,6 @@ module Graph = struct
     let node =  IntMap.find node_id graph.map in
     let new_fs = Feature_structure.del_feat feat_name node.Node.fs in
     {graph with map = IntMap.add node_id {node with Node.fs = new_fs} graph.map}
-      
 
   let equals t t' = IntMap.equal (fun node1 node2 -> node1 = node2) t.map t'.map
 

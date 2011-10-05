@@ -120,7 +120,7 @@ let rule_page_text previous next rule m ast file = "
 		
 	"<br/>
 	<br/><h6>Commands</h6>
-	<code class=code><pre>"^(Ast.AST_HTML.to_html_commands_pretty (List.map fst rule.Ast.commands))^"
+	<code class=code><pre>"^(Ast.AST_HTML.to_html_commands_pretty rule.Ast.commands)^"
 	</pre></code><br/><h6>Code</h6><pre>"^
 	(Ast.AST_HTML.to_html_rules [rule])^
 	"</pre><br/>

@@ -285,7 +285,6 @@ neg_item:
         | WITHOUT i = pn_item { i }
           
 pn_item: 
-        (* | LACC l = list (pat_item) RACC *)
         | l = delimited(LACC,separated_nonempty_list(SEMIC,option(pat_item)),RACC)
             {
              {
@@ -344,6 +343,7 @@ feature_value:
 full_edge:
         (* "e: A -> B" *)
         | id = edge_id n1 = IDENT GOTO_NODE n2 = IDENT
+        | id = edge_id n1 = IDENT LTR_EDGE_LEFT_NEG STAR LTR_EDGE_RIGHT n2 = IDENT
                { localize ({edge_id = Some id; src=n1; edge_labels=[]; tar=n2; negative=true}) }
 
         (* "A -> B" *)

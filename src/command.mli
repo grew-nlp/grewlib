@@ -38,6 +38,6 @@ module Command : sig
     | H_SHIFT_EDGE of (gid * gid)
     | H_MERGE_NODE of (gid * gid)
 
-  val build: ?domain:Ast.domain -> Id.table -> Label.decl array -> (Ast.command * Loc.t) -> t
+  val build: ?domain:Ast.domain -> Id.table -> Label.decl array -> Ast.command -> t
 
 end

@@ -1,8 +1,9 @@
+open Printf
+
 open Log
 open Utils
 
- 
-type feature_spec = 
+ type feature_spec = 
   | Closed of string * string list (* (the name, the set of atomic values) *)
   | Open of string (* the name *)
  
@@ -25,7 +26,6 @@ type u_node = {
     position: int option;
     fs: feature list;
   }
-
 type node = u_node * Loc.t
 
 
@@ -36,7 +36,6 @@ type u_edge = {
     tar: Id.name;
     negative: bool;
   }
-
 type edge = u_edge * Loc.t
 
 type u_const = 
@@ -59,7 +58,7 @@ type graph = {
     edge: edge list;
   }
     
-type command = 
+type u_command = 
   | Del_edge_expl of (Id.name * Id.name * string)
   | Del_edge_name of string
   | Add_edge of (Id.name * Id.name * string)
@@ -73,12 +72,13 @@ type command =
   | Concat_feat of string * string * string
   | Del_feat of string
  
- 
+type command = u_command * Loc.t
+
 type rule = {
     rule_id:Id.name;
     pos_pattern: pattern;
     neg_patterns: pattern list;
-    commands: (command * Loc.t) list;
+    commands: command list;
     rule_doc:string;
     rule_loc: Loc.t;
   }
@@ -127,232 +127,98 @@ type gr = {
 }
  
 module AST_HTML = struct
+  
+  let feat_values_tab_to_html = List_.to_string (fun x->x) " | " 
+ 	
+  let buff_html_command ?(li_html=false) buff (u_command,_) =
+    bprintf buff "      ";
+    if li_html then bprintf buff "<li>";
+    (match u_command with
+    | Del_edge_expl (n1,n2,label) -> bprintf buff "del_edge %s -[%s]-> %s" n1 label n2
+    | Del_edge_name name -> bprintf buff "del_edge %s" name
+    | Add_edge (n1,n2,label) -> bprintf buff "add_edge %s -[%s]-> %s" n1 label n2
+    | Shift_edge (n1,n2) -> bprintf buff "shift %s ==> %s" n1 n2
+    | Merge_node (n1,n2) -> bprintf buff "merge %s ==> %s" n1 n2
+    | New_neighbour (n1,n2,label) -> bprintf buff "add_node %s: <-[%s]- %s \n" n1 label n2
+    | Del_node n -> bprintf buff "del_node %s" n
+    | New_feat (feat,value) -> bprintf buff "%s = %s" feat value
+    | Copy_feat (f1,f2) -> bprintf buff "%s = %s" f1 f2
+    | Concat_feat (f1,f2,f3) -> bprintf buff "%s = %s + %s" f1 f2 f3
+    | Del_feat feat -> bprintf buff "del_feat %s" feat);
+    if li_html then bprintf buff "</li>\n" else bprintf buff ";\n"
 
-
-	let accleft = "<b>{</b>"
-	let accright = "<b>}</b>"
-
-	let rec tab_to_html tab = match tab with
-		| [] -> ""
-		| h::[] -> h
-		| h::t -> h^", "^(tab_to_html t)
-	
-	let rec tab_to_html_semic tab = match tab with
-		| [] -> ""
-		| h::[] -> h
-		| h::t -> h^"; "^(tab_to_html_semic t)
-		
-	let rec tab_to_html_pipe tab = match tab with
-		| [] -> ""
-		| h::[] -> h
-		| h::t -> h^"| "^(tab_to_html_pipe t)
-
-	let rec tab_to_html_arrow tab = match tab with
-		| [] -> ""
-		| h::[] -> h
-		| h::t -> h^" ⇨ "^(tab_to_html_arrow t)
-	
-	let rec feat_values_tab_to_html tab = match tab with
-		| [] -> ""
-		| h::[] -> h
-		| h::t -> h^" | "^(feat_values_tab_to_html t)
-	
-	
-
-	let rec feat_values_tab_to_dot tab = match tab with
-		| [] -> ""
-		| h::[] -> h
-		| h::t -> h^" \\| "^(feat_values_tab_to_dot t)
-
-	let rec feat_tab_to_html_newline tab = match tab with
-		| [] -> ""
-		| (equal,h1,h2,_,_)::[] -> h1^(if equal then " = " else " <> ")^(feat_values_tab_to_dot h2)
-		| (equal,h1,h2,_,_)::t -> h1^(if equal then " = " else " <> ")^(feat_values_tab_to_dot h2)^"\\n"^(feat_tab_to_html_newline t)
-
-
-
-
-	let to_html_domain domain = 
-		"features {\n"^
-		(let rec compute tab = match tab with
-			| [] -> ""
-			| h::[] -> begin match h with Open a -> "\t"^a^" : *\n" | Closed (name,values)  -> "\t"^name^" : "^(tab_to_html values)^"\n"; end;
-			| h::t -> begin match h with Open a -> "\t"^a^" : * ;\n"^compute t | Closed (name,values)  -> "\t"^name^" : "^(tab_to_html values)^" ;\n"^compute t; end; 
-		in compute domain)^
-		"}\n"
-
-
-	let to_html_labels ?(tab="") labels =
-		if (List.length labels <> 0) then
-			tab^"labels { "^(tab_to_html (List.map fst labels))^" }\n"
-		else ""
-
-	let to_html_bad_labels labels = 
-		if (List.length labels <> 0) then
-			"\tbad_labels { "^(tab_to_html labels)^" }\n"
-		else ""
-
-	let to_html_commands commands = 
-		if (List.length commands > 0) then (
-			let tmp = 
-			(let rec compute tab = match tab with
-				| [] -> ""
-				| (Del_edge_expl (n1,n2,label))::t ->
-					"            del_edge "^n1^" -["^label^"]-> "^n2^" ;\n"^
-					compute t
-				| (Del_edge_name name)::t ->
-					"            del_edge "^name^" ;\n"^
-					compute t
-				| (Add_edge (n1,n2,label))::t ->
-					"            add_edge "^n1^" -["^label^"]-> "^n2^" ;\n"^
-					compute t
-				| (Shift_edge (n1,n2))::t ->
-					"            shift "^n1^" ==> "^n2^" ;\n"^
-					compute t
-				| (Merge_node (n1,n2))::t ->
-					"            merge "^n1^" ==> "^n2^" ;\n"^
-					compute t
-				| (New_neighbour (n1,n2,label))::t -> 
-					"            add_node "^n1^": <-["^label^"]- "^n2^" ;\n"^
-					compute t
-				| (Del_node n)::t ->
-					"            del_node "^n^" ;\n"^
-					compute t
-				| (New_feat (feat,value))::t ->
-					"            "^feat^" = "^value^" ;\n"^
-					compute t
-				| (Copy_feat (f1,f2))::t ->
-					"            "^f1^"="^f2^" ;\n"^
-					compute t
-				| (Concat_feat (f1,f2,f3))::t ->
-					"            "^f1^"="^f2^"+"^f3^" ;\n"^
-					compute t
-				| (Del_feat (feat))::t ->
-					"            del_feat "^feat^" ;\n"^
-					compute t
-	  		in compute commands)
-			 in
-			String.fill tmp (String.rindex tmp ';') 1 ' ';
-			tmp
-		) else (
-			""
-		)
-		
-	let to_html_commands_pretty commands = 
-		if (List.length commands > 0) then (
-			let tmp = "<ul>"^
-			(let rec compute tab = match tab with
-				| [] -> "</ul>"
-				| (Del_edge_expl (n1,n2,label))::t ->
-					"<li>del_edge "^n1^" -["^label^"]-> "^n2^" ;</li>"^
-					compute t
-				| (Del_edge_name name)::t ->
-					"<li>del_edge "^name^" ;\n"^
-					compute t
-				| (Add_edge (n1,n2,label))::t ->
-					"<li>add_edge "^n1^" -["^label^"]-> "^n2^" ;</li>"^
-					compute t
-				| (Shift_edge (n1,n2))::t ->
-					"<li>shift "^n1^" ==> "^n2^" ;</li>"^
-					compute t
-				| (Merge_node (n1,n2))::t ->
-					"<li>merge "^n1^" ==> "^n2^" ;</li>"^
-					compute t
-				| (New_neighbour (n1,n2,label))::t -> 
-					"<li>add_node "^n1^": <-["^label^"]- "^n2^" ;</li>"^
-					compute t
-				| (Del_node n)::t ->
-					"<li>del_node "^n^" ;\n"^
-					compute t
-				| (New_feat (feat,value))::t ->
-					"<li>"^feat^" = "^value^" ;</li>"^
-					compute t
-				| (Copy_feat (f1,f2))::t ->
-					"<li>"^f1^" = "^f2^" ;</li>"^
-					compute t
-				| (Concat_feat (f1,f2,f3))::t ->
-					"<li>"^f1^"="^f2^"+"^f3^" ;</li>"^
-					compute t
-				| (Del_feat (feat))::t ->
-					"<li>del_feat "^feat^" ;</li>"^
-					compute t
-	  		in compute commands)
-			 in
-			String.fill tmp (String.rindex tmp ';') 1 ' ';
-			tmp
-		) else (
-			""
-		)
-		
-	let rec feat_tab_to_html tab = match tab with
-		| [] -> ""
-		| (u_f,loc)::[] -> 
-			u_f.name^(match u_f.kind with Equality -> " = "^(tab_to_html u_f.values) | _ -> " = * ")
-		| (u_f,loc)::t -> 
-			u_f.name^(match u_f.kind with Equality -> " = "^(tab_to_html u_f.values) | _ -> " = *")^"; "^(feat_tab_to_html t)
-
-	let rec to_html_nodes nodes = match nodes with
-		| [] -> ""
-		| (u_n,loc)::t -> 
-			"            "^u_n.node_id^" [ "^(feat_tab_to_html u_n.fs)^" ] ;\n"^(to_html_nodes t)
-
-  let rec to_html_edges edges = 
-    match edges with
+  let to_html_commands_pretty = function
     | [] -> ""
-    | (u_e,loc)::t ->
-	"            " ^
-	(match u_e.edge_id with Some n -> n^": " | None -> "") ^
-	u_e.src ^ 
-	(if u_e.negative then " <-[" else " -[") ^
-	(tab_to_html_pipe u_e.edge_labels) ^
-	(if u_e.negative then "]- " else "]-> ") ^ 
-	u_e.tar ^
-	";\n" ^ 
-	(to_html_edges t)
+    | commands ->
+        let buff = Buffer.create 32 in
+        bprintf buff "<ul>\n";
+        List.iter (buff_html_command ~li_html:true buff) commands;
+        bprintf buff "</ul>\n";
+        Buffer.contents buff
+    		
+  let buff_html_feature buff (u_feature,_) =
+    bprintf buff "%s %s %s" 
+      u_feature.name 
+      (match u_feature.kind with Equality -> "=" | Disequality -> "<>")
+      (List_.to_string (fun x->x) ", " u_feature.values)
+
+  let buff_html_node buff (u_node,_) =
+    bprintf buff "      %s [" u_node.node_id;
+    List.iter (buff_html_feature buff) u_node.fs;
+    bprintf buff "];\n"
+
+  let buff_html_edge buff (u_edge,_) =
+    bprintf buff "      ";
+    bprintf buff "%s" (match u_edge.edge_id with Some n -> n^": " | None -> "");
+    bprintf buff "%s -[%s%s]-> %s;\n" 
+      u_edge.src 
+      (if u_edge.negative then "^" else "")
+      (List_.to_string (fun x->x) "|" u_edge.edge_labels)
+      u_edge.tar
 	
-	let pat_const_to_string pc = 
-		match pc with
-			| Start (id,labels) -> "            "^id^" -["^(tab_to_html_pipe labels)^"]-> *\n"
-                        | No_out id -> "            "^id^" -> *\n"
-			| End (id,labels) -> "            * -["^(tab_to_html_pipe labels)^"]-> "^id^"\n"
-			| No_in id -> "            * -> "^id^"\n"
-	
-	let rec to_html_const pat_const = 
-		match pat_const with
-			| [] -> ""
-			| (h,_)::t -> (pat_const_to_string h)^(to_html_const t)
-	
+  let buff_html_const buff (u_const,_) =
+    bprintf buff "      ";
+    (match u_const with
+    | Start (id,labels) -> bprintf buff "%s -[%s]-> *" id (List_.to_string (fun x->x) "|" labels)
+    | No_out id -> bprintf buff "%s -> *" id
+    | End (id,labels) -> bprintf buff "* -[%s]-> %s" (List_.to_string (fun x->x) "|" labels) id
+    | No_in id -> bprintf buff "* -> %s" id);
+    bprintf buff "\n"
 
-	let rec to_html_neg_pattern pos_pattern = 
-		match pos_pattern with
-			| [] -> ""
-			| h::t -> 
-				"        <font color=\"purple\">without</font> "^accleft^"\n"^
-				(to_html_nodes h.pat_nodes)^
-				(to_html_edges h.pat_edges)^
-				(to_html_const h.pat_const)^
-				"        "^accright^"\n"^
-				(to_html_neg_pattern t)
+   
+  let buff_html_pos_pattern buff pos_pattern =
+    bprintf buff "   <font color=\"purple\">match</font> <b>{</b>\n";
+    List.iter (buff_html_node buff) pos_pattern.pat_nodes;
+    List.iter (buff_html_edge buff) pos_pattern.pat_edges;
+    List.iter (buff_html_const buff) pos_pattern.pat_const;
+    bprintf buff "    <b>}</b>\n"
+       
+  let buff_html_neg_pattern buff neg_pattern =
+    bprintf buff "    <font color=\"purple\">without</font> <b>{</b>\n";
+    List.iter (buff_html_node buff) neg_pattern.pat_nodes;
+    List.iter (buff_html_edge buff) neg_pattern.pat_edges;
+    List.iter (buff_html_const buff) neg_pattern.pat_const;
+    bprintf buff "    <b>}</b>\n"
 
-	let to_html_pos_pattern pos_pattern = 
-		(to_html_nodes pos_pattern.pat_nodes)^
-		(to_html_edges pos_pattern.pat_edges)^(if pos_pattern.pat_edges <> [] then "" else "\n")
+  let to_html_rules rules =
+    let buff = Buffer.create 32 in
+    List.iter 
+      (fun rule ->
+        bprintf buff "  <font color=\"purple\">rule</font> %s <b>{</b>\n" rule.rule_id;
 
-	let rec to_html_rules rules = 
-		 match rules with 
-		 	| [] -> "" 
-		 	| h::t -> 
-		 		"    <font color=\"purple\">rule</font> "^h.rule_id^" "^accleft^"\n"^ 
-		 		"        <font color=\"purple\">match</font> "^accleft^"\n"^
-		 		(to_html_pos_pattern h.pos_pattern)^ 
-		 		"        "^accright^"\n"^
-		 		(to_html_neg_pattern h.neg_patterns)^ 
-		 		"        <font color=\"purple\">commands</font> "^accleft^"\n"^
-		 		(to_html_commands (List.map fst h.commands))^
-		 		"        "^accright^"\n"^ 
-		 		"    "^accright^"\n"^ 
-		 		to_html_rules t 
+        (* the match part *)
+        buff_html_pos_pattern buff rule.pos_pattern;
 
+        (* the without parts *)
+        List.iter (buff_html_neg_pattern buff) rule.neg_patterns;
 
+        (*  the commands part *)
+        bprintf buff "        <font color=\"purple\">commands</font> <b>{</b>\n";
+        List.iter (buff_html_command buff) rule.commands;
+        bprintf buff "        <b>}</b>\n"; 
+
+        bprintf buff "    <b>}</b>\n"; 
+      ) rules;
+    Buffer.contents buff
 end
 
