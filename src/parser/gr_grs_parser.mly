@@ -434,12 +434,13 @@ command:
             { localize (New_neighbour (n1,n2,label)) }
         | DEL_FEAT feat = FEAT 
             { localize (Del_feat feat) }
-        | feat1 = FEAT EQUAL feat2 = FEAT PLUS feat3 = FEAT
-            { localize (Concat_feat (feat1, feat2, feat3)) }
-        | feat1 = FEAT EQUAL feat2 = FEAT 
-            { localize (Copy_feat (feat1, feat2)) }
-        | feat = FEAT EQUAL value = feature_value 
-            { localize (New_feat (feat, value)) }
+        | feat = FEAT EQUAL items = separated_nonempty_list (PLUS, concat_item)
+            { localize (Update_feat (feat, items)) }
+
+concat_item:
+        | feat = FEAT  { Feat_item feat }
+        | s = IDENT   { String_item s }
+        | s = STRING   { String_item s }
 
 /*=============================================================================================*/
 /*                                                                                             */

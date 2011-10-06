@@ -58,6 +58,10 @@ type graph = {
     edge: edge list;
   }
     
+type concat_item =
+  | Feat_item of string
+  | String_item of string
+
 type u_command = 
   | Del_edge_expl of (Id.name * Id.name * string)
   | Del_edge_name of string
@@ -67,11 +71,10 @@ type u_command =
   | New_neighbour of (Id.name * Id.name * string)
   | Del_node of Id.name
 
-  | New_feat of string * string 
-  | Copy_feat of string * string
-  | Concat_feat of string * string * string
   | Del_feat of string
  
+  | Update_feat of string * concat_item list
+
 type command = u_command * Loc.t
 
 type rule = {
@@ -129,6 +132,10 @@ type gr = {
 module AST_HTML = struct
   
   let feat_values_tab_to_html = List_.to_string (fun x->x) " | " 
+
+  let string_of_concat_item = function
+    | Feat_item f -> f 
+    | String_item s -> sprintf "\"%s\"" s
  	
   let buff_html_command ?(li_html=false) buff (u_command,_) =
     bprintf buff "      ";
@@ -141,9 +148,7 @@ module AST_HTML = struct
     | Merge_node (n1,n2) -> bprintf buff "merge %s ==> %s" n1 n2
     | New_neighbour (n1,n2,label) -> bprintf buff "add_node %s: <-[%s]- %s \n" n1 label n2
     | Del_node n -> bprintf buff "del_node %s" n
-    | New_feat (feat,value) -> bprintf buff "%s = %s" feat value
-    | Copy_feat (f1,f2) -> bprintf buff "%s = %s" f1 f2
-    | Concat_feat (f1,f2,f3) -> bprintf buff "%s = %s + %s" f1 f2 f3
+    | Update_feat (f,item_list) -> bprintf buff "%s = %s" f (List_.to_string string_of_concat_item " + " item_list)
     | Del_feat feat -> bprintf buff "del_feat %s" feat);
     if li_html then bprintf buff "</li>\n" else bprintf buff ";\n"
 

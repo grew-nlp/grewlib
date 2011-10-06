@@ -176,9 +176,7 @@ module Rule = struct
     {
      Deco.nodes = List.fold_left
        (fun acc -> function
-         | (Command.COPY_FEAT (tar_cn,_,_,_),loc)
-         | (Command.ADD_FEAT (tar_cn,_,_),loc)
-         | (Command.DEL_FEAT (tar_cn,_),loc)
+         | (Command.UPDATE_FEAT (tar_cn,_,_),loc)
          | (Command.SHIFT_EDGE (_,tar_cn),loc) -> 
              (find tar_cn (matching, created_nodes)) :: acc
          | _ -> acc
@@ -398,41 +396,24 @@ module Rule = struct
         | None -> raise Command_execution_fail
         )
           
-    | Command.COPY_FEAT (tar_cn,src_cn,tar_feat_name, src_feat_name) ->
-        let src_gid = node_find src_cn in
+    | Command.UPDATE_FEAT (tar_cn,tar_feat_name, item_list) ->
         let tar_gid = node_find tar_cn in
+        let rule_items = List.map
+            (function
+              | Command.Feat (cnode, feat_name) -> Graph.Feat (node_find cnode, feat_name)
+              | Command.String s -> Graph.String s
+            ) item_list in
+        let (new_graph, new_feature_value) = 
+          Graph.update_feat instance.Instance.graph tar_gid tar_feat_name rule_items in
         (
-         {instance with 
-          Instance.graph = Graph.copy_feat instance.Instance.graph tar_gid src_gid tar_feat_name src_feat_name;
-          commands = List_.sort_insert (Command.H_COPY_FEAT (tar_gid,src_gid,tar_feat_name,src_feat_name)) instance.Instance.commands
-        },
-         created_nodes
-        )     
-
-    | Command.CONCAT_FEAT (tar_cn,src1_cn,src2_cn,tar_feat_name, src1_feat_name, src2_feat_name) ->
-        let src1_gid = node_find src1_cn in
-        let src2_gid = node_find src2_cn in
-        let tar_gid = node_find tar_cn in
-        (
-         {instance with 
-          Instance.graph = Graph.concat_feat 
-            instance.Instance.graph tar_gid src1_gid src2_gid tar_feat_name src1_feat_name src2_feat_name;
-          commands = List_.sort_insert 
-            (Command.H_CONCAT_FEAT (tar_gid,src1_gid,src2_gid,tar_feat_name,src1_feat_name,src2_feat_name))
+         {instance with
+          Instance.graph = new_graph;
+          commands = List_.sort_insert
+            (Command.H_UPDATE_FEAT (tar_gid,tar_feat_name,new_feature_value))
             instance.Instance.commands
         },
          created_nodes
-        )     
-
-    | Command.ADD_FEAT (tar_cn,feat_name, feat_value) ->
-        let tar_gid = node_find tar_cn in
-        (
-         {instance with 
-          Instance.graph = Graph.add_feat instance.Instance.graph tar_gid feat_name feat_value;
-          commands = List_.sort_insert (Command.H_ADD_FEAT (tar_gid,feat_name,feat_value)) instance.Instance.commands
-        },
-         created_nodes
-        )     
+        )
 
     | Command.DEL_FEAT (tar_cn,feat_name) ->
         let tar_gid = node_find tar_cn in

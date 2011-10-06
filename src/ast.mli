@@ -51,6 +51,9 @@ type pattern = {
     pat_const: const list;
   }
 
+type concat_item =
+  | Feat_item of string
+  | String_item of string
     
 type u_command = 
   | Del_edge_expl of (Id.name * Id.name * string)
@@ -61,11 +64,10 @@ type u_command =
   | New_neighbour of (Id.name * Id.name * string)
   | Del_node of Id.name
 
-  | New_feat of string * string 
-  | Copy_feat of string * string
-  | Concat_feat of string * string * string
   | Del_feat of string
  
+  | Update_feat of string * concat_item list
+
 type command = u_command * Loc.t
 type rule = {
     rule_id:Id.name;

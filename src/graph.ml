@@ -26,6 +26,11 @@ module Graph = struct
 
   let empty = {map = IntMap.empty; lub = 0}
 
+  type gid = int
+  type concat_item =
+    | Feat of (gid * string)
+    | String of string
+
   let find node_id graph = IntMap.find node_id graph.map
 
   let map_add_edge map id_src label id_tar =
@@ -329,49 +334,27 @@ module Graph = struct
 	    (IntMap.remove src_gid se_graph.map) in
 	Some {se_graph with map = new_map}
     | None -> None 
-      
-
-  (* TODO: with copy_feat from different feature name, correctness of fs wrt domain can be broken: add the check against domain *)
-  let copy_feat graph tar_id src_id tar_feat_name src_feat_name = 
-    let src = IntMap.find src_id graph.map in
-    let tar = IntMap.find tar_id graph.map in
-    let new_f = 
-      try Feature_structure.set_feat tar_feat_name 
-	  (Feature_structure.get src_feat_name src.Node.fs) tar.Node.fs 
-      with Not_found -> Log.fcritical "[RUN] [Graph.copy_feat] no feature \"%s\" in node \"%s\"" src_feat_name (Node.to_string src) in
-    {graph with map = IntMap.add tar_id {tar with Node.fs = new_f} graph.map}
-
 
   (* FIXME: check consistency wrt the domain *)      
-  let concat_feat graph tar_id src1_id src2_id tar_feat_name src1_feat_name src2_feat_name = 
+  let update_feat graph tar_id tar_feat_name item_list =
     let tar = IntMap.find tar_id graph.map in
-    let src1 = IntMap.find src1_id graph.map in
-    let src2 = IntMap.find src2_id graph.map in
-    
-    let value1_opt = 
-      try Feature_structure.get_atom src1_feat_name src1.Node.fs
-      with Not_found -> 
-        Log.fcritical "[RUN] [Graph.concat_feat] no feature \"%s\" in node \"%s\"" 
-          src1_feat_name (Node.to_string src1) in
-    
-    let value2_opt = 
-      try Feature_structure.get_atom src2_feat_name src2.Node.fs
-      with Not_found -> 
-        Log.fcritical "[RUN] [Graph.concat_feat] no feature \"%s\" in node \"%s\"" 
-          src2_feat_name (Node.to_string src2) in
-
-    match (value1_opt, value2_opt) with
-    | Some value1, Some value2 ->
-        let new_f = Feature_structure.set_feat tar_feat_name [value1 ^ " + " ^ value2] tar.Node.fs in
-        {graph with map = IntMap.add tar_id {tar with Node.fs = new_f} graph.map}
-    | _ -> Log.fcritical "[BUG] [Graph.concat_feat] Feature not atomic"
-
-
-
-  let add_feat graph node_id feat_name feat_value = 
-    let node = IntMap.find node_id graph.map in
-    let new_fs = Feature_structure.set_feat feat_name [feat_value] node.Node.fs in
-    {graph with map = IntMap.add node_id {node with Node.fs = new_fs} graph.map}
+    let strings_to_concat =
+      List.map
+        (function
+          | Feat (node_gid, feat_name) ->
+              let node = IntMap.find node_gid graph.map in
+              (try 
+                match Feature_structure.get_atom feat_name node.Node.fs with
+                | Some atom -> atom
+                | None -> Log.fcritical "[BUG] [Graph.update_feat] Feature not atomic"
+              with Not_found -> 
+                Log.fcritical "[RUN] [Graph.update_feat] no feature \"%s\" in node \"%s\"" 
+                  feat_name (Node.to_string node))
+          | String s -> s
+        ) item_list in
+    let new_feature_value = List_.to_string (fun s->s) "" strings_to_concat in
+    let new_f = Feature_structure.set_feat tar_feat_name [new_feature_value] tar.Node.fs in
+    ({graph with map = IntMap.add tar_id {tar with Node.fs = new_f} graph.map}, new_feature_value)
       
       (** [del_feat graph node_id feat_name] returns [graph] where the feat [feat_name] of [node_id] is deleted
 	  If the feature is not present, [graph] is returned. *)

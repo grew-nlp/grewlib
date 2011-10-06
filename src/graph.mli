@@ -19,6 +19,12 @@ module Graph : sig
       lub: int;             (* least upper bound *)
     }
 
+  type gid = int
+
+  type concat_item =
+    | Feat of (gid * string)
+    | String of string
+
   val empty: t
 
   val build:
@@ -55,14 +61,11 @@ module Graph : sig
   val merge_node : Loc.t -> t -> int -> int -> t option
   val shift_edges : Loc.t -> t -> int -> int -> t
 
-  (** [cpy_feat tar_id src_id tar_feat_name src_feat_name] copy the feature value associated with [src_feat_name] from 
-   the node [src_id] to the node [tar_id] with feature name [tar_feat_name] *)
-  val copy_feat : t -> int -> int -> string -> string -> t
+  (** [update_feat tar_id tar_feat_name concat_items] sets the feature of the node [tar_id] 
+      with feature name [tar_feat_name] to be the contatenation of values described by the [concat_items].
+      It returns both the new graph and the new feature value produced as the second element *)
+  val update_feat : t -> int -> string -> concat_item list -> (t * string)
 
-  val concat_feat : t -> int -> int -> int -> string -> string -> string -> t
-
-
-  val add_feat : t -> int -> string -> string -> t
   val del_feat : t -> int -> string -> t
 
   val equals : t -> t -> bool
