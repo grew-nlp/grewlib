@@ -28,7 +28,7 @@ INFO = @INFO@
 
 OCAMLFIND_DIR=`ocamlfind printconf destdir`
 
-VERSION = 0.9.3
+VERSION = 0.9.4
 
 cleanup:
 	rm -rf *.cmo *.cmx *.cmi *.annot *.o *.*~
