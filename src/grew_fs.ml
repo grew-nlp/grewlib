@@ -51,15 +51,15 @@ module Feature_structure = struct
   let empty = []
 
   let rec get name = function
-    | [] -> raise Not_found
-    | Feature.Equal (n,l) :: _ when n=name -> l
+    | [] -> None
+    | Feature.Equal (n,l) :: _ when n=name -> Some l
     | Feature.Equal (n,l) :: t when n<name -> get name t
-    | Feature.Equal _ :: _ -> raise Not_found 
-    | Feature.Different _ :: _ -> failwith "[Feature_structure.get] this fs contains 'Different' constructor"
+    | Feature.Equal _ :: _ -> None
+    | Feature.Different _ :: _ -> Log.critical "[Feature_structure.get] this fs contains 'Different' constructor"
 
   let get_atom name t =
     match get name t with
-    | [one] -> Some one
+    | Some [one] -> Some one
     | _ -> None
 
   let string_of_feature = function

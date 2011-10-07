@@ -9,7 +9,7 @@ module Feature_structure: sig
 
   val build: ?domain:Ast.domain -> Ast.feature list -> t
       
-  val get: string -> t -> string list
+  val get: string -> t -> string list option
       
   val get_atom: string -> t -> string option
 

@@ -242,7 +242,10 @@ module Rule = struct
     | Feature_eq (pid1, feat_name1, pid2, feat_name2) ->
         let gnode1 = IntMap.find (IntMap.find pid1 matching.n_match) graph.Graph.map in
         let gnode2 = IntMap.find (IntMap.find pid2 matching.n_match) graph.Graph.map in
-        Feature_structure.get feat_name1 gnode1.Node.fs = Feature_structure.get feat_name2 gnode2.Node.fs
+        (match (Feature_structure.get feat_name1 gnode1.Node.fs,
+               Feature_structure.get feat_name2 gnode2.Node.fs) with
+        | Some fv1, Some fv2 when fv1 = fv2 -> true
+        | _ -> false)
     | Filter (pid, fs) ->
         let gid = IntMap.find pid matching.n_match in
         let gnode = IntMap.find gid graph.Graph.map in

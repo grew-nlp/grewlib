@@ -32,7 +32,9 @@ module Grew_parser = struct
 	try
 	  Parser_global.current_file := file;
 	  Parser_global.current_line := 0;
-	  let res = Gr_grs_parser.grs_with_include Lexer.global to_parse in close_in in_ch; res
+	  let res = Gr_grs_parser.grs_with_include Lexer.global to_parse in 
+          close_in in_ch; 
+          res
 	with
 	| Lexer.Error msg -> raise (Parse_error msg)
 	| Gr_grs_parser.Error -> 
@@ -54,11 +56,8 @@ module Grew_parser = struct
 	try
 	  Parser_global.current_file := file;
 	  Parser_global.current_line := 0;
-	  let res = Gr_grs_parser.included Lexer.global to_parse in close_in in_ch; 
-          Printf.printf "=======================================================\n";
-          List.iter 
-            (fun m -> Printf.printf "module %s --> %d rules\n" m.module_id (List.length m.rules)) res;
-          Printf.printf "=======================================================\n";
+	  let res = Gr_grs_parser.included Lexer.global to_parse in
+          close_in in_ch;
           res
 	with
 	| Lexer.Error msg -> raise (Parse_error msg)
