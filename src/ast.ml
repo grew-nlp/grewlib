@@ -19,7 +19,8 @@ type u_feature = {
   }
 type feature = u_feature * Loc.t
 
-
+(* qualified feature name "A.lemma" *)
+type qfn = string * string
 
 type u_node = {
     node_id: Id.name;
@@ -43,6 +44,7 @@ type u_const =
    | No_out of Id.name
    | End of Id.name * string list (* (target, labels) *)
    | No_in of Id.name
+   | Feature_eq of qfn * qfn
 
 type const = u_const * Loc.t
 
@@ -59,7 +61,7 @@ type graph = {
   }
     
 type concat_item =
-  | Feat_item of string
+  | Qfn_item of (string * string)
   | String_item of string
 
 type u_command = 
@@ -71,9 +73,9 @@ type u_command =
   | New_neighbour of (Id.name * Id.name * string)
   | Del_node of Id.name
 
-  | Del_feat of string
+  | Del_feat of qfn
  
-  | Update_feat of string * concat_item list
+  | Update_feat of qfn * concat_item list
 
 type command = u_command * Loc.t
 
@@ -134,9 +136,11 @@ module AST_HTML = struct
   let feat_values_tab_to_html = List_.to_string (fun x->x) " | " 
 
   let string_of_concat_item = function
-    | Feat_item f -> f 
+    | Qfn_item (n,f) -> sprintf "%s.%s" n f 
     | String_item s -> sprintf "\"%s\"" s
  	
+  let string_of_qfn (node, feat_name) = sprintf "%s.%s" node feat_name
+
   let buff_html_command ?(li_html=false) buff (u_command,_) =
     bprintf buff "      ";
     if li_html then bprintf buff "<li>";
@@ -148,8 +152,8 @@ module AST_HTML = struct
     | Merge_node (n1,n2) -> bprintf buff "merge %s ==> %s" n1 n2
     | New_neighbour (n1,n2,label) -> bprintf buff "add_node %s: <-[%s]- %s \n" n1 label n2
     | Del_node n -> bprintf buff "del_node %s" n
-    | Update_feat (f,item_list) -> bprintf buff "%s = %s" f (List_.to_string string_of_concat_item " + " item_list)
-    | Del_feat feat -> bprintf buff "del_feat %s" feat);
+    | Update_feat (qfn,item_list) -> bprintf buff "%s = %s" (string_of_qfn qfn) (List_.to_string string_of_concat_item " + " item_list)
+    | Del_feat qfn -> bprintf buff "del_feat %s" (string_of_qfn qfn));
     if li_html then bprintf buff "</li>\n" else bprintf buff ";\n"
 
   let to_html_commands_pretty = function
@@ -187,7 +191,8 @@ module AST_HTML = struct
     | Start (id,labels) -> bprintf buff "%s -[%s]-> *" id (List_.to_string (fun x->x) "|" labels)
     | No_out id -> bprintf buff "%s -> *" id
     | End (id,labels) -> bprintf buff "* -[%s]-> %s" (List_.to_string (fun x->x) "|" labels) id
-    | No_in id -> bprintf buff "* -> %s" id);
+    | No_in id -> bprintf buff "* -> %s" id
+    | Feature_eq (qfn_l, qfn_r) -> bprintf buff "%s = %s" (string_of_qfn qfn_l) (string_of_qfn qfn_r));
     bprintf buff "\n"
 
    

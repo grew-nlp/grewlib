@@ -22,11 +22,11 @@ gr_grs_parser.cmo: gr_grs_parser.mly ../utils.cmo ../ast.cmx parser_global.cmo
 
 lexer.cmx: gr_grs_parser.cmx lexer.mll ../ast.cmx
 	ocamllex lexer.mll
-	ocamlopt -c $(OPT_FLAGS) lexer.ml
+	ocamlopt -c $(OPT_FLAGS) -I .. ast.cmx lexer.ml
 
 lexer.cmo: gr_grs_parser.cmo lexer.mll ../ast.cmo
 	ocamllex lexer.mll
-	ocamlc -c $(BYTE_FLAGS) lexer.ml
+	ocamlc -c $(BYTE_FLAGS) -I .. ast.cmo lexer.ml
 
 grew_parser.cmx: gr_grs_parser.cmx lexer.cmx grew_parser.ml ../ast.cmx
 	ocamlopt -c $(OPT_FLAGS) -I .. ast.cmx grew_parser.ml

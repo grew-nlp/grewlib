@@ -3,7 +3,7 @@
 open Ast
 open Utils
 
-(* Some intermediate sum types used in sub-functions when xsvbuilding the ast *)
+(* Some intermediate sum types used in sub-functions when building the ast *)
 type pat_item = 
   | Pat_node of node
   | Pat_edge of edge
@@ -60,11 +60,11 @@ let localize t = (t,get_loc ())
 %token ADD_NODE                    /* add_node */
 %token DEL_FEAT                    /* del_feat */
 
-%token <string> IDENT              /* indentifier */
-%token <string> FEAT               /* ident.ident */
-%token <string> STRING
-%token <int> NUMBER
-%token <string> COMMENT
+%token <string>  IDENT             /* indentifier */
+%token <Ast.qfn> QFN               /* ident.ident */
+%token <string>  STRING
+%token <int>     INT
+%token <string>  COMMENT
 
 %token EOF                         /* end of file */
 
@@ -98,7 +98,7 @@ gr_item:
             { Graph_edge (localize {edge_id = None; src=n1; edge_labels=labels; tar=n2; negative=false; }) }
 
 index:
-        | NUMBER { $1 }
+        | INT { $1 }
 
 
 
@@ -316,11 +316,11 @@ rule_doc:
 
 
 pat_item:
-        | n = node { Pat_node n }
-        | e = full_edge { Pat_edge e }
-        | c = full_const { Pat_const c }
+        | n = pat_node { Pat_node n }
+        | e = pat_edge { Pat_edge e }
+        | c = pat_const { Pat_const c }
 
-node:
+pat_node:
         | id = IDENT feats = delimited(LBRACKET,separated_list(COMA,node_features),RBRACKET) 
             { localize ({node_id = id; position=None; fs= feats}) }
 
@@ -338,9 +338,9 @@ node_features:
 feature_value:
         | v = IDENT { v }
         | v = STRING { v }
-        | v = NUMBER { string_of_int v }
+        | v = INT { string_of_int v }
 
-full_edge:
+pat_edge:
         (* "e: A -> B" *)
         | id = edge_id n1 = IDENT GOTO_NODE n2 = IDENT
         | id = edge_id n1 = IDENT LTR_EDGE_LEFT_NEG STAR LTR_EDGE_RIGHT n2 = IDENT
@@ -371,7 +371,7 @@ edge_id:
         | id = IDENT DDOT { id }
                 
 
-full_const:
+pat_const:
         (* "A -[X|Y]-> *" *)
         | n1 = IDENT labels = delimited(LTR_EDGE_LEFT,separated_nonempty_list(PIPE,IDENT),LTR_EDGE_RIGHT) STAR
             { localize (Start (n1,labels)) }
@@ -387,6 +387,9 @@ full_const:
         (* "* -> A" *)
         | STAR GOTO_NODE n2 = IDENT
             { localize (No_in n2) }
+
+        | qfn1 = QFN EQUAL qfn2 = QFN
+            { localize (Feature_eq (qfn1, qfn2)) }
 
 /*=============================================================================================*/
 /*                                                                                             */
@@ -432,13 +435,13 @@ command:
             { localize (Del_node n) }
         | ADD_NODE n1 = IDENT DDOT label = delimited(RTL_EDGE_LEFT,IDENT,RTL_EDGE_RIGHT) n2 = IDENT 
             { localize (New_neighbour (n1,n2,label)) }
-        | DEL_FEAT feat = FEAT 
-            { localize (Del_feat feat) }
-        | feat = FEAT EQUAL items = separated_nonempty_list (PLUS, concat_item)
-            { localize (Update_feat (feat, items)) }
+        | DEL_FEAT qfn = QFN 
+            { localize (Del_feat qfn) }
+        | qfn = QFN EQUAL items = separated_nonempty_list (PLUS, concat_item)
+            { localize (Update_feat (qfn, items)) }
 
 concat_item:
-        | feat = FEAT  { Feat_item feat }
+        | qfn = QFN  { Qfn_item qfn }
         | s = IDENT   { String_item s }
         | s = STRING   { String_item s }
 

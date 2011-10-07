@@ -1,11 +1,18 @@
 
 {
+  open Log
+  open Ast
   open Gr_grs_parser
 
   exception Error of string
   
   let tmp_string = ref ""
   let escaped = ref false
+
+  let parse_qfn string_feat = 
+    match Str.split (Str.regexp "\\.") string_feat with
+    | [node; feat_name] -> (node, feat_name)
+    | _ -> Log.fcritical "[BUG] \"%s\" is not a feature" string_feat
 }
 
 let digit = ['0'-'9']
@@ -37,7 +44,7 @@ and string_lex target = parse
 | "\\" { escaped := true; tmp_string := !tmp_string^"\\"; string_lex target lexbuf }
 | '\n' { incr Parser_global.current_line; Lexing.new_line lexbuf; tmp_string := !tmp_string^"\n"; string_lex target lexbuf }
 | '\"' { if !escaped then (tmp_string := !tmp_string^"\"";  escaped := false; string_lex target lexbuf) else ( STRING(!tmp_string) ) }
-| _ as c { tmp_string := !tmp_string^(Printf.sprintf "%c" c); string_lex target lexbuf }
+| _ as c { escaped := false; tmp_string := !tmp_string^(Printf.sprintf "%c" c); string_lex target lexbuf }
 
 
 and global = parse
@@ -71,10 +78,10 @@ and global = parse
 | "rule"	{ RULE }
 | "sequences"   { SEQUENCES }
 
-| "graph" { GRAPH }
+| "graph"       { GRAPH }
 
-| digit+ as number { NUMBER (int_of_string number) }
-| ident ['.'] ident as feat { FEAT feat }
+| digit+ as number { INT (int_of_string number) }
+| ident ['.'] ident as qfn { QFN (parse_qfn qfn) }
 
 | ident as id { IDENT id }
 

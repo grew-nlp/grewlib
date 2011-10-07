@@ -63,15 +63,18 @@ module Rule = struct
   exception Bound_reached
 
   type const = 
-    | No_out of int * Edge.t 
-    | No_in of int * Edge.t
-    | Filter of int * Feature_structure.t (* used when a without impose a fs on a node defined by the match pattern *)
+    | No_out of pid * Edge.t 
+    | No_in of pid * Edge.t
+    | Feature_eq of pid * string * pid * string
+    | Filter of pid * Feature_structure.t (* used when a without impose a fs on a node defined by the match pattern *)
 
   let build_constraint ?locals table = function 
     | (Ast.Start (node_name, labels), loc) -> No_out (Id.build ~loc node_name table, Edge.make ?locals labels)
     | (Ast.No_out node_name, loc) -> No_out (Id.build ~loc node_name table, Edge.all)
     | (Ast.End (node_name, labels),loc) -> No_in (Id.build ~loc node_name table, Edge.make ?locals labels)
     | (Ast.No_in node_name, loc) -> No_in (Id.build ~loc node_name table, Edge.all)
+    | (Ast.Feature_eq ((node_name1, feat_name1), (node_name2, feat_name2)), loc) -> 
+        Feature_eq (Id.build ~loc node_name1 table, feat_name1, Id.build ~loc node_name2 table, feat_name2)
 
   type pattern = 
       { graph: Graph.t;
@@ -97,6 +100,8 @@ module Rule = struct
     | (Ast.No_out node_name, loc) -> No_out (id_build loc node_name, Edge.all)
     | (Ast.End (node_name, labels),loc) -> No_in (id_build loc node_name, Edge.make ?locals labels)
     | (Ast.No_in node_name, loc) -> No_in (id_build loc node_name, Edge.all)
+    | (Ast.Feature_eq ((node_name1, feat_name1), (node_name2, feat_name2)), loc) -> 
+        Feature_eq (id_build loc node_name1, feat_name1, id_build loc node_name2, feat_name2)
 
   let build_neg_pattern ?domain ?(locals=[||]) pos_table pattern_ast =
     let (extension, neg_table) =
@@ -234,6 +239,10 @@ module Rule = struct
           (fun _ node ->
             List.exists (fun e -> Edge.compatible edge e) (Massoc.assoc gid node.Node.next)
           ) graph.Graph.map
+    | Feature_eq (pid1, feat_name1, pid2, feat_name2) ->
+        let gnode1 = IntMap.find (IntMap.find pid1 matching.n_match) graph.Graph.map in
+        let gnode2 = IntMap.find (IntMap.find pid2 matching.n_match) graph.Graph.map in
+        Feature_structure.get feat_name1 gnode1.Node.fs = Feature_structure.get feat_name2 gnode2.Node.fs
     | Filter (pid, fs) ->
         let gid = IntMap.find pid matching.n_match in
         let gnode = IntMap.find gid graph.Graph.map in

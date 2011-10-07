@@ -51,11 +51,6 @@ module Command  = struct
       | Some id -> Pid id
       | None -> New node_name in
 
-    let parse_feat loc string_feat = 
-      match Str.split (Str.regexp "\\.") string_feat with
-      | [node; feat_name] -> (get_pid node, feat_name)
-      | _ -> Log.fcritical "[GRS] \"%s\" is not a feature %s" string_feat (Loc.to_string loc) in
-
     match ast_command with
     | (Ast.Del_edge_expl (i, j, lab), loc) ->
 	let edge = Edge.make ~locals [lab] in
@@ -88,17 +83,14 @@ module Command  = struct
     | (Ast.Del_node n, loc) -> 
 	(DEL_NODE (get_pid n), loc)
 	  
-    | (Ast.Del_feat (feat), loc) ->
-        let (node_pid, feat_name) = parse_feat loc feat in
-        (DEL_FEAT (node_pid, feat_name), loc)
+    | (Ast.Del_feat (node,feat_name), loc) ->
+        (DEL_FEAT (get_pid node, feat_name), loc)
 
-    | (Ast.Update_feat (feat, ast_items), loc) ->
-        let (node_pid, feat_name) = parse_feat loc feat in
+    | (Ast.Update_feat ((tar_node, tar_feat_name), ast_items), loc) ->
         let items = List.map 
             (function
-              | Ast.Feat_item feat -> Feat (parse_feat loc feat)
+              | Ast.Qfn_item (node,feat_name) -> Feat (get_pid node, feat_name)
               | Ast.String_item s -> String s) 
             ast_items in
-        (UPDATE_FEAT (node_pid, feat_name, items), loc)
-
+        (UPDATE_FEAT (get_pid tar_node, tar_feat_name, items), loc)
 end

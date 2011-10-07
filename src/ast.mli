@@ -16,7 +16,8 @@ type u_feature = {
 
 type feature = u_feature * Loc.t
 
-
+(* qualified feature name "A.lemma" *)
+type qfn = string * string
 
 type u_node = {
     node_id: Id.name;
@@ -42,6 +43,7 @@ type u_const =
    | No_out of Id.name
    | End of Id.name * string list (* (target, labels) *)
    | No_in of Id.name
+   | Feature_eq of qfn * qfn
 
 type const = u_const * Loc.t
 
@@ -52,7 +54,7 @@ type pattern = {
   }
 
 type concat_item =
-  | Feat_item of string
+  | Qfn_item of (string * string)
   | String_item of string
     
 type u_command = 
@@ -64,9 +66,9 @@ type u_command =
   | New_neighbour of (Id.name * Id.name * string)
   | Del_node of Id.name
 
-  | Del_feat of string
+  | Del_feat of qfn
  
-  | Update_feat of string * concat_item list
+  | Update_feat of qfn * concat_item list
 
 type command = u_command * Loc.t
 type rule = {
