@@ -20,6 +20,8 @@ module Edge :  sig
   val as_label: t -> Label.t
   val of_label: Label.t -> t
 
+  val get_id: t -> string option 
+
   (* [all] is the joker pattern edge *)   
   val all: t
 

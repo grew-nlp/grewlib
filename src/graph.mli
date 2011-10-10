@@ -1,4 +1,5 @@
 open Ast
+open Grew_fs
 open Grew_edge
 open Grew_node
 open Utils
@@ -32,7 +33,7 @@ module Graph : sig
       ?locals: Label.decl array -> 
       Ast.node list -> 
       Ast.edge list -> 
-	(t * Id.table)
+	(t * Id.table * (Id.t * Feature_structure.t) list )
 
   (* a type for extension of graph: a former graph exists: in grew the former is a positive pattern and an extension is a "without" *)
   type extention = {
@@ -54,7 +55,7 @@ module Graph : sig
   val to_dep: ?main_feat:string -> ?deco:Deco.t -> t -> string
 
   val add_edge : t -> int -> Edge.t -> int -> t option
-  val del_edge : Loc.t -> t -> int -> Edge.t -> int -> t
+  val del_edge : ?edge_ident: string -> Loc.t -> t -> int -> Edge.t -> int -> t
   val del_node : t -> int -> t
 
   val add_neighbour : Loc.t -> t -> int -> Edge.t -> (int * t) 

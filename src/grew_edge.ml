@@ -42,6 +42,8 @@ module Edge = struct
       under_label: under_label;
     }
 
+  let get_id t = t.id
+
   let all = {id=None; under_label=Neg []}
 
   let compare = Pervasives.compare

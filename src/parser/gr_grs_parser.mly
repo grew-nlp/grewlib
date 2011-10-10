@@ -222,7 +222,7 @@ grew_module:
               rules = begin match r with None -> [] | Some r -> r; end;
               confluent = conf;
               module_doc = (match doc with Some d -> d | None -> "");
-              mod_loc = get_loc (); 
+              mod_loc = (!Parser_global.current_file, snd id); 
             }
           }
 
@@ -341,7 +341,7 @@ feature_value:
         | v = INT { string_of_int v }
 
 pat_edge:
-        (* "e: A -> B" *)
+        (* "e: A -> B" OR "e: A -[*]-> B" *)
         | id = edge_id n1 = IDENT GOTO_NODE n2 = IDENT
         | id = edge_id n1 = IDENT LTR_EDGE_LEFT_NEG STAR LTR_EDGE_RIGHT n2 = IDENT
                { localize ({edge_id = Some id; src=n1; edge_labels=[]; tar=n2; negative=true}) }

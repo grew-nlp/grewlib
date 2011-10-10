@@ -149,19 +149,56 @@ module Modul = struct
       bad_labels: Label.t list;
       rules: Rule.t list;
       confluent: bool;
+      loc: Loc.t;
     }
 
+  let check t =
+    (* check for duplicate rules *)
+    let rec loop already_defined = function
+      | [] -> ()
+      | r::_ when List.mem (Rule.get_name r) already_defined -> 
+          Error.build ~loc:(Rule.get_loc r) "Rule '%s' is defined twice in the same module" (Rule.get_name r)
+      | r::tail -> loop ((Rule.get_name r) :: already_defined) tail in
+    loop [] t.rules
 
   let build ?domain ast_module =
     let locals = Array.of_list ast_module.Ast.local_labels in
     Array.sort compare locals;
-    {
-     name = ast_module.Ast.module_id;
-     local_labels = locals; 
-     bad_labels = List.map Label.from_string ast_module.Ast.bad_labels;
-     rules = List.map (Rule.build ?domain ~locals) ast_module.Ast.rules;
-     confluent = ast_module.Ast.confluent;
-   }
+    let modul = 
+      {
+       name = ast_module.Ast.module_id;
+       local_labels = locals; 
+       bad_labels = List.map Label.from_string ast_module.Ast.bad_labels;
+       rules = List.map (Rule.build ?domain ~locals) ast_module.Ast.rules;
+       confluent = ast_module.Ast.confluent;
+       loc = ast_module.Ast.mod_loc;
+     } in
+    check modul; modul
+end
+
+module Sequence = struct
+  type t = {
+      name: string;
+      def: string list;
+      loc: Loc.t;
+    }
+
+  let check module_list t =
+    List.iter
+      (fun module_name -> 
+        if not (List.exists (fun modul -> modul.Modul.name = module_name) module_list)
+        then Error.build ~loc:t.loc "sequence \"%s\", refers to the unknown module \"%s\"."
+            t.name module_name
+      ) t.def
+
+  let build module_list ast_sequence = 
+    let sequence = 
+      {
+       name = ast_sequence.Ast.seq_name;
+       def = ast_sequence.Ast.seq_mod;
+       loc = ast_sequence.Ast.seq_loc;
+     } in
+    check module_list sequence; sequence
 end
 
 module Grs = struct
@@ -170,24 +207,45 @@ module Grs = struct
   type t = {
       labels: Label.t list;    (* the list of global edge labels *)
       modules: Modul.t list;          (* the ordered list of modules used from rewriting *)
-      sequences: sequence list;
+      sequences: Sequence.t list;
     }
         
-  let sequences t = t.sequences
-      
+  let sequence_names t = List.map (fun s -> s.Sequence.name) t.sequences
+
   let empty = {labels=[]; modules=[]; sequences=[];}
 
+  let check t =
+    (* check for duplicate modules *)
+    let rec loop already_defined = function
+      | [] -> ()
+      | m::_ when List.mem m.Modul.name already_defined -> 
+          Error.build ~loc:m.Modul.loc "Module '%s' is defined twice" m.Modul.name
+      | m::tail -> loop (m.Modul.name :: already_defined) tail in
+    loop [] t.modules;
+
+    (* check for duplicate sequences *)
+    let rec loop already_defined = function
+      | [] -> ()
+      | s::_ when List.mem s.Sequence.name already_defined -> 
+          Error.build ~loc:s.Sequence.loc "Sequence '%s' is defined twice" s.Sequence.name
+      | s::tail -> loop (s.Sequence.name :: already_defined) tail in
+    loop [] t.sequences
+
   let build ast_grs =
-    Label.init ast_grs.Ast.labels; 
-    {
-     labels = List.map (fun (l,_) -> Label.from_string l) ast_grs.Ast.labels;
-     modules = List.map (Modul.build ~domain:ast_grs.Ast.domain) ast_grs.Ast.modules;
-     sequences = List.map (fun s -> (s.Ast.seq_name, s.Ast.seq_mod)) ast_grs.Ast.sequences;
-   }
+    Label.init ast_grs.Ast.labels;
+    let modules = List.map (Modul.build ~domain:ast_grs.Ast.domain) ast_grs.Ast.modules in
+    let grs = {
+      labels = List.map (fun (l,_) -> Label.from_string l) ast_grs.Ast.labels;
+      modules = modules;
+      sequences = List.map (Sequence.build modules) ast_grs.Ast.sequences;
+    } in
+    check grs; grs
 
   let modules_of_sequence grs sequence =
-    let module_names = 
-      try List.assoc sequence grs.sequences 
+    let module_names =
+      try 
+        let seq = List.find (fun s -> s.Sequence.name = sequence) grs.sequences in
+        seq.Sequence.def
       with Not_found -> [sequence] in (* a module name can be used as a singleton sequence *)
 
     List.map 
@@ -225,30 +283,30 @@ module Grs = struct
 
     let rec loop instance = function
       | [] -> Grew_types.Leaf instance.Instance.graph
-      | next :: tail -> 
-          let (good_set, bad_set) = 
+      | next :: tail ->
+          let (good_set, bad_set) =
             Rule.normalize
               ~confluent: next.Modul.confluent
-              next.Modul.rules 
+              next.Modul.rules
               (fun x -> true)  (* FIXME: filtering in module outputs *)
               (Instance.clear instance) in
-          let inst_list = Instance_set.elements good_set 
+          let inst_list = Instance_set.elements good_set
               (* and bad_list = Instance_set.elements bad_set *) in
 
           match inst_list with
-          | [{Instance.big_step = None}] -> 
+          | [{Instance.big_step = None}] ->
               Grew_types.Local_normal_form (instance.Instance.graph, next.Modul.name, loop instance tail)
-          | _ -> Grew_types.Node 
+          | _ -> Grew_types.Node
                 (
                  instance.Instance.graph,
                  next.Modul.name,
-                 List.map 
-                   (fun inst -> 
+                 List.map
+                   (fun inst ->
                      match inst.Instance.big_step with
                      | None -> Error.bug "Cannot have no big_steps and more than one reducts at the same time"
                      | Some bs -> (bs, loop inst tail)
                    ) inst_list
-                )          
+                )
     in loop instance modules_to_apply
 
 end  
@@ -326,10 +384,11 @@ module Corpus_stat = struct
     }
 
   let empty ~grs ~seq =
-    let modules = try List.assoc seq grs.Grs.sequences with Not_found -> [seq] in
+    (* let modules = try List.assoc seq grs.Grs.sequences with Not_found -> [seq] in *)
+    let modules = Grs.modules_of_sequence grs seq in 
     let map = List.fold_left 
         (fun acc modul ->
-          if List.mem modul.Modul.name modules 
+          if List.exists (fun m -> modul.Modul.name = m.Modul.name) modules 
           then
             let rule_map = 
               List.fold_left

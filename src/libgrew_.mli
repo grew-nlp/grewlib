@@ -45,7 +45,11 @@ val empty_grs : grs
 *)
 val load_grs : ?doc_output_dir:string -> string -> grs
 
-val get_available_seq : grs -> (string * string list) list
+(** give the list of sequence names defined in a GRS 
+@return a string list
+*)
+val get_sequence_names: grs -> string list
+
 
 val empty_gr : gr
 

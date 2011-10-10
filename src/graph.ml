@@ -27,6 +27,7 @@ module Graph = struct
   let empty = {map = IntMap.empty; lub = 0}
 
   type gid = int
+
   type concat_item =
     | Feat of (gid * string)
     | String of string
@@ -50,9 +51,25 @@ module Graph = struct
     | Some new_map -> Some {graph with map = new_map}
     | None -> None
 
+  let build_filter ?domain table (ast_node, loc) = 
+    let pid = Id.build ~loc ast_node.Ast.node_id table in
+    let fs = Feature_structure.build ?domain ast_node.Ast.fs in
+    (pid, fs)
+
+
   let build ?domain ?(locals=[||]) full_node_list full_edge_list = 
 
-    let named_nodes = List.map (Node.build ?domain) full_node_list in
+    let (named_nodes, constraints) = 
+      let rec loop already_bound = function
+        | [] -> ([],[])
+        | (ast_node, loc) :: tail ->
+            let (tail_nodes, tail_const) = loop (ast_node.Ast.node_id :: already_bound) tail in
+            if List.mem ast_node.Ast.node_id already_bound
+            then (tail_nodes, (ast_node, loc)::tail_const)
+            else (Node.build ?domain (ast_node, loc) :: tail_nodes, tail_const) in
+      loop [] full_node_list in
+
+    (* let named_nodes = List.map (Node.build ?domain) full_node_list in *)
 
     let sorted_nodes = List.sort (fun (id1,_) (id2,_) -> Pervasives.compare id1 id2) named_nodes in
     let (sorted_ids, node_list) = List.split sorted_nodes in
@@ -77,19 +94,23 @@ module Graph = struct
 	  )
 	) map_without_edges full_edge_list in
     
-    ({map=map;lub=Array.length table}, table)
+    ({map=map;lub=Array.length table}, table, List.map (build_filter ?domain table) constraints)
       
-  (* a type for extension of graph: a former graph exists: in grew the former is a positive pattern and an extension is a "without" *)
+  (* a type for extension of graph: a former graph exists: 
+     in grew the former is a positive pattern and an extension is a "without" *)
   type extention = {
       ext_map: Node.t IntMap.t; (* node description for new nodes and for edge "Old -> New"  *)
       old_map: Node.t IntMap.t; (* a partial map for new constraints on old nodes "Old [...]" *) 	
     }
-      
+
   let build_extention ?domain ?(locals=[||]) old_table full_node_list full_edge_list = 
 
     let built_nodes = List.map (Node.build ?domain) full_node_list in
 
-    let (old_nodes, new_nodes) = List.partition (function (id,_) when Array_.dicho_mem id old_table -> true | _ -> false) built_nodes in
+    let (old_nodes, new_nodes) = 
+      List.partition 
+        (function (id,_) when Array_.dicho_mem id old_table -> true | _ -> false)
+        built_nodes in
 	
     let new_sorted_nodes = List.sort (fun (id1,_) (id2,_) -> Pervasives.compare id1 id2) new_nodes in
 
@@ -251,8 +272,14 @@ module Graph = struct
 
   (* remove (id_src -[label]-> id_tar) from graph.
      Log.critical if the edge is not in graph *)
-  let del_edge loc graph id_src label id_tar = 
-    let node_src = IntMap.find id_src graph.map in
+  let del_edge ?edge_ident loc graph id_src label id_tar = 
+    let node_src = 
+      try IntMap.find id_src graph.map 
+      with Not_found -> 
+        match edge_ident with
+        | None -> Log.fcritical "[RUN] Some edge refers to a dead node, please report"
+        | Some id -> Error.run ~loc "[Graph.del_edge] cannot find source node of edge \"%s\"" id in
+    
     try {graph with map =  
 	 IntMap.add id_src {node_src with Node.next = Massoc.remove id_tar label node_src.Node.next} graph.map
        }

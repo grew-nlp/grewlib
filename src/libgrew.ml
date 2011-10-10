@@ -46,7 +46,7 @@ let load_grs ?doc_output_dir file =
     | exc -> raise (Bug (sprintf "UNCATCHED EXCEPTION: %s" (Printexc.to_string exc), None))
 
 
-let get_available_seq grs = Grs.sequences grs
+let get_sequence_names grs = Grs.sequence_names grs
 
 let empty_gr = Instance.empty
 

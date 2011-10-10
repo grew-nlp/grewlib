@@ -27,7 +27,8 @@ module Instance = struct
   let from_graph g = {empty with graph = g} 
 
   let build gr_ast = 
-    { empty with graph = fst (Graph.build gr_ast.Ast.nodes gr_ast.Ast.edges) }
+    let (graph,_,_) = Graph.build gr_ast.Ast.nodes gr_ast.Ast.edges in
+    { empty with graph = graph }
 
   let rev_steps t = 
     { t with big_step = match t.big_step with
@@ -82,11 +83,13 @@ module Rule = struct
       }
 
   let build_pos_pattern ?domain ?(locals=[||]) pattern_ast =
-    let (graph,table) = Graph.build ?domain ~locals pattern_ast.Ast.pat_nodes pattern_ast.Ast.pat_edges in
+    let (graph,table,filter_nodes) = Graph.build ?domain ~locals pattern_ast.Ast.pat_nodes pattern_ast.Ast.pat_edges in
     (
      {
       graph = graph;
-      constraints = List.map (build_constraint ~locals table) pattern_ast.Ast.pat_const ;
+      constraints = 
+      List.map (build_constraint ~locals table) pattern_ast.Ast.pat_const 
+      @ (List.map (fun (pid, fs) -> Filter (pid, fs)) filter_nodes);
     }, 
      table
     )
@@ -115,30 +118,50 @@ module Rule = struct
      constraints = filters @ List.map (build_neg_constraint ~locals pos_table neg_table) pattern_ast.Ast.pat_const ;
    }
 
-
+  let get_edge_ids pattern =
+    IntMap.fold
+      (fun _ node acc -> 
+        Massoc.fold_left
+          (fun acc2 _ edge -> match Edge.get_id edge with None -> acc2 | Some id -> id::acc2)
+          acc node.Node.next
+      ) pattern.graph.Graph.map []
+      
   type t = {
       name: string;
       pos: pattern;
       neg: pattern list;
       commands: Command.t list;
+      loc: Loc.t;
     }
 
   let get_name t = t.name
 
-  let build ?domain ?(locals=[||]) rule_ast = 
-    (* (\* DEBUG *\) Printf.printf "==<Rule.build |neg|=%d>==\n%!" (List.length rule_ast.Ast.neg_patterns); *)
+  let get_loc t = t.loc
 
+  let build_commands ?domain ?(locals=[||]) pos pos_table ast_commands =
+    let known_node_ids = Array.to_list pos_table in
+    let known_edge_ids = get_edge_ids pos in
+    let rec loop (kni,kei) = function
+      | [] -> []
+      | ast_command :: tail ->
+          let (command, (new_kni, new_kei)) = 
+            Command.build ?domain (kni,kei) pos_table locals ast_command in
+          command :: (loop (new_kni,new_kei) tail) in
+    loop (known_node_ids, known_edge_ids) ast_commands
+
+  let build ?domain ?(locals=[||]) rule_ast = 
     let (pos,pos_table) = build_pos_pattern ?domain ~locals rule_ast.Ast.pos_pattern in
 
     {
      name = rule_ast.Ast.rule_id ;
      pos = pos;
      neg = List.map (fun p -> build_neg_pattern ?domain ~locals pos_table p) rule_ast.Ast.neg_patterns;
-     commands = List.map (Command.build ?domain pos_table locals) rule_ast.Ast.commands;
+     commands = build_commands ?domain ~locals pos pos_table rule_ast.Ast.commands;
+     loc = rule_ast.Ast.rule_loc;
    }
 
   type matching = {
-      n_match: gid IntMap.t;                    (* partial fct: pattern nodes |--> graph nodes    *)
+      n_match: gid IntMap.t;                    (* partial fct: pattern nodes |--> graph nodes *)
       e_match: (string*(gid*Label.t*gid)) list; (* edge matching: edge ident  |--> (src,label,tar) *)
       a_match: (gid*Label.t*gid) list;          (* anonymous edge mached *)
     }
@@ -377,7 +400,7 @@ module Rule = struct
         let edge = Edge.of_label label in
         (
          {instance with 
-          Instance.graph = Graph.del_edge loc instance.Instance.graph src_gid edge tar_gid; 
+          Instance.graph = Graph.del_edge ~edge_ident loc instance.Instance.graph src_gid edge tar_gid; 
           commands = List_.sort_insert (Command.H_DEL_EDGE_EXPL (src_gid,tar_gid,edge)) instance.Instance.commands
         },
          created_nodes

@@ -15,7 +15,7 @@ type rule_app = {
 type rew_display =
   | Empty (* pour les besoin du dev *)
   | Leaf of Graph.t
-  | Local_normal_form of Graph.t * module_name * rew_display 
+  | Local_normal_form of Graph.t * module_name * rew_display
   | Node of Graph.t * module_name * (big_step * rew_display) list
 
 (* the type for big edges which correspond the a module *)

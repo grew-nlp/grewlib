@@ -21,14 +21,16 @@ IFDEF DEP2PICT THEN
 ENDIF
 end
 
+module Sequence: sig
+  type t
+end
 
 module Grs: sig
-  type sequence = string * string list
   type t
 
   val empty:t
   
-  val sequences: t -> sequence list
+  val sequence_names: t -> string list
 
   val build: Ast.grs -> t
 
