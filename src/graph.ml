@@ -317,8 +317,46 @@ module Graph = struct
 
 
 
-  (* move all incident arcs from/to id_src are moved to incident arcs on node id_tar from graph, with all its incoming and outcoming edges *) 
+  (* move all in arcs to id_src are moved to in arcs on node id_tar from graph, with all its incoming edges *) 
+  let shift_in loc graph src_gid tar_gid =
+    let src_node = IntMap.find src_gid graph.map in
+    let tar_node = IntMap.find tar_gid graph.map in
+    
+    if Massoc.mem_key src_gid tar_node.Node.next 
+    then Error.run ~loc "[Graph.shift_in] dependency from tar to src";
 
+    let new_map = 
+      IntMap.mapi
+	(fun node_id node ->
+	  try {node with Node.next = Massoc.merge_key src_gid tar_gid node.Node.next}
+	  with Massoc.Duplicate -> Error.run ~loc "[Graph.shift_edges] create duplicate edge"
+	) graph.map
+
+    in {graph with map = new_map}
+
+  (* move all out-edges from id_src are moved to out-edges out off node id_tar *) 
+  let shift_out loc graph src_gid tar_gid =
+    let src_node = IntMap.find src_gid graph.map in
+    let tar_node = IntMap.find tar_gid graph.map in
+    
+    if Massoc.mem_key tar_gid src_node.Node.next 
+    then Error.run ~loc "[Graph.shift_edges] dependency from src to tar";
+
+    let new_map = 
+      IntMap.mapi
+	(fun node_id node ->
+	  if node_id = src_gid 
+	  then (* [src_id] becomes without out-edges *) 
+	    {node with Node.next = Massoc.empty}
+	  else if node_id = tar_gid 
+	  then
+	    try {node with Node.next = Massoc.disjoint_union src_node.Node.next tar_node.Node.next}
+	    with Massoc.Not_disjoint -> Error.run ~loc "[Graph.shift_edges] common successor"
+	  else node (* other nodes don't change *)
+	) graph.map
+    in {graph with map = new_map}
+
+  (* move all incident arcs from/to id_src are moved to incident arcs on node id_tar from graph, with all its incoming and outcoming edges *) 
   let shift_edges loc graph src_gid tar_gid =
     let src_node = IntMap.find src_gid graph.map in
     let tar_node = IntMap.find tar_gid graph.map in
@@ -345,6 +383,20 @@ module Graph = struct
 	) graph.map
 
     in {graph with map = new_map}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   let merge_node loc graph src_gid tar_gid =
     let se_graph = shift_edges loc graph src_gid tar_gid in

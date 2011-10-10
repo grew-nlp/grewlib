@@ -61,6 +61,8 @@ type u_command =
   | Del_edge_expl of (Id.name * Id.name * string)
   | Del_edge_name of string
   | Add_edge of (Id.name * Id.name * string)
+  | Shift_in of (Id.name*Id.name)
+  | Shift_out of (Id.name*Id.name)
   | Shift_edge of (Id.name*Id.name)
   | Merge_node of (Id.name*Id.name)
   | New_neighbour of (Id.name * Id.name * string)

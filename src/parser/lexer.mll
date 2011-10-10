@@ -67,6 +67,8 @@ and global = parse
 
 | "add_edge"	{ ADD_EDGE }
 | "del_edge"	{ DEL_EDGE }
+| "shift_in"	{ SHIFT_IN }
+| "shift_out"	{ SHIFT_OUT }
 | "shift"	{ SHIFT }
 | "merge"	{ MERGE }
 | "del_node"	{ DEL_NODE }

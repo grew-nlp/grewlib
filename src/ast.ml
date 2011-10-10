@@ -68,6 +68,8 @@ type u_command =
   | Del_edge_expl of (Id.name * Id.name * string)
   | Del_edge_name of string
   | Add_edge of (Id.name * Id.name * string)
+  | Shift_in of (Id.name*Id.name)
+  | Shift_out of (Id.name*Id.name)
   | Shift_edge of (Id.name*Id.name)
   | Merge_node of (Id.name*Id.name)
   | New_neighbour of (Id.name * Id.name * string)
@@ -148,6 +150,8 @@ module AST_HTML = struct
     | Del_edge_expl (n1,n2,label) -> bprintf buff "del_edge %s -[%s]-> %s" n1 label n2
     | Del_edge_name name -> bprintf buff "del_edge %s" name
     | Add_edge (n1,n2,label) -> bprintf buff "add_edge %s -[%s]-> %s" n1 label n2
+    | Shift_in (n1,n2) -> bprintf buff "shift_in %s ==> %s" n1 n2
+    | Shift_out (n1,n2) -> bprintf buff "shift_out %s ==> %s" n1 n2
     | Shift_edge (n1,n2) -> bprintf buff "shift %s ==> %s" n1 n2
     | Merge_node (n1,n2) -> bprintf buff "merge %s ==> %s" n1 n2
     | New_neighbour (n1,n2,label) -> bprintf buff "add_node %s: <-[%s]- %s \n" n1 label n2

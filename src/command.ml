@@ -28,6 +28,8 @@ module Command  = struct
     | UPDATE_FEAT of (cnode * string * item list)
     | NEW_NEIGHBOUR of (string * Edge.t * pid)
     | SHIFT_EDGE of (cnode * cnode)
+    | SHIFT_IN of (cnode * cnode)
+    | SHIFT_OUT of (cnode * cnode)
     | MERGE_NODE of (cnode * cnode)
 
   type t = p * Loc.t  (* remember command location to be able to localize a command failure *)
@@ -42,6 +44,8 @@ module Command  = struct
     | H_UPDATE_FEAT of (gid * string * string)
     | H_NEW_NEIGHBOUR of (string * Edge.t * gid)
     | H_SHIFT_EDGE of (gid * gid)
+    | H_SHIFT_IN of (gid * gid)
+    | H_SHIFT_OUT of (gid * gid)
     | H_MERGE_NODE of (gid * gid)
 
   let build ?domain (kni, kei) table locals ast_command = 
@@ -76,6 +80,14 @@ module Command  = struct
     | (Ast.Shift_edge (i, j), loc) ->
         check_node loc i kni; check_node loc j kni;
 	((SHIFT_EDGE (get_pid i, get_pid j), loc), (kni, kei))
+
+    | (Ast.Shift_in (i, j), loc) ->
+        check_node loc i kni; check_node loc j kni;
+	((SHIFT_IN (get_pid i, get_pid j), loc), (kni, kei))
+
+    | (Ast.Shift_out (i, j), loc) ->
+        check_node loc i kni; check_node loc j kni;
+	((SHIFT_OUT (get_pid i, get_pid j), loc), (kni, kei))
 
     | (Ast.Merge_node (i, j), loc) ->
         check_node loc i kni; check_node loc j kni;

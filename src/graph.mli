@@ -60,6 +60,9 @@ module Graph : sig
 
   val add_neighbour : Loc.t -> t -> int -> Edge.t -> (int * t) 
   val merge_node : Loc.t -> t -> int -> int -> t option
+
+  val shift_in : Loc.t -> t -> int -> int -> t
+  val shift_out : Loc.t -> t -> int -> int -> t
   val shift_edges : Loc.t -> t -> int -> int -> t
 
   (** [update_feat tar_id tar_feat_name concat_items] sets the feature of the node [tar_id] 

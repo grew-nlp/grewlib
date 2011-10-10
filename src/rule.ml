@@ -471,6 +471,28 @@ module Rule = struct
          (created_name,new_gid) :: created_nodes
         )
 
+    | Command.SHIFT_IN (src_cn,tar_cn) ->
+        let src_gid = node_find src_cn in
+        let tar_gid = node_find tar_cn in
+        (
+         {instance with 
+          Instance.graph = Graph.shift_in loc instance.Instance.graph src_gid tar_gid; 
+          commands = List_.sort_insert (Command.H_SHIFT_IN (src_gid,tar_gid)) instance.Instance.commands
+        },
+         created_nodes
+        )
+
+    | Command.SHIFT_OUT (src_cn,tar_cn) ->
+        let src_gid = node_find src_cn in
+        let tar_gid = node_find tar_cn in
+        (
+         {instance with 
+          Instance.graph = Graph.shift_out loc instance.Instance.graph src_gid tar_gid; 
+          commands = List_.sort_insert (Command.H_SHIFT_OUT (src_gid,tar_gid)) instance.Instance.commands
+        },
+         created_nodes
+        )
+
     | Command.SHIFT_EDGE (src_cn,tar_cn) ->
         let src_gid = node_find src_cn in
         let tar_gid = node_find tar_cn in

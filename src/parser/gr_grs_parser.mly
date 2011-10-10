@@ -55,6 +55,8 @@ let localize t = (t,get_loc ())
 %token DEL_EDGE                    /* del_edge */
 %token ADD_EDGE                    /* add_edge */
 %token MERGE                       /* merge */
+%token SHIFT_IN                    /* shift_in */
+%token SHIFT_OUT                   /* shift_out */
 %token SHIFT                       /* shift */
 %token DEL_NODE                    /* del_node */
 %token ADD_NODE                    /* add_node */
@@ -427,6 +429,10 @@ command:
             { localize (Del_edge_expl (n1,n2,label)) }
         | ADD_EDGE n1 = IDENT label = delimited(LTR_EDGE_LEFT,IDENT,LTR_EDGE_RIGHT) n2 = IDENT
             { localize (Add_edge (n1,n2,label)) }
+        | SHIFT_IN n1 = IDENT LONGARROW n2 = IDENT 
+            { localize (Shift_in (n1,n2)) }
+        | SHIFT_OUT n1 = IDENT LONGARROW n2 = IDENT 
+            { localize (Shift_out (n1,n2)) }
         | SHIFT n1 = IDENT LONGARROW n2 = IDENT 
             { localize (Shift_edge (n1,n2)) }
         | MERGE n1 = IDENT LONGARROW n2 = IDENT 

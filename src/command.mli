@@ -23,6 +23,8 @@ module Command : sig
     | UPDATE_FEAT of (cnode * string * item list)
     | NEW_NEIGHBOUR of (string * Edge.t * pid)
     | SHIFT_EDGE of (cnode * cnode)
+    | SHIFT_IN of (cnode * cnode)
+    | SHIFT_OUT of (cnode * cnode)
     | MERGE_NODE of (cnode * cnode)
 
 	
@@ -36,6 +38,8 @@ module Command : sig
     | H_UPDATE_FEAT of (gid * string * string)
     | H_NEW_NEIGHBOUR of (string * Edge.t * gid)
     | H_SHIFT_EDGE of (gid * gid)
+    | H_SHIFT_IN of (gid * gid)
+    | H_SHIFT_OUT of (gid * gid)
     | H_MERGE_NODE of (gid * gid)
 
   val build: 
