@@ -193,7 +193,6 @@ Makefile \
 src/Makefile \
 src/parser/Makefile \
 src/HTMLer/Makefile \
-src/checker/Makefile \
 )
 
 VERSION=`grep "VERSION = .*" config/Makefile.in | sed 's|VERSION = \(.*\)|\1|'`
