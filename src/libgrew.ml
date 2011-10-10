@@ -5,7 +5,6 @@ open Log
 
 open Utils
 open Grew_parser
-open Checker
 open Grs
 open Graph
 open Rule

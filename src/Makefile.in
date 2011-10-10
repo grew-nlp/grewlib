@@ -13,10 +13,10 @@ PARSER_CMI = $(PARSER_DEP:%=%.cmi)
 PARSER_CMO = $(PARSER_DEP:%=%.cmo)
 PARSER_CMX = $(PARSER_DEP:%=%.cmx)
 
-.PHONY: parser HTMLer checker
+.PHONY: parser HTMLer
 
-all: utils.cmx ast.cmx parser checker HTMLer grew test
-byte: utils.cmo ast.cmo parser.byte checker.byte HTMLer.byte grew.byte test.byte
+all: utils.cmx ast.cmx parser HTMLer grew test
+byte: utils.cmo ast.cmo parser.byte HTMLer.byte grew.byte test.byte
 
 
 include ../config/Makefile
@@ -25,24 +25,24 @@ include ../config/Makefile
 
 #executables
 
-grew.byte: $(FILES_CMO) parser/parser_global.cmo parser_byte parser/grew_parser.cmo checker/checker.cmo HTMLer/HTMLer.cmo grew.ml
+grew.byte: $(FILES_CMO) parser/parser_global.cmo parser_byte parser/grew_parser.cmo HTMLer/HTMLer.cmo grew.ml
 	ocamlc $(BYTE_FLAGS) -o grew.byte $(ANSITERMINAL_BYTE) $(LOG_BYTE)  \
-	$(FILES_CMO) -I parser $(PARSER_CMO) -I HTMLer HTMLer.cmo -I checker checker.cmo \
+	$(FILES_CMO) -I parser $(PARSER_CMO) -I HTMLer HTMLer.cmo \
 	grew.ml
 
-grew: $(FILES_CMX) parser/parser_global.cmx parser_opt parser/grew_parser.cmx checker/checker.cmx HTMLer/HTMLer.cmx grew.ml
+grew: $(FILES_CMX) parser/parser_global.cmx parser_opt parser/grew_parser.cmx HTMLer/HTMLer.cmx grew.ml
 	ocamlopt $(OPT_FLAGS) -o grew str.cmxa unix.cmxa $(ANSITERMINAL_OPT) $(LOG_OPT) \
-	$(FILES_CMX) -I parser $(PARSER_CMX) -I HTMLer HTMLer.cmx -I checker checker.cmx \
+	$(FILES_CMX) -I parser $(PARSER_CMX) -I HTMLer HTMLer.cmx \
 	grew.ml
 
-test.byte: parser/parser_global.cmo parser_byte parser/grew_parser.cmo checker/checker.cmo HTMLer/HTMLer.cmo $(FILES_CMO) $(FILES_CMI) test.ml
+test.byte: parser/parser_global.cmo parser_byte parser/grew_parser.cmo HTMLer/HTMLer.cmo $(FILES_CMO) $(FILES_CMI) test.ml
 	ocamlc $(BYTE_FLAGS) -o test.byte $(ANSITERMINAL_BYTE) $(LOG_BYTE) \
-	$(FILES_CMO) -I parser $(PARSER_CMO) -I HTMLer HTMLer.cmo -I checker checker.cmo \
+	$(FILES_CMO) -I parser $(PARSER_CMO) -I HTMLer HTMLer.cmo \
 	test.ml
 
-test: parser/parser_global.cmx parser_opt parser/grew_parser.cmx checker/checker.cmx HTMLer/HTMLer.cmx $(FILES_CMX) $(FILES_CMI) test.ml
+test: parser/parser_global.cmx parser_opt parser/grew_parser.cmx HTMLer/HTMLer.cmx $(FILES_CMX) $(FILES_CMI) test.ml
 	ocamlopt $(OPT_FLAGS) -o test str.cmxa unix.cmxa $(ANSITERMINAL_OPT) $(LOG_OPT) \
-	$(FILES_CMX) -I parser $(PARSER_CMX) -I HTMLer HTMLer.cmx -I checker checker.cmx \
+	$(FILES_CMX) -I parser $(PARSER_CMX) -I HTMLer HTMLer.cmx \
 	test.ml
 
 #parser
@@ -51,13 +51,6 @@ parser_opt:
 
 parser_byte: 
 	@make -C parser byte
-
-#checker
-checker_opt: 
-	@make -C checker
-
-checker_byte: 
-	@make -C checker byte
 
 #HTMLer
 HTMLer_opt: 
@@ -82,29 +75,29 @@ libgrew.mli : grew_types.mli
 	echo "" >> libgrew.mli
 	cat libgrew_.mli >> libgrew.mli
 
-libgrew.cma : $(FILES_CMO) parser_byte checker_byte HTMLer_byte libgrew.mli libgrew.ml
+libgrew.cma : $(FILES_CMO) parser_byte HTMLer_byte libgrew.mli libgrew.ml
 	rm libgrew.mli
 	@make libgrew.mli
 ifeq (@DEP2PICT@,no) 
-	ocamlc -c -pp 'camlp4o pa_macro.cmo' $(BYPE_FLAGS) $(FILES_CMO) str.cma -I parser $(PARSER_CMO) -I HTMLer HTMLer.cmo -I checker checker.cmo libgrew.mli
-	ocamlc -a -o libgrew.cma $(BYPE_FLAGS) -pp 'camlp4o pa_macro.cmo -DDATA_DIR=\"$(DATA_DIR)\"' -linkall $(FILES_CMO) -I parser $(PARSER_CMO) -I HTMLer HTMLer.cmo -I checker checker.cmo libgrew.ml
+	ocamlc -c -pp 'camlp4o pa_macro.cmo' $(BYPE_FLAGS) $(FILES_CMO) str.cma -I parser $(PARSER_CMO) -I HTMLer HTMLer.cmo libgrew.mli
+	ocamlc -a -o libgrew.cma $(BYPE_FLAGS) -pp 'camlp4o pa_macro.cmo -DDATA_DIR=\"$(DATA_DIR)\"' -linkall $(FILES_CMO) -I parser $(PARSER_CMO) -I HTMLer HTMLer.cmo libgrew.ml
 else
-	ocamlc -c -pp 'camlp4o pa_macro.cmo -DDEP2PICT' $(FILES_CMO) str.cma -I parser $(PARSER_CMO) -I HTMLer HTMLer.cmo -I checker checker.cmo libgrew.mli
-	ocamlc -a -o libgrew.cma -pp 'camlp4o pa_macro.cmo -DDATA_DIR=\"$(DATA_DIR)\" -DDEP2PICT' -linkall $(FILES_CMO) -I parser $(PARSER_CMO) -I HTMLer HTMLer.cmo -I checker checker.cmo libgrew.ml
+	ocamlc -c -pp 'camlp4o pa_macro.cmo -DDEP2PICT' $(FILES_CMO) str.cma -I parser $(PARSER_CMO) -I HTMLer HTMLer.cmo libgrew.mli
+	ocamlc -a -o libgrew.cma -pp 'camlp4o pa_macro.cmo -DDATA_DIR=\"$(DATA_DIR)\" -DDEP2PICT' -linkall $(FILES_CMO) -I parser $(PARSER_CMO) -I HTMLer HTMLer.cmo libgrew.ml
 endif
 
-libgrew.cmxa : $(FILES_CMX) parser_opt checker_opt HTMLer_opt libgrew.mli libgrew.ml
+libgrew.cmxa : $(FILES_CMX) parser_opt HTMLer_opt libgrew.mli libgrew.ml
 	rm libgrew.mli
 	@make libgrew.mli
 ifeq (@DEP2PICT@,no)
-	ocamlopt -c -pp 'camlp4o pa_macro.cmo' $(OPT_FLAGS) $(FILES_CMX) str.cmxa -I parser $(PARSER_CMX) -I HTMLer HTMLer.cmx -I checker checker.cmx libgrew.mli
-	ocamlopt -a -o libgrew.cmxa $(OPT_FLAGS) -pp 'camlp4o pa_macro.cmo -DDATA_DIR=\"$(DATA_DIR)\"' -linkall $(FILES_CMX) -I parser $(PARSER_CMX) -I HTMLer HTMLer.cmx -I checker checker.cmx libgrew.ml
+	ocamlopt -c -pp 'camlp4o pa_macro.cmo' $(OPT_FLAGS) $(FILES_CMX) str.cmxa -I parser $(PARSER_CMX) -I HTMLer HTMLer.cmx libgrew.mli
+	ocamlopt -a -o libgrew.cmxa $(OPT_FLAGS) -pp 'camlp4o pa_macro.cmo -DDATA_DIR=\"$(DATA_DIR)\"' -linkall $(FILES_CMX) -I parser $(PARSER_CMX) -I HTMLer HTMLer.cmx libgrew.ml
 else
-	ocamlopt -c -pp 'camlp4o pa_macro.cmo -DDEP2PICT' $(FILES_CMX) str.cmxa -I parser $(PARSER_CMX) -I HTMLer HTMLer.cmx -I checker checker.cmx libgrew.mli
-	ocamlopt -a -o libgrew.cmxa -pp 'camlp4o pa_macro.cmo -DDATA_DIR=\"$(DATA_DIR)\" -DDEP2PICT' -linkall $(FILES_CMX) -I parser $(PARSER_CMX) -I HTMLer HTMLer.cmx -I checker checker.cmx libgrew.ml
+	ocamlopt -c -pp 'camlp4o pa_macro.cmo -DDEP2PICT' $(FILES_CMX) str.cmxa -I parser $(PARSER_CMX) -I HTMLer HTMLer.cmx libgrew.mli
+	ocamlopt -a -o libgrew.cmxa -pp 'camlp4o pa_macro.cmo -DDATA_DIR=\"$(DATA_DIR)\" -DDEP2PICT' -linkall $(FILES_CMX) -I parser $(PARSER_CMX) -I HTMLer HTMLer.cmx libgrew.ml
 endif
 
-DEPENDS_DIR= -I parser -I checker -I HTMLer
+DEPENDS_DIR= -I parser -I HTMLer
 
 ###### grew_core.ml ##############################################################
 GREW_CORE_DEP = grew_types
@@ -323,7 +316,6 @@ dep:
 
 
 clean: 
-	@make -C checker cleanup
 	@make -C HTMLer cleanup
 	@make -C parser clean
 	rm -rf *.cmi *.cmo *.cmxa *.cma *.cmx *.o *.annot
@@ -332,7 +324,6 @@ clean:
 	rm -f *.nf *.png *.html
 
 purge_makefile:
-	@make -C checker purge
 	@make -C HTMLer purge
 	@make -C parser purge
 	@make purge
