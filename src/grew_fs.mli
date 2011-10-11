@@ -1,4 +1,5 @@
-open Utils
+open Grew_utils
+open Grew_ast
 
 module Feature: sig
   val check: ?domain:Ast.domain -> Loc.t -> string -> string list -> unit

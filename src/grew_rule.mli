@@ -1,8 +1,9 @@
-open Utils
-open Graph
-open Command
+open Grew_utils
+open Grew_graph
+open Grew_command
 open Grew_edge
 open Grew_fs
+open Grew_ast
 
 module Instance : sig
   type t = {

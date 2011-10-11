@@ -1,13 +1,13 @@
 open Log
 open Printf 
 
-open Utils
-open Ast
-open Grew_fs
+open Grew_utils
+open Grew_ast
 open Grew_edge
-open Command
+open Grew_fs
 open Grew_node
-open Graph
+open Grew_command
+open Grew_graph
 
 IFDEF DEP2PICT THEN
 open Dep2pict

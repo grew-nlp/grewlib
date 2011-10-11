@@ -1,12 +1,12 @@
 open Printf
 open Log
 
-open Utils
-open Ast
+open Grew_utils
+open Grew_ast
 open Grew_edge
 open Grew_fs
 open Grew_node
-open Command
+open Grew_command
 
 
 module Deco = struct
@@ -319,7 +319,6 @@ module Graph = struct
 
   (* move all in arcs to id_src are moved to in arcs on node id_tar from graph, with all its incoming edges *) 
   let shift_in loc graph src_gid tar_gid =
-    let src_node = IntMap.find src_gid graph.map in
     let tar_node = IntMap.find tar_gid graph.map in
     
     if Massoc.mem_key src_gid tar_node.Node.next 

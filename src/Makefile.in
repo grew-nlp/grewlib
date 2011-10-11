@@ -1,5 +1,5 @@
 
-FILES_DEP = utils ast grew_fs grew_edge grew_node graph grew_types command rule grs
+FILES_DEP = grew_utils grew_ast grew_fs grew_edge grew_node grew_graph grew_types grew_command grew_rule grew_grs
 FILES_ML = $(FILES_DEP:%=%.ml)
 FILES_MLI = $(FILES_DEP:%=%.mli)
 FILES_CMI = $(FILES_DEP:%=%.cmi)
@@ -15,8 +15,8 @@ PARSER_CMX = $(PARSER_DEP:%=%.cmx)
 
 .PHONY: parser HTMLer
 
-all: utils.cmx ast.cmx parser HTMLer grew test
-byte: utils.cmo ast.cmo parser.byte HTMLer.byte grew.byte test.byte
+all: grew_utils.cmx grew_ast.cmx parser HTMLer grew test
+byte: grew_utils.cmo grew_ast.cmo parser.byte HTMLer.byte grew.byte test.byte
 
 
 include ../config/Makefile
@@ -115,42 +115,42 @@ grew_core.cmx: $(GREW_CORE_CMX) parser_opt grew_core.cmi grew_core.ml
 	ocamlopt $(OPT_FLAGS) -c $(DEPENDS_DIR) $(GREW_CORE_CMX) grew_core.ml
 ################################################################################
 
-###### utils.ml ##############################################################
-UTILS_DEP = 
-UTILS_CMI = $(UTILS_DEP:%=%.cmi)
-UTILS_CMO = $(UTILS_DEP:%=%.cmo)
-UTILS_CMX = $(UTILS_DEP:%=%.cmx)
+###### grew_utils.ml ##############################################################
+GREW_UTILS_DEP = 
+GREW_UTILS_CMI = $(GREW_UTILS_DEP:%=%.cmi)
+GREW_UTILS_CMO = $(GREW_UTILS_DEP:%=%.cmo)
+GREW_UTILS_CMX = $(GREW_UTILS_DEP:%=%.cmx)
 
-utils.cmi: $(UTILS_CMI) utils.mli
-	ocamlc -c utils.mli
+grew_utils.cmi: $(GREW_UTILS_CMI) grew_utils.mli
+	ocamlc -c grew_utils.mli
 
-utils.cmo: $(UTILS_CMO) utils.cmi utils.ml
-	ocamlc $(BYTE_FLAGS) -c $(DEPENDS_DIR) utils.ml
+grew_utils.cmo: $(GREW_UTILS_CMO) grew_utils.cmi grew_utils.ml
+	ocamlc $(BYTE_FLAGS) -c $(DEPENDS_DIR) grew_utils.ml
 
-utils.cmx: $(UTILS_CMX) utils.cmi utils.ml
-	ocamlopt $(OPT_FLAGS) -c $(DEPENDS_DIR) utils.ml
+grew_utils.cmx: $(GREW_UTILS_CMX) grew_utils.cmi grew_utils.ml
+	ocamlopt $(OPT_FLAGS) -c $(DEPENDS_DIR) grew_utils.ml
 ################################################################################
 
 
-###### ast.ml ##############################################################
-AST_DEP = utils
-AST_CMI = $(AST_DEP:%=%.cmi)
-AST_CMO = $(AST_DEP:%=%.cmo)
-AST_CMX = $(AST_DEP:%=%.cmx)
+###### grew_ast.ml ##############################################################
+GREW_AST_DEP = grew_utils
+GREW_AST_CMI = $(GREW_AST_DEP:%=%.cmi)
+GREW_AST_CMO = $(GREW_AST_DEP:%=%.cmo)
+GREW_AST_CMX = $(GREW_AST_DEP:%=%.cmx)
 
-ast.cmi: $(AST_CMI) ast.mli
-	ocamlc -c ast.mli
+grew_ast.cmi: $(GREW_AST_CMI) grew_ast.mli
+	ocamlc -c grew_ast.mli
 
-ast.cmo: $(AST_CMO) ast.cmi ast.ml
-	ocamlc $(BYTE_FLAGS) -c $(DEPENDS_DIR) ast.ml
+grew_ast.cmo: $(GREW_AST_CMO) grew_ast.cmi grew_ast.ml
+	ocamlc $(BYTE_FLAGS) -c $(DEPENDS_DIR) grew_ast.ml
 
-ast.cmx: $(AST_CMX) ast.cmi ast.ml
-	ocamlopt $(OPT_FLAGS) -c $(DEPENDS_DIR) ast.ml
+grew_ast.cmx: $(GREW_AST_CMX) grew_ast.cmi grew_ast.ml
+	ocamlopt $(OPT_FLAGS) -c $(DEPENDS_DIR) grew_ast.ml
 ################################################################################
 
 
 ###### grew_fs.ml ##############################################################
-GREW_FS_DEP = utils ast
+GREW_FS_DEP = grew_utils grew_ast
 GREW_FS_CMI = $(GREW_FS_DEP:%=%.cmi)
 GREW_FS_CMO = $(GREW_FS_DEP:%=%.cmo)
 GREW_FS_CMX = $(GREW_FS_DEP:%=%.cmx)
@@ -167,7 +167,7 @@ grew_fs.cmx: $(GREW_FS_CMX) grew_fs.cmi grew_fs.ml
 
 
 ###### grew_edge.ml ##############################################################
-GREW_EDGE_DEP = utils ast
+GREW_EDGE_DEP = grew_utils grew_ast
 GREW_EDGE_CMI = $(GREW_EDGE_DEP:%=%.cmi)
 GREW_EDGE_CMO = $(GREW_EDGE_DEP:%=%.cmo)
 GREW_EDGE_CMX = $(GREW_EDGE_DEP:%=%.cmx)
@@ -184,7 +184,7 @@ grew_edge.cmx: $(GREW_EDGE_CMX) grew_edge.cmi grew_edge.ml
 
 
 ###### grew_node.ml ##############################################################
-GREW_NODE_DEP = utils ast grew_fs grew_edge
+GREW_NODE_DEP = grew_utils grew_ast grew_fs grew_edge
 GREW_NODE_CMI = $(GREW_NODE_DEP:%=%.cmi)
 GREW_NODE_CMO = $(GREW_NODE_DEP:%=%.cmo)
 GREW_NODE_CMX = $(GREW_NODE_DEP:%=%.cmx)
@@ -200,25 +200,25 @@ grew_node.cmx: $(GREW_NODE_CMX) grew_node.cmi grew_node.ml
 ################################################################################
 
 
-###### graph.ml ##############################################################
-GRAPH_DEP = utils ast command grew_edge grew_fs grew_node 
-GRAPH_CMI = $(GRAPH_DEP:%=%.cmi)
-GRAPH_CMO = $(GRAPH_DEP:%=%.cmo)
-GRAPH_CMX = $(GRAPH_DEP:%=%.cmx)
+###### grew_graph.ml ##############################################################
+GREW_GRAPH_DEP = grew_utils grew_ast grew_command grew_edge grew_fs grew_node 
+GREW_GRAPH_CMI = $(GREW_GRAPH_DEP:%=%.cmi)
+GREW_GRAPH_CMO = $(GREW_GRAPH_DEP:%=%.cmo)
+GREW_GRAPH_CMX = $(GREW_GRAPH_DEP:%=%.cmx)
 
-graph.cmi: $(GRAPH_CMI) graph.mli
-	ocamlc -c graph.mli
+grew_graph.cmi: $(GREW_GRAPH_CMI) grew_graph.mli
+	ocamlc -c grew_graph.mli
 
-graph.cmo: $(GRAPH_CMO) graph.cmi graph.ml
-	ocamlc $(BYTE_FLAGS) -c $(DEPENDS_DIR) graph.ml
+grew_graph.cmo: $(GREW_GRAPH_CMO) grew_graph.cmi grew_graph.ml
+	ocamlc $(BYTE_FLAGS) -c $(DEPENDS_DIR) grew_graph.ml
 
-graph.cmx: $(GRAPH_CMX) graph.cmi graph.ml
-	ocamlopt $(OPT_FLAGS) -c $(DEPENDS_DIR) graph.ml
+grew_graph.cmx: $(GREW_GRAPH_CMX) grew_graph.cmi grew_graph.ml
+	ocamlopt $(OPT_FLAGS) -c $(DEPENDS_DIR) grew_graph.ml
 ################################################################################
 
 
 ###### grew_types.ml ##############################################################
-GREW_TYPES_DEP = graph 
+GREW_TYPES_DEP = grew_graph 
 GREW_TYPES_CMI = $(GREW_TYPES_DEP:%=%.cmi)
 GREW_TYPES_CMO = $(GREW_TYPES_DEP:%=%.cmo)
 GREW_TYPES_CMX = $(GREW_TYPES_DEP:%=%.cmx)
@@ -234,77 +234,77 @@ grew_types.cmx: $(GREW_TYPES_CMX) grew_types.cmi grew_types.ml
 ################################################################################
 
 
-###### command.ml ##############################################################
-COMMAND_DEP = utils ast grew_edge grew_fs
-COMMAND_CMI = $(COMMAND_DEP:%=%.cmi)
-COMMAND_CMO = $(COMMAND_DEP:%=%.cmo)
-COMMAND_CMX = $(COMMAND_DEP:%=%.cmx)
+###### grew_command.ml ##############################################################
+GREW_COMMAND_DEP = grew_utils grew_ast grew_edge grew_fs
+GREW_COMMAND_CMI = $(GREW_COMMAND_DEP:%=%.cmi)
+GREW_COMMAND_CMO = $(GREW_COMMAND_DEP:%=%.cmo)
+GREW_COMMAND_CMX = $(GREW_COMMAND_DEP:%=%.cmx)
 
-command.cmi: $(COMMAND_CMI) command.mli
-	ocamlc -c command.mli
+grew_command.cmi: $(GREW_COMMAND_CMI) grew_command.mli
+	ocamlc -c grew_command.mli
 
-command.cmo: $(COMMAND_CMO) command.cmi command.ml
-	ocamlc $(BYTE_FLAGS) -c $(DEPENDS_DIR) command.ml
+grew_command.cmo: $(GREW_COMMAND_CMO) grew_command.cmi grew_command.ml
+	ocamlc $(BYTE_FLAGS) -c $(DEPENDS_DIR) grew_command.ml
 
-command.cmx: $(COMMAND_CMX) command.cmi command.ml
-	ocamlopt $(OPT_FLAGS) -c $(DEPENDS_DIR) command.ml
+grew_command.cmx: $(GREW_COMMAND_CMX) grew_command.cmi grew_command.ml
+	ocamlopt $(OPT_FLAGS) -c $(DEPENDS_DIR) grew_command.ml
 ################################################################################
 
 
-###### rule.ml ##############################################################
-RULE_DEP = utils ast command grew_edge grew_fs grew_node grew_types graph
-RULE_CMI = $(RULE_DEP:%=%.cmi)
-RULE_CMO = $(RULE_DEP:%=%.cmo)
-RULE_CMX = $(RULE_DEP:%=%.cmx)
+###### grew_rule.ml ##############################################################
+GREW_RULE_DEP = grew_utils grew_ast grew_command grew_edge grew_fs grew_node grew_types grew_graph
+GREW_RULE_CMI = $(GREW_RULE_DEP:%=%.cmi)
+GREW_RULE_CMO = $(GREW_RULE_DEP:%=%.cmo)
+GREW_RULE_CMX = $(GREW_RULE_DEP:%=%.cmx)
 
-rule.cmi: $(RULE_CMI) rule.mli
+grew_rule.cmi: $(GREW_RULE_CMI) grew_rule.mli
 ifeq (@DEP2PICT@,no)
-	ocamlc -c -pp 'camlp4o pa_macro.cmo' rule.mli
+	ocamlc -c -pp 'camlp4o pa_macro.cmo' grew_rule.mli
 else
-	ocamlc -c -pp 'camlp4o pa_macro.cmo -DDEP2PICT' rule.mli
+	ocamlc -c -pp 'camlp4o pa_macro.cmo -DDEP2PICT' grew_rule.mli
 endif
 
-rule.cmo: $(RULE_CMO) rule.cmi rule.ml
+grew_rule.cmo: $(GREW_RULE_CMO) grew_rule.cmi grew_rule.ml
 ifeq (@DEP2PICT@,no)
-	ocamlc -pp 'camlp4o pa_macro.cmo' $(BYTE_FLAGS) -c $(DEPENDS_DIR) rule.ml
+	ocamlc -pp 'camlp4o pa_macro.cmo' $(BYTE_FLAGS) -c $(DEPENDS_DIR) grew_rule.ml
 else
-	ocamlc -pp 'camlp4o pa_macro.cmo -DDEP2PICT' $(BYTE_FLAGS) -c $(DEPENDS_DIR) $(DEP2PICT_BYTE) rule.ml
+	ocamlc -pp 'camlp4o pa_macro.cmo -DDEP2PICT' $(BYTE_FLAGS) -c $(DEPENDS_DIR) $(DEP2PICT_BYTE) grew_rule.ml
 endif
 
-rule.cmx: $(RULE_CMX) rule.cmi rule.ml
+grew_rule.cmx: $(GREW_RULE_CMX) grew_rule.cmi grew_rule.ml
 ifeq (@DEP2PICT@,no)
-	ocamlopt -pp 'camlp4o pa_macro.cmo' $(OPT_FLAGS) -c $(DEPENDS_DIR) rule.ml
+	ocamlopt -pp 'camlp4o pa_macro.cmo' $(OPT_FLAGS) -c $(DEPENDS_DIR) grew_rule.ml
 else
-	ocamlopt -pp 'camlp4o pa_macro.cmo -DDEP2PICT' $(OPT_FLAGS) -c $(DEPENDS_DIR) $(DEP2PICT_OPT) rule.ml
+	ocamlopt -pp 'camlp4o pa_macro.cmo -DDEP2PICT' $(OPT_FLAGS) -c $(DEPENDS_DIR) $(DEP2PICT_OPT) grew_rule.ml
 endif
 ################################################################################
 
 
-###### grs.ml ##############################################################
-GRS_DEP = utils grew_edge grew_types graph rule
-GRS_CMI = $(GRS_DEP:%=%.cmi)
-GRS_CMO = $(GRS_DEP:%=%.cmo)
-GRS_CMX = $(GRS_DEP:%=%.cmx)
+###### grew_grs.ml ##############################################################
+GREW_GRS_DEP = grew_utils grew_edge grew_types grew_graph grew_rule
+GREW_GRS_CMI = $(GREW_GRS_DEP:%=%.cmi)
+GREW_GRS_CMO = $(GREW_GRS_DEP:%=%.cmo)
+GREW_GRS_CMX = $(GREW_GRS_DEP:%=%.cmx)
 
-grs.cmi: $(GRS_CMI) grs.mli
+grew_grs.cmi: $(GREW_GRS_CMI) grew_grs.mli
 ifeq (@DEP2PICT@,no)
-	ocamlc -c -pp 'camlp4o pa_macro.cmo' grs.mli
+	ocamlc -c -pp 'camlp4o pa_macro.cmo' grew_grs.mli
 else
-	ocamlc -c -pp 'camlp4o pa_macro.cmo -DDEP2PICT' grs.mli
+	ocamlc -c -pp 'camlp4o pa_macro.cmo -DDEP2PICT' grew_grs.mli
 endif
 
-grs.cmo: $(GRS_CMO) grs.cmi grs.ml
+grew_grs.cmo: $(GREW_GRS_CMO) grew_grs.cmi grew_grs.ml
 ifeq (@DEP2PICT@,no)
-	ocamlc $(BYTE_FLAGS) -pp 'camlp4o pa_macro.cmo -DDATA_DIR=\"$(DATA_DIR)\"' -c $(DEPENDS_DIR) grs.ml
+	ocamlc $(BYTE_FLAGS) -pp 'camlp4o pa_macro.cmo -DDATA_DIR=\"$(DATA_DIR)\"' -c $(DEPENDS_DIR) grew_grs.ml
 else
-	ocamlc $(BYTE_FLAGS) -pp 'camlp4o pa_macro.cmo -DDATA_DIR=\"$(DATA_DIR)\" -DDEP2PICT' -c $(DEPENDS_DIR) grs.ml
+	ocamlc $(BYTE_FLAGS) -pp 'camlp4o pa_macro.cmo -DDATA_DIR=\"$(DATA_DIR)\" -DDEP2PICT' -c $(DEPENDS_DIR) grew_grs.ml
 endif
 
-grs.cmx: $(GRS_CMX) grs.cmi grs.ml
+grew_grs.cmx: $(GREW_GRS_CMX) grew_grs.cmi grew_grs.ml
 ifeq (@DEP2PICT@,no)
-	ocamlopt $(OPT_FLAGS) -pp 'camlp4o pa_macro.cmo -DDATA_DIR=\"$(DATA_DIR)\"' -c $(DEPENDS_DIR) grs.ml
+	ocamlopt $(OPT_FLAGS) -pp 'camlp4o pa_macro.cmo -DDATA_DIR=\"$(DATA_DIR)\"' -c $(DEPENDS_DIR) grew_grs.ml
 else
-	ocamlopt $(OPT_FLAGS) -pp 'camlp4o pa_macro.cmo -DDATA_DIR=\"$(DATA_DIR)\" -DDEP2PICT' -c $(DEPENDS_DIR) grs.ml
+	ocamlopt $(OPT_FLAGS) -pp 'camlp4o pa_macro.cmo -DDATA_DIR=\"$(DATA_DIR)\" -DDEP2PICT' -c $(DEPENDS_DIR) grew_grs.ml
 endif
 ################################################################################
 

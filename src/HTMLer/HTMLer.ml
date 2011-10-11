@@ -1,3 +1,4 @@
+open Grew_ast
 module HTMLer = struct
 
 let index_text table = "
@@ -71,7 +72,7 @@ let rule_page_text previous next rule m ast file = "
 			"<h6>Features domain</h6><code class=\"code\">"^
 			(let rec compute tab = match tab with
 				| [] -> ""
-				| h::t -> begin match h with Ast.Open a -> "<b>"^a^"</b> : *<br/>"^compute t | Ast.Closed (name,values)  -> "<b>"^name^"</b> : "^(Ast.AST_HTML.feat_values_tab_to_html values)^"<br/>"^compute t; end; 
+				| h::t -> begin match h with Ast.Open a -> "<b>"^a^"</b> : *<br/>"^compute t | Ast.Closed (name,values)  -> "<b>"^name^"</b> : "^(AST_HTML.feat_values_tab_to_html values)^"<br/>"^compute t; end; 
 			in compute ast.Ast.domain)
 		) else (
 			""
@@ -120,9 +121,9 @@ let rule_page_text previous next rule m ast file = "
 		
 	"<br/>
 	<br/><h6>Commands</h6>
-	<code class=code><pre>"^(Ast.AST_HTML.to_html_commands_pretty rule.Ast.commands)^"
+	<code class=code><pre>"^(AST_HTML.to_html_commands_pretty rule.Ast.commands)^"
 	</pre></code><br/><h6>Code</h6><pre>"^
-	(Ast.AST_HTML.to_html_rules [rule])^
+	(AST_HTML.to_html_rules [rule])^
 	"</pre><br/>
 	
 	</body>
@@ -208,7 +209,7 @@ let features_domain_text ast =
 		"<code class=\"code\">"^
 			(let rec compute tab = match tab with
 				| [] -> ""
-				| h::t -> begin match h with Ast.Open a -> "<b>"^a^"</b> : *<br/>"^compute t | Ast.Closed (name,values)  -> "<b>"^name^"</b> : "^(Ast.AST_HTML.feat_values_tab_to_html values)^"<br/>"^compute t; end; 
+				| h::t -> begin match h with Ast.Open a -> "<b>"^a^"</b> : *<br/>"^compute t | Ast.Closed (name,values)  -> "<b>"^name^"</b> : "^(AST_HTML.feat_values_tab_to_html values)^"<br/>"^compute t; end; 
 			in compute ast.Ast.domain)^
 		"</code>"^
 	"</body>

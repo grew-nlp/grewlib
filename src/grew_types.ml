@@ -1,4 +1,4 @@
-open Graph
+open Grew_graph
 
 type graph = Graph.t
 type deco = Deco.t
@@ -18,7 +18,7 @@ type rew_display =
   | Local_normal_form of Graph.t * module_name * rew_display
   | Node of Graph.t * module_name * (big_step * rew_display) list
 
-(* the type for big edges which correspond the a module *)
+(* the type for big edges which correspond to a module *)
 and big_step = {
     first: rule_app;
     small_step: (Graph.t * rule_app) list;

@@ -3,11 +3,12 @@ include Grew_types
 open Printf
 open Log
 
-open Utils
+open Grew_utils
+open Grew_graph
+open Grew_rule
+open Grew_grs
+
 open Grew_parser
-open Grs
-open Graph
-open Rule
 open HTMLer
 
 
@@ -40,8 +41,8 @@ let load_grs ?doc_output_dir file =
       Grs.build ast
     with
     | Grew_parser.Parse_error msg -> raise (Parsing_err msg)
-    | Utils.Build (msg,loc) -> raise (Build (msg,loc))
-    | Utils.Bug (msg, loc) -> raise (Bug (msg,loc))
+    | Build (msg,loc) -> raise (Build (msg,loc))
+    | Bug (msg, loc) -> raise (Bug (msg,loc))
     | exc -> raise (Bug (sprintf "UNCATCHED EXCEPTION: %s" (Printexc.to_string exc), None))
 
 
@@ -57,8 +58,8 @@ let load_gr file =
       Instance.build ast
     with
     | Grew_parser.Parse_error msg -> raise (Parsing_err msg)
-    | Utils.Build (msg,loc) -> raise (Build (msg,loc))
-    | Utils.Bug (msg, loc) -> raise (Bug (msg,loc))
+    | Build (msg,loc) -> raise (Build (msg,loc))
+    | Bug (msg, loc) -> raise (Bug (msg,loc))
     | exc -> raise (Bug (sprintf "UNCATCHED EXCEPTION: %s" (Printexc.to_string exc), None))
 
    ) else (
@@ -68,16 +69,16 @@ let load_gr file =
 let rewrite ~gr ~grs ~seq = 
   try Grs.rewrite grs seq gr
   with
-  | Utils.Run (msg,loc) -> raise (Run (msg,loc))
-  | Utils.Bug (msg, loc) -> raise (Bug (msg,loc))
+  | Run (msg,loc) -> raise (Run (msg,loc))
+  | Bug (msg, loc) -> raise (Bug (msg,loc))
   | exc -> raise (Bug (sprintf "UNCATCHED EXCEPTION: %s" (Printexc.to_string exc), None))
 
 
 let display ~gr ~grs ~seq =
   try Grs.build_rew_display grs seq gr
   with
-  | Utils.Run (msg,loc) -> raise (Run (msg,loc))
-  | Utils.Bug (msg, loc) -> raise (Bug (msg,loc))
+  | Run (msg,loc) -> raise (Run (msg,loc))
+  | Bug (msg, loc) -> raise (Bug (msg,loc))
   | exc -> raise (Bug (sprintf "UNCATCHED EXCEPTION: %s" (Printexc.to_string exc), None))
 
 

@@ -1,7 +1,8 @@
 open Printf
 open Log
-open Utils
-open Ast
+
+open Grew_utils
+open Grew_ast
 
 module Feature = struct
   (* feature= (feature_name, disjunction of atomic values). empty list to encode "any value" *) 
@@ -17,8 +18,8 @@ module Feature = struct
   let rec check ?domain loc name values = match domain with
   | None -> ()
   | Some [] -> Log.fmessage "[GRS] Unknown feature name '%s' %s" name (Loc.to_string loc)
-  | Some ((Open n)::_) when n = name -> ()
-  | Some ((Closed (n,vs))::_) when n = name -> 
+  | Some ((Ast.Open n)::_) when n = name -> ()
+  | Some ((Ast.Closed (n,vs))::_) when n = name -> 
       (match List_.sort_diff values vs with 
       | [] -> ()
       | l -> Error.build ~loc "Unknown feature values '%s' for feature name '%s'" 
@@ -28,11 +29,11 @@ module Feature = struct
   | Some (_::t) -> check ~domain:t loc name values
 
   let build ?domain = function
-    | ({kind=Equality;name=name;values=unsorted_values},loc) ->
+    | ({Ast.kind=Ast.Equality;name=name;values=unsorted_values},loc) ->
 	let values = List.sort Pervasives.compare unsorted_values in
 	check ?domain loc name values;
 	Equal (name, values)
-    | ({kind=Disequality;name=name;values=unsorted_values},loc) ->
+    | ({Ast.kind=Ast.Disequality;name=name;values=unsorted_values},loc) ->
 	let values = List.sort Pervasives.compare unsorted_values in
 	check ?domain loc name values;
 	Different (name, values)

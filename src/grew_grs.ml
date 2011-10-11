@@ -1,11 +1,12 @@
 open Printf
 open Log
 
-open Utils
-open Rule
-open Command
+open Grew_utils
+open Grew_ast
 open Grew_edge 
-open Graph
+open Grew_command
+open Grew_graph
+open Grew_rule
 
 
 module Rewrite_history = struct

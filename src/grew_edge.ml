@@ -1,7 +1,7 @@
 open Log
 
-open Utils
-open Ast
+open Grew_utils
+open Grew_ast
 
 module Label = struct
   type decl = string * string option

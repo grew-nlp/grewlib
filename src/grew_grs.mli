@@ -1,7 +1,7 @@
-open Utils
-open Graph
-open Rule
-
+open Grew_utils
+open Grew_graph
+open Grew_rule
+open Grew_ast
 
 
 module Rewrite_history: sig

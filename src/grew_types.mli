@@ -1,6 +1,6 @@
 (** {2 Types fo grew} *)
 
-open Graph
+open Grew_graph
 
 (**/**)
 type graph = Graph.t

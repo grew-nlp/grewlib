@@ -1,4 +1,5 @@
-open Utils
+open Grew_utils
+open Grew_ast
 
 module Label : sig
   (* a label declaration: (the label,an optionnal color) *)
@@ -32,9 +33,7 @@ module Edge :  sig
       string list ->
   	t
 
-  val build:
-      ?locals:Label.decl array -> 
-      Ast.edge -> t
+  val build: ?locals:Label.decl array -> Ast.edge -> t
 
   val compare: 'a -> 'a -> int
   val build_edge: string -> int * int * t

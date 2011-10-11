@@ -1,10 +1,10 @@
 
 
 (** {2 Grew's core} *)
-open Utils
-open Graph
-open Rule
-open Grs
+open Grew_utils
+open Grew_graph
+open Grew_rule
+open Grew_grs
 
 exception Parsing_err of string
 exception File_dont_exists of string

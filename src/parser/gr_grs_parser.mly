@@ -1,17 +1,17 @@
 %{
 
-open Ast
-open Utils
+open Grew_ast
+open Grew_utils
 
 (* Some intermediate sum types used in sub-functions when building the ast *)
 type pat_item = 
-  | Pat_node of node
-  | Pat_edge of edge
-  | Pat_const of const
+  | Pat_node of Ast.node
+  | Pat_edge of Ast.edge
+  | Pat_const of Ast.const
 
 type graph_item =
-  | Graph_node of node
-  | Graph_edge of edge
+  | Graph_node of Ast.node
+  | Graph_edge of Ast.edge
 
 let get_loc () = (!Parser_global.current_file,!Parser_global.current_line+1)
 let localize t = (t,get_loc ())
@@ -63,17 +63,17 @@ let localize t = (t,get_loc ())
 %token DEL_FEAT                    /* del_feat */
 
 %token <string>  IDENT             /* indentifier */
-%token <Ast.qfn> QFN               /* ident.ident */
+%token <Grew_ast.Ast.qfn> QFN               /* ident.ident */
 %token <string>  STRING
 %token <int>     INT
 %token <string>  COMMENT
 
 %token EOF                         /* end of file */
 
-%start <Ast.grs_with_include> grs_with_include
-%start <Ast.grs> grs
-%start <Ast.gr> gr
-%start <Ast.modul list> included
+%start <Grew_ast.Ast.grs_with_include> grs_with_include
+%start <Grew_ast.Ast.grs> grs
+%start <Grew_ast.Ast.gr> gr
+%start <Grew_ast.Ast.modul list> included
 %%
 
 /*=============================================================================================*/
@@ -84,20 +84,20 @@ gr:
         | GRAPH LACC items = separated_list(SEMIC,option(gr_item)) RACC EOF 
             {
              {
-              nodes = List_.opt_map (function Some (Graph_node n) -> Some n | _ -> None) items;
-              edges = List_.opt_map (function Some (Graph_edge n) -> Some n | _ -> None) items;
+              Ast.nodes = List_.opt_map (function Some (Graph_node n) -> Some n | _ -> None) items;
+              Ast.edges = List_.opt_map (function Some (Graph_edge n) -> Some n | _ -> None) items;
             }
            }
                   
 gr_item:
         | id = IDENT position = option(delimited(LPAREN,index,RPAREN)) feats = delimited(LBRACKET,separated_list(COMA,node_features),RBRACKET) 
-            { Graph_node (localize {node_id = id; position=position; fs=feats}) }
+            { Graph_node (localize {Ast.node_id = id; position=position; fs=feats}) }
 
         | n1 = IDENT labels = delimited(LTR_EDGE_LEFT_NEG,separated_nonempty_list(PIPE,IDENT),LTR_EDGE_RIGHT) n2 = IDENT
-            { Graph_edge (localize {edge_id = None; src=n1; edge_labels=labels; tar=n2; negative=true; }) }
+            { Graph_edge (localize {Ast.edge_id = None; src=n1; edge_labels=labels; tar=n2; negative=true; }) }
 
         | n1 = IDENT labels = delimited(LTR_EDGE_LEFT,separated_nonempty_list(PIPE,IDENT),LTR_EDGE_RIGHT) n2 = IDENT
-            { Graph_edge (localize {edge_id = None; src=n1; edge_labels=labels; tar=n2; negative=false; }) }
+            { Graph_edge (localize {Ast.edge_id = None; src=n1; edge_labels=labels; tar=n2; negative=false; }) }
 
 index:
         | INT { $1 }
@@ -140,8 +140,8 @@ module_or_include_list:
         | x = list(module_or_include) { x }
 
 module_or_include:
-        | m = grew_module        { Modul m }
-        | INCLUDE file = STRING  { Includ file } 
+        | m = grew_module        { Ast.Modul m }
+        | INCLUDE file = STRING  { Ast.Includ file } 
 
 
 /*=============================================================================================*/
@@ -166,8 +166,8 @@ features_group:
         | name = feature_name DDOT values = features_values 
             { 
               if List.length values == 1 && List.hd values = "*"
-              then Open name 
-              else Closed (name,List.sort Pervasives.compare values)
+              then Ast.Open name 
+              else Ast.Closed (name,List.sort Pervasives.compare values)
             }
 
 feature_name:
@@ -324,18 +324,18 @@ pat_item:
 
 pat_node:
         | id = IDENT feats = delimited(LBRACKET,separated_list(COMA,node_features),RBRACKET) 
-            { localize ({node_id = id; position=None; fs= feats}) }
+            { localize ({Ast.node_id = id; position=None; fs= feats}) }
 
 
 
 
 node_features:
         | name = IDENT EQUAL STAR 
-            { localize {kind = Disequality; name=name; values=[]; } } 
+            { localize {Ast.kind = Ast.Disequality; name=name; values=[]; } } 
         | name = IDENT EQUAL values = separated_nonempty_list(PIPE,feature_value) 
-            { localize {kind = Equality; name=name; values=values; } } 
+            { localize {Ast.kind = Ast.Equality; name=name; values=values; } } 
         | name = IDENT DISEQUAL values = separated_nonempty_list(PIPE,feature_value) 
-            { localize {kind = Disequality; name=name; values=values; } } 
+            { localize {Ast.kind = Ast.Disequality; name=name; values=values; } } 
 
 feature_value:
         | v = IDENT { v }
@@ -346,27 +346,27 @@ pat_edge:
         (* "e: A -> B" OR "e: A -[*]-> B" *)
         | id = edge_id n1 = IDENT GOTO_NODE n2 = IDENT
         | id = edge_id n1 = IDENT LTR_EDGE_LEFT_NEG STAR LTR_EDGE_RIGHT n2 = IDENT
-               { localize ({edge_id = Some id; src=n1; edge_labels=[]; tar=n2; negative=true}) }
+               { localize ({Ast.edge_id = Some id; src=n1; edge_labels=[]; tar=n2; negative=true}) }
 
         (* "A -> B" *)
         | n1 = IDENT GOTO_NODE n2 = IDENT
-               { localize ({edge_id = None; src=n1; edge_labels=[]; tar=n2; negative=true}) }
+               { localize ({Ast.edge_id = None; src=n1; edge_labels=[]; tar=n2; negative=true}) }
 
         (* "e: A -[^X|Y]-> B" *)
         | id = edge_id n1 = IDENT labels = delimited(LTR_EDGE_LEFT_NEG,separated_nonempty_list(PIPE,IDENT),LTR_EDGE_RIGHT) n2 = IDENT
-               { localize ({edge_id = Some id; src=n1; edge_labels=labels; tar=n2; negative=true}) }
+            { localize ({Ast.edge_id = Some id; src=n1; edge_labels=labels; tar=n2; negative=true}) }
             
         (* "A -[^X|Y]-> B"*)
         | n1 = IDENT labels = delimited(LTR_EDGE_LEFT_NEG,separated_nonempty_list(PIPE,IDENT),LTR_EDGE_RIGHT) n2 = IDENT
-            { localize ({edge_id = None; src=n1; edge_labels=labels; tar=n2; negative=true}) }
+            { localize ({Ast.edge_id = None; src=n1; edge_labels=labels; tar=n2; negative=true}) }
 
         (* "e: A -[X|Y]-> B" *)
         | id = edge_id n1 = IDENT labels = delimited(LTR_EDGE_LEFT,separated_nonempty_list(PIPE,IDENT),LTR_EDGE_RIGHT) n2 = IDENT
-            { localize ({edge_id = Some id; src=n1; edge_labels=labels; tar=n2; negative=false}) }       
+            { localize ({Ast.edge_id = Some id; src=n1; edge_labels=labels; tar=n2; negative=false}) }       
 
         (* "A -[X|Y]-> B" *)
         | n1 = IDENT labels = delimited(LTR_EDGE_LEFT,separated_nonempty_list(PIPE,IDENT),LTR_EDGE_RIGHT) n2 = IDENT
-            { localize ({edge_id = None; src=n1; edge_labels=labels; tar=n2; negative=false}) }
+            { localize ({Ast.edge_id = None; src=n1; edge_labels=labels; tar=n2; negative=false}) }
 
 
 edge_id:
@@ -376,22 +376,22 @@ edge_id:
 pat_const:
         (* "A -[X|Y]-> *" *)
         | n1 = IDENT labels = delimited(LTR_EDGE_LEFT,separated_nonempty_list(PIPE,IDENT),LTR_EDGE_RIGHT) STAR
-            { localize (Start (n1,labels)) }
+            { localize (Ast.Start (n1,labels)) }
 
         (* "A -> *" *)
         | n1 = IDENT GOTO_NODE STAR
-            { localize (No_out n1) }
+            { localize (Ast.No_out n1) }
 
         (* "* -[X|Y]-> A" *)
         | STAR labels = delimited(LTR_EDGE_LEFT,separated_nonempty_list(PIPE,IDENT),LTR_EDGE_RIGHT) n2 = IDENT
-            { localize (End (n2,labels)) }
+            { localize (Ast.End (n2,labels)) }
 
         (* "* -> A" *)
         | STAR GOTO_NODE n2 = IDENT
-            { localize (No_in n2) }
+            { localize (Ast.No_in n2) }
 
         | qfn1 = QFN EQUAL qfn2 = QFN
-            { localize (Feature_eq (qfn1, qfn2)) }
+            { localize (Ast.Feature_eq (qfn1, qfn2)) }
 
 /*=============================================================================================*/
 /*                                                                                             */
@@ -424,32 +424,32 @@ commands:
 
 command:
         | DEL_EDGE n = IDENT
-            { localize (Del_edge_name n) }
+            { localize (Ast.Del_edge_name n) }
         | DEL_EDGE n1 = IDENT label = delimited(LTR_EDGE_LEFT,IDENT,LTR_EDGE_RIGHT) n2 = IDENT 
-            { localize (Del_edge_expl (n1,n2,label)) }
+            { localize (Ast.Del_edge_expl (n1,n2,label)) }
         | ADD_EDGE n1 = IDENT label = delimited(LTR_EDGE_LEFT,IDENT,LTR_EDGE_RIGHT) n2 = IDENT
-            { localize (Add_edge (n1,n2,label)) }
+            { localize (Ast.Add_edge (n1,n2,label)) }
         | SHIFT_IN n1 = IDENT LONGARROW n2 = IDENT 
-            { localize (Shift_in (n1,n2)) }
+            { localize (Ast.Shift_in (n1,n2)) }
         | SHIFT_OUT n1 = IDENT LONGARROW n2 = IDENT 
-            { localize (Shift_out (n1,n2)) }
+            { localize (Ast.Shift_out (n1,n2)) }
         | SHIFT n1 = IDENT LONGARROW n2 = IDENT 
-            { localize (Shift_edge (n1,n2)) }
+            { localize (Ast.Shift_edge (n1,n2)) }
         | MERGE n1 = IDENT LONGARROW n2 = IDENT 
-            { localize (Merge_node (n1,n2)) }
+            { localize (Ast.Merge_node (n1,n2)) }
         | DEL_NODE n = IDENT 
-            { localize (Del_node n) }
+            { localize (Ast.Del_node n) }
         | ADD_NODE n1 = IDENT DDOT label = delimited(RTL_EDGE_LEFT,IDENT,RTL_EDGE_RIGHT) n2 = IDENT 
-            { localize (New_neighbour (n1,n2,label)) }
+            { localize (Ast.New_neighbour (n1,n2,label)) }
         | DEL_FEAT qfn = QFN 
-            { localize (Del_feat qfn) }
+            { localize (Ast.Del_feat qfn) }
         | qfn = QFN EQUAL items = separated_nonempty_list (PLUS, concat_item)
-            { localize (Update_feat (qfn, items)) }
+            { localize (Ast.Update_feat (qfn, items)) }
 
 concat_item:
-        | qfn = QFN  { Qfn_item qfn }
-        | s = IDENT   { String_item s }
-        | s = STRING   { String_item s }
+        | qfn = QFN  { Ast.Qfn_item qfn }
+        | s = IDENT   { Ast.String_item s }
+        | s = STRING   { Ast.String_item s }
 
 /*=============================================================================================*/
 /*                                                                                             */

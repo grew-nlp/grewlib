@@ -1,7 +1,7 @@
 
 {
   open Log
-  open Ast
+  open Grew_ast
   open Gr_grs_parser
 
   exception Error of string

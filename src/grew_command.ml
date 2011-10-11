@@ -1,10 +1,10 @@
 open Printf
 open Log
 
-open Utils
-open Ast
-open Grew_fs
+open Grew_utils
+open Grew_ast
 open Grew_edge
+open Grew_fs
 
 module Command  = struct 
   type pid = int (* the int in the pattern *)
