@@ -6,7 +6,7 @@
 (require 'generic-x) ;;pour Emacs OK, mais semble ne pas marcher avec XEmacs 
 (define-generic-mode 'grew-mode
   '("%");;comments
-  '("features" "module" "rule" "match" "without" "labels" "bad_labels" "sequences" "commands" "graph" "confluent");;keywords
+  '("features" "module" "rule" "match" "without" "labels" "bad_labels" "sequences" "commands" "graph" "confluent" "include");;keywords
   '(
 ;;    ("class\\s (\*\*)* +\\(\\sw[a-zA-Z0-9_.-]*\\)" 1 'font-lock-type-face);noms de classes
 ;;    ("\?[a-zA-Z0-9]+" . font-lock-variable-name-face)
@@ -17,7 +17,10 @@
 ;;    ("$[a-zA-Z0-9_àéèçâôûêäïüö'\-]+" . font-lock-constant-face);;params inside
     ("del_edge" . font-lock-constant-face)
     ("add_edge" . font-lock-constant-face)
+    ("merge" . font-lock-constant-face)
     ("shift" . font-lock-constant-face)
+    ("shift_in" . font-lock-constant-face)
+    ("shift_out" . font-lock-constant-face)
     ("del_node" . font-lock-constant-face)
     ("add_node" . font-lock-constant-face)
     ("del_feat" . font-lock-constant-face)

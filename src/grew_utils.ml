@@ -364,11 +364,12 @@ module Massoc = struct
   let exists fct t = List.exists (fun (key,list) -> List.exists (fun value -> fct key value) list) t
 end
 
-exception Build of (string * Loc.t option)
-exception Run of (string * Loc.t option)
-exception Bug of (string * Loc.t option)
-
 module Error = struct
+
+  exception Build of (string * Loc.t option)
+  exception Run of (string * Loc.t option)
+  exception Bug of (string * Loc.t option)
+
   let build_ ?loc message = 
     Log.fmessage "[%s] %s" (match loc with None -> "?" | Some x -> Loc.to_string x) message;
     raise (Build (message, loc))

@@ -41,8 +41,8 @@ let load_grs ?doc_output_dir file =
       Grs.build ast
     with
     | Grew_parser.Parse_error msg -> raise (Parsing_err msg)
-    | Build (msg,loc) -> raise (Build (msg,loc))
-    | Bug (msg, loc) -> raise (Bug (msg,loc))
+    | Error.Build (msg,loc) -> raise (Build (msg,loc))
+    | Error.Bug (msg, loc) -> raise (Bug (msg,loc))
     | exc -> raise (Bug (sprintf "UNCATCHED EXCEPTION: %s" (Printexc.to_string exc), None))
 
 
@@ -58,8 +58,8 @@ let load_gr file =
       Instance.build ast
     with
     | Grew_parser.Parse_error msg -> raise (Parsing_err msg)
-    | Build (msg,loc) -> raise (Build (msg,loc))
-    | Bug (msg, loc) -> raise (Bug (msg,loc))
+    | Error.Build (msg,loc) -> raise (Build (msg,loc))
+    | Error.Bug (msg, loc) -> raise (Bug (msg,loc))
     | exc -> raise (Bug (sprintf "UNCATCHED EXCEPTION: %s" (Printexc.to_string exc), None))
 
    ) else (
@@ -69,16 +69,16 @@ let load_gr file =
 let rewrite ~gr ~grs ~seq = 
   try Grs.rewrite grs seq gr
   with
-  | Run (msg,loc) -> raise (Run (msg,loc))
-  | Bug (msg, loc) -> raise (Bug (msg,loc))
+  | Error.Run (msg,loc) -> raise (Run (msg,loc))
+  | Error.Bug (msg, loc) -> raise (Bug (msg,loc))
   | exc -> raise (Bug (sprintf "UNCATCHED EXCEPTION: %s" (Printexc.to_string exc), None))
 
 
 let display ~gr ~grs ~seq =
   try Grs.build_rew_display grs seq gr
   with
-  | Run (msg,loc) -> raise (Run (msg,loc))
-  | Bug (msg, loc) -> raise (Bug (msg,loc))
+  | Error.Run (msg,loc) -> raise (Run (msg,loc))
+  | Error.Bug (msg, loc) -> raise (Bug (msg,loc))
   | exc -> raise (Bug (sprintf "UNCATCHED EXCEPTION: %s" (Printexc.to_string exc), None))
 
 
