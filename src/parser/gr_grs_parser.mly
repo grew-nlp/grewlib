@@ -73,7 +73,7 @@ let localize t = (t,get_loc ())
 %start <Grew_ast.Ast.grs_with_include> grs_with_include
 %start <Grew_ast.Ast.grs> grs
 %start <Grew_ast.Ast.gr> gr
-%start <Grew_ast.Ast.modul list> included
+%start <Grew_ast.Ast.module_or_include list> included
 %%
 
 /*=============================================================================================*/
@@ -210,7 +210,7 @@ global_labels:
 /*=============================================================================================*/
 
 included:
-            | x = list(grew_module) EOF { x }
+        | x = list (module_or_include) EOF { x }
 
 modules:
         | x = list(grew_module) { x }

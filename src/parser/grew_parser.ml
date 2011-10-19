@@ -87,7 +87,7 @@ module Grew_parser = struct
             if Filename.is_relative inc_file
             then Filename.concat (Filename.dirname main_file) inc_file
             else inc_file in
-          (parse_file_to_module_list sub_file)
+          (flatten_modules (parse_file_to_module_list sub_file))
           @ (flatten_modules tail) in
     {
      Ast.domain = grs_with_includes.Ast.domain_wi;

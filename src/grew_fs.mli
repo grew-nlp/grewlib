@@ -16,6 +16,7 @@ module Feature_structure: sig
 
       val empty: t
       val to_string: t -> string
+      val to_dot: ?main_feat: string -> t -> string
       val to_gr: t -> string
       val to_dep: ?main_feat: string -> t -> string
 

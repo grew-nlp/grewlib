@@ -12,6 +12,8 @@ module Feature = struct
 
   let get_name = function | Equal (n,_) -> n | Different (n,_) -> n
 
+  let get_atom = function | Equal (n,[one]) -> Some one | _ -> None
+
   let compare feat1 feat2 = Pervasives.compare (get_name feat1) (get_name feat2)
   (* suppose all feat_names to be different and ordered *)
 
@@ -80,39 +82,50 @@ module Feature_structure = struct
 
   let to_string t = List_.to_string string_of_feature "\\n" t
 
+
+  let get_main ?main_feat t =
+    let main_list = match main_feat with
+    | None -> []
+    | Some string -> Str.split (Str.regexp " *; *") string in
+    
+    let rec loop = function
+      | [] -> (None, t)
+      | feat_name :: tail ->
+          (match List.partition (fun f -> Feature.get_name f = feat_name) t with
+          | ([], _) -> loop tail
+          | ([one], sub) -> (Some one, sub)
+          | _ -> Log.critical "[Feature_structure.to_dep] several feature with the same name") in
+    loop main_list
+    
+  let escape  string =
+    Str.global_replace (Str.regexp_string  "//PV//") ";"
+      (Str.global_replace (Str.regexp_string  "//AND//") "&amp;" string)
+  
+  let to_dot ?main_feat t =
+    let (main_opt, sub) = get_main ?main_feat t in
+    sprintf "%s%s"
+      (match main_opt with 
+      | Some feat -> escape (match Feature.get_atom feat with Some atom -> atom^"|" | None -> "")
+      | None -> "" )
+      (List_.to_string string_of_feature "\\n" sub)
+
+    
+   
+
+
   let gr_of_feature = function
     | Feature.Equal (feat_name, [one]) -> sprintf "%s=\"%s\"" feat_name one
     | _ -> Log.critical "[Feature_structure.gr_of_feature] all feature in gr must be atomic value"
 
   let to_gr t = List_.to_string gr_of_feature ", " t
 
-  let to_dep ?main_feat t = 
-    let main = match main_feat with None -> "label" | Some mf -> mf in
-
-    let wordform = 
-      try 
-	match 
-	  (List.find 
-	     (function Feature.Equal (f, _) | Feature.Different (f, _) when f=main -> true | _ -> false)
-	     t
-	  ) with
-	| Feature.Equal (_,[ph]) | Feature.Different (_,[ph]) -> 
-            Str.global_replace (Str.regexp_string  "//PV//") ";" 
-              (Str.global_replace (Str.regexp_string  "//AND//") "&amp;" ph)
-	| _ -> raise Not_found
-      with Not_found -> "" in
-    let fs = 
-      Str.global_replace (Str.regexp_string  "//PV//") ";"
-        (Str.global_replace (Str.regexp_string  "//AND//") "&amp;"
-	   (List_.to_string string_of_feature "#" 
-	      (List.filter 
-		 (function Feature.Equal (f, _) | Feature.Different (f, _) when f=main -> false | _ -> true) t)
-	   )
-        ) in
-    match fs with 
-    | "" -> sprintf " word=\"%s\"; " wordform
-    | s -> sprintf " word=\"%s\"; subword=\"%s\"; " wordform s
-
+  let to_dep ?main_feat t =
+    let (main_opt, sub) = get_main ?main_feat t in
+    sprintf " word=\"%s\"; subword=\"%s\"; " 
+      (match main_opt with 
+      | Some feat -> escape (match Feature.get_atom feat with Some atom -> atom | None -> "")
+      | None -> "")
+      (escape (List_.to_string string_of_feature "#" sub))
 
   let rec set_feat feature_name atoms = function
     | [] -> [Feature.Equal (feature_name, atoms)]

@@ -178,16 +178,20 @@ module Graph = struct
     Buffer.contents buff
 
 
-  let to_dot ?(deco=Deco.empty) graph = 
+  let to_dot ?main_feat ?(deco=Deco.empty) graph = 
     let buff = Buffer.create 32 in
     
     bprintf buff "digraph G {\n";
+    bprintf buff "  rankdir=LR;\n";
+    bprintf buff "  node [shape=Mrecord];\n";
 
     (* list of the nodes *)
     IntMap.iter
       (fun id node ->
-	bprintf buff "N%d[shape=Mrecord, label=\"{%s}\", color=%s]\n" 
-	  id (Feature_structure.to_string node.Node.fs) (if List.mem id deco.Deco.nodes then "red" else "black")
+	bprintf buff "  N%d [label=\"%s\", color=%s]\n" 
+	  id 
+          (Feature_structure.to_dot ?main_feat node.Node.fs) 
+          (if List.mem id deco.Deco.nodes then "red" else "black")
       ) graph.map;
     (* list of the edges *)
     IntMap.iter
@@ -195,7 +199,7 @@ module Graph = struct
 	Massoc.iter
 	  (fun tar edge -> 
 	    let deco = List.mem (id,Edge.as_label edge,tar) deco.Deco.edges in
-	    bprintf buff "N%d->N%d%s\n" id tar (Edge.to_dot ~deco edge)
+	    bprintf buff "  N%d -> N%d%s\n" id tar (Edge.to_dot ~deco edge)
 	  ) node.Node.next
       ) graph.map;
     

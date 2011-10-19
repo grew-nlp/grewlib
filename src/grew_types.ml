@@ -24,6 +24,6 @@ and big_step = {
     small_step: (Graph.t * rule_app) list;
   }
 
-let to_dot_graph ?(deco=Deco.empty) graph = Graph.to_dot graph ~deco
+let to_dot_graph ?main_feat ?(deco=Deco.empty) graph = Graph.to_dot ?main_feat graph ~deco
 let to_dep_graph ?main_feat ?(deco=Deco.empty) graph = Graph.to_dep ?main_feat ~deco graph 
 let to_gr_graph graph = Graph.to_gr graph 
