@@ -105,7 +105,7 @@ module Ast : sig
  *)
   type module_or_include = 
     | Modul of modul
-    | Includ of string
+    | Includ of (string * Loc.t)
 
   type grs_with_include = {
       domain_wi: domain;

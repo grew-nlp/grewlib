@@ -1,3 +1,4 @@
+open Grew_utils
 open Grew_ast
 
 module Grew_parser = struct
@@ -48,7 +49,7 @@ module Grew_parser = struct
     with Sys_error msg-> raise (Parse_error msg)
 
 
-  let parse_file_to_module_list file =
+  let parse_file_to_module_list loc file =
     try
       let in_ch = open_in file in
       let to_parse = Lexing.from_channel in_ch in
@@ -69,7 +70,7 @@ module Grew_parser = struct
 	    raise (Parse_error (Printf.sprintf "Syntax error\nFile %s\nLine %d\n%s\n%!" file cp.Lexing.pos_lnum msg))
 	| err -> raise (Parse_error (Printexc.to_string err))
       end
-    with Sys_error msg -> raise (Parse_error msg)
+    with Sys_error msg -> raise (Parse_error(Printf.sprintf "Sys error: %s%s%!" msg (Loc.to_string loc)))
 
         
   (**
@@ -82,12 +83,12 @@ module Grew_parser = struct
     let rec flatten_modules = function
       | [] -> []
       | Ast.Modul m :: tail -> m :: (flatten_modules tail)
-      | Ast.Includ inc_file :: tail -> 
+      | Ast.Includ (inc_file,loc) :: tail -> 
           let sub_file = 
             if Filename.is_relative inc_file
             then Filename.concat (Filename.dirname main_file) inc_file
             else inc_file in
-          (flatten_modules (parse_file_to_module_list sub_file))
+          (flatten_modules (parse_file_to_module_list loc sub_file))
           @ (flatten_modules tail) in
     {
      Ast.domain = grs_with_includes.Ast.domain_wi;

@@ -141,8 +141,10 @@ module_or_include_list:
 
 module_or_include:
         | m = grew_module        { Ast.Modul m }
-        | INCLUDE file = STRING  { Ast.Includ file } 
+        | INCLUDE sub = subfile SEMIC { Ast.Includ sub } 
 
+subfile:
+        | f = STRING  { localize f }
 
 /*=============================================================================================*/
 /*                                                                                             */
