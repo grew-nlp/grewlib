@@ -33,12 +33,11 @@ let load_grs ?doc_output_dir file =
   then raise (File_dont_exists file)
   else
     try
-      let ast = Grew_parser.parse_file_to_grs file in
-      (* Checker.check_grs ast; *)
+      let grs_ast = Grew_parser.grs_of_file file in
       (match doc_output_dir with
       | None -> ()
-      | Some dir -> HTMLer.proceed dir ast);
-      Grs.build ast
+      | Some dir -> HTMLer.proceed dir grs_ast);
+      Grs.build grs_ast
     with
     | Grew_parser.Parse_error msg -> raise (Parsing_err msg)
     | Error.Build (msg,loc) -> raise (Build (msg,loc))
@@ -53,9 +52,8 @@ let empty_gr = Instance.empty
 let load_gr file =
   if (Sys.file_exists file) then (
     try
-      let ast = Grew_parser.parse_file_to_gr file in
-      (* Checker.check_gr ast;*)
-      Instance.build ast
+      let gr_ast = Grew_parser.gr_of_file file in
+      Instance.build gr_ast
     with
     | Grew_parser.Parse_error msg -> raise (Parsing_err msg)
     | Error.Build (msg,loc) -> raise (Build (msg,loc))
@@ -73,14 +71,12 @@ let rewrite ~gr ~grs ~seq =
   | Error.Bug (msg, loc) -> raise (Bug (msg,loc))
   | exc -> raise (Bug (sprintf "UNCATCHED EXCEPTION: %s" (Printexc.to_string exc), None))
 
-
 let display ~gr ~grs ~seq =
   try Grs.build_rew_display grs seq gr
   with
   | Error.Run (msg,loc) -> raise (Run (msg,loc))
   | Error.Bug (msg, loc) -> raise (Bug (msg,loc))
   | exc -> raise (Bug (sprintf "UNCATCHED EXCEPTION: %s" (Printexc.to_string exc), None))
-
 
 let write_stat filename rew_hist = Gr_stat.save filename (Gr_stat.from_rew_history rew_hist) 
 
@@ -120,10 +116,8 @@ IFDEF DEP2PICT THEN
     output_base msg init
     )
 ELSE
-    Log.critical "[_html] The \"libcaml-grew\" library is compiled without Dep2pict"
+    Log.critical "[error_html] The \"libcaml-grew\" library is compiled without Dep2pict"
 ENDIF
-
-
 
 let make_index ~title ~grs_file ~html ~grs ~seq ~output_dir ~base_names  =
   let init = Corpus_stat.empty grs seq in
@@ -133,8 +127,6 @@ let make_index ~title ~grs_file ~html ~grs ~seq ~output_dir ~base_names  =
         Corpus_stat.add_gr_stat base_name (Gr_stat.load (Filename.concat output_dir (base_name^".stat"))) acc
       ) init base_names in
   Corpus_stat.save_html title grs_file html output_dir corpus_stat
-
-  
 
 let get_css_file = Filename.concat DATA_DIR "style.css"
 
