@@ -14,20 +14,21 @@ open Dep2pict
 ENDIF
 
 
+(* ================================================================================ *)
 module Instance = struct
   type t = {
-      graph: Graph.t;
+      graph: G_graph.t;
       commands: Command.h list;
       rules: string list;
       big_step: Grew_types.big_step option; 
     }
 
-  let empty = {graph = Graph.empty; rules=[]; commands=[]; big_step=None;}
+  let empty = {graph = G_graph.empty; rules=[]; commands=[]; big_step=None;}
 
   let from_graph g = {empty with graph = g} 
 
   let build gr_ast = 
-    let (graph,_,_) = Graph.build gr_ast.Ast.nodes gr_ast.Ast.edges in
+    let graph = G_graph.build gr_ast.Ast.nodes gr_ast.Ast.edges in
     { empty with graph = graph }
 
   let rev_steps t = 
@@ -39,51 +40,50 @@ module Instance = struct
   let clear t = {empty with graph = t.graph } (* FIXME: normalization of node ids ??? *)
   let get_graph t = t.graph
 
-  (* comparition is done on the list of commands *)
+  (* comparison is done on the list of commands *)
   (* only graph rewrited from the same init graph can be "compared" *)
   let compare t1 t2 = Pervasives.compare t1.commands t2.commands
 
 IFDEF DEP2PICT THEN
   let save_dep_png ?main_feat base t = 
-    ignore (Dep2pict.fromDepStringToPng (Graph.to_dep ?main_feat t.graph) (base^".png"))
+    ignore (Dep2pict.fromDepStringToPng (G_graph.to_dep ?main_feat t.graph) (base^".png"))
 ENDIF
-
-end
+end (* module Instance *)
 
 module Instance_set = Set.Make (Instance)
-
+(* ================================================================================ *)
 
 
 
 
 module Rule = struct 
-  type pid = int
+  type pid = Pid.t
   type gid = int
 
   let max_depth = ref 500
   exception Bound_reached
 
   type const = 
-    | No_out of pid * Edge.t 
-    | No_in of pid * Edge.t
+    | No_out of pid * P_edge.t 
+    | No_in of pid * P_edge.t
     | Feature_eq of pid * string * pid * string
     | Filter of pid * Feature_structure.t (* used when a without impose a fs on a node defined by the match pattern *)
 
   let build_constraint ?locals table = function 
-    | (Ast.Start (node_name, labels), loc) -> No_out (Id.build ~loc node_name table, Edge.make ?locals labels)
-    | (Ast.No_out node_name, loc) -> No_out (Id.build ~loc node_name table, Edge.all)
-    | (Ast.End (node_name, labels),loc) -> No_in (Id.build ~loc node_name table, Edge.make ?locals labels)
-    | (Ast.No_in node_name, loc) -> No_in (Id.build ~loc node_name table, Edge.all)
+    | (Ast.Start (node_name, labels), loc) -> No_out (Id.build ~loc node_name table, P_edge.make ?locals labels)
+    | (Ast.No_out node_name, loc) -> No_out (Id.build ~loc node_name table, P_edge.all)
+    | (Ast.End (node_name, labels),loc) -> No_in (Id.build ~loc node_name table, P_edge.make ?locals labels)
+    | (Ast.No_in node_name, loc) -> No_in (Id.build ~loc node_name table, P_edge.all)
     | (Ast.Feature_eq ((node_name1, feat_name1), (node_name2, feat_name2)), loc) -> 
         Feature_eq (Id.build ~loc node_name1 table, feat_name1, Id.build ~loc node_name2 table, feat_name2)
 
   type pattern = 
-      { graph: Graph.t;
+      { graph: P_graph.t;
         constraints: const list;
       }
 
   let build_pos_pattern ?domain ?(locals=[||]) pattern_ast =
-    let (graph,table,filter_nodes) = Graph.build ?domain ~locals pattern_ast.Ast.pat_nodes pattern_ast.Ast.pat_edges in
+    let (graph,table,filter_nodes) = P_graph.build ?domain ~locals pattern_ast.Ast.pat_nodes pattern_ast.Ast.pat_edges in
     (
      {
       graph = graph;
@@ -99,32 +99,32 @@ module Rule = struct
     let id_build loc string_id = 
       match Id.build_opt string_id pos_table with Some i -> i | None -> -1-(Id.build ~loc string_id neg_table) in
     match const with
-    | (Ast.Start (node_name, labels),loc) -> No_out (id_build loc node_name, Edge.make ?locals labels)
-    | (Ast.No_out node_name, loc) -> No_out (id_build loc node_name, Edge.all)
-    | (Ast.End (node_name, labels),loc) -> No_in (id_build loc node_name, Edge.make ?locals labels)
-    | (Ast.No_in node_name, loc) -> No_in (id_build loc node_name, Edge.all)
+    | (Ast.Start (node_name, labels),loc) -> No_out (id_build loc node_name, P_edge.make ?locals labels)
+    | (Ast.No_out node_name, loc) -> No_out (id_build loc node_name, P_edge.all)
+    | (Ast.End (node_name, labels),loc) -> No_in (id_build loc node_name, P_edge.make ?locals labels)
+    | (Ast.No_in node_name, loc) -> No_in (id_build loc node_name, P_edge.all)
     | (Ast.Feature_eq ((node_name1, feat_name1), (node_name2, feat_name2)), loc) -> 
         Feature_eq (id_build loc node_name1, feat_name1, id_build loc node_name2, feat_name2)
 
   let build_neg_pattern ?domain ?(locals=[||]) pos_table pattern_ast =
     let (extension, neg_table) =
-      Graph.build_extention ?domain ~locals pos_table pattern_ast.Ast.pat_nodes pattern_ast.Ast.pat_edges in
+      P_graph.build_extension ?domain ~locals pos_table pattern_ast.Ast.pat_nodes pattern_ast.Ast.pat_edges in
 
-    let filters = IntMap.fold (fun id node acc -> Filter (id, node.Node.fs) :: acc) extension.Graph.old_map [] in
+    let filters = Pid_map.fold (fun id node acc -> Filter (id, P_node.get_fs node) :: acc) extension.P_graph.old_map [] in
 
     (* (\* DEBUG *\) Printf.printf "-----> |filters| = %d\n%!" (List.length filters); *)
     {
-     graph = {Graph.map = extension.Graph.ext_map; lub=0 };
+     graph = extension.P_graph.ext_map;
      constraints = filters @ List.map (build_neg_constraint ~locals pos_table neg_table) pattern_ast.Ast.pat_const ;
    }
 
   let get_edge_ids pattern =
-    IntMap.fold
+    Pid_map.fold
       (fun _ node acc -> 
         Massoc.fold_left
-          (fun acc2 _ edge -> match Edge.get_id edge with None -> acc2 | Some id -> id::acc2)
-          acc node.Node.next
-      ) pattern.graph.Graph.map []
+          (fun acc2 _ edge -> match P_edge.get_id edge with None -> acc2 | Some id -> id::acc2)
+          acc (P_node.get_next node)
+      ) pattern.graph []
       
   type t = {
       name: string;
@@ -161,19 +161,19 @@ module Rule = struct
    }
 
   type matching = {
-      n_match: gid IntMap.t;                    (* partial fct: pattern nodes |--> graph nodes *)
+      n_match: gid Pid_map.t;                    (* partial fct: pattern nodes |--> graph nodes *)
       e_match: (string*(gid*Label.t*gid)) list; (* edge matching: edge ident  |--> (src,label,tar) *)
       a_match: (gid*Label.t*gid) list;          (* anonymous edge mached *)
     }
 
-  let empty_matching = { n_match = IntMap.empty; e_match = []; a_match = [];}
+  let empty_matching = { n_match = Pid_map.empty; e_match = []; a_match = [];}
 
-  let singleton_matching i j =  { empty_matching with n_match = IntMap.add i j IntMap.empty }
+  let singleton_matching i j =  { empty_matching with n_match = Pid_map.add i j Pid_map.empty }
 
   let e_comp (e1,_) (e2,_) = compare e1 e2
       
   let union match1 match2 = {
-    n_match = IntMap.union_if match1.n_match match2.n_match; 
+    n_match = Pid_map.union_if match1.n_match match2.n_match; 
     e_match = List_.sort_disjoint_union ~compare:e_comp match1.e_match match2.e_match;
     a_match = match1.a_match @ match2.a_match;
   }
@@ -186,14 +186,14 @@ module Rule = struct
   let a_match_add edge matching = {matching with a_match = edge::matching.a_match }
 
   let up_deco matching = 
-    { Deco.nodes = IntMap.fold (fun _ gid acc -> gid::acc) matching.n_match [];
+    { Deco.nodes = Pid_map.fold (fun _ gid acc -> gid::acc) matching.n_match [];
       Deco.edges = List.fold_left (fun acc (_,edge) -> edge::acc) matching.a_match matching.e_match;
     }
 
   let find cnode ?loc (matching, created_nodes) =
     match cnode with
     | Command.Pid pid -> 
-        (try IntMap.find pid matching.n_match
+        (try Pid_map.find pid matching.n_match
         with Not_found -> Error.bug ?loc "Inconsistent matching pid '%d' not found" pid)
     | Command.New name -> 
         try List.assoc name created_nodes 
@@ -212,7 +212,7 @@ module Rule = struct
      Deco.edges = List.fold_left
        (fun acc -> function 
          | (Command.ADD_EDGE (src_cn,tar_cn,edge),loc) ->  
-             (find src_cn (matching, created_nodes), Edge.as_label edge, find tar_cn (matching, created_nodes)) :: acc
+             (find src_cn (matching, created_nodes), edge, find tar_cn (matching, created_nodes)) :: acc
          | _ -> acc
        ) [] commands
    }
@@ -222,7 +222,7 @@ module Rule = struct
   type partial = {
       sub: matching; 
       unmatched_nodes: pid list;
-      unmatched_edges: (pid * Edge.t * pid) list;
+      unmatched_edges: (pid * P_edge.t * pid) list;
       already_matched_gids: gid list; (* to ensure injectivity *)
       check: const list (* constraints to verify at the end of the matching *)
     }    
@@ -233,9 +233,9 @@ module Rule = struct
          *)
 
   let init pattern =
-    let roots = Graph.roots pattern.graph in
+    let roots = P_graph.roots pattern.graph in
 
-    let node_list = IntMap.fold (fun pid _ acc -> pid::acc) pattern.graph.Graph.map [] in
+    let node_list = Pid_map.fold (fun pid _ acc -> pid::acc) pattern.graph [] in
 
     (* put all roots in the front of the list to speed up the algo *)
     let sorted_node_list = 
@@ -254,28 +254,29 @@ module Rule = struct
 
   let fullfill graph matching = function 
     | No_out (pid,edge) -> 
-        let gid = IntMap.find pid matching.n_match in
-        Graph.edge_out graph gid edge
+        let gid = Pid_map.find pid matching.n_match in
+        G_graph.edge_out graph gid edge
     | No_in (pid,edge) -> 
-        let gid = IntMap.find pid matching.n_match in
-        IntMap.exists
+        let gid = Pid_map.find pid matching.n_match in
+        Gid_map.exists
           (fun _ node ->
-            List.exists (fun e -> Edge.compatible edge e) (Massoc.assoc gid node.Node.next)
-          ) graph.Graph.map
+            List.exists (fun e -> P_edge.compatible edge e) (Massoc.assoc gid (G_node.get_next node))
+          ) graph.G_graph.map
     | Feature_eq (pid1, feat_name1, pid2, feat_name2) ->
-        let gnode1 = IntMap.find (IntMap.find pid1 matching.n_match) graph.Graph.map in
-        let gnode2 = IntMap.find (IntMap.find pid2 matching.n_match) graph.Graph.map in
-        (match (Feature_structure.get feat_name1 gnode1.Node.fs,
-               Feature_structure.get feat_name2 gnode2.Node.fs) with
+        let gnode1 = Gid_map.find (Pid_map.find pid1 matching.n_match) graph.G_graph.map in
+        let gnode2 = Gid_map.find (Pid_map.find pid2 matching.n_match) graph.G_graph.map in
+        (match (Feature_structure.get feat_name1 (G_node.get_fs gnode1),
+                Feature_structure.get feat_name2 (G_node.get_fs gnode2)
+               ) with
         | Some fv1, Some fv2 when fv1 = fv2 -> true
         | _ -> false)
     | Filter (pid, fs) ->
-        let gid = IntMap.find pid matching.n_match in
-        let gnode = IntMap.find gid graph.Graph.map in
-        Feature_structure.filter fs gnode.Node.fs
+        let gid = Pid_map.find pid matching.n_match in
+        let gnode = Gid_map.find gid graph.G_graph.map in
+        Feature_structure.filter fs (G_node.get_fs gnode)
 
   (* returns all extension of the partial input matching *)
-  let rec extend_matching (positive,neg) (graph:Graph.t) (partial:partial) =
+  let rec extend_matching (positive,neg) (graph:G_graph.t) (partial:partial) =
     match (partial.unmatched_edges, partial.unmatched_nodes) with
     | [], [] -> 
         (* (\* DEBUG *\) Printf.printf "==<1>==\n%!"; *)
@@ -286,17 +287,17 @@ module Rule = struct
         begin
           try (* is the tar already found in the matching ? *)
             let new_partials = 
-              let src_gid = IntMap.find src_pid partial.sub.n_match in
-              let tar_gid = IntMap.find tar_pid partial.sub.n_match in
-              let src_gnode = Graph.find src_gid graph in
-              let g_edges = Massoc.assoc tar_gid src_gnode.Node.next in
+              let src_gid = Pid_map.find src_pid partial.sub.n_match in
+              let tar_gid = Pid_map.find tar_pid partial.sub.n_match in
+              let src_gnode = G_graph.find src_gid graph in
+              let g_edges = Massoc.assoc tar_gid (G_node.get_next src_gnode) in
               
-              match Edge.match_list p_edge g_edges with
-              | Edge.Fail -> (* no good edge in graph for this pattern edge -> stop here *)
+              match P_edge.match_list p_edge g_edges with
+              | P_edge.Fail -> (* no good edge in graph for this pattern edge -> stop here *)
                   []
-              | Edge.Ok label -> (* at least an edge in the graph fits the p_edge "constraint" -> go on *)
+              | P_edge.Ok label -> (* at least an edge in the graph fits the p_edge "constraint" -> go on *)
                   [ {partial with unmatched_edges = tail_ue; sub = a_match_add (src_gid,label,tar_gid) partial.sub} ] 
-              | Edge.Binds (id,labels) -> (* n edges in the graph match the identified p_edge -> make copies of the [k] matchings (and returns n*k matchings) *)
+              | P_edge.Binds (id,labels) -> (* n edges in the graph match the identified p_edge -> make copies of the [k] matchings (and returns n*k matchings) *)
                   List.map 
                     (fun label ->
                       {partial with sub = e_match_add (id,(src_gid,label,tar_gid)) partial.sub; unmatched_edges = tail_ue }
@@ -304,19 +305,19 @@ module Rule = struct
             in List_.flat_map (extend_matching (positive,neg) graph) new_partials
           with Not_found -> (* p_edge goes to an unmatched node *)
             let candidates = (* candidates (of type (gid, matching)) for m(tar_pid) = gid) with new partial matching m *)
-              let src_gid = IntMap.find src_pid partial.sub.n_match in
-              let src_gnode = Graph.find src_gid graph in
+              let src_gid = Pid_map.find src_pid partial.sub.n_match in
+              let src_gnode = G_graph.find src_gid graph in
               Massoc.fold_left 
                 (fun acc gid_next g_edge ->
-                  match Edge.match_ p_edge g_edge with
-                  | Edge.Fail -> (* g_edge does not fit, no new candidate *)
+                  match P_edge.match_ p_edge g_edge with
+                  | P_edge.Fail -> (* g_edge does not fit, no new candidate *)
                       acc
-                  | Edge.Ok label -> (* g_edge fits with the same matching *)
+                  | P_edge.Ok label -> (* g_edge fits with the same matching *)
                       (gid_next, a_match_add (src_gid, label, gid_next) partial.sub) :: acc 
-                  | Edge.Binds (id,[label]) -> (* g_edge fits with an extended matching *)
+                  | P_edge.Binds (id,[label]) -> (* g_edge fits with an extended matching *)
                       (gid_next, e_match_add (id, (src_gid, label, gid_next)) partial.sub) :: acc
-                  | _ -> Error.bug "Edge.match_ must return exactly one label"
-                ) [] src_gnode.Node.next in
+                  | _ -> Error.bug "P_edge.match_ must return exactly one label"
+                ) [] (G_node.get_next src_gnode) in
             List_.flat_map
               (fun (gid_next, matching) -> 
                 extend_matching_from (positive,neg) graph tar_pid gid_next
@@ -324,34 +325,34 @@ module Rule = struct
               ) candidates
         end
     | [], pid :: _ -> 
-        IntMap.fold          
+        Gid_map.fold          
           (fun gid _ acc ->
             (extend_matching_from (positive,neg) graph pid gid partial) @ acc
-          ) graph.Graph.map []
+          ) graph.G_graph.map []
           
-  and extend_matching_from (positive,neg) (graph:Graph.t) pid gid partial =
+  and extend_matching_from (positive,neg) (graph:G_graph.t) pid gid partial =
     if List.mem gid partial.already_matched_gids
     then [] (* the required association pid -> gid is not injective *)
     else
       let p_node = 
         if pid >= 0 
-        then try Graph.find pid positive with Not_found -> failwith "POS"
-        else try Graph.find pid neg with Not_found -> failwith "NEG" in
-      let g_node = try Graph.find gid graph with Not_found -> failwith "INS" in
-      if not (Node.is_a p_node g_node) 
+        then try P_graph.find pid positive with Not_found -> failwith "POS"
+        else try P_graph.find pid neg with Not_found -> failwith "NEG" in
+      let g_node = try G_graph.find gid graph with Not_found -> failwith "INS" in
+      if not (P_node.is_a p_node g_node) 
       then [] (* the nodes don't match *) 
       else 
         (* add all out-edges from pid in pattern *)
         let new_unmatched_edges = 
           Massoc.fold_left
             (fun acc pid_next p_edge -> (pid, p_edge, pid_next) :: acc
-            ) partial.unmatched_edges p_node.Node.next in
+            ) partial.unmatched_edges (P_node.get_next p_node) in
 
         let new_partial = { partial with
                             unmatched_nodes = (try List_.rm pid partial.unmatched_nodes with Not_found -> failwith "List_.rm"); 
                             unmatched_edges = new_unmatched_edges;
                             already_matched_gids = gid :: partial.already_matched_gids;
-                            sub = {partial.sub with n_match = IntMap.add pid gid partial.sub.n_match};
+                            sub = {partial.sub with n_match = Pid_map.add pid gid partial.sub.n_match};
                           } in
         extend_matching (positive,neg) graph new_partial
 
@@ -369,7 +370,7 @@ module Rule = struct
         let src_gid = node_find src_cn in
         let tar_gid = node_find tar_cn in
         begin
-          match Graph.add_edge instance.Instance.graph src_gid edge tar_gid with
+          match G_graph.add_edge instance.Instance.graph src_gid edge tar_gid with
           | Some new_graph -> 
               (
                {instance with 
@@ -379,7 +380,7 @@ module Rule = struct
                created_nodes
               )
           | None -> 
-              Error.run "ADD_EDGE: the edge '%s' already exists %s" (Edge.to_string edge) (Loc.to_string loc)
+              Error.run "ADD_EDGE: the edge '%s' already exists %s" (G_edge.to_string edge) (Loc.to_string loc)
         end
 
     | Command.DEL_EDGE_EXPL (src_cn,tar_cn,edge) -> 
@@ -387,20 +388,19 @@ module Rule = struct
         let tar_gid = node_find tar_cn in
         (
          {instance with 
-          Instance.graph = Graph.del_edge loc instance.Instance.graph src_gid edge tar_gid; 
+          Instance.graph = G_graph.del_edge loc instance.Instance.graph src_gid edge tar_gid; 
           commands = List_.sort_insert (Command.H_DEL_EDGE_EXPL (src_gid,tar_gid,edge)) instance.Instance.commands
         },
          created_nodes
         )
 
     | Command.DEL_EDGE_NAME edge_ident ->
-        let (src_gid,label,tar_gid) = 
+        let (src_gid,edge,tar_gid) = 
           try List.assoc edge_ident matching.e_match 
           with Not_found -> Error.bug "The edge identifier '%s' is undefined %s" edge_ident (Loc.to_string loc) in
-        let edge = Edge.of_label label in
         (
          {instance with 
-          Instance.graph = Graph.del_edge ~edge_ident loc instance.Instance.graph src_gid edge tar_gid; 
+          Instance.graph = G_graph.del_edge ~edge_ident loc instance.Instance.graph src_gid edge tar_gid; 
           commands = List_.sort_insert (Command.H_DEL_EDGE_EXPL (src_gid,tar_gid,edge)) instance.Instance.commands
         },
          created_nodes
@@ -410,7 +410,7 @@ module Rule = struct
         let node_gid = node_find node_cn in
         (
          {instance with 
-          Instance.graph = Graph.del_node instance.Instance.graph node_gid;
+          Instance.graph = G_graph.del_node instance.Instance.graph node_gid;
           commands = List_.sort_insert (Command.H_DEL_NODE node_gid) instance.Instance.commands
         },
          created_nodes
@@ -419,7 +419,7 @@ module Rule = struct
     | Command.MERGE_NODE (src_cn, tar_cn) ->
         let src_gid = node_find src_cn in
         let tar_gid = node_find tar_cn in
-        (match Graph.merge_node loc instance.Instance.graph src_gid tar_gid with
+        (match G_graph.merge_node loc instance.Instance.graph src_gid tar_gid with
         | Some new_graph -> 
             (
              {instance with 
@@ -435,11 +435,11 @@ module Rule = struct
         let tar_gid = node_find tar_cn in
         let rule_items = List.map
             (function
-              | Command.Feat (cnode, feat_name) -> Graph.Feat (node_find cnode, feat_name)
-              | Command.String s -> Graph.String s
+              | Command.Feat (cnode, feat_name) -> G_graph.Feat (node_find cnode, feat_name)
+              | Command.String s -> G_graph.String s
             ) item_list in
         let (new_graph, new_feature_value) = 
-          Graph.update_feat instance.Instance.graph tar_gid tar_feat_name rule_items in
+          G_graph.update_feat instance.Instance.graph tar_gid tar_feat_name rule_items in
         (
          {instance with
           Instance.graph = new_graph;
@@ -454,15 +454,15 @@ module Rule = struct
         let tar_gid = node_find tar_cn in
         (
          {instance with 
-          Instance.graph = Graph.del_feat instance.Instance.graph tar_gid feat_name;
+          Instance.graph = G_graph.del_feat instance.Instance.graph tar_gid feat_name;
           commands = List_.sort_insert (Command.H_DEL_FEAT (tar_gid,feat_name)) instance.Instance.commands
         },
          created_nodes
         )     
 
     | Command.NEW_NEIGHBOUR (created_name,edge,base_pid) ->
-        let base_gid = IntMap.find base_pid matching.n_match in
-        let (new_gid,new_graph) = Graph.add_neighbour loc instance.Instance.graph base_gid edge in
+        let base_gid = Pid_map.find base_pid matching.n_match in
+        let (new_gid,new_graph) = G_graph.add_neighbour loc instance.Instance.graph base_gid edge in
         (
          {instance with 
           Instance.graph = new_graph;
@@ -476,7 +476,7 @@ module Rule = struct
         let tar_gid = node_find tar_cn in
         (
          {instance with 
-          Instance.graph = Graph.shift_in loc instance.Instance.graph src_gid tar_gid; 
+          Instance.graph = G_graph.shift_in loc instance.Instance.graph src_gid tar_gid; 
           commands = List_.sort_insert (Command.H_SHIFT_IN (src_gid,tar_gid)) instance.Instance.commands
         },
          created_nodes
@@ -487,7 +487,7 @@ module Rule = struct
         let tar_gid = node_find tar_cn in
         (
          {instance with 
-          Instance.graph = Graph.shift_out loc instance.Instance.graph src_gid tar_gid; 
+          Instance.graph = G_graph.shift_out loc instance.Instance.graph src_gid tar_gid; 
           commands = List_.sort_insert (Command.H_SHIFT_OUT (src_gid,tar_gid)) instance.Instance.commands
         },
          created_nodes
@@ -498,14 +498,11 @@ module Rule = struct
         let tar_gid = node_find tar_cn in
         (
          {instance with 
-          Instance.graph = Graph.shift_edges loc instance.Instance.graph src_gid tar_gid; 
+          Instance.graph = G_graph.shift_edges loc instance.Instance.graph src_gid tar_gid; 
           commands = List_.sort_insert (Command.H_SHIFT_EDGE (src_gid,tar_gid)) instance.Instance.commands
         },
          created_nodes
         )
-
-
-(* (\* DEBUG *\)let cpt = ref 0 *)
 
 (** [apply_rule instance matching rule] returns a new instance after the application of the rule 
     [Command_execution_fail] is raised if some merge unification fails
@@ -528,24 +525,6 @@ module Rule = struct
 
     let rule_app = {Grew_types.rule_name = rule.name; up = up_deco matching; down = down_deco (matching,created_nodes) rule.commands } in
 
-    (* (\* DEBUG *\) let up_dot = Graph.to_dot ~deco:rule_app.Grew_types.up instance.Instance.graph in *)
-    (* (\* DEBUG *\) let _ = File.write up_dot (Printf.sprintf "dot_%d_a.dot" !cpt) in *)
-    (* (\* DEBUG *\) let _ = Sys.command (Printf.sprintf "dot -Tpng -o dot_%d_a.png dot_%d_a.dot" !cpt !cpt) in *)
-
-    (* (\* DEBUG *\) let up_dep = Graph.to_dep ~deco:rule_app.Grew_types.up instance.Instance.graph in *)
-    (* (\* DEBUG *\) let _ = File.write up_dep (Printf.sprintf "dep_%d_a.dep" !cpt) in *)
-    (* (\* DEBUG *\) let _ = Sys.command (Printf.sprintf "dep2pict -png -o dep_%d_a.png -dep dep_%d_a.dep" !cpt !cpt) in *)
-
-    (* (\* DEBUG *\) let down_dot = Graph.to_dot ~deco:rule_app.Grew_types.down new_instance.Instance.graph in *)
-    (* (\* DEBUG *\) let _ = File.write down_dot (Printf.sprintf "dot_%d_b.dot" !cpt) in *)
-    (* (\* DEBUG *\) let _ = Sys.command (Printf.sprintf "dot -Tpng -o dot_%d_b.png dot_%d_b.dot" !cpt !cpt) in *)
-
-    (* (\* DEBUG *\) let down_dep = Graph.to_dep ~deco:rule_app.Grew_types.down new_instance.Instance.graph in *)
-    (* (\* DEBUG *\) let _ = File.write down_dep (Printf.sprintf "dep_%d_b.dep" !cpt) in *)
-    (* (\* DEBUG *\) let _ = Sys.command (Printf.sprintf "dep2pict -png -o dep_%d_b.png -dep dep_%d_b.dep" !cpt !cpt) in *)
-
-    (* (\* DEBUG *\) incr cpt; *)
-
     {new_instance with 
      Instance.rules = rule.name :: new_instance.Instance.rules;
      big_step = match new_instance.Instance.big_step with
@@ -557,21 +536,17 @@ module Rule = struct
 
   let update_partial pos_graph without (sub, already_matched_gids) = 
     let neg_graph = without.graph in
-    let unmatched_nodes = IntMap.fold (fun pid _ acc -> if pid < 0 then pid::acc else acc) neg_graph.Graph.map [] in
+    let unmatched_nodes = Pid_map.fold (fun pid _ acc -> if pid < 0 then pid::acc else acc) neg_graph [] in
     let unmatched_edges = 
-      IntMap.fold 
+      Pid_map.fold 
         (fun pid node acc -> 
           if pid < 0 
           then acc
           else 
             Massoc.fold_left 
               (fun acc2 pid_next p_edge -> (pid, p_edge, pid_next) :: acc2)
-              acc node.Node.next
-        ) neg_graph.Graph.map [] in
-
-(* Printf.printf "XXX -> unmatched_nodes: %d\n" (List.length unmatched_nodes); *)
-(* Printf.printf "XXX -> unmatched_edges: %d\n" (List.length unmatched_edges); *)
-
+              acc (P_node.get_next node)
+        ) neg_graph [] in
     {
      sub = sub;
      unmatched_nodes = unmatched_nodes;
@@ -596,7 +571,7 @@ module Rule = struct
         (* get the list of partial matching for positive part of the pattern *)
         let matching_list = 
           extend_matching 
-            (pos_graph,Graph.empty) 
+            (pos_graph,P_graph.empty) 
             instance.Instance.graph 
             (init rule.pos) in
 
@@ -627,7 +602,7 @@ module Rule = struct
         (* get the list of partial matching for positive part of the pattern *)
         let matching_list = 
           extend_matching 
-            (pos_graph,Graph.empty) 
+            (pos_graph,P_graph.empty) 
             instance.Instance.graph 
             (init rule.pos) in
         
@@ -649,7 +624,7 @@ module Rule = struct
 (** filter nfs being equal *)
   let rec filter_equal_nfs nfs =
     Instance_set.fold (fun nf acc ->
-      if Instance_set.exists (fun e -> Graph.equals e.Instance.graph nf.Instance.graph) acc
+      if Instance_set.exists (fun e -> G_graph.equals e.Instance.graph nf.Instance.graph) acc
       then (printf "two normal equal normal forms"; acc)
       else Instance_set.add nf acc)
       nfs Instance_set.empty

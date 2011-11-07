@@ -6,9 +6,16 @@ module StringMap = Map.Make (String)
 
 module IntSet = Set.Make (struct type t = int let compare = Pervasives.compare end)
 
-module IntMap = 
+module IntMap = Map.Make (struct type t = int let compare = Pervasives.compare end)
+
+module Pid = struct
+  type t = int
+  let compare = Pervasives.compare
+end
+
+module Pid_map =
   struct 
-    include Map.Make (struct type t = int let compare = Pervasives.compare end)
+    include Map.Make (Pid)
 (** returns the image of a map [m]*)
 
     exception True
@@ -172,6 +179,12 @@ module List_ = struct
     | [] -> ""
     | h::t -> List.fold_left (fun acc elt -> acc ^ sep ^ (string_of_item elt)) (string_of_item h) t
 
+  let rec sort_mem elt = function
+    | [] -> false
+    | h::t when elt<h -> false
+    | h::t when elt>h -> sort_mem elt t 
+    | _ -> (* elt=h *) true
+ 
   let rec sort_insert elt = function
     | [] -> [elt]
     | h::t when elt<h -> elt::h::t 

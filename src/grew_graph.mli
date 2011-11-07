@@ -3,7 +3,6 @@ open Grew_fs
 open Grew_edge
 open Grew_node
 open Grew_utils
-open Edge
 open Grew_command
 
 module Deco: sig
@@ -14,19 +13,16 @@ module Deco: sig
   val empty:t
 end
 
-module Graph : sig
-  type t  = {
-      map: Node.t IntMap.t; (* node description *)
-      lub: int;             (* least upper bound *)
-    }
-
-  type gid = int
-
-  type concat_item =
-    | Feat of (gid * string)
-    | String of string
+module P_graph: sig
+  type t = P_node.t Pid_map.t
 
   val empty: t
+  val find: Pid.t -> t -> P_node.t
+
+  type extension = {
+      ext_map: P_node.t Pid_map.t; (* node description for new nodes and for edge "Old -> New"  *)
+      old_map: P_node.t Pid_map.t; (* a partial map for new constraints on old nodes "Old [...]" *) 	
+    }
 
   val build:
       ?domain: Ast.domain -> 
@@ -35,30 +31,54 @@ module Graph : sig
       Ast.edge list -> 
 	(t * Id.table * (Id.t * Feature_structure.t) list )
 
-  (* a type for extension of graph: a former graph exists: in grew the former is a positive pattern and an extension is a "without" *)
-  type extention = {
-      ext_map: Node.t IntMap.t; (* node description *)
-      old_map: Node.t IntMap.t; (* a partial map on old nodes for edge "Old -> New" and/or for new constraints on old nodes "Old [...]" *) 	
-    }
-
-  val build_extention:
+  val build_extension:
       ?domain: Ast.domain -> 
       ?locals: Label.decl array -> 
       Id.table ->
       Ast.node list -> 
       Ast.edge list -> 
-	(extention * Id.table)
+	(extension * Id.table)
 
-  val find: int -> t -> Node.t
+  val roots: t -> Pid.t list
+
+end
+
+module Gid : sig type t = int end
+
+module Gid_map : Map.S with type key = Gid.t 
+
+
+module G_graph: sig
+  type t = {
+      map: G_node.t Gid_map.t; (* node description *)
+      lub: int;             (* least upper bound *)
+    }
+
+
+  val empty: t
+
+  val find: Gid.t -> t -> G_node.t
+
+  val build:
+      ?domain: Ast.domain -> 
+      ?locals: Label.decl array -> 
+      Ast.node list -> 
+      Ast.edge list -> 
+	t
   val to_gr: t -> string
   val to_dot: ?main_feat:string -> ?deco:Deco.t -> t -> string
   val to_dep: ?main_feat:string -> ?deco:Deco.t -> t -> string
 
-  val add_edge : t -> int -> Edge.t -> int -> t option
-  val del_edge : ?edge_ident: string -> Loc.t -> t -> int -> Edge.t -> int -> t
+
+  type concat_item =
+    | Feat of (Gid.t * string)
+    | String of string
+
+  val add_edge: t -> int -> G_edge.t -> int -> t option
+  val del_edge : ?edge_ident: string -> Loc.t -> t -> int -> G_edge.t -> int -> t
   val del_node : t -> int -> t
 
-  val add_neighbour : Loc.t -> t -> int -> Edge.t -> (int * t) 
+  val add_neighbour : Loc.t -> t -> int -> G_edge.t -> (int * t) 
   val merge_node : Loc.t -> t -> int -> int -> t option
 
   val shift_in : Loc.t -> t -> int -> int -> t
@@ -72,11 +92,10 @@ module Graph : sig
 
   val del_feat : t -> int -> string -> t
 
-  val equals : t -> t -> bool
-
   (** [edge_out t id edge] returns true iff there is an out-edge from the node [id] with a label compatible with [edge] *)
-  val edge_out: t -> int -> Edge.t -> bool
+  val edge_out: t -> int -> P_edge.t -> bool
 
-  val roots: t -> int list
+  val equals: t -> t -> bool
+
 end
 

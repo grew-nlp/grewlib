@@ -16,15 +16,38 @@ module Label : sig
       
 end
 
-module Edge :  sig
-  type t
-  val as_label: t -> Label.t
-  val of_label: Label.t -> t
 
-  val get_id: t -> string option 
+
+(* ================================================================================ *)
+(** The module [G_edge] defines the type of Graph label edges: atomic edges *)
+module G_edge: sig
+  type t = Label.t
+
+  val to_string:t -> string
+
+  val make: ?locals:Label.decl array -> string -> t
+
+  val build: ?locals:Label.decl array -> Ast.edge -> t
+
+  val to_dot: ?deco:bool -> t -> string
+  val to_dep: ?deco:bool -> t -> string
+
+end
+(* ================================================================================ *)
+
+
+(* ================================================================================ *)
+(** The module [G_edge] defines the type of Graph label edges: atomic edges *)
+module P_edge: sig
+  type t
 
   (* [all] is the joker pattern edge *)   
   val all: t
+
+  val get_id: t -> string option
+  val to_string: t -> string
+
+  val build: ?locals:Label.decl array -> Ast.edge -> t
 
   val make:
       ?id: string option ->
@@ -33,27 +56,17 @@ module Edge :  sig
       string list ->
   	t
 
-  val build: ?locals:Label.decl array -> Ast.edge -> t
-
-  val compare: 'a -> 'a -> int
-  val build_edge: string -> int * int * t
-  val to_string: t -> string
-  val to_dot: ?deco:bool -> t -> string
-  val to_dep: ?deco:bool -> t -> string
-
-  val compatible : t -> t -> bool
-
-  val is_in : t -> Label.t list -> bool
-
+  val compatible: t -> G_edge.t -> bool
 
   type edge_matcher = 
     | Fail 
     | Ok of Label.t
     | Binds of string * Label.t list
 
+  val match_: t -> G_edge.t -> edge_matcher
 
-  val match_: t -> t -> edge_matcher
+  val match_list: t -> G_edge.t list -> edge_matcher
 
-  val match_list: t -> t list -> edge_matcher
 
 end
+(* ================================================================================ *)

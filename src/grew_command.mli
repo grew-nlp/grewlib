@@ -16,12 +16,12 @@ module Command : sig
 
   type p = 
     | DEL_NODE of cnode
-    | DEL_EDGE_EXPL of (cnode * cnode *Edge.t) 
+    | DEL_EDGE_EXPL of (cnode * cnode *G_edge.t) 
     | DEL_EDGE_NAME of string
-    | ADD_EDGE of (cnode * cnode * Edge.t)
+    | ADD_EDGE of (cnode * cnode * G_edge.t)
     | DEL_FEAT of (cnode * string)
     | UPDATE_FEAT of (cnode * string * item list)
-    | NEW_NEIGHBOUR of (string * Edge.t * pid)
+    | NEW_NEIGHBOUR of (string * G_edge.t * pid)
     | SHIFT_EDGE of (cnode * cnode)
     | SHIFT_IN of (cnode * cnode)
     | SHIFT_OUT of (cnode * cnode)
@@ -31,12 +31,12 @@ module Command : sig
   type t = (p * Loc.t)  
   type h = 
     | H_DEL_NODE of gid
-    | H_DEL_EDGE_EXPL of (gid * gid *Edge.t) 
+    | H_DEL_EDGE_EXPL of (gid * gid *G_edge.t) 
     | H_DEL_EDGE_NAME of string
-    | H_ADD_EDGE of (gid * gid * Edge.t)
+    | H_ADD_EDGE of (gid * gid * G_edge.t)
     | H_DEL_FEAT of (gid *string)
     | H_UPDATE_FEAT of (gid * string * string)
-    | H_NEW_NEIGHBOUR of (string * Edge.t * gid)
+    | H_NEW_NEIGHBOUR of (string * G_edge.t * gid)
     | H_SHIFT_EDGE of (gid * gid)
     | H_SHIFT_IN of (gid * gid)
     | H_SHIFT_OUT of (gid * gid)

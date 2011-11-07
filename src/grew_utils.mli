@@ -1,7 +1,10 @@
 
 module IntSet : Set.S with type elt = int
+module IntMap : Map.S with type key = int
 
-module IntMap : sig
+module Pid : sig type t = int end
+
+module Pid_map : sig
   include Map.S with type key = int
   exception MatchNotInjective
   val exists: (key -> 'a -> bool) -> 'a t -> bool
@@ -54,6 +57,8 @@ module List_: sig
   val iteri: (int -> 'a -> unit) -> 'a list -> unit
 
   val mapi: (int -> 'a -> 'b) -> 'a list -> 'b list
+
+  val sort_mem: 'a -> 'a list -> bool
 
   (* Insert an element in a sorted list. *)
   val sort_insert: 'a -> 'a list -> 'a list

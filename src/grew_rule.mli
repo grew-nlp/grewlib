@@ -7,7 +7,7 @@ open Grew_ast
 
 module Instance : sig
   type t = {
-      graph: Graph.t;
+      graph: G_graph.t;
       commands: Command.h list;
       rules: string list;
       big_step: Grew_types.big_step option; 
@@ -21,8 +21,8 @@ module Instance : sig
   val rev_steps: t -> t
 
   val clear: t -> t 
-  val from_graph: Graph.t -> t
-  val get_graph: t -> Graph.t
+  val from_graph: G_graph.t -> t
+  val get_graph: t -> G_graph.t
 
 IFDEF DEP2PICT THEN
   (* [save_dep_png base t] writes a file "base.png" with the dep representation of [t] *)

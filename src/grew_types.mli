@@ -3,7 +3,7 @@
 open Grew_graph
 
 (**/**)
-type graph = Graph.t
+type graph = G_graph.t
 type deco = Deco.t
 (**/**)
 

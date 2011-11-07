@@ -21,12 +21,12 @@ module Command  = struct
   (* the command in pattern *)
   type p = 
     | DEL_NODE of cnode
-    | DEL_EDGE_EXPL of (cnode * cnode *Edge.t) 
+    | DEL_EDGE_EXPL of (cnode * cnode * G_edge.t) 
     | DEL_EDGE_NAME of string
-    | ADD_EDGE of (cnode * cnode * Edge.t)
+    | ADD_EDGE of (cnode * cnode * G_edge.t)
     | DEL_FEAT of (cnode * string)
     | UPDATE_FEAT of (cnode * string * item list)
-    | NEW_NEIGHBOUR of (string * Edge.t * pid)
+    | NEW_NEIGHBOUR of (string * G_edge.t * pid)
     | SHIFT_EDGE of (cnode * cnode)
     | SHIFT_IN of (cnode * cnode)
     | SHIFT_OUT of (cnode * cnode)
@@ -37,12 +37,12 @@ module Command  = struct
   (* a item in the command history: command applied to a graph *)
   type h = 
     | H_DEL_NODE of gid
-    | H_DEL_EDGE_EXPL of (gid * gid *Edge.t) 
+    | H_DEL_EDGE_EXPL of (gid * gid *G_edge.t) 
     | H_DEL_EDGE_NAME of string
-    | H_ADD_EDGE of (gid * gid * Edge.t)
+    | H_ADD_EDGE of (gid * gid * G_edge.t)
     | H_DEL_FEAT of (gid *string)
     | H_UPDATE_FEAT of (gid * string * string)
-    | H_NEW_NEIGHBOUR of (string * Edge.t * gid)
+    | H_NEW_NEIGHBOUR of (string * G_edge.t * gid)
     | H_SHIFT_EDGE of (gid * gid)
     | H_SHIFT_IN of (gid * gid)
     | H_SHIFT_OUT of (gid * gid)
@@ -65,7 +65,7 @@ module Command  = struct
     match ast_command with
     | (Ast.Del_edge_expl (i, j, lab), loc) ->
         check_node loc i kni; check_node loc j kni;
-	let edge = Edge.make ~locals [lab] in
+	let edge = G_edge.make ~locals lab in
 	((DEL_EDGE_EXPL (get_pid i, get_pid j, edge), loc), (kni, kei))
 	  
     | (Ast.Del_edge_name id, loc) -> 
@@ -74,7 +74,7 @@ module Command  = struct
 	  
     | (Ast.Add_edge (i, j, lab), loc) ->
         check_node loc i kni; check_node loc j kni;
-	let edge = Edge.make ~locals [lab] in
+	let edge = G_edge.make ~locals lab in
 	((ADD_EDGE (get_pid i, get_pid j, edge), loc), (kni, kei))
 	  
     | (Ast.Shift_edge (i, j), loc) ->
@@ -97,12 +97,12 @@ module Command  = struct
         check_node loc ancestor kni;
         if List.mem name_created kni
         then Error.build ~loc "Node identifier \"%s\" is already used" name_created;
-	let edge = Edge.make ~locals [label] in
+	let edge = G_edge.make ~locals label in
 	begin
 	  try ((NEW_NEIGHBOUR (name_created, edge, Id.build ~loc ancestor table), loc), (name_created::kni, kei))
 	  with Not_found -> 
 	    Log.fcritical "[GRS] tries to build a command New_neighbour (%s) on node %s which is not in the pattern %s"
-	      (Edge.to_string edge)
+	      (G_edge.to_string edge)
 	      ancestor
 	      (Loc.to_string loc)
 	end
