@@ -148,3 +148,18 @@ module Html: sig
   val enter: out_channel -> ?title: string -> ?header: string -> string -> unit
   val leave: out_channel -> unit
 end
+
+module Conll: sig
+  type line = {
+      num: int;
+      phon: string;
+      lemma: string;
+      pos1: string;
+      pos2: string;
+      morph: (string * string) list;
+      gov: int;
+      dep_lab: string;
+    }
+        
+  val parse: string -> line
+end

@@ -435,3 +435,39 @@ module Html = struct
     fprintf out_ch "</html>\n";
 end      
 
+module Conll = struct
+  type line = {
+      num: int;
+      phon: string;
+      lemma: string;
+      pos1: string;
+      pos2: string;
+      morph: (string * string) list;
+      gov: int;
+      dep_lab: string;
+    }
+        
+  let parse_morph morph = 
+    List.map 
+      (fun feat -> 
+        match Str.split (Str.regexp "=") feat with
+        | [feat_name; feat_value] -> (feat_value, feat_value)
+        | [feat_name] -> (feat_name, "true")
+        | _ -> Log.fcritical "Cannot not parse CONLL feat '%s' (too many '=')" morph
+      ) (Str.split (Str.regexp "|") morph)
+    
+
+  let parse line = 
+    match Str.split (Str.regexp "\t") line with
+    | [ num; phon; lemma; pos1; pos2; morph; gov; dep_lab; _; _ ] ->      
+        {num = int_of_string num;
+         phon = phon;
+         lemma = lemma;
+         pos1 = pos1;
+         pos2 = pos2;
+         morph = parse_morph morph;
+         gov = int_of_string gov;
+         dep_lab = dep_lab;
+       }
+    | _ -> Log.fcritical "Cannot not parse CONLL line '%s'" line
+end

@@ -10,6 +10,8 @@ module Feature_structure: sig
 
   val build: ?domain:Ast.domain -> Ast.feature list -> t
       
+  val of_conll: Conll.line -> t
+
   val get: string -> t -> string list option
       
   val get_atom: string -> t -> string option

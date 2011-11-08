@@ -31,6 +31,9 @@ module Instance = struct
     let graph = G_graph.build gr_ast.Ast.nodes gr_ast.Ast.edges in
     { empty with graph = graph }
 
+  let of_conll lines = 
+    { empty with graph = G_graph.of_conll lines }
+
   let rev_steps t = 
     { t with big_step = match t.big_step with
     | None -> None

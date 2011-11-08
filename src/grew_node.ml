@@ -42,6 +42,13 @@ module G_node = struct
        next = Massoc.empty;
      } )
 
+  let of_conll line = {
+      fs = Feature_structure.of_conll line;
+      pos = Some line.Conll.num;
+      next = Massoc.empty;
+    }
+    
+    
   let remove id_tar label t = {t with next = Massoc.remove id_tar label t.next}
       
   let remove_key node_id t = 

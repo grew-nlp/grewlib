@@ -195,7 +195,6 @@ module G_graph = struct
     | Feat of (Gid.t * string)
     | String of string
 
-
   let map_add_edge map id_src label id_tar =
     let node_src = 
       (* Not found can be raised when adding an edge from pos to neg *)
@@ -204,20 +203,17 @@ module G_graph = struct
     | None -> None
     | Some new_node -> Some (Gid_map.add id_src new_node map)
 
-
   let build ?domain ?(locals=[||]) full_node_list full_edge_list = 
 
-    let (named_nodes, constraints) = 
+    let named_nodes = 
       let rec loop already_bound = function
-        | [] -> ([],[])
+        | [] -> []
         | (ast_node, loc) :: tail ->
-            let (tail_nodes, tail_const) = loop (ast_node.Ast.node_id :: already_bound) tail in
+            let tail = loop (ast_node.Ast.node_id :: already_bound) tail in
             if List.mem ast_node.Ast.node_id already_bound
-            then (tail_nodes, (ast_node, loc)::tail_const)
-            else (G_node.build ?domain (ast_node, loc) :: tail_nodes, tail_const) in
+            then Log.fcritical "[GRS] [Graph.build] try to build a graph with twice the same node id '%s'" ast_node.Ast.node_id
+            else G_node.build ?domain (ast_node, loc) :: tail in
       loop [] full_node_list in
-
-    (* let named_nodes = List.map (Node.build ?domain) full_node_list in *)
 
     let sorted_nodes = List.sort (fun (id1,_) (id2,_) -> Pervasives.compare id1 id2) named_nodes in
     let (sorted_ids, node_list) = List.split sorted_nodes in
@@ -243,6 +239,27 @@ module G_graph = struct
 	) map_without_edges full_edge_list in
     
     {map=map;lub=Array.length table}
+
+
+  let of_conll lines =
+    let nodes = 
+      List.fold_left
+        (fun acc line -> Gid_map.add line.Conll.num (G_node.of_conll line) acc) 
+        Gid_map.empty lines in
+    
+    let nodes_with_edges = 
+      List.fold_left
+        (fun acc line ->
+          if line.Conll.gov=0
+          then acc
+          else 
+            let gov_node = Gid_map.find line.Conll.gov acc in
+            match G_node.add_edge (G_edge.make line.Conll.dep_lab) line.Conll.num gov_node with
+            | None -> acc
+            | Some new_node -> Gid_map.add line.Conll.gov new_node acc
+        ) nodes lines in
+        
+        {map = nodes_with_edges; lub=1+(Gid_map.fold (fun _ _ acc -> acc+1) nodes_with_edges 0)}
 
 
   (* ---------------------------------------------------- *)

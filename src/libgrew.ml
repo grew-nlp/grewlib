@@ -64,6 +64,10 @@ let load_gr file =
     raise (File_dont_exists file)
    )
 
+let load_conll file =
+  let lines = File.read file in
+  Instance.of_conll (List.map Conll.parse lines)
+
 let rewrite ~gr ~grs ~seq = 
   try Grs.rewrite grs seq gr
   with

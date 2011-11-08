@@ -46,11 +46,19 @@ end
 module Feature_structure = struct
   (* list are supposed to be striclty ordered wrt compare*)
   type t = Feature.t list
-	
+
   let build ?domain ast_fs =
     let unsorted = List.map (Feature.build ?domain) ast_fs in
     List.sort Feature.compare unsorted 
-      
+
+  let of_conll line =
+
+    let morph_fs =
+      List.map (fun (feat_name, feat_value) -> Feature.Equal (feat_name, [feat_value])) line.Conll.morph in
+    Feature.Equal ("phon", [line.Conll.phon]) ::
+    Feature.Equal ("lemma", [line.Conll.lemma]) ::
+    Feature.Equal ("cat", [line.Conll.pos2]) :: 
+    morph_fs
   let empty = []
 
   let rec get name = function

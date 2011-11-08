@@ -54,6 +54,8 @@ val empty_gr : Instance.t
 *)
 val load_gr: string -> Instance.t
 
+val load_conll:  string -> Instance.t
+
 val save_index: dirname:string -> base_names: string list -> unit
 
 val write_html: 

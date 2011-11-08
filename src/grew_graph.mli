@@ -65,6 +65,9 @@ module G_graph: sig
       Ast.node list -> 
       Ast.edge list -> 
 	t
+
+  val of_conll: Conll.line list -> t
+
   val to_gr: t -> string
   val to_dot: ?main_feat:string -> ?deco:Deco.t -> t -> string
   val to_dep: ?main_feat:string -> ?deco:Deco.t -> t -> string

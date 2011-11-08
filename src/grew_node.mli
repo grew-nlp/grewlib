@@ -29,6 +29,8 @@ module G_node: sig
 
   val add_edge: G_edge.t -> int -> t -> t option
   val build: ?domain:Ast.domain -> Ast.node -> (Id.name * t)
+  val of_conll: Conll.line -> t
+
   val pos_comp: t -> t -> int
 
   val build_neighbour: t -> t
