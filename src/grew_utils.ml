@@ -451,18 +451,19 @@ module Conll = struct
     List.map 
       (fun feat -> 
         match Str.split (Str.regexp "=") feat with
-        | [feat_name; feat_value] -> (feat_value, feat_value)
+        | [feat_name; feat_value] -> (feat_name, feat_value)
         | [feat_name] -> (feat_name, "true")
         | _ -> Log.fcritical "Cannot not parse CONLL feat '%s' (too many '=')" morph
       ) (Str.split (Str.regexp "|") morph)
     
+  let escape_quote s = Str.global_replace (Str.regexp "\"") "\\\"" s
 
   let parse line = 
     match Str.split (Str.regexp "\t") line with
     | [ num; phon; lemma; pos1; pos2; morph; gov; dep_lab; _; _ ] ->      
         {num = int_of_string num;
-         phon = phon;
-         lemma = lemma;
+         phon = escape_quote phon;
+         lemma = escape_quote lemma;
          pos1 = pos1;
          pos2 = pos2;
          morph = parse_morph morph;

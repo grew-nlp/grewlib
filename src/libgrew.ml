@@ -65,8 +65,30 @@ let load_gr file =
    )
 
 let load_conll file =
-  let lines = File.read file in
-  Instance.of_conll (List.map Conll.parse lines)
+  try
+    let lines = File.read file in
+    Instance.of_conll (List.map Conll.parse lines)
+  with
+  | Grew_parser.Parse_error msg -> raise (Parsing_err msg)
+  | Error.Build (msg,loc) -> raise (Build (msg,loc))
+  | Error.Bug (msg, loc) -> raise (Bug (msg,loc))
+  | exc -> raise (Bug (sprintf "UNCATCHED EXCEPTION: %s" (Printexc.to_string exc), None))
+
+let load_graph file = 
+  if Filename.check_suffix file ".gr" 
+  then load_gr file
+  else if Filename.check_suffix file ".conll"
+  then load_conll file
+  else
+    begin
+      Log.fwarning "Unknown file format for input graph '%s', try to guess..." file;
+      try load_gr file with
+        Parsing_err _ -> 
+          try load_conll file with
+            Parsing_err _ ->
+              Log.fcritical "[Libgrew.load_graph] Cannot guess input file format of file '%s'. Use .gr or .conll file extension" file
+    end
+
 
 let rewrite ~gr ~grs ~seq = 
   try Grs.rewrite grs seq gr

@@ -52,13 +52,16 @@ module Feature_structure = struct
     List.sort Feature.compare unsorted 
 
   let of_conll line =
-
     let morph_fs =
       List.map (fun (feat_name, feat_value) -> Feature.Equal (feat_name, [feat_value])) line.Conll.morph in
-    Feature.Equal ("phon", [line.Conll.phon]) ::
-    Feature.Equal ("lemma", [line.Conll.lemma]) ::
-    Feature.Equal ("cat", [line.Conll.pos2]) :: 
-    morph_fs
+    let unsorted = 
+      Feature.Equal ("phon", [line.Conll.phon]) ::
+      Feature.Equal ("lemma", [line.Conll.lemma]) ::
+      Feature.Equal ("cat", [line.Conll.pos2]) :: 
+      morph_fs in
+    List.sort Feature.compare unsorted 
+
+
   let empty = []
 
   let rec get name = function
@@ -168,8 +171,8 @@ module Feature_structure = struct
 	  loop ((Feature.Different (fn_pat, fv_pat))::t_pat, t)
 
       | ((Feature.Equal (fn_pat, fv_pat))::t_pat, (Feature.Equal (fn, fv))::t) 
-	  (* when fn_pat = fn *) -> 
- 	    (match fv_pat, fv with 
+	  (* when fn_pat = fn *) ->
+            (match fv_pat, fv with 
 	    | [],_ | _, [] -> loop (t_pat,t)
 	    | l_pat,l -> not (List_.sort_disjoint l_pat l) && loop (t_pat,t)
 	    )
@@ -181,8 +184,8 @@ module Feature_structure = struct
 	  | l_pat,l -> (List_.sort_disjoint l_pat l) && loop (t_pat,t)
 	  )
     | _ -> Log.bug "[Feature_structure.set_feat]: Disequality not allowed in graph features"; exit 2
-
     in loop (pattern,fs)
+      
 
   exception Fail_unif 
   exception Bug_unif of string 

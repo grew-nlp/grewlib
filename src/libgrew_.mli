@@ -48,13 +48,12 @@ val get_sequence_names: Grs.t -> string list
 
 val empty_gr : Instance.t
 
-(** get a graph from a file
+(** get a graph from a file either in 'gr' or 'conll' format.
+File extension should be '.gr' or '.conll'.
 @raise Parsing_err if libgrew can't parse the file
 @raise File_dont_exists if the file doesn't exists
 *)
-val load_gr: string -> Instance.t
-
-val load_conll:  string -> Instance.t
+val load_graph: string -> Instance.t
 
 val save_index: dirname:string -> base_names: string list -> unit
 
