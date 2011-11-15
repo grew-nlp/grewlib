@@ -447,15 +447,17 @@ module Conll = struct
       dep_lab: string;
     }
         
-  let parse_morph morph = 
-    List.map 
-      (fun feat -> 
-        match Str.split (Str.regexp "=") feat with
-        | [feat_name; feat_value] -> (feat_name, feat_value)
-        | [feat_name] -> (feat_name, "true")
-        | _ -> Log.fcritical "Cannot not parse CONLL feat '%s' (too many '=')" morph
-      ) (Str.split (Str.regexp "|") morph)
-    
+  let parse_morph = function
+    | "_" -> []
+    | morph ->  
+        List.map 
+          (fun feat -> 
+            match Str.split (Str.regexp "=") feat with
+            | [feat_name] -> (feat_name, "true")
+            | [feat_name; feat_value] -> (feat_name, feat_value)
+            | _ -> Log.fcritical "Cannot not parse CONLL feat '%s' (too many '=')" morph
+          ) (Str.split (Str.regexp "|") morph)
+          
   let escape_quote s = Str.global_replace (Str.regexp "\"") "\\\"" s
 
   let parse line = 

@@ -113,13 +113,13 @@ IFDEF DEP2PICT THEN
         
         let id = sprintf "id_%d" (i+1) in
         
-        (* fprintf html_ch "<a style=\"cursor:pointer;\" onClick=\"if (document.getElementById('%s').style.display == 'none') { document.getElementById('%s').style.display = 'block'; document.getElementById('p_%s').innerHTML = 'Hide'; } else { document.getElementById('%s').style.display = 'none';; document.getElementById('p_%s').innerHTML = 'Show'; }\"><b><p id=\"p_%s\">Show</p></b></a>\n" id id id id id id; *)
+        (* fprintf html_ch "<a style=\"cursor:pointer;\" onClick=\"if (document.getElementById('%s').style.display == 'none') { document.getElementById('%s').style.display = 'block'; document.getElementById('p_%s').innerHTML = 'Hide applied rules'; } else { document.getElementById('%s').style.display = 'none';; document.getElementById('p_%s').innerHTML = 'Show applied rules'; }\"><b><p id=\"p_%s\">Show applied rules</p></b></a>\n" id id id id id id; *)
 
         fprintf html_ch "<a style=\"cursor:pointer;\"\n";
         fprintf html_ch "  onClick=\"if (document.getElementById('%s').style.display == 'none')\n" id;
-        fprintf html_ch "      { document.getElementById('%s').style.display = 'block'; document.getElementById('p_%s').innerHTML = 'Hide'; }\n" id id;
-        fprintf html_ch " else { document.getElementById('%s').style.display = 'none';; document.getElementById('p_%s').innerHTML = 'Show'; }\">" id id;
-        fprintf html_ch "         <b><p id=\"p_%s\">Show</p></b>\n" id;
+        fprintf html_ch "      { document.getElementById('%s').style.display = 'block'; document.getElementById('p_%s').innerHTML = 'Hide applied rules'; }\n" id id;
+        fprintf html_ch " else { document.getElementById('%s').style.display = 'none';; document.getElementById('p_%s').innerHTML = 'Show applied rules'; }\">" id id;
+        fprintf html_ch "         <b><p id=\"p_%s\">Show applied rules</p></b>\n" id;
         fprintf html_ch "</a>\n";
 
         fprintf html_ch " <div id=\"%s\" style=\"display:none;\">\n" id;
@@ -379,6 +379,7 @@ module Corpus_stat = struct
      second key: [r] rule name
      value: [occ_nul, file_list] the totat number of rule applications and the set of gr files concerned *)
   type t = {
+      modules: Modul.t list; (* ordered list of modules in the sequence *)
       map: (int * StringSet.t) StringMap.t StringMap.t;
       error: (string * string) list;   (* (file, msg) *)
       num: int;
@@ -399,7 +400,7 @@ module Corpus_stat = struct
             StringMap.add modul.Modul.name rule_map acc
           else acc
         ) StringMap.empty grs.Grs.modules in
-    { map = map; error = []; num = 0 }
+    { modules=modules; map = map; error = []; num = 0 }
       
   let add modul rule file num map = 
     let old_rule_map = StringMap.find modul map in
@@ -438,12 +439,14 @@ module Corpus_stat = struct
     
     fprintf out_ch "<head>\n%s\n<title>%s</title>\n<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" /></head>\n" css title;
     fprintf out_ch "<h1>%s</h1>\n" title;
-    fprintf out_ch "<b>Grs file</b>:<a href =\"%s\">%s</a>\n<br/>\n" grs_file (Filename.basename grs_file);
+    fprintf out_ch "<b>Grs file</b>:<a href =\"%s\">%s</a>\n<br/>\n" (Filename.basename grs_file) (Filename.basename grs_file);
     fprintf out_ch "<b>%d Sentences</b><br/>\n<br/>\n" t.num;
 
     fprintf out_ch "<center><table cellpadding=3 cellspacing=0 width=95%%>\n";
-    StringMap.iter
-      (fun modul rules ->
+    List.iter
+      (fun modul ->
+        let modul = modul.Modul.name in
+        let rules = StringMap.find modul t.map in
         fprintf out_ch "<tr><td colspan=\"5\" style=\"padding: 0px;\"><h6>Module %s</h6></td>\n" modul;
         fprintf out_ch "<tr><th class=\"first\">Rule</th><th>#occ</th><th>#files</th><th>Ratio</th><th>Files</th></tr>\n";
         let (tot_occ, full_sent) = 
@@ -509,36 +512,36 @@ module Corpus_stat = struct
              );
             fprintf out_ch "</td></tr>\n";
           ) rules;
-      ) t.map;
+      ) t.modules;
 
 
     (* add a subtlabe for sentence that produces an error *)
-    let nb_errors = List.length t.error in
-    fprintf out_ch "<tr><td colspan=5><h6>ERRORS</h6></td>\n";
-    fprintf out_ch "<tr><th class=\"first\" >Rule</th><th colspan=2 width=20>#files</th><th >Ratio</th><th>Files</th></tr>\n";
-
-    fprintf out_ch "<tr>\n";
-    fprintf out_ch "<td class=\"first_stats\">Errors</td>\n";
-    fprintf out_ch "<td class=\"stats\" colspan=2>%d</td>\n" nb_errors;
-    fprintf out_ch "<td class=\"stats\">%.2f%%</td>\n" (ratio nb_errors);
-    fprintf out_ch "<td class=\"stats\">";
-
-    match t.error with 
-    | [] -> fprintf out_ch "&nbsp;"
-    | l ->
-        List.iter
-          (fun (file,err) ->
-            if html 
-            then fprintf out_ch "<a href=\"%s.html\">%s</a>: %s<br/>" file file err
-            else fprintf out_ch "%s: %s<br/>" file err
-          ) (List.rev l);
+    (match List.length t.error with
+    | 0 -> ()
+    | nb_errors ->
+        fprintf out_ch "<tr><td colspan=5><h6>ERRORS</h6></td>\n";
+        fprintf out_ch "<tr><th class=\"first\" >Rule</th><th colspan=2 width=20>#files</th><th >Ratio</th><th>Files</th></tr>\n";
         
-        fprintf out_ch "</td>\n";
-        fprintf out_ch "</tr>";
+        fprintf out_ch "<tr>\n";
+        fprintf out_ch "<td class=\"first_stats\">Errors</td>\n";
+        fprintf out_ch "<td class=\"stats\" colspan=2>%d</td>\n" nb_errors;
+        fprintf out_ch "<td class=\"stats\">%.2f%%</td>\n" (ratio nb_errors);
+        fprintf out_ch "<td class=\"stats\">";
         
-        fprintf out_ch "</table></center>\n";
-        close_out out_ch;
-        ()
-          
+        match t.error with 
+        | [] -> fprintf out_ch "&nbsp;"
+        | l ->
+            List.iter
+              (fun (file,err) ->
+                if html 
+                then fprintf out_ch "<a href=\"%s.html\">%s</a>: %s<br/>" file file err
+                else fprintf out_ch "%s: %s<br/>" file err
+              ) (List.rev l);
+            
+            fprintf out_ch "</td>\n";
+            fprintf out_ch "</tr>");
 
+    fprintf out_ch "</table></center>\n";
+    close_out out_ch;
+    ()
 end (* module Stat *)
