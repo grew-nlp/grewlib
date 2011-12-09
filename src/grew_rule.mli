@@ -41,7 +41,7 @@ module Rule : sig
 
   val get_loc: t -> Loc.t
 
-  val build: ?domain:Ast.domain -> ?locals:Label.decl array -> Ast.rule -> t
+  val build: ?locals:Label.decl array -> Ast.rule -> t
 
   (* raise Stop if some command fails to apply *)
   val normalize: 

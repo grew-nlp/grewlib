@@ -26,14 +26,12 @@ module P_graph: sig
 
   val build:
       ?pat_vars: string list ->
-      ?domain: Ast.domain -> 
       ?locals: Label.decl array -> 
       Ast.node list -> 
       Ast.edge list -> 
-	(t * Id.table * (Id.t * Feature_structure.t) list )
+	(t * Id.table * (Id.t * P_fs.t) list )
 
   val build_extension:
-      ?domain: Ast.domain -> 
       ?locals: Label.decl array -> 
       Id.table ->
       Ast.node list -> 
@@ -61,7 +59,6 @@ module G_graph: sig
   val find: Gid.t -> t -> G_node.t
 
   val build:
-      ?domain: Ast.domain -> 
       ?locals: Label.decl array -> 
       Ast.node list -> 
       Ast.edge list -> 
@@ -92,11 +89,11 @@ module G_graph: sig
   (** [update_feat tar_id tar_feat_name concat_items] sets the feature of the node [tar_id] 
       with feature name [tar_feat_name] to be the contatenation of values described by the [concat_items].
       It returns both the new graph and the new feature value produced as the second element *)
-  val update_feat : t -> int -> string -> concat_item list -> (t * string)
+  val update_feat: ?loc:Loc.t -> t -> int -> string -> concat_item list -> (t * string)
 
-  val set_feat: t -> int -> string -> string -> t
+  val set_feat: ?loc:Loc.t -> t -> int -> string -> string -> t
 
-  val del_feat : t -> int -> string -> t
+  val del_feat: t -> int -> string -> t
 
   (** [edge_out t id edge] returns true iff there is an out-edge from the node [id] with a label compatible with [edge] *)
   val edge_out: t -> int -> P_edge.t -> bool

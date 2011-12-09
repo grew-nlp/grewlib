@@ -76,6 +76,12 @@ module List_: sig
   val sort_included_diff: 'a list -> 'a list -> 'a list
   val sort_diff: 'a list -> 'a list -> 'a list
 
+  val sort_assoc: 'a -> ('a * 'b) list -> 'b option
+
+   (* [sort_remove_assoc k ass_list] returns the input list without the [key] element, 
+      if [key] not found, the unchanged input list is returned *)
+  val sort_remove_assoc: 'a -> ('a * 'b) list -> ('a * 'b) list
+
   val foldi_left: (int -> 'a -> 'b -> 'a) -> 'a -> 'b list -> 'a
 end
 
@@ -165,4 +171,22 @@ module Conll: sig
     }
         
   val parse: string -> line
+end
+
+(** module for rule that are lexically parametrized *)
+module Lex_par: sig
+  type t
+
+  (** [load ?loc nb_pattern_var nb_command_var file] *)
+  val load: ?loc: Loc.t -> int -> int -> string -> t
+
+  (** [filter index atom t] returns the subset of [t] which contains only entries 
+      which refers to [atom] at the [index]^th pattern_var.
+      [None] is returnes if no such entry s founded.
+   *)
+  val filter: int -> string -> t -> t option
+
+  (** [get_command_value index t] supposes that [t] contains iny one element.
+      It returns the [index]^th command_var. *)
+  val get_command_value: int -> t -> string
 end

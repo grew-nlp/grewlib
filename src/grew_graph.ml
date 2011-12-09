@@ -36,12 +36,12 @@ module P_graph = struct
     | None -> None
     | Some new_node -> Some (Pid_map.add id_src new_node map)
 
-  let build_filter ?domain table (ast_node, loc) = 
+  let build_filter table (ast_node, loc) = 
     let pid = Id.build ~loc ast_node.Ast.node_id table in
-    let fs = Feature_structure.build ?domain ast_node.Ast.fs in
+    let fs = P_fs.build ast_node.Ast.fs in
     (pid, fs)
 
-  let build ?pat_vars ?domain ?(locals=[||]) full_node_list full_edge_list = 
+  let build ?pat_vars ?(locals=[||]) full_node_list full_edge_list = 
 
     let (named_nodes, constraints) = 
       let rec loop already_bound = function
@@ -50,10 +50,8 @@ module P_graph = struct
             let (tail_nodes, tail_const) = loop (ast_node.Ast.node_id :: already_bound) tail in
             if List.mem ast_node.Ast.node_id already_bound
             then (tail_nodes, (ast_node, loc)::tail_const)
-            else (P_node.build ?pat_vars ?domain (ast_node, loc) :: tail_nodes, tail_const) in
+            else (P_node.build ?pat_vars (ast_node, loc) :: tail_nodes, tail_const) in
       loop [] full_node_list in
-
-    (* let named_nodes = List.map (Node.build ?domain) full_node_list in *)
 
     let sorted_nodes = List.sort (fun (id1,_) (id2,_) -> Pervasives.compare id1 id2) named_nodes in
     let (sorted_ids, node_list) = List.split sorted_nodes in
@@ -77,7 +75,7 @@ module P_graph = struct
                 (Loc.to_string loc)
 	  )
 	) map_without_edges full_edge_list in
-    (map, table, List.map (build_filter ?domain table) constraints)
+    (map, table, List.map (build_filter table) constraints)
 
   (* a type for extension of graph: a former graph exists: 
      in grew the former is a positive pattern and an extension is a "without" *)
@@ -86,9 +84,9 @@ module P_graph = struct
       old_map: P_node.t Pid_map.t; (* a partial map for new constraints on old nodes "Old [...]" *) 	
     }
 
-  let build_extension ?domain ?(locals=[||]) old_table full_node_list full_edge_list = 
+  let build_extension ?(locals=[||]) old_table full_node_list full_edge_list = 
 
-    let built_nodes = List.map (P_node.build ?domain) full_node_list in
+    let built_nodes = List.map P_node.build full_node_list in
 
     let (old_nodes, new_nodes) = 
       List.partition 
@@ -203,7 +201,7 @@ module G_graph = struct
     | None -> None
     | Some new_node -> Some (Gid_map.add id_src new_node map)
 
-  let build ?domain ?(locals=[||]) full_node_list full_edge_list = 
+  let build ?(locals=[||]) full_node_list full_edge_list = 
 
     let named_nodes = 
       let rec loop already_bound = function
@@ -212,7 +210,7 @@ module G_graph = struct
             let tail = loop (ast_node.Ast.node_id :: already_bound) tail in
             if List.mem ast_node.Ast.node_id already_bound
             then Log.fcritical "[GRS] [Graph.build] try to build a graph with twice the same node id '%s'" ast_node.Ast.node_id
-            else G_node.build ?domain (ast_node, loc) :: tail in
+            else G_node.build (ast_node, loc) :: tail in
       loop [] full_node_list in
 
     let sorted_nodes = List.sort (fun (id1,_) (id2,_) -> Pervasives.compare id1 id2) named_nodes in
@@ -404,7 +402,7 @@ module G_graph = struct
     let src_node = Gid_map.find src_gid se_graph.map in
     let tar_node = Gid_map.find tar_gid se_graph.map in
     
-    match Feature_structure.unif (G_node.get_fs src_node) (G_node.get_fs tar_node) with
+    match G_fs.unif (G_node.get_fs src_node) (G_node.get_fs tar_node) with
     | Some new_fs -> 
 	let new_map =
 	  Gid_map.add
@@ -415,19 +413,20 @@ module G_graph = struct
     | None -> None 
 
   (* FIXME: check consistency wrt the domain *)      
-  let set_feat graph node_id feat_name new_value =
+  let set_feat ?loc graph node_id feat_name new_value =
+    printf "===DEBUG=== loc:%s\n%!" (match loc with None -> "None" | Some l -> Loc.to_string l);
     let node = Gid_map.find node_id graph.map in
-    let new_fs = Feature_structure.set_feat feat_name [new_value] (G_node.get_fs node) in
+    let new_fs = G_fs.set_feat ?loc feat_name new_value (G_node.get_fs node) in
     {graph with map = Gid_map.add node_id (G_node.set_fs node new_fs) graph.map}
 
-  let update_feat graph tar_id tar_feat_name item_list =
+  let update_feat ?loc graph tar_id tar_feat_name item_list =
     let strings_to_concat =
       List.map
         (function
           | Feat (node_gid, feat_name) ->
               let node = Gid_map.find node_gid graph.map in
               (try 
-                match Feature_structure.get_atom feat_name (G_node.get_fs node) with
+                match G_fs.get_atom feat_name (G_node.get_fs node) with
                 | Some atom -> atom
                 | None -> Log.fcritical "[BUG] [Graph.update_feat] Feature not atomic"
               with Not_found -> 
@@ -436,11 +435,7 @@ module G_graph = struct
           | String s -> s
         ) item_list in
     let new_feature_value = List_.to_string (fun s->s) "" strings_to_concat in
-    (set_feat graph tar_id tar_feat_name new_feature_value, new_feature_value)
-    (* let tar = Gid_map.find tar_id graph.map in *)
-    (* let new_fs = Feature_structure.set_feat tar_feat_name [new_feature_value] (G_node.get_fs tar) in *)
-    (* ({graph with map = Gid_map.add tar_id  (G_node.set_fs tar new_fs) graph.map}, new_feature_value) *)
-
+    (set_feat ?loc graph tar_id tar_feat_name new_feature_value, new_feature_value)
 
 
       
@@ -448,7 +443,7 @@ module G_graph = struct
 	  If the feature is not present, [graph] is returned. *)
   let del_feat graph node_id feat_name = 
     let node =  Gid_map.find node_id graph.map in
-    let new_fs = Feature_structure.del_feat feat_name (G_node.get_fs node) in
+    let new_fs = G_fs.del_feat feat_name (G_node.get_fs node) in
     {graph with map = Gid_map.add node_id (* {node with Node.fs = new_fs} *) (G_node.set_fs node new_fs) graph.map}
 
   let to_gr graph =
@@ -486,9 +481,9 @@ module G_graph = struct
       (fun (id, node) -> 
 	if List.mem id deco.Deco.nodes
 	then bprintf buff 
-            "N%d { %sforecolor=red; subcolor=red; }\n" id (Feature_structure.to_dep ?main_feat (G_node.get_fs node))
+            "N%d { %sforecolor=red; subcolor=red; }\n" id (G_fs.to_dep ?main_feat (G_node.get_fs node))
 	else bprintf buff 
-            "N%d { %s }\n" id (Feature_structure.to_dep ?main_feat (G_node.get_fs node))
+            "N%d { %s }\n" id (G_fs.to_dep ?main_feat (G_node.get_fs node))
       ) snodes;
     bprintf buff "} \n";
     
@@ -516,7 +511,7 @@ module G_graph = struct
       (fun id node ->
 	bprintf buff "  N%d [label=\"%s\", color=%s]\n" 
 	  id 
-          (Feature_structure.to_dot ?main_feat (G_node.get_fs node)) 
+          (G_fs.to_dot ?main_feat (G_node.get_fs node)) 
           (if List.mem id deco.Deco.nodes then "red" else "black")
       ) graph.map;
     (* list of the edges *)

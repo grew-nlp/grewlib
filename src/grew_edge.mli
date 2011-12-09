@@ -1,6 +1,9 @@
 open Grew_utils
 open Grew_ast
 
+(* ================================================================================ *)
+(** The module [Label] defines the type of atomic label edges *)
+
 module Label : sig
   (* a label declaration: (the label,an optionnal color) *)
   type decl = string * string option
@@ -9,11 +12,10 @@ module Label : sig
 
   val init: decl list -> unit
 	
-  val to_string:t -> string
+  val to_string: t -> string
   val to_int: t -> int
 
-  val from_string:  ?loc:Loc.t ->  ?locals:decl array -> string -> t
-      
+  val from_string: ?loc:Loc.t -> ?locals:decl array -> string -> t      
 end
 
 
@@ -31,7 +33,6 @@ module G_edge: sig
 
   val to_dot: ?deco:bool -> t -> string
   val to_dep: ?deco:bool -> t -> string
-
 end
 (* ================================================================================ *)
 

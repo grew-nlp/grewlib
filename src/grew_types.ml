@@ -25,5 +25,5 @@ and big_step = {
   }
 
 let to_dot_graph ?main_feat ?(deco=Deco.empty) graph = G_graph.to_dot ?main_feat graph ~deco
-let to_dep_graph ?main_feat ?(deco=Deco.empty) graph = G_graph.to_dep ?main_feat ~deco graph 
+let to_dep_graph ?main_feat ?(deco=Deco.empty) graph = G_graph.to_dep ?main_feat ~deco graph
 let to_gr_graph graph = G_graph.to_gr graph 

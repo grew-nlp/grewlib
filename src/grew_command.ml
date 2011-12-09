@@ -49,7 +49,7 @@ module Command  = struct
     | H_SHIFT_OUT of (gid * gid)
     | H_MERGE_NODE of (gid * gid)
 
-  let build ?cmd_vars ?domain (kni, kei) table locals ast_command = 
+  let build ?cmd_vars (kni, kei) table locals ast_command = 
     let get_pid node_name =
       match Id.build_opt node_name table with
       | Some id -> Pid id

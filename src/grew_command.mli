@@ -45,7 +45,6 @@ module Command : sig
 
   val build: 
       ?cmd_vars: string list ->
-      ?domain:Ast.domain ->
       (string list * string list) -> 
       Id.table -> 
       Label.decl array ->

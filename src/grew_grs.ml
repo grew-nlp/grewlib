@@ -1,6 +1,7 @@
 open Printf
 open Log
 
+open Grew_fs
 open Grew_utils
 open Grew_ast
 open Grew_edge 
@@ -162,7 +163,7 @@ module Modul = struct
       | r::tail -> loop ((Rule.get_name r) :: already_defined) tail in
     loop [] t.rules
 
-  let build ?domain ast_module =
+  let build ast_module =
     let locals = Array.of_list ast_module.Ast.local_labels in
     Array.sort compare locals;
     let modul = 
@@ -170,7 +171,7 @@ module Modul = struct
        name = ast_module.Ast.module_id;
        local_labels = locals; 
        bad_labels = List.map Label.from_string ast_module.Ast.bad_labels;
-       rules = List.map (Rule.build ?domain ~locals) ast_module.Ast.rules;
+       rules = List.map (Rule.build ~locals) ast_module.Ast.rules;
        confluent = ast_module.Ast.confluent;
        loc = ast_module.Ast.mod_loc;
      } in
@@ -234,7 +235,8 @@ module Grs = struct
 
   let build ast_grs =
     Label.init ast_grs.Ast.labels;
-    let modules = List.map (Modul.build ~domain:ast_grs.Ast.domain) ast_grs.Ast.modules in
+    Domain.init ast_grs.Ast.domain;
+    let modules = List.map Modul.build ast_grs.Ast.modules in
     let grs = {
       labels = List.map (fun (l,_) -> Label.from_string l) ast_grs.Ast.labels;
       modules = modules;
@@ -267,7 +269,7 @@ module Grs = struct
             Rule.normalize
               ~confluent: next.Modul.confluent
               next.Modul.rules 
-              (fun x -> true)  (* FIXME *)
+              (fun x -> true)  (* FIXME filter at the end of rewriting modules *)
               (Instance.clear instance) in
           let good_list = Instance_set.elements good_set 
           and bad_list = Instance_set.elements bad_set in

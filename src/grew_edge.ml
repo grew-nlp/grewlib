@@ -33,7 +33,6 @@ end
 (* ================================================================================ *)
 
 
-
 (* ================================================================================ *)
 module G_edge = struct
   type t = Label.t
@@ -100,9 +99,6 @@ module P_edge = struct
   let compatible t g_edge = match t.u_label with
   | Pos p -> List_.sort_mem g_edge p
   | Neg n -> not (List_.sort_mem g_edge n)
-
-
-
 
   type edge_matcher =
     | Fail

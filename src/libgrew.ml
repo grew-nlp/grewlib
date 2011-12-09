@@ -102,6 +102,7 @@ let display ~gr ~grs ~seq =
   with
   | Error.Run (msg,loc) -> raise (Run (msg,loc))
   | Error.Bug (msg, loc) -> raise (Bug (msg,loc))
+  | Error.Build (msg, loc) -> raise (Build (msg,loc))
   | exc -> raise (Bug (sprintf "[Libgrew.display] UNCATCHED EXCEPTION: %s" (Printexc.to_string exc), None))
 
 let write_stat filename rew_hist = Gr_stat.save filename (Gr_stat.from_rew_history rew_hist) 

@@ -189,12 +189,6 @@ module List_ = struct
     | [] -> ""
     | h::t -> List.fold_left (fun acc elt -> acc ^ sep ^ (string_of_item elt)) (string_of_item h) t
 
-  let rec sort_mem elt = function
-    | [] -> false
-    | h::t when elt<h -> false
-    | h::t when elt>h -> sort_mem elt t 
-    | _ -> (* elt=h *) true
- 
   let rec sort_insert elt = function
     | [] -> [elt]
     | h::t when elt<h -> elt::h::t 
@@ -205,6 +199,20 @@ module List_ = struct
     | h::_ when elt<h -> false
     | h::_ when elt=h -> true
     | h::t (* when elt>h *) -> sort_mem elt t
+
+  let rec sort_assoc key = function
+    | [] -> None
+    | (k,_)::_ when key<k -> None
+    | (k,_)::t when key>k -> sort_assoc key t
+    | (_,v)::_ -> Some v 
+
+  let rec sort_remove_assoc key = function
+    | [] -> []
+    | (k,_)::_ as t when key<k -> t
+    | (k,v)::t when key>k -> (k,v) :: (sort_remove_assoc key t)
+    | (_,v)::t -> t
+
+
   exception Usort
 
   let rec usort_remove key = function 
@@ -484,3 +492,46 @@ module Conll = struct
        }
     | _ -> Log.fcritical "Cannot not parse CONLL line '%s'" line
 end
+
+(* This module defiens a type for lexical parameter (i.e. one line in a lexical file) *)
+module Lex_par = struct
+
+  type item = string list * string list (* first list: pattern parameters $id , second list command parameters @id *)
+
+  type t = item list
+
+  let load ?loc nb_p nb_c file =
+    try
+      let lines = File.read file in
+      let param =
+          (List.map
+             (fun line ->
+               match Str.split (Str.regexp "##") line with
+               | [args] when nb_c = 0 ->
+                   (match Str.split (Str.regexp "#") args with
+                   | l when List.length l = nb_p -> (l,[])
+                   | _ -> Error.bug "Illegal param line in file '%s' line '%s' hasn't %d args" file line nb_p)
+               | [args; values] ->
+                   (match (Str.split (Str.regexp "#") args, Str.split (Str.regexp "#") values) with
+                   | (lp,lc) when List.length lp = nb_p && List.length lc = nb_c -> (lp,lc)
+                   | _ -> Error.bug "Illegal param line in file '%s' line '%s' hasn't %d args and %d values" file line nb_p nb_c)
+               | _ -> Error.bug "Illegal param line in file '%s' line '%s'" file line
+             ) lines
+          ) in
+      param
+    with Sys_error _ -> Error.build ?loc "External lexical file '%s' not found" file
+
+  let filter index atom t = 
+    (match List.filter (fun (x,_) -> List.nth x index = atom) t with
+    | [] -> None
+    | t' -> Some t'
+    )
+
+  let get_command_value index = function
+    | [(_,one)] -> List.nth one index
+    | [] -> Error.bug "[Lex_par.get_command_value] empty parameter"
+    | l -> Error.run "Lexcial parameter are not functionnal"
+
+end
+
+

@@ -8,7 +8,7 @@ open Grew_fs
 (* ================================================================================ *)
 module G_node = struct
   type t = {
-      fs: Feature_structure.t;
+      fs: G_fs.t;
       pos: int option;
       next: G_edge.t Massoc.t;
     }
@@ -18,32 +18,32 @@ module G_node = struct
 
   let set_fs t fs = {t with fs = fs}
 
-  let empty = { fs = Feature_structure.empty; pos = None; next = Massoc.empty }
+  let empty = { fs = G_fs.empty; pos = None; next = Massoc.empty }
 
   let to_string t = 
     Printf.sprintf "[fs=%s ; next=%s]" 
-      (Feature_structure.to_string t.fs)
+      (G_fs.to_string t.fs)
       (Massoc.to_string G_edge.to_string t.next)
 
   let to_gr t = 
     sprintf "%s [%s] " 
       (match t.pos with Some i -> sprintf "(%d)" i | None -> "")
-      (Feature_structure.to_gr t.fs)
+      (G_fs.to_gr t.fs)
 
   let add_edge g_edge gid_tar t =
     match Massoc.add gid_tar g_edge t.next with
     | Some l -> Some {t with next = l}
     | None -> None
 
-  let build ?domain (ast_node, loc) =
+  let build (ast_node, loc) =
     (ast_node.Ast.node_id, 
-     { fs = Feature_structure.build ?domain ast_node.Ast.fs;
+     { fs = G_fs.build ast_node.Ast.fs;
        pos = ast_node.Ast.position;
        next = Massoc.empty;
      } )
 
   let of_conll line = {
-      fs = Feature_structure.of_conll line;
+      fs = G_fs.of_conll line;
       pos = Some line.Conll.num;
       next = Massoc.empty;
     }
@@ -74,18 +74,18 @@ end
 (* ================================================================================ *)
 module P_node = struct
   type t = {
-      fs: Feature_structure.t;
+      fs: P_fs.t;
       next: P_edge.t Massoc.t;
     }
 
   let get_fs t = t.fs
   let get_next t = t.next
 
-  let empty = { fs = Feature_structure.empty; next = Massoc.empty }
+  let empty = { fs = P_fs.empty; next = Massoc.empty }
         
-  let build ?pat_vars ?domain (ast_node, loc) =
+  let build ?pat_vars (ast_node, loc) =
     (ast_node.Ast.node_id, 
-     { fs = Feature_structure.build ?pat_vars ?domain ast_node.Ast.fs;
+     { fs = P_fs.build ?pat_vars ast_node.Ast.fs;
        next = Massoc.empty;
      } )
 
@@ -94,10 +94,8 @@ module P_node = struct
     | Some l -> Some {t with next = l}
     | None -> None
 
-  (* Says that "pattern" t1 is a t2*)
-  let is_a p_node g_node = Feature_structure.compatible p_node.fs (G_node.get_fs g_node)
+  let match_ ?param p_node g_node = P_fs.match_ ?param p_node.fs (G_node.get_fs g_node)
 
-  let is_a_param param p_node g_node = Feature_structure.compatible_param param p_node.fs (G_node.get_fs g_node)
 end
 (* ================================================================================ *)
 

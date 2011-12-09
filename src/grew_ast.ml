@@ -163,7 +163,7 @@ module AST_HTML = struct
     | Ast.Del_node n -> bprintf buff "del_node %s" n
     | Ast.Update_feat (qfn,item_list) -> bprintf buff "%s = %s" (string_of_qfn qfn) (List_.to_string string_of_concat_item " + " item_list)
     | Ast.Del_feat qfn -> bprintf buff "del_feat %s" (string_of_qfn qfn)
-    | Ast.Param_feat (qfn, var) -> bprintf buff "param_feat %s @ %s" (string_of_qfn qfn) var)
+    | Ast.Param_feat (qfn, var) -> bprintf buff "param_feat %s = %s" (string_of_qfn qfn) var)
       ;
     if li_html then bprintf buff "</li>\n" else bprintf buff ";\n"
 
@@ -181,7 +181,7 @@ module AST_HTML = struct
     match u_feature.Ast.kind with 
     | Ast.Equality values -> bprintf buff " = %s" (List_.to_string (fun x->x) ", " values)
     | Ast.Disequality values -> bprintf buff " <> %s" (List_.to_string (fun x->x) ", " values)
-    | Ast.Param index -> bprintf buff "@%s" index 
+    | Ast.Param index -> bprintf buff " = %s" index 
           
   let buff_html_node buff (u_node,_) =
     bprintf buff "      %s [" u_node.Ast.node_id;

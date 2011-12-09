@@ -70,7 +70,7 @@ module Rule = struct
     | No_out of pid * P_edge.t 
     | No_in of pid * P_edge.t
     | Feature_eq of pid * string * pid * string
-    | Filter of pid * Feature_structure.t (* used when a without impose a fs on a node defined by the match pattern *)
+    | Filter of pid * P_fs.t (* used when a without impose a fs on a node defined by the match pattern *)
 
   let build_constraint ?locals table = function 
     | (Ast.Start (node_name, labels), loc) -> No_out (Id.build ~loc node_name table, P_edge.make ?locals labels)
@@ -85,8 +85,8 @@ module Rule = struct
         constraints: const list;
       }
 
-  let build_pos_pattern ?pat_vars ?domain ?(locals=[||]) pattern_ast =
-    let (graph,table,filter_nodes) = P_graph.build ?pat_vars ?domain ~locals pattern_ast.Ast.pat_nodes pattern_ast.Ast.pat_edges in
+  let build_pos_pattern ?pat_vars ?(locals=[||]) pattern_ast =
+    let (graph,table,filter_nodes) = P_graph.build ?pat_vars ~locals pattern_ast.Ast.pat_nodes pattern_ast.Ast.pat_edges in
     (
      {
       graph = graph;
@@ -109,9 +109,9 @@ module Rule = struct
     | (Ast.Feature_eq ((node_name1, feat_name1), (node_name2, feat_name2)), loc) -> 
         Feature_eq (id_build loc node_name1, feat_name1, id_build loc node_name2, feat_name2)
 
-  let build_neg_pattern ?domain ?(locals=[||]) pos_table pattern_ast =
+  let build_neg_pattern ?(locals=[||]) pos_table pattern_ast =
     let (extension, neg_table) =
-      P_graph.build_extension ?domain ~locals pos_table pattern_ast.Ast.pat_nodes pattern_ast.Ast.pat_edges in
+      P_graph.build_extension ~locals pos_table pattern_ast.Ast.pat_nodes pattern_ast.Ast.pat_edges in
 
     let filters = Pid_map.fold (fun id node acc -> Filter (id, P_node.get_fs node) :: acc) extension.P_graph.old_map [] in
 
@@ -134,21 +134,21 @@ module Rule = struct
       neg: pattern list;
       commands: Command.t list;
       loc: Loc.t;
-      param: (string list * string list) list option;
+      param: Lex_par.t option;
     }
 
   let get_name t = t.name
 
   let get_loc t = t.loc
 
-  let build_commands ?cmd_vars ?domain ?(locals=[||]) pos pos_table ast_commands =
+  let build_commands ?cmd_vars ?(locals=[||]) pos pos_table ast_commands =
     let known_node_ids = Array.to_list pos_table in
     let known_edge_ids = get_edge_ids pos in
     let rec loop (kni,kei) = function
       | [] -> []
       | ast_command :: tail ->
           let (command, (new_kni, new_kei)) = 
-            Command.build ?cmd_vars ?domain (kni,kei) pos_table locals ast_command in
+            Command.build ?cmd_vars (kni,kei) pos_table locals ast_command in
           command :: (loop (new_kni,new_kei) tail) in
     loop (known_node_ids, known_edge_ids) ast_commands
 
@@ -164,7 +164,7 @@ module Rule = struct
       | x::t -> Error.bug ~loc "Illegal feature definition '%s' in the lexical rule" x in
     parse_pat_vars vars
     
-  let build ?domain ?(locals=[||]) rule_ast = 
+  let build ?(locals=[||]) rule_ast = 
 
     let (param, pat_vars, cmd_vars) = 
       match rule_ast.Ast.param with
@@ -173,42 +173,44 @@ module Rule = struct
           let (pat_vars, cmd_vars) = parse_vars rule_ast.Ast.rule_loc vars in
           let nb_pv = List.length pat_vars in
           let nb_cv = List.length cmd_vars in
-          try
-            let lines = File.read file in
-            let param = Some
-                (List.map
-                   (fun line ->
-                     match Str.split (Str.regexp "##") line with
-                     | [args] when cmd_vars = [] ->
-                         (match Str.split (Str.regexp "#") args with
-                         | l when List.length l = nb_pv -> (l,[])
-                         | _ -> Error.bug "Illegal param line in file '%s' line '%s' hasn't %d args" file line nb_pv)
-                   | [args; values] ->
-                       (match (Str.split (Str.regexp "#") args, Str.split (Str.regexp "#") values) with
-                       | (lp,lc) when List.length lp = nb_pv && List.length lc = nb_cv -> (lp,lc)
-                       | _ -> Error.bug "Illegal param line in file '%s' line '%s' hasn't %d args and %d values" file line nb_pv nb_cv)
-                   | _ -> Error.bug "Illegal param line in file '%s' line '%s'" file line
-                   ) lines
-                ) in
-            (param, pat_vars, cmd_vars)
-          with Sys_error _ -> Error.build ~loc:rule_ast.Ast.rule_loc "File '%s' not found" file in
+          let param = Lex_par.load ~loc:rule_ast.Ast.rule_loc nb_pv nb_cv file in
+          (Some param, pat_vars, cmd_vars) in
+          (* try *)
+          (*   let lines = File.read file in *)
+          (*   let param = Some *)
+          (*       (List.map *)
+          (*          (fun line -> *)
+          (*            match Str.split (Str.regexp "##") line with *)
+          (*            | [args] when cmd_vars = [] -> *)
+          (*                (match Str.split (Str.regexp "#") args with *)
+          (*                | l when List.length l = nb_pv -> (l,[]) *)
+          (*                | _ -> Error.bug "Illegal param line in file '%s' line '%s' hasn't %d args" file line nb_pv) *)
+          (*          | [args; values] -> *)
+          (*              (match (Str.split (Str.regexp "#") args, Str.split (Str.regexp "#") values) with *)
+          (*              | (lp,lc) when List.length lp = nb_pv && List.length lc = nb_cv -> (lp,lc) *)
+          (*              | _ -> Error.bug "Illegal param line in file '%s' line '%s' hasn't %d args and %d values" file line nb_pv nb_cv) *)
+          (*          | _ -> Error.bug "Illegal param line in file '%s' line '%s'" file line *)
+          (*          ) lines *)
+          (*       ) in *)
+          (*   (param, pat_vars, cmd_vars) *)
+          (* with Sys_error _ -> Error.build ~loc:rule_ast.Ast.rule_loc "File '%s' not found" file in *)
             
-    let (pos,pos_table) = build_pos_pattern ~pat_vars ?domain ~locals rule_ast.Ast.pos_pattern in
+    let (pos,pos_table) = build_pos_pattern ~pat_vars ~locals rule_ast.Ast.pos_pattern in
 
     {
      name = rule_ast.Ast.rule_id;
      pos = pos;
-     neg = List.map (fun p -> build_neg_pattern ?domain ~locals pos_table p) rule_ast.Ast.neg_patterns;
-     commands = build_commands ~cmd_vars ?domain ~locals pos pos_table rule_ast.Ast.commands;
+     neg = List.map (fun p -> build_neg_pattern ~locals pos_table p) rule_ast.Ast.neg_patterns;
+     commands = build_commands ~cmd_vars ~locals pos pos_table rule_ast.Ast.commands;
      loc = rule_ast.Ast.rule_loc;
      param = param; 
-   }
+   };
       
   type matching = {
       n_match: gid Pid_map.t;                   (* partial fct: pattern nodes |--> graph nodes *)
       e_match: (string*(gid*Label.t*gid)) list; (* edge matching: edge ident  |--> (src,label,tar) *)
       a_match: (gid*Label.t*gid) list;          (* anonymous edge mached *)
-      m_param: (string list * string list) list option;
+      m_param: Lex_par.t option;
     }
 
   let empty_matching param = { n_match = Pid_map.empty; e_match = []; a_match = []; m_param = param;}
@@ -302,15 +304,15 @@ module Rule = struct
     | Feature_eq (pid1, feat_name1, pid2, feat_name2) ->
         let gnode1 = Gid_map.find (Pid_map.find pid1 matching.n_match) graph.G_graph.map in
         let gnode2 = Gid_map.find (Pid_map.find pid2 matching.n_match) graph.G_graph.map in
-        (match (Feature_structure.get feat_name1 (G_node.get_fs gnode1),
-                Feature_structure.get feat_name2 (G_node.get_fs gnode2)
+        (match (G_fs.get_atom feat_name1 (G_node.get_fs gnode1),
+                G_fs.get_atom feat_name2 (G_node.get_fs gnode2)
                ) with
         | Some fv1, Some fv2 when fv1 = fv2 -> true
         | _ -> false)
     | Filter (pid, fs) ->
         let gid = Pid_map.find pid matching.n_match in
         let gnode = Gid_map.find gid graph.G_graph.map in
-        Feature_structure.filter fs (G_node.get_fs gnode)
+        P_fs.filter fs (G_node.get_fs gnode)
 
   (* returns all extension of the partial input matching *)
   let rec extend_matching (positive,neg) (graph:G_graph.t) (partial:partial) =
@@ -377,14 +379,9 @@ module Rule = struct
       let g_node = try G_graph.find gid graph with Not_found -> failwith "INS" in
       
       try
-        let new_param =
-          match partial.sub.m_param with
-          | None when P_node.is_a p_node g_node -> None 
-          | None -> raise Fail
-          | Some param ->
-              match P_node.is_a_param param p_node g_node with
-              | [] -> raise Fail
-              | new_param -> Some new_param in
+
+        let new_param = P_node.match_ ?param: partial.sub.m_param p_node g_node in
+
         (* add all out-edges from pid in pattern *)
         let new_unmatched_edges = 
           Massoc.fold_left
@@ -399,7 +396,7 @@ module Rule = struct
             sub = {partial.sub with n_match = Pid_map.add pid gid partial.sub.n_match; m_param = new_param};
           } in
         extend_matching (positive,neg) graph new_partial
-      with Fail -> []
+      with P_fs.Fail -> []
 
 (* the exception below is added to handle unification failure in merge!! *)
   exception Command_execution_fail
@@ -481,8 +478,9 @@ module Rule = struct
               | Command.Feat (cnode, feat_name) -> G_graph.Feat (node_find cnode, feat_name)
               | Command.String s -> G_graph.String s
             ) item_list in
+
         let (new_graph, new_feature_value) = 
-          G_graph.update_feat instance.Instance.graph tar_gid tar_feat_name rule_items in
+          G_graph.update_feat ~loc instance.Instance.graph tar_gid tar_feat_name rule_items in
         (
          {instance with
           Instance.graph = new_graph;
@@ -548,12 +546,13 @@ module Rule = struct
         )
 
     | Command.PARAM_FEAT (tar_cn, tar_feat_name, index) ->
-        match matching.m_param with 
-        | Some [(_,one)] ->
-            let feature_value = List.nth one index in
+        match matching.m_param with
+        | None -> Error.bug "Cannot apply a PARAM_FEAT command without parameter"
+        | Some param ->
+            let feature_value = Lex_par.get_command_value index param in
             let tar_gid = node_find tar_cn in
             let new_graph =
-              G_graph.set_feat instance.Instance.graph tar_gid tar_feat_name feature_value in
+              G_graph.set_feat ~loc instance.Instance.graph tar_gid tar_feat_name feature_value in
             (
              {instance with
               Instance.graph = new_graph;
@@ -563,7 +562,6 @@ module Rule = struct
             },
              created_nodes
             )
-        | _ -> Error.run ~loc "Parameter is not functionnal"
 
 
 (** [apply_rule instance matching rule] returns a new instance after the application of the rule 
