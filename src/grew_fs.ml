@@ -9,8 +9,9 @@ module Feature = struct
   type t = 
     | Equal of string * string list
     | Different of string * string list
+    | Param of string * int 
 
-  let get_name = function | Equal (n,_) -> n | Different (n,_) -> n
+  let get_name = function | Equal (n,_) -> n | Different (n,_) | Param (n,_) -> n
 
   let get_atom = function | Equal (n,[one]) -> Some one | _ -> None
 
@@ -30,25 +31,30 @@ module Feature = struct
       )
   | Some (_::t) -> check ~domain:t loc name values
 
-  let build ?domain = function
-    | ({Ast.kind=Ast.Equality;name=name;values=unsorted_values},loc) ->
+  let build ?pat_vars ?domain = function
+    | ({Ast.kind=Ast.Equality unsorted_values ;name=name},loc) ->
 	let values = List.sort Pervasives.compare unsorted_values in
 	check ?domain loc name values;
 	Equal (name, values)
-    | ({Ast.kind=Ast.Disequality;name=name;values=unsorted_values},loc) ->
+    | ({Ast.kind=Ast.Disequality unsorted_values;name=name},loc) ->
 	let values = List.sort Pervasives.compare unsorted_values in
 	check ?domain loc name values;
 	Different (name, values)
+    | ({Ast.kind=Ast.Param var; name=name},loc) ->
+        match pat_vars with
+        | None -> Error.build "Unknown pattern variable '%s'" var
+        | Some l -> 
+            match List_.pos var l with
+            | Some index -> Param (name, index)
+            | None -> Error.build "Unknown pattern variable '%s'" var
 end
-
-
 
 module Feature_structure = struct
   (* list are supposed to be striclty ordered wrt compare*)
   type t = Feature.t list
 
-  let build ?domain ast_fs =
-    let unsorted = List.map (Feature.build ?domain) ast_fs in
+  let build ?pat_vars ?domain ast_fs =
+    let unsorted = List.map (Feature.build ?pat_vars ?domain) ast_fs in
     List.sort Feature.compare unsorted 
 
   let of_conll line =
@@ -70,6 +76,7 @@ module Feature_structure = struct
     | Feature.Equal (n,l) :: t when n<name -> get name t
     | Feature.Equal _ :: _ -> None
     | Feature.Different _ :: _ -> Log.critical "[Feature_structure.get] this fs contains 'Different' constructor"
+    | Feature.Param _ :: _ -> Log.critical "[Feature_structure.get] this fs contains 'Param' constructor"
 
   let get_atom name t =
     match get name t with
@@ -89,7 +96,8 @@ module Feature_structure = struct
 	  | [] -> "EMPTY"
 	  | h::t -> List.fold_right (fun atom acc -> atom^"|"^acc) t h
 	  )
-
+    | Feature.Param (feat_name, index) -> 
+        sprintf "@%d" index
 
   let to_string t = List_.to_string string_of_feature "\\n" t
 
@@ -152,7 +160,6 @@ module Feature_structure = struct
     | Feature.Equal (fn,ats)::t -> Feature.Equal (fn,ats):: (del_feat feature_name t) 
     | _ -> Log.bug "[Feature_structure.set_feat]: Disequality not allowed in graph features"; exit 2
 
-  (* WARNING: different from prev implem: does not fail when pattern contains a feature_name or in instance *)
   let compatible pattern fs =
     let rec loop = function
       | [], _ -> true
@@ -180,12 +187,61 @@ module Feature_structure = struct
       | ((Feature.Different (fn_pat, fv_pat))::t_pat, (Feature.Equal (fn, fv))::t) 
 	  (* when fn_pat = fn*) ->
  	  (match fv_pat, fv with 
-	  | [],_ | _, [] -> loop (t_pat,t)
+	  | [],_ | _, [] -> loop (t_pat,t)  (* FIXME should be "false" *)
 	  | l_pat,l -> (List_.sort_disjoint l_pat l) && loop (t_pat,t)
 	  )
     | _ -> Log.bug "[Feature_structure.set_feat]: Disequality not allowed in graph features"; exit 2
     in loop (pattern,fs)
       
+
+  let compatible_param param pattern fs =
+    let rec loop acc_param = function
+      | [], _ -> acc_param
+
+      (* Three next cases: each feature_name present in pattern must be in instance: [] means unif failure *)
+      | _, [] -> []
+      | ((Feature.Equal (fn_pat, fv_pat))::t_pat, (Feature.Equal (fn, fv))::t) when fn_pat < fn -> []
+      | ((Feature.Different (fn_pat, fv_pat))::t_pat, (Feature.Equal (fn, fv))::t) when fn_pat < fn -> []
+
+      (* Two next cases: a feature in graph, not in pattern *) 
+      | ((Feature.Equal (fn_pat, fv_pat))::t_pat, (Feature.Equal (fn, fv))::t) 
+	when fn_pat > fn ->
+	  loop acc_param ((Feature.Equal (fn_pat, fv_pat))::t_pat, t)
+      | ((Feature.Different (fn_pat, fv_pat))::t_pat, (Feature.Equal (fn, fv))::t) 
+	when fn_pat > fn ->
+	  loop acc_param ((Feature.Different (fn_pat, fv_pat))::t_pat, t)
+      | ((Feature.Param (fn_pat, i))::t_pat, (Feature.Equal (fn, fv))::t) 
+	when fn_pat > fn ->
+	  loop acc_param ((Feature.Param (fn_pat, i))::t_pat, t)
+
+      | ((Feature.Equal (fn_pat, fv_pat))::t_pat, (Feature.Equal (fn, fv))::t) 
+	  (* when fn_pat = fn *) ->
+            (match fv_pat, fv with 
+	    | [],_ -> (* pattern_value is ? *) loop acc_param (t_pat,t)
+	    | l_pat,l when not (List_.sort_disjoint l_pat l) -> loop acc_param (t_pat,t)
+            | _ -> (* l_pat and l disjoint -> no sol *) []
+	    )
+
+      | ((Feature.Different (fn_pat, fv_pat))::t_pat, (Feature.Equal (fn, fv))::t) 
+	  (* when fn_pat = fn*) ->
+ 	    (match fv_pat, fv with 
+	    | [],_ -> []
+	    | l_pat,l when List_.sort_disjoint l_pat l -> loop acc_param (t_pat,t)
+            | _ -> (* l_pat and l disjoint -> no disjoint *) []
+	    )
+
+      | ((Feature.Param (fn_pat, i))::t_pat, (Feature.Equal (fn, fv))::t)
+          (* when fn_pat = fn*) ->
+ 	    (match fv with
+	    | [atom] -> 
+                let reduce_param = List.filter (fun (x,_) -> List.nth x i = atom) acc_param in
+                loop reduce_param (t_pat,t)
+            | _ -> Log.critical "[compatible_param] Graph feature value not atomic"
+	    )
+      | _ -> Log.bug "[Feature_structure.set_feat]: Disequality not allowed in graph features"; exit 2
+    in loop param (pattern,fs)
+
+
 
   exception Fail_unif 
   exception Bug_unif of string 

@@ -42,7 +42,7 @@ let load_grs ?doc_output_dir file =
     | Grew_parser.Parse_error msg -> raise (Parsing_err msg)
     | Error.Build (msg,loc) -> raise (Build (msg,loc))
     | Error.Bug (msg, loc) -> raise (Bug (msg,loc))
-    | exc -> raise (Bug (sprintf "UNCATCHED EXCEPTION: %s" (Printexc.to_string exc), None))
+    | exc -> raise (Bug (sprintf "[Libgrew.load_grs] UNCATCHED EXCEPTION: %s" (Printexc.to_string exc), None))
 
 
 let get_sequence_names grs = Grs.sequence_names grs
@@ -58,7 +58,7 @@ let load_gr file =
     | Grew_parser.Parse_error msg -> raise (Parsing_err msg)
     | Error.Build (msg,loc) -> raise (Build (msg,loc))
     | Error.Bug (msg, loc) -> raise (Bug (msg,loc))
-    | exc -> raise (Bug (sprintf "UNCATCHED EXCEPTION: %s" (Printexc.to_string exc), None))
+    | exc -> raise (Bug (sprintf "[Libgrew.load_gr] UNCATCHED EXCEPTION: %s" (Printexc.to_string exc), None))
 
    ) else (
     raise (File_dont_exists file)
@@ -72,7 +72,7 @@ let load_conll file =
   | Grew_parser.Parse_error msg -> raise (Parsing_err msg)
   | Error.Build (msg,loc) -> raise (Build (msg,loc))
   | Error.Bug (msg, loc) -> raise (Bug (msg,loc))
-  | exc -> raise (Bug (sprintf "UNCATCHED EXCEPTION: %s" (Printexc.to_string exc), None))
+  | exc -> raise (Bug (sprintf "[Libgrew.load_conll] UNCATCHED EXCEPTION: %s" (Printexc.to_string exc), None))
 
 let load_graph file = 
   if Filename.check_suffix file ".gr" 
@@ -95,14 +95,14 @@ let rewrite ~gr ~grs ~seq =
   with
   | Error.Run (msg,loc) -> raise (Run (msg,loc))
   | Error.Bug (msg, loc) -> raise (Bug (msg,loc))
-  | exc -> raise (Bug (sprintf "UNCATCHED EXCEPTION: %s" (Printexc.to_string exc), None))
+  | exc -> raise (Bug (sprintf "[Libgrew.rewrite] UNCATCHED EXCEPTION: %s" (Printexc.to_string exc), None))
 
 let display ~gr ~grs ~seq =
   try Grs.build_rew_display grs seq gr
   with
   | Error.Run (msg,loc) -> raise (Run (msg,loc))
   | Error.Bug (msg, loc) -> raise (Bug (msg,loc))
-  | exc -> raise (Bug (sprintf "UNCATCHED EXCEPTION: %s" (Printexc.to_string exc), None))
+  | exc -> raise (Bug (sprintf "[Libgrew.display] UNCATCHED EXCEPTION: %s" (Printexc.to_string exc), None))
 
 let write_stat filename rew_hist = Gr_stat.save filename (Gr_stat.from_rew_history rew_hist) 
 

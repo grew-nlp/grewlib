@@ -8,7 +8,7 @@ end
 module Feature_structure: sig
   type t
 
-  val build: ?domain:Ast.domain -> Ast.feature list -> t
+  val build: ?pat_vars: string list -> ?domain:Ast.domain -> Ast.feature list -> t
       
   val of_conll: Conll.line -> t
 
@@ -32,6 +32,7 @@ module Feature_structure: sig
 
       val compatible: t -> t -> bool
 
+  val compatible_param: (string list * string list) list -> t -> t -> (string list * string list) list
 
       (** [unif t1 t2] returns [Some t] if [t] is the unification of two graph feature structures
 	  [None] is returned if the two feature structures cannot be unified

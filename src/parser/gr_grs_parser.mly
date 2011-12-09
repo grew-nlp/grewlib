@@ -41,6 +41,8 @@ let localize t = (t,get_loc ())
 
 %token INCLUDE                     /* include */
 %token FEATURES                    /* features */
+%token FEATURE                     /* feature */
+%token FILE                        /* file */
 %token LABELS                      /* labels */
 %token BAD_LABELS                  /* bad_labels */
 %token MATCH                       /* match */
@@ -49,6 +51,7 @@ let localize t = (t,get_loc ())
 %token MODULE                      /* module */
 %token CONFLUENT                   /* confluent */
 %token RULE                        /* rule */
+%token LEX_RULE                    /* lex_rule */
 %token SEQUENCES                   /* sequences */
 %token GRAPH                       /* graph */
 
@@ -61,6 +64,9 @@ let localize t = (t,get_loc ())
 %token DEL_NODE                    /* del_node */
 %token ADD_NODE                    /* add_node */
 %token DEL_FEAT                    /* del_feat */
+
+%token <string> PAT                         /* $id */
+%token <string> CMD                         /* @id */
 
 %token <string>  IDENT             /* indentifier */
 %token <Grew_ast.Ast.qfn> QFN               /* ident.ident */
@@ -273,15 +279,34 @@ rules:
 rule: 
         | doc = option(rule_doc) RULE id = rule_id LACC p = pos_item n = list(neg_item) cmds = commands RACC 
             { 
-              { Ast.rule_id = fst id; 
+              { Ast.rule_id = fst id;
                 pos_pattern = p;
                 neg_patterns = n;
-                commands = List_.opt cmds; 
+                commands = List_.opt cmds;
+                param = None;
                 rule_doc = begin match doc with Some d -> d | None -> "" end;
                 rule_loc = (!Parser_global.current_file,snd id);
               }
             }         
-            
+        | doc = option(rule_doc) LEX_RULE id = rule_id param=option(param) LACC p = pos_item n = list(neg_item) cmds = commands RACC 
+            { 
+              { Ast.rule_id = fst id;
+                pos_pattern = p;
+                neg_patterns = n;
+                commands = List_.opt cmds;
+                param = param;
+                rule_doc = begin match doc with Some d -> d | None -> "" end;
+                rule_loc = (!Parser_global.current_file,snd id);
+              }
+            }         
+     
+param:
+        | LPAREN FEATURE vars = separated_nonempty_list(COMA,var) SEMIC FILE file=STRING RPAREN { (file,vars) }
+
+var:
+        | i = PAT {i}
+        | i = CMD {i}
+
 pos_item:
         | MATCH i = pn_item { i }
 
@@ -333,11 +358,13 @@ pat_node:
 
 node_features:
         | name = IDENT EQUAL STAR 
-            { localize {Ast.kind = Ast.Disequality; name=name; values=[]; } } 
+            { localize {Ast.kind = Ast.Disequality []; name=name; } } 
         | name = IDENT EQUAL values = separated_nonempty_list(PIPE,feature_value) 
-            { localize {Ast.kind = Ast.Equality; name=name; values=values; } } 
+            { localize {Ast.kind = Ast.Equality values; name=name; } } 
         | name = IDENT DISEQUAL values = separated_nonempty_list(PIPE,feature_value) 
-            { localize {Ast.kind = Ast.Disequality; name=name; values=values; } } 
+            { localize {Ast.kind = Ast.Disequality values; name=name; } } 
+        | name = IDENT EQUAL p = PAT
+            { localize {Ast.kind = Ast.Param p; name=name; } } 
 
 feature_value:
         | v = IDENT { v }
@@ -439,12 +466,14 @@ command:
             { localize (Ast.Shift_edge (n1,n2)) }
         | MERGE n1 = IDENT LONGARROW n2 = IDENT 
             { localize (Ast.Merge_node (n1,n2)) }
-        | DEL_NODE n = IDENT 
+        | DEL_NODE n = IDENT
             { localize (Ast.Del_node n) }
         | ADD_NODE n1 = IDENT DDOT label = delimited(RTL_EDGE_LEFT,IDENT,RTL_EDGE_RIGHT) n2 = IDENT 
             { localize (Ast.New_neighbour (n1,n2,label)) }
         | DEL_FEAT qfn = QFN 
             { localize (Ast.Del_feat qfn) }
+        | qfn = QFN EQUAL p = CMD
+            { localize (Ast.Param_feat (qfn, p)) }
         | qfn = QFN EQUAL items = separated_nonempty_list (PLUS, concat_item)
             { localize (Ast.Update_feat (qfn, items)) }
 

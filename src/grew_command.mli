@@ -21,6 +21,7 @@ module Command : sig
     | ADD_EDGE of (cnode * cnode * G_edge.t)
     | DEL_FEAT of (cnode * string)
     | UPDATE_FEAT of (cnode * string * item list)
+    | PARAM_FEAT of (cnode * string * int)
     | NEW_NEIGHBOUR of (string * G_edge.t * pid)
     | SHIFT_EDGE of (cnode * cnode)
     | SHIFT_IN of (cnode * cnode)
@@ -43,6 +44,7 @@ module Command : sig
     | H_MERGE_NODE of (gid * gid)
 
   val build: 
+      ?cmd_vars: string list ->
       ?domain:Ast.domain ->
       (string list * string list) -> 
       Id.table -> 

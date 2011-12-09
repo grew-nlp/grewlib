@@ -25,6 +25,7 @@ module P_graph: sig
     }
 
   val build:
+      ?pat_vars: string list ->
       ?domain: Ast.domain -> 
       ?locals: Label.decl array -> 
       Ast.node list -> 
@@ -92,6 +93,8 @@ module G_graph: sig
       with feature name [tar_feat_name] to be the contatenation of values described by the [concat_items].
       It returns both the new graph and the new feature value produced as the second element *)
   val update_feat : t -> int -> string -> concat_item list -> (t * string)
+
+  val set_feat: t -> int -> string -> string -> t
 
   val del_feat : t -> int -> string -> t
 

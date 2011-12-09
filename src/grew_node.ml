@@ -83,9 +83,9 @@ module P_node = struct
 
   let empty = { fs = Feature_structure.empty; next = Massoc.empty }
         
-  let build ?domain (ast_node, loc) =
+  let build ?pat_vars ?domain (ast_node, loc) =
     (ast_node.Ast.node_id, 
-     { fs = Feature_structure.build ?domain ast_node.Ast.fs;
+     { fs = Feature_structure.build ?pat_vars ?domain ast_node.Ast.fs;
        next = Massoc.empty;
      } )
 
@@ -97,6 +97,7 @@ module P_node = struct
   (* Says that "pattern" t1 is a t2*)
   let is_a p_node g_node = Feature_structure.compatible p_node.fs (G_node.get_fs g_node)
 
+  let is_a_param param p_node g_node = Feature_structure.compatible_param param p_node.fs (G_node.get_fs g_node)
 end
 (* ================================================================================ *)
 

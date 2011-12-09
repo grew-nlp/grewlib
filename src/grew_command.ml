@@ -26,6 +26,7 @@ module Command  = struct
     | ADD_EDGE of (cnode * cnode * G_edge.t)
     | DEL_FEAT of (cnode * string)
     | UPDATE_FEAT of (cnode * string * item list)
+    | PARAM_FEAT of (cnode * string * int)
     | NEW_NEIGHBOUR of (string * G_edge.t * pid)
     | SHIFT_EDGE of (cnode * cnode)
     | SHIFT_IN of (cnode * cnode)
@@ -48,7 +49,7 @@ module Command  = struct
     | H_SHIFT_OUT of (gid * gid)
     | H_MERGE_NODE of (gid * gid)
 
-  let build ?domain (kni, kei) table locals ast_command = 
+  let build ?cmd_vars ?domain (kni, kei) table locals ast_command = 
     let get_pid node_name =
       match Id.build_opt node_name table with
       | Some id -> Pid id
@@ -123,6 +124,16 @@ module Command  = struct
               | Ast.String_item s -> String s) 
             ast_items in
         ((UPDATE_FEAT (get_pid tar_node, tar_feat_name, items), loc), (kni, kei))
+
+    | (Ast.Param_feat ((node,feat_name), var), loc) ->
+        match cmd_vars with
+        | None -> Error.build "Unknown command variable '%s'" var
+        | Some l -> 
+            match List_.pos var l with
+            | Some index -> ((PARAM_FEAT (get_pid node, feat_name, index), loc), (kni, kei))
+            | None -> Error.build "Unknown command variable '%s'" var
+
+        
 
 
 end

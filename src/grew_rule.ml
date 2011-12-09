@@ -85,8 +85,8 @@ module Rule = struct
         constraints: const list;
       }
 
-  let build_pos_pattern ?domain ?(locals=[||]) pattern_ast =
-    let (graph,table,filter_nodes) = P_graph.build ?domain ~locals pattern_ast.Ast.pat_nodes pattern_ast.Ast.pat_edges in
+  let build_pos_pattern ?pat_vars ?domain ?(locals=[||]) pattern_ast =
+    let (graph,table,filter_nodes) = P_graph.build ?pat_vars ?domain ~locals pattern_ast.Ast.pat_nodes pattern_ast.Ast.pat_edges in
     (
      {
       graph = graph;
@@ -115,7 +115,6 @@ module Rule = struct
 
     let filters = Pid_map.fold (fun id node acc -> Filter (id, P_node.get_fs node) :: acc) extension.P_graph.old_map [] in
 
-    (* (\* DEBUG *\) Printf.printf "-----> |filters| = %d\n%!" (List.length filters); *)
     {
      graph = extension.P_graph.ext_map;
      constraints = filters @ List.map (build_neg_constraint ~locals pos_table neg_table) pattern_ast.Ast.pat_const ;
@@ -135,51 +134,86 @@ module Rule = struct
       neg: pattern list;
       commands: Command.t list;
       loc: Loc.t;
+      param: (string list * string list) list option;
     }
 
   let get_name t = t.name
 
   let get_loc t = t.loc
 
-  let build_commands ?domain ?(locals=[||]) pos pos_table ast_commands =
+  let build_commands ?cmd_vars ?domain ?(locals=[||]) pos pos_table ast_commands =
     let known_node_ids = Array.to_list pos_table in
     let known_edge_ids = get_edge_ids pos in
     let rec loop (kni,kei) = function
       | [] -> []
       | ast_command :: tail ->
           let (command, (new_kni, new_kei)) = 
-            Command.build ?domain (kni,kei) pos_table locals ast_command in
+            Command.build ?cmd_vars ?domain (kni,kei) pos_table locals ast_command in
           command :: (loop (new_kni,new_kei) tail) in
     loop (known_node_ids, known_edge_ids) ast_commands
 
+  let parse_vars loc vars =
+    let rec parse_cmd_vars = function
+      | [] -> []
+      | x::t when x.[0] = '@' -> x :: parse_cmd_vars t
+      | x::t -> Error.bug ~loc "Illegal feature definition '%s' in the lexical rule" x in
+    let rec parse_pat_vars = function
+      | [] -> ([],[])
+      | x::t when x.[0] = '@' -> ([],parse_cmd_vars (x::t))
+      | x::t when x.[0] = '$' -> let (pv,cv) = parse_pat_vars t in (x::pv, cv)
+      | x::t -> Error.bug ~loc "Illegal feature definition '%s' in the lexical rule" x in
+    parse_pat_vars vars
+    
   let build ?domain ?(locals=[||]) rule_ast = 
-    let (pos,pos_table) = build_pos_pattern ?domain ~locals rule_ast.Ast.pos_pattern in
+
+    let (param, pat_vars, cmd_vars) = 
+      match rule_ast.Ast.param with
+      | None -> (None,[],[])
+      | Some (file,vars) ->
+          let (pat_vars, cmd_vars) = parse_vars rule_ast.Ast.rule_loc vars in
+          let nb_pv = List.length pat_vars in
+          let nb_cv = List.length cmd_vars in
+          try
+            let lines = File.read file in
+            let param = Some
+                (List.map
+                   (fun line ->
+                     match Str.split (Str.regexp "##") line with
+                     | [args] when cmd_vars = [] ->
+                         (match Str.split (Str.regexp "#") args with
+                         | l when List.length l = nb_pv -> (l,[])
+                         | _ -> Error.bug "Illegal param line in file '%s' line '%s' hasn't %d args" file line nb_pv)
+                   | [args; values] ->
+                       (match (Str.split (Str.regexp "#") args, Str.split (Str.regexp "#") values) with
+                       | (lp,lc) when List.length lp = nb_pv && List.length lc = nb_cv -> (lp,lc)
+                       | _ -> Error.bug "Illegal param line in file '%s' line '%s' hasn't %d args and %d values" file line nb_pv nb_cv)
+                   | _ -> Error.bug "Illegal param line in file '%s' line '%s'" file line
+                   ) lines
+                ) in
+            (param, pat_vars, cmd_vars)
+          with Sys_error _ -> Error.build ~loc:rule_ast.Ast.rule_loc "File '%s' not found" file in
+            
+    let (pos,pos_table) = build_pos_pattern ~pat_vars ?domain ~locals rule_ast.Ast.pos_pattern in
 
     {
-     name = rule_ast.Ast.rule_id ;
+     name = rule_ast.Ast.rule_id;
      pos = pos;
      neg = List.map (fun p -> build_neg_pattern ?domain ~locals pos_table p) rule_ast.Ast.neg_patterns;
-     commands = build_commands ?domain ~locals pos pos_table rule_ast.Ast.commands;
+     commands = build_commands ~cmd_vars ?domain ~locals pos pos_table rule_ast.Ast.commands;
      loc = rule_ast.Ast.rule_loc;
+     param = param; 
    }
-
+      
   type matching = {
-      n_match: gid Pid_map.t;                    (* partial fct: pattern nodes |--> graph nodes *)
+      n_match: gid Pid_map.t;                   (* partial fct: pattern nodes |--> graph nodes *)
       e_match: (string*(gid*Label.t*gid)) list; (* edge matching: edge ident  |--> (src,label,tar) *)
       a_match: (gid*Label.t*gid) list;          (* anonymous edge mached *)
+      m_param: (string list * string list) list option;
     }
 
-  let empty_matching = { n_match = Pid_map.empty; e_match = []; a_match = [];}
-
-  let singleton_matching i j =  { empty_matching with n_match = Pid_map.add i j Pid_map.empty }
+  let empty_matching param = { n_match = Pid_map.empty; e_match = []; a_match = []; m_param = param;}
 
   let e_comp (e1,_) (e2,_) = compare e1 e2
-      
-  let union match1 match2 = {
-    n_match = Pid_map.union_if match1.n_match match2.n_match; 
-    e_match = List_.sort_disjoint_union ~compare:e_comp match1.e_match match2.e_match;
-    a_match = match1.a_match @ match2.a_match;
-  }
 
   let e_match_add ?pos edge_id matching =
     match List_.usort_insert ~compare:e_comp edge_id matching.e_match with
@@ -235,7 +269,7 @@ module Rule = struct
            - the domain of the pattern P is the disjoint union of domain([sub]) and [unmatched_nodes]
          *)
 
-  let init pattern =
+  let init param pattern =
     let roots = P_graph.roots pattern.graph in
 
     let node_list = Pid_map.fold (fun pid _ acc -> pid::acc) pattern.graph [] in
@@ -248,7 +282,7 @@ module Rule = struct
         | false, true -> 1
         | _ -> 0) node_list in
     
-    { sub = empty_matching;
+    { sub = empty_matching param;
       unmatched_nodes = sorted_node_list;
       unmatched_edges = [];
       already_matched_gids = [];
@@ -282,7 +316,6 @@ module Rule = struct
   let rec extend_matching (positive,neg) (graph:G_graph.t) (partial:partial) =
     match (partial.unmatched_edges, partial.unmatched_nodes) with
     | [], [] -> 
-        (* (\* DEBUG *\) Printf.printf "==<1>==\n%!"; *)
         if List.for_all (fun const -> fullfill graph partial.sub const) partial.check 
         then [partial.sub, partial.already_matched_gids]
         else []
@@ -342,24 +375,31 @@ module Rule = struct
         then try P_graph.find pid positive with Not_found -> failwith "POS"
         else try P_graph.find pid neg with Not_found -> failwith "NEG" in
       let g_node = try G_graph.find gid graph with Not_found -> failwith "INS" in
-      if not (P_node.is_a p_node g_node) 
-      then [] (* the nodes don't match *) 
-      else 
+      
+      try
+        let new_param =
+          match partial.sub.m_param with
+          | None when P_node.is_a p_node g_node -> None 
+          | None -> raise Fail
+          | Some param ->
+              match P_node.is_a_param param p_node g_node with
+              | [] -> raise Fail
+              | new_param -> Some new_param in
         (* add all out-edges from pid in pattern *)
         let new_unmatched_edges = 
           Massoc.fold_left
             (fun acc pid_next p_edge -> (pid, p_edge, pid_next) :: acc
             ) partial.unmatched_edges (P_node.get_next p_node) in
-
-        let new_partial = { partial with
-                            unmatched_nodes = (try List_.rm pid partial.unmatched_nodes with Not_found -> failwith "List_.rm"); 
-                            unmatched_edges = new_unmatched_edges;
-                            already_matched_gids = gid :: partial.already_matched_gids;
-                            sub = {partial.sub with n_match = Pid_map.add pid gid partial.sub.n_match};
-                          } in
+        
+        let new_partial = 
+          { partial with
+            unmatched_nodes = (try List_.rm pid partial.unmatched_nodes with Not_found -> failwith "List_.rm"); 
+            unmatched_edges = new_unmatched_edges;
+            already_matched_gids = gid :: partial.already_matched_gids;
+            sub = {partial.sub with n_match = Pid_map.add pid gid partial.sub.n_match; m_param = new_param};
+          } in
         extend_matching (positive,neg) graph new_partial
-
-
+      with Fail -> []
 
 (* the exception below is added to handle unification failure in merge!! *)
   exception Command_execution_fail
@@ -507,6 +547,25 @@ module Rule = struct
          created_nodes
         )
 
+    | Command.PARAM_FEAT (tar_cn, tar_feat_name, index) ->
+        match matching.m_param with 
+        | Some [(_,one)] ->
+            let feature_value = List.nth one index in
+            let tar_gid = node_find tar_cn in
+            let new_graph =
+              G_graph.set_feat instance.Instance.graph tar_gid tar_feat_name feature_value in
+            (
+             {instance with
+              Instance.graph = new_graph;
+              commands = List_.sort_insert
+                (Command.H_UPDATE_FEAT (tar_gid,tar_feat_name,feature_value))
+                instance.Instance.commands
+            },
+             created_nodes
+            )
+        | _ -> Error.run ~loc "Parameter is not functionnal"
+
+
 (** [apply_rule instance matching rule] returns a new instance after the application of the rule 
     [Command_execution_fail] is raised if some merge unification fails
  *)
@@ -576,7 +635,7 @@ module Rule = struct
           extend_matching 
             (pos_graph,P_graph.empty) 
             instance.Instance.graph 
-            (init rule.pos) in
+            (init rule.param rule.pos) in
 
         let filtered_matching_list =
           List.filter
@@ -607,7 +666,7 @@ module Rule = struct
           extend_matching 
             (pos_graph,P_graph.empty) 
             instance.Instance.graph 
-            (init rule.pos) in
+            (init rule.param rule.pos) in
         
         try 
           let (first_matching_where_all_witout_are_fulfilled,_) =
@@ -664,6 +723,7 @@ module Rule = struct
           (* type: t list -> (Instance_set.elt -> bool) -> Instance.t -> Instance_set.t * Instance_set.t *)
 
   let normalize ?(confluent=false) rules filter instance =
+
     if confluent
     then
       let output = conf_normalize instance rules in

@@ -41,7 +41,7 @@ module P_graph = struct
     let fs = Feature_structure.build ?domain ast_node.Ast.fs in
     (pid, fs)
 
-  let build ?domain ?(locals=[||]) full_node_list full_edge_list = 
+  let build ?pat_vars ?domain ?(locals=[||]) full_node_list full_edge_list = 
 
     let (named_nodes, constraints) = 
       let rec loop already_bound = function
@@ -50,7 +50,7 @@ module P_graph = struct
             let (tail_nodes, tail_const) = loop (ast_node.Ast.node_id :: already_bound) tail in
             if List.mem ast_node.Ast.node_id already_bound
             then (tail_nodes, (ast_node, loc)::tail_const)
-            else (P_node.build ?domain (ast_node, loc) :: tail_nodes, tail_const) in
+            else (P_node.build ?pat_vars ?domain (ast_node, loc) :: tail_nodes, tail_const) in
       loop [] full_node_list in
 
     (* let named_nodes = List.map (Node.build ?domain) full_node_list in *)
@@ -242,6 +242,7 @@ module G_graph = struct
 
 
   let of_conll lines =
+    
     let nodes = 
       List.fold_left
         (fun acc line -> Gid_map.add line.Conll.num (G_node.of_conll line) acc) 
@@ -253,7 +254,9 @@ module G_graph = struct
           if line.Conll.gov=0
           then acc
           else 
-            let gov_node = Gid_map.find line.Conll.gov acc in
+            let gov_node = 
+              try Gid_map.find line.Conll.gov acc 
+              with Not_found -> Log.fcritical "Ill-formed CONLL file: line number %d refers to the on existing gov %d" line.Conll.num line.Conll.gov in
             match G_node.add_edge (G_edge.make line.Conll.dep_lab) line.Conll.num gov_node with
             | None -> acc
             | Some new_node -> Gid_map.add line.Conll.gov new_node acc
@@ -412,8 +415,12 @@ module G_graph = struct
     | None -> None 
 
   (* FIXME: check consistency wrt the domain *)      
+  let set_feat graph node_id feat_name new_value =
+    let node = Gid_map.find node_id graph.map in
+    let new_fs = Feature_structure.set_feat feat_name [new_value] (G_node.get_fs node) in
+    {graph with map = Gid_map.add node_id (G_node.set_fs node new_fs) graph.map}
+
   let update_feat graph tar_id tar_feat_name item_list =
-    let tar = Gid_map.find tar_id graph.map in
     let strings_to_concat =
       List.map
         (function
@@ -429,8 +436,13 @@ module G_graph = struct
           | String s -> s
         ) item_list in
     let new_feature_value = List_.to_string (fun s->s) "" strings_to_concat in
-    let new_fs = Feature_structure.set_feat tar_feat_name [new_feature_value] (G_node.get_fs tar) in
-    ({graph with map = Gid_map.add tar_id  (G_node.set_fs tar new_fs) graph.map}, new_feature_value)
+    (set_feat graph tar_id tar_feat_name new_feature_value, new_feature_value)
+    (* let tar = Gid_map.find tar_id graph.map in *)
+    (* let new_fs = Feature_structure.set_feat tar_feat_name [new_feature_value] (G_node.get_fs tar) in *)
+    (* ({graph with map = Gid_map.add tar_id  (G_node.set_fs tar new_fs) graph.map}, new_feature_value) *)
+
+
+
       
       (** [del_feat graph node_id feat_name] returns [graph] where the feat [feat_name] of [node_id] is deleted
 	  If the feature is not present, [graph] is returned. *)

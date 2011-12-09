@@ -87,7 +87,10 @@ module File = struct
     let rev_lines = ref [] in
     try
       while true do
-        rev_lines := (input_line in_ch) :: !rev_lines
+        let line = input_line in_ch in
+        if (Str.string_match (Str.regexp "^$[ \t]*") line 0) || (line.[0] = '%')
+        then ()
+        else rev_lines := line :: !rev_lines
       done; assert false
     with End_of_file -> 
       close_in in_ch;
@@ -134,6 +137,13 @@ module List_ = struct
     | [] -> raise Not_found
     | x::t when x=elt -> t
     | x::t -> x::(rm elt t)
+
+  let pos x l = 
+    let rec loop i = function
+    | [] -> None
+    | h::t when h=x -> Some i
+    | _::t -> loop (i+1) t in
+    loop 0 l
 
   let rec opt = function
     | [] -> []

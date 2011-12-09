@@ -7,12 +7,14 @@ module Ast : sig
           
   type domain = feature_spec list
         
-  type feature_kind = Equality | Disequality
+  type feature_kind = 
+    | Equality of string list 
+    | Disequality of string list
+    | Param of string
 
   type u_feature = {
-      kind: feature_kind;
       name: string;
-      values: string list;
+      kind: feature_kind;
     }  
 
   type feature = u_feature * Loc.t
@@ -70,8 +72,8 @@ module Ast : sig
     | Del_node of Id.name
 
     | Del_feat of qfn
-          
     | Update_feat of qfn * concat_item list
+    | Param_feat of qfn * string
 
   type command = u_command * Loc.t
   type rule = {
@@ -79,6 +81,7 @@ module Ast : sig
       pos_pattern: pattern;
       neg_patterns: pattern list;
       commands: command list;
+      param: (string*string list) option;
       rule_doc:string;
       rule_loc: Loc.t;
     }

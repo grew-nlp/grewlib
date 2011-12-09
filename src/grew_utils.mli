@@ -40,6 +40,9 @@ module List_: sig
   (** [rm elt list] removes the first occurence of [elt] in [list]. [Not_found] can be raised. *)
   val rm: 'a -> 'a list -> 'a list
   val opt: 'a option list -> 'a list
+      
+  (** [pos elt list] return [Some index] if [index] is the smallest position in the [list] equals to [elt]. None is returned if [elt] is not in the [list] *)
+  val pos: 'a -> 'a list -> int option
 
   val opt_map: ('a -> 'b option) -> 'a list -> 'b list
 

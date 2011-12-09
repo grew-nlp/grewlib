@@ -10,14 +10,16 @@ module Ast = struct
           
   type domain = feature_spec list
         
-  type feature_kind = Equality | Disequality
-    
-    
+  type feature_kind = 
+    | Equality of string list 
+    | Disequality of string list
+    | Param of string
+
   type u_feature = {
-      kind: feature_kind;
       name: string;
-      values: string list;
-    }
+      kind: feature_kind;
+    }  
+
   type feature = u_feature * Loc.t
         
   (* qualified feature name "A.lemma" *)
@@ -76,8 +78,8 @@ module Ast = struct
     | Del_node of Id.name
 
     | Del_feat of qfn
-          
     | Update_feat of qfn * concat_item list
+    | Param_feat of qfn * string
 
   type command = u_command * Loc.t
 
@@ -86,6 +88,7 @@ module Ast = struct
       pos_pattern: pattern;
       neg_patterns: pattern list;
       commands: command list;
+      param: (string*string list) option;
       rule_doc:string;
       rule_loc: Loc.t;
     }
@@ -159,7 +162,9 @@ module AST_HTML = struct
     | Ast.New_neighbour (n1,n2,label) -> bprintf buff "add_node %s: <-[%s]- %s \n" n1 label n2
     | Ast.Del_node n -> bprintf buff "del_node %s" n
     | Ast.Update_feat (qfn,item_list) -> bprintf buff "%s = %s" (string_of_qfn qfn) (List_.to_string string_of_concat_item " + " item_list)
-    | Ast.Del_feat qfn -> bprintf buff "del_feat %s" (string_of_qfn qfn));
+    | Ast.Del_feat qfn -> bprintf buff "del_feat %s" (string_of_qfn qfn)
+    | Ast.Param_feat (qfn, var) -> bprintf buff "param_feat %s @ %s" (string_of_qfn qfn) var)
+      ;
     if li_html then bprintf buff "</li>\n" else bprintf buff ";\n"
 
   let to_html_commands_pretty = function
@@ -172,11 +177,12 @@ module AST_HTML = struct
         Buffer.contents buff
     		
   let buff_html_feature buff (u_feature,_) =
-    bprintf buff "%s %s %s" 
-      u_feature.Ast.name 
-      (match u_feature.Ast.kind with Ast.Equality -> "=" | Ast.Disequality -> "<>")
-      (List_.to_string (fun x->x) ", " u_feature.Ast.values)
-
+    bprintf buff "%s" u_feature.Ast.name;
+    match u_feature.Ast.kind with 
+    | Ast.Equality values -> bprintf buff " = %s" (List_.to_string (fun x->x) ", " values)
+    | Ast.Disequality values -> bprintf buff " <> %s" (List_.to_string (fun x->x) ", " values)
+    | Ast.Param index -> bprintf buff "@%s" index 
+          
   let buff_html_node buff (u_node,_) =
     bprintf buff "      %s [" u_node.Ast.node_id;
     List.iter (buff_html_feature buff) u_node.Ast.fs;

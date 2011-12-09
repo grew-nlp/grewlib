@@ -46,11 +46,12 @@ module P_node: sig
   val get_fs: t -> Feature_structure.t
   val get_next: t -> P_edge.t Massoc.t
 
-  val build: ?domain:Ast.domain -> Ast.node -> (Id.name * t)
+  val build: ?pat_vars: string list -> ?domain:Ast.domain -> Ast.node -> (Id.name * t)
 
   val add_edge: P_edge.t -> int -> t -> t option
 
   val is_a: t -> G_node.t -> bool
 
+  val is_a_param: (string list * string list) list -> t -> G_node.t -> (string list * string list) list
 end
 (* ================================================================================ *)
