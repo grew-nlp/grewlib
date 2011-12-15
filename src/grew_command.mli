@@ -13,6 +13,7 @@ module Command : sig
   type item =
     | Feat of (cnode * string)
     | String of string
+    | Param of int
 
   type p = 
     | DEL_NODE of cnode
@@ -21,7 +22,6 @@ module Command : sig
     | ADD_EDGE of (cnode * cnode * G_edge.t)
     | DEL_FEAT of (cnode * string)
     | UPDATE_FEAT of (cnode * string * item list)
-    | PARAM_FEAT of (cnode * string * int)
     | NEW_NEIGHBOUR of (string * G_edge.t * pid)
     | SHIFT_EDGE of (cnode * cnode)
     | SHIFT_IN of (cnode * cnode)

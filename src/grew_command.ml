@@ -17,6 +17,7 @@ module Command  = struct
   type item =
     | Feat of (cnode * string)
     | String of string
+    | Param of int
 
   (* the command in pattern *)
   type p = 
@@ -26,7 +27,6 @@ module Command  = struct
     | ADD_EDGE of (cnode * cnode * G_edge.t)
     | DEL_FEAT of (cnode * string)
     | UPDATE_FEAT of (cnode * string * item list)
-    | PARAM_FEAT of (cnode * string * int)
     | NEW_NEIGHBOUR of (string * G_edge.t * pid)
     | SHIFT_EDGE of (cnode * cnode)
     | SHIFT_IN of (cnode * cnode)
@@ -121,19 +121,14 @@ module Command  = struct
         let items = List.map 
             (function
               | Ast.Qfn_item (node,feat_name) -> check_node loc node kni; Feat (get_pid node, feat_name)
-              | Ast.String_item s -> String s) 
-            ast_items in
+              | Ast.String_item s -> String s
+              | Ast.Param_item var -> 
+                  match cmd_vars with
+                  | None -> Error.build "Unknown command variable '%s'" var
+                  | Some l -> 
+                      match List_.pos var l with
+                      | Some index -> Param index
+                      | None -> Error.build "Unknown command variable '%s'" var
+            ) ast_items in
         ((UPDATE_FEAT (get_pid tar_node, tar_feat_name, items), loc), (kni, kei))
-
-    | (Ast.Param_feat ((node,feat_name), var), loc) ->
-        match cmd_vars with
-        | None -> Error.build "Unknown command variable '%s'" var
-        | Some l -> 
-            match List_.pos var l with
-            | Some index -> ((PARAM_FEAT (get_pid node, feat_name, index), loc), (kni, kei))
-            | None -> Error.build "Unknown command variable '%s'" var
-
-        
-
-
 end

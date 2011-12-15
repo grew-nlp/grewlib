@@ -412,9 +412,7 @@ module G_graph = struct
 	Some {se_graph with map = new_map}
     | None -> None 
 
-  (* FIXME: check consistency wrt the domain *)      
   let set_feat ?loc graph node_id feat_name new_value =
-    printf "===DEBUG=== loc:%s\n%!" (match loc with None -> "None" | Some l -> Loc.to_string l);
     let node = Gid_map.find node_id graph.map in
     let new_fs = G_fs.set_feat ?loc feat_name new_value (G_node.get_fs node) in
     {graph with map = Gid_map.add node_id (G_node.set_fs node new_fs) graph.map}

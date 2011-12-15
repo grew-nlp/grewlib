@@ -59,6 +59,7 @@ module Ast : sig
   type concat_item =
     | Qfn_item of (string * string)
     | String_item of string
+    | Param_item of string
           
   type u_command = 
     | Del_edge_expl of (Id.name * Id.name * string)
@@ -73,7 +74,6 @@ module Ast : sig
 
     | Del_feat of qfn
     | Update_feat of qfn * concat_item list
-    | Param_feat of qfn * string
 
   type command = u_command * Loc.t
   type rule = {

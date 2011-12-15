@@ -472,15 +472,14 @@ command:
             { localize (Ast.New_neighbour (n1,n2,label)) }
         | DEL_FEAT qfn = QFN 
             { localize (Ast.Del_feat qfn) }
-        | qfn = QFN EQUAL p = CMD
-            { localize (Ast.Param_feat (qfn, p)) }
         | qfn = QFN EQUAL items = separated_nonempty_list (PLUS, concat_item)
             { localize (Ast.Update_feat (qfn, items)) }
 
 concat_item:
-        | qfn = QFN  { Ast.Qfn_item qfn }
-        | s = IDENT   { Ast.String_item s }
+        | qfn = QFN    { Ast.Qfn_item qfn }
+        | s = IDENT    { Ast.String_item s }
         | s = STRING   { Ast.String_item s }
+        | p = CMD      { Ast.Param_item p }
 
 /*=============================================================================================*/
 /*                                                                                             */

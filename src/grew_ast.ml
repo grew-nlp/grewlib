@@ -65,6 +65,7 @@ module Ast = struct
   type concat_item =
     | Qfn_item of (string * string)
     | String_item of string
+    | Param_item of string
 
   type u_command = 
     | Del_edge_expl of (Id.name * Id.name * string)
@@ -79,7 +80,6 @@ module Ast = struct
 
     | Del_feat of qfn
     | Update_feat of qfn * concat_item list
-    | Param_feat of qfn * string
 
   type command = u_command * Loc.t
 
@@ -145,6 +145,7 @@ module AST_HTML = struct
   let string_of_concat_item = function
     | Ast.Qfn_item (n,f) -> sprintf "%s.%s" n f 
     | Ast.String_item s -> sprintf "\"%s\"" s
+    | Ast.Param_item var -> sprintf "@%s" var
  	
   let string_of_qfn (node, feat_name) = sprintf "%s.%s" node feat_name
 
@@ -163,8 +164,7 @@ module AST_HTML = struct
     | Ast.Del_node n -> bprintf buff "del_node %s" n
     | Ast.Update_feat (qfn,item_list) -> bprintf buff "%s = %s" (string_of_qfn qfn) (List_.to_string string_of_concat_item " + " item_list)
     | Ast.Del_feat qfn -> bprintf buff "del_feat %s" (string_of_qfn qfn)
-    | Ast.Param_feat (qfn, var) -> bprintf buff "param_feat %s = %s" (string_of_qfn qfn) var)
-      ;
+    );
     if li_html then bprintf buff "</li>\n" else bprintf buff ";\n"
 
   let to_html_commands_pretty = function

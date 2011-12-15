@@ -477,6 +477,10 @@ module Rule = struct
             (function
               | Command.Feat (cnode, feat_name) -> G_graph.Feat (node_find cnode, feat_name)
               | Command.String s -> G_graph.String s
+              | Command.Param index -> 
+                  match matching.m_param with
+                  | None -> Error.bug "Cannot apply a UPDATE_FEAT command without parameter"
+                  | Some param -> G_graph.String (Lex_par.get_command_value index param)
             ) item_list in
 
         let (new_graph, new_feature_value) = 
@@ -544,25 +548,6 @@ module Rule = struct
         },
          created_nodes
         )
-
-    | Command.PARAM_FEAT (tar_cn, tar_feat_name, index) ->
-        match matching.m_param with
-        | None -> Error.bug "Cannot apply a PARAM_FEAT command without parameter"
-        | Some param ->
-            let feature_value = Lex_par.get_command_value index param in
-            let tar_gid = node_find tar_cn in
-            let new_graph =
-              G_graph.set_feat ~loc instance.Instance.graph tar_gid tar_feat_name feature_value in
-            (
-             {instance with
-              Instance.graph = new_graph;
-              commands = List_.sort_insert
-                (Command.H_UPDATE_FEAT (tar_gid,tar_feat_name,feature_value))
-                instance.Instance.commands
-            },
-             created_nodes
-            )
-
 
 (** [apply_rule instance matching rule] returns a new instance after the application of the rule 
     [Command_execution_fail] is raised if some merge unification fails
@@ -691,7 +676,7 @@ module Rule = struct
       
 (** normalize [t] according to the [rules]
  * [t] is a raw graph
- * info about the commands applied on [t] are kept
+ * Info about the commands applied on [t] are kept
  *)
 
       (* type: Instance.t -> t list -> Instance_set.t *)

@@ -530,7 +530,11 @@ module Lex_par = struct
   let get_command_value index = function
     | [(_,one)] -> List.nth one index
     | [] -> Error.bug "[Lex_par.get_command_value] empty parameter"
-    | l -> Error.run "Lexcial parameter are not functionnal"
+    | (_,[sing])::tail when index=0 -> 
+        Printf.sprintf "%s/%s" 
+          sing 
+          (List_.to_string (function (_,[s]) -> s | _ -> Error.bug "[Lex_par.get_command_value] inconsistent param") "/" tail)
+    | l -> Error.run "Lexical parameter are not functionnal"
 
 end
 

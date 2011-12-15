@@ -193,7 +193,7 @@ module P_fs = struct
           | None -> Log.bug "[P_fs.compatible] Illegal parametrized pattern feature"; exit 2
           | Some param ->
               (match Lex_par.filter index atom param with
-              | None -> None
+              | None -> raise Fail
               | Some new_param -> loop (Some new_param) (t_pat,t)
               )
           )
