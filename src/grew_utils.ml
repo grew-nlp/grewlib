@@ -88,7 +88,7 @@ module File = struct
     try
       while true do
         let line = input_line in_ch in
-        if (Str.string_match (Str.regexp "^$[ \t]*") line 0) || (line.[0] = '%')
+        if (Str.string_match (Str.regexp "^[ \t]*$") line 0) || (line.[0] = '%')
         then ()
         else rev_lines := line :: !rev_lines
       done; assert false
@@ -96,7 +96,6 @@ module File = struct
       close_in in_ch;
       List.rev !rev_lines
  end
-
 
 module Array_ = struct
   let dicho_mem elt array =
@@ -500,12 +499,17 @@ module Lex_par = struct
 
   type t = item list
 
+  let rm_peripheral_white s = 
+    Str.global_replace (Str.regexp "\\( \\|\t\\)*$") ""
+    (Str.global_replace (Str.regexp "^\\( \\|\t\\)*") "" s)
+
   let load ?loc nb_p nb_c file =
     try
       let lines = File.read file in
       let param =
           (List.map
              (fun line ->
+               let line = rm_peripheral_white line in
                match Str.split (Str.regexp "##") line with
                | [args] when nb_c = 0 ->
                    (match Str.split (Str.regexp "#") args with
