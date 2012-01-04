@@ -107,9 +107,8 @@ module G_fs = struct
 
   let get_atom = List_.sort_assoc
 
-  let to_gr t = List_.to_string G_feature.to_string ", " t
-
-  let to_string t = List_.to_string G_feature.to_string "\\n" t
+  let to_string t = List_.to_string G_feature.to_string "," t
+  let to_gr = to_string
 
   let build ast_fs =
     let unsorted = List.map (fun feat -> G_feature.build feat) ast_fs in

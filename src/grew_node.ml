@@ -21,7 +21,7 @@ module G_node = struct
   let empty = { fs = G_fs.empty; pos = None; next = Massoc.empty }
 
   let to_string t = 
-    Printf.sprintf "[fs=%s ; next=%s]" 
+    Printf.sprintf "  fs=[%s]\n  next=%s\n" 
       (G_fs.to_string t.fs)
       (Massoc.to_string G_edge.to_string t.next)
 

@@ -3,20 +3,25 @@ open Grew_ast
 
 module Grew_parser = struct
 
-  exception Parse_error of string
+  (* message and line number *)
+  exception Parse_error of (string * int option)
       
 (* ------------------------------------------------------------------------------------------*)
 (** general fucntion to handle parse errors *)
-let parse_handle fct lexbuf = 
+let parse_handle fct lexbuf =
   try fct lexbuf with
-  | Lexer.Error msg -> raise (Parse_error msg)
+  | Lexer.Error msg -> 
+      let cp = lexbuf.Lexing.lex_curr_p.Lexing.pos_lnum in
+      raise (Parse_error ("Lexing error:"^msg, Some cp))
   | Gr_grs_parser.Error -> 
-      let cp = lexbuf.Lexing.lex_curr_p in
-      raise (Parse_error (Printf.sprintf "Syntax error\nLine %d : %s\n%!" cp.Lexing.pos_lnum (Lexing.lexeme lexbuf)))
+      let cp = lexbuf.Lexing.lex_curr_p.Lexing.pos_lnum in
+      raise (Parse_error ("Syntax error:"^(Lexing.lexeme lexbuf), Some cp))
   | Failure msg -> 
-      let cp = lexbuf.Lexing.lex_curr_p in
-      raise (Parse_error (Printf.sprintf "Syntax error\nLine %d\n%s\n%!" cp.Lexing.pos_lnum msg))
-  | err -> raise (Parse_error (Printexc.to_string err))
+      let cp = lexbuf.Lexing.lex_curr_p.Lexing.pos_lnum in
+      raise (Parse_error ("Failure:"^msg, Some cp))
+  | err -> 
+      let cp = lexbuf.Lexing.lex_curr_p.Lexing.pos_lnum in
+      raise (Parse_error ("Unexpected error:"^(Printexc.to_string err), Some cp))
         
 (* ------------------------------------------------------------------------------------------*)
         (**
@@ -35,7 +40,7 @@ let parse_handle fct lexbuf =
       let grs = parse_handle (Gr_grs_parser.grs_with_include Lexer.global) lexbuf in
       close_in in_ch;
       grs
-    with Sys_error msg-> raise (Parse_error msg)
+    with Sys_error msg-> raise (Parse_error (msg, None))
 
 (* ------------------------------------------------------------------------------------------*)
   let parse_file_to_module_list loc file =
@@ -46,7 +51,7 @@ let parse_handle fct lexbuf =
       let module_list = parse_handle (Gr_grs_parser.included Lexer.global) lexbuf in
       close_in in_ch;
       module_list
-    with Sys_error msg-> raise (Parse_error msg)
+    with Sys_error msg-> raise (Parse_error (msg, None))
 
 (* ------------------------------------------------------------------------------------------*)
   (**
@@ -91,5 +96,5 @@ let parse_handle fct lexbuf =
       let gr = parse_handle (Gr_grs_parser.gr Lexer.global) lexbuf in
       close_in in_ch;
       gr
-    with Sys_error msg-> raise (Parse_error msg)
+    with Sys_error msg-> raise (Parse_error (msg, None))
 end

@@ -423,13 +423,10 @@ module G_graph = struct
         (function
           | Feat (node_gid, feat_name) ->
               let node = Gid_map.find node_gid graph.map in
-              (try 
-                match G_fs.get_atom feat_name (G_node.get_fs node) with
-                | Some atom -> atom
-                | None -> Log.fcritical "[BUG] [Graph.update_feat] Feature not atomic"
-              with Not_found -> 
-                Log.fcritical "[RUN] [Graph.update_feat] no feature \"%s\" in node \"%s\"" 
-                  feat_name (G_node.to_string node))
+              (match G_fs.get_atom feat_name (G_node.get_fs node) with
+              | Some atom -> atom
+              | None -> Error.run ?loc "Some feature (named \"%s\") is not defined" feat_name
+              )
           | String s -> s
         ) item_list in
     let new_feature_value = List_.to_string (fun s->s) "" strings_to_concat in

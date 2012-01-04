@@ -13,9 +13,9 @@ open HTMLer
 
 
 
-exception Parsing_err of string
 exception File_dont_exists of string
 
+exception Parsing_err of string
 exception Build of string * (string * int) option
 exception Run of string * (string * int) option
 exception Bug of string * (string * int) option
@@ -39,7 +39,10 @@ let load_grs ?doc_output_dir file =
       | Some dir -> HTMLer.proceed dir grs_ast);
       Grs.build grs_ast
     with
-    | Grew_parser.Parse_error msg -> raise (Parsing_err msg)
+    | Grew_parser.Parse_error (msg,Some l) -> 
+        raise (Parsing_err (sprintf "[file:%s, line:%d] %s" file l msg))
+    | Grew_parser.Parse_error (msg,None) -> 
+        raise (Parsing_err (sprintf "[file:%s] %s" file msg))
     | Error.Build (msg,loc) -> raise (Build (msg,loc))
     | Error.Bug (msg, loc) -> raise (Bug (msg,loc))
     | exc -> raise (Bug (sprintf "[Libgrew.load_grs] UNCATCHED EXCEPTION: %s" (Printexc.to_string exc), None))
@@ -55,7 +58,10 @@ let load_gr file =
       let gr_ast = Grew_parser.gr_of_file file in
       Instance.build gr_ast
     with
-    | Grew_parser.Parse_error msg -> raise (Parsing_err msg)
+    | Grew_parser.Parse_error (msg,Some l) -> 
+        raise (Parsing_err (sprintf "[file:%s, line:%d] %s" file l msg))
+    | Grew_parser.Parse_error (msg,None) -> 
+        raise (Parsing_err (sprintf "[file:%s] %s" file msg))
     | Error.Build (msg,loc) -> raise (Build (msg,loc))
     | Error.Bug (msg, loc) -> raise (Bug (msg,loc))
     | exc -> raise (Bug (sprintf "[Libgrew.load_gr] UNCATCHED EXCEPTION: %s" (Printexc.to_string exc), None))
@@ -69,7 +75,10 @@ let load_conll file =
     let lines = File.read file in
     Instance.of_conll (List.map Conll.parse lines)
   with
-  | Grew_parser.Parse_error msg -> raise (Parsing_err msg)
+    | Grew_parser.Parse_error (msg,Some l) -> 
+        raise (Parsing_err (sprintf "[file:%s, line:%d] %s" file l msg))
+    | Grew_parser.Parse_error (msg,None) -> 
+        raise (Parsing_err (sprintf "[file:%s] %s" file msg))
   | Error.Build (msg,loc) -> raise (Build (msg,loc))
   | Error.Bug (msg, loc) -> raise (Bug (msg,loc))
   | exc -> raise (Bug (sprintf "[Libgrew.load_conll] UNCATCHED EXCEPTION: %s" (Printexc.to_string exc), None))
