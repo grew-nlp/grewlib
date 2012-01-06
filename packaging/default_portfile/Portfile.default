@@ -23,10 +23,10 @@ checksums           md5      @MD5_SUM@ \
                     rmd160   @RMD160_SUM@
 
 depends_build	    port:ocaml \
-					port:libcaml-ansiterminal \
-					port:libcaml-log \
-					port:caml-menhir
-					
+                    port:libcaml-ansiterminal \
+                    port:libcaml-log \
+                    port:ocaml-menhir
+				
                    
 use_parallel_build  no
 
