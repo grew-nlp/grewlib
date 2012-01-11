@@ -514,11 +514,11 @@ module Lex_par = struct
                | [args] when nb_c = 0 ->
                    (match Str.split (Str.regexp "#") args with
                    | l when List.length l = nb_p -> (l,[])
-                   | _ -> Error.bug "Illegal param line in file '%s' line '%s' hasn't %d args" file line nb_p)
+                   | _ -> Error.bug "Illegal param line in file \"%s\", the line \"%s\" doesn't contain %d args" file line nb_p)
                | [args; values] ->
                    (match (Str.split (Str.regexp "#") args, Str.split (Str.regexp "#") values) with
                    | (lp,lc) when List.length lp = nb_p && List.length lc = nb_c -> (lp,lc)
-                   | _ -> Error.bug "Illegal param line in file '%s' line '%s' hasn't %d args and %d values" file line nb_p nb_c)
+                   | _ -> Error.bug "Illegal param line in file \"%s\", the line \"%s\" doesn't contain %d args and %d values" file line nb_p nb_c)
                | _ -> Error.bug "Illegal param line in file '%s' line '%s'" file line
              ) lines
           ) in

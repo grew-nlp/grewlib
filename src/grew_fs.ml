@@ -43,9 +43,7 @@ module G_feature = struct
 	(name, atom)
     | _ -> Error.build "Illegal feature declaration in Graph (must be '=' and atomic)"
 
-  let to_string (feat_name, value) = sprintf "%s=\"%s\"" feat_name value
-
-  let to_dep (feat_name, value) = sprintf "%s=%s" feat_name value
+  let to_string (feat_name, value) = sprintf "%s=%s" feat_name value
 end
 
 (* ==================================================================================================== *)
@@ -152,7 +150,7 @@ module G_fs = struct
     let (main_opt, sub) = get_main ?main_feat t in
     sprintf " word=\"%s\"; subword=\"%s\"; " 
       (match main_opt with Some atom -> atom | None -> "")
-      (List_.to_string G_feature.to_dep "#" sub)
+      (List_.to_string G_feature.to_string "#" sub)
 end
  
 (* ==================================================================================================== *)
