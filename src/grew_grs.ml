@@ -150,6 +150,7 @@ module Modul = struct
       local_labels: (string * string option) array;
       bad_labels: Label.t list;
       rules: Rule.t list;
+      filters: Rule.t list;
       confluent: bool;
       loc: Loc.t;
     }
@@ -166,12 +167,15 @@ module Modul = struct
   let build ast_module =
     let locals = Array.of_list ast_module.Ast.local_labels in
     Array.sort compare locals;
+    let rules_or_filters = List.map (Rule.build ~locals ast_module.Ast.mod_dir) ast_module.Ast.rules in
+    let (filters, rules) = List.partition Rule.is_filter rules_or_filters in 
     let modul = 
       {
        name = ast_module.Ast.module_id;
        local_labels = locals; 
        bad_labels = List.map Label.from_string ast_module.Ast.bad_labels;
-       rules = List.map (Rule.build ~locals ast_module.Ast.mod_dir) ast_module.Ast.rules;
+       rules = rules; 
+       filters = filters;
        confluent = ast_module.Ast.confluent;
        loc = ast_module.Ast.mod_loc;
      } in
@@ -269,7 +273,7 @@ module Grs = struct
             Rule.normalize
               ~confluent: next.Modul.confluent
               next.Modul.rules 
-              (fun x -> true)  (* FIXME filter at the end of rewriting modules *)
+              next.Modul.filters
               (Instance.clear instance) in
           let good_list = Instance_set.elements good_set 
           and bad_list = Instance_set.elements bad_set in
@@ -291,7 +295,7 @@ module Grs = struct
             Rule.normalize
               ~confluent: next.Modul.confluent
               next.Modul.rules
-              (fun x -> true)  (* FIXME: filtering in module outputs *)
+              next.Modul.filters
               (Instance.clear instance) in
           let inst_list = Instance_set.elements good_set
               (* and bad_list = Instance_set.elements bad_set *) in

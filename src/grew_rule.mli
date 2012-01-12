@@ -39,8 +39,10 @@ module Rule : sig
 
   val get_name: t -> string
 
-  (** [get_loc t] returns the file location of the rule definition *)
+  (** [get_loc t] returns the file location of th*)
   val get_loc: t -> Loc.t
+
+  val is_filter: t -> bool
 
   (** [build ?local dir ast_rule] returns the Rule.t value corresponding to [ast_rule].
       [dir] is used for localisation of lp files *)
@@ -49,8 +51,9 @@ module Rule : sig
   (* raise Stop if some command fails to apply *)
   val normalize: 
     ?confluent:bool -> 
-    t list ->
-    (Instance_set.elt -> bool) ->
+    t list -> (* rule list *)
+    t list -> (* filter list *)
     Instance.t ->
       Instance_set.t * Instance_set.t
+
 end

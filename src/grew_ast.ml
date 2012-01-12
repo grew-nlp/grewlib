@@ -83,6 +83,11 @@ module Ast = struct
 
   type command = u_command * Loc.t
 
+  (* the [rule] type is used for 3 kids of module items:
+     - rule     { param=None; ... }
+     - lex_rule
+     - filter   { param=None; commands=[]; ... }
+   *)
   type rule = {
       rule_id:Id.name;
       pos_pattern: pattern;
@@ -92,7 +97,7 @@ module Ast = struct
       rule_doc:string;
       rule_loc: Loc.t;
     }
-        
+
   type modul = {
       module_id:Id.name;
       local_labels: (string * string option) list;

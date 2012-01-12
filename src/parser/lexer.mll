@@ -83,6 +83,7 @@ and global = parse
 | "confluent"   { CONFLUENT }
 | "rule"        { RULE }
 | "lex_rule"    { LEX_RULE }
+| "filter"      { FILTER }
 | "sequences"   { SEQUENCES }
 
 | "graph"       { GRAPH }

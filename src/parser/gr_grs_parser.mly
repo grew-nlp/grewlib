@@ -52,6 +52,7 @@ let localize t = (t,get_loc ())
 %token CONFLUENT                   /* confluent */
 %token RULE                        /* rule */
 %token LEX_RULE                    /* lex_rule */
+%token FILTER                      /* filter */
 %token SEQUENCES                   /* sequences */
 %token GRAPH                       /* graph */
 
@@ -65,11 +66,11 @@ let localize t = (t,get_loc ())
 %token ADD_NODE                    /* add_node */
 %token DEL_FEAT                    /* del_feat */
 
-%token <string> PAT                         /* $id */
-%token <string> CMD                         /* @id */
+%token <string> PAT                /* $id */
+%token <string> CMD                /* @id */
 
 %token <string>  IDENT             /* indentifier */
-%token <Grew_ast.Ast.qfn> QFN               /* ident.ident */
+%token <Grew_ast.Ast.qfn> QFN      /* ident.ident */
 %token <string>  STRING
 %token <int>     INT
 %token <string>  COMMENT
@@ -300,7 +301,18 @@ rule:
                 rule_loc = (!Parser_global.current_file,snd id);
               }
             }         
-     
+        | doc = option(rule_doc) FILTER id = rule_id LACC p = pos_item n = list(neg_item) RACC 
+            { 
+              { Ast.rule_id = fst id;
+                pos_pattern = p;
+                neg_patterns = n;
+                commands = [];
+                param = None;
+                rule_doc = begin match doc with Some d -> d | None -> "" end;
+                rule_loc = (!Parser_global.current_file,snd id);
+              }
+            }
+ 
 param:
         | LPAREN FEATURE vars = separated_nonempty_list(COMA,var) SEMIC FILE file=STRING RPAREN { (file,vars) }
 

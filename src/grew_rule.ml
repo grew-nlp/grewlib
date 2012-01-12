@@ -141,6 +141,8 @@ module Rule = struct
 
   let get_loc t = t.loc
 
+  let is_filter t = t.commands = []
+
   let build_commands ?cmd_vars ?(locals=[||]) pos pos_table ast_commands =
     let known_node_ids = Array.to_list pos_table in
     let known_edge_ids = get_edge_ids pos in
@@ -175,26 +177,7 @@ module Rule = struct
           let nb_cv = List.length cmd_vars in
           let param = Lex_par.load ~loc:rule_ast.Ast.rule_loc dir nb_pv nb_cv file in
           (Some param, pat_vars, cmd_vars) in
-          (* try *)
-          (*   let lines = File.read file in *)
-          (*   let param = Some *)
-          (*       (List.map *)
-          (*          (fun line -> *)
-          (*            match Str.split (Str.regexp "##") line with *)
-          (*            | [args] when cmd_vars = [] -> *)
-          (*                (match Str.split (Str.regexp "#") args with *)
-          (*                | l when List.length l = nb_pv -> (l,[]) *)
-          (*                | _ -> Error.bug "Illegal param line in file '%s' line '%s' hasn't %d args" file line nb_pv) *)
-          (*          | [args; values] -> *)
-          (*              (match (Str.split (Str.regexp "#") args, Str.split (Str.regexp "#") values) with *)
-          (*              | (lp,lc) when List.length lp = nb_pv && List.length lc = nb_cv -> (lp,lc) *)
-          (*              | _ -> Error.bug "Illegal param line in file '%s' line '%s' hasn't %d args and %d values" file line nb_pv nb_cv) *)
-          (*          | _ -> Error.bug "Illegal param line in file '%s' line '%s'" file line *)
-          (*          ) lines *)
-          (*       ) in *)
-          (*   (param, pat_vars, cmd_vars) *)
-          (* with Sys_error _ -> Error.build ~loc:rule_ast.Ast.rule_loc "File '%s' not found" file in *)
-            
+
     let (pos,pos_table) = build_pos_pattern ~pat_vars ~locals rule_ast.Ast.pos_pattern in
 
     {
@@ -679,7 +662,7 @@ module Rule = struct
  * Info about the commands applied on [t] are kept
  *)
 
-      (* type: Instance.t -> t list -> Instance_set.t *)
+  (* type: Instance.t -> t list -> Instance_set.t *)
   let normalize_instance instance rules =
     let rec loop to_do nf = 
       if to_do = Instance_set.empty
@@ -697,6 +680,36 @@ module Rule = struct
         loop new_to_do new_nf in
     let nfs = loop (Instance_set.singleton instance) Instance_set.empty in 
     filter_equal_nfs nfs
+      
+  (* [filter_instance instance filters] return a boolean:
+     - true iff the instance does NOT match any pattern in [filters] *)
+  let filter_instance filters instance =
+    let rec loop = function
+      | [] -> true (* no more filter to check *)
+      | filter::filter_tail ->
+          let pos_graph = filter.pos.graph in
+          
+          (* get the list of partial matching for positive part of the pattern *)
+          let matching_list = 
+            extend_matching 
+              (pos_graph,P_graph.empty) 
+              instance.Instance.graph 
+              (init filter.param filter.pos) in
+          
+          if List.exists
+              (fun (sub, already_matched_gids) ->
+                List.for_all 
+                  (fun without -> 
+                    let neg_graph = without.graph in
+                    let new_partial_matching = update_partial pos_graph without (sub, already_matched_gids) in
+                    fulfill (pos_graph,neg_graph) instance.Instance.graph new_partial_matching
+                  ) filter.neg
+              ) matching_list
+          then (* one of the matching can be extended *) false
+          else loop filter_tail in
+    loop filters
+
+
 
   let rec conf_normalize instance rules =
     match conf_one_step instance rules with
@@ -705,16 +718,16 @@ module Rule = struct
 
           (* type: t list -> (Instance_set.elt -> bool) -> Instance.t -> Instance_set.t * Instance_set.t *)
 
-  let normalize ?(confluent=false) rules filter instance =
-
+  let normalize ?(confluent=false) rules filters instance =
     if confluent
     then
       let output = conf_normalize instance rules in
-      if filter output 
+      if filter_instance filters output 
       then (Instance_set.singleton output, Instance_set.empty)
       else (Instance_set.empty, Instance_set.singleton output)
     else
       let output_set = normalize_instance instance rules in 
-      let (good_set, bad_set) = Instance_set.partition filter output_set in
+      let (good_set, bad_set) = Instance_set.partition (filter_instance filters) output_set in
       (good_set, bad_set)
+
 end
