@@ -70,7 +70,7 @@ module P_graph = struct
 	  let edge = P_edge.build ~locals (ast_edge, loc) in
 	  (match map_add_edge acc i1 edge i2 with
 	  | Some g -> g
-	  | None -> Log.fcritical "[GRS] [Graph.build] try to build a graph with twice the same edge %s %s" 
+	  | None -> Error.build "[GRS] [Graph.build] try to build a graph with twice the same edge %s %s" 
                 (P_edge.to_string edge)
                 (Loc.to_string loc)
 	  )
@@ -209,7 +209,7 @@ module G_graph = struct
         | (ast_node, loc) :: tail ->
             let tail = loop (ast_node.Ast.node_id :: already_bound) tail in
             if List.mem ast_node.Ast.node_id already_bound
-            then Log.fcritical "[GRS] [Graph.build] try to build a graph with twice the same node id '%s'" ast_node.Ast.node_id
+            then Error.build "[GRS] [Graph.build] try to build a graph with twice the same node id '%s'" ast_node.Ast.node_id
             else G_node.build (ast_node, loc) :: tail in
       loop [] full_node_list in
 
@@ -230,7 +230,7 @@ module G_graph = struct
 	  let edge = G_edge.build ~locals (ast_edge, loc) in
 	  (match map_add_edge acc i1 edge i2 with
 	  | Some g -> g
-	  | None -> Log.fcritical "[GRS] [Graph.build] try to build a graph with twice the same edge %s %s" 
+	  | None -> Error.build "[GRS] [Graph.build] try to build a graph with twice the same edge %s %s" 
                 (G_edge.to_string edge)
                 (Loc.to_string loc)
 	  )
