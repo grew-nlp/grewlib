@@ -177,8 +177,8 @@ end
 module Lex_par: sig
   type t
 
-  (** [load ?loc nb_pattern_var nb_command_var file] *)
-  val load: ?loc: Loc.t -> int -> int -> string -> t
+  (** [load ?loc local_dir_name nb_pattern_var nb_command_var file] *)
+  val load: ?loc: Loc.t -> string -> int -> int -> string -> t
 
   (** [filter index atom t] returns the subset of [t] which contains only entries 
       which refers to [atom] at the [index]^th pattern_var.

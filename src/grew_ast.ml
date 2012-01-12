@@ -101,6 +101,7 @@ module Ast = struct
       confluent: bool;
       module_doc:string;
       mod_loc:Loc.t;
+      mod_dir: string; (* the directory where the module is defined (for lp file localisation) *)
     }
         
   type sequence = {

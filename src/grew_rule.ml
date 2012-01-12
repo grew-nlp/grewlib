@@ -164,7 +164,7 @@ module Rule = struct
       | x::t -> Error.bug ~loc "Illegal feature definition '%s' in the lexical rule" x in
     parse_pat_vars vars
     
-  let build ?(locals=[||]) rule_ast = 
+  let build ?(locals=[||]) dir rule_ast = 
 
     let (param, pat_vars, cmd_vars) = 
       match rule_ast.Ast.param with
@@ -173,7 +173,7 @@ module Rule = struct
           let (pat_vars, cmd_vars) = parse_vars rule_ast.Ast.rule_loc vars in
           let nb_pv = List.length pat_vars in
           let nb_cv = List.length cmd_vars in
-          let param = Lex_par.load ~loc:rule_ast.Ast.rule_loc nb_pv nb_cv file in
+          let param = Lex_par.load ~loc:rule_ast.Ast.rule_loc dir nb_pv nb_cv file in
           (Some param, pat_vars, cmd_vars) in
           (* try *)
           (*   let lines = File.read file in *)

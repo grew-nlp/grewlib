@@ -39,9 +39,12 @@ module Rule : sig
 
   val get_name: t -> string
 
+  (** [get_loc t] returns the file location of the rule definition *)
   val get_loc: t -> Loc.t
 
-  val build: ?locals:Label.decl array -> Ast.rule -> t
+  (** [build ?local dir ast_rule] returns the Rule.t value corresponding to [ast_rule].
+      [dir] is used for localisation of lp files *)
+  val build: ?locals:Label.decl array -> string -> Ast.rule -> t
 
   (* raise Stop if some command fails to apply *)
   val normalize: 

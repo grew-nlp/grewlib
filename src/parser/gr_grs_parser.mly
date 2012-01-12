@@ -232,7 +232,8 @@ grew_module:
               rules = begin match r with None -> [] | Some r -> r; end;
               confluent = conf;
               module_doc = (match doc with Some d -> d | None -> "");
-              mod_loc = (!Parser_global.current_file, snd id); 
+              mod_loc = (!Parser_global.current_file, snd id);
+              mod_dir = "";
             }
           }
 

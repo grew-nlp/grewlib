@@ -171,7 +171,7 @@ module Modul = struct
        name = ast_module.Ast.module_id;
        local_labels = locals; 
        bad_labels = List.map Label.from_string ast_module.Ast.bad_labels;
-       rules = List.map (Rule.build ~locals) ast_module.Ast.rules;
+       rules = List.map (Rule.build ~locals ast_module.Ast.mod_dir) ast_module.Ast.rules;
        confluent = ast_module.Ast.confluent;
        loc = ast_module.Ast.mod_loc;
      } in

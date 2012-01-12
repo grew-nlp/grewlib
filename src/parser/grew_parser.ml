@@ -62,20 +62,22 @@ let parse_handle file fct lexbuf =
    *)
   let grs_of_file main_file =
     let grs_with_includes = parse_file_to_grs_with_includes main_file in
-    let rec flatten_modules = function
+    let rec flatten_modules current_file = function
       | [] -> []
-      | Ast.Modul m :: tail -> m :: (flatten_modules tail)
+      | Ast.Modul m :: tail -> 
+          {m with Ast.mod_dir = Filename.dirname current_file} 
+          :: (flatten_modules current_file tail)
       | Ast.Includ (inc_file,loc) :: tail -> 
           let sub_file = 
             if Filename.is_relative inc_file
-            then Filename.concat (Filename.dirname main_file) inc_file
+            then Filename.concat (Filename.dirname current_file) inc_file
             else inc_file in
-          (flatten_modules (parse_file_to_module_list loc sub_file))
-          @ (flatten_modules tail) in
+          (flatten_modules sub_file (parse_file_to_module_list loc sub_file))
+          @ (flatten_modules current_file tail) in
     {
      Ast.domain = grs_with_includes.Ast.domain_wi;
      Ast.labels = grs_with_includes.Ast.labels_wi;
-     Ast.modules = flatten_modules grs_with_includes.Ast.modules_wi;
+     Ast.modules = flatten_modules main_file grs_with_includes.Ast.modules_wi;
      Ast.sequences = grs_with_includes.Ast.sequences_wi;
    }
      

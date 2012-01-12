@@ -503,9 +503,14 @@ module Lex_par = struct
     Str.global_replace (Str.regexp "\\( \\|\t\\)*$") ""
     (Str.global_replace (Str.regexp "^\\( \\|\t\\)*") "" s)
 
-  let load ?loc nb_p nb_c file =
+  let load ?loc dir nb_p nb_c file =
     try
-      let lines = File.read file in
+      let full_file = 
+        if Filename.is_relative file
+        then Filename.concat dir file
+        else file in
+      
+      let lines = File.read full_file in
       let param =
           (List.map
              (fun line ->
@@ -514,12 +519,16 @@ module Lex_par = struct
                | [args] when nb_c = 0 ->
                    (match Str.split (Str.regexp "#") args with
                    | l when List.length l = nb_p -> (l,[])
-                   | _ -> Error.bug "Illegal param line in file \"%s\", the line \"%s\" doesn't contain %d args" file line nb_p)
+                   | _ -> Error.bug 
+                         "Illegal param line in file \"%s\", the line \"%s\" doesn't contain %d args"
+                         full_file line nb_p)
                | [args; values] ->
                    (match (Str.split (Str.regexp "#") args, Str.split (Str.regexp "#") values) with
                    | (lp,lc) when List.length lp = nb_p && List.length lc = nb_c -> (lp,lc)
-                   | _ -> Error.bug "Illegal param line in file \"%s\", the line \"%s\" doesn't contain %d args and %d values" file line nb_p nb_c)
-               | _ -> Error.bug "Illegal param line in file '%s' line '%s'" file line
+                   | _ -> Error.bug 
+                         "Illegal param line in file \"%s\", the line \"%s\" doesn't contain %d args and %d values"
+                         full_file line nb_p nb_c)
+               | _ -> Error.bug "Illegal param line in file '%s' line '%s'" full_file line
              ) lines
           ) in
       param
