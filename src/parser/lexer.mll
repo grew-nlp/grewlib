@@ -17,7 +17,9 @@
 
 let digit = ['0'-'9']
 let letter = ['a'-'z' 'A'-'Z']
-let ident = (letter | '_') (letter | digit | '_' | '\'' | '-')* 
+
+(* an identifier is either a single letter or its lenght is >=2 and it doesn't end with a '-' *)
+let ident = letter | (letter | '_') (letter | digit | '_' | '\'' | '-')* (letter | digit | '_' | '\'')
 
 rule comment target = parse
 | '\n' { incr Parser_global.current_line; Lexing.new_line lexbuf; target lexbuf }
