@@ -21,6 +21,10 @@ module Rewrite_history = struct
 
   let rec is_empty t = 
     (t.instance.Instance.rules = []) && List.for_all is_empty t.good_nf
+
+  let rec num_sol = function
+    | { good_nf = [] } -> 1
+    | { good_nf = l} -> List.fold_left (fun acc t -> acc + (num_sol t)) 0 l
       
 IFDEF DEP2PICT THEN
 
@@ -322,7 +326,7 @@ module Gr_stat = struct
 
   (** the type [gr] stores the stats for the rewriting of one gr file *)
   type t = 
-    | Stat of int StringMap.t 
+    | Stat of (int StringMap.t * int option)  (* map: rule_name |-> max occ, number of solution *) 
     | Error of string
 
   let add_one_module modul_opt rules stat =
@@ -351,30 +355,34 @@ module Gr_stat = struct
         | [] -> StringMap.empty
         | h::t -> List.fold_left max_stat h t in
       add_one_module prev_module rh.Rewrite_history.instance.Instance.rules sub_stat
-    in Stat (loop None rew_history)
+    in Stat (loop None rew_history, Some (Rewrite_history.num_sol rew_history))
 
   let save stat_file t =
     let out_ch = open_out stat_file in
     (match t with
     | Error msg -> fprintf out_ch "ERROR\n%s" msg 
-    | Stat map -> 
+    | Stat (map, num) ->
+        (match num with None -> () | Some n -> fprintf out_ch "NUM_SOL:%d\n%!" n);
         StringMap.iter (fun rule_name occ -> fprintf out_ch "%s:%d\n%!" rule_name occ) map);
     close_out out_ch
 
   let load stat_file = 
+    let sol = ref None in
     try
       let lines = File.read stat_file in
       match lines with
       | "ERROR" :: msg_lines -> Error (List_.to_string (fun x->x) "\n" msg_lines)
       | _ -> 
-          Stat 
-            (List.fold_left 
-               (fun acc line ->
-                 match Str.split (Str.regexp ":") line with
-                 | [modu_rule; num] -> StringMap.add modu_rule (int_of_string num) acc
-                 | _ -> Log.fcritical "invalid stat line: %s" line
-               ) StringMap.empty lines
-            )
+          let map =
+            List.fold_left 
+              (fun acc line ->
+                match Str.split (Str.regexp ":") line with
+                | ["NUM_SOL"; num] -> sol := Some (int_of_string num); acc 
+                | [modu_rule; num] -> StringMap.add modu_rule (int_of_string num) acc
+                | _ -> Log.fcritical "invalid stat line: %s" line
+              ) StringMap.empty lines in
+          Stat (map, !sol)
+            
     with Sys_error msg -> Error (sprintf "Sys_error: %s" msg)
 end (* module Gr_stat *)
 
@@ -383,12 +391,13 @@ module Corpus_stat = struct
   (* 
      first key: [m] module name
      second key: [r] rule name
-     value: [occ_nul, file_list] the totat number of rule applications and the set of gr files concerned *)
+     value: [occ_num, file_list] the total number of rule applications and the set of gr files concerned *)
   type t = {
-      modules: Modul.t list; (* ordered list of modules in the sequence *)
-      map: (int * StringSet.t) StringMap.t StringMap.t;
-      error: (string * string) list;   (* (file, msg) *)
-      num: int;
+      modules: Modul.t list;                             (* ordered list of modules in the sequence *)
+      map: (int * StringSet.t) StringMap.t StringMap.t;  (* map: see above *)
+      amb: StringSet.t IntMap.t;                         (* key: nb of sols |-> set: sentence concerned *)
+      error: (string * string) list;                     (* (file, msg) *)
+      num: int;                                          (* an integer id relative to the corpus *)
     }
 
   let empty ~grs ~seq =
@@ -406,7 +415,7 @@ module Corpus_stat = struct
             StringMap.add modul.Modul.name rule_map acc
           else acc
         ) StringMap.empty grs.Grs.modules in
-    { modules=modules; map = map; error = []; num = 0 }
+    { modules=modules; map = map; amb = IntMap.empty; error = []; num = 0 }
       
   let add modul rule file num map = 
     let old_rule_map = StringMap.find modul map in
@@ -422,7 +431,7 @@ module Corpus_stat = struct
   let add_gr_stat base_name gr_stat t = 
     match gr_stat with
     | Gr_stat.Error msg -> { t with error = (base_name, msg) :: t.error; num = t.num+1 }
-    | Gr_stat.Stat map -> 
+    | Gr_stat.Stat (map, sol_opt) -> 
         let new_map = 
           StringMap.fold
             (fun modul_rule num_occ acc ->
@@ -430,12 +439,17 @@ module Corpus_stat = struct
               | [modul; rule] -> add modul rule base_name num_occ acc
               | _ -> Log.fcritical "illegal modul_rule spec \"%s\"" modul_rule 
             ) map t.map in
-        { t with map = new_map; num = t.num+1 }
+        let new_amb = 
+          match sol_opt with 
+          | None -> t.amb
+          | Some sol -> 
+              let old = try IntMap.find sol t.amb with Not_found -> StringSet.empty in
+              IntMap.add sol (StringSet.add base_name old) t.amb in
+        { t with map = new_map; num = t.num+1; amb=new_amb; }
 
   let save_html ~title ~grs_file ~html ~output_dir t =
 
     let ratio nb = (float nb) /. (float t.num) *. 100. in
-
 
     let out_ch = open_out (Filename.concat output_dir "index.html") in
     
@@ -521,6 +535,36 @@ module Corpus_stat = struct
       ) t.modules;
 
 
+    (* add a subtlabe for sentence ambiguity *)
+    if not (IntMap.is_empty t.amb)
+    then
+      begin
+        fprintf out_ch "<tr><td colspan=5><h6>Rewriting ambiguity</h6></td>\n";
+        fprintf out_ch "<tr><th class=\"first\" >Number of normal forms</th><th colspan=2 width=20>#files</th><th >Ratio</th><th>Files</th></tr>\n";
+        
+        IntMap.iter
+          (fun num set -> 
+            let num_files = StringSet.cardinal set in
+            fprintf out_ch "<tr>\n";
+            fprintf out_ch "<td class=\"first_stats\">%d</td>\n" num;
+            fprintf out_ch "<td class=\"stats\" colspan=2>%d</td>\n" num_files;
+            fprintf out_ch "<td class=\"stats\">%.2f%%</td>\n" (ratio num_files);
+            fprintf out_ch "<td class=\"stats\">";
+            
+            StringSet.iter
+              (fun (file) ->
+                if html 
+                then fprintf out_ch "<a href=\"%s.html\">%s</a><br/>" file file
+                else fprintf out_ch "%s<br/>" file
+              ) set;
+                
+            fprintf out_ch "</td>\n";
+            fprintf out_ch "</tr>") t.amb
+      end;
+    
+    fprintf out_ch "</table></center>\n";
+
+
     (* add a subtlabe for sentence that produces an error *)
     (match List.length t.error with
     | 0 -> ()
@@ -548,6 +592,8 @@ module Corpus_stat = struct
             fprintf out_ch "</tr>");
 
     fprintf out_ch "</table></center>\n";
+
+
     close_out out_ch;
     ()
 end (* module Stat *)
