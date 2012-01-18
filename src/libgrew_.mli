@@ -17,6 +17,7 @@ exception Run of string * (string * int) option
 
 exception Bug of string * (string * int) option
 
+val set_timeout: float option -> unit
 
 val rewrite: gr:Instance.t -> grs:Grs.t -> seq:string -> Rewrite_history.t
 

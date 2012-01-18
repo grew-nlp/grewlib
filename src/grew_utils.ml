@@ -551,4 +551,19 @@ module Lex_par = struct
 
 end
 
+(* copy from leopar *)
+module Timeout = struct
+  exception Stop
 
+  let counter = ref 0.
+  let timeout = ref None
+  
+  let start () = counter := Unix.time ()
+
+  let check () =
+    match !timeout with 
+    | None -> ()
+    | Some delay ->
+        if Unix.time () -. !counter > delay
+        then raise Stop
+end

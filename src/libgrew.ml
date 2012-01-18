@@ -28,6 +28,8 @@ let is_empty = Rewrite_history.is_empty
 
 let empty_grs = Grs.empty
 
+let set_timeout t = Timeout.timeout := t
+
 let load_grs ?doc_output_dir file =
   if not (Sys.file_exists file)
   then raise (File_dont_exists file)

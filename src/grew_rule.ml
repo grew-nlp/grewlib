@@ -64,7 +64,6 @@ module Rule = struct
   type gid = int
 
   let max_depth = ref 500
-  exception Bound_reached
 
   type const = 
     | No_out of pid * P_edge.t 
@@ -537,6 +536,9 @@ module Rule = struct
  *)
   let apply_rule instance matching rule = 
 
+    (* Timeout check *)
+    (try Timeout.check () with Timeout.Stop -> Error.run "Time out");
+
     (* limit the rewriting depth to avoid looping rewriting *)
     begin
       if List.length instance.Instance.rules >= !max_depth 
@@ -719,6 +721,7 @@ module Rule = struct
           (* type: t list -> (Instance_set.elt -> bool) -> Instance.t -> Instance_set.t * Instance_set.t *)
 
   let normalize ?(confluent=false) rules filters instance =
+    Timeout.start ();
     if confluent
     then
       let output = conf_normalize instance rules in

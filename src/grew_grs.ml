@@ -467,7 +467,7 @@ module Corpus_stat = struct
       (fun modul ->
         let modul = modul.Modul.name in
         let rules = StringMap.find modul t.map in
-        fprintf out_ch "<tr><td colspan=\"5\" style=\"padding: 0px;\"><h6>Module %s</h6></td>\n" modul;
+        fprintf out_ch "<tr><td colspan=\"5\" style=\"padding: 0px;\"><h6>Module %s</h6></td></tr>\n" modul;
         fprintf out_ch "<tr><th class=\"first\">Rule</th><th>#occ</th><th>#files</th><th>Ratio</th><th>Files</th></tr>\n";
         let (tot_occ, full_sent) = 
           StringMap.fold
@@ -539,7 +539,7 @@ module Corpus_stat = struct
     if not (IntMap.is_empty t.amb)
     then
       begin
-        fprintf out_ch "<tr><td colspan=5><h6>Rewriting ambiguity</h6></td>\n";
+        fprintf out_ch "<tr><td colspan=5><h6>Rewriting ambiguity</h6></td></tr>\n";
         fprintf out_ch "<tr><th class=\"first\" >Number of normal forms</th><th colspan=2 width=20>#files</th><th >Ratio</th><th>Files</th></tr>\n";
         
         IntMap.iter
@@ -562,14 +562,12 @@ module Corpus_stat = struct
             fprintf out_ch "</tr>") t.amb
       end;
     
-    fprintf out_ch "</table></center>\n";
-
 
     (* add a subtlabe for sentence that produces an error *)
     (match List.length t.error with
     | 0 -> ()
     | nb_errors ->
-        fprintf out_ch "<tr><td colspan=5><h6>ERRORS</h6></td>\n";
+        fprintf out_ch "<tr><td colspan=5><h6>ERRORS</h6></td></tr>\n";
         fprintf out_ch "<tr><th class=\"first\" >Rule</th><th colspan=2 width=20>#files</th><th >Ratio</th><th>Files</th></tr>\n";
         
         fprintf out_ch "<tr>\n";

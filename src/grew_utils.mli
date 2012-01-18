@@ -190,3 +190,12 @@ module Lex_par: sig
       It returns the [index]^th command_var. *)
   val get_command_value: int -> t -> string
 end
+
+module Timeout: sig
+  exception Stop
+
+  val timeout: float option ref
+  val start: unit -> unit
+
+  val check: unit -> unit
+end
