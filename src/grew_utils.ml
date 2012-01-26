@@ -132,6 +132,11 @@ end
 
 
 module List_ = struct
+  let rec set position elt = function
+    | [] -> failwith "List_.set"
+    | _::t when position = 0 -> elt::t
+    | x::t -> x:: (set (position-1) elt t)
+
   let rec rm elt = function
     | [] -> raise Not_found
     | x::t when x=elt -> t
@@ -534,12 +539,24 @@ module Lex_par = struct
       param
     with Sys_error _ -> Error.build ?loc "External lexical file '%s' not found" file
 
-  let filter index atom t = 
-    (match List.filter (fun (x,_) -> List.nth x index = atom) t with
-    | [] -> None
-    | t' -> Some t'
-    )
+  let sub x y = List.mem x (Str.split (Str.regexp "|") y)
 
+  let filter index atom t =
+    match 
+      List_.opt_map
+        (fun (p_par, c_par) ->
+          let par = List.nth p_par index in
+          if atom=par 
+          then Some (p_par, c_par)
+          else
+            if sub atom par (* atom is one of the values of the disjunction par *)
+            then Some (List_.set index atom p_par, c_par)
+            else None
+        ) t
+    with 
+    | [] -> None
+    | t -> Some t
+    
   let get_command_value index = function
     | [(_,one)] -> List.nth one index
     | [] -> Error.bug "[Lex_par.get_command_value] empty parameter"
