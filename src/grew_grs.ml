@@ -324,17 +324,18 @@ module Gr_stat = struct
 
   (** the type [gr] stores the stats for the rewriting of one gr file *)
   type t = 
-    | Stat of (int StringMap.t * int option)  (* map: rule_name |-> max occ, number of solution *) 
+    | Stat of ((int * int) StringMap.t * int option)  (* map: rule_name |-> (min,max) occ, number of solution *) 
     | Error of string
 
+  let opt_incr = function None -> Some 1 | Some x -> Some (x+1)
   let add_one_module modul_opt rules stat =
     match modul_opt with
     | Some modul ->
         List.fold_left
           (fun acc rule ->
             let key = sprintf "%s.%s" modul rule in
-            let old = try StringMap.find key acc with Not_found -> 0 in
-            StringMap.add key (old+1) acc
+            let (old_min, old_max) = try StringMap.find key acc with Not_found -> (None, None) in
+            StringMap.add key (opt_incr old_min, opt_incr old_max) acc
           ) stat rules
     | None when rules = [] -> stat
     | None -> Log.fcritical "Unconsistent rewrite history"
@@ -345,15 +346,38 @@ module Gr_stat = struct
         let old = try StringMap.find key acc with Not_found -> 0 in
         StringMap.add key (max old value) acc
       ) stat1 stat2
+
+  let opt_max x y = match (x,y) with
+  | None, v | v, None -> v
+  | Some v1, Some v2 -> Some (max v1 v2)
+
+  let opt_min x y = match (x,y) with
+  | None, v | v, None -> v
+  | Some v1, Some v2 -> Some (min v1 v2)
+
+  let min_max_stat stat1 stat2 =
+    StringMap.fold
+      (fun key (vmin, vmax) acc ->
+        let (old_min, old_max) = try StringMap.find key acc with Not_found -> (Some 0, Some 0) in
+        StringMap.add key (opt_min old_min vmin, opt_max old_max vmax) acc
+      ) stat1 stat2
+
+
       
   let from_rew_history rew_history =
     let rec loop prev_module rh =
       let sub_stat = 
         match List.map (loop (Some rh.Rewrite_history.module_name)) rh.Rewrite_history.good_nf with 
         | [] -> StringMap.empty
-        | h::t -> List.fold_left max_stat h t in
+        | h::t -> List.fold_left min_max_stat h t in
       add_one_module prev_module rh.Rewrite_history.instance.Instance.rules sub_stat
-    in Stat (loop None rew_history, Some (Rewrite_history.num_sol rew_history))
+    in 
+    Stat
+      (StringMap.map 
+         (function | Some i, Some j -> (i,j) | _ -> Log.critical "None in stat")
+         (loop None rew_history),
+       Some (Rewrite_history.num_sol rew_history)
+      )
 
   let save stat_file t =
     let out_ch = open_out stat_file in
@@ -361,7 +385,10 @@ module Gr_stat = struct
     | Error msg -> fprintf out_ch "ERROR\n%s" msg 
     | Stat (map, num) ->
         (match num with None -> () | Some n -> fprintf out_ch "NUM_SOL:%d\n%!" n);
-        StringMap.iter (fun rule_name occ -> fprintf out_ch "%s:%d\n%!" rule_name occ) map);
+        StringMap.iter 
+          (fun rule_name (min_occ,max_occ) ->  fprintf out_ch "%s:%d:%d\n%!" rule_name min_occ max_occ) map
+    );
+    
     close_out out_ch
 
   let load stat_file = 
@@ -376,7 +403,7 @@ module Gr_stat = struct
               (fun acc line ->
                 match Str.split (Str.regexp ":") line with
                 | ["NUM_SOL"; num] -> sol := Some (int_of_string num); acc 
-                | [modu_rule; num] -> StringMap.add modu_rule (int_of_string num) acc
+                | [modu_rule; vmin; vmax] -> StringMap.add modu_rule (int_of_string vmin, int_of_string vmax) acc
                 | _ -> Log.fcritical "invalid stat line: %s" line
               ) StringMap.empty lines in
           Stat (map, !sol)
@@ -391,11 +418,11 @@ module Corpus_stat = struct
      second key: [r] rule name
      value: [occ_num, file_list] the total number of rule applications and the set of gr files concerned *)
   type t = {
-      modules: Modul.t list;                             (* ordered list of modules in the sequence *)
-      map: (int * StringSet.t) StringMap.t StringMap.t;  (* map: see above *)
-      amb: StringSet.t IntMap.t;                         (* key: nb of sols |-> set: sentence concerned *)
-      error: (string * string) list;                     (* (file, msg) *)
-      num: int;                                          (* an integer id relative to the corpus *)
+      modules: Modul.t list;                                   (* ordered list of modules in the sequence *)
+      map: ((int*int) * StringSet.t) StringMap.t StringMap.t;  (* map: see above *)
+      amb: StringSet.t IntMap.t;                               (* key: nb of sols |-> set: sentence concerned *)
+      error: (string * string) list;                           (* (file, msg) *)
+      num: int;                                                (* an integer id relative to the corpus *)
     }
 
   let empty ~grs ~seq =
@@ -408,21 +435,21 @@ module Corpus_stat = struct
             let rule_map = 
               List.fold_left
                 (fun acc2 rule ->
-                  StringMap.add (Rule.get_name rule) (0,StringSet.empty) acc2
+                  StringMap.add (Rule.get_name rule) ((0,0),StringSet.empty) acc2
                 ) StringMap.empty modul.Modul.rules in
             StringMap.add modul.Modul.name rule_map acc
           else acc
         ) StringMap.empty grs.Grs.modules in
     { modules=modules; map = map; amb = IntMap.empty; error = []; num = 0 }
       
-  let add modul rule file num map = 
+  let add modul rule file (min_occ,max_occ) map = 
     let old_rule_map = StringMap.find modul map in
-    let (old_num, old_file_set) = StringMap.find rule old_rule_map in
+    let ((old_min,old_max), old_file_set) = StringMap.find rule old_rule_map in
     StringMap.add 
       modul 
       (StringMap.add
          rule
-         (old_num + num, StringSet.add file old_file_set)
+         ((old_min + min_occ, old_max + max_occ), StringSet.add file old_file_set)
          old_rule_map
       ) map
         
@@ -432,9 +459,9 @@ module Corpus_stat = struct
     | Gr_stat.Stat (map, sol_opt) -> 
         let new_map = 
           StringMap.fold
-            (fun modul_rule num_occ acc ->
+            (fun modul_rule (min_occ,max_occ) acc ->
               match Str.split (Str.regexp "\\.") modul_rule with
-              | [modul; rule] -> add modul rule base_name num_occ acc
+              | [modul; rule] -> add modul rule base_name (min_occ,max_occ) acc
               | _ -> Log.fcritical "illegal modul_rule spec \"%s\"" modul_rule 
             ) map t.map in
         let new_amb = 
@@ -502,28 +529,28 @@ module Corpus_stat = struct
        let modul = modul.Modul.name in
        let rules = StringMap.find modul t.map in
        fprintf out_ch "<tr><td colspan=\"5\" style=\"padding: 0px;\"><h6>Module %s</h6></td></tr>\n" modul;
-       fprintf out_ch "<tr><th class=\"first\">Rule</th><th>#occ</th><th>#files</th><th>Ratio</th><th>Files</th></tr>\n";
-       let (tot_occ, full_sent) = 
+       fprintf out_ch "<tr><th class=\"first\">Rule</th><th>#occ(min/max)</th><th>#files</th><th>Ratio</th><th>Files</th></tr>\n";
+       let ((min_occ, max_occ), full_sent) = 
          StringMap.fold
-           (fun _ (occ_num, file_set) (acc_occ, acc_sent) -> (acc_occ + occ_num, StringSet.union acc_sent file_set))
-           rules (0,StringSet.empty) in
+           (fun _ ((v_min,v_max), file_set) ((acc_min,acc_max), acc_sent) -> ((acc_min+v_min, acc_max+v_max), StringSet.union acc_sent file_set))
+           rules ((0,0),StringSet.empty) in
        let tot_sent = StringSet.cardinal full_sent in
        fprintf out_ch "<tr>\n";
        fprintf out_ch "<td class=\"first_total\">Total for module</td>\n";
-       fprintf out_ch "<td class=\"total\">%d</td>" tot_occ;
+       fprintf out_ch "<td class=\"total\">%d/%d</td>" min_occ max_occ;
        fprintf out_ch "<td class=\"total\">%d</td>" tot_sent;
        fprintf out_ch "<td class=\"total\">%.2f%%</td>" (ratio tot_sent);
        fprintf out_ch "<td class=\"total\">&nbsp;</td>\n";
        fprintf out_ch "</tr>\n";
        
         StringMap.iter
-         (fun rule (occ_num, file_set) ->
+         (fun rule ((min_occ, max_occ), file_set) ->
            let id = sprintf "%s_%s" modul rule in
            let file_num = StringSet.cardinal file_set in
            
            fprintf out_ch "<tr>\n";
            fprintf out_ch "  <td class=\"first_stats\"  valign=top>%s</td>\n" rule;
-           fprintf out_ch "  <td class=\"stats\"  valign=top>%d</td>\n" occ_num;
+           fprintf out_ch "  <td class=\"stats\"  valign=top>%d/%d</td>\n" min_occ max_occ;
            fprintf out_ch "  <td class=\"stats\"  valign=top>%d</td>\n" file_num;
            fprintf out_ch "  <td class=\"stats\"  valign=top>%.2f%%</td>\n" (ratio file_num);
            
