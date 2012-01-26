@@ -131,7 +131,7 @@ module G_fs = struct
   let get_main ?main_feat t =
     let main_list = match main_feat with
     | None -> []
-    | Some string -> Str.split (Str.regexp "( *; *)\\|#") string in
+    | Some string -> Str.split (Str.regexp "\\( *; *\\)\\|#") string in
 
     let rec loop = function
       | [] -> (None, t)

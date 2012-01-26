@@ -338,7 +338,7 @@ module G_graph = struct
 	(fun node_id node ->
           match G_node.merge_key src_gid tar_gid node with
           | Some n -> n
-          | None -> Error.run ~loc "[Graph.shift_edges] create duplicate edge"
+          | None -> Error.run ~loc "[Graph.shift_in] create duplicate edge"
 	) graph.map
 
     in {graph with map = new_map}
@@ -349,7 +349,7 @@ module G_graph = struct
     let tar_node = Gid_map.find tar_gid graph.map in
     
     if Massoc.mem_key tar_gid (G_node.get_next src_node)
-    then Error.run ~loc "[Graph.shift_edges] dependency from src to tar";
+    then Error.run ~loc "[Graph.shift_out] dependency from src to tar";
 
     let new_map = 
       Gid_map.mapi
@@ -361,7 +361,7 @@ module G_graph = struct
 	  then
             match G_node.shift_out src_node tar_node with
             | Some n -> n
-            | None -> Error.run ~loc "[Graph.shift_edges] common successor"
+            | None -> Error.run ~loc "[Graph.shift_out] common successor"
 	  else node (* other nodes don't change *)
 	) graph.map
     in {graph with map = new_map}
