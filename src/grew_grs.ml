@@ -23,7 +23,8 @@ module Rewrite_history = struct
     (t.instance.Instance.rules = []) && List.for_all is_empty t.good_nf
 
   let rec num_sol = function
-    | { good_nf = [] } -> 1
+    | { good_nf = []; bad_nf = [] } -> 1
+    | { good_nf = [] } -> 0 (* dead branch *)
     | { good_nf = l} -> List.fold_left (fun acc t -> acc + (num_sol t)) 0 l
       
 IFDEF DEP2PICT THEN
@@ -34,9 +35,10 @@ IFDEF DEP2PICT THEN
    *)
   let save_nfs ?main_feat base_name t = 
     let rec loop file_name rules t =
-      match t.good_nf with
-      | [] -> Instance.save_dep_png ?main_feat file_name t.instance; [rules, file_name] 
-      | l -> 
+      match (t.good_nf, t.bad_nf) with
+      | [],[] -> Instance.save_dep_png ?main_feat file_name t.instance; [rules, file_name] 
+      | [],_ -> []
+      | l, _ -> 
           List_.foldi_left
             (fun i acc son -> 
               (* Instance.save_dep_png ?main_feat (sprintf "%s_%d" file_name i) son.instance; *)
@@ -324,7 +326,7 @@ module Gr_stat = struct
 
   (** the type [gr] stores the stats for the rewriting of one gr file *)
   type t = 
-    | Stat of ((int * int) StringMap.t * int option)  (* map: rule_name |-> (min,max) occ, number of solution *) 
+    | Stat of ((int * int) StringMap.t * int) (* map: rule_name |-> (min,max) occ, number of solution *) 
     | Error of string
 
   let opt_incr = function None -> Some 1 | Some x -> Some (x+1)
@@ -376,7 +378,7 @@ module Gr_stat = struct
       (StringMap.map 
          (function | Some i, Some j -> (i,j) | _ -> Log.critical "None in stat")
          (loop None rew_history),
-       Some (Rewrite_history.num_sol rew_history)
+       (Rewrite_history.num_sol rew_history)
       )
 
   let save stat_file t =
@@ -384,7 +386,7 @@ module Gr_stat = struct
     (match t with
     | Error msg -> fprintf out_ch "ERROR\n%s" msg 
     | Stat (map, num) ->
-        (match num with None -> () | Some n -> fprintf out_ch "NUM_SOL:%d\n%!" n);
+        fprintf out_ch "NUM_SOL:%d\n%!" num;
         StringMap.iter 
           (fun rule_name (min_occ,max_occ) ->  fprintf out_ch "%s:%d:%d\n%!" rule_name min_occ max_occ) map
     );
@@ -392,7 +394,7 @@ module Gr_stat = struct
     close_out out_ch
 
   let load stat_file = 
-    let sol = ref None in
+    let sol = ref 0 in
     try
       let lines = File.read stat_file in
       match lines with
@@ -402,7 +404,7 @@ module Gr_stat = struct
             List.fold_left 
               (fun acc line ->
                 match Str.split (Str.regexp ":") line with
-                | ["NUM_SOL"; num] -> sol := Some (int_of_string num); acc 
+                | ["NUM_SOL"; num] -> sol := int_of_string num; acc 
                 | [modu_rule; vmin; vmax] -> StringMap.add modu_rule (int_of_string vmin, int_of_string vmax) acc
                 | _ -> Log.fcritical "invalid stat line: %s" line
               ) StringMap.empty lines in
@@ -456,7 +458,7 @@ module Corpus_stat = struct
   let add_gr_stat base_name gr_stat t = 
     match gr_stat with
     | Gr_stat.Error msg -> { t with error = (base_name, msg) :: t.error; num = t.num+1 }
-    | Gr_stat.Stat (map, sol_opt) -> 
+    | Gr_stat.Stat (map, sol) -> 
         let new_map = 
           StringMap.fold
             (fun modul_rule (min_occ,max_occ) acc ->
@@ -465,9 +467,6 @@ module Corpus_stat = struct
               | _ -> Log.fcritical "illegal modul_rule spec \"%s\"" modul_rule 
             ) map t.map in
         let new_amb = 
-          match sol_opt with 
-          | None -> t.amb
-          | Some sol -> 
               let old = try IntMap.find sol t.amb with Not_found -> StringSet.empty in
               IntMap.add sol (StringSet.add base_name old) t.amb in
         { t with map = new_map; num = t.num+1; amb=new_amb; }
@@ -595,7 +594,7 @@ module Corpus_stat = struct
       end;
     
 
-    (* add a subtlabe for sentence that produces an error *)
+    (* add a subtable for sentence that produces an error *)
     (match List.length t.error with
     | 0 -> ()
     | nb_errors ->

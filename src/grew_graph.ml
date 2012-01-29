@@ -337,7 +337,7 @@ module G_graph = struct
       Gid_map.mapi
 	(fun node_id node ->
           match G_node.merge_key src_gid tar_gid node with
-          | Some n -> n
+          | Some new_node -> new_node
           | None -> Error.run ~loc "[Graph.shift_in] create duplicate edge"
 	) graph.map
 
