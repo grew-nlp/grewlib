@@ -22,8 +22,8 @@ module G_node: sig
 
   val remove_key: int -> t -> t 
 
-  val merge_key: int -> int -> t -> t option
-  val shift_out: t -> t -> t option
+  val merge_key: ?strict:bool -> int -> int -> t -> t option
+  val shift_out: ?strict:bool -> t -> t -> t option
 
   val rm_out_edges: t -> t
 

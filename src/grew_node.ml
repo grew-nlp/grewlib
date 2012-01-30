@@ -54,13 +54,13 @@ module G_node = struct
   let remove_key node_id t = 
     try {t with next = Massoc.remove_key node_id t.next} with Not_found -> t
 
-  let merge_key src_id tar_id t = 
+  let merge_key ?(strict=false) src_id tar_id t = 
     try Some {t with next = Massoc.merge_key src_id tar_id t.next}
-    with Massoc.Duplicate -> None
+    with Massoc.Duplicate -> if strict then None else Some t
 
-  let shift_out src_t tar_t = 
+  let shift_out ?(strict=false) src_t tar_t = 
     try Some {tar_t with next = Massoc.disjoint_union src_t.next tar_t.next}
-    with Massoc.Not_disjoint -> None
+    with Massoc.Not_disjoint -> if strict then None else Some tar_t
 
   let rm_out_edges t = {t with next = Massoc.empty}
 
