@@ -381,6 +381,31 @@ module Gr_stat = struct
        (Rewrite_history.num_sol rew_history)
       )
 
+  let from_rew_history rew_history =
+    let rec loop prev_module rh =
+      let sub_stat = 
+        match (rh.Rewrite_history.good_nf, rh.Rewrite_history.bad_nf) with
+        | [],[] -> Some (StringMap.empty)
+        | [], _ -> None
+        | l, _ -> 
+            match List_.opt_map (loop (Some rh.Rewrite_history.module_name)) l with
+            | [] -> None
+            | h::t -> Some (List.fold_left min_max_stat h t) in
+      match sub_stat with
+      | None -> None
+      | Some stat -> Some (add_one_module prev_module rh.Rewrite_history.instance.Instance.rules stat)
+    in 
+    match loop None rew_history with
+    | None -> Stat (StringMap.empty, Rewrite_history.num_sol rew_history)
+    | Some map -> 
+        Stat
+          (
+           StringMap.map (function Some i, Some j -> (i,j) | _ -> Log.critical "None in stat") map,
+           Rewrite_history.num_sol rew_history
+          )
+
+
+
   let save stat_file t =
     let out_ch = open_out stat_file in
     (match t with
