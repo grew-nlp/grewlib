@@ -273,13 +273,23 @@ module Rule = struct
       check = pattern.constraints;
     }
 
+(* Ocaml < 3.12 doesn't have exists function for maps! *)
+  exception True
+  let gid_map_exists fct map =
+    try 
+      Gid_map.iter (fun k v -> if fct k v then raise True) map;
+      false
+    with True -> true
+(* Ocaml < 3.12 doesn't have exists function for maps! *)
+
+
   let fullfill graph matching = function 
     | No_out (pid,edge) -> 
         let gid = Pid_map.find pid matching.n_match in
         G_graph.edge_out graph gid edge
     | No_in (pid,edge) -> 
         let gid = Pid_map.find pid matching.n_match in
-        Gid_map.exists
+        gid_map_exists (* should be Gid_map.exists with ocaml 3.12 *)
           (fun _ node ->
             List.exists (fun e -> P_edge.compatible edge e) (Massoc.assoc gid (G_node.get_next node))
           ) graph.G_graph.map
