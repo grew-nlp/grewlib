@@ -182,16 +182,18 @@ module AST_HTML = struct
         bprintf buff "</ul>\n";
         Buffer.contents buff
     		
-  let buff_html_feature buff (u_feature,_) =
-    bprintf buff "%s" u_feature.Ast.name;
+  let html_feature (u_feature,_) =
     match u_feature.Ast.kind with 
-    | Ast.Equality values -> bprintf buff " = %s" (List_.to_string (fun x->x) ", " values)
-    | Ast.Disequality values -> bprintf buff " <> %s" (List_.to_string (fun x->x) ", " values)
-    | Ast.Param index -> bprintf buff " = %s" index 
+    | Ast.Equality values -> 
+        sprintf "%s=%s" u_feature.Ast.name (List_.to_string (fun x->x) "|" values)
+    | Ast.Disequality values -> 
+        sprintf "%s<>%s" u_feature.Ast.name (List_.to_string (fun x->x) "|" values)
+    | Ast.Param index -> 
+        sprintf "%s=%s" u_feature.Ast.name index 
           
   let buff_html_node buff (u_node,_) =
     bprintf buff "      %s [" u_node.Ast.node_id;
-    List.iter (buff_html_feature buff) u_node.Ast.fs;
+    bprintf buff "%s" (String.concat ", " (List.map html_feature u_node.Ast.fs));
     bprintf buff "];\n"
 
   let buff_html_edge buff (u_edge,_) =
@@ -222,7 +224,7 @@ module AST_HTML = struct
     bprintf buff "    <b>}</b>\n"
        
   let buff_html_neg_pattern buff neg_pattern =
-    bprintf buff "    <font color=\"purple\">without</font> <b>{</b>\n";
+    bprintf buff "  <font color=\"purple\">without</font> <b>{</b>\n";
     List.iter (buff_html_node buff) neg_pattern.Ast.pat_nodes;
     List.iter (buff_html_edge buff) neg_pattern.Ast.pat_edges;
     List.iter (buff_html_const buff) neg_pattern.Ast.pat_const;
@@ -241,7 +243,7 @@ module AST_HTML = struct
         List.iter (buff_html_neg_pattern buff) rule.Ast.neg_patterns;
 
         (*  the commands part *)
-        bprintf buff "        <font color=\"purple\">commands</font> <b>{</b>\n";
+        bprintf buff "  <font color=\"purple\">commands</font> <b>{</b>\n";
         List.iter (buff_html_command buff) rule.Ast.commands;
         bprintf buff "        <b>}</b>\n"; 
 

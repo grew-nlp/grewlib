@@ -67,7 +67,8 @@ let rule_page_text previous next rule m ast file = "
 		"</div>
 		<center><h1>Rule <a href=\""^m.Ast.module_id^".html\">"^m.Ast.module_id^"</a>.<div class=\"module_title\">"^rule.Ast.rule_id^"</div></h1></center>
 		<br/><br/><div id=doc>"^rule.Ast.rule_doc^"</div>"^
-		
+
+(* disable domain		
 		(if (List.length ast.Ast.domain > 0) then (
 			"<h6>Features domain</h6><code class=\"code\">"^
 			(let rec compute tab = match tab with
@@ -77,7 +78,9 @@ let rule_page_text previous next rule m ast file = "
 		) else (
 			""
 		))^"</code>"^
-		
+*)		
+
+(* disable Labels
 		"<br/><h6>Labels</h6>"^
 		(if (List.length ast.Ast.labels > 0) then (
 		"<div class=\"h7\">Inherited from global</div>
@@ -118,10 +121,14 @@ let rule_page_text previous next rule m ast file = "
 		)^
 		"</code>"
 		) else ( ""))^
-		
+*)
+
+(*
 	"<br/>
 	<br/><h6>Commands</h6>
-	<code class=code><pre>"^(AST_HTML.to_html_commands_pretty rule.Ast.commands)^"
+	<code class=code><pre>"^(AST_HTML.to_html_commands_pretty rule.Ast.commands)^
+*)
+"
 	</pre></code><br/><h6>Code</h6><pre>"^
 	(AST_HTML.to_html_rules [rule])^
 	"</pre><br/>
