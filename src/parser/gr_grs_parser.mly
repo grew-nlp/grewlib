@@ -44,7 +44,6 @@ let localize t = (t,get_loc ())
 %token FEATURE                     /* feature */
 %token FILE                        /* file */
 %token LABELS                      /* labels */
-%token BAD_LABELS                  /* bad_labels */
 %token MATCH                       /* match */
 %token WITHOUT                     /* without */
 %token COMMANDS                    /* commands */
@@ -239,11 +238,10 @@ modules:
         | x = list(grew_module) { x }
         
 grew_module: 
-        | doc = option(module_doc) MODULE conf = boption(CONFLUENT) id = module_id LACC l = option(local_labels) b = option(local_bad_labels) r = rules RACC 
+        | doc = option(module_doc) MODULE conf = boption(CONFLUENT) id = module_id LACC l = option(local_labels) r = rules RACC 
            {
             { Ast.module_id = fst id; 
               local_labels = (match l with None -> [] | Some x -> x);
-              bad_labels = (match b with None -> [] | Some x -> x);
               rules = r;
               confluent = conf;
               module_doc = (match doc with Some d -> d | None -> "");
@@ -264,20 +262,12 @@ module_doc:
 /*                                                                                             */
 /* labels {ANT_TMP}                                                                            */
 /*                                                                                             */
-/* bad_labels { SUJ, OBJ }                                                                     */
 /*=============================================================================================*/
 
 
 
 local_labels:
         | LABELS x = labels { x }
-
-local_bad_labels:
-        | BAD_LABELS x = bad_labels { x }
-         
-%inline bad_labels:
-        | x = delimited(LACC,separated_nonempty_list(COMA,IDENT),RACC) { x }
-
 
 
 /*=============================================================================================*/

@@ -109,18 +109,6 @@ let rule_page_text previous next rule m ast file = "
 		"</code>"
 		) else ( ""))^
 		
-		(if (List.length m.Ast.bad_labels > 0) then (
-		"<div class=\"h7\">Prohibited</div>
-		<code class=\"code\">"^
-		(
-		let rec tab_to_html tab = match tab with
-			| [] -> ""
-			| h::[] -> h
-			| h::t -> h^", "^(tab_to_html t)
-		in tab_to_html m.Ast.bad_labels
-		)^
-		"</code>"
-		) else ( ""))^
 *)
 
 (*
@@ -339,8 +327,8 @@ in
 			let rules_array = Array.of_list modules_array.(i).Ast.rules in
 			for j = 0 to (Array.length rules_array -1) do
 				
-				let pattern_commands_view = Filename.concat output_dir (modules_array.(i).Ast.module_id^"_"^rules_array.(j).Ast.rule_id^"_pattern_commands") in
-				let antipattern_view = Filename.concat output_dir (modules_array.(i).Ast.module_id^"_"^rules_array.(j).Ast.rule_id^"antipattern_") in
+				(* let pattern_commands_view = Filename.concat output_dir (modules_array.(i).Ast.module_id^"_"^rules_array.(j).Ast.rule_id^"_pattern_commands") in *)
+				(* let antipattern_view = Filename.concat output_dir (modules_array.(i).Ast.module_id^"_"^rules_array.(j).Ast.rule_id^"antipattern_") in *)
 (*				let (patterns,antis) = (Ast.Grew_dot.to_dot_rule rules_array.(j)) in*)
 
 (*				let i2 = ref 0 in*)

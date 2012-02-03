@@ -64,7 +64,6 @@ and global = parse
 | "feature"     { FEATURE }
 | "file"        { FILE }
 | "labels"      { LABELS }
-| "bad_labels"  { BAD_LABELS }
 | "match"       { MATCH }
 | "without"     { WITHOUT }
 | "commands"    { COMMANDS }

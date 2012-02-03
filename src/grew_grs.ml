@@ -152,7 +152,6 @@ module Modul = struct
   type t = {
       name: string;
       local_labels: (string * string option) array;
-      bad_labels: Label.t list;
       rules: Rule.t list;
       filters: Rule.t list;
       confluent: bool;
@@ -177,7 +176,6 @@ module Modul = struct
       {
        name = ast_module.Ast.module_id;
        local_labels = locals; 
-       bad_labels = List.map Label.from_string ast_module.Ast.bad_labels;
        rules = rules; 
        filters = filters;
        confluent = ast_module.Ast.confluent;
