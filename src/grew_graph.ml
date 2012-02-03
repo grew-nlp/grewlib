@@ -170,15 +170,6 @@ end (* module P_graph *)
 
 
 (* ================================================================================ *)
-module Gid = struct
-  type t = int
-  let compare = Pervasives.compare
-end
-
-module Gid_map = Map.Make (Gid)
-(* ================================================================================ *)
-
-(* ================================================================================ *)
 module G_graph = struct
   type t = {
       map: G_node.t Gid_map.t; (* node description *)

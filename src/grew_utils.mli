@@ -1,19 +1,13 @@
 
-module IntSet : Set.S with type elt = int
-module IntMap : Map.S with type key = int
-
-module Pid : sig type t = int end
-
-module Pid_map : sig
-  include Map.S with type key = int
-  exception MatchNotInjective
-  val exists: (key -> 'a -> bool) -> 'a t -> bool
-  val union_if: int t -> int t -> int t
-  end
-
 module StringMap : Map.S with type key = string
 module StringSet : Set.S with type elt = string
 
+module IntSet : Set.S with type elt = int
+module IntMap : Map.S with type key = int
+
+
+(* ================================================================================ *)
+(* [Loc] general module to describe errors location: (file name, line number in file) *)
 module Loc: sig
   type t = string * int 
 
@@ -21,12 +15,38 @@ module Loc: sig
 end
 
 
-
-module File: sig 
+(* ================================================================================ *)
+(* [File] basic functions to read/write file *)
+module File: sig
+  (** [write data file_name] write [data] in file named [file_name] *)
   val write: string -> string -> unit
 
+  (** [read file_name] read the content of [file_name] line by line. 
+     Blanks lines (empty or only with spaces and tabs) are ignored.
+     Lines with '%' as the first char are ignores
+   *)
   val read: string -> string list
 end
+
+
+(* ================================================================================ *)
+(* [Pid] describes identifier used in pattern graphs *)
+module Pid : sig type t = int end
+
+(* ================================================================================ *)
+(* [Pid_map] is the map used in pattern graphs *)
+module Pid_map : sig
+  include Map.S with type key = int
+  exception MatchNotInjective
+  val exists: (key -> 'a -> bool) -> 'a t -> bool
+  val union_if: int t -> int t -> int t
+  end
+
+
+module Gid : sig type t = int end
+
+module Gid_map : Map.S with type key = Gid.t 
+
 
 module Array_: sig
   val dicho_mem: 'a -> 'a array -> bool

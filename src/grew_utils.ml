@@ -5,20 +5,60 @@ module StringSet = Set.Make (String)
 module StringMap = Map.Make (String)
 
 module IntSet = Set.Make (struct type t = int let compare = Pervasives.compare end)
-
 module IntMap = Map.Make (struct type t = int let compare = Pervasives.compare end)
 
+
+(* ================================================================================ *)
+module Loc = struct
+  type t = string * int 
+
+  let to_string (file,line) = Printf.sprintf "(file: %s, line: %d)" (Filename.basename file) line
+
+  let opt_to_string = function
+    | None -> ""
+    | Some x -> to_string x
+end (* module Loc *)
+
+
+(* ================================================================================ *)
+module File = struct
+  let write data name =
+    let out_ch = open_out name in
+    fprintf out_ch "%s\n" data;
+    close_out out_ch
+
+  let read file = 
+    let in_ch = open_in file in
+    let rev_lines = ref [] in
+    try
+      while true do
+        let line = input_line in_ch in
+        if (Str.string_match (Str.regexp "^[ \t]*$") line 0) || (line.[0] = '%')
+        then ()
+        else rev_lines := line :: !rev_lines
+      done; assert false
+    with End_of_file -> 
+      close_in in_ch;
+      List.rev !rev_lines
+ end (* module File *)
+
+
+
+(* ================================================================================ *)
 module Pid = struct
   type t = int
   let compare = Pervasives.compare
-end
+end (* module Pid *)
 
+
+(* ================================================================================ *)
 module Pid_map =
   struct 
     include Map.Make (Pid)
 (** returns the image of a map [m]*)
 
     exception True
+
     let exists fct map =
       try
         iter 
@@ -60,42 +100,21 @@ module Pid_map =
         then union_map m m'
         else raise MatchNotInjective
       else raise MatchNotInjective          
-  end
+  end (* module Pid_map *)
+(* ================================================================================ *)
     
-module Loc = struct
-  type t = string * int 
-
-  let to_string (file,line) = Printf.sprintf "(file: %s, line: %d)" (Filename.basename file) line
-
-  let opt_to_string = function
-    | None -> ""
-    | Some x -> to_string x
-end
-
  
 
+(* ================================================================================ *)
+module Gid = struct
+  type t = int
+  let compare = Pervasives.compare
+end
+
+module Gid_map = Map.Make (Gid)
+(* ================================================================================ *)
 
 
-module File = struct
-  let write data name =
-    let out_ch = open_out name in
-    fprintf out_ch "%s\n" data;
-    close_out out_ch
-
-  let read file = 
-    let in_ch = open_in file in
-    let rev_lines = ref [] in
-    try
-      while true do
-        let line = input_line in_ch in
-        if (Str.string_match (Str.regexp "^[ \t]*$") line 0) || (line.[0] = '%')
-        then ()
-        else rev_lines := line :: !rev_lines
-      done; assert false
-    with End_of_file -> 
-      close_in in_ch;
-      List.rev !rev_lines
- end
 
 module Array_ = struct
   let dicho_mem elt array =

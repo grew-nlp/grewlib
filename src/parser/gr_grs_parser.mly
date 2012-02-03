@@ -83,21 +83,34 @@ let localize t = (t,get_loc ())
 %start <Grew_ast.Ast.module_or_include list> included
 %%
 
+
+%public separated_list_final_opt(separator,X):
+|                                                               { [] }
+|   x=X                                                         { [x] }
+|   x=X; separator; xs = separated_list_final_opt(separator,X)  { x :: xs }
+
+%public separated_nonempty_list_final_opt(separator,X):
+|   x=X                                                                  { [x] }
+|   x=X; separator                                                       { [x] }
+|   x=X; separator; xs = separated_nonempty_list_final_opt(separator,X)  { x :: xs }
+
 /*=============================================================================================*/
 /*  GREW GRAPH                                                                                 */
 /*=============================================================================================*/
 
+
+
 gr: 
-        | GRAPH LACC items = separated_list(SEMIC,option(gr_item)) RACC EOF 
+        | GRAPH LACC items = separated_list_final_opt(SEMIC,gr_item) RACC EOF 
             {
              {
-              Ast.nodes = List_.opt_map (function Some (Graph_node n) -> Some n | _ -> None) items;
-              Ast.edges = List_.opt_map (function Some (Graph_edge n) -> Some n | _ -> None) items;
+              Ast.nodes = List_.opt_map (function Graph_node n -> Some n | _ -> None) items;
+              Ast.edges = List_.opt_map (function Graph_edge n -> Some n | _ -> None) items;
             }
            }
-                  
+
 gr_item:
-        | id = IDENT position = option(delimited(LPAREN,index,RPAREN)) feats = delimited(LBRACKET,separated_list(COMA,node_features),RBRACKET) 
+        | id = IDENT position = option(delimited(LPAREN,index,RPAREN)) feats = delimited(LBRACKET,separated_list_final_opt(COMA,node_features),RBRACKET) 
             { Graph_node (localize {Ast.node_id = id; position=position; fs=feats}) }
 
         | n1 = IDENT labels = delimited(LTR_EDGE_LEFT_NEG,separated_nonempty_list(PIPE,IDENT),LTR_EDGE_RIGHT) n2 = IDENT
@@ -126,7 +139,7 @@ index:
 grs_with_include:
         | f = features_group g = global_labels m = module_or_include_list s = sequences EOF 
             {
-             { Ast.domain_wi=List_.opt f; 
+             { Ast.domain_wi=f; 
                labels_wi=g; 
                modules_wi=m; 
                sequences_wi=s;
@@ -136,7 +149,7 @@ grs_with_include:
 grs:
         | f = features_group g = global_labels m = modules s = sequences EOF 
             {
-             { Ast.domain=List_.opt f; 
+             { Ast.domain=f; 
                labels=g; 
                modules=m; 
                sequences=s;
@@ -169,7 +182,8 @@ features_group:
         | FEATURES x = features { x }
         
 %inline features:
-        | LACC x = separated_nonempty_list(SEMIC,option(feature)) RACC { x }
+        | LACC x = separated_nonempty_list_final_opt(SEMIC,feature) RACC { x }
+
         
 %inline feature:
         | name = feature_name DDOT values = features_values 
@@ -196,7 +210,7 @@ features_values:
 /*=============================================================================================*/
 
 %inline labels:
-        | x = delimited(LACC,separated_nonempty_list(COMA,label),RACC) { x }
+        | x = delimited(LACC,separated_nonempty_list_final_opt(COMA,label),RACC) { x }
         
 %inline label:
         | x = IDENT color = option(ddot_color)  { (x, color) }
@@ -225,12 +239,12 @@ modules:
         | x = list(grew_module) { x }
         
 grew_module: 
-        | doc = option(module_doc) MODULE conf = boption(CONFLUENT) id = module_id LACC l = option(local_labels) b = option(local_bad_labels) r = option(rules) RACC 
+        | doc = option(module_doc) MODULE conf = boption(CONFLUENT) id = module_id LACC l = option(local_labels) b = option(local_bad_labels) r = rules RACC 
            {
             { Ast.module_id = fst id; 
-              local_labels = begin match l with None -> [] | Some l -> l; end;
-              bad_labels = begin match b with None -> [] | Some b -> b; end;
-              rules = begin match r with None -> [] | Some r -> r; end;
+              local_labels = (match l with None -> [] | Some x -> x);
+              bad_labels = (match b with None -> [] | Some x -> x);
+              rules = r;
               confluent = conf;
               module_doc = (match doc with Some d -> d | None -> "");
               mod_loc = (!Parser_global.current_file, snd id);
@@ -284,7 +298,7 @@ rule:
               { Ast.rule_id = fst id;
                 pos_pattern = p;
                 neg_patterns = n;
-                commands = List_.opt cmds;
+                commands = cmds;
                 param = None;
                 rule_doc = begin match doc with Some d -> d | None -> "" end;
                 rule_loc = (!Parser_global.current_file,snd id);
@@ -295,7 +309,7 @@ rule:
               { Ast.rule_id = fst id;
                 pos_pattern = p;
                 neg_patterns = n;
-                commands = List_.opt cmds;
+                commands = cmds;
                 param = param;
                 rule_doc = begin match doc with Some d -> d | None -> "" end;
                 rule_loc = (!Parser_global.current_file,snd id);
@@ -327,12 +341,12 @@ neg_item:
         | WITHOUT i = pn_item { i }
           
 pn_item: 
-        | l = delimited(LACC,separated_nonempty_list(SEMIC,option(pat_item)),RACC)
+        | l = delimited(LACC,separated_nonempty_list_final_opt(SEMIC,pat_item),RACC)
             {
              {
-              Ast.pat_nodes = List_.opt_map (function Some (Pat_node n) -> Some n | _ -> None) l;
-              Ast.pat_edges = List_.opt_map (function Some (Pat_edge n) -> Some n | _ -> None) l;
-              Ast.pat_const = List_.opt_map (function Some (Pat_const n) -> Some n | _ -> None) l;
+              Ast.pat_nodes = List_.opt_map (function Pat_node n -> Some n | _ -> None) l;
+              Ast.pat_edges = List_.opt_map (function Pat_edge n -> Some n | _ -> None) l;
+              Ast.pat_const = List_.opt_map (function Pat_const n -> Some n | _ -> None) l;
             }
            }
         
@@ -363,7 +377,7 @@ pat_item:
         | c = pat_const { Pat_const c }
 
 pat_node:
-        | id = IDENT feats = delimited(LBRACKET,separated_list(COMA,node_features),RBRACKET) 
+        | id = IDENT feats = delimited(LBRACKET,separated_list_final_opt(COMA,node_features),RBRACKET) 
             { localize ({Ast.node_id = id; position=None; fs= feats}) }
 
 
@@ -462,7 +476,7 @@ pat_const:
 
 
 commands:
-        | COMMANDS x = delimited(LACC,separated_nonempty_list(SEMIC,option(command)),RACC) { x }
+        | COMMANDS x = delimited(LACC,separated_nonempty_list_final_opt(SEMIC,command),RACC) { x }
 
 command:
         | DEL_EDGE n = IDENT
@@ -506,10 +520,10 @@ sequences:
         | SEQUENCES seq = delimited(LACC,list(sequence),RACC) { seq }
 
 sequence:
-        | doc = option(COMMENT) id = sequence_id mod_names = delimited(LACC,separated_nonempty_list(SEMIC,option( IDENT)),RACC) 
+        | doc = option(COMMENT) id = sequence_id mod_names = delimited(LACC,separated_nonempty_list_final_opt(SEMIC,IDENT),RACC) 
             { 
               { Ast.seq_name = fst id; 
-                seq_mod = List_.opt mod_names ; 
+                seq_mod = mod_names ; 
                 seq_doc = begin match doc with Some d -> d | None -> "" end; 
                 seq_loc = (!Parser_global.current_file,snd id);
               } 

@@ -42,9 +42,6 @@ module P_graph: sig
 
 end
 
-module Gid : sig type t = int end
-
-module Gid_map : Map.S with type key = Gid.t 
 
 
 module G_graph: sig
