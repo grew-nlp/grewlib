@@ -510,7 +510,7 @@ sequences:
         | SEQUENCES seq = delimited(LACC,list(sequence),RACC) { seq }
 
 sequence:
-        | doc = option(COMMENT) id = sequence_id mod_names = delimited(LACC,separated_nonempty_list_final_opt(SEMIC,IDENT),RACC) 
+        | doc = option(COMMENT) id = sequence_id mod_names = delimited(LACC,separated_list_final_opt(SEMIC,IDENT),RACC) 
             { 
               { Ast.seq_name = fst id; 
                 seq_mod = mod_names ; 

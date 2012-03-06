@@ -168,3 +168,4 @@ let make_index ~title ~grs_file ~html ~grs ~seq ~output_dir ~base_names  =
 
 let get_css_file = Filename.concat DATA_DIR "style.css"
 
+let graph_of_instance instance = instance.Instance.graph

@@ -75,3 +75,5 @@ val make_index:
       unit
 
 val get_css_file: string
+
+val graph_of_instance: Instance.t -> G_graph.t
