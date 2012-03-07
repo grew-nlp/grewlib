@@ -31,8 +31,10 @@ module Instance = struct
     let graph = G_graph.build gr_ast.Ast.nodes gr_ast.Ast.edges in
     { empty with graph = graph }
 
-  let of_conll lines = 
-    { empty with graph = G_graph.of_conll lines }
+  let of_conll ?loc lines = 
+    Printf.printf "====> [Instance.of_conll] loc=%s" 
+      (match loc with None -> "None" | Some (f,l) -> Printf.sprintf "(%s,%d)" f l);
+    { empty with graph = G_graph.of_conll ?loc lines }
 
   let rev_steps t = 
     { t with big_step = match t.big_step with

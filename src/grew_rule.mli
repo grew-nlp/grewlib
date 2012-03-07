@@ -17,7 +17,7 @@ module Instance : sig
 
   val build: Ast.gr -> t	
 
-  val of_conll: Conll.line list -> t
+  val of_conll: ?loc:Loc.t -> Conll.line list -> t
 
   (* rev_steps reverse the small step list: during rewriting, the last rule is in the head of the list and the reverse is needed for display *) 
   val rev_steps: t -> t

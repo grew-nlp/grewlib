@@ -74,8 +74,9 @@ let load_gr file =
 
 let load_conll file =
   try
-    let lines = File.read file in
-    Instance.of_conll (List.map Conll.parse lines)
+    (* let lines = File.read file in *)
+    (* Instance.of_conll (List.map Conll.parse lines) *)
+    Instance.of_conll ~loc:(file,-1) (Conll.load file)
   with
     | Grew_parser.Parse_error (msg,Some (sub_file,l)) -> 
         raise (Parsing_err (sprintf "[file:%s, line:%d] %s" sub_file l msg))

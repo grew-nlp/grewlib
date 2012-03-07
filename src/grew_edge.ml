@@ -39,7 +39,7 @@ module G_edge = struct
 
   let to_string = Label.to_string
 
-  let make ?(locals=[||]) string = Label.from_string ~locals string
+  let make ?loc ?(locals=[||]) string = Label.from_string ?loc ~locals string
 
   let build ?locals (ast_edge, loc) =
     match ast_edge.Ast.negative, ast_edge.Ast.edge_labels with

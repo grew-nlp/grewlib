@@ -11,6 +11,8 @@ module IntMap : Map.S with type key = int
 module Loc: sig
   type t = string * int 
 
+  val opt_set_line: int -> t option -> t option
+
   val to_string: t -> string
 end
 
@@ -180,17 +182,18 @@ end
 
 module Conll: sig
   type line = {
-      num: int;
-      phon: string;
-      lemma: string;
-      pos1: string;
-      pos2: string;
-      morph: (string * string) list;
-      gov: int;
-      dep_lab: string;
-    }
+    line_num: int;
+    num: int;
+    phon: string;
+    lemma: string;
+    pos1: string;
+    pos2: string;
+    morph: (string * string) list;
+    gov: int;
+    dep_lab: string;
+  }
         
-  val parse: string -> line
+  val load: string -> line list
 end
 
 (** module for rule that are lexically parametrized *)

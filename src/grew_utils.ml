@@ -14,6 +14,10 @@ module Loc = struct
 
   let to_string (file,line) = Printf.sprintf "(file: %s, line: %d)" (Filename.basename file) line
 
+  let opt_set_line line = function
+    | None -> None
+    | Some (file,_) -> Some (file, line)
+
   let opt_to_string = function
     | None -> ""
     | Some x -> to_string x
@@ -36,6 +40,22 @@ module File = struct
         if (Str.string_match (Str.regexp "^[ \t]*$") line 0) || (line.[0] = '%')
         then ()
         else rev_lines := line :: !rev_lines
+      done; assert false
+    with End_of_file -> 
+      close_in in_ch;
+      List.rev !rev_lines
+
+  let read_ln file = 
+    let in_ch = open_in file in
+    let cpt = ref 0 in
+    let rev_lines = ref [] in
+    try
+      while true do
+        let line = input_line in_ch in
+        incr cpt;
+        if (Str.string_match (Str.regexp "^[ \t]*$") line 0) || (line.[0] = '%')
+        then ()
+        else rev_lines := (!cpt, line) :: !rev_lines
       done; assert false
     with End_of_file -> 
       close_in in_ch;
@@ -478,6 +498,7 @@ end
 
 module Conll = struct
   type line = {
+      line_num: int;
       num: int;
       phon: string;
       lemma: string;
@@ -487,33 +508,40 @@ module Conll = struct
       gov: int;
       dep_lab: string;
     }
-        
-  let parse_morph = function
-    | "_" -> []
-    | morph ->  
-        List.map 
-          (fun feat -> 
-            match Str.split (Str.regexp "=") feat with
-            | [feat_name] -> (feat_name, "true")
-            | [feat_name; feat_value] -> (feat_name, feat_value)
-            | _ -> Log.fcritical "Cannot not parse CONLL feat '%s' (too many '=')" morph
-          ) (Str.split (Str.regexp "|") morph)
-          
-  let escape_quote s = Str.global_replace (Str.regexp "\"") "\\\"" s
 
-  let parse line = 
-    match Str.split (Str.regexp "\t") line with
-    | [ num; phon; lemma; pos1; pos2; morph; gov; dep_lab; _; _ ] ->      
-        {num = int_of_string num;
-         phon = escape_quote phon;
-         lemma = escape_quote lemma;
-         pos1 = pos1;
-         pos2 = pos2;
-         morph = parse_morph morph;
-         gov = int_of_string gov;
-         dep_lab = dep_lab;
-       }
-    | _ -> Log.fcritical "Cannot not parse CONLL line '%s'" line
+  let load file =
+        
+    let parse_morph line_num = function
+      | "_" -> []
+      | morph ->  
+          List.map 
+            (fun feat -> 
+              match Str.split (Str.regexp "=") feat with
+              | [feat_name] -> (feat_name, "true")
+              | [feat_name; feat_value] -> (feat_name, feat_value)
+              | _ -> Error.build ~loc:(file,line_num) "[Conll.load] illegal morphology \n>>>>>%s<<<<<<" morph 
+            ) (Str.split (Str.regexp "|") morph) in
+    
+    let escape_quote s = Str.global_replace (Str.regexp "\"") "\\\"" s in
+    
+    let parse (line_num, line) = 
+      match Str.split (Str.regexp "\t") line with
+      | [ num; phon; lemma; pos1; pos2; morph; gov; dep_lab; _; _ ] ->      
+          {line_num = line_num;
+           num = int_of_string num;
+           phon = escape_quote phon;
+           lemma = escape_quote lemma;
+           pos1 = pos1;
+           pos2 = pos2;
+           morph = parse_morph line_num morph;
+           gov = int_of_string gov;
+           dep_lab = dep_lab;
+         }
+      | _ -> 
+          Error.build ~loc:(file,line_num) "[Conll.load] illegal line \n>>>>>%s<<<<<<" line in
+
+    let lines = File.read_ln file in
+    List.map parse lines
 end
 
 (* This module defiens a type for lexical parameter (i.e. one line in a lexical file) *)
