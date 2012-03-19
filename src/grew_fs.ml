@@ -149,7 +149,7 @@ module G_fs = struct
   let to_dot ?main_feat t =
     match get_main ?main_feat t with
     | (None, _) -> List_.to_string G_feature.to_dot "\\n" t
-    | (Some atom, sub) -> sprintf "%s|%s" atom (List_.to_string G_feature.to_dot "\\n" sub)
+    | (Some atom, sub) -> sprintf "{%s|%s}" atom (List_.to_string G_feature.to_dot "\\n" sub)
           
   let to_dep ?main_feat t =
     let (main_opt, sub) = get_main ?main_feat t in
