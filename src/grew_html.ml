@@ -1,5 +1,5 @@
 open Grew_ast
-module HTMLer = struct
+module Html = struct
 
 let index_text table = "
 <!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\"> 
@@ -68,54 +68,7 @@ let rule_page_text previous next rule m ast file = "
 		<center><h1>Rule <a href=\""^m.Ast.module_id^".html\">"^m.Ast.module_id^"</a>.<div class=\"module_title\">"^rule.Ast.rule_id^"</div></h1></center>
 		<br/><br/><div id=doc>"^rule.Ast.rule_doc^"</div>"^
 
-(* disable domain		
-		(if (List.length ast.Ast.domain > 0) then (
-			"<h6>Features domain</h6><code class=\"code\">"^
-			(let rec compute tab = match tab with
-				| [] -> ""
-				| h::t -> begin match h with Ast.Open a -> "<b>"^a^"</b> : *<br/>"^compute t | Ast.Closed (name,values)  -> "<b>"^name^"</b> : "^(AST_HTML.feat_values_tab_to_html values)^"<br/>"^compute t; end; 
-			in compute ast.Ast.domain)
-		) else (
-			""
-		))^"</code>"^
-*)		
 
-(* disable Labels
-		"<br/><h6>Labels</h6>"^
-		(if (List.length ast.Ast.labels > 0) then (
-		"<div class=\"h7\">Inherited from global</div>
-		<code class=\"code\">"^
-		(
-		let rec tab_to_html tab = match tab with
-			| [] -> ""
-			| h::[] -> h
-			| h::t -> h^", "^(tab_to_html t)
-		in tab_to_html (List.map fst ast.Ast.labels)
-		)^
-		"</code>"
-		) else ( ""))^
-		
-		
-		(if (List.length m.Ast.local_labels > 0) then (
-		"<div class=\"h7\">Locals</div>
-		<code class=\"code\">"^
-		(
-		let rec tab_to_html tab = match tab with
-			| [] -> ""
-			| h::[] -> h
-			| h::t -> h^", "^(tab_to_html t)
-		in tab_to_html (List.map fst m.Ast.local_labels)
-		)^
-		"</code>"
-		) else ( ""))^
-		
-*)
-
-(*
-	"<br/>
-	<br/><h6>Commands</h6>
-	<code class=code><pre>"^(AST_HTML.to_html_commands_pretty rule.Ast.commands)^
-*)
 "
 	</pre></code><br/><h6>Code</h6><pre>"^
 	(AST_HTML.to_html_rules [rule])^
@@ -158,7 +111,7 @@ let sequences_text ast =
 		)^
 	"</body>
 </html>"
-
+  
 let index_modules_text ast = 
 "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\"> 
 <html> 
@@ -257,13 +210,13 @@ in
 		"</body>
 </html>"
 
-	let rec create_modules_table modules =
-		match modules with
-			| [] -> ""
-			| h::t ->
-				"<tr><td width=\"200px\"><a href=\""^h.Ast.module_id^".html\">"^h.Ast.module_id^"</a></td><td>"^h.Ast.module_doc^"</td></tr>\n"^
-				create_modules_table t
-				
+  let rec create_modules_table modules =
+    match modules with
+    | [] -> ""
+    | h::t ->
+	"<tr><td width=\"200px\"><a href=\""^h.Ast.module_id^".html\">"^h.Ast.module_id^"</a></td><td>"^h.Ast.module_doc^"</td></tr>\n"^
+	create_modules_table t
+	  
 
 	let proceed output_dir ast = 
 		ignore(Sys.command ("rm -rf "^output_dir));
@@ -327,41 +280,20 @@ in
 			let rules_array = Array.of_list modules_array.(i).Ast.rules in
 			for j = 0 to (Array.length rules_array -1) do
 				
-				(* let pattern_commands_view = Filename.concat output_dir (modules_array.(i).Ast.module_id^"_"^rules_array.(j).Ast.rule_id^"_pattern_commands") in *)
-				(* let antipattern_view = Filename.concat output_dir (modules_array.(i).Ast.module_id^"_"^rules_array.(j).Ast.rule_id^"antipattern_") in *)
-(*				let (patterns,antis) = (Ast.Grew_dot.to_dot_rule rules_array.(j)) in*)
-
-(*				let i2 = ref 0 in*)
-(*				let png = List.map (fun (title,dot) ->*)
-(*					let dot_file = pattern_commands_view^"_"^(string_of_int !i2) in*)
-(*					let page_out_ch = open_out dot_file in*)
-(*					output_string page_out_ch dot;*)
-(*					close_out page_out_ch;*)
-(*					ignore(Sys.command ("dot -Tpng -o"^pattern_commands_view^"_"^(string_of_int !i2)^".png "^dot_file));*)
-(*					let tmp = (title,(modules_array.(i).Ast.module_id^"_"^rules_array.(j).Ast.rule_id^"_pattern_commands")^"_"^(string_of_int !i2)) in*)
-(*					incr i2;*)
-(*					tmp*)
-(*				) (List.rev patterns) in*)
-(*				*)
-(*				let index = ref 0 in*)
-(*				let antis = List.map (fun anti ->*)
-(*					let page_out_ch = open_out (antipattern_view^(string_of_int !index)) in*)
-(*					output_string page_out_ch anti;*)
-(*					close_out page_out_ch;*)
-(*					ignore(Sys.command ("dot -Tpng -o"^antipattern_view^(string_of_int !index)^".png "^antipattern_view^(string_of_int !index)));*)
-(*					incr index;*)
-(*					(modules_array.(i).Ast.module_id^"_"^rules_array.(j).Ast.rule_id^"antipattern_")^(string_of_int (!index-1))^".png"*)
-(*				) antis in*)
 			
 				let page = Filename.concat output_dir (modules_array.(i).Ast.module_id^"_"^rules_array.(j).Ast.rule_id^".html") in
 				let page_out_ch = open_out page in
-				output_string page_out_ch (rule_page_text (try Some (rules_array.(j-1).Ast.rule_id) with _ -> None) (try Some (rules_array.(j+1).Ast.rule_id) with _ -> None) rules_array.(j) modules_array.(i) ast (modules_array.(i).Ast.module_id^"_"^rules_array.(j).Ast.rule_id^".html"));
+				output_string page_out_ch 
+                                  (rule_page_text 
+                                     (try Some (rules_array.(j-1).Ast.rule_id) with _ -> None)
+                                     (try Some (rules_array.(j+1).Ast.rule_id) with _ -> None) 
+                                     rules_array.(j) 
+                                     modules_array.(i) 
+                                     ast 
+                                     (modules_array.(i).Ast.module_id^"_"^rules_array.(j).Ast.rule_id^".html")
+                                  );
 				close_out page_out_ch;
 				
-(*				let page = Filename.concat output_dir (modules_array.(i).Ast.module_id^"_"^rules_array.(j).Ast.rule_id^".html_flatten.html") in*)
-(*				let page_out_ch = open_out page in*)
-(*				output_string page_out_ch (flatten_rule_page_text png output_dir);*)
-(*				close_out page_out_ch;*)
 				
 			done;
 		done;

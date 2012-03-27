@@ -9,7 +9,7 @@ open Grew_rule
 open Grew_grs
 
 open Grew_parser
-open HTMLer
+open Grew_html
 
 
 
@@ -38,7 +38,7 @@ let load_grs ?doc_output_dir file =
       let grs_ast = Grew_parser.grs_of_file file in
       (match doc_output_dir with
       | None -> ()
-      | Some dir -> HTMLer.proceed dir grs_ast);
+      | Some dir -> Html.proceed dir grs_ast);
       Grs.build grs_ast
     with
     | Grew_parser.Parse_error (msg,Some (sub_file,l)) -> 

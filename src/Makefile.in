@@ -1,5 +1,5 @@
 
-FILES_DEP = grew_utils grew_ast grew_fs grew_edge grew_node grew_graph grew_types grew_command grew_rule grew_grs
+FILES_DEP = grew_utils grew_ast grew_html grew_fs grew_edge grew_node grew_graph grew_types grew_command grew_rule grew_grs
 FILES_ML = $(FILES_DEP:%=%.ml)
 FILES_MLI = $(FILES_DEP:%=%.mli)
 FILES_CMI = $(FILES_DEP:%=%.cmi)
@@ -13,10 +13,10 @@ PARSER_CMI = $(PARSER_DEP:%=%.cmi)
 PARSER_CMO = $(PARSER_DEP:%=%.cmo)
 PARSER_CMX = $(PARSER_DEP:%=%.cmx)
 
-.PHONY: parser HTMLer
+.PHONY: parser
 
-all: grew_utils.cmx grew_ast.cmx parser HTMLer grew test
-byte: grew_utils.cmo grew_ast.cmo parser.byte HTMLer.byte grew.byte test.byte
+all: grew_utils.cmx grew_ast.cmx parser grew test
+byte: grew_utils.cmo grew_ast.cmo parser.byte grew.byte test.byte
 
 
 include ../config/Makefile
@@ -25,24 +25,24 @@ include ../config/Makefile
 
 #executables
 
-grew.byte: $(FILES_CMO) parser/parser_global.cmo parser_byte parser/grew_parser.cmo HTMLer/HTMLer.cmo grew.ml
+grew.byte: $(FILES_CMO) parser/parser_global.cmo parser_byte parser/grew_parser.cmo grew.ml
 	ocamlc $(BYTE_FLAGS) -o grew.byte $(ANSITERMINAL_BYTE) $(LOG_BYTE)  \
-	$(FILES_CMO) -I parser $(PARSER_CMO) -I HTMLer HTMLer.cmo \
+	$(FILES_CMO) -I parser $(PARSER_CMO) \
 	grew.ml
 
-grew: $(FILES_CMX) parser/parser_global.cmx parser_opt parser/grew_parser.cmx HTMLer/HTMLer.cmx grew.ml
+grew: $(FILES_CMX) parser/parser_global.cmx parser_opt parser/grew_parser.cmx grew.ml
 	ocamlopt $(OPT_FLAGS) -o grew str.cmxa unix.cmxa $(ANSITERMINAL_OPT) $(LOG_OPT) \
-	$(FILES_CMX) -I parser $(PARSER_CMX) -I HTMLer HTMLer.cmx \
+	$(FILES_CMX) -I parser $(PARSER_CMX) \
 	grew.ml
 
-test.byte: parser/parser_global.cmo parser_byte parser/grew_parser.cmo HTMLer/HTMLer.cmo $(FILES_CMO) $(FILES_CMI) test.ml
+test.byte: parser/parser_global.cmo parser_byte parser/grew_parser.cmo $(FILES_CMO) $(FILES_CMI) test.ml
 	ocamlc $(BYTE_FLAGS) -o test.byte $(ANSITERMINAL_BYTE) $(LOG_BYTE) \
-	$(FILES_CMO) -I parser $(PARSER_CMO) -I HTMLer HTMLer.cmo \
+	$(FILES_CMO) -I parser $(PARSER_CMO) \
 	test.ml
 
-test: parser/parser_global.cmx parser_opt parser/grew_parser.cmx HTMLer/HTMLer.cmx $(FILES_CMX) $(FILES_CMI) test.ml
+test: parser/parser_global.cmx parser_opt parser/grew_parser.cmx $(FILES_CMX) $(FILES_CMI) test.ml
 	ocamlopt $(OPT_FLAGS) -o test str.cmxa unix.cmxa $(ANSITERMINAL_OPT) $(LOG_OPT) \
-	$(FILES_CMX) -I parser $(PARSER_CMX) -I HTMLer HTMLer.cmx \
+	$(FILES_CMX) -I parser $(PARSER_CMX) \
 	test.ml
 
 #parser
@@ -51,13 +51,6 @@ parser_opt:
 
 parser_byte: 
 	@make -C parser byte
-
-#HTMLer
-HTMLer_opt: 
-	@make -C HTMLer
-
-HTMLer_byte: 
-	@make -C HTMLer byte
 
 # librairie
 
@@ -75,25 +68,25 @@ libgrew.mli : grew_types.mli libgrew_.mli
 	echo "" >> libgrew.mli
 	cat libgrew_.mli >> libgrew.mli
 
-libgrew.cma : $(FILES_CMO) parser_byte HTMLer_byte libgrew.mli libgrew.ml
+libgrew.cma : $(FILES_CMO) parser_byte libgrew.mli libgrew.ml
 ifeq (@DEP2PICT@,no) 
-	ocamlc -c -pp 'camlp4o pa_macro.cmo' $(BYPE_FLAGS) $(FILES_CMO) str.cma -I parser $(PARSER_CMO) -I HTMLer HTMLer.cmo libgrew.mli
-	ocamlc -a -o libgrew.cma $(BYPE_FLAGS) -pp 'camlp4o pa_macro.cmo -DDATA_DIR=\"$(DATA_DIR)\"' -linkall $(FILES_CMO) -I parser $(PARSER_CMO) -I HTMLer HTMLer.cmo libgrew.ml
+	ocamlc -c -pp 'camlp4o pa_macro.cmo' $(BYPE_FLAGS) $(FILES_CMO) str.cma -I parser $(PARSER_CMO) libgrew.mli
+	ocamlc -a -o libgrew.cma $(BYPE_FLAGS) -pp 'camlp4o pa_macro.cmo -DDATA_DIR=\"$(DATA_DIR)\"' -linkall $(FILES_CMO) -I parser $(PARSER_CMO) libgrew.ml
 else
-	ocamlc -c -pp 'camlp4o pa_macro.cmo -DDEP2PICT' $(FILES_CMO) str.cma -I parser $(PARSER_CMO) -I HTMLer HTMLer.cmo libgrew.mli
-	ocamlc -a -o libgrew.cma -pp 'camlp4o pa_macro.cmo -DDATA_DIR=\"$(DATA_DIR)\" -DDEP2PICT' -linkall $(FILES_CMO) -I parser $(PARSER_CMO) -I HTMLer HTMLer.cmo libgrew.ml
+	ocamlc -c -pp 'camlp4o pa_macro.cmo -DDEP2PICT' $(FILES_CMO) str.cma -I parser $(PARSER_CMO) libgrew.mli
+	ocamlc -a -o libgrew.cma -pp 'camlp4o pa_macro.cmo -DDATA_DIR=\"$(DATA_DIR)\" -DDEP2PICT' -linkall $(FILES_CMO) -I parser $(PARSER_CMO) libgrew.ml
 endif
 
-libgrew.cmxa : $(FILES_CMX) parser_opt HTMLer_opt libgrew.mli libgrew.ml
+libgrew.cmxa : $(FILES_CMX) parser_opt libgrew.mli libgrew.ml
 ifeq (@DEP2PICT@,no)
-	ocamlopt -c -pp 'camlp4o pa_macro.cmo' $(OPT_FLAGS) $(FILES_CMX) str.cmxa -I parser $(PARSER_CMX) -I HTMLer HTMLer.cmx libgrew.mli
-	ocamlopt -a -o libgrew.cmxa $(OPT_FLAGS) -pp 'camlp4o pa_macro.cmo -DDATA_DIR=\"$(DATA_DIR)\"' -linkall $(FILES_CMX) -I parser $(PARSER_CMX) -I HTMLer HTMLer.cmx libgrew.ml
+	ocamlopt -c -pp 'camlp4o pa_macro.cmo' $(OPT_FLAGS) $(FILES_CMX) str.cmxa -I parser $(PARSER_CMX) libgrew.mli
+	ocamlopt -a -o libgrew.cmxa $(OPT_FLAGS) -pp 'camlp4o pa_macro.cmo -DDATA_DIR=\"$(DATA_DIR)\"' -linkall $(FILES_CMX) -I parser $(PARSER_CMX) libgrew.ml
 else
-	ocamlopt -c -pp 'camlp4o pa_macro.cmo -DDEP2PICT' $(FILES_CMX) str.cmxa -I parser $(PARSER_CMX) -I HTMLer HTMLer.cmx libgrew.mli
-	ocamlopt -a -o libgrew.cmxa -pp 'camlp4o pa_macro.cmo -DDATA_DIR=\"$(DATA_DIR)\" -DDEP2PICT' -linkall $(FILES_CMX) -I parser $(PARSER_CMX) -I HTMLer HTMLer.cmx libgrew.ml
+	ocamlopt -c -pp 'camlp4o pa_macro.cmo -DDEP2PICT' $(FILES_CMX) str.cmxa -I parser $(PARSER_CMX) libgrew.mli
+	ocamlopt -a -o libgrew.cmxa -pp 'camlp4o pa_macro.cmo -DDATA_DIR=\"$(DATA_DIR)\" -DDEP2PICT' -linkall $(FILES_CMX) -I parser $(PARSER_CMX) libgrew.ml
 endif
 
-DEPENDS_DIR= -I parser -I HTMLer
+DEPENDS_DIR= -I parser
 
 ###### grew_core.ml ##############################################################
 GREW_CORE_DEP = grew_types
@@ -144,6 +137,22 @@ grew_ast.cmx: $(GREW_AST_CMX) grew_ast.cmi grew_ast.ml
 	ocamlopt $(OPT_FLAGS) -c $(DEPENDS_DIR) grew_ast.ml
 ################################################################################
 
+
+###### grew_html.ml ##############################################################
+GREW_HTML_DEP = grew_utils grew_ast
+GREW_HTML_CMI = $(GREW_HTML_DEP:%=%.cmi)
+GREW_HTML_CMO = $(GREW_HTML_DEP:%=%.cmo)
+GREW_HTML_CMX = $(GREW_HTML_DEP:%=%.cmx)
+
+grew_html.cmi: $(GREW_HTML_CMI) grew_html.mli
+	ocamlc -c grew_html.mli
+
+grew_html.cmo: $(GREW_HTML_CMO) grew_html.cmi grew_html.ml
+	ocamlc $(BYTE_FLAGS) -pp 'camlp4o pa_macro.cmo -DDATA_DIR=\"$(DATA_DIR)\"' -c $(DEPENDS_DIR) grew_html.ml
+
+grew_html.cmx: $(GREW_HTML_CMX) grew_html.cmi grew_html.ml
+	ocamlopt $(OPT_FLAGS) -pp 'camlp4o pa_macro.cmo -DDATA_DIR=\"$(DATA_DIR)\"' -c $(DEPENDS_DIR) grew_html.ml
+################################################################################
 
 ###### grew_fs.ml ##############################################################
 GREW_FS_DEP = grew_utils grew_ast
@@ -312,7 +321,6 @@ dep:
 
 
 clean: 
-	@make -C HTMLer cleanup
 	@make -C parser clean
 	rm -rf *.cmi *.cmo *.cmxa *.cma *.cmx *.o *.annot
 	rm -f grew grew.byte
@@ -321,7 +329,6 @@ clean:
 	rm -f libgrew.mli
 
 purge_makefile:
-	@make -C HTMLer purge
 	@make -C parser purge
 	@make purge
 

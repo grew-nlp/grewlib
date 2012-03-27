@@ -1975,7 +1975,7 @@ TRUNK=`pwd`
 
 echo ""
 
-ac_config_files="$ac_config_files config/Makefile Makefile src/Makefile src/parser/Makefile src/HTMLer/Makefile"
+ac_config_files="$ac_config_files config/Makefile Makefile src/Makefile src/parser/Makefile"
 
 
 VERSION=`grep "VERSION = .*" config/Makefile.in | sed 's|VERSION = \(.*\)|\1|'`
@@ -2739,7 +2739,6 @@ do
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
     "src/Makefile") CONFIG_FILES="$CONFIG_FILES src/Makefile" ;;
     "src/parser/Makefile") CONFIG_FILES="$CONFIG_FILES src/parser/Makefile" ;;
-    "src/HTMLer/Makefile") CONFIG_FILES="$CONFIG_FILES src/HTMLer/Makefile" ;;
 
   *) as_fn_error $? "invalid argument: \`$ac_config_target'" "$LINENO" 5;;
   esac
