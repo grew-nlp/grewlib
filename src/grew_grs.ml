@@ -571,7 +571,9 @@ module Corpus_stat = struct
            let file_num = StringSet.cardinal file_set in
            
            fprintf out_ch "<tr>\n";
-           fprintf out_ch "  <td class=\"first_stats\"  valign=top>%s</td>\n" rule;
+           fprintf out_ch "  <td class=\"first_stats\"  valign=top><a href=\"doc/%s.html\">%s</a></td>\n" 
+             id
+             rule;
            fprintf out_ch "  <td class=\"stats\"  valign=top>%d/%d</td>\n" min_occ max_occ;
            fprintf out_ch "  <td class=\"stats\"  valign=top>%d</td>\n" file_num;
            fprintf out_ch "  <td class=\"stats\"  valign=top>%.2f%%</td>\n" (ratio file_num);

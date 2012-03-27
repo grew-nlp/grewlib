@@ -185,6 +185,8 @@ module AST_HTML = struct
     match u_feature.Ast.kind with 
     | Ast.Equality values -> 
         sprintf "%s=%s" u_feature.Ast.name (List_.to_string (fun x->x) "|" values)
+    | Ast.Disequality [] ->
+        sprintf "%s=*" u_feature.Ast.name
     | Ast.Disequality values -> 
         sprintf "%s<>%s" u_feature.Ast.name (List_.to_string (fun x->x) "|" values)
     | Ast.Param index -> 
@@ -216,14 +218,14 @@ module AST_HTML = struct
 
    
   let buff_html_pos_pattern buff pos_pattern =
-    bprintf buff "   <font color=\"purple\">match</font> <b>{</b>\n";
+    bprintf buff "    <font color=\"purple\">match</font> <b>{</b>\n";
     List.iter (buff_html_node buff) pos_pattern.Ast.pat_nodes;
     List.iter (buff_html_edge buff) pos_pattern.Ast.pat_edges;
     List.iter (buff_html_const buff) pos_pattern.Ast.pat_const;
     bprintf buff "    <b>}</b>\n"
        
   let buff_html_neg_pattern buff neg_pattern =
-    bprintf buff "  <font color=\"purple\">without</font> <b>{</b>\n";
+    bprintf buff "    <font color=\"purple\">without</font> <b>{</b>\n";
     List.iter (buff_html_node buff) neg_pattern.Ast.pat_nodes;
     List.iter (buff_html_edge buff) neg_pattern.Ast.pat_edges;
     List.iter (buff_html_const buff) neg_pattern.Ast.pat_const;
@@ -233,7 +235,7 @@ module AST_HTML = struct
     let buff = Buffer.create 32 in
     List.iter 
       (fun rule ->
-        bprintf buff "  <font color=\"purple\">rule</font> %s <b>{</b>\n" rule.Ast.rule_id;
+        bprintf buff "<font color=\"purple\">rule</font> %s <b>{</b>\n" rule.Ast.rule_id;
 
         (* the match part *)
         buff_html_pos_pattern buff rule.Ast.pos_pattern;
@@ -242,11 +244,11 @@ module AST_HTML = struct
         List.iter (buff_html_neg_pattern buff) rule.Ast.neg_patterns;
 
         (*  the commands part *)
-        bprintf buff "  <font color=\"purple\">commands</font> <b>{</b>\n";
+        bprintf buff "    <font color=\"purple\">commands</font> <b>{</b>\n";
         List.iter (buff_html_command buff) rule.Ast.commands;
-        bprintf buff "        <b>}</b>\n"; 
-
         bprintf buff "    <b>}</b>\n"; 
+
+        bprintf buff "<b>}</b>\n"; 
       ) rules;
     Buffer.contents buff
 end
