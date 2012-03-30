@@ -62,9 +62,13 @@ module Instance_set = Set.Make (Instance)
 
 
 module Rule = struct 
+  (* the [pid] type is used for pattern identifier *)
   type pid = Pid.t
+   
+  (* the [gid] type is used for graph identifier *)
   type gid = int
 
+  (* the rewriting depth is bounded to stop rewriting when the system is not terminating *) 
   let max_depth = ref 500
 
   type const = 
@@ -80,11 +84,11 @@ module Rule = struct
     | (Ast.No_in node_name, loc) -> No_in (Id.build ~loc node_name table, P_edge.all)
     | (Ast.Feature_eq ((node_name1, feat_name1), (node_name2, feat_name2)), loc) -> 
         Feature_eq (Id.build ~loc node_name1 table, feat_name1, Id.build ~loc node_name2 table, feat_name2)
-
-  type pattern = 
-      { graph: P_graph.t;
-        constraints: const list;
-      }
+          
+  type pattern = {
+      graph: P_graph.t;
+      constraints: const list;
+    }
 
   let build_pos_pattern ?pat_vars ?(locals=[||]) pattern_ast =
     let (graph,table,filter_nodes) = P_graph.build ?pat_vars ~locals pattern_ast.Ast.pat_nodes pattern_ast.Ast.pat_edges in
@@ -97,6 +101,8 @@ module Rule = struct
     }, 
      table
     )
+
+
 
       (* the neg part *)
   let build_neg_constraint ?locals pos_table neg_table const =
@@ -134,24 +140,26 @@ module Rule = struct
       pos: pattern;
       neg: pattern list;
       commands: Command.t list;
-      loc: Loc.t;
       param: Lex_par.t option;
+      loc: Loc.t;
     }
 
   let get_name t = t.name
 
   let get_loc t = t.loc
 
+  let to_dep t = P_graph.to_dep t.pos.graph
+
   let is_filter t = t.commands = []
 
-  let build_commands ?cmd_vars ?(locals=[||]) pos pos_table ast_commands =
+  let build_commands ?param ?(locals=[||]) pos pos_table ast_commands =
     let known_node_ids = Array.to_list pos_table in
     let known_edge_ids = get_edge_ids pos in
     let rec loop (kni,kei) = function
       | [] -> []
       | ast_command :: tail ->
           let (command, (new_kni, new_kei)) = 
-            Command.build ?cmd_vars (kni,kei) pos_table locals ast_command in
+            Command.build ?param (kni,kei) pos_table locals ast_command in
           command :: (loop (new_kni,new_kei) tail) in
     loop (known_node_ids, known_edge_ids) ast_commands
 
@@ -185,7 +193,7 @@ module Rule = struct
      name = rule_ast.Ast.rule_id;
      pos = pos;
      neg = List.map (fun p -> build_neg_pattern ~locals pos_table p) rule_ast.Ast.neg_patterns;
-     commands = build_commands ~cmd_vars ~locals pos pos_table rule_ast.Ast.commands;
+     commands = build_commands ~param:(pat_vars,cmd_vars) ~locals pos pos_table rule_ast.Ast.commands;
      loc = rule_ast.Ast.rule_loc;
      param = param; 
    };
@@ -471,10 +479,14 @@ module Rule = struct
             (function
               | Command.Feat (cnode, feat_name) -> G_graph.Feat (node_find cnode, feat_name)
               | Command.String s -> G_graph.String s
-              | Command.Param index -> 
-                  match matching.m_param with
+              | Command.Param_out index -> 
+                  (match matching.m_param with
                   | None -> Error.bug "Cannot apply a UPDATE_FEAT command without parameter"
-                  | Some param -> G_graph.String (Lex_par.get_command_value index param)
+                  | Some param -> G_graph.String (Lex_par.get_command_value index param))
+              | Command.Param_in index -> 
+                  (match matching.m_param with
+                  | None -> Error.bug "Cannot apply a UPDATE_FEAT command without parameter"
+                  | Some param -> G_graph.String (Lex_par.get_param_value index param))
             ) item_list in
 
         let (new_graph, new_feature_value) = 
@@ -745,4 +757,4 @@ module Rule = struct
       let (good_set, bad_set) = Instance_set.partition (filter_instance filters) output_set in
       (good_set, bad_set)
 
-end
+end (* module Rule *)

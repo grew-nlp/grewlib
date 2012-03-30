@@ -93,6 +93,7 @@ module List_: sig
 
   val sort_is_empty_inter: 'a list -> 'a list -> bool
   val sort_inter: 'a list -> 'a list -> 'a list
+  val sort_union: 'a list -> 'a list -> 'a list
   val sort_disjoint_union: ?compare:('a -> 'a -> int) -> 'a list -> 'a list -> 'a list
   val sort_include: 'a list -> 'a list -> bool
   val sort_included_diff: 'a list -> 'a list -> 'a list
@@ -208,6 +209,9 @@ module Lex_par: sig
       [None] is returnes if no such entry s founded.
    *)
   val filter: int -> string -> t -> t option
+
+  (** [get_param_value index t] returns the [index]^th param_var. *)
+  val get_param_value: int -> t -> string
 
   (** [get_command_value index t] supposes that [t] contains iny one element.
       It returns the [index]^th command_var. *)

@@ -497,6 +497,7 @@ concat_item:
         | s = IDENT    { Ast.String_item s }
         | s = STRING   { Ast.String_item s }
         | p = CMD      { Ast.Param_item p }
+        | p = PAT      { Ast.Param_item p }
 
 /*=============================================================================================*/
 /*                                                                                             */

@@ -41,17 +41,34 @@ module P_graph = struct
     let fs = P_fs.build ast_node.Ast.fs in
     (pid, fs)
 
-  let build ?pat_vars ?(locals=[||]) full_node_list full_edge_list = 
+  let build ?pat_vars ?(locals=[||]) (full_node_list : Ast.node list) full_edge_list = 
+    (* let (named_nodes, constraints) =  *)
+    (*   let rec loop already_bound = function *)
+    (*     | [] -> ([],[]) *)
+    (*     | (ast_node, loc) :: tail -> *)
+    (*         let (tail_nodes, tail_const) = loop (ast_node.Ast.node_id :: already_bound) tail in *)
+    (*         if List.mem ast_node.Ast.node_id already_bound *)
+    (*         then (tail_nodes, (ast_node, loc)::tail_const) *)
+    (*         else (P_node.build ?pat_vars (ast_node, loc) :: tail_nodes, tail_const) in *)
+    (*   loop [] full_node_list in *)
 
-    let (named_nodes, constraints) = 
-      let rec loop already_bound = function
-        | [] -> ([],[])
-        | (ast_node, loc) :: tail ->
-            let (tail_nodes, tail_const) = loop (ast_node.Ast.node_id :: already_bound) tail in
-            if List.mem ast_node.Ast.node_id already_bound
-            then (tail_nodes, (ast_node, loc)::tail_const)
-            else (P_node.build ?pat_vars (ast_node, loc) :: tail_nodes, tail_const) in
-      loop [] full_node_list in
+    let rec insert (ast_node, loc) = function
+      | [] -> [P_node.build ?pat_vars (ast_node, loc)]
+      | (n,h)::t when ast_node.Ast.node_id = n ->
+          (n, P_node.unif_fs (P_fs.build ?pat_vars ast_node.Ast.fs) h) :: t
+      | h::t -> h :: (insert (ast_node, loc) t) in
+
+    let (named_nodes : (Id.name * P_node.t) list) = 
+      let rec loop = function
+        | [] -> []
+        | ast_node :: tail ->
+            let tail_nodes = loop tail in
+            insert ast_node tail_nodes in
+            (* let old_node = List.find (fun n -> P_node.get_name) *)
+            (* if List.mem ast_node.Ast.node_id already_bound *)
+            (* then (tail_nodes, (ast_node, loc)::tail_const) *)
+            (* else (P_node.build ?pat_vars (ast_node, loc) :: tail_nodes, tail_const) in *)
+      loop full_node_list in
 
     let sorted_nodes = List.sort (fun (id1,_) (id2,_) -> Pervasives.compare id1 id2) named_nodes in
     let (sorted_ids, node_list) = List.split sorted_nodes in
@@ -62,7 +79,7 @@ module P_graph = struct
     (* the nodes, in the same order *) 
     let map_without_edges = List_.foldi_left (fun i acc elt -> Pid_map.add i elt acc) Pid_map.empty node_list in
     
-    let map =
+    let (map : t) =
       List.fold_left
 	(fun acc (ast_edge, loc) ->
 	  let i1 = Id.build ~loc ast_edge.Ast.src table in
@@ -75,7 +92,42 @@ module P_graph = struct
                 (Loc.to_string loc)
 	  )
 	) map_without_edges full_edge_list in
-    (map, table, List.map (build_filter table) constraints)
+    (map, table, [](* List.map (build_filter table) constraints *))
+
+  let to_dep t =
+    let buff = Buffer.create 32 in
+    bprintf buff "[GRAPH] { scale = 200; }\n";
+
+    bprintf buff "[WORDS] {\n";
+    Pid_map.iter
+      (fun id node ->
+        bprintf buff "  N_%d { word=\"%s\"; subword=\"%s\"}\n" 
+          id 
+          (P_node.get_name node)
+          (P_fs.to_dep (P_node.get_fs node))
+      ) t;
+    bprintf buff "}\n";
+    
+    bprintf buff "[EDGES] {\n";
+    
+    Pid_map.iter
+      (fun id_src node ->
+        Massoc.iter 
+          (fun id_tar edge ->
+            bprintf buff "  N_%d -> N_%d { label=\"%s\"}\n"
+              id_src id_tar 
+              (P_edge.to_string edge)
+          )
+          (P_node.get_next node)
+      ) t;
+
+
+
+
+    bprintf buff "}\n";
+
+    Buffer.contents buff
+
 
   (* a type for extension of graph: a former graph exists: 
      in grew the former is a positive pattern and an extension is a "without" *)

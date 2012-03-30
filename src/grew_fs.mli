@@ -49,6 +49,8 @@ module P_fs: sig
   
   val to_string: t -> string
 
+  val to_dep: t -> string
+
   val to_dot: t -> string
 
   exception Fail
@@ -60,4 +62,6 @@ module P_fs: sig
   val match_: ?param:Lex_par.t -> t -> G_fs.t -> Lex_par.t option
 
   val filter: t -> G_fs.t -> bool
+
+  val unif: t -> t -> t
 end

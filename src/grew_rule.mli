@@ -39,10 +39,12 @@ module Rule : sig
 
   val get_name: t -> string
 
-  (** [get_loc t] returns the file location of th*)
+  (** [get_loc t] returns the file location of the rule [t]. *)
   val get_loc: t -> Loc.t
 
   val is_filter: t -> bool
+
+  val to_dep: t -> string
 
   (** [build ?local dir ast_rule] returns the Rule.t value corresponding to [ast_rule].
       [dir] is used for localisation of lp files *)

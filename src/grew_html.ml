@@ -1,3 +1,6 @@
+open Printf
+open Dep2pict
+
 open Grew_ast
 module Html = struct
 
@@ -53,8 +56,11 @@ let module_page_text previous next m ast = "
 	"</body>
 </html>"
 
-let rule_page_text previous next rule m ast file = "
-<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\"> 
+
+let rule_page_text previous next rule m ast file = 
+  let dep_pattern_file = sprintf "%s_%s-patt.png" m.Ast.module_id rule.Ast.rule_id in 
+
+"<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\"> 
 <html> 
 	<head> 
 		<link rel=\"stylesheet\" href=\"style.css\" type=\"text/css\"> 
@@ -70,9 +76,14 @@ let rule_page_text previous next rule m ast file = "
 
 
 "
-	</pre></code><br/><h6>Code</h6><pre>"^
+	<br/><h6>Code</h6><pre>"^
 	(AST_HTML.to_html_rules [rule])^
 	"</pre><br/>
+
+	<br/><h6>Pattern</h6><pre>"^
+	("<IMG src=\""^dep_pattern_file^"\">")^
+	"</pre><br/>
+
 	
 	</body>
 </html>"

@@ -7,7 +7,6 @@ module StringMap = Map.Make (String)
 module IntSet = Set.Make (struct type t = int let compare = Pervasives.compare end)
 module IntMap = Map.Make (struct type t = int let compare = Pervasives.compare end)
 
-
 (* ================================================================================ *)
 module Loc = struct
   type t = string * int 
@@ -22,7 +21,6 @@ module Loc = struct
     | None -> ""
     | Some x -> to_string x
 end (* module Loc *)
-
 
 (* ================================================================================ *)
 module File = struct
@@ -295,6 +293,15 @@ module List_ = struct
       | x1::t1, x2::t2 -> x1 :: loop (t1, t2) in
     loop (l1,l2)
       
+  let sort_union l1 l2 = 
+    let rec loop = function
+      | [], l | l, [] -> l
+      | x1::t1, x2::t2 when x1 < x2 -> x1 :: loop (t1, x2::t2)
+      | x1::t1, x2::t2 when x1 > x2 -> x2 :: loop (x1::t1, t2)
+      | x1::t1, x2::t2 -> x1 :: loop (t1, t2) in
+    loop (l1,l2)
+
+
   exception Not_disjoint
   let sort_disjoint_union ?(compare=Pervasives.compare) l1 l2 = 
     let rec loop = function
@@ -544,7 +551,7 @@ module Conll = struct
     List.map parse lines
 end
 
-(* This module defiens a type for lexical parameter (i.e. one line in a lexical file) *)
+(* This module defines a type for lexical parameter (i.e. one line in a lexical file) *)
 module Lex_par = struct
 
   type item = string list * string list (* first list: pattern parameters $id , second list command parameters @id *)
@@ -603,14 +610,23 @@ module Lex_par = struct
     with 
     | [] -> None
     | t -> Some t
-    
+
+  let get_param_value index = function
+    | [] -> Error.bug "[Lex_par.get_command_value] empty parameter"
+    | (params,_)::_ -> List.nth params index
+
   let get_command_value index = function
     | [(_,one)] -> List.nth one index
     | [] -> Error.bug "[Lex_par.get_command_value] empty parameter"
     | (_,[sing])::tail when index=0 -> 
         Printf.sprintf "%s/%s" 
           sing 
-          (List_.to_string (function (_,[s]) -> s | _ -> Error.bug "[Lex_par.get_command_value] inconsistent param") "/" tail)
+          (List_.to_string 
+             (function 
+               | (_,[s]) -> s 
+               | _ -> Error.bug "[Lex_par.get_command_value] inconsistent param"
+             ) "/" tail
+          )
     | l -> Error.run "Lexical parameter are not functionnal"
 
 end

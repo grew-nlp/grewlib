@@ -17,7 +17,8 @@ module Command  = struct
   type item =
     | Feat of (cnode * string)
     | String of string
-    | Param of int
+    | Param_in of int
+    | Param_out of int
 
   (* the command in pattern *)
   type p = 
@@ -49,7 +50,7 @@ module Command  = struct
     | H_SHIFT_OUT of (gid * gid)
     | H_MERGE_NODE of (gid * gid)
 
-  let build ?cmd_vars (kni, kei) table locals ast_command = 
+  let build ?param (kni, kei) table locals ast_command = 
     let get_pid node_name =
       match Id.build_opt node_name table with
       | Some id -> Pid id
@@ -123,12 +124,13 @@ module Command  = struct
               | Ast.Qfn_item (node,feat_name) -> check_node loc node kni; Feat (get_pid node, feat_name)
               | Ast.String_item s -> String s
               | Ast.Param_item var -> 
-                  match cmd_vars with
+                  match param with
                   | None -> Error.build "Unknown command variable '%s'" var
-                  | Some l -> 
-                      match List_.pos var l with
-                      | Some index -> Param index
-                      | None -> Error.build "Unknown command variable '%s'" var
+                  | Some (par,cmd) -> 
+                      match (List_.pos var par, List_.pos var cmd) with
+                      | (_,Some index) -> Param_out index
+                      | (Some index,_) -> Param_in index
+                      | _ -> Error.build "Unknown command variable '%s'" var
             ) ast_items in
         ((UPDATE_FEAT (get_pid tar_node, tar_feat_name, items), loc), (kni, kei))
 end

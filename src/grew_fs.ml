@@ -56,7 +56,7 @@ module P_feature = struct
   (* feature= (feature_name, disjunction of atomic values) *) 
 
   type v = 
-    | Equal of string list  (* with Equal constr, the list is MUST never be empty *)
+    | Equal of string list  (* with Equal constr, the list MUST never be empty *)
     | Different of string list
     | Param of int 
 
@@ -66,6 +66,15 @@ module P_feature = struct
 
   let compare feat1 feat2 = Pervasives.compare (get_name feat1) (get_name feat2)
 
+  let unif_value v1 v2 = 
+    match (v1, v2) with
+    | (Equal l1, Equal l2) -> 
+        (match List_.sort_inter l1 l2 with
+        | [] -> Error.build "Unification failure" 
+        | l -> Equal l)
+    | (Different l1, Different l2) -> Different (List_.sort_union l1 l2)
+    | _ -> Error.build "cannot unify heterogeneous pattern features"
+        
   let to_string = function
     | (feat_name, Equal atoms) -> sprintf "%s=%s" feat_name (List_.to_string (fun x->x) "|" atoms)
     | (feat_name, Different []) -> sprintf "%s=*" feat_name
@@ -171,6 +180,8 @@ module P_fs = struct
 
   let to_string t = List_.to_string P_feature.to_string "\\n" t
 
+  let to_dep t = List_.to_string P_feature.to_string "#" t
+
   let to_dot t = List_.to_string P_feature.to_string "\\n" t
 
   exception Fail
@@ -218,4 +229,16 @@ module P_fs = struct
       | _ -> false
 
     in loop (fs_p, fs_g)
+
+  let unif fs1 fs2 = 
+    let rec loop = function
+      | [], fs -> fs
+      | fs, [] -> fs
+
+      | ((fn1,v1)::t1, (fn2,v2)::t2) when fn1 < fn2 -> (fn1,v1) :: (loop (t1,(fn2,v2)::t2))
+      | ((fn1,v1)::t1, (fn2,v2)::t2) when fn1 > fn2 -> (fn2,v2) :: (loop ((fn1,v1)::t1,t2))
+
+      (* all remaining case are fn1 = fn2 *)
+      | ((fn1,v1)::t1, (fn2,v2)::t2) (* when fn1 = fn2 *) -> (fn1,P_feature.unif_value v1 v2) :: (loop (t1,t2))
+    in loop (fs1, fs2)      
 end

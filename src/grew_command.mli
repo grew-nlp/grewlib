@@ -13,7 +13,8 @@ module Command : sig
   type item =
     | Feat of (cnode * string)
     | String of string
-    | Param of int
+    | Param_in of int
+    | Param_out of int
 
   type p = 
     | DEL_NODE of cnode
@@ -44,7 +45,7 @@ module Command : sig
     | H_MERGE_NODE of (gid * gid)
 
   val build: 
-      ?cmd_vars: string list ->
+      ?param: (string list * string list) ->
       (string list * string list) -> 
       Id.table -> 
       Label.decl array ->

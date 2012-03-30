@@ -74,18 +74,24 @@ end
 (* ================================================================================ *)
 module P_node = struct
   type t = {
+      name: Id.name;
       fs: P_fs.t;
       next: P_edge.t Massoc.t;
     }
 
+  let get_name t = t.name
   let get_fs t = t.fs
   let get_next t = t.next
 
-  let empty = { fs = P_fs.empty; next = Massoc.empty }
+  let unif_fs fs t = { t with fs = P_fs.unif fs t.fs }
+
+  let empty = { fs = P_fs.empty; next = Massoc.empty; name = "" }
         
   let build ?pat_vars (ast_node, loc) =
     (ast_node.Ast.node_id, 
-     { fs = P_fs.build ?pat_vars ast_node.Ast.fs;
+     { 
+       name = ast_node.Ast.node_id;
+       fs = P_fs.build ?pat_vars ast_node.Ast.fs;
        next = Massoc.empty;
      } )
 

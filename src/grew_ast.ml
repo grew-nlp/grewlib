@@ -142,15 +142,13 @@ module Ast = struct
     }
 end (* module Ast *)        
 
-
 module AST_HTML = struct
-  
   let feat_values_tab_to_html = List_.to_string (fun x->x) " | " 
 
   let string_of_concat_item = function
     | Ast.Qfn_item (n,f) -> sprintf "%s.%s" n f 
     | Ast.String_item s -> sprintf "\"%s\"" s
-    | Ast.Param_item var -> sprintf "@%s" var
+    | Ast.Param_item var -> sprintf "%s" var
  	
   let string_of_qfn (node, feat_name) = sprintf "%s.%s" node feat_name
 
@@ -165,7 +163,7 @@ module AST_HTML = struct
     | Ast.Shift_out (n1,n2) -> bprintf buff "shift_out %s ==> %s" n1 n2
     | Ast.Shift_edge (n1,n2) -> bprintf buff "shift %s ==> %s" n1 n2
     | Ast.Merge_node (n1,n2) -> bprintf buff "merge %s ==> %s" n1 n2
-    | Ast.New_neighbour (n1,n2,label) -> bprintf buff "add_node %s: <-[%s]- %s \n" n1 label n2
+    | Ast.New_neighbour (n1,n2,label) -> bprintf buff "add_node %s: <-[%s]- %s" n1 label n2
     | Ast.Del_node n -> bprintf buff "del_node %s" n
     | Ast.Update_feat (qfn,item_list) -> bprintf buff "%s = %s" (string_of_qfn qfn) (List_.to_string string_of_concat_item " + " item_list)
     | Ast.Del_feat qfn -> bprintf buff "del_feat %s" (string_of_qfn qfn)

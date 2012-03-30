@@ -73,8 +73,8 @@ ifeq (@DEP2PICT@,no)
 	ocamlc -c -pp 'camlp4o pa_macro.cmo' $(BYPE_FLAGS) $(FILES_CMO) str.cma -I parser $(PARSER_CMO) libgrew.mli
 	ocamlc -a -o libgrew.cma $(BYPE_FLAGS) -pp 'camlp4o pa_macro.cmo -DDATA_DIR=\"$(DATA_DIR)\"' -linkall $(FILES_CMO) -I parser $(PARSER_CMO) libgrew.ml
 else
-	ocamlc -c -pp 'camlp4o pa_macro.cmo -DDEP2PICT' $(FILES_CMO) str.cma -I parser $(PARSER_CMO) libgrew.mli
-	ocamlc -a -o libgrew.cma -pp 'camlp4o pa_macro.cmo -DDATA_DIR=\"$(DATA_DIR)\" -DDEP2PICT' -linkall $(FILES_CMO) -I parser $(PARSER_CMO) libgrew.ml
+	ocamlc -c -pp 'camlp4o pa_macro.cmo -DDEP2PICT' $(BYPE_FLAGS) $(FILES_CMO) str.cma -I parser $(PARSER_CMO) libgrew.mli
+	ocamlc -a -o libgrew.cma $(BYPE_FLAGS) -pp 'camlp4o pa_macro.cmo -DDATA_DIR=\"$(DATA_DIR)\" -DDEP2PICT' -linkall $(FILES_CMO) -I parser $(PARSER_CMO) libgrew.ml
 endif
 
 libgrew.cmxa : $(FILES_CMX) parser_opt libgrew.mli libgrew.ml

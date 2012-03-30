@@ -2,6 +2,7 @@ include Grew_types
 
 open Printf
 open Log
+open Dep2pict
 
 open Grew_utils
 open Grew_graph
@@ -36,10 +37,19 @@ let load_grs ?doc_output_dir file =
   else
     try
       let grs_ast = Grew_parser.grs_of_file file in
+      let grs = Grs.build grs_ast in
       (match doc_output_dir with
       | None -> ()
-      | Some dir -> Html.proceed dir grs_ast);
-      Grs.build grs_ast
+      | Some dir -> 
+          Html.proceed dir grs_ast;
+          Grs.rule_iter
+            (fun modul_name rule ->
+              let dep_code = Rule.to_dep rule in
+              let dep_svg_file = sprintf "%s/%s_%s-patt.png" dir modul_name (Rule.get_name rule) in
+              ignore (Dep2pict.fromDepStringToPng dep_code dep_svg_file)            
+            ) grs
+      );
+      grs
     with
     | Grew_parser.Parse_error (msg,Some (sub_file,l)) -> 
         raise (Parsing_err (sprintf "[file:%s, line:%d] %s" sub_file l msg))

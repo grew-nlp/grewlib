@@ -38,6 +38,8 @@ module Grs: sig
 
   (* only externeal strucutre is returned, each edge contains a "dummy" big_step *)
   val build_rew_display: t -> string -> Instance.t -> Grew_types.rew_display
+
+  val rule_iter: (string -> Rule.t -> unit) -> t -> unit
 end
 
     

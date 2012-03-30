@@ -210,7 +210,6 @@ module Sequence = struct
 end
 
 module Grs = struct
-  type sequence = string * string list (* (name of the seq, list of modules) *)
         
   type t = {
       labels: Label.t list;    (* the list of global edge labels *)
@@ -318,6 +317,14 @@ module Grs = struct
                 )
     in loop instance modules_to_apply
 
+  let rule_iter fct grs =
+    List.iter
+      (fun modul ->
+        List.iter
+          (fun rule ->
+            fct modul.Modul.name rule
+          ) modul.Modul.rules
+      ) grs.modules
 end  
 
 module Gr_stat = struct
