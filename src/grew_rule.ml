@@ -32,7 +32,6 @@ module Instance = struct
     { empty with graph = graph }
 
   let of_conll ?loc lines = 
-    Printf.printf "====> [Instance.of_conll] loc=%s" 
       (match loc with None -> "None" | Some (f,l) -> Printf.sprintf "(%s,%d)" f l);
     { empty with graph = G_graph.of_conll ?loc lines }
 
