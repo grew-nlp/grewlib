@@ -40,6 +40,7 @@ module Grs: sig
   val build_rew_display: t -> string -> Instance.t -> Grew_types.rew_display
 
   val rule_iter: (string -> Rule.t -> unit) -> t -> unit
+  val filter_iter: (string -> Rule.t -> unit) -> t -> unit
 end
 
     

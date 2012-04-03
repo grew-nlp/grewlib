@@ -77,6 +77,7 @@ module P_node = struct
       name: Id.name;
       fs: P_fs.t;
       next: P_edge.t Massoc.t;
+      loc: Loc.t option;
     }
 
   let get_name t = t.name
@@ -85,7 +86,7 @@ module P_node = struct
 
   let unif_fs fs t = { t with fs = P_fs.unif fs t.fs }
 
-  let empty = { fs = P_fs.empty; next = Massoc.empty; name = "" }
+  let empty = { fs = P_fs.empty; next = Massoc.empty; name = ""; loc=None   }
         
   let build ?pat_vars (ast_node, loc) =
     (ast_node.Ast.node_id, 
@@ -93,6 +94,7 @@ module P_node = struct
        name = ast_node.Ast.node_id;
        fs = P_fs.build ?pat_vars ast_node.Ast.fs;
        next = Massoc.empty;
+       loc = Some loc;
      } )
 
   let add_edge p_edge pid_tar t =
@@ -102,6 +104,7 @@ module P_node = struct
 
   let match_ ?param p_node g_node = P_fs.match_ ?param p_node.fs (G_node.get_fs g_node)
 
+  let compare_pos t1 t2 = Pervasives.compare t1.loc t2.loc
 end
 (* ================================================================================ *)
 

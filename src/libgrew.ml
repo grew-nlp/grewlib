@@ -39,15 +39,17 @@ let load_grs ?doc_output_dir file =
       let grs_ast = Grew_parser.grs_of_file file in
       let grs = Grs.build grs_ast in
       (match doc_output_dir with
-      | None -> ()
-      | Some dir -> 
+        | None -> ()
+        | Some dir -> 
           Html.proceed dir grs_ast;
-          Grs.rule_iter
-            (fun modul_name rule ->
-              let dep_code = Rule.to_dep rule in
-              let dep_svg_file = sprintf "%s/%s_%s-patt.png" dir modul_name (Rule.get_name rule) in
-              ignore (Dep2pict.fromDepStringToPng dep_code dep_svg_file)            
-            ) grs
+          
+          (* draw pattern graphs for all rules and all filters *)
+          let fct module_ rule_ = 
+            let dep_code = Rule.to_dep rule_ in
+            let dep_svg_file = sprintf "%s/%s_%s-patt.png" dir module_ (Rule.get_name rule_) in
+            ignore (Dep2pict.fromDepStringToPng dep_code dep_svg_file) in
+          Grs.rule_iter fct grs;
+          Grs.filter_iter fct grs
       );
       grs
     with

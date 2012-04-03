@@ -32,7 +32,6 @@ module Instance = struct
     { empty with graph = graph }
 
   let of_conll ?loc lines = 
-      (match loc with None -> "None" | Some (f,l) -> Printf.sprintf "(%s,%d)" f l);
     { empty with graph = G_graph.of_conll ?loc lines }
 
   let rev_steps t = 
@@ -57,9 +56,6 @@ end (* module Instance *)
 module Instance_set = Set.Make (Instance)
 (* ================================================================================ *)
 
-
-
-
 module Rule = struct 
   (* the [pid] type is used for pattern identifier *)
   type pid = Pid.t
@@ -70,17 +66,17 @@ module Rule = struct
   (* the rewriting depth is bounded to stop rewriting when the system is not terminating *) 
   let max_depth = ref 500
 
-  type const = 
-    | No_out of pid * P_edge.t 
-    | No_in of pid * P_edge.t
+  type const =
+    | Cst_out of pid * P_edge.t 
+    | Cst_in of pid * P_edge.t
     | Feature_eq of pid * string * pid * string
     | Filter of pid * P_fs.t (* used when a without impose a fs on a node defined by the match pattern *)
 
   let build_constraint ?locals table = function 
-    | (Ast.Start (node_name, labels), loc) -> No_out (Id.build ~loc node_name table, P_edge.make ?locals labels)
-    | (Ast.No_out node_name, loc) -> No_out (Id.build ~loc node_name table, P_edge.all)
-    | (Ast.End (node_name, labels),loc) -> No_in (Id.build ~loc node_name table, P_edge.make ?locals labels)
-    | (Ast.No_in node_name, loc) -> No_in (Id.build ~loc node_name table, P_edge.all)
+    | (Ast.Start (node_name, labels), loc) -> Cst_out (Id.build ~loc node_name table, P_edge.make ?locals labels)
+    | (Ast.Cst_out node_name, loc) -> Cst_out (Id.build ~loc node_name table, P_edge.all)
+    | (Ast.End (node_name, labels),loc) -> Cst_in (Id.build ~loc node_name table, P_edge.make ?locals labels)
+    | (Ast.Cst_in node_name, loc) -> Cst_in (Id.build ~loc node_name table, P_edge.all)
     | (Ast.Feature_eq ((node_name1, feat_name1), (node_name2, feat_name2)), loc) -> 
         Feature_eq (Id.build ~loc node_name1 table, feat_name1, Id.build ~loc node_name2 table, feat_name2)
           
@@ -108,10 +104,10 @@ module Rule = struct
     let id_build loc string_id = 
       match Id.build_opt string_id pos_table with Some i -> i | None -> -1-(Id.build ~loc string_id neg_table) in
     match const with
-    | (Ast.Start (node_name, labels),loc) -> No_out (id_build loc node_name, P_edge.make ?locals labels)
-    | (Ast.No_out node_name, loc) -> No_out (id_build loc node_name, P_edge.all)
-    | (Ast.End (node_name, labels),loc) -> No_in (id_build loc node_name, P_edge.make ?locals labels)
-    | (Ast.No_in node_name, loc) -> No_in (id_build loc node_name, P_edge.all)
+    | (Ast.Start (node_name, labels),loc) -> Cst_out (id_build loc node_name, P_edge.make ?locals labels)
+    | (Ast.Cst_out node_name, loc) -> Cst_out (id_build loc node_name, P_edge.all)
+    | (Ast.End (node_name, labels),loc) -> Cst_in (id_build loc node_name, P_edge.make ?locals labels)
+    | (Ast.Cst_in node_name, loc) -> Cst_in (id_build loc node_name, P_edge.all)
     | (Ast.Feature_eq ((node_name1, feat_name1), (node_name2, feat_name2)), loc) -> 
         Feature_eq (id_build loc node_name1, feat_name1, id_build loc node_name2, feat_name2)
 
@@ -147,7 +143,59 @@ module Rule = struct
 
   let get_loc t = t.loc
 
-  let to_dep t = P_graph.to_dep t.pos.graph
+  let to_dep t =
+    let buff = Buffer.create 32 in
+    bprintf buff "[GRAPH] { scale = 200; }\n";
+
+    let nodes = 
+      Pid_map.fold 
+        (fun id node acc ->
+          (node, sprintf "  N_%d { word=\"%s\"; subword=\"%s\"}" id (P_node.get_name node) (P_fs.to_dep (P_node.get_fs node)))
+          :: acc
+        ) t.pos.graph [] in
+
+    (* noodes are sorted to appear in the same order in dep picture and in input file *)
+    let sorted_nodes = List.sort (fun (n1,_) (n2,_) -> P_node.compare_pos n1 n2) nodes in
+    
+    bprintf buff "[WORDS] {\n";
+    List.iter
+      (fun (_, dep_line) -> bprintf buff "%s\n" dep_line
+      ) sorted_nodes;
+
+    List_.iteri
+      (fun i cst ->
+        match cst with
+          | Cst_out _ | Cst_in _ -> bprintf buff "  C_%d { word=\"*\"}\n" i 
+          | _ -> ()
+      ) t.pos.constraints;
+    bprintf buff "}\n";
+    
+    bprintf buff "[EDGES] {\n";
+    
+    Pid_map.iter
+      (fun id_src node ->
+        Massoc.iter 
+          (fun id_tar edge ->
+            bprintf buff "  N_%d -> N_%d { label=\"%s\"}\n"
+              id_src id_tar 
+              (P_edge.to_string edge)
+          )
+          (P_node.get_next node)
+      ) t.pos.graph;
+
+    List_.iteri
+      (fun i cst ->
+        match cst with
+          | Cst_out (pid, edge) ->
+            bprintf buff "  N_%d -> C_%d {label = \"%s\"; style=dot; bottom; color=green;}\n" 
+              pid i (P_edge.to_string edge)
+          | Cst_in (pid, edge) -> 
+            bprintf buff "  C_%d -> N_%d {label = \"%s\"; style=dot; bottom; color=green;}\n" 
+              i pid (P_edge.to_string edge)
+          | _ -> ()
+      ) t.pos.constraints;
+    bprintf buff "}\n";
+    Buffer.contents buff
 
   let is_filter t = t.commands = []
 
@@ -293,10 +341,10 @@ module Rule = struct
 
 
   let fullfill graph matching = function 
-    | No_out (pid,edge) -> 
+    | Cst_out (pid,edge) -> 
         let gid = Pid_map.find pid matching.n_match in
         G_graph.edge_out graph gid edge
-    | No_in (pid,edge) -> 
+    | Cst_in (pid,edge) -> 
         let gid = Pid_map.find pid matching.n_match in
         gid_map_exists (* should be Gid_map.exists with ocaml 3.12 *)
           (fun _ node ->

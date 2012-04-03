@@ -43,9 +43,9 @@ module Ast : sig
 
   type u_const = 
     | Start of Id.name * string list (* (source, labels) *)
-    | No_out of Id.name
+    | Cst_out of Id.name
     | End of Id.name * string list (* (target, labels) *)
-    | No_in of Id.name
+    | Cst_in of Id.name
     | Feature_eq of qfn * qfn
 
   type const = u_const * Loc.t
@@ -76,12 +76,13 @@ module Ast : sig
     | Update_feat of qfn * concat_item list
 
   type command = u_command * Loc.t
+
   type rule = {
       rule_id:Id.name;
       pos_pattern: pattern;
       neg_patterns: pattern list;
       commands: command list;
-      param: (string*string list) option;
+      param: (string*string list) option; (* (file, vars) *)
       rule_doc:string list;
       rule_loc: Loc.t;
     }

@@ -24,8 +24,6 @@ module P_graph: sig
       old_map: P_node.t Pid_map.t; (* a partial map for new constraints on old nodes "Old [...]" *) 	
     }
 
-  val to_dep: t -> string
-
   val build:
       ?pat_vars: string list ->
       ?locals: Label.decl array -> 

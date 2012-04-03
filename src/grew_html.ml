@@ -59,9 +59,9 @@ module Html = struct
     bprintf buff "      ";
     (match u_const with
     | Ast.Start (id,labels) -> bprintf buff "%s -[%s]-> *" id (List_.to_string (fun x->x) "|" labels)
-    | Ast.No_out id -> bprintf buff "%s -> *" id
+    | Ast.Cst_out id -> bprintf buff "%s -> *" id
     | Ast.End (id,labels) -> bprintf buff "* -[%s]-> %s" (List_.to_string (fun x->x) "|" labels) id
-    | Ast.No_in id -> bprintf buff "* -> %s" id
+    | Ast.Cst_in id -> bprintf buff "* -> %s" id
     | Ast.Feature_eq (qfn_l, qfn_r) -> bprintf buff "%s = %s" (string_of_qfn qfn_l) (string_of_qfn qfn_r));
     bprintf buff "\n"
 
@@ -84,7 +84,15 @@ module Html = struct
     let buff = Buffer.create 32 in
     List.iter 
       (fun rule ->
-        bprintf buff "<font color=\"purple\">rule</font> %s <b>{</b>\n" rule.Ast.rule_id;
+        (match (rule.Ast.commands, rule.Ast.param) with
+          | ([], None) ->  
+            bprintf buff "<font color=\"purple\">filter</font> %s <b>{</b>\n" rule.Ast.rule_id
+          | (_,None) -> 
+            bprintf buff "<font color=\"purple\">rule</font> %s <b>{</b>\n" rule.Ast.rule_id
+          | (_,Some (file, vars)) ->
+            let param = sprintf "(feature %s; file \"%s\")" (String.concat ", " vars) file in
+            bprintf buff "<font color=\"purple\">lex_rule</font> %s %s <b>{</b>\n" rule.Ast.rule_id param
+        );
 
         (* the match part *)
         buff_html_pos_pattern buff rule.Ast.pos_pattern;
@@ -93,9 +101,12 @@ module Html = struct
         List.iter (buff_html_neg_pattern buff) rule.Ast.neg_patterns;
 
         (*  the commands part *)
-        bprintf buff "    <font color=\"purple\">commands</font> <b>{</b>\n";
-        List.iter (buff_html_command buff) rule.Ast.commands;
-        bprintf buff "    <b>}</b>\n"; 
+        (match rule.Ast.commands with
+          | [] -> ()  (* filter *)
+          | list ->
+            bprintf buff "    <font color=\"purple\">commands</font> <b>{</b>\n";
+            List.iter (buff_html_command buff) list;
+            bprintf buff "    <b>}</b>\n"); 
 
         bprintf buff "<b>}</b>\n"; 
       ) rules;
@@ -191,6 +202,22 @@ module Html = struct
     w "<IMG src=\"%s\">" dep_pattern_file;
     wnl "</pre>";
     
+    (match rule_.Ast.param with
+      | None -> ()
+      | Some (file, args) -> 
+        let filename = Filename.concat module_.Ast.mod_dir file in
+        wnl "<h6>Lexical parameters</h6>";
+        wnl "<b>File:</b> %s</br>" file;
+        let lines = 
+          try File.read filename
+          with Sys_error msg -> wnl "<font color=\"red\">Error: %s</font>" msg; [] in
+        wnl "    <table border=\"1\">";
+        wnl "    <tr>%s</tr>" (List_.to_string (fun x -> sprintf "<th bgcolor=\"#cccccc\">%s</th>" x) "" args);
+        List.iter 
+          (fun l -> wnl "<tr>%s</tr>"  
+            (List_.to_string (fun x -> sprintf "<td>%s</td>" x) "" (Str.split (Str.regexp "#+") l))
+          ) lines);
+    wnl "    </table>";
     wnl "  </body>";
     wnl "</html>";
     Buffer.contents buff

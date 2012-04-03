@@ -320,10 +320,13 @@ module Grs = struct
   let rule_iter fct grs =
     List.iter
       (fun modul ->
-        List.iter
-          (fun rule ->
-            fct modul.Modul.name rule
-          ) modul.Modul.rules
+        List.iter (fun rule -> fct modul.Modul.name rule) modul.Modul.rules
+      ) grs.modules
+
+  let filter_iter fct grs =
+    List.iter
+      (fun modul ->
+        List.iter (fun filter -> fct modul.Modul.name filter) modul.Modul.filters
       ) grs.modules
 end  
 

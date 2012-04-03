@@ -426,7 +426,7 @@ pat_const:
 
         (* "A -> *" *)
         | n1 = IDENT GOTO_NODE STAR
-            { localize (Ast.No_out n1) }
+            { localize (Ast.Cst_out n1) }
 
         (* "* -[X|Y]-> A" *)
         | STAR labels = delimited(LTR_EDGE_LEFT,separated_nonempty_list(PIPE,IDENT),LTR_EDGE_RIGHT) n2 = IDENT
@@ -434,7 +434,7 @@ pat_const:
 
         (* "* -> A" *)
         | STAR GOTO_NODE n2 = IDENT
-            { localize (Ast.No_in n2) }
+            { localize (Ast.Cst_in n2) }
 
         | qfn1 = QFN EQUAL qfn2 = QFN
             { localize (Ast.Feature_eq (qfn1, qfn2)) }

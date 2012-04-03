@@ -56,5 +56,6 @@ module P_node: sig
 
   val match_: ?param: Lex_par.t -> t -> G_node.t -> Lex_par.t option
 
+  val compare_pos: t -> t -> int
 end
 (* ================================================================================ *)

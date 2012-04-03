@@ -94,39 +94,6 @@ module P_graph = struct
 	) map_without_edges full_edge_list in
     (map, table, [](* List.map (build_filter table) constraints *))
 
-  let to_dep t =
-    let buff = Buffer.create 32 in
-    bprintf buff "[GRAPH] { scale = 200; }\n";
-
-    bprintf buff "[WORDS] {\n";
-    Pid_map.iter
-      (fun id node ->
-        bprintf buff "  N_%d { word=\"%s\"; subword=\"%s\"}\n" 
-          id 
-          (P_node.get_name node)
-          (P_fs.to_dep (P_node.get_fs node))
-      ) t;
-    bprintf buff "}\n";
-    
-    bprintf buff "[EDGES] {\n";
-    
-    Pid_map.iter
-      (fun id_src node ->
-        Massoc.iter 
-          (fun id_tar edge ->
-            bprintf buff "  N_%d -> N_%d { label=\"%s\"}\n"
-              id_src id_tar 
-              (P_edge.to_string edge)
-          )
-          (P_node.get_next node)
-      ) t;
-
-
-
-
-    bprintf buff "}\n";
-
-    Buffer.contents buff
 
 
   (* a type for extension of graph: a former graph exists: 
