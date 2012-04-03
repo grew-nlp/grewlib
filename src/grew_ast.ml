@@ -94,7 +94,7 @@ module Ast = struct
       neg_patterns: pattern list;
       commands: command list;
       param: (string*string list) option;
-      rule_doc:string;
+      rule_doc:string list;
       rule_loc: Loc.t;
     }
 
@@ -103,7 +103,7 @@ module Ast = struct
       local_labels: (string * string option) list;
       rules: rule list;
       confluent: bool;
-      module_doc:string;
+      module_doc:string list;
       mod_loc:Loc.t;
       mod_dir: string; (* the directory where the module is defined (for lp file localisation) *)
     }
@@ -111,7 +111,7 @@ module Ast = struct
   type sequence = {
       seq_name:string;
       seq_mod:string list;
-      seq_doc:string;
+      seq_doc:string list;
       seq_loc:Loc.t;
     }
         
@@ -141,113 +141,3 @@ module Ast = struct
       edges: edge list;
     }
 end (* module Ast *)        
-
-module AST_HTML = struct
-  let feat_values_tab_to_html = List_.to_string (fun x->x) " | " 
-
-  let string_of_concat_item = function
-    | Ast.Qfn_item (n,f) -> sprintf "%s.%s" n f 
-    | Ast.String_item s -> sprintf "\"%s\"" s
-    | Ast.Param_item var -> sprintf "%s" var
- 	
-  let string_of_qfn (node, feat_name) = sprintf "%s.%s" node feat_name
-
-  let buff_html_command ?(li_html=false) buff (u_command,_) =
-    bprintf buff "      ";
-    if li_html then bprintf buff "<li>";
-    (match u_command with
-    | Ast.Del_edge_expl (n1,n2,label) -> bprintf buff "del_edge %s -[%s]-> %s" n1 label n2
-    | Ast.Del_edge_name name -> bprintf buff "del_edge %s" name
-    | Ast.Add_edge (n1,n2,label) -> bprintf buff "add_edge %s -[%s]-> %s" n1 label n2
-    | Ast.Shift_in (n1,n2) -> bprintf buff "shift_in %s ==> %s" n1 n2
-    | Ast.Shift_out (n1,n2) -> bprintf buff "shift_out %s ==> %s" n1 n2
-    | Ast.Shift_edge (n1,n2) -> bprintf buff "shift %s ==> %s" n1 n2
-    | Ast.Merge_node (n1,n2) -> bprintf buff "merge %s ==> %s" n1 n2
-    | Ast.New_neighbour (n1,n2,label) -> bprintf buff "add_node %s: <-[%s]- %s" n1 label n2
-    | Ast.Del_node n -> bprintf buff "del_node %s" n
-    | Ast.Update_feat (qfn,item_list) -> bprintf buff "%s = %s" (string_of_qfn qfn) (List_.to_string string_of_concat_item " + " item_list)
-    | Ast.Del_feat qfn -> bprintf buff "del_feat %s" (string_of_qfn qfn)
-    );
-    if li_html then bprintf buff "</li>\n" else bprintf buff ";\n"
-
-  let to_html_commands_pretty = function
-    | [] -> ""
-    | commands ->
-        let buff = Buffer.create 32 in
-        bprintf buff "<ul>\n";
-        List.iter (buff_html_command ~li_html:true buff) commands;
-        bprintf buff "</ul>\n";
-        Buffer.contents buff
-    		
-  let html_feature (u_feature,_) =
-    match u_feature.Ast.kind with 
-    | Ast.Equality values -> 
-        sprintf "%s=%s" u_feature.Ast.name (List_.to_string (fun x->x) "|" values)
-    | Ast.Disequality [] ->
-        sprintf "%s=*" u_feature.Ast.name
-    | Ast.Disequality values -> 
-        sprintf "%s<>%s" u_feature.Ast.name (List_.to_string (fun x->x) "|" values)
-    | Ast.Param index -> 
-        sprintf "%s=%s" u_feature.Ast.name index 
-          
-  let buff_html_node buff (u_node,_) =
-    bprintf buff "      %s [" u_node.Ast.node_id;
-    bprintf buff "%s" (String.concat ", " (List.map html_feature u_node.Ast.fs));
-    bprintf buff "];\n"
-
-  let buff_html_edge buff (u_edge,_) =
-    bprintf buff "      ";
-    bprintf buff "%s" (match u_edge.Ast.edge_id with Some n -> n^": " | None -> "");
-    bprintf buff "%s -[%s%s]-> %s;\n" 
-      u_edge.Ast.src 
-      (if u_edge.Ast.negative then "^" else "")
-      (List_.to_string (fun x->x) "|" u_edge.Ast.edge_labels)
-      u_edge.Ast.tar
-	
-  let buff_html_const buff (u_const,_) =
-    bprintf buff "      ";
-    (match u_const with
-    | Ast.Start (id,labels) -> bprintf buff "%s -[%s]-> *" id (List_.to_string (fun x->x) "|" labels)
-    | Ast.No_out id -> bprintf buff "%s -> *" id
-    | Ast.End (id,labels) -> bprintf buff "* -[%s]-> %s" (List_.to_string (fun x->x) "|" labels) id
-    | Ast.No_in id -> bprintf buff "* -> %s" id
-    | Ast.Feature_eq (qfn_l, qfn_r) -> bprintf buff "%s = %s" (string_of_qfn qfn_l) (string_of_qfn qfn_r));
-    bprintf buff "\n"
-
-   
-  let buff_html_pos_pattern buff pos_pattern =
-    bprintf buff "    <font color=\"purple\">match</font> <b>{</b>\n";
-    List.iter (buff_html_node buff) pos_pattern.Ast.pat_nodes;
-    List.iter (buff_html_edge buff) pos_pattern.Ast.pat_edges;
-    List.iter (buff_html_const buff) pos_pattern.Ast.pat_const;
-    bprintf buff "    <b>}</b>\n"
-       
-  let buff_html_neg_pattern buff neg_pattern =
-    bprintf buff "    <font color=\"purple\">without</font> <b>{</b>\n";
-    List.iter (buff_html_node buff) neg_pattern.Ast.pat_nodes;
-    List.iter (buff_html_edge buff) neg_pattern.Ast.pat_edges;
-    List.iter (buff_html_const buff) neg_pattern.Ast.pat_const;
-    bprintf buff "    <b>}</b>\n"
-
-  let to_html_rules rules =
-    let buff = Buffer.create 32 in
-    List.iter 
-      (fun rule ->
-        bprintf buff "<font color=\"purple\">rule</font> %s <b>{</b>\n" rule.Ast.rule_id;
-
-        (* the match part *)
-        buff_html_pos_pattern buff rule.Ast.pos_pattern;
-
-        (* the without parts *)
-        List.iter (buff_html_neg_pattern buff) rule.Ast.neg_patterns;
-
-        (*  the commands part *)
-        bprintf buff "    <font color=\"purple\">commands</font> <b>{</b>\n";
-        List.iter (buff_html_command buff) rule.Ast.commands;
-        bprintf buff "    <b>}</b>\n"; 
-
-        bprintf buff "<b>}</b>\n"; 
-      ) rules;
-    Buffer.contents buff
-end
-

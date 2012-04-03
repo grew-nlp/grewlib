@@ -1,314 +1,372 @@
 open Printf
 open Dep2pict
 
+open Grew_utils
 open Grew_ast
 module Html = struct
 
-let index_text table = "
-<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\"> 
-<html> 
-	<head> 
-		<link rel=\"stylesheet\" href=\"style.css\" type=\"text/css\"> 
-	</head>
-	<body>
-		<a href=features.html>Features</a><br/>
-		<a href=labels.html>Globals labels</a><br/>
-		<a href=modules.html>Index of modules</a><br/>
-		<a href=sequences.html>Index of sequences</a><br/>
-		<br/><br/>
-		<table class=\"indextable\">"^
-		table^
-		"</table>
-	</body>
-</html>"
+  let string_of_concat_item = function
+    | Ast.Qfn_item (n,f) -> sprintf "%s.%s" n f 
+    | Ast.String_item s -> sprintf "\"%s\"" s
+    | Ast.Param_item var -> sprintf "%s" var
+ 	
+  let string_of_qfn (node, feat_name) = sprintf "%s.%s" node feat_name
 
-let module_page_text previous next m ast = "
-<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\"> 
-<html> 
-	<head> 
-		<link rel=\"stylesheet\" href=\"style.css\" type=\"text/css\"> 
-	</head>
-	<body>
-		<div class=\"navbar\">"^
-		(match previous with None -> "" | Some p -> "&nbsp;<a href=\""^p^".html\">Previous</a> ")^
-		"&nbsp;<a href=\"index.html\">Up</a> "^
-		(match next with None -> "" | Some p -> "&nbsp;<a href=\""^p^".html\">Next</a> ")^
-		"</div>
-		<center><h1>Module <div class=\"module_title\">"^m.Ast.module_id^"</div></h1></center><br/><br/>"^
-		m.Ast.module_doc^
+  let buff_html_command ?(li_html=false) buff (u_command,_) =
+    bprintf buff "      ";
+    if li_html then bprintf buff "<li>";
+    (match u_command with
+    | Ast.Del_edge_expl (n1,n2,label) -> bprintf buff "del_edge %s -[%s]-> %s" n1 label n2
+    | Ast.Del_edge_name name -> bprintf buff "del_edge %s" name
+    | Ast.Add_edge (n1,n2,label) -> bprintf buff "add_edge %s -[%s]-> %s" n1 label n2
+    | Ast.Shift_in (n1,n2) -> bprintf buff "shift_in %s ==> %s" n1 n2
+    | Ast.Shift_out (n1,n2) -> bprintf buff "shift_out %s ==> %s" n1 n2
+    | Ast.Shift_edge (n1,n2) -> bprintf buff "shift %s ==> %s" n1 n2
+    | Ast.Merge_node (n1,n2) -> bprintf buff "merge %s ==> %s" n1 n2
+    | Ast.New_neighbour (n1,n2,label) -> bprintf buff "add_node %s: <-[%s]- %s" n1 label n2
+    | Ast.Del_node n -> bprintf buff "del_node %s" n
+    | Ast.Update_feat (qfn,item_list) -> bprintf buff "%s = %s" (string_of_qfn qfn) (List_.to_string string_of_concat_item " + " item_list)
+    | Ast.Del_feat qfn -> bprintf buff "del_feat %s" (string_of_qfn qfn)
+    );
+    if li_html then bprintf buff "</li>\n" else bprintf buff ";\n"
+    		
+  let html_feature (u_feature,_) =
+    match u_feature.Ast.kind with 
+    | Ast.Equality values -> 
+        sprintf "%s=%s" u_feature.Ast.name (List_.to_string (fun x->x) "|" values)
+    | Ast.Disequality [] ->
+        sprintf "%s=*" u_feature.Ast.name
+    | Ast.Disequality values -> 
+        sprintf "%s<>%s" u_feature.Ast.name (List_.to_string (fun x->x) "|" values)
+    | Ast.Param index -> 
+        sprintf "%s=%s" u_feature.Ast.name index 
+          
+  let buff_html_node buff (u_node,_) =
+    bprintf buff "      %s [" u_node.Ast.node_id;
+    bprintf buff "%s" (String.concat ", " (List.map html_feature u_node.Ast.fs));
+    bprintf buff "];\n"
 
-		
-		
-		"<h6>Rules</h6>"^
-		"<table class=\"indextable\">"^
-		
-		(let rec compute tab = match tab with
-			| [] -> ""
-			| h::t ->
-				"<tr><td width=\"200px\"><a href=\""^m.Ast.module_id^"_"^h.Ast.rule_id^".html\">"^h.Ast.rule_id^"</a></td><td>"^(
-				let splitted = Str.split (Str.regexp "\n") h.Ast.rule_doc in
-				if (List.length splitted > 0) then (List.hd splitted^" ...") else (h.Ast.rule_doc)
-				)^"</td></tr>\n"^compute t
-		in compute m.Ast.rules)^
-		"</table>
-		<br/> "^
-		
-	"</body>
-</html>"
-
-
-let rule_page_text previous next rule m ast file = 
-  let dep_pattern_file = sprintf "%s_%s-patt.png" m.Ast.module_id rule.Ast.rule_id in 
-
-"<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\"> 
-<html> 
-	<head> 
-		<link rel=\"stylesheet\" href=\"style.css\" type=\"text/css\"> 
-	</head>
-	<body>
-		<div class=\"navbar\">"^
-		(match previous with None -> "" | Some p -> "&nbsp;<a href=\""^m.Ast.module_id^"_"^p^".html\">Previous</a> ")^
-		"&nbsp;<a href=\""^m.Ast.module_id^".html\">Up</a> "^
-		(match next with None -> "" | Some p -> "&nbsp;<a href=\""^m.Ast.module_id^"_"^p^".html\">Next</a> ")^
-		"</div>
-		<center><h1>Rule <a href=\""^m.Ast.module_id^".html\">"^m.Ast.module_id^"</a>.<div class=\"module_title\">"^rule.Ast.rule_id^"</div></h1></center>
-		<br/><br/><div id=doc>"^rule.Ast.rule_doc^"</div>"^
-
-
-"
-	<br/><h6>Code</h6><pre>"^
-	(AST_HTML.to_html_rules [rule])^
-	"</pre><br/>
-
-	<br/><h6>Pattern</h6><pre>"^
-	("<IMG src=\""^dep_pattern_file^"\">")^
-	"</pre><br/>
-
+  let buff_html_edge buff (u_edge,_) =
+    bprintf buff "      ";
+    bprintf buff "%s" (match u_edge.Ast.edge_id with Some n -> n^": " | None -> "");
+    bprintf buff "%s -[%s%s]-> %s;\n" 
+      u_edge.Ast.src 
+      (if u_edge.Ast.negative then "^" else "")
+      (List_.to_string (fun x->x) "|" u_edge.Ast.edge_labels)
+      u_edge.Ast.tar
 	
-	</body>
-</html>"
+  let buff_html_const buff (u_const,_) =
+    bprintf buff "      ";
+    (match u_const with
+    | Ast.Start (id,labels) -> bprintf buff "%s -[%s]-> *" id (List_.to_string (fun x->x) "|" labels)
+    | Ast.No_out id -> bprintf buff "%s -> *" id
+    | Ast.End (id,labels) -> bprintf buff "* -[%s]-> %s" (List_.to_string (fun x->x) "|" labels) id
+    | Ast.No_in id -> bprintf buff "* -> %s" id
+    | Ast.Feature_eq (qfn_l, qfn_r) -> bprintf buff "%s = %s" (string_of_qfn qfn_l) (string_of_qfn qfn_r));
+    bprintf buff "\n"
+
+   
+  let buff_html_pos_pattern buff pos_pattern =
+    bprintf buff "    <font color=\"purple\">match</font> <b>{</b>\n";
+    List.iter (buff_html_node buff) pos_pattern.Ast.pat_nodes;
+    List.iter (buff_html_edge buff) pos_pattern.Ast.pat_edges;
+    List.iter (buff_html_const buff) pos_pattern.Ast.pat_const;
+    bprintf buff "    <b>}</b>\n"
+       
+  let buff_html_neg_pattern buff neg_pattern =
+    bprintf buff "    <font color=\"purple\">without</font> <b>{</b>\n";
+    List.iter (buff_html_node buff) neg_pattern.Ast.pat_nodes;
+    List.iter (buff_html_edge buff) neg_pattern.Ast.pat_edges;
+    List.iter (buff_html_const buff) neg_pattern.Ast.pat_const;
+    bprintf buff "    <b>}</b>\n"
+
+  let to_html_rules rules =
+    let buff = Buffer.create 32 in
+    List.iter 
+      (fun rule ->
+        bprintf buff "<font color=\"purple\">rule</font> %s <b>{</b>\n" rule.Ast.rule_id;
+
+        (* the match part *)
+        buff_html_pos_pattern buff rule.Ast.pos_pattern;
+
+        (* the without parts *)
+        List.iter (buff_html_neg_pattern buff) rule.Ast.neg_patterns;
+
+        (*  the commands part *)
+        bprintf buff "    <font color=\"purple\">commands</font> <b>{</b>\n";
+        List.iter (buff_html_command buff) rule.Ast.commands;
+        bprintf buff "    <b>}</b>\n"; 
+
+        bprintf buff "<b>}</b>\n"; 
+      ) rules;
+    Buffer.contents buff
+
+
+  let doc_to_html string =
+    if Str.string_match (Str.regexp "^  \\* ") string 0
+    then sprintf "<font color=\"green\"><i>%s</i></font>" (String.sub string 4 ((String.length string)-4))
+    else 
+      List.fold_left
+        (fun acc (re,str) -> Str.global_replace (Str.regexp re) str acc)
+        string
+        [
+          "\\[", "<b>";
+          "\\]", "</b>";
+          "~", "&nbsp;";
+        ]
+
+  let of_opt_color = function
+    | None -> "black"
+    | Some c -> c
+
+  let header buff =
+    let wnl fmt = Printf.ksprintf (fun x -> Printf.bprintf buff "%s\n" x) fmt in
+    
+    wnl "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\">";
+    
+    wnl "<html>";
+    wnl "  <head>";
+    wnl "    <link rel=\"stylesheet\" href=\"style.css\" type=\"text/css\">";
+    wnl "  </head>";
+    wnl "  <body>"
+
+  let module_page_text prev next module_ =
+    let buff = Buffer.create 32 in
+    let wnl fmt = Printf.ksprintf (fun x -> Printf.bprintf buff "%s\n" x) fmt in
+    let w fmt  = Printf.ksprintf (fun x -> Printf.bprintf buff "%s" x) fmt in
+
+    header buff;
+
+    wnl "    <div class=\"navbar\">";
+    w "      ";
+    (match prev with Some p -> w "&nbsp;<a href=\"%s.html\">Previous</a> " p | _ -> ());
+    w "&nbsp;<a href=\"index.html\">Up</a> ";
+    (match next with Some n -> w "&nbsp;<a href=\"%s.html\">Next</a> " n | _ -> ());
+    wnl "    </div>";
+
+    wnl "    <center><h1>Module <div class=\"module_title\">%s</div></h1></center><br/>" module_.Ast.module_id;
+    List.iter (fun s -> wnl "    %s<br/>" (doc_to_html s)) module_.Ast.module_doc;
+    wnl "    <h6>%d Rules</h6>" (List.length module_.Ast.rules);
+    wnl "    <table class=\"indextable\">";
+    List.iter
+      (fun rule ->
+        wnl "      <tr>";
+        wnl "        <td width=\"200px\"><a href=\"%s_%s.html\">%s</a></td>" module_.Ast.module_id rule.Ast.rule_id rule.Ast.rule_id;
+        (match rule.Ast.rule_doc with [] -> () | l::_ -> wnl "        <td>%s</td>" (doc_to_html l));
+        wnl "      </tr>";
+      ) module_.Ast.rules;
+    wnl "    </table>";
+    wnl "  </body>";
+    wnl "</html>";
+    Buffer.contents buff
+
+  let rule_page_text prev next rule_ module_ = 
+    let rid = rule_.Ast.rule_id in
+    let mid = module_.Ast.module_id in
+    let dep_pattern_file = sprintf "%s_%s-patt.png" mid rid in 
+    
+    let buff = Buffer.create 32 in
+    let wnl fmt = Printf.ksprintf (fun x -> Printf.bprintf buff "%s\n" x) fmt in
+    let w fmt  = Printf.ksprintf (fun x -> Printf.bprintf buff "%s" x) fmt in
+
+    header buff;
+
+    wnl "    <div class=\"navbar\">";
+    w "      ";
+    (match prev with Some p -> w "&nbsp;<a href=\"%s_%s.html\">Previous</a> " mid p | _ -> ());
+    w "&nbsp;<a href=\"%s.html\">Up</a>" mid;
+    (match next with Some n -> w "&nbsp;<a href=\"%s_%s.html\">Next</a> " mid n | _ -> ());
+    wnl "    </div>";
+
+    wnl "<center><h1>Rule <a href=\"%s.html\">%s</a>.<div class=\"module_title\">%s</div></h1></center>" mid mid rid;
+    List.iter (fun s -> wnl "    %s<br/>" (doc_to_html s)) rule_.Ast.rule_doc;
+
+    wnl "<h6>Code</h6>";
+    wnl "<pre>";
+    w "%s" (to_html_rules [rule_]);
+    wnl "</pre>";
+    
+    wnl "<h6>Pattern</h6>";
+    wnl "<pre>";
+    w "<IMG src=\"%s\">" dep_pattern_file;
+    wnl "</pre>";
+    
+    wnl "  </body>";
+    wnl "</html>";
+    Buffer.contents buff
+
+
+  let sequences_text ast = 
+    let buff = Buffer.create 32 in
+    let wnl fmt = Printf.ksprintf (fun x -> Printf.bprintf buff "%s\n" x) fmt in
+    
+    header buff;
+    
+    wnl "  <div class=\"navbar\">&nbsp;<a href=\"index.html\">Up</a></div>";
+    wnl "  <center><h1>List of sequences</h1></center>";
+    List.iter
+      (fun seq -> 
+        wnl "<h6>%s</h6>" seq.Ast.seq_name;
+        List.iter (fun l -> wnl "<p>%s</p>" (doc_to_html l)) seq.Ast.seq_doc;
+
+        wnl "<div class=\"code\">";
+        wnl "%s" (String.concat " ⇨ " (List.map (fun x -> sprintf "<a href=\"%s.html\">%s</a>" x x) seq.Ast.seq_mod));
+        wnl "</div>";
+                  
+      ) ast.Ast.sequences;
+    wnl "  </body>";
+    wnl "</html>";
+    Buffer.contents buff
 
 
 
-let sequences_text ast = 
-"<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\"> 
-<html> 
-	<head> 
-		<link rel=\"stylesheet\" href=\"style.css\" type=\"text/css\"> 
-	</head>
-	<body>
-		<div class=\"navbar\">
-		&nbsp;<a href=\"index.html\">Up</a>
-		</div>
-		<center><h1>Index of sequences</h1></center><table width=100%>"^
-		(let abc = ['A';'B';'C';'D';'E';'F';'G';'H';'I';'J';'K';'L';'M';'N';'O';'P';'Q';'R';'S';'T';'U';'V';'W';'X';'Y';'Z'] in
-		let rec to_html tab = match tab with 
-			| [] -> ""
-			| h::t -> "<tr><td width=\"200px\"><a href=\""^h.Ast.seq_name^".html\">"^h.Ast.seq_name^"</a></td><td>"^
-				h.Ast.seq_doc^
-				"</td></tr>"^
-				to_html t
-		in
-		let rec compute abc = match abc with 
-			[] -> ""
-			| h::t -> 
-				let tmp = List.filter (fun seq -> Char.uppercase seq.Ast.seq_name.[0] = h) ast.Ast.sequences in
-				if (List.length tmp > 0) then (
-					"<tr><td colspan=2 ><br/><br/><h6>"^(Char.escaped h)^"</h6></td></tr> "^
-					(to_html tmp)^
-					compute t 
-				) else ( compute t )
-		in (compute abc)^"</table>";
-		)^
-	"</body>
-</html>"
-  
-let index_modules_text ast = 
-"<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\"> 
-<html> 
-	<head> 
-		<link rel=\"stylesheet\" href=\"style.css\" type=\"text/css\"> 
-	</head>
-	<body>
-		<div class=\"navbar\">
-		&nbsp;<a href=\"index.html\">Up</a>
-		</div>
-		<center><h1>Index of modules</h1></center><table width=100%>"^
-		(let abc = ['A';'B';'C';'D';'E';'F';'G';'H';'I';'J';'K';'L';'M';'N';'O';'P';'Q';'R';'S';'T';'U';'V';'W';'X';'Y';'Z'] in
-		let rec to_html tab = match tab with 
-			| [] -> ""
-			| h::t -> "<tr><td width=\"200px\"><a href=\""^h.Ast.module_id^".html\">"^h.Ast.module_id^"</a></td><td>"^h.Ast.module_doc^"</td></tr>"^
-				to_html t
-		in
-		let rec compute abc = match abc with 
-			[] -> ""
-			| h::t -> 
-				let tmp = List.filter (fun m -> Char.uppercase m.Ast.module_id.[0] = h) ast.Ast.modules in
-				if (List.length tmp > 0) then (
-					"<tr><td colspan=2 ><br/><br/><h6>"^(Char.escaped h)^"</h6></td></tr> "^
-					(to_html tmp)^
-					compute t 
-				) else ( compute t )
-		in (compute abc)^"</table>";
-		)^
-	"</body>
-</html>"
+  let index_modules_text ast = 
+    let buff = Buffer.create 32 in
+    let wnl fmt = Printf.ksprintf (fun x -> Printf.bprintf buff "%s\n" x) fmt in
+    
+    header buff;
+    
+    wnl "  <div class=\"navbar\">&nbsp;<a href=\"index.html\">Up</a></div>";
+    wnl "  <center><h1>Index of modules</h1></center>";
+    wnl "  <table width=100%%>";
+    List.iter
+      (fun initial ->
+        match List.filter (fun mod_ -> Char.uppercase mod_.Ast.module_id.[0] = initial) ast.Ast.modules  with
+          | [] -> ()
+          | l -> 
+            wnl "<tr><td colspan=2 ><h6>%s</h6></td></tr>" (Char.escaped initial);
+            List.iter
+              (fun mod_ -> 
+                wnl "<tr>";
+                wnl "<td width=\"200px\"><a href=\"%s.html\">%s</a></td>" mod_.Ast.module_id mod_.Ast.module_id;
+                (match mod_.Ast.module_doc with [] -> () | h::_ -> wnl "<td>%s</td>\n" (doc_to_html h));
+                wnl "</tr>";
+              ) l
+      ) ['A';'B';'C';'D';'E';'F';'G';'H';'I';'J';'K';'L';'M';'N';'O';'P';'Q';'R';'S';'T';'U';'V';'W';'X';'Y';'Z'];
+    wnl "  </body>";
+    wnl "</html>";
+    Buffer.contents buff
 
-let features_domain_text ast = 
-"<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\"> 
-<html> 
-	<head> 
-		<link rel=\"stylesheet\" href=\"style.css\" type=\"text/css\"> 
-	</head>
-	<body>
-		<div class=\"navbar\">
-		&nbsp;<a href=\"index.html\">Up</a>
-		</div>
-		<center><h1>Features</h1></center>"^
-		"<code class=\"code\">"^
-			(let rec compute tab = match tab with
-				| [] -> ""
-				| h::t -> begin match h with Ast.Open a -> "<b>"^a^"</b> : *<br/>"^compute t | Ast.Closed (name,values)  -> "<b>"^name^"</b> : "^(AST_HTML.feat_values_tab_to_html values)^"<br/>"^compute t; end; 
-			in compute ast.Ast.domain)^
-		"</code>"^
-	"</body>
-</html>"
+      
+  let domain_text ast = 
+    let buff = Buffer.create 32 in
+    let wnl fmt = Printf.ksprintf (fun x -> Printf.bprintf buff "%s\n" x) fmt in
+    let w fmt = Printf.ksprintf (fun x -> Printf.bprintf buff "%s" x) fmt in
+    
+    header buff;
+    wnl "  <div class=\"navbar\">&nbsp;<a href=\"index.html\">Up</a></div>";
 
-let globals_labels_text ast = 
-"<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\"> 
-<html> 
-	<head> 
-		<link rel=\"stylesheet\" href=\"style.css\" type=\"text/css\"> 
-	</head>
-	<body>
-		<div class=\"navbar\">
-		&nbsp;<a href=\"index.html\">Up</a>
-		</div>
-		<center><h1>Globals labels</h1></center>"^
-		"<code class=\"code\">"^
-		(
-		let rec tab_to_html tab = match tab with
-			| [] -> ""
-			| h::[] -> h
-			| h::t -> h^", "^(tab_to_html t)
-		in tab_to_html (List.map fst ast.Ast.labels)
-		)^
-		"</code>"^
-	"</body>
-</html>"
+    wnl "  <h6>Features</h6>";
+    wnl "  <code class=\"code\">";
+    List.iter
+      (function
+        | Ast.Open feat_name -> wnl "    <b>%s</b> : *<br/>" feat_name
+        | Ast.Closed (feat_name,values) -> wnl "<b>%s</b> : %s<br/>" feat_name (String.concat " | " values)
+      ) ast.Ast.domain;
+    wnl "  </code>";
 
-let sequence_page_text previous next sequence = 
-let rec tab_to_html_arrow tab = match tab with
-	| [] -> ""
-	| h::[] -> "<a href=\""^h^".html\">"^h^"</a>"
-	| h::t -> "<a href=\""^h^".html\">"^h^"</a> ⇨ "^(tab_to_html_arrow t)
-in 
-"<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\"> 
-<html> 
-	<head> 
-		<link rel=\"stylesheet\" href=\"style.css\" type=\"text/css\"> 
-	</head>
-	<body>
-		<div class=\"navbar\">"^
-		(match previous with None -> "" | Some p -> "&nbsp;<a href=\""^p^".html\">Previous</a> ")^
-		"&nbsp;<a href=\"sequences.html\">Up</a> "^
-		(match next with None -> "" | Some p -> "&nbsp;<a href=\""^p^".html\">Next</a> ")^
-		"</div>
-		<center><h1>Sequence <div class=\"module_title\">"^sequence.Ast.seq_name^"</div></h1></center>
-		<br/><br/>"^sequence.Ast.seq_doc^"<br/>"^
-		"<h6>Sequence</h6>"^
-		"<div class=\"code\">"^(tab_to_html_arrow sequence.Ast.seq_mod)^"</div>"^
-		"</body>
-</html>"
+    wnl "  <h6>Labels</h6>";
+    wnl "  <code class=\"code\">";
+    (match ast.Ast.labels with
+      | [] -> wnl "No labels defined!"
+      | (l,c)::t -> w "<font color=\"%s\">%s</font>" (of_opt_color c) l; 
+        List.iter
+          (fun (lab,color) -> 
+            w ", <font color=\"%s\">%s</font>" (of_opt_color color) lab; 
+          ) t;
+        wnl "");
+    wnl "  </code>";
+    
+    wnl "  </body>";
+    wnl "</html>";
+    Buffer.contents buff
 
-  let rec create_modules_table modules =
-    match modules with
-    | [] -> ""
-    | h::t ->
-	"<tr><td width=\"200px\"><a href=\""^h.Ast.module_id^".html\">"^h.Ast.module_id^"</a></td><td>"^h.Ast.module_doc^"</td></tr>\n"^
-	create_modules_table t
-	  
+    
+  let proceed output_dir ast = 
+    ignore(Sys.command ("rm -rf "^output_dir));
+    ignore(Sys.command ("mkdir "^output_dir));
+    ignore(Sys.command ("cp "^DATA_DIR^"/style.css "^output_dir));
+    
+    (** index.html **)
+    let index = Filename.concat output_dir "index.html" in
+    
+    
+    (* let table = create_modules_table ast.Ast.modules in *)
 
-	let proceed output_dir ast = 
-		ignore(Sys.command ("rm -rf "^output_dir));
-		ignore(Sys.command ("mkdir "^output_dir));
-		ignore(Sys.command ("cp "^DATA_DIR^"/style.css "^output_dir));
-		
-		(** index.html **)
-		let index = Filename.concat output_dir "index.html" in
-		
-		
-		let table = create_modules_table ast.Ast.modules in
-			
-		let index_out_ch = open_out index in
-		output_string index_out_ch (index_text table);
-		close_out index_out_ch;
-		
-		(** Sequences.html **)
-		let sequences = Filename.concat output_dir "sequences.html" in
-			
-		let sequences_out_ch = open_out sequences in
-		output_string sequences_out_ch (sequences_text ast);
-		close_out sequences_out_ch;
-		
-		let sequences_array = Array.of_list (List.sort (fun a b -> String.compare a.Ast.seq_name b.Ast.seq_name) ast.Ast.sequences) in
-		for i = 0 to (Array.length sequences_array -1) do
-			let page = Filename.concat output_dir (sequences_array.(i).Ast.seq_name^".html") in
-			let page_out_ch = open_out page in
-			output_string page_out_ch (sequence_page_text (try Some (sequences_array.(i-1).Ast.seq_name) with _ -> None) (try Some (sequences_array.(i+1).Ast.seq_name) with _ -> None) sequences_array.(i));
-			close_out page_out_ch;
-		done;
-		
-		(** Modules.html **)
-		let modules = Filename.concat output_dir "modules.html" in
-			
-		let modules_out_ch = open_out modules in
-		output_string modules_out_ch (index_modules_text ast);
-		close_out modules_out_ch;
-		
-		(** features.html **)
-		let features = Filename.concat output_dir "features.html" in
-			
-		let features_out_ch = open_out features in
-		output_string features_out_ch (features_domain_text ast);
-		close_out features_out_ch;
-		
-		(** labels.html **)
-		let labels = Filename.concat output_dir "labels.html" in
-			
-		let labels_out_ch = open_out labels in
-		output_string labels_out_ch (globals_labels_text ast);
-		close_out labels_out_ch;
-		
-		(** Modules + rules **)
-		let modules_array = Array.of_list ast.Ast.modules in
-		for i = 0 to (Array.length modules_array -1) do
-			let page = Filename.concat output_dir (modules_array.(i).Ast.module_id^".html") in
-			let page_out_ch = open_out page in
-			output_string page_out_ch (module_page_text (try Some (modules_array.(i-1).Ast.module_id) with _ -> None) (try Some (modules_array.(i+1).Ast.module_id) with _ -> None) modules_array.(i) ast);
-			close_out page_out_ch;
-			
-			let rules_array = Array.of_list modules_array.(i).Ast.rules in
-			for j = 0 to (Array.length rules_array -1) do
-				
-			
-				let page = Filename.concat output_dir (modules_array.(i).Ast.module_id^"_"^rules_array.(j).Ast.rule_id^".html") in
-				let page_out_ch = open_out page in
-				output_string page_out_ch 
-                                  (rule_page_text 
-                                     (try Some (rules_array.(j-1).Ast.rule_id) with _ -> None)
-                                     (try Some (rules_array.(j+1).Ast.rule_id) with _ -> None) 
-                                     rules_array.(j) 
-                                     modules_array.(i) 
-                                     ast 
-                                     (modules_array.(i).Ast.module_id^"_"^rules_array.(j).Ast.rule_id^".html")
-                                  );
-				close_out page_out_ch;
-				
-				
-			done;
-		done;
+    let buff = Buffer.create 32 in
+    let wnl fmt = Printf.ksprintf (fun x -> Printf.bprintf buff "%s\n" x) fmt in
+    header buff;
+    
+    wnl "<a href=domain.html>Domain</a><br/>";
+    wnl "<a href=modules.html>Index of modules</a><br/>";
+    wnl "<a href=sequences.html>List of sequences</a><br/>";
 
+    wnl "<h6>Modules</h6>";
+    wnl "<table class=\"indextable\">";
+    List.iter
+      (fun m -> 
+        wnl "<tr>";
+        wnl "<td width=\"200px\"><a href=\"%s.html\">%s</a></td>" m.Ast.module_id m.Ast.module_id;
+        (match m.Ast.module_doc with [] -> () | h::_ -> wnl "<td>%s</td>\n" (doc_to_html h));
+        wnl "</tr>"
+      ) ast.Ast.modules;
+      
+    wnl "</table>";
+    wnl "</body>";
+    wnl "</html>";
 
-
+    let index_out_ch = open_out index in
+    output_string index_out_ch (Buffer.contents buff);
+    close_out index_out_ch;
+    
+    (** Sequences.html **)
+    let sequences = Filename.concat output_dir "sequences.html" in
+    
+    let sequences_out_ch = open_out sequences in
+    output_string sequences_out_ch (sequences_text ast);
+    close_out sequences_out_ch;
+    
+    (** Modules.html **)
+    let modules = Filename.concat output_dir "modules.html" in
+    
+    let modules_out_ch = open_out modules in
+    output_string modules_out_ch (index_modules_text ast);
+    close_out modules_out_ch;
+    
+    (** domain.html **)
+    let domain = Filename.concat output_dir "domain.html" in
+    
+    let domain_out_ch = open_out domain in
+    output_string domain_out_ch (domain_text ast);
+    close_out domain_out_ch;
+    
+    (** Modules + rules **)
+    let modules_array = Array.of_list ast.Ast.modules in
+    for i = 0 to (Array.length modules_array -1) do
+      let page = Filename.concat output_dir (modules_array.(i).Ast.module_id^".html") in
+      let page_out_ch = open_out page in
+      output_string page_out_ch 
+        (module_page_text 
+           (try Some (modules_array.(i-1).Ast.module_id) with _ -> None) 
+           (try Some (modules_array.(i+1).Ast.module_id) with _ -> None)
+           modules_array.(i)
+        );
+      close_out page_out_ch;
+      
+      let rules_array = Array.of_list modules_array.(i).Ast.rules in
+      for j = 0 to (Array.length rules_array -1) do
+        
+        let page = Filename.concat output_dir (modules_array.(i).Ast.module_id^"_"^rules_array.(j).Ast.rule_id^".html") in
+        let page_out_ch = open_out page in
+        output_string page_out_ch 
+          (rule_page_text 
+             (try Some (rules_array.(j-1).Ast.rule_id) with _ -> None)
+             (try Some (rules_array.(j+1).Ast.rule_id) with _ -> None) 
+             rules_array.(j) 
+             modules_array.(i) 
+          );
+        close_out page_out_ch;
+      done;
+    done;
 end
+

@@ -82,7 +82,7 @@ module Ast : sig
       neg_patterns: pattern list;
       commands: command list;
       param: (string*string list) option;
-      rule_doc:string;
+      rule_doc:string list;
       rule_loc: Loc.t;
     }
         
@@ -91,7 +91,7 @@ module Ast : sig
       local_labels: (string * string option) list;
       rules: rule list;
       confluent: bool;
-      module_doc:string;
+      module_doc:string list;
       mod_loc:Loc.t;
       mod_dir: string; (* the directory where the module is defined (for lp file localisation) *)
     }
@@ -99,7 +99,7 @@ module Ast : sig
   type sequence = {
       seq_name:string;
       seq_mod:string list;
-      seq_doc:string;
+      seq_doc:string list;
       seq_loc:Loc.t;
     }
         
@@ -129,13 +129,3 @@ module Ast : sig
       edges: edge list;
     }
 end (* module Ast *)
-
-module AST_HTML: sig
-
-  val feat_values_tab_to_html: string list -> string
-      
-  val to_html_rules: Ast.rule list -> string
-
-  val to_html_commands_pretty: Ast.command list -> string
-end
-

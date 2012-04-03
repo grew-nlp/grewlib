@@ -13,6 +13,13 @@
     match Str.split (Str.regexp "\\.") string_feat with
     | [node; feat_name] -> (node, feat_name)
     | _ -> Log.fcritical "[BUG] \"%s\" is not a feature" string_feat
+
+  let split_comment com =
+    let raw = Str.split (Str.regexp "\n") com in
+    List.filter (fun l -> not (Str.string_match (Str.regexp "[ \t]*$") l 0)) raw;;
+
+
+    
 }
 
 let digit = ['0'-'9']
@@ -34,7 +41,7 @@ and comment_multi_doc target = shortest
     Lexing.new_line lexbuf;
   done; assert false
   with Not_found ->
-    COMMENT(comment) 
+    COMMENT(split_comment comment) 
 }
  
 and comment_multi target = parse

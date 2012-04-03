@@ -68,11 +68,11 @@ let localize t = (t,get_loc ())
 %token <string> PAT                /* $id */
 %token <string> CMD                /* @id */
 
-%token <string>  IDENT             /* indentifier */
+%token <string>           IDENT    /* indentifier */
 %token <Grew_ast.Ast.qfn> QFN      /* ident.ident */
-%token <string>  STRING
-%token <int>     INT
-%token <string>  COMMENT
+%token <string>           STRING
+%token <int>              INT
+%token <string list>      COMMENT
 
 %token EOF                         /* end of file */
 
@@ -244,7 +244,7 @@ grew_module:
               local_labels = (match l with None -> [] | Some x -> x);
               rules = r;
               confluent = conf;
-              module_doc = (match doc with Some d -> d | None -> "");
+              module_doc = (match doc with Some d -> d | None -> []);
               mod_loc = (!Parser_global.current_file, snd id);
               mod_dir = "";
             }
@@ -290,7 +290,7 @@ rule:
                 neg_patterns = n;
                 commands = cmds;
                 param = None;
-                rule_doc = begin match doc with Some d -> d | None -> "" end;
+                rule_doc = begin match doc with Some d -> d | None -> [] end;
                 rule_loc = (!Parser_global.current_file,snd id);
               }
             }         
@@ -301,7 +301,7 @@ rule:
                 neg_patterns = n;
                 commands = cmds;
                 param = param;
-                rule_doc = begin match doc with Some d -> d | None -> "" end;
+                rule_doc = begin match doc with Some d -> d | None -> [] end;
                 rule_loc = (!Parser_global.current_file,snd id);
               }
             }         
@@ -312,7 +312,7 @@ rule:
                 neg_patterns = n;
                 commands = [];
                 param = None;
-                rule_doc = begin match doc with Some d -> d | None -> "" end;
+                rule_doc = begin match doc with Some d -> d | None -> [] end;
                 rule_loc = (!Parser_global.current_file,snd id);
               }
             }
@@ -515,7 +515,7 @@ sequence:
             { 
               { Ast.seq_name = fst id; 
                 seq_mod = mod_names ; 
-                seq_doc = begin match doc with Some d -> d | None -> "" end; 
+                seq_doc = begin match doc with Some d -> d | None -> [] end; 
                 seq_loc = (!Parser_global.current_file,snd id);
               } 
             }
