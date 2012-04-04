@@ -136,6 +136,7 @@ module Rule = struct
       neg: pattern list;
       commands: Command.t list;
       param: Lex_par.t option;
+      param_names: (string list * string list);
       loc: Loc.t;
     }
 
@@ -150,7 +151,9 @@ module Rule = struct
     let nodes = 
       Pid_map.fold 
         (fun id node acc ->
-          (node, sprintf "  N_%d { word=\"%s\"; subword=\"%s\"}" id (P_node.get_name node) (P_fs.to_dep (P_node.get_fs node)))
+          (node, sprintf "  N_%d { word=\"%s\"; subword=\"%s\"}" 
+            id (P_node.get_name node) (P_fs.to_dep t.param_names (P_node.get_fs node))
+          )
           :: acc
         ) t.pos.graph [] in
 
@@ -243,6 +246,7 @@ module Rule = struct
      commands = build_commands ~param:(pat_vars,cmd_vars) ~locals pos pos_table rule_ast.Ast.commands;
      loc = rule_ast.Ast.rule_loc;
      param = param; 
+     param_names = (pat_vars,cmd_vars)
    };
       
   type matching = {

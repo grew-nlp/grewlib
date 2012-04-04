@@ -75,11 +75,14 @@ module P_feature = struct
     | (Different l1, Different l2) -> Different (List_.sort_union l1 l2)
     | _ -> Error.build "cannot unify heterogeneous pattern features"
         
-  let to_string = function
+  let to_string ?param_names = function
     | (feat_name, Equal atoms) -> sprintf "%s=%s" feat_name (List_.to_string (fun x->x) "|" atoms)
     | (feat_name, Different []) -> sprintf "%s=*" feat_name
     | (feat_name, Different atoms) -> sprintf "%s<>%s" feat_name (List_.to_string (fun x->x) "|" atoms)
-    | (feat_name, Param index) -> sprintf "%s=$%d" feat_name index 
+    | (feat_name, Param index) -> 
+      match param_names with
+        | None -> sprintf "%s=$%d" feat_name index 
+        | Some (l,_) -> sprintf "%s=%s" feat_name (List.nth l index)
 
   let build ?pat_vars = function
     | ({Ast.kind=Ast.Equality unsorted_values; name=name}, loc) ->
@@ -180,7 +183,7 @@ module P_fs = struct
 
   let to_string t = List_.to_string P_feature.to_string "\\n" t
 
-  let to_dep t = List_.to_string P_feature.to_string "#" t
+  let to_dep param_names t = List_.to_string (P_feature.to_string ~param_names) "#" t
 
   let to_dot t = List_.to_string P_feature.to_string "\\n" t
 

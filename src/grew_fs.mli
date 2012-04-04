@@ -49,7 +49,7 @@ module P_fs: sig
   
   val to_string: t -> string
 
-  val to_dep: t -> string
+  val to_dep: (string list * string list) -> t -> string
 
   val to_dot: t -> string
 
