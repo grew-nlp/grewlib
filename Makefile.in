@@ -8,8 +8,12 @@ all:
 include config/Makefile
 
 conf:
+	cd config && rm -rf ac_lib_checking.*
+	cd config && wget https://gforge.inria.fr/scm/viewvc.php/*checkout*/ac_lib_checking/ac_lib_checking.m4?root=semagramme  --no-check-certificate || true
+	cd config && mv ac_lib_checking.m4?root=semagramme ac_lib_checking.m4 || true
 	cd config && aclocal
-	autoconf -o configure config/configure.in
+	cd config && autoconf -o ../configure configure.in
+	rm -rf config.status config.log autom4te.cache config/autom4te.cache config/ac_lib_checking.m4
 
 purge_makefile:
 	@make -C src purge_makefile
@@ -22,11 +26,11 @@ clean:
 
 uninstall:
 	rm -rf $(OCAMLFIND_DIR)/for_mac_libgrew
-	ocamlfind remove libgrew > /dev/null
+	$(OCAMLFIND) remove libgrew > /dev/null
 
 uninstall_dev:
 	rm -rf $(OCAMLFIND_DIR)/for_mac_libgrew
-	ocamlfind remove libgrew_dev > /dev/null
+	$(OCAMLFIND) remove libgrew_dev > /dev/null
 
 LIB_DEP = libgrew.cma libgrew.cmxa libgrew.a libgrew.cmi
 
@@ -40,7 +44,7 @@ ifneq ($(DESTDIR),)
 endif
 	mkdir -p $(DESTDIR)$(DATA_DIR)/
 	cp data/style.css $(DESTDIR)$(DATA_DIR)/
-	cd src && ocamlfind install libgrew ../META $(LIB_DEP)
+	cd src && $(OCAMLFIND) install libgrew ../META $(LIB_DEP)
 	mv META_ META
 
 install_dev: uninstall_dev
@@ -48,7 +52,7 @@ install_dev: uninstall_dev
 	sed -itmp "s|@VERSION@|$(VERSION)|g" META 
 	sed -itmp "s|@DEV@|_dev|g" META 
 	rm -rf METAtmp
-	cd src && ocamlfind install libgrew_dev ../META $(LIB_DEP)
+	cd src && $(OCAMLFIND) install libgrew_dev ../META $(LIB_DEP)
 	mv META_ META
 	cp data/style.css $(DESTDIR)$(DATA_DIR)/
 

@@ -5,36 +5,36 @@ byte: parser_global.cmo gr_grs_parser.cmo lexer.cmo grew_parser.cmo
 include ../../config/Makefile
 
 parser_global.cmo: parser_global.ml
-	ocamlc.opt -c $(BYTE_FLAGS) parser_global.ml
+	$(OCAMLC) -c $(BYTE_FLAGS) parser_global.ml
 
 parser_global.cmx: parser_global.ml
-	ocamlopt.opt -c $(OPT_FLAGS) parser_global.ml
+	$(OCAMLOPT) -c $(OPT_FLAGS) parser_global.ml
 
 gr_grs_parser.ml: gr_grs_parser.mly
 	menhir --infer --ocamlc "ocamlc -c -I .. grew_utils.cmo grew_ast.cmo parser_global.cmo"  gr_grs_parser.mly
 
 gr_grs_parser.cmx: gr_grs_parser.ml ../grew_utils.cmx ../grew_ast.cmx parser_global.cmo
-	ocamlopt.opt -c $(OPT_FLAGS) -I .. grew_utils.cmx grew_ast.cmx gr_grs_parser.mli
-	ocamlopt.opt -c $(OPT_FLAGS) -I .. grew_utils.cmx grew_ast.cmx gr_grs_parser.ml
+	$(OCAMLOPT) -c $(OPT_FLAGS) -I .. grew_utils.cmx grew_ast.cmx gr_grs_parser.mli
+	$(OCAMLOPT) -c $(OPT_FLAGS) -I .. grew_utils.cmx grew_ast.cmx gr_grs_parser.ml
 
 gr_grs_parser.cmo: gr_grs_parser.ml ../grew_utils.cmo ../grew_ast.cmx parser_global.cmo
-	ocamlc.opt -c $(BYTE_FLAGS) -I .. grew_utils.cmo grew_ast.cmo gr_grs_parser.mli
-	ocamlc.opt -c $(BYTE_FLAGS) -I .. grew_utils.cmo grew_ast.cmo gr_grs_parser.ml
+	$(OCAMLC) -c $(BYTE_FLAGS) -I .. grew_utils.cmo grew_ast.cmo gr_grs_parser.mli
+	$(OCAMLC) -c $(BYTE_FLAGS) -I .. grew_utils.cmo grew_ast.cmo gr_grs_parser.ml
 
 lexer.ml: lexer.mll
 	ocamllex lexer.mll
 
 lexer.cmx: gr_grs_parser.cmx lexer.ml ../grew_ast.cmx
-	ocamlopt.opt -c $(OPT_FLAGS) -I .. grew_ast.cmx lexer.ml
+	$(OCAMLOPT) -c $(OPT_FLAGS) -I .. grew_ast.cmx lexer.ml
 
 lexer.cmo: gr_grs_parser.cmo lexer.ml ../grew_ast.cmo
-	ocamlc.opt -c $(BYTE_FLAGS) -I .. grew_ast.cmo lexer.ml
+	$(OCAMLC) -c $(BYTE_FLAGS) -I .. grew_ast.cmo lexer.ml
 
 grew_parser.cmx: gr_grs_parser.cmx lexer.cmx grew_parser.ml ../grew_ast.cmx
-	ocamlopt.opt -c $(OPT_FLAGS) -I .. grew_ast.cmx grew_parser.ml
+	$(OCAMLOPT) -c $(OPT_FLAGS) -I .. grew_ast.cmx grew_parser.ml
 
 grew_parser.cmo: gr_grs_parser.cmo lexer.cmo grew_parser.ml ../grew_ast.cmo
-	ocamlc.opt -c $(BYTE_FLAGS) -I .. grew_ast.cmo grew_parser.ml
+	$(OCAMLC) -c $(BYTE_FLAGS) -I .. grew_ast.cmo grew_parser.ml
 
 clean:
 	rm -rf *.cmi *.cmx *.cmo lexer.ml gr_grs_parser.ml *.o *.mli *.annot
