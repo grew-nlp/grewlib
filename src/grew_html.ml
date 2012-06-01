@@ -252,7 +252,6 @@ module Html = struct
     let wnl fmt = Printf.ksprintf (fun x -> Printf.bprintf buff "%s\n" x) fmt in
     
     header buff;
-    
     wnl "  <div class=\"navbar\">&nbsp;<a href=\"index.html\">Up</a></div>";
     wnl "  <center><h1>Index of modules</h1></center>";
     wnl "  <table width=100%%>";
@@ -309,7 +308,7 @@ module Html = struct
     Buffer.contents buff
 
     
-  let proceed output_dir ast = 
+  let proceed file output_dir ast = 
     ignore(Sys.command ("rm -rf "^output_dir));
     ignore(Sys.command ("mkdir "^output_dir));
     ignore(Sys.command ("cp "^DATA_DIR^"/style.css "^output_dir));
@@ -323,7 +322,12 @@ module Html = struct
     let buff = Buffer.create 32 in
     let wnl fmt = Printf.ksprintf (fun x -> Printf.bprintf buff "%s\n" x) fmt in
     header buff;
-    
+
+    wnl "  <div class=\"navbar\">&nbsp;<a href=\"../index.html\">Rewriting Stats</a></div>";
+
+    wnl "<h1>Graph Rewriting System: %s</h1>" (Filename.basename file);
+    wnl "<center><b>full path</b>: %s</center>" file;
+
     wnl "<a href=domain.html>Domain</a><br/>";
     wnl "<a href=modules.html>Index of modules</a><br/>";
     wnl "<a href=sequences.html>List of sequences</a><br/>";

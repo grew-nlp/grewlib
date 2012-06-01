@@ -157,7 +157,7 @@ module Rule = struct
           :: acc
         ) t.pos.graph [] in
 
-    (* noodes are sorted to appear in the same order in dep picture and in input file *)
+    (* nodes are sorted to appear in the same order in dep picture and in input file *)
     let sorted_nodes = List.sort (fun (n1,_) (n2,_) -> P_node.compare_pos n1 n2) nodes in
     
     bprintf buff "[WORDS] {\n";
@@ -728,11 +728,12 @@ module Rule = struct
 
 (** filter nfs being equal *)
   let rec filter_equal_nfs nfs =
-    Instance_set.fold (fun nf acc ->
-      if Instance_set.exists (fun e -> G_graph.equals e.Instance.graph nf.Instance.graph) acc
-      then (printf "two normal equal normal forms"; acc)
-      else Instance_set.add nf acc)
-      nfs Instance_set.empty
+    Instance_set.fold 
+      (fun nf acc ->
+        if Instance_set.exists (fun e -> G_graph.equals e.Instance.graph nf.Instance.graph) acc
+        then acc
+        else Instance_set.add nf acc
+      ) nfs Instance_set.empty
       
 (** normalize [t] according to the [rules]
  * [t] is a raw graph
@@ -740,7 +741,7 @@ module Rule = struct
  *)
 
   (* type: Instance.t -> t list -> Instance_set.t *)
-  let normalize_instance instance rules =
+  let normalize_instance modul_name instance rules =
     let rec loop to_do nf = 
       if to_do = Instance_set.empty
       then nf
@@ -756,7 +757,14 @@ module Rule = struct
             to_do (Instance_set.empty,nf) in
         loop new_to_do new_nf in
     let nfs = loop (Instance_set.singleton instance) Instance_set.empty in 
-    filter_equal_nfs nfs
+    let reduced_nfs = filter_equal_nfs nfs in
+    
+    let reduced_nfs_card = Instance_set.cardinal reduced_nfs in
+    let nfs_card = Instance_set.cardinal nfs in
+    if reduced_nfs_card < nfs_card 
+    then Log.fwarning "In module \"%s\", %d nf are produced, only %d different ones" modul_name nfs_card reduced_nfs_card;
+
+    reduced_nfs
       
   (* [filter_instance instance filters] return a boolean:
      - true iff the instance does NOT match any pattern in [filters] *)
@@ -793,9 +801,7 @@ module Rule = struct
     | Some new_instance -> conf_normalize new_instance rules
     | None -> Instance.rev_steps instance
 
-          (* type: t list -> (Instance_set.elt -> bool) -> Instance.t -> Instance_set.t * Instance_set.t *)
-
-  let normalize ?(confluent=false) rules filters instance =
+  let normalize modul_name ?(confluent=false) rules filters instance =
     Timeout.start ();
     if confluent
     then
@@ -804,7 +810,7 @@ module Rule = struct
       then (Instance_set.singleton output, Instance_set.empty)
       else (Instance_set.empty, Instance_set.singleton output)
     else
-      let output_set = normalize_instance instance rules in 
+      let output_set = normalize_instance modul_name instance rules in 
       let (good_set, bad_set) = Instance_set.partition (filter_instance filters) output_set in
       (good_set, bad_set)
 

@@ -65,6 +65,7 @@ module G_graph: sig
 
   val to_gr: t -> string
   val to_dot: ?main_feat:string -> ?deco:Deco.t -> t -> string
+  val to_sentence: ?main_feat:string -> t -> string
   val to_dep: ?main_feat:string -> ?deco:Deco.t -> t -> string
 
 

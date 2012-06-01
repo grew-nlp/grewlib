@@ -13,11 +13,11 @@ module Rewrite_history: sig
     }
 
   val is_empty: t -> bool
-
+    
 IFDEF DEP2PICT THEN
   val error_html: ?main_feat:string -> ?init_graph:bool -> ?header:string -> string -> string -> Instance.t option -> unit
 
-  val save_html: ?main_feat:string -> ?init_graph:bool -> ?header:string -> string -> t -> unit
+  val save_html: ?main_feat:string -> ?init_graph:bool -> ?header:string -> graph_file:string -> string -> t -> unit
 ENDIF
 end
 
@@ -67,7 +67,7 @@ module Corpus_stat: sig
   val save_html: 
     title: string -> 
     grs_file: string ->
-    html:bool -> (* if [html] put hlinks on files *) 
+    input_dir:string -> 
     output_dir:string -> 
       t -> unit
 end

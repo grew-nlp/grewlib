@@ -27,6 +27,7 @@ module G_fs: sig
 
   val to_gr: t -> string
   val to_dot: ?main_feat: string -> t -> string
+  val to_word: ?main_feat: string -> t -> string
   val to_dep: ?main_feat: string -> t -> string
 
   val to_string: t -> string

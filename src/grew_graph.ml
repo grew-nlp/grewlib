@@ -478,6 +478,28 @@ module G_graph = struct
     bprintf buff "}\n";
     Buffer.contents buff
 
+  let to_sentence ?main_feat graph =
+    let nodes = Gid_map.fold (fun id elt acc -> (id,elt)::acc) graph.map [] in
+    let snodes = List.sort (fun (_,n1) (_,n2) -> G_node.pos_comp n1 n2) nodes in
+
+    let words = List.map
+      (fun (id, node) -> G_fs.to_word ?main_feat (G_node.get_fs node)
+      ) snodes in
+    List.fold_left
+      (fun acc (regexp,repl) ->
+        Str.global_replace (Str.regexp_string regexp) repl acc
+      )
+      (String.concat " " words)
+      [
+        "_", " ";
+        "' ", "'";
+        " ,", ","; 
+        " .", "."; 
+        "( ", "(";
+        " )", ")";
+        "\\\"", "\"";
+      ]
+    
   let to_dep ?main_feat ?(deco=Deco.empty) graph =
     let buff = Buffer.create 32 in
     bprintf buff "[GRAPH] { opacity=0; scale = 200; fontname=\"Arial\"; }\n";

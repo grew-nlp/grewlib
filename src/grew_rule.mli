@@ -51,7 +51,8 @@ module Rule : sig
   val build: ?locals:Label.decl array -> string -> Ast.rule -> t
 
   (* raise Stop if some command fails to apply *)
-  val normalize: 
+  val normalize:
+    string -> (* module name *)
     ?confluent:bool -> 
     t list -> (* rule list *)
     t list -> (* filter list *)

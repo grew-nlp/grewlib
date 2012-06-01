@@ -41,7 +41,7 @@ let load_grs ?doc_output_dir file =
       (match doc_output_dir with
         | None -> ()
         | Some dir -> 
-          Html.proceed dir grs_ast;
+          Html.proceed file dir grs_ast;
           
           (* draw pattern graphs for all rules and all filters *)
           let fct module_ rule_ = 
@@ -113,7 +113,6 @@ let load_graph file =
               Log.fcritical "[Libgrew.load_graph] Cannot guess input file format of file '%s'. Use .gr or .conll file extension" file
     end
 
-
 let rewrite ~gr ~grs ~seq = 
   try Grs.rewrite grs seq gr
   with
@@ -139,6 +138,7 @@ let save_index ~dirname ~base_names =
 let write_html 
     ?(no_init=false) ?main_feat 
     ~header
+    ~graph_file
     rew_hist
     output_base =
 IFDEF DEP2PICT THEN
@@ -147,6 +147,7 @@ IFDEF DEP2PICT THEN
     ?main_feat 
     ~init_graph: (not no_init)
     ~header
+    ~graph_file
     output_base rew_hist
     )
 ELSE
@@ -170,14 +171,14 @@ ELSE
     Log.critical "[error_html] The \"libcaml-grew\" library is compiled without Dep2pict"
 ENDIF
 
-let make_index ~title ~grs_file ~html ~grs ~seq ~output_dir ~base_names  =
+let make_index ~title ~grs_file ~html ~grs ~seq ~input_dir ~output_dir ~base_names  =
   let init = Corpus_stat.empty grs seq in
   let corpus_stat =
     List.fold_left
       (fun acc base_name -> 
         Corpus_stat.add_gr_stat base_name (Gr_stat.load (Filename.concat output_dir (base_name^".stat"))) acc
       ) init base_names in
-  Corpus_stat.save_html title grs_file html output_dir corpus_stat
+  Corpus_stat.save_html title grs_file input_dir output_dir corpus_stat
 
 let get_css_file = Filename.concat DATA_DIR "style.css"
 

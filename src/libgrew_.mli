@@ -59,7 +59,11 @@ val load_graph: string -> Instance.t
 val save_index: dirname:string -> base_names: string list -> unit
 
 val write_html: 
-    ?no_init:bool -> ?main_feat:string -> header: string -> Rewrite_history.t -> string -> unit
+    ?no_init:bool -> 
+    ?main_feat:string -> 
+    header: string ->
+    graph_file: string ->
+    Rewrite_history.t -> string -> unit
 
 val error_html: 
     ?no_init:bool -> ?main_feat:string -> header: string -> string -> ?init:Instance.t -> string -> unit
@@ -70,6 +74,7 @@ val make_index:
     html: bool -> 
     grs: Grs.t -> 
     seq: string ->
+    input_dir: string -> 
     output_dir: string -> 
     base_names: string list -> 
       unit
