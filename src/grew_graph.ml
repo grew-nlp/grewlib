@@ -491,6 +491,8 @@ module G_graph = struct
       )
       (String.concat " " words)
       [
+        " -t-", "-t-";
+        "_-_", "-";
         "_", " ";
         "' ", "'";
         " ,", ","; 

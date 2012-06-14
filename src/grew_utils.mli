@@ -25,8 +25,7 @@ module File: sig
 
   (** [read file_name] read the content of [file_name] line by line. 
      Blanks lines (empty or only with spaces and tabs) are ignored.
-     Lines with '%' as the first char are ignores
-   *)
+     Lines with '%' as the first char are ignored. *)
   val read: string -> string list
 end
 
@@ -42,22 +41,37 @@ module Pid_map : sig
   exception MatchNotInjective
   val exists: (key -> 'a -> bool) -> 'a t -> bool
   val union_if: int t -> int t -> int t
-  end
+end
 
-
+(* ================================================================================ *)
+(* [Gid] describes identifier used in full graphs *)
 module Gid : sig type t = int end
 
+(* ================================================================================ *)
+(* [Gid_map] is the map used in full graphs *)
 module Gid_map : Map.S with type key = Gid.t 
 
 
+(* ================================================================================ *)
+(* [Array_] contains additional functions on the caml [array] type. *)
 module Array_: sig
+  (* [dicho_mem elt array] returns true iff [elt] belongs to [array].
+     Warning: the array MUST be sorted and without duplicates. *)
   val dicho_mem: 'a -> 'a array -> bool
 
-  (* dichotomic search: the array MUST be sorted and without duplicates. Not found can be raised *)
+  (* [dicho_find elt array] returns the index of the position where [elt] is found in the [array].
+     [Not found] is raised if [elt] is not in [array].
+     Warning: the array MUST be sorted and without duplicates. *)
   val dicho_find: 'a -> 'a array -> int
+
+  (* [dicho_find_assoc key array] returns the value associated with [key] in the assoc [array].
+     [Not found] is raised if [key] is not defined in [array].
+     Warning: the array MUST be sorted (with respect to the first component) and without duplicates. *)
   val dicho_find_assoc: 'a -> ('a*'b) array -> int
 end
 
+(* ================================================================================ *)
+(* [List_] contains additional functions on the caml [list] type. *)
 module List_: sig
   (** [rm elt list] removes the first occurence of [elt] in [list]. [Not_found] can be raised. *)
   val rm: 'a -> 'a list -> 'a list

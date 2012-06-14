@@ -46,6 +46,7 @@ val load_grs : ?doc_output_dir:string -> string -> Grs.t
 *)
 val get_sequence_names: Grs.t -> string list
 
+val to_sentence: ?main_feat:string -> Instance.t -> string
 
 val empty_gr : Instance.t
 

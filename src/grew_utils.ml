@@ -11,7 +11,7 @@ module IntMap = Map.Make (struct type t = int let compare = Pervasives.compare e
 module Loc = struct
   type t = string * int 
 
-  let to_string (file,line) = Printf.sprintf "(file: %s, line: %d)" (Filename.basename file) line
+  let to_string (file,line) = sprintf "(file: %s, line: %d)" (Filename.basename file) line
 
   let opt_set_line line = function
     | None -> None
@@ -43,6 +43,7 @@ module File = struct
       close_in in_ch;
       List.rev !rev_lines
 
+  (* [read_ln file] returns a list of couples (line_num, line). Blank lines and lines starting with '%' are ignored. *) 
   let read_ln file = 
     let in_ch = open_in file in
     let cpt = ref 0 in
@@ -60,14 +61,11 @@ module File = struct
       List.rev !rev_lines
  end (* module File *)
 
-
-
 (* ================================================================================ *)
 module Pid = struct
   type t = int
   let compare = Pervasives.compare
 end (* module Pid *)
-
 
 (* ================================================================================ *)
 module Pid_map =
@@ -131,8 +129,6 @@ end
 
 module Gid_map = Map.Make (Gid)
 (* ================================================================================ *)
-
-
 
 module Array_ = struct
   let dicho_mem elt array =

@@ -61,6 +61,9 @@ let load_grs ?doc_output_dir file =
     | Error.Bug (msg, loc) -> raise (Bug (msg,loc))
     | exc -> raise (Bug (sprintf "[Libgrew.load_grs] UNCATCHED EXCEPTION: %s" (Printexc.to_string exc), None))
 
+let to_sentence ?main_feat gr =
+  let graph = gr.Instance.graph in
+  G_graph.to_sentence ?main_feat graph
 
 let get_sequence_names grs = Grs.sequence_names grs
 
