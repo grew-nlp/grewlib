@@ -93,7 +93,8 @@ module Ast = struct
       pos_pattern: pattern;
       neg_patterns: pattern list;
       commands: command list;
-      param: (string*string list) option;
+      param: (string list * string list) option;
+      lp: string list option;
       rule_doc:string list;
       rule_loc: Loc.t;
     }

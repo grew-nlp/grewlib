@@ -73,6 +73,7 @@ let localize t = (t,get_loc ())
 %token <string>           STRING
 %token <int>              INT
 %token <string list>      COMMENT
+%token <string list>      LP
 
 %token EOF                         /* end of file */
 
@@ -290,17 +291,19 @@ rule:
                 neg_patterns = n;
                 commands = cmds;
                 param = None;
+                lp = None;
                 rule_doc = begin match doc with Some d -> d | None -> [] end;
                 rule_loc = (!Parser_global.current_file,snd id);
               }
             }         
-        | doc = option(rule_doc) LEX_RULE id = rule_id param=option(param) LACC p = pos_item n = list(neg_item) cmds = commands RACC 
+        | doc = option(rule_doc) LEX_RULE id = rule_id param=option(param) LACC p = pos_item n = list(neg_item) cmds = commands RACC lp = option(lp)
             { 
               { Ast.rule_id = fst id;
                 pos_pattern = p;
                 neg_patterns = n;
                 commands = cmds;
                 param = param;
+                lp = lp;
                 rule_doc = begin match doc with Some d -> d | None -> [] end;
                 rule_loc = (!Parser_global.current_file,snd id);
               }
@@ -312,14 +315,21 @@ rule:
                 neg_patterns = n;
                 commands = [];
                 param = None;
+                lp = None;
                 rule_doc = begin match doc with Some d -> d | None -> [] end;
                 rule_loc = (!Parser_global.current_file,snd id);
               }
             }
- 
-param:
-        | LPAREN FEATURE vars = separated_nonempty_list(COMA,var) SEMIC FILE file=STRING RPAREN { (file,vars) }
 
+lp:
+        | lp = LP  {lp}
+
+param:
+        | LPAREN FEATURE vars = separated_nonempty_list(COMA,var) RPAREN { ([],vars) }
+        | LPAREN FEATURE vars = separated_nonempty_list(COMA,var) SEMIC files = separated_list(COMA, file) RPAREN { (files,vars) }
+
+file:
+        | FILE f=STRING {f}
 var:
         | i = PAT {i}
         | i = CMD {i}

@@ -1,25 +1,25 @@
 
 {
+  open Printf
   open Log
   open Grew_ast
   open Gr_grs_parser
 
   exception Error of string
-  
+
   let tmp_string = ref ""
   let escaped = ref false
 
-  let parse_qfn string_feat = 
+  let parse_qfn string_feat =
     match Str.split (Str.regexp "\\.") string_feat with
     | [node; feat_name] -> (node, feat_name)
     | _ -> Log.fcritical "[BUG] \"%s\" is not a feature" string_feat
 
   let split_comment com =
     let raw = Str.split (Str.regexp "\n") com in
-    List.filter (fun l -> not (Str.string_match (Str.regexp "[ \t]*$") l 0)) raw;;
+    List.filter (fun l -> not (Str.string_match (Str.regexp "[ \t]*$") l 0)) raw
 
-
-    
+  let lp_buff = Buffer.create 32
 }
 
 let digit = ['0'-'9']
@@ -37,31 +37,37 @@ and comment_multi_doc target = shortest
   let start = ref 0 in
   try while (Str.search_forward (Str.regexp "\n") comment !start != -1) do
     start := Str.match_end ();
-    incr Parser_global.current_line; 
+    incr Parser_global.current_line;
     Lexing.new_line lexbuf;
   done; assert false
   with Not_found ->
-    COMMENT(split_comment comment) 
+    COMMENT(split_comment comment)
 }
- 
+
 and comment_multi target = parse
 | "*/" { target lexbuf }
 | '\n' { incr Parser_global.current_line; Lexing.new_line lexbuf; comment_multi target lexbuf }
 | _  { comment_multi target lexbuf }
-    
+
 and string_lex target = parse
 | "\\" { escaped := true; tmp_string := !tmp_string^"\\"; string_lex target lexbuf }
 | '\n' { incr Parser_global.current_line; Lexing.new_line lexbuf; tmp_string := !tmp_string^"\n"; string_lex target lexbuf }
 | '\"' { if !escaped then (tmp_string := !tmp_string^"\"";  escaped := false; string_lex target lexbuf) else ( STRING(!tmp_string) ) }
-| _ as c { escaped := false; tmp_string := !tmp_string^(Printf.sprintf "%c" c); string_lex target lexbuf }
-    
-    
+| _ as c { escaped := false; tmp_string := !tmp_string^(sprintf "%c" c); string_lex target lexbuf }
+
+and lp_lex target = parse
+| '\n'                    { incr Parser_global.current_line; Lexing.new_line lexbuf; bprintf lp_buff "\n"; lp_lex target lexbuf }
+| _ as c                  { bprintf lp_buff "%c" c; lp_lex target lexbuf }
+| "#END" [' ' '\t']* '\n' { incr Parser_global.current_line; LP (Str.split (Str.regexp "\n") (Buffer.contents lp_buff)) }
+
 and global = parse
 | [' ' '\t'] { global lexbuf }
-    
+
 | "%--"      { comment_multi_doc global lexbuf }
 | "/*"       { comment_multi global lexbuf }
 | '%'        { comment global lexbuf }
+
+| "#BEGIN" [' ' '\t']* '\n' { incr Parser_global.current_line; Buffer.clear lp_buff; lp_lex global lexbuf}
 
 | '\n'       { incr Parser_global.current_line; Lexing.new_line lexbuf; global lexbuf}
 
@@ -123,10 +129,8 @@ and global = parse
 | "==>" { LONGARROW }
 | '"'   { tmp_string := ""; string_lex global lexbuf }
 
-
-
 | eof   { EOF }
-| _ as c { raise (Error (Printf.sprintf "At line %d: unexpected character '%c'.\n" (lexbuf.Lexing.lex_start_p.Lexing.pos_lnum) c)) }
+| _ as c { raise (Error (sprintf "At line %d: unexpected character '%c'" (lexbuf.Lexing.lex_start_p.Lexing.pos_lnum) c)) }
 
 
 

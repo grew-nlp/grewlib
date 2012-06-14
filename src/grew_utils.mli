@@ -122,7 +122,8 @@ module List_: sig
   val foldi_left: (int -> 'a -> 'b -> 'a) -> 'a -> 'b list -> 'a
 end
 
-(* module Massoc implements multi-association data: keys are int and the same key can be
+(* ================================================================================ *)
+(* module Massoc implements multi-association data: keys are (hardly coded as) int and the same key can be
 associated with a set of values *)
 module Massoc: sig
   type 'a t
@@ -214,6 +215,12 @@ end
 (** module for rule that are lexically parametrized *)
 module Lex_par: sig
   type t
+
+  val empty:t 
+  val append: t -> t -> t
+
+  (** [from_lines filename nb_pattern_var nb_command_var strings] *)
+  val from_lines: ?loc: Loc.t -> int -> int -> string list -> t
 
   (** [load ?loc local_dir_name nb_pattern_var nb_command_var file] *)
   val load: ?loc: Loc.t -> string -> int -> int -> string -> t

@@ -84,13 +84,19 @@ module Html = struct
     let buff = Buffer.create 32 in
     List.iter 
       (fun rule ->
+        (* the first line: (lex_)rule / filter *)
         (match (rule.Ast.commands, rule.Ast.param) with
           | ([], None) ->  
             bprintf buff "<font color=\"purple\">filter</font> %s <b>{</b>\n" rule.Ast.rule_id
           | (_,None) -> 
             bprintf buff "<font color=\"purple\">rule</font> %s <b>{</b>\n" rule.Ast.rule_id
-          | (_,Some (file, vars)) ->
-            let param = sprintf "(feature %s; file \"%s\")" (String.concat ", " vars) file in
+          | (_,Some (files, vars)) ->
+            let param = 
+              match files with 
+                | [] -> sprintf "(feature %s)" (String.concat ", " vars)
+                | l ->  sprintf "(feature %s; %s)" 
+                  (String.concat ", " vars) 
+                  (String.concat ", " (List.map (fun f -> sprintf "file \"%s\"" f) l)) in
             bprintf buff "<font color=\"purple\">lex_rule</font> %s %s <b>{</b>\n" rule.Ast.rule_id param
         );
 
@@ -202,22 +208,39 @@ module Html = struct
     w "<IMG src=\"%s\">" dep_pattern_file;
     wnl "</pre>";
     
+    let output_table args lines =
+      wnl "    <table border=\"1\" cellspacing=\"0\" cellpadding=\"3\">";
+      wnl "    <tr>%s</tr>" (List_.to_string (fun x -> sprintf "<th bgcolor=\"#cccccc\">%s</th>" x) "" args);
+      List.iter 
+        (fun l -> wnl "<tr>%s</tr>"  
+          (List_.to_string (fun x -> sprintf "<td>%s</td>" x) "" (Str.split (Str.regexp "#+") l))
+        ) lines;
+      wnl "    </table>" in
+
     (match rule_.Ast.param with
       | None -> ()
-      | Some (file, args) -> 
-        let filename = Filename.concat module_.Ast.mod_dir file in
+      | Some (files, args) -> 
         wnl "<h6>Lexical parameters</h6>";
-        wnl "<b>File:</b> %s</br>" file;
-        let lines = 
-          try File.read filename
-          with Sys_error msg -> wnl "<font color=\"red\">Error: %s</font>" msg; [] in
-        wnl "    <table border=\"1\">";
-        wnl "    <tr>%s</tr>" (List_.to_string (fun x -> sprintf "<th bgcolor=\"#cccccc\">%s</th>" x) "" args);
-        List.iter 
-          (fun l -> wnl "<tr>%s</tr>"  
-            (List_.to_string (fun x -> sprintf "<td>%s</td>" x) "" (Str.split (Str.regexp "#+") l))
-          ) lines);
-    wnl "    </table>";
+
+        (* output local lexical parameters (if any) *)
+        (match rule_.Ast.lp with
+          | None -> ()
+          | Some string ->
+            wnl "<b>Local parameters</b></br>";
+            output_table args (Str.split (Str.regexp "\n") string)
+        );
+
+        (* output external lexical parameters (if any) *)
+        List.iter
+          (fun file ->
+            let filename = Filename.concat module_.Ast.mod_dir file in
+            wnl "<b>File:</b> %s</br>" file;
+            let lines = 
+              try File.read filename
+              with Sys_error msg -> wnl "<font color=\"red\">Error: %s</font>" msg; [] in
+            output_table args lines
+          ) files
+    );
     wnl "  </body>";
     wnl "</html>";
     Buffer.contents buff

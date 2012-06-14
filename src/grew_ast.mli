@@ -82,7 +82,8 @@ module Ast : sig
       pos_pattern: pattern;
       neg_patterns: pattern list;
       commands: command list;
-      param: (string*string list) option; (* (file, vars) *)
+      param: (string list * string list) option; (* (files, vars) *)
+      lp: string list option; (* lexical parameters in the file *)
       rule_doc:string list;
       rule_loc: Loc.t;
     }

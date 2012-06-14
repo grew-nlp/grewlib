@@ -554,9 +554,32 @@ module Lex_par = struct
 
   type t = item list
 
+  let empty=[]
+  let append = List.append
+
   let rm_peripheral_white s = 
     Str.global_replace (Str.regexp "\\( \\|\t\\)*$") ""
     (Str.global_replace (Str.regexp "^\\( \\|\t\\)*") "" s)
+
+
+  let parse_line ?loc nb_p nb_c line = 
+    let line = rm_peripheral_white line in
+    match Str.split (Str.regexp "##") line with
+      | [args] when nb_c = 0 ->
+        (match Str.split (Str.regexp "#") args with
+          | l when List.length l = nb_p -> (l,[])
+          | _ -> Error.bug ?loc
+            "Illegal lexical parameter line: \"%s\" doesn't contain %d args"
+            line nb_p)
+      | [args; values] ->
+        (match (Str.split (Str.regexp "#") args, Str.split (Str.regexp "#") values) with
+          | (lp,lc) when List.length lp = nb_p && List.length lc = nb_c -> (lp,lc)
+          | _ -> Error.bug ?loc 
+            "Illegal lexical parameter line: \"%s\" doesn't contain %d args and %d values"
+            line nb_p nb_c)
+      | _ -> Error.bug ?loc "Illegal param line: '%s'" line
+
+  let from_lines ?loc nb_p nb_c lines = List.map (parse_line ?loc nb_p nb_c) lines
 
   let load ?loc dir nb_p nb_c file =
     try
@@ -564,29 +587,8 @@ module Lex_par = struct
         if Filename.is_relative file
         then Filename.concat dir file
         else file in
-      
       let lines = File.read full_file in
-      let param =
-          (List.map
-             (fun line ->
-               let line = rm_peripheral_white line in
-               match Str.split (Str.regexp "##") line with
-               | [args] when nb_c = 0 ->
-                   (match Str.split (Str.regexp "#") args with
-                   | l when List.length l = nb_p -> (l,[])
-                   | _ -> Error.bug 
-                         "Illegal param line in file \"%s\", the line \"%s\" doesn't contain %d args"
-                         full_file line nb_p)
-               | [args; values] ->
-                   (match (Str.split (Str.regexp "#") args, Str.split (Str.regexp "#") values) with
-                   | (lp,lc) when List.length lp = nb_p && List.length lc = nb_c -> (lp,lc)
-                   | _ -> Error.bug 
-                         "Illegal param line in file \"%s\", the line \"%s\" doesn't contain %d args and %d values"
-                         full_file line nb_p nb_c)
-               | _ -> Error.bug "Illegal param line in file '%s' line '%s'" full_file line
-             ) lines
-          ) in
-      param
+      List_.mapi (fun i line -> parse_line ~loc:(full_file,i) nb_p nb_c line) lines
     with Sys_error _ -> Error.build ?loc "External lexical file '%s' not found" file
 
   let sub x y = List.mem x (Str.split (Str.regexp "|") y)

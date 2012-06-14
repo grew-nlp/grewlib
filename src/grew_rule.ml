@@ -230,11 +230,21 @@ module Rule = struct
     let (param, pat_vars, cmd_vars) = 
       match rule_ast.Ast.param with
       | None -> (None,[],[])
-      | Some (file,vars) ->
+      | Some (files,vars) ->
           let (pat_vars, cmd_vars) = parse_vars rule_ast.Ast.rule_loc vars in
           let nb_pv = List.length pat_vars in
           let nb_cv = List.length cmd_vars in
-          let param = Lex_par.load ~loc:rule_ast.Ast.rule_loc dir nb_pv nb_cv file in
+          let param = List.fold_left
+            (fun acc file ->
+              Lex_par.append
+                (Lex_par.load ~loc:rule_ast.Ast.rule_loc dir nb_pv nb_cv file)
+                acc
+            )
+            (match rule_ast.Ast.lp with 
+              | None -> Lex_par.empty 
+              | Some lines -> Lex_par.from_lines ~loc:rule_ast.Ast.rule_loc nb_pv nb_cv lines
+            )
+            files in
           (Some param, pat_vars, cmd_vars) in
 
     let (pos,pos_table) = build_pos_pattern ~pat_vars ~locals rule_ast.Ast.pos_pattern in
