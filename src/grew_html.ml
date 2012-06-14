@@ -225,9 +225,9 @@ module Html = struct
         (* output local lexical parameters (if any) *)
         (match rule_.Ast.lp with
           | None -> ()
-          | Some string ->
+          | Some lines ->
             wnl "<b>Local parameters</b></br>";
-            output_table args (Str.split (Str.regexp "\n") string)
+            output_table args lines
         );
 
         (* output external lexical parameters (if any) *)
