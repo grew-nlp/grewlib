@@ -210,6 +210,15 @@ module List_ = struct
       | h::t -> let head = fct i h in head :: (loop (i+1) t)
     in loop 0
 
+  let opt_mapi fct = 
+    let rec loop i = function 
+      | [] -> []
+      | h::t ->
+        match fct i h with
+          | None -> loop (i+1) t
+          | Some res -> res :: (loop (i+1) t)
+    in loop 0
+
   let foldi_left f init l =
     fst 
       (List.fold_left 
@@ -564,22 +573,25 @@ module Lex_par = struct
 
   let parse_line ?loc nb_p nb_c line = 
     let line = rm_peripheral_white line in
-    match Str.split (Str.regexp "##") line with
-      | [args] when nb_c = 0 ->
-        (match Str.split (Str.regexp "#") args with
-          | l when List.length l = nb_p -> (l,[])
-          | _ -> Error.bug ?loc
-            "Illegal lexical parameter line: \"%s\" doesn't contain %d args"
-            line nb_p)
-      | [args; values] ->
-        (match (Str.split (Str.regexp "#") args, Str.split (Str.regexp "#") values) with
-          | (lp,lc) when List.length lp = nb_p && List.length lc = nb_c -> (lp,lc)
-          | _ -> Error.bug ?loc 
-            "Illegal lexical parameter line: \"%s\" doesn't contain %d args and %d values"
-            line nb_p nb_c)
-      | _ -> Error.bug ?loc "Illegal param line: '%s'" line
-
-  let from_lines ?loc nb_p nb_c lines = List.map (parse_line ?loc nb_p nb_c) lines
+    if line = "" || line.[0] = '%'
+    then None
+    else
+      match Str.split (Str.regexp "##") line with
+        | [args] when nb_c = 0 ->
+          (match Str.split (Str.regexp "#") args with
+            | l when List.length l = nb_p -> Some (l,[])
+            | _ -> Error.bug ?loc
+              "Illegal lexical parameter line: \"%s\" doesn't contain %d args"
+              line nb_p)
+        | [args; values] ->
+          (match (Str.split (Str.regexp "#") args, Str.split (Str.regexp "#") values) with
+            | (lp,lc) when List.length lp = nb_p && List.length lc = nb_c -> Some (lp,lc)
+            | _ -> Error.bug ?loc 
+              "Illegal lexical parameter line: \"%s\" doesn't contain %d args and %d values"
+              line nb_p nb_c)
+        | _ -> Error.bug ?loc "Illegal param line: '%s'" line
+          
+  let from_lines ?loc nb_p nb_c lines = List_.opt_map (parse_line ?loc nb_p nb_c) lines
 
   let load ?loc dir nb_p nb_c file =
     try
@@ -588,7 +600,7 @@ module Lex_par = struct
         then Filename.concat dir file
         else file in
       let lines = File.read full_file in
-      List_.mapi (fun i line -> parse_line ~loc:(full_file,i) nb_p nb_c line) lines
+      List_.opt_mapi (fun i line -> parse_line ~loc:(full_file,i) nb_p nb_c line) lines
     with Sys_error _ -> Error.build ?loc "External lexical file '%s' not found" file
 
   let sub x y = List.mem x (Str.split (Str.regexp "|") y)
