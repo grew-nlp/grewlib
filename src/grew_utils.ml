@@ -549,8 +549,8 @@ module Conll = struct
            gov = int_of_string gov;
            dep_lab = dep_lab;
          }
-      | _ -> 
-          Error.build ~loc:(file,line_num) "[Conll.load] illegal line \n>>>>>%s<<<<<<" line in
+      | l -> 
+          Error.build ~loc:(file,line_num) "[Conll.load] illegal line, %d fields (10 are expected)\n>>>>>%s<<<<<<" (List.length l) line in
 
     let lines = File.read_ln file in
     List.map parse lines

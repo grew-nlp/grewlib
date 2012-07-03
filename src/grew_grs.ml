@@ -80,7 +80,14 @@ module Rewrite_history = struct
     Html.leave html_ch;
     close_out html_ch
 
-  let save_html ?main_feat ?(init_graph=true) ?header ~graph_file prefix t =
+  let save_gr base t =
+    let rec loop file_name t =
+      match (t.good_nf, t.bad_nf) with
+        | [],[] -> File.write (Instance.to_gr t.instance) (file_name^".gr")
+        | l, _ -> List_.iteri (fun i son -> loop (sprintf "%s_%d" file_name i) son) l
+    in loop base t
+
+  let save_html ?main_feat ?(init_graph=true) ?(out_gr=false) ?header ~graph_file prefix t =
     (* remove files from previous runs *)
     let _ = Unix.system (sprintf "rm -f %s*.html" prefix) in
     let _ = Unix.system (sprintf "rm -f %s*.dep" prefix) in
@@ -119,6 +126,9 @@ module Rewrite_history = struct
         fprintf html_ch "<h6>Solution %d</h6>\n" (i+1);
 
         let local_name = Filename.basename file_name in
+
+        if out_gr
+        then fprintf html_ch "<p><a href=\"%s.gr\">gr file</a>\n" local_name;
 
         (* the png file *)
         fprintf html_ch "<div width=100%% style=\"overflow-x:auto\"><IMG SRC=\"%s.png\"></div>\n" local_name;

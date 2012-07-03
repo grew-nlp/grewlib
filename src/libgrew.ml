@@ -138,8 +138,12 @@ let save_index ~dirname ~base_names =
   List.iter (fun f -> fprintf out_ch "%s\n" f) base_names;
   close_out out_ch
 
+let save_gr base rew_hist = Rewrite_history.save_gr base rew_hist
+
 let write_html 
-    ?(no_init=false) ?main_feat 
+    ?(no_init=false)
+    ?(out_gr=false)
+    ?main_feat 
     ~header
     ~graph_file
     rew_hist
@@ -147,7 +151,8 @@ let write_html
 IFDEF DEP2PICT THEN
   ignore (
   Rewrite_history.save_html 
-    ?main_feat 
+    ?main_feat
+    ~out_gr
     ~init_graph: (not no_init)
     ~header
     ~graph_file

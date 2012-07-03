@@ -17,8 +17,18 @@ module Rewrite_history: sig
 IFDEF DEP2PICT THEN
   val error_html: ?main_feat:string -> ?init_graph:bool -> ?header:string -> string -> string -> Instance.t option -> unit
 
-  val save_html: ?main_feat:string -> ?init_graph:bool -> ?header:string -> graph_file:string -> string -> t -> unit
+  val save_html: 
+    ?main_feat:string -> 
+    ?init_graph:bool -> 
+    ?out_gr:bool -> 
+    ?header:string -> 
+    graph_file:string -> 
+    string -> 
+    t -> 
+    unit
 ENDIF
+
+  val save_gr: string -> t -> unit
 end
 
 module Sequence: sig

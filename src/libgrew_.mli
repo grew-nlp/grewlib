@@ -48,6 +48,8 @@ val get_sequence_names: Grs.t -> string list
 
 val to_sentence: ?main_feat:string -> Instance.t -> string
 
+val save_gr: string -> Rewrite_history.t -> unit
+
 val empty_gr : Instance.t
 
 (** get a graph from a file either in 'gr' or 'conll' format.
@@ -60,7 +62,8 @@ val load_graph: string -> Instance.t
 val save_index: dirname:string -> base_names: string list -> unit
 
 val write_html: 
-    ?no_init:bool -> 
+    ?no_init:bool ->
+    ?out_gr:bool ->
     ?main_feat:string -> 
     header: string ->
     graph_file: string ->
