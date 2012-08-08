@@ -2,5 +2,5 @@ open Grew_ast
 
 module Html :
   sig
-    val proceed : string -> string -> Ast.grs -> unit
+    val proceed : dep:bool -> string -> string -> Ast.grs -> unit
   end

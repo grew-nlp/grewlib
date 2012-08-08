@@ -263,11 +263,7 @@ GREW_RULE_CMO = $(GREW_RULE_DEP:%=%.cmo)
 GREW_RULE_CMX = $(GREW_RULE_DEP:%=%.cmx)
 
 grew_rule.cmi: $(GREW_RULE_CMI) grew_rule.mli
-ifeq (@DEP2PICT@,no)
-	$(OCAMLC) -c -pp 'camlp4o pa_macro.cmo' grew_rule.mli
-else
-	$(OCAMLC) -c -pp 'camlp4o pa_macro.cmo -DDEP2PICT' grew_rule.mli
-endif
+	$(OCAMLC) -c grew_rule.mli
 
 grew_rule.cmo: $(GREW_RULE_CMO) grew_rule.cmi grew_rule.ml
 ifeq (@DEP2PICT@,no)
@@ -292,25 +288,13 @@ GREW_GRS_CMO = $(GREW_GRS_DEP:%=%.cmo)
 GREW_GRS_CMX = $(GREW_GRS_DEP:%=%.cmx)
 
 grew_grs.cmi: $(GREW_GRS_CMI) grew_grs.mli
-ifeq (@DEP2PICT@,no)
-	$(OCAMLC) -c -pp 'camlp4o pa_macro.cmo' grew_grs.mli
-else
-	$(OCAMLC) -c -pp 'camlp4o pa_macro.cmo -DDEP2PICT' grew_grs.mli
-endif
+	$(OCAMLC) -c grew_grs.mli
 
 grew_grs.cmo: $(GREW_GRS_CMO) grew_grs.cmi grew_grs.ml
-ifeq (@DEP2PICT@,no)
 	$(OCAMLC) $(BYTE_FLAGS) -pp 'camlp4o pa_macro.cmo -DDATA_DIR=\"$(DATA_DIR)\"' -c $(DEPENDS_DIR) grew_grs.ml
-else
-	$(OCAMLC) $(BYTE_FLAGS) -pp 'camlp4o pa_macro.cmo -DDATA_DIR=\"$(DATA_DIR)\" -DDEP2PICT' -c $(DEPENDS_DIR) grew_grs.ml
-endif
 
 grew_grs.cmx: $(GREW_GRS_CMX) grew_grs.cmi grew_grs.ml
-ifeq (@DEP2PICT@,no)
 	$(OCAMLOPT) $(OPT_FLAGS) -pp 'camlp4o pa_macro.cmo -DDATA_DIR=\"$(DATA_DIR)\"' -c $(DEPENDS_DIR) grew_grs.ml
-else
-	$(OCAMLOPT) $(OPT_FLAGS) -pp 'camlp4o pa_macro.cmo -DDATA_DIR=\"$(DATA_DIR)\" -DDEP2PICT' -c $(DEPENDS_DIR) grew_grs.ml
-endif
 ################################################################################
 
 # others

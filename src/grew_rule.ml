@@ -9,11 +9,6 @@ open Grew_node
 open Grew_command
 open Grew_graph
 
-IFDEF DEP2PICT THEN
-open Dep2pict
-ENDIF
-
-
 (* ================================================================================ *)
 module Instance = struct
   type t = {
@@ -49,9 +44,14 @@ module Instance = struct
 
   let to_gr t = G_graph.to_gr t.graph
 
+  let save_dot_png ?main_feat base t = 
+    ignore (Grew_utils.png_file_from_dot (G_graph.to_dot ?main_feat t.graph) (base^".png"))
+
 IFDEF DEP2PICT THEN
-  let save_dep_png ?main_feat base t = 
-    ignore (Dep2pict.fromDepStringToPng (G_graph.to_dep ?main_feat t.graph) (base^".png"))
+  let save_dep_png ?main_feat base t =
+    ignore (Dep2pict.Dep2pict.fromDepStringToPng (G_graph.to_dep ?main_feat t.graph) (base^".png"))
+ELSE
+  let save_dep_png ?main_feat base t = ()
 ENDIF
 end (* module Instance *)
 

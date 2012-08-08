@@ -6,6 +6,8 @@ module IntSet : Set.S with type elt = int
 module IntMap : Map.S with type key = int
 
 
+val png_file_from_dot: string -> string -> unit
+
 (* ================================================================================ *)
 (* [Loc] general module to describe errors location: (file name, line number in file) *)
 module Loc: sig

@@ -62,15 +62,23 @@ val load_graph: string -> Instance.t
 val save_index: dirname:string -> base_names: string list -> unit
 
 val write_html: 
-    ?no_init:bool ->
-    ?out_gr:bool ->
-    ?main_feat:string -> 
+    ?no_init: bool ->
+    ?out_gr: bool ->
+    ?main_feat: string -> 
+    ?dot: bool ->
     header: string ->
     graph_file: string ->
     Rewrite_history.t -> string -> unit
 
 val error_html: 
-    ?no_init:bool -> ?main_feat:string -> header: string -> string -> ?init:Instance.t -> string -> unit
+    ?no_init:bool -> 
+    ?main_feat:string -> 
+    ?dot: bool ->
+    header: string -> 
+    string -> 
+    ?init:Instance.t -> 
+    string -> 
+    unit
 
 val make_index: 
     title: string ->

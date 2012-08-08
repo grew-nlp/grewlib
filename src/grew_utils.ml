@@ -7,6 +7,16 @@ module StringMap = Map.Make (String)
 module IntSet = Set.Make (struct type t = int let compare = Pervasives.compare end)
 module IntMap = Map.Make (struct type t = int let compare = Pervasives.compare end)
 
+
+
+let png_file_from_dot dot output_file = 
+  let temp_file_name,out_ch = Filename.open_temp_file ~mode:[Open_rdonly;Open_wronly;Open_text] "grewui_" ".dot" in
+  fprintf out_ch "%s" dot;
+  close_out out_ch;
+  ignore(Sys.command(sprintf "dot -Tpng -o %s %s " output_file temp_file_name))
+
+
+
 (* ================================================================================ *)
 module Loc = struct
   type t = string * int 

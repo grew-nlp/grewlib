@@ -27,15 +27,15 @@ module Rewrite_history = struct
     | { good_nf = [] } -> 0 (* dead branch *)
     | { good_nf = l} -> List.fold_left (fun acc t -> acc + (num_sol t)) 0 l
 
-      IFDEF DEP2PICT THEN
 
   (** [save_nfs ?main_feat base_name t] does two things:
       - write PNG files of normal forms
       - returns a list of couples (rules, file)
   *)
-  let save_nfs ?main_feat base_name t =
+  let save_nfs ?main_feat ~dot base_name t =
     let rec loop file_name rules t =
       match (t.good_nf, t.bad_nf) with
+        | [],[] when dot -> Instance.save_dot_png ?main_feat file_name t.instance; [rules, file_name]
         | [],[] -> Instance.save_dep_png ?main_feat file_name t.instance; [rules, file_name]
         | [],_ -> []
         | l, _ ->
@@ -51,13 +51,15 @@ module Rewrite_history = struct
             [] l
     in loop base_name [] t
 
-  let error_html ?main_feat ?(init_graph=true) ?header prefix msg inst_opt =
+
+  let error_html ?main_feat ?(dot=false) ?(init_graph=true) ?header prefix msg inst_opt =
     (* remove files from previous runs *)
     let _ = Unix.system (sprintf "rm -f %s*.html" prefix) in
     let _ = Unix.system (sprintf "rm -f %s*.dep" prefix) in
     let _ = Unix.system (sprintf "rm -f %s*.png" prefix) in
 
     (match inst_opt, init_graph with
+      | (Some inst, true) when dot -> Instance.save_dot_png ?main_feat prefix inst
       | (Some inst, true) -> Instance.save_dep_png ?main_feat prefix inst
       | _ -> ()
     );
@@ -87,7 +89,7 @@ module Rewrite_history = struct
         | l, _ -> List_.iteri (fun i son -> loop (sprintf "%s_%d" file_name i) son) l
     in loop base t
 
-  let save_html ?main_feat ?(init_graph=true) ?(out_gr=false) ?header ~graph_file prefix t =
+  let save_html ?main_feat ?(dot=false) ?(init_graph=true) ?(out_gr=false)  ?header ~graph_file prefix t =
     (* remove files from previous runs *)
     let _ = Unix.system (sprintf "rm -f %s*.html" prefix) in
     let _ = Unix.system (sprintf "rm -f %s*.dep" prefix) in
@@ -95,7 +97,7 @@ module Rewrite_history = struct
 
     (if init_graph then Instance.save_dep_png ?main_feat prefix t.instance);
 
-    let nf_files = save_nfs ?main_feat prefix t in
+    let nf_files = save_nfs ?main_feat ~dot prefix t in
 
     let l = List.length nf_files in
 
@@ -156,11 +158,9 @@ module Rewrite_history = struct
           rules_list;
         fprintf html_ch " </div>\n"
 
-
       ) nf_files;
     Html.leave html_ch;
     close_out html_ch
-      ENDIF
 end
 
 

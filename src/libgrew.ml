@@ -2,7 +2,6 @@ include Grew_types
 
 open Printf
 open Log
-open Dep2pict
 
 open Grew_utils
 open Grew_graph
@@ -31,6 +30,22 @@ let empty_grs = Grs.empty
 
 let set_timeout t = Timeout.timeout := t
 
+IFDEF DEP2PICT THEN
+let build_doc file dir grs_ast grs =
+  Html.proceed ~dep:true file dir grs_ast;
+  
+  (* draw pattern graphs for all rules and all filters *)
+  let fct module_ rule_ = 
+    let dep_code = Rule.to_dep rule_ in
+    let dep_svg_file = sprintf "%s/%s_%s-patt.png" dir module_ (Rule.get_name rule_) in
+    ignore (Dep2pict.Dep2pict.fromDepStringToPng dep_code dep_svg_file) in
+  Grs.rule_iter fct grs;
+  Grs.filter_iter fct grs
+ELSE
+let build_doc file dir grs_ast grs =
+  Html.proceed ~dep:false file dir grs_ast
+END
+
 let load_grs ?doc_output_dir file =
   if not (Sys.file_exists file)
   then raise (File_dont_exists file)
@@ -40,17 +55,7 @@ let load_grs ?doc_output_dir file =
       let grs = Grs.build grs_ast in
       (match doc_output_dir with
         | None -> ()
-        | Some dir -> 
-          Html.proceed file dir grs_ast;
-          
-          (* draw pattern graphs for all rules and all filters *)
-          let fct module_ rule_ = 
-            let dep_code = Rule.to_dep rule_ in
-            let dep_svg_file = sprintf "%s/%s_%s-patt.png" dir module_ (Rule.get_name rule_) in
-            ignore (Dep2pict.fromDepStringToPng dep_code dep_svg_file) in
-          Grs.rule_iter fct grs;
-          Grs.filter_iter fct grs
-      );
+        | Some dir -> build_doc file dir grs_ast grs);
       grs
     with
     | Grew_parser.Parse_error (msg,Some (sub_file,l)) -> 
@@ -138,46 +143,45 @@ let save_index ~dirname ~base_names =
   List.iter (fun f -> fprintf out_ch "%s\n" f) base_names;
   close_out out_ch
 
-let save_gr base rew_hist = Rewrite_history.save_gr base rew_hist
+let save_gr base rew_hist = 
+  Rewrite_history.save_gr base rew_hist
 
 let write_html 
     ?(no_init=false)
     ?(out_gr=false)
     ?main_feat 
+    ?dot
     ~header
     ~graph_file
     rew_hist
     output_base =
-IFDEF DEP2PICT THEN
   ignore (
   Rewrite_history.save_html 
     ?main_feat
+    ?dot
     ~out_gr
     ~init_graph: (not no_init)
     ~header
     ~graph_file
     output_base rew_hist
     )
-ELSE
-    Log.critical "[write_html] The \"libcaml-grew\" library is compiled without Dep2pict"
-ENDIF
 
 let error_html 
-    ?(no_init=false) ?main_feat 
+    ?(no_init=false) 
+    ?main_feat 
+    ?dot
     ~header
-    msg ?init
+    msg 
+    ?init
     output_base =
-IFDEF DEP2PICT THEN
   ignore (
   Rewrite_history.error_html 
-    ?main_feat 
+    ?main_feat
+    ?dot
     ~init_graph: (not no_init)
     ~header
     output_base msg init
     )
-ELSE
-    Log.critical "[error_html] The \"libcaml-grew\" library is compiled without Dep2pict"
-ENDIF
 
 let make_index ~title ~grs_file ~html ~grs ~seq ~input_dir ~output_dir ~base_names  =
   let init = Corpus_stat.empty grs seq in

@@ -14,11 +14,19 @@ module Rewrite_history: sig
 
   val is_empty: t -> bool
     
-IFDEF DEP2PICT THEN
-  val error_html: ?main_feat:string -> ?init_graph:bool -> ?header:string -> string -> string -> Instance.t option -> unit
+  val error_html: 
+    ?main_feat: string -> 
+    ?dot: bool ->
+    ?init_graph:bool -> 
+    ?header:string -> 
+    string -> 
+    string -> 
+    Instance.t option -> 
+    unit
 
   val save_html: 
-    ?main_feat:string -> 
+    ?main_feat: string -> 
+    ?dot: bool ->
     ?init_graph:bool -> 
     ?out_gr:bool -> 
     ?header:string -> 
@@ -26,7 +34,6 @@ IFDEF DEP2PICT THEN
     string -> 
     t -> 
     unit
-ENDIF
 
   val save_gr: string -> t -> unit
 end

@@ -28,10 +28,15 @@ module Instance : sig
 
   val to_gr: t -> string
 
-IFDEF DEP2PICT THEN
-  (* [save_dep_png base t] writes a file "base.png" with the dep representation of [t] *)
+  (* [save_dep_png base t] writes a file "base.png" with the dep representation of [t].
+     NB: if the Dep2pict is not available, nothing is done *)
   val save_dep_png: ?main_feat: string -> string -> t -> unit
-ENDIF
+
+  (* [save_dot_png base t] writes a file "base.png" with the dot representation of [t] *)
+  val save_dot_png: ?main_feat: string -> string -> t -> unit
+
+
+
 end
 
 module Instance_set : Set.S with type elt = Instance.t

@@ -1,5 +1,4 @@
 open Printf
-open Dep2pict
 
 open Grew_utils
 open Grew_ast
@@ -177,10 +176,9 @@ module Html = struct
     wnl "</html>";
     Buffer.contents buff
 
-  let rule_page_text prev next rule_ module_ = 
+  let rule_page_text ~dep prev next rule_ module_ = 
     let rid = rule_.Ast.rule_id in
     let mid = module_.Ast.module_id in
-    let dep_pattern_file = sprintf "%s_%s-patt.png" mid rid in 
     
     let buff = Buffer.create 32 in
     let wnl fmt = Printf.ksprintf (fun x -> Printf.bprintf buff "%s\n" x) fmt in
@@ -203,10 +201,14 @@ module Html = struct
     w "%s" (to_html_rules [rule_]);
     wnl "</pre>";
     
-    wnl "<h6>Pattern</h6>";
-    wnl "<pre>";
-    w "<IMG src=\"%s\">" dep_pattern_file;
-    wnl "</pre>";
+    if dep 
+    then 
+      begin
+        wnl "<h6>Pattern</h6>";
+        wnl "<pre>";
+        w "<IMG src=\"%s\">" (sprintf "%s_%s-patt.png" mid rid);
+        wnl "</pre>"
+      end;
     
     let output_table args lines =
       wnl "    <table border=\"1\" cellspacing=\"0\" cellpadding=\"3\">";
@@ -330,8 +332,8 @@ module Html = struct
     wnl "</html>";
     Buffer.contents buff
 
-    
-  let proceed file output_dir ast = 
+  (* dep is a flag which is true iff dep file are shown in doc (iff dep2pict is available) *)
+  let proceed ~dep file output_dir ast = 
     ignore(Sys.command ("rm -rf "^output_dir));
     ignore(Sys.command ("mkdir "^output_dir));
     ignore(Sys.command ("cp "^DATA_DIR^"/style.css "^output_dir));
@@ -413,7 +415,8 @@ module Html = struct
         let page = Filename.concat output_dir (modules_array.(i).Ast.module_id^"_"^rules_array.(j).Ast.rule_id^".html") in
         let page_out_ch = open_out page in
         output_string page_out_ch 
-          (rule_page_text 
+          (rule_page_text
+             ~dep 
              (try Some (rules_array.(j-1).Ast.rule_id) with _ -> None)
              (try Some (rules_array.(j+1).Ast.rule_id) with _ -> None) 
              rules_array.(j) 
