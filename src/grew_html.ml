@@ -2,13 +2,15 @@ open Printf
 
 open Grew_utils
 open Grew_ast
+
+(* ====================================================================================================*)
 module Html = struct
 
   let string_of_concat_item = function
-    | Ast.Qfn_item (n,f) -> sprintf "%s.%s" n f 
+    | Ast.Qfn_item (n,f) -> sprintf "%s.%s" n f
     | Ast.String_item s -> sprintf "\"%s\"" s
     | Ast.Param_item var -> sprintf "%s" var
- 	
+
   let string_of_qfn (node, feat_name) = sprintf "%s.%s" node feat_name
 
   let buff_html_command ?(li_html=false) buff (u_command,_) =
@@ -28,18 +30,18 @@ module Html = struct
     | Ast.Del_feat qfn -> bprintf buff "del_feat %s" (string_of_qfn qfn)
     );
     if li_html then bprintf buff "</li>\n" else bprintf buff ";\n"
-    		
+
   let html_feature (u_feature,_) =
-    match u_feature.Ast.kind with 
-    | Ast.Equality values -> 
+    match u_feature.Ast.kind with
+    | Ast.Equality values ->
         sprintf "%s=%s" u_feature.Ast.name (List_.to_string (fun x->x) "|" values)
     | Ast.Disequality [] ->
         sprintf "%s=*" u_feature.Ast.name
-    | Ast.Disequality values -> 
+    | Ast.Disequality values ->
         sprintf "%s<>%s" u_feature.Ast.name (List_.to_string (fun x->x) "|" values)
-    | Ast.Param index -> 
-        sprintf "%s=%s" u_feature.Ast.name index 
-          
+    | Ast.Param index ->
+        sprintf "%s=%s" u_feature.Ast.name index
+
   let buff_html_node buff (u_node,_) =
     bprintf buff "      %s [" u_node.Ast.node_id;
     bprintf buff "%s" (String.concat ", " (List.map html_feature u_node.Ast.fs));
@@ -48,12 +50,12 @@ module Html = struct
   let buff_html_edge buff (u_edge,_) =
     bprintf buff "      ";
     bprintf buff "%s" (match u_edge.Ast.edge_id with Some n -> n^": " | None -> "");
-    bprintf buff "%s -[%s%s]-> %s;\n" 
-      u_edge.Ast.src 
+    bprintf buff "%s -[%s%s]-> %s;\n"
+      u_edge.Ast.src
       (if u_edge.Ast.negative then "^" else "")
       (List_.to_string (fun x->x) "|" u_edge.Ast.edge_labels)
       u_edge.Ast.tar
-	
+
   let buff_html_const buff (u_const,_) =
     bprintf buff "      ";
     (match u_const with
@@ -64,14 +66,13 @@ module Html = struct
     | Ast.Feature_eq (qfn_l, qfn_r) -> bprintf buff "%s = %s" (string_of_qfn qfn_l) (string_of_qfn qfn_r));
     bprintf buff "\n"
 
-   
   let buff_html_pos_pattern buff pos_pattern =
     bprintf buff "    <font color=\"purple\">match</font> <b>{</b>\n";
     List.iter (buff_html_node buff) pos_pattern.Ast.pat_nodes;
     List.iter (buff_html_edge buff) pos_pattern.Ast.pat_edges;
     List.iter (buff_html_const buff) pos_pattern.Ast.pat_const;
     bprintf buff "    <b>}</b>\n"
-       
+
   let buff_html_neg_pattern buff neg_pattern =
     bprintf buff "    <font color=\"purple\">without</font> <b>{</b>\n";
     List.iter (buff_html_node buff) neg_pattern.Ast.pat_nodes;
@@ -81,20 +82,20 @@ module Html = struct
 
   let to_html_rules rules =
     let buff = Buffer.create 32 in
-    List.iter 
+    List.iter
       (fun rule ->
         (* the first line: (lex_)rule / filter *)
         (match (rule.Ast.commands, rule.Ast.param) with
-          | ([], None) ->  
+          | ([], None) ->
             bprintf buff "<font color=\"purple\">filter</font> %s <b>{</b>\n" rule.Ast.rule_id
-          | (_,None) -> 
+          | (_,None) ->
             bprintf buff "<font color=\"purple\">rule</font> %s <b>{</b>\n" rule.Ast.rule_id
           | (_,Some (files, vars)) ->
-            let param = 
-              match files with 
+            let param =
+              match files with
                 | [] -> sprintf "(feature %s)" (String.concat ", " vars)
-                | l ->  sprintf "(feature %s; %s)" 
-                  (String.concat ", " vars) 
+                | l ->  sprintf "(feature %s; %s)"
+                  (String.concat ", " vars)
                   (String.concat ", " (List.map (fun f -> sprintf "file \"%s\"" f) l)) in
             bprintf buff "<font color=\"purple\">lex_rule</font> %s %s <b>{</b>\n" rule.Ast.rule_id param
         );
@@ -111,9 +112,9 @@ module Html = struct
           | list ->
             bprintf buff "    <font color=\"purple\">commands</font> <b>{</b>\n";
             List.iter (buff_html_command buff) list;
-            bprintf buff "    <b>}</b>\n"); 
+            bprintf buff "    <b>}</b>\n");
 
-        bprintf buff "<b>}</b>\n"; 
+        bprintf buff "<b>}</b>\n";
       ) rules;
     Buffer.contents buff
 
@@ -121,7 +122,7 @@ module Html = struct
   let doc_to_html string =
     if Str.string_match (Str.regexp "^  \\* ") string 0
     then sprintf "<font color=\"green\"><i>%s</i></font>" (String.sub string 4 ((String.length string)-4))
-    else 
+    else
       List.fold_left
         (fun acc (re,str) -> Str.global_replace (Str.regexp re) str acc)
         string
@@ -135,14 +136,15 @@ module Html = struct
     | None -> "black"
     | Some c -> c
 
-  let header buff =
+  let header ?title buff =
     let wnl fmt = Printf.ksprintf (fun x -> Printf.bprintf buff "%s\n" x) fmt in
-    
+
     wnl "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\">";
-    
+
     wnl "<html>";
     wnl "  <head>";
     wnl "    <link rel=\"stylesheet\" href=\"style.css\" type=\"text/css\">";
+    (match title with Some t -> wnl "    <title>%s</title>" t | None -> ());
     wnl "  </head>";
     wnl "  <body>"
 
@@ -151,7 +153,8 @@ module Html = struct
     let wnl fmt = Printf.ksprintf (fun x -> Printf.bprintf buff "%s\n" x) fmt in
     let w fmt  = Printf.ksprintf (fun x -> Printf.bprintf buff "%s" x) fmt in
 
-    header buff;
+    let title = sprintf "Grew -- Module %s" module_.Ast.module_id in
+    header ~title buff;
 
     wnl "    <div class=\"navbar\">";
     w "      ";
@@ -176,15 +179,16 @@ module Html = struct
     wnl "</html>";
     Buffer.contents buff
 
-  let rule_page_text ~dep prev next rule_ module_ = 
+  let rule_page_text ~dep prev next rule_ module_ =
     let rid = rule_.Ast.rule_id in
     let mid = module_.Ast.module_id in
-    
+
     let buff = Buffer.create 32 in
     let wnl fmt = Printf.ksprintf (fun x -> Printf.bprintf buff "%s\n" x) fmt in
     let w fmt  = Printf.ksprintf (fun x -> Printf.bprintf buff "%s" x) fmt in
 
-    header buff;
+    let title = sprintf "Grew -- Rule %s/%s" mid rid in
+    header ~title buff;
 
     wnl "    <div class=\"navbar\">";
     w "      ";
@@ -200,28 +204,28 @@ module Html = struct
     wnl "<pre>";
     w "%s" (to_html_rules [rule_]);
     wnl "</pre>";
-    
-    if dep 
-    then 
+
+    if dep
+    then
       begin
         wnl "<h6>Pattern</h6>";
         wnl "<pre>";
         w "<IMG src=\"%s\">" (sprintf "%s_%s-patt.png" mid rid);
         wnl "</pre>"
       end;
-    
+
     let output_table args lines =
       wnl "    <table border=\"1\" cellspacing=\"0\" cellpadding=\"3\">";
       wnl "    <tr>%s</tr>" (List_.to_string (fun x -> sprintf "<th bgcolor=\"#cccccc\">%s</th>" x) "" args);
-      List.iter 
-        (fun l -> wnl "<tr>%s</tr>"  
+      List.iter
+        (fun l -> wnl "<tr>%s</tr>"
           (List_.to_string (fun x -> sprintf "<td>%s</td>" x) "" (Str.split (Str.regexp "#+") l))
         ) lines;
       wnl "    </table>" in
 
     (match rule_.Ast.param with
       | None -> ()
-      | Some (files, args) -> 
+      | Some (files, args) ->
         wnl "<h6>Lexical parameters</h6>";
 
         (* output local lexical parameters (if any) *)
@@ -237,7 +241,7 @@ module Html = struct
           (fun file ->
             let filename = Filename.concat module_.Ast.mod_dir file in
             wnl "<b>File:</b> %s</br>" file;
-            let lines = 
+            let lines =
               try File.read filename
               with Sys_error msg -> wnl "<font color=\"red\">Error: %s</font>" msg; [] in
             output_table args lines
@@ -248,23 +252,24 @@ module Html = struct
     Buffer.contents buff
 
 
-  let sequences_text ast = 
+  let sequences_text ast =
     let buff = Buffer.create 32 in
     let wnl fmt = Printf.ksprintf (fun x -> Printf.bprintf buff "%s\n" x) fmt in
-    
-    header buff;
-    
+
+    let title = sprintf "Grew -- List of sequences" in
+    header ~title buff;
+
     wnl "  <div class=\"navbar\">&nbsp;<a href=\"index.html\">Up</a></div>";
     wnl "  <center><h1>List of sequences</h1></center>";
     List.iter
-      (fun seq -> 
+      (fun seq ->
         wnl "<h6>%s</h6>" seq.Ast.seq_name;
         List.iter (fun l -> wnl "<p>%s</p>" (doc_to_html l)) seq.Ast.seq_doc;
 
         wnl "<div class=\"code\">";
         wnl "%s" (String.concat " ⇨ " (List.map (fun x -> sprintf "<a href=\"%s.html\">%s</a>" x x) seq.Ast.seq_mod));
         wnl "</div>";
-                  
+
       ) ast.Ast.sequences;
     wnl "  </body>";
     wnl "</html>";
@@ -272,11 +277,13 @@ module Html = struct
 
 
 
-  let index_modules_text ast = 
+  let index_modules_text ast =
     let buff = Buffer.create 32 in
     let wnl fmt = Printf.ksprintf (fun x -> Printf.bprintf buff "%s\n" x) fmt in
-    
-    header buff;
+
+    let title = sprintf "Grew -- Index of modules" in
+    header ~title buff;
+
     wnl "  <div class=\"navbar\">&nbsp;<a href=\"index.html\">Up</a></div>";
     wnl "  <center><h1>Index of modules</h1></center>";
     wnl "  <table width=100%%>";
@@ -284,10 +291,10 @@ module Html = struct
       (fun initial ->
         match List.filter (fun mod_ -> Char.uppercase mod_.Ast.module_id.[0] = initial) ast.Ast.modules  with
           | [] -> ()
-          | l -> 
+          | l ->
             wnl "<tr><td colspan=2 ><h6>%s</h6></td></tr>" (Char.escaped initial);
             List.iter
-              (fun mod_ -> 
+              (fun mod_ ->
                 wnl "<tr>";
                 wnl "<td width=\"200px\"><a href=\"%s.html\">%s</a></td>" mod_.Ast.module_id mod_.Ast.module_id;
                 (match mod_.Ast.module_doc with [] -> () | h::_ -> wnl "<td>%s</td>\n" (doc_to_html h));
@@ -298,13 +305,15 @@ module Html = struct
     wnl "</html>";
     Buffer.contents buff
 
-      
-  let domain_text ast = 
+
+  let domain_text ast =
     let buff = Buffer.create 32 in
     let wnl fmt = Printf.ksprintf (fun x -> Printf.bprintf buff "%s\n" x) fmt in
     let w fmt = Printf.ksprintf (fun x -> Printf.bprintf buff "%s" x) fmt in
-    
-    header buff;
+
+    let title = sprintf "Grew -- Features domain" in
+    header ~title buff;
+
     wnl "  <div class=\"navbar\">&nbsp;<a href=\"index.html\">Up</a></div>";
 
     wnl "  <h6>Features</h6>";
@@ -320,33 +329,34 @@ module Html = struct
     wnl "  <code class=\"code\">";
     (match ast.Ast.labels with
       | [] -> wnl "No labels defined!"
-      | (l,c)::t -> w "<font color=\"%s\">%s</font>" (of_opt_color c) l; 
+      | (l,c)::t -> w "<font color=\"%s\">%s</font>" (of_opt_color c) l;
         List.iter
-          (fun (lab,color) -> 
-            w ", <font color=\"%s\">%s</font>" (of_opt_color color) lab; 
+          (fun (lab,color) ->
+            w ", <font color=\"%s\">%s</font>" (of_opt_color color) lab;
           ) t;
         wnl "");
     wnl "  </code>";
-    
+
     wnl "  </body>";
     wnl "</html>";
     Buffer.contents buff
 
   (* dep is a flag which is true iff dep file are shown in doc (iff dep2pict is available) *)
-  let proceed ~dep file output_dir ast = 
+  let proceed ~dep file output_dir ast =
     ignore(Sys.command ("rm -rf "^output_dir));
     ignore(Sys.command ("mkdir "^output_dir));
     ignore(Sys.command ("cp "^DATA_DIR^"/style.css "^output_dir));
-    
+
     (** index.html **)
     let index = Filename.concat output_dir "index.html" in
-    
-    
+
     (* let table = create_modules_table ast.Ast.modules in *)
 
     let buff = Buffer.create 32 in
     let wnl fmt = Printf.ksprintf (fun x -> Printf.bprintf buff "%s\n" x) fmt in
-    header buff;
+
+    let title = sprintf "Grew -- Graph Rewriting System: %s" (Filename.basename file) in
+    header ~title buff;
 
     wnl "  <div class=\"navbar\">&nbsp;<a href=\"../index.html\">Rewriting Stats</a></div>";
 
@@ -360,13 +370,13 @@ module Html = struct
     wnl "<h6>Modules</h6>";
     wnl "<table class=\"indextable\">";
     List.iter
-      (fun m -> 
+      (fun m ->
         wnl "<tr>";
         wnl "<td width=\"200px\"><a href=\"%s.html\">%s</a></td>" m.Ast.module_id m.Ast.module_id;
         (match m.Ast.module_doc with [] -> () | h::_ -> wnl "<td>%s</td>\n" (doc_to_html h));
         wnl "</tr>"
       ) ast.Ast.modules;
-      
+
     wnl "</table>";
     wnl "</body>";
     wnl "</html>";
@@ -374,56 +384,56 @@ module Html = struct
     let index_out_ch = open_out index in
     output_string index_out_ch (Buffer.contents buff);
     close_out index_out_ch;
-    
+
     (** Sequences.html **)
     let sequences = Filename.concat output_dir "sequences.html" in
-    
+
     let sequences_out_ch = open_out sequences in
     output_string sequences_out_ch (sequences_text ast);
     close_out sequences_out_ch;
-    
+
     (** Modules.html **)
     let modules = Filename.concat output_dir "modules.html" in
-    
+
     let modules_out_ch = open_out modules in
     output_string modules_out_ch (index_modules_text ast);
     close_out modules_out_ch;
-    
+
     (** domain.html **)
     let domain = Filename.concat output_dir "domain.html" in
-    
+
     let domain_out_ch = open_out domain in
     output_string domain_out_ch (domain_text ast);
     close_out domain_out_ch;
-    
+
     (** Modules + rules **)
     let modules_array = Array.of_list ast.Ast.modules in
     for i = 0 to (Array.length modules_array -1) do
       let page = Filename.concat output_dir (modules_array.(i).Ast.module_id^".html") in
       let page_out_ch = open_out page in
-      output_string page_out_ch 
-        (module_page_text 
-           (try Some (modules_array.(i-1).Ast.module_id) with _ -> None) 
+      output_string page_out_ch
+        (module_page_text
+           (try Some (modules_array.(i-1).Ast.module_id) with _ -> None)
            (try Some (modules_array.(i+1).Ast.module_id) with _ -> None)
            modules_array.(i)
         );
       close_out page_out_ch;
-      
+
       let rules_array = Array.of_list modules_array.(i).Ast.rules in
       for j = 0 to (Array.length rules_array -1) do
-        
+
         let page = Filename.concat output_dir (modules_array.(i).Ast.module_id^"_"^rules_array.(j).Ast.rule_id^".html") in
         let page_out_ch = open_out page in
-        output_string page_out_ch 
+        output_string page_out_ch
           (rule_page_text
-             ~dep 
+             ~dep
              (try Some (rules_array.(j-1).Ast.rule_id) with _ -> None)
-             (try Some (rules_array.(j+1).Ast.rule_id) with _ -> None) 
-             rules_array.(j) 
-             modules_array.(i) 
+             (try Some (rules_array.(j+1).Ast.rule_id) with _ -> None)
+             rules_array.(j)
+             modules_array.(i)
           );
         close_out page_out_ch;
       done;
     done;
-end
+end (* module Html *)
 
