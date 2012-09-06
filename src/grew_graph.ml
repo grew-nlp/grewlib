@@ -11,25 +11,23 @@ open Grew_command
 
 (* ================================================================================ *)
 module P_deco = struct
-  type t =
-      { nodes: Pid.t list;
-	edges: (Pid.t * P_edge.t * Pid.t) list;
-      }
+  type t = {
+    nodes: Pid.t list;
+    edges: (Pid.t * P_edge.t * Pid.t) list;
+  }
 
   let empty = {nodes=[]; edges=[]}
-end
-(* ================================================================================ *)
+end (* module P_deco *)
 
 (* ================================================================================ *)
 module G_deco = struct
-  type t =
-      { nodes: Gid.t list;
-	edges: (Gid.t * G_edge.t * Gid.t) list;
-      }
+  type t = {
+    nodes: Gid.t list;
+    edges: (Gid.t * G_edge.t * Gid.t) list;
+  }
 
   let empty = {nodes=[]; edges=[]}
-end
-(* ================================================================================ *)
+end (* module G_deco *)
 
 (* ================================================================================ *)
 module P_graph = struct
@@ -46,11 +44,17 @@ module P_graph = struct
     | None -> None
     | Some new_node -> Some (Pid_map.add id_src new_node map)
 
+  (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
+  (* Build functions *)
+  (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
+
+  (* -------------------------------------------------------------------------------- *)
   let build_filter table (ast_node, loc) =
     let pid = Id.build ~loc ast_node.Ast.node_id table in
     let fs = P_fs.build ast_node.Ast.fs in
     (pid, fs)
 
+  (* -------------------------------------------------------------------------------- *)
   let build ?pat_vars ?(locals=[||]) (full_node_list : Ast.node list) full_edge_list =
     (* let (named_nodes, constraints) =  *)
     (*   let rec loop already_bound = function *)
@@ -104,10 +108,10 @@ module P_graph = struct
                 (Loc.to_string loc)
 	  )
 	) map_without_edges full_edge_list in
-    (map, table, [](* List.map (build_filter table) constraints *))
+    (map, table, [](* TODO: ??? List.map (build_filter table) constraints *))
 
 
-
+  (* -------------------------------------------------------------------------------- *)
   (* a type for extension of graph: a former graph exists:
      in grew the former is a positive pattern and an extension is a "without" *)
   type extension = {
@@ -115,6 +119,7 @@ module P_graph = struct
       old_map: P_node.t Pid_map.t; (* a partial map for new constraints on old nodes "Old [...]" *) 	
     }
 
+  (* -------------------------------------------------------------------------------- *)
   let build_extension ?(locals=[||]) old_table full_node_list full_edge_list =
 
     let built_nodes = List.map P_node.build full_node_list in
@@ -163,10 +168,6 @@ module P_graph = struct
 
     ({ext_map = ext_map_with_all_edges; old_map = old_map_without_edges}, new_table)
 
-  (* ---------------------------------------------------------------------------------------------------- *)
-  (* Topology functions *)
-  (* ---------------------------------------------------------------------------------------------------- *)
-
   (* [tree_and_roots t] returns:
      - a boolean which is true iff the each node has at most one in-edge
      - the list of "roots" (i.e. nodes without in-edge *)
@@ -198,25 +199,34 @@ module P_graph = struct
 
   let roots graph = snd (tree_and_roots graph)
 end (* module P_graph *)
-(* ================================================================================ *)
 
 
+(* ==================================================================================================== *)
+module Concat_item = struct
+  type t =
+    | Feat of (Gid.t * string)
+    | String of string
+end (* module Concat_item *)
 
-(* ================================================================================ *)
+(* ==================================================================================================== *)
 module G_graph = struct
   type t = {
-      map: G_node.t Gid_map.t; (* node description *)
-      lub: int;                (* least upper bound *)
-    }
+    map: G_node.t Gid_map.t; (* node description *)
+    lub: int;                (* least upper bound *)
+  }
 
   let empty = {map = Gid_map.empty; lub = 0}
 
   let find node_id graph = Gid_map.find node_id graph.map
 
-  type concat_item =
-    | Feat of (Gid.t * string)
-    | String of string
+  let equals t t' = Gid_map.equal (fun node1 node2 -> node1 = node2) t.map t'.map
 
+  (* is there an edge e out of node i ? *)
+  let edge_out graph node_id p_edge =
+    let node = Gid_map.find node_id graph.map in
+    Massoc_gid.exists (fun _ e -> P_edge.compatible p_edge e) (G_node.get_next node)
+
+  (* -------------------------------------------------------------------------------- *)
   let map_add_edge map id_src label id_tar =
     let node_src =
       (* Not found can be raised when adding an edge from pos to neg *)
@@ -225,6 +235,11 @@ module G_graph = struct
     | None -> None
     | Some new_node -> Some (Gid_map.add id_src new_node map)
 
+  (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
+  (* Build functions *)
+  (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
+
+  (* -------------------------------------------------------------------------------- *)
   let build ?(locals=[||]) full_node_list full_edge_list =
 
     let named_nodes =
@@ -262,14 +277,14 @@ module G_graph = struct
 
     {map=map;lub=Array.length table}
 
-
+  (* -------------------------------------------------------------------------------- *)
   let of_conll ?loc lines =
 
     let nodes =
       List.fold_left
         (fun acc line ->
-          Gid_map.add (Gid.Old line.Conll.num) (G_node.of_conll line) acc)
-        Gid_map.empty lines in
+          Gid_map.add (Gid.Old line.Conll.num) (G_node.of_conll line) acc
+        ) Gid_map.empty lines in
 
     let nodes_with_edges =
       List.fold_left
@@ -292,24 +307,17 @@ module G_graph = struct
         {map = nodes_with_edges; lub=1+(Gid_map.fold (fun _ _ acc -> acc+1) nodes_with_edges 0)}
 
 
-  (* ---------------------------------------------------- *)
+  (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
   (* Update functions *)
-  (* ---------------------------------------------------- *)
+  (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
 
-
-
-  (* [add_edge graph id_src label id_tar] tries to add an edge grom [id_src] to [id_tar] with [label] to [graph].
-     if it succeeds, [Some new_graph] is returned
-     if it fails (the edge already exists), [None] is returned
-   *)	
+  (* -------------------------------------------------------------------------------- *)
   let add_edge graph id_src label id_tar =
     match map_add_edge graph.map id_src label id_tar with
     | Some new_map -> Some {graph with map = new_map}
     | None -> None
 
-
-  (* remove (id_src -[label]-> id_tar) from graph.
-     Log.critical if the edge is not in graph *)
+  (* -------------------------------------------------------------------------------- *)
   let del_edge ?edge_ident loc graph id_src label id_tar =
     let node_src =
       try Gid_map.find id_src graph.map
@@ -324,8 +332,7 @@ module G_graph = struct
        }
     with Not_found -> Error.run ~loc "[Graph.del_edge] cannot find edge '%s'" (G_edge.to_string label)
 
-  (* remove node i from graph, with all its incoming and outcoming edges *)
-  (* [graph] is unchanged if the node is not in it *)
+  (* -------------------------------------------------------------------------------- *)
   let del_node graph node_id =
     let new_map =
       Gid_map.fold
@@ -337,10 +344,11 @@ module G_graph = struct
 	) graph.map Gid_map.empty in
     {graph with map = new_map}
 
+  (* -------------------------------------------------------------------------------- *)
   let add_neighbour loc graph node_id label =
 
     let index = match node_id with
-      | Gid.Old id -> 
+      | Gid.Old id ->
         (match Label.to_int label with
           | Some label_int -> Gid.New (id, label_int)
           | None -> Error.run ~loc "[Graph.add_neighbour] try to add neighbour with a local label"
@@ -358,8 +366,7 @@ module G_graph = struct
     | None -> Log.bug "[Graph.add_neighbour] add_edge must not fail"; exit 1
 
 
-
-  (* move all in arcs to id_src are moved to in arcs on node id_tar from graph, with all its incoming edges *)
+  (* -------------------------------------------------------------------------------- *)
   let shift_in loc graph src_gid tar_gid =
     let tar_node = Gid_map.find tar_gid graph.map in
 
@@ -376,6 +383,7 @@ module G_graph = struct
 
     in {graph with map = new_map}
 
+  (* -------------------------------------------------------------------------------- *)
   (* move all out-edges from id_src are moved to out-edges out off node id_tar *)
   let shift_out loc graph src_gid tar_gid =
     let src_node = Gid_map.find src_gid graph.map in
@@ -399,7 +407,7 @@ module G_graph = struct
 	) graph.map
     in {graph with map = new_map}
 
-  (* move all incident arcs from/to id_src are moved to incident arcs on node id_tar from graph, with all its incoming and outcoming edges *)
+  (* -------------------------------------------------------------------------------- *)
   let shift_edges loc graph src_gid tar_gid =
     let src_node = Gid_map.find src_gid graph.map in
     let tar_node = Gid_map.find tar_gid graph.map in
@@ -429,6 +437,7 @@ module G_graph = struct
 
     in {graph with map = new_map}
 
+  (* -------------------------------------------------------------------------------- *)
   let merge_node loc graph src_gid tar_gid =
     let se_graph = shift_edges loc graph src_gid tar_gid in
 
@@ -445,35 +454,41 @@ module G_graph = struct
 	Some {se_graph with map = new_map}
     | None -> None
 
+
+  (* -------------------------------------------------------------------------------- *)
   let set_feat ?loc graph node_id feat_name new_value =
     let node = Gid_map.find node_id graph.map in
     let new_fs = G_fs.set_feat ?loc feat_name new_value (G_node.get_fs node) in
     {graph with map = Gid_map.add node_id (G_node.set_fs node new_fs) graph.map}
 
+  (* -------------------------------------------------------------------------------- *)
   let update_feat ?loc graph tar_id tar_feat_name item_list =
     let strings_to_concat =
       List.map
         (function
-          | Feat (node_gid, feat_name) ->
+          | Concat_item.Feat (node_gid, feat_name) ->
               let node = Gid_map.find node_gid graph.map in
               (match G_fs.get_atom feat_name (G_node.get_fs node) with
               | Some atom -> atom
               | None -> Error.run ?loc "Some feature (named \"%s\") is not defined" feat_name
               )
-          | String s -> s
+          | Concat_item.String s -> s
         ) item_list in
     let new_feature_value = List_.to_string (fun s->s) "" strings_to_concat in
     (set_feat ?loc graph tar_id tar_feat_name new_feature_value, new_feature_value)
 
 
-
-      (** [del_feat graph node_id feat_name] returns [graph] where the feat [feat_name] of [node_id] is deleted
-	  If the feature is not present, [graph] is returned. *)
+  (* -------------------------------------------------------------------------------- *)
   let del_feat graph node_id feat_name =
     let node =  Gid_map.find node_id graph.map in
     let new_fs = G_fs.del_feat feat_name (G_node.get_fs node) in
     {graph with map = Gid_map.add node_id (* {node with Node.fs = new_fs} *) (G_node.set_fs node new_fs) graph.map}
 
+  (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
+  (* Output functions *)
+  (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
+
+  (* -------------------------------------------------------------------------------- *)
   let to_gr graph =
     let buff = Buffer.create 32 in
 
@@ -496,6 +511,7 @@ module G_graph = struct
     bprintf buff "}\n";
     Buffer.contents buff
 
+  (* -------------------------------------------------------------------------------- *)
   let to_sentence ?main_feat graph =
     let nodes = Gid_map.fold (fun id elt acc -> (id,elt)::acc) graph.map [] in
     let snodes = List.sort (fun (_,n1) (_,n2) -> G_node.pos_comp n1 n2) nodes in
@@ -520,6 +536,7 @@ module G_graph = struct
         "\\\"", "\"";
       ]
 
+  (* -------------------------------------------------------------------------------- *)
   let to_dep ?main_feat ?(deco=G_deco.empty) graph =
     let buff = Buffer.create 32 in
     bprintf buff "[GRAPH] { opacity=0; scale = 200; fontname=\"Arial\"; }\n";
@@ -551,6 +568,7 @@ module G_graph = struct
       bprintf buff "} \n";
     Buffer.contents buff
 
+  (* -------------------------------------------------------------------------------- *)
   let to_dot ?main_feat ?(deco=G_deco.empty) graph =
     let buff = Buffer.create 32 in
 
@@ -578,13 +596,5 @@ module G_graph = struct
 
     bprintf buff "}\n";
     Buffer.contents buff
-
-  let equals t t' = Gid_map.equal (fun node1 node2 -> node1 = node2) t.map t'.map
-
-  (* is there an edge e out of node i ? *)
-  let edge_out graph node_id p_edge =
-    let node = Gid_map.find node_id graph.map in
-    Massoc_gid.exists (fun _ e -> P_edge.compatible p_edge e) (G_node.get_next node)
-
 end (* module G_graph *)
 (* ================================================================================ *)

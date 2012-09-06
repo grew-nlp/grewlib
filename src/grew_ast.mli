@@ -30,7 +30,6 @@ module Ast : sig
 
   type node = u_node * Loc.t
 
-
   type u_edge = {
       edge_id: Id.name option;
       src: Id.name;

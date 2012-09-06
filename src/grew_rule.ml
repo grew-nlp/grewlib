@@ -555,16 +555,16 @@ module Rule = struct
         let tar_gid = node_find tar_cn in
         let rule_items = List.map
             (function
-              | Command.Feat (cnode, feat_name) -> G_graph.Feat (node_find cnode, feat_name)
-              | Command.String s -> G_graph.String s
+              | Command.Feat (cnode, feat_name) -> Concat_item.Feat (node_find cnode, feat_name)
+              | Command.String s -> Concat_item.String s
               | Command.Param_out index ->
                   (match matching.m_param with
                   | None -> Error.bug "Cannot apply a UPDATE_FEAT command without parameter"
-                  | Some param -> G_graph.String (Lex_par.get_command_value index param))
+                  | Some param -> Concat_item.String (Lex_par.get_command_value index param))
               | Command.Param_in index ->
                   (match matching.m_param with
                   | None -> Error.bug "Cannot apply a UPDATE_FEAT command without parameter"
-                  | Some param -> G_graph.String (Lex_par.get_param_value index param))
+                  | Some param -> Concat_item.String (Lex_par.get_param_value index param))
             ) item_list in
 
         let (new_graph, new_feature_value) =
