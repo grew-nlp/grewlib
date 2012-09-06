@@ -87,8 +87,8 @@ module P_graph = struct
     let table = Array.of_list sorted_ids in
 
     (* the nodes, in the same order *)
-    let map_without_edges = List_.foldi_left 
-      (fun i acc elt -> Pid_map.add (Pid.Pos i) elt acc) 
+    let map_without_edges = List_.foldi_left
+      (fun i acc elt -> Pid_map.add (Pid.Pos i) elt acc)
       Pid_map.empty node_list in
 
     let (map : t) =
@@ -153,7 +153,7 @@ module P_graph = struct
               | None -> Pid.Neg (Id.build ~loc ast_edge.Ast.src new_table) in
 	  let i2 =
 	    match Id.build_opt ast_edge.Ast.tar old_table with
-              | Some i -> Pid.Pos i 
+              | Some i -> Pid.Pos i
               | None -> Pid.Neg (Id.build ~loc ast_edge.Ast.tar new_table) in
 	  let edge = P_edge.build ~locals (ast_edge, loc) in
 	  match map_add_edge acc i1 edge i2 with

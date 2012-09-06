@@ -1,5 +1,5 @@
 open Log
-open Printf 
+open Printf
 
 module StringSet = Set.Make (String)
 module StringMap = Map.Make (String)
@@ -9,7 +9,7 @@ module IntMap = Map.Make (struct type t = int let compare = Pervasives.compare e
 
 
 
-let png_file_from_dot dot output_file = 
+let png_file_from_dot dot output_file =
   let temp_file_name,out_ch = Filename.open_temp_file ~mode:[Open_rdonly;Open_wronly;Open_text] "grewui_" ".dot" in
   fprintf out_ch "%s" dot;
   close_out out_ch;
@@ -19,7 +19,7 @@ let png_file_from_dot dot output_file =
 
 (* ================================================================================ *)
 module Loc = struct
-  type t = string * int 
+  type t = string * int
 
   let to_string (file,line) = sprintf "(file: %s, line: %d)" (Filename.basename file) line
 
@@ -39,7 +39,7 @@ module File = struct
     fprintf out_ch "%s\n" data;
     close_out out_ch
 
-  let read file = 
+  let read file =
     let in_ch = open_in file in
     let rev_lines = ref [] in
     try
@@ -49,12 +49,12 @@ module File = struct
         then ()
         else rev_lines := line :: !rev_lines
       done; assert false
-    with End_of_file -> 
+    with End_of_file ->
       close_in in_ch;
       List.rev !rev_lines
 
-  (* [read_ln file] returns a list of couples (line_num, line). Blank lines and lines starting with '%' are ignored. *) 
-  let read_ln file = 
+  (* [read_ln file] returns a list of couples (line_num, line). Blank lines and lines starting with '%' are ignored. *)
+  let read_ln file =
     let in_ch = open_in file in
     let cpt = ref 0 in
     let rev_lines = ref [] in
@@ -66,7 +66,7 @@ module File = struct
         then ()
         else rev_lines := (!cpt, line) :: !rev_lines
       done; assert false
-    with End_of_file -> 
+    with End_of_file ->
       close_in in_ch;
       List.rev !rev_lines
  end (* module File *)
@@ -89,16 +89,16 @@ end (* module Pid *)
 
 (* ================================================================================ *)
 module Pid_map =
-  struct 
+  struct
     include Map.Make (Pid)
 
     exception True
 
     let exists fct map =
       try
-        iter 
-          (fun key value -> 
-            if fct key value 
+        iter
+          (fun key value ->
+            if fct key value
             then raise True
           ) map;
         false
@@ -138,14 +138,14 @@ module Gid_map = Map.Make (Gid)
 module Array_ = struct
   let dicho_mem elt array =
     let rec loop low high =
-      (if low > high 
+      (if low > high
       then false
       else
         match (low+high)/2 with
         | middle when array.(middle) = elt -> true
         | middle when array.(middle) < elt -> loop (middle+1) high
         | middle -> loop low (middle - 1)
-      ) in 
+      ) in
     loop 0 ((Array.length array) - 1)
 
   (* dichotomic search in a sorted array *)
@@ -155,16 +155,16 @@ module Array_ = struct
       match (low+high)/2 with
       | middle when array.(middle) = elt -> middle
       | middle when array.(middle) < elt -> loop (middle+1) high
-      | middle -> loop low (middle - 1) in 
+      | middle -> loop low (middle - 1) in
     loop 0 ((Array.length array) - 1)
-      
+
   let dicho_find_assoc elt array =
     let rec loop low high =
       (if low > high then raise Not_found);
       match (low+high)/2 with
       | middle when fst array.(middle) = elt -> middle
       | middle when fst array.(middle) < elt -> loop (middle+1) high
-      | middle -> loop low (middle - 1) in 
+      | middle -> loop low (middle - 1) in
     loop 0 ((Array.length array) - 1)
 end (* module Array_ *)
 
@@ -180,7 +180,7 @@ module List_ = struct
     | x::t when x=elt -> t
     | x::t -> x::(rm elt t)
 
-  let pos x l = 
+  let pos x l =
     let rec loop i = function
     | [] -> None
     | h::t when h=x -> Some i
@@ -194,7 +194,7 @@ module List_ = struct
 
   let rec opt_map f = function
     | [] -> []
-    | x::t -> 
+    | x::t ->
         match f x with
         | None -> opt_map f t
         | Some r -> r :: (opt_map f t)
@@ -203,20 +203,20 @@ module List_ = struct
     | [] -> []
     | x::t -> (f x)@(flat_map f t)
 
-  let iteri fct = 
-    let rec loop i = function 
+  let iteri fct =
+    let rec loop i = function
       | [] -> ()
       | h::t -> (fct i h); (loop (i+1) t) in
     loop 0
-      
-  let mapi fct = 
-    let rec loop i = function 
+
+  let mapi fct =
+    let rec loop i = function
       | [] -> []
       | h::t -> let head = fct i h in head :: (loop (i+1) t)
     in loop 0
 
-  let opt_mapi fct = 
-    let rec loop i = function 
+  let opt_mapi fct =
+    let rec loop i = function
       | [] -> []
       | h::t ->
         match fct i h with
@@ -225,8 +225,8 @@ module List_ = struct
     in loop 0
 
   let foldi_left f init l =
-    fst 
-      (List.fold_left 
+    fst
+      (List.fold_left
          (fun (acc,i) elt -> (f i acc elt, i+1))
          (init,0) l
       )
@@ -242,7 +242,7 @@ module List_ = struct
 
   let rec sort_insert elt = function
     | [] -> [elt]
-    | h::t when elt<h -> elt::h::t 
+    | h::t when elt<h -> elt::h::t
     | h::t -> h::(sort_insert elt t)
 
   let rec sort_mem elt = function
@@ -255,7 +255,7 @@ module List_ = struct
     | [] -> None
     | (k,_)::_ when key<k -> None
     | (k,_)::t when key>k -> sort_assoc key t
-    | (_,v)::_ -> Some v 
+    | (_,v)::_ -> Some v
 
   let rec sort_remove_assoc key = function
     | [] -> []
@@ -265,7 +265,7 @@ module List_ = struct
 
   exception Usort
 
-  let rec usort_remove key = function 
+  let rec usort_remove key = function
     | [] -> raise Not_found
     | x::t when key < x -> raise Not_found
     | x::t when key = x -> t
@@ -279,30 +279,30 @@ module List_ = struct
     | _ -> raise Usort in
     try Some (loop l) with Usort -> None
 
-  let rec sort_disjoint l1 l2 = 
+  let rec sort_disjoint l1 l2 =
     match (l1,l2) with
     | [], _ | _, [] -> true
     | h1::t1 , h2::t2 when h1<h2 -> sort_disjoint t1 l2
     | h1::t1 , h2::t2 when h1>h2 -> sort_disjoint l1 t2
-    | _ -> false 
+    | _ -> false
 
-  let sort_is_empty_inter l1 l2 = 
+  let sort_is_empty_inter l1 l2 =
     let rec loop = function
       | [], _ | _, [] -> true
       | x1::t1, x2::t2 when x1 < x2 -> loop (t1, x2::t2)
       | x1::t1, x2::t2 when x1 > x2 -> loop (x1::t1, t2)
       | x1::t1, x2::t2 -> false in
-    loop (l1,l2) 
+    loop (l1,l2)
 
-  let sort_inter l1 l2 = 
+  let sort_inter l1 l2 =
     let rec loop = function
       | [], _ | _, [] -> []
       | x1::t1, x2::t2 when x1 < x2 -> loop (t1, x2::t2)
       | x1::t1, x2::t2 when x1 > x2 -> loop (x1::t1, t2)
       | x1::t1, x2::t2 -> x1 :: loop (t1, t2) in
     loop (l1,l2)
-      
-  let sort_union l1 l2 = 
+
+  let sort_union l1 l2 =
     let rec loop = function
       | [], l | l, [] -> l
       | x1::t1, x2::t2 when x1 < x2 -> x1 :: loop (t1, x2::t2)
@@ -312,15 +312,15 @@ module List_ = struct
 
 
   exception Not_disjoint
-  let sort_disjoint_union ?(compare=Pervasives.compare) l1 l2 = 
+  let sort_disjoint_union ?(compare=Pervasives.compare) l1 l2 =
     let rec loop = function
       | [], l | l, [] -> l
       | x1::t1, x2::t2 when (compare x1 x2) < 0 -> x1 :: loop (t1, x2::t2)
       | x1::t1, x2::t2 when (compare x1  x2) > 0 -> x2 :: loop (x1::t1, t2)
       | _ -> raise Not_disjoint in
     loop (l1,l2)
-      
-  let sort_include l1 l2 = 
+
+  let sort_include l1 l2 =
     let rec loop = function
       | [], l -> true
       | l, [] -> false
@@ -328,8 +328,8 @@ module List_ = struct
       | x1::t1, x2::t2 when x1 > x2 -> loop (x1::t1, t2)
       | x1::t1, x2::t2 -> loop (t1, t2) in
     loop (l1,l2)
-      
-  let sort_included_diff l1 l2 = 
+
+  let sort_included_diff l1 l2 =
     let rec loop = function
       | [], l -> failwith "[sort_included_diff] not included"
       | l, [] -> l
@@ -338,7 +338,7 @@ module List_ = struct
       | x1::t1, x2::t2 -> loop (t1, t2) in
     loop (l1,l2)
 
-  let sort_diff l1 l2 = 
+  let sort_diff l1 l2 =
     let rec loop = function
       | [], l -> []
       | l, [] -> l
@@ -348,8 +348,8 @@ module List_ = struct
     loop (l1,l2)
 
   let foldi_left f init l =
-    fst 
-      (List.fold_left 
+    fst
+      (List.fold_left
 	 (fun (acc,i) elt -> (f i acc elt, i+1))
 	 (init,0) l
       )
@@ -371,7 +371,7 @@ module type S =
 
     val empty: 'a t
 
-    (* an empty list returned if the key is undefined *) 
+    (* an empty list returned if the key is undefined *)
     val assoc: key -> 'a t -> 'a list
 
     val is_empty: 'a t -> bool
@@ -397,7 +397,7 @@ module type S =
     val mem_key: key -> 'a t -> bool
 
     exception Not_disjoint
-    val disjoint_union: 'a t -> 'a t -> 'a t 
+    val disjoint_union: 'a t -> 'a t -> 'a t
 
     exception Duplicate
     val merge_key: key -> key -> 'a t -> 'a t
@@ -417,21 +417,21 @@ module Massoc_make (Ord: OrderedType) = struct
 
   let is_empty t = (t=empty)
 
-  let assoc key t = 
-    try M.find key t 
+  let assoc key t =
+    try M.find key t
     with Not_found -> []
 
-  let to_string _ _ = failwith "Not implemted" 
+  let to_string _ _ = failwith "Not implemted"
 
   let iter fct t =
-    M.iter 
+    M.iter
       (fun key list -> List.iter (fun elt -> fct key elt) list
       ) t
 
-  let add key elt t = 
+  let add key elt t =
     try
       let list = M.find key t in
-      match List_.usort_insert elt list with 
+      match List_.usort_insert elt list with
         | Some l -> Some (M.add key l t)
         | None -> None
     with Not_found -> Some (M.add key [elt] t)
@@ -439,12 +439,12 @@ module Massoc_make (Ord: OrderedType) = struct
   let fold fct init t =
     M.fold
       (fun key list acc ->
-        List.fold_left 
+        List.fold_left
           (fun acc2 elt ->
             fct acc2 key elt)
           acc list)
       t init
-      
+
   (* Not found raised in the value is not defined *)
   let remove key value t =
     match M.find key t with
@@ -462,9 +462,9 @@ module Massoc_make (Ord: OrderedType) = struct
   exception Not_disjoint
 
   let disjoint_union t1 t2 =
-    M.fold 
+    M.fold
       (fun key list acc ->
-        try 
+        try
           let old = M.find key acc in
           M.add key (List_.sort_disjoint_union list old) acc
         with
@@ -473,13 +473,13 @@ module Massoc_make (Ord: OrderedType) = struct
       ) t1 t2
 
   exception Duplicate
-    
+
   let merge_key i j t =
     try
       let old_i = M.find i t in
       let old_j = try M.find j t with Not_found -> [] in
       M.add j (List_.sort_disjoint_union old_i old_j) (M.remove i t)
-    with 
+    with
       | Not_found -> (* no key i *) t
       | List_.Not_disjoint -> raise Duplicate
 
@@ -499,7 +499,7 @@ module Massoc_pid = Massoc_make (Pid)
 (* ================================================================================ *)
 module Massoc = struct
   (* Massoc is implemented with caml lists *)
-  (* invariant: we suppose that all 'a list in the structure are not empty! *) 
+  (* invariant: we suppose that all 'a list in the structure are not empty! *)
   type 'a t = (int * 'a list) list
 
   let empty = []
@@ -512,50 +512,50 @@ module Massoc = struct
     | (h,v)::t when key=h -> v
     | (h,_)::t (* when key>h *) -> assoc key t
 
-  let to_string elt_to_string t = 
-    List_.to_string 
-      (fun (i,elt_list) -> 
+  let to_string elt_to_string t =
+    List_.to_string
+      (fun (i,elt_list) ->
         sprintf "%d -> [%s]" i (List_.to_string elt_to_string "," elt_list)
       ) "; " t
-    
+
   let iter fct t =
-    List.iter 
+    List.iter
       (fun (key,list) ->
-        List.iter 
+        List.iter
           (fun elt -> fct key elt)
           list
       ) t
 
   let rec add key elt = function
     | [] -> Some [(key, [elt])]
-    | (h,list)::t when h=key -> 
-        (match List_.usort_insert elt list with 
+    | (h,list)::t when h=key ->
+        (match List_.usort_insert elt list with
         | Some new_list -> Some ((h, new_list)::t)
         | None -> None
         )
     | ((h,_)::_) as t when key<h -> Some ((key,[elt])::t)
-    | (h,l)::t (* when key>h *) -> 
+    | (h,l)::t (* when key>h *) ->
         match (add key elt t) with Some t' -> Some ((h,l)::t') | None -> None
 
   let fold_left fct init t =
-    List.fold_left 
+    List.fold_left
       (fun acc (key,list) ->
-        List.fold_left 
+        List.fold_left
           (fun acc2 elt ->
             fct acc2 key elt)
           acc list)
       init t
 
   let rec remove key value = function
-    | [] -> raise Not_found 
-    | (h,_)::_ when key<h -> raise Not_found 
-    | (h,[v])::t when key=h && value=v -> t 
+    | [] -> raise Not_found
+    | (h,_)::_ when key<h -> raise Not_found
+    | (h,[v])::t when key=h && value=v -> t
     | (h,list)::t when key=h -> (h,List_.usort_remove value list)::t
     | (h,list)::t (* when key>h *) -> (h,list) :: (remove key value t)
 
   let rec remove_key key = function
     | [] -> raise Not_found
-    | (h,_)::_ when key<h -> raise Not_found 
+    | (h,_)::_ when key<h -> raise Not_found
     | (h,list)::t when key=h -> t
     | (h,list)::t (* when key>h *) -> (h,list) :: (remove_key key t)
 
@@ -572,7 +572,7 @@ module Massoc = struct
     | (h,_)::t (* when key>h *) -> mem_key key t
 
   exception Not_disjoint
-  let disjoint_union t1 t2 = 
+  let disjoint_union t1 t2 =
     let rec loop = function
       | [], t | t, [] -> t
       | ((h1,l1)::t1, (h2,l2)::t2) when h1 < h2 -> (h1,l1)::(loop (t1,((h2,l2)::t2)))
@@ -587,7 +587,7 @@ module Massoc = struct
     try
       let i_list = List.assoc i t in
       disjoint_union (remove_key i t) [j,i_list]
-    with 
+    with
     | Not_found -> (* no key i *) t
     | Not_disjoint -> raise Duplicate
 
@@ -602,7 +602,7 @@ module Error = struct
   exception Run of (string * Loc.t option)
   exception Bug of (string * Loc.t option)
 
-  let build_ ?loc message = 
+  let build_ ?loc message =
     Log.fmessage "[%s] %s" (match loc with None -> "?" | Some x -> Loc.to_string x) message;
     raise (Build (message, loc))
   let build ?loc = Printf.ksprintf (build_ ?loc)
@@ -626,15 +626,15 @@ module Id = struct
     try Array_.dicho_find string table
     with Not_found -> Error.build ?loc "Identifier '%s' not found" string
 
-  let build_opt string table = 
+  let build_opt string table =
     try Some (Array_.dicho_find string table)
     with Not_found -> None
 end (* module Id *)
 
 (* ================================================================================ *)
 module Html = struct
-  let css = "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />\n<link rel=\"stylesheet\" href=\"style.css\" type=\"text/css\">" 
-      
+  let css = "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />\n<link rel=\"stylesheet\" href=\"style.css\" type=\"text/css\">"
+
   let enter out_ch ?title ?header base_name =
     fprintf out_ch "<html>\n";
     (match title with
@@ -646,10 +646,10 @@ module Html = struct
     (match header with None -> () | Some s -> fprintf out_ch "%s\n" s);
 
     (match title with
-    | Some t -> fprintf out_ch "<h1>%s</h1>\n" t 
+    | Some t -> fprintf out_ch "<h1>%s</h1>\n" t
     | None -> ()
     )
-  let leave out_ch = 
+  let leave out_ch =
     fprintf out_ch "</body>\n";
     fprintf out_ch "</html>\n";
 end  (* module Html *)
@@ -669,23 +669,23 @@ module Conll = struct
     }
 
   let load file =
-        
+
     let parse_morph line_num = function
       | "_" -> []
-      | morph ->  
-          List.map 
-            (fun feat -> 
+      | morph ->
+          List.map
+            (fun feat ->
               match Str.split (Str.regexp "=") feat with
               | [feat_name] -> (feat_name, "true")
               | [feat_name; feat_value] -> (feat_name, feat_value)
-              | _ -> Error.build ~loc:(file,line_num) "[Conll.load] illegal morphology \n>>>>>%s<<<<<<" morph 
+              | _ -> Error.build ~loc:(file,line_num) "[Conll.load] illegal morphology \n>>>>>%s<<<<<<" morph
             ) (Str.split (Str.regexp "|") morph) in
-    
+
     let escape_quote s = Str.global_replace (Str.regexp "\"") "\\\"" s in
-    
-    let parse (line_num, line) = 
+
+    let parse (line_num, line) =
       match Str.split (Str.regexp "\t") line with
-      | [ num; phon; lemma; pos1; pos2; morph; gov; dep_lab; _; _ ] ->      
+      | [ num; phon; lemma; pos1; pos2; morph; gov; dep_lab; _; _ ] ->
           {line_num = line_num;
            num = int_of_string num;
            phon = escape_quote phon;
@@ -696,7 +696,7 @@ module Conll = struct
            gov = int_of_string gov;
            dep_lab = dep_lab;
          }
-      | l -> 
+      | l ->
           Error.build ~loc:(file,line_num) "[Conll.load] illegal line, %d fields (10 are expected)\n>>>>>%s<<<<<<" (List.length l) line in
 
     let lines = File.read_ln file in
@@ -714,12 +714,12 @@ module Lex_par = struct
   let empty=[]
   let append = List.append
 
-  let rm_peripheral_white s = 
+  let rm_peripheral_white s =
     Str.global_replace (Str.regexp "\\( \\|\t\\)*$") ""
     (Str.global_replace (Str.regexp "^\\( \\|\t\\)*") "" s)
 
 
-  let parse_line ?loc nb_p nb_c line = 
+  let parse_line ?loc nb_p nb_c line =
     let line = rm_peripheral_white line in
     if line = "" || line.[0] = '%'
     then None
@@ -734,16 +734,16 @@ module Lex_par = struct
         | [args; values] ->
           (match (Str.split (Str.regexp "#") args, Str.split (Str.regexp "#") values) with
             | (lp,lc) when List.length lp = nb_p && List.length lc = nb_c -> Some (lp,lc)
-            | _ -> Error.bug ?loc 
+            | _ -> Error.bug ?loc
               "Illegal lexical parameter line: \"%s\" doesn't contain %d args and %d values"
               line nb_p nb_c)
         | _ -> Error.bug ?loc "Illegal param line: '%s'" line
-          
+
   let from_lines ?loc nb_p nb_c lines = List_.opt_map (parse_line ?loc nb_p nb_c) lines
 
   let load ?loc dir nb_p nb_c file =
     try
-      let full_file = 
+      let full_file =
         if Filename.is_relative file
         then Filename.concat dir file
         else file in
@@ -754,18 +754,18 @@ module Lex_par = struct
   let sub x y = List.mem x (Str.split (Str.regexp "|") y)
 
   let filter index atom t =
-    match 
+    match
       List_.opt_map
         (fun (p_par, c_par) ->
           let par = List.nth p_par index in
-          if atom=par 
+          if atom=par
           then Some (p_par, c_par)
           else
             if sub atom par (* atom is one of the values of the disjunction par *)
             then Some (List_.set index atom p_par, c_par)
             else None
         ) t
-    with 
+    with
     | [] -> None
     | t -> Some t
 
@@ -776,12 +776,12 @@ module Lex_par = struct
   let get_command_value index = function
     | [(_,one)] -> List.nth one index
     | [] -> Error.bug "[Lex_par.get_command_value] empty parameter"
-    | (_,[sing])::tail when index=0 -> 
-        Printf.sprintf "%s/%s" 
-          sing 
-          (List_.to_string 
-             (function 
-               | (_,[s]) -> s 
+    | (_,[sing])::tail when index=0 ->
+        Printf.sprintf "%s/%s"
+          sing
+          (List_.to_string
+             (function
+               | (_,[s]) -> s
                | _ -> Error.bug "[Lex_par.get_command_value] inconsistent param"
              ) "/" tail
           )
@@ -796,11 +796,11 @@ module Timeout = struct
 
   let counter = ref 0.
   let timeout = ref None
-  
+
   let start () = counter := Unix.time ()
 
   let check () =
-    match !timeout with 
+    match !timeout with
     | None -> ()
     | Some delay ->
         if Unix.time () -. !counter > delay

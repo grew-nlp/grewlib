@@ -41,16 +41,16 @@ module P_graph: sig
 
   val build:
       ?pat_vars: string list ->
-      ?locals: Label.decl array -> 
-      Ast.node list -> 
-      Ast.edge list -> 
+      ?locals: Label.decl array ->
+      Ast.node list ->
+      Ast.edge list ->
 	(t * Id.table * (Pid.t * P_fs.t) list )
 
   val build_extension:
-      ?locals: Label.decl array -> 
+      ?locals: Label.decl array ->
       Id.table ->
-      Ast.node list -> 
-      Ast.edge list -> 
+      Ast.node list ->
+      Ast.edge list ->
 	(extension * Id.table)
 
   val roots: t -> Pid.t list
@@ -72,9 +72,9 @@ module G_graph: sig
   val find: Gid.t -> t -> G_node.t
 
   val build:
-      ?locals: Label.decl array -> 
-      Ast.node list -> 
-      Ast.edge list -> 
+      ?locals: Label.decl array ->
+      Ast.node list ->
+      Ast.edge list ->
 	t
 
   val of_conll: ?loc:Loc.t -> Conll.line list -> t
@@ -93,14 +93,14 @@ module G_graph: sig
   val del_edge : ?edge_ident: string -> Loc.t -> t -> Gid.t -> G_edge.t -> Gid.t -> t
   val del_node : t -> Gid.t -> t
 
-  val add_neighbour : Loc.t -> t -> Gid.t -> G_edge.t -> (Gid.t * t) 
+  val add_neighbour : Loc.t -> t -> Gid.t -> G_edge.t -> (Gid.t * t)
   val merge_node : Loc.t -> t -> Gid.t -> Gid.t -> t option
 
   val shift_in : Loc.t -> t -> Gid.t -> Gid.t -> t
   val shift_out : Loc.t -> t -> Gid.t -> Gid.t -> t
   val shift_edges : Loc.t -> t -> Gid.t -> Gid.t -> t
 
-  (** [update_feat tar_id tar_feat_name concat_items] sets the feature of the node [tar_id] 
+  (** [update_feat tar_id tar_feat_name concat_items] sets the feature of the node [tar_id]
       with feature name [tar_feat_name] to be the contatenation of values described by the [concat_items].
       It returns both the new graph and the new feature value produced as the second element *)
   val update_feat: ?loc:Loc.t -> t -> Gid.t -> string -> concat_item list -> (t * string)

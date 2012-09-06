@@ -17,10 +17,10 @@ module G_node: sig
 
   val set_fs: t -> G_fs.t -> t
 
-(* FIXME move Gid up and replace int by Gid.t *) 
-  val remove: Gid.t -> G_edge.t -> t -> t 
+(* FIXME move Gid up and replace int by Gid.t *)
+  val remove: Gid.t -> G_edge.t -> t -> t
 
-  val remove_key: Gid.t -> t -> t 
+  val remove_key: Gid.t -> t -> t
 
   val merge_key: ?strict:bool -> Gid.t -> Gid.t -> t -> t option
   val shift_out: ?strict:bool -> t -> t -> t option

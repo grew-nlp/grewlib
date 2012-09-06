@@ -11,7 +11,7 @@ val png_file_from_dot: string -> string -> unit
 (* ================================================================================ *)
 (* [Loc] general module to describe errors location: (file name, line number in file) *)
 module Loc: sig
-  type t = string * int 
+  type t = string * int
 
   val opt_set_line: int -> t option -> t option
 
@@ -25,7 +25,7 @@ module File: sig
   (** [write data file_name] write [data] in file named [file_name] *)
   val write: string -> string -> unit
 
-  (** [read file_name] read the content of [file_name] line by line. 
+  (** [read file_name] read the content of [file_name] line by line.
      Blanks lines (empty or only with spaces and tabs) are ignored.
      Lines with '%' as the first char are ignored. *)
   val read: string -> string list
@@ -55,7 +55,7 @@ module Pid_set : Set.S with type elt = Pid.t
 (* ================================================================================ *)
 (* [Gid] describes identifier used in full graphs *)
 module Gid : sig
-  type t = 
+  type t =
     | Old of int
     | New of int * int (* identifier for "created nodes" *)
 
@@ -64,7 +64,7 @@ end
 
 (* ================================================================================ *)
 (* [Gid_map] is the map used in full graphs *)
-module Gid_map : Map.S with type key = Gid.t 
+module Gid_map : Map.S with type key = Gid.t
 
 
 (* ================================================================================ *)
@@ -91,14 +91,14 @@ module List_: sig
   (** [rm elt list] removes the first occurence of [elt] in [list]. [Not_found] can be raised. *)
   val rm: 'a -> 'a list -> 'a list
   val opt: 'a option list -> 'a list
-      
+
   (** [pos elt list] return [Some index] if [index] is the smallest position in the [list] equals to [elt]. None is returned if [elt] is not in the [list] *)
   val pos: 'a -> 'a list -> int option
 
   val opt_map: ('a -> 'b option) -> 'a list -> 'b list
 
   val flat_map: ('a -> 'b list) -> 'a list -> 'b list
-  (* remove [elt] from [list]. raise Not_found if [elt] is not in [list] *)      
+  (* remove [elt] from [list]. raise Not_found if [elt] is not in [list] *)
   val remove: 'a -> 'a list -> 'a list
 
   val foldi_left: (int -> 'a -> 'b -> 'a) -> 'a -> 'b list -> 'a
@@ -130,7 +130,7 @@ module List_: sig
 
   val sort_assoc: 'a -> ('a * 'b) list -> 'b option
 
-   (* [sort_remove_assoc k ass_list] returns the input list without the [key] element, 
+   (* [sort_remove_assoc k ass_list] returns the input list without the [key] element,
       if [key] not found, the unchanged input list is returned *)
   val sort_remove_assoc: 'a -> ('a * 'b) list -> ('a * 'b) list
 
@@ -156,12 +156,12 @@ module type OrderedType =
 module type S =
   sig
     type key
-    
+
     type +'a t
 
     val empty: 'a t
 
-    (* an empty list returned if the key is undefined *) 
+    (* an empty list returned if the key is undefined *)
     val assoc: key -> 'a t -> 'a list
 
     val is_empty: 'a t -> bool
@@ -187,7 +187,7 @@ module type S =
     val mem_key: key -> 'a t -> bool
 
     exception Not_disjoint
-    val disjoint_union: 'a t -> 'a t -> 'a t 
+    val disjoint_union: 'a t -> 'a t -> 'a t
 
     exception Duplicate
     val merge_key: key -> key -> 'a t -> 'a t
@@ -206,7 +206,7 @@ module Massoc: sig
 
   val empty: 'a t
 
-  (* an empty list returned if the key is undefined *) 
+  (* an empty list returned if the key is undefined *)
   val assoc: int -> 'a t -> 'a list
 
   val is_empty: 'a t -> bool
@@ -232,14 +232,14 @@ module Massoc: sig
   val mem_key: int -> 'a t -> bool
 
   exception Not_disjoint
-  val disjoint_union: 'a t -> 'a t -> 'a t 
+  val disjoint_union: 'a t -> 'a t -> 'a t
 
   exception Duplicate
   val merge_key: int -> int -> 'a t -> 'a t
 
   val exists: (int -> 'a -> bool) -> 'a t -> bool
 end
-    
+
 module Massoc_gid : S with type key = Gid.t
 
 module Massoc_pid : S with type key = Pid.t
@@ -267,7 +267,7 @@ module Id: sig
   (* [Stop] is raised if [string] is not in [table] *)
   val build: ?loc:Loc.t -> name -> table -> t
 
-  val build_opt: name -> table -> t option 
+  val build_opt: name -> table -> t option
 end
 
 module Html: sig
@@ -287,7 +287,7 @@ module Conll: sig
     gov: int;
     dep_lab: string;
   }
-  
+
   val load: string -> line list
 end
 
@@ -295,7 +295,7 @@ end
 module Lex_par: sig
   type t
 
-  val empty:t 
+  val empty:t
   val append: t -> t -> t
 
   (** [from_lines filename nb_pattern_var nb_command_var strings] *)
@@ -304,7 +304,7 @@ module Lex_par: sig
   (** [load ?loc local_dir_name nb_pattern_var nb_command_var file] *)
   val load: ?loc: Loc.t -> string -> int -> int -> string -> t
 
-  (** [filter index atom t] returns the subset of [t] which contains only entries 
+  (** [filter index atom t] returns the subset of [t] which contains only entries
       which refers to [atom] at the [index]^th pattern_var.
       [None] is returnes if no such entry s founded.
    *)

@@ -10,19 +10,19 @@ module Instance : sig
       graph: G_graph.t;
       commands: Command.h list;
       rules: string list;
-      big_step: Grew_types.big_step option; 
+      big_step: Grew_types.big_step option;
     }
-        
+
   val empty:t
 
   val build: Ast.gr -> t	
 
   val of_conll: ?loc:Loc.t -> Conll.line list -> t
 
-  (* rev_steps reverse the small step list: during rewriting, the last rule is in the head of the list and the reverse is needed for display *) 
+  (* rev_steps reverse the small step list: during rewriting, the last rule is in the head of the list and the reverse is needed for display *)
   val rev_steps: t -> t
 
-  val clear: t -> t 
+  val clear: t -> t
   val from_graph: G_graph.t -> t
   val get_graph: t -> G_graph.t
 
@@ -60,7 +60,7 @@ module Rule : sig
   (* raise Stop if some command fails to apply *)
   val normalize:
     string -> (* module name *)
-    ?confluent:bool -> 
+    ?confluent:bool ->
     t list -> (* rule list *)
     t list -> (* filter list *)
     Instance.t ->
