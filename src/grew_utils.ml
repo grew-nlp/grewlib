@@ -81,7 +81,6 @@ end (* module Pid *)
 module Pid_map =
   struct 
     include Map.Make (Pid)
-(** returns the image of a map [m]*)
 
     exception True
 
@@ -101,13 +100,10 @@ module Pid_map =
     let keys m = 
       fold (fun k v s -> (IntSet.add k s)) m IntSet.empty
 
-(* union of two maps*)
+    (* union of two maps*)
     let union_map m m' = fold (fun k v m'' -> (add k v m'')) m m'
 
   end (* module Pid_map *)
-(* ================================================================================ *)
-    
- 
 
 (* ================================================================================ *)
 module Gid = struct
@@ -120,11 +116,12 @@ module Gid = struct
   let to_string = function
     | Old i -> sprintf "%d" i
     | New (i,j) -> sprintf"%d__%d" i j
-end
+end (* module Gid *)
 
-module Gid_map = Map.Make (Gid)
 (* ================================================================================ *)
+module Gid_map = Map.Make (Gid)
 
+(* ================================================================================ *)
 module Array_ = struct
   let dicho_mem elt array =
     let rec loop low high =
@@ -156,9 +153,9 @@ module Array_ = struct
       | middle when fst array.(middle) < elt -> loop (middle+1) high
       | middle -> loop low (middle - 1) in 
     loop 0 ((Array.length array) - 1)
-end
+end (* module Array_ *)
 
-
+(* ================================================================================ *)
 module List_ = struct
   let rec set position elt = function
     | [] -> failwith "List_.set"
@@ -253,7 +250,6 @@ module List_ = struct
     | (k,v)::t when key>k -> (k,v) :: (sort_remove_assoc key t)
     | (_,v)::t -> t
 
-
   exception Usort
 
   let rec usort_remove key = function 
@@ -344,15 +340,16 @@ module List_ = struct
 	 (fun (acc,i) elt -> (f i acc elt, i+1))
 	 (init,0) l
       )
-end
+end (* module List_ *)
 
+(* ================================================================================ *)
 module type OrderedType =
   sig
     type t
     val compare: t -> t -> int
-  end
+  end (* module type OrderedType *)
 
-
+(* ================================================================================ *)
 module type S =
   sig
     type key
@@ -393,9 +390,9 @@ module type S =
     val merge_key: key -> key -> 'a t -> 'a t
 
     val exists: (key -> 'a -> bool) -> 'a t -> bool
-  end
+  end (* module type S *)
 
-
+(* ================================================================================ *)
 module Massoc_make (Ord: OrderedType) = struct
   module M = Map.Make (Ord)
 
@@ -480,8 +477,10 @@ module Massoc_make (Ord: OrderedType) = struct
       ) t
 end (* module Massoc_make *)
 
+(* ================================================================================ *)
 module Massoc_gid = Massoc_make (Gid)
 
+(* ================================================================================ *)
 module Massoc = struct
   (* Massoc is implemented with caml lists *)
   (* invariant: we suppose that all 'a list in the structure are not empty! *) 
@@ -580,6 +579,7 @@ module Massoc = struct
   let exists fct t = List.exists (fun (key,list) -> List.exists (fun value -> fct key value) list) t
 end (* module Massoc *)
 
+(* ================================================================================ *)
 module Error = struct
 
   exception Build of (string * Loc.t option)
@@ -596,8 +596,9 @@ module Error = struct
 
   let bug_ ?loc message = raise (Bug (message, loc))
   let bug ?loc = Printf.ksprintf (bug_ ?loc)
-end
+end (* module Error *)
 
+(* ================================================================================ *)
 module Id = struct
   type name = string
 
@@ -612,8 +613,9 @@ module Id = struct
   let build_opt string table = 
     try Some (Array_.dicho_find string table)
     with Not_found -> None
-end
+end (* module Id *)
 
+(* ================================================================================ *)
 module Html = struct
   let css = "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />\n<link rel=\"stylesheet\" href=\"style.css\" type=\"text/css\">" 
       
@@ -634,8 +636,9 @@ module Html = struct
   let leave out_ch = 
     fprintf out_ch "</body>\n";
     fprintf out_ch "</html>\n";
-end      
+end  (* module Html *)
 
+(* ================================================================================ *)
 module Conll = struct
   type line = {
       line_num: int;
@@ -682,8 +685,9 @@ module Conll = struct
 
     let lines = File.read_ln file in
     List.map parse lines
-end
+end (* module Conll *)
 
+(* ================================================================================ *)
 (* This module defines a type for lexical parameter (i.e. one line in a lexical file) *)
 module Lex_par = struct
 
@@ -767,8 +771,9 @@ module Lex_par = struct
           )
     | l -> Error.run "Lexical parameter are not functionnal"
 
-end
+end (* module Lex_par *)
 
+(* ================================================================================ *)
 (* copy from leopar *)
 module Timeout = struct
   exception Stop
@@ -784,4 +789,4 @@ module Timeout = struct
     | Some delay ->
         if Unix.time () -. !counter > delay
         then raise Stop
-end
+end (* module Timeout *)
