@@ -94,14 +94,12 @@ module Rule = struct
     }
 
   let build_pos_pattern ?pat_vars ?(locals=[||]) pattern_ast =
-    let (graph, pos_table, filter_nodes) =
+    let (graph, pos_table) =
       P_graph.build ?pat_vars ~locals pattern_ast.Ast.pat_nodes pattern_ast.Ast.pat_edges in
     (
       {
         graph = graph;
-        constraints =
-          List.map (build_pos_constraint ~locals pos_table) pattern_ast.Ast.pat_const
-        @ (List.map (fun (pid, fs) -> Filter (pid, fs)) filter_nodes);
+        constraints = List.map (build_pos_constraint ~locals pos_table) pattern_ast.Ast.pat_const
       },
       pos_table
     )

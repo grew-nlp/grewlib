@@ -56,39 +56,25 @@ module P_graph = struct
 
   (* -------------------------------------------------------------------------------- *)
   let build ?pat_vars ?(locals=[||]) (full_node_list : Ast.node list) full_edge_list =
-    (* let (named_nodes, constraints) =  *)
-    (*   let rec loop already_bound = function *)
-    (*     | [] -> ([],[]) *)
-    (*     | (ast_node, loc) :: tail -> *)
-    (*         let (tail_nodes, tail_const) = loop (ast_node.Ast.node_id :: already_bound) tail in *)
-    (*         if List.mem ast_node.Ast.node_id already_bound *)
-    (*         then (tail_nodes, (ast_node, loc)::tail_const) *)
-    (*         else (P_node.build ?pat_vars (ast_node, loc) :: tail_nodes, tail_const) in *)
-    (*   loop [] full_node_list in *)
 
+    (* NB: insert searches for a previous node with the Same name and uses unification rather than constraint *)
+    (* NB: insertion of new node at the end of the list: not efficient but graph building is not the hard part. *) 
     let rec insert (ast_node, loc) = function
       | [] -> [P_node.build ?pat_vars (ast_node, loc)]
-      | (n,h)::t when ast_node.Ast.node_id = n ->
-          (n, P_node.unif_fs (P_fs.build ?pat_vars ast_node.Ast.fs) h) :: t
-      | h::t -> h :: (insert (ast_node, loc) t) in
+      | (node_id,fs)::tail when ast_node.Ast.node_id = node_id ->
+          (node_id, P_node.unif_fs (P_fs.build ?pat_vars ast_node.Ast.fs) fs) :: tail
+      | head :: tail -> head :: (insert (ast_node, loc) tail) in
 
     let (named_nodes : (Id.name * P_node.t) list) =
-      let rec loop = function
-        | [] -> []
-        | ast_node :: tail ->
-            let tail_nodes = loop tail in
-            insert ast_node tail_nodes in
-            (* let old_node = List.find (fun n -> P_node.get_name) *)
-            (* if List.mem ast_node.Ast.node_id already_bound *)
-            (* then (tail_nodes, (ast_node, loc)::tail_const) *)
-            (* else (P_node.build ?pat_vars (ast_node, loc) :: tail_nodes, tail_const) in *)
-      loop full_node_list in
+      List.fold_left
+        (fun acc ast_node -> insert ast_node acc) 
+        [] full_node_list in 
 
     let sorted_nodes = List.sort (fun (id1,_) (id2,_) -> Pervasives.compare id1 id2) named_nodes in
     let (sorted_ids, node_list) = List.split sorted_nodes in
 
-    (* table contains the sorted list of node ids *)
-    let table = Array.of_list sorted_ids in
+    (* [pos_table] contains the sorted list of node ids *)
+    let pos_table = Array.of_list sorted_ids in
 
     (* the nodes, in the same order *)
     let map_without_edges = List_.foldi_left
@@ -98,8 +84,8 @@ module P_graph = struct
     let (map : t) =
       List.fold_left
 	(fun acc (ast_edge, loc) ->
-	  let i1 = Id.build ~loc ast_edge.Ast.src table in
-	  let i2 = Id.build ~loc ast_edge.Ast.tar table in
+	  let i1 = Id.build ~loc ast_edge.Ast.src pos_table in
+	  let i2 = Id.build ~loc ast_edge.Ast.tar pos_table in
 	  let edge = P_edge.build ~locals (ast_edge, loc) in
 	  (match map_add_edge acc (Pid.Pos i1) edge (Pid.Pos i2) with
 	  | Some g -> g
@@ -108,7 +94,7 @@ module P_graph = struct
                 (Loc.to_string loc)
 	  )
 	) map_without_edges full_edge_list in
-    (map, table, [](* TODO: ??? List.map (build_filter table) constraints *))
+    (map, pos_table)
 
 
   (* -------------------------------------------------------------------------------- *)
@@ -120,13 +106,13 @@ module P_graph = struct
     }
 
   (* -------------------------------------------------------------------------------- *)
-  let build_extension ?(locals=[||]) old_table full_node_list full_edge_list =
+  let build_extension ?(locals=[||]) pos_table full_node_list full_edge_list =
 
     let built_nodes = List.map P_node.build full_node_list in
 
     let (old_nodes, new_nodes) =
       List.partition
-        (function (id,_) when Array_.dicho_mem id old_table -> true | _ -> false)
+        (function (id,_) when Array_.dicho_mem id pos_table -> true | _ -> false)
         built_nodes in
 	
     let new_sorted_nodes = List.sort (fun (id1,_) (id2,_) -> Pervasives.compare id1 id2) new_nodes in
@@ -145,7 +131,7 @@ module P_graph = struct
 
     let old_map_without_edges =
       List.fold_left
-	(fun acc (id,node) -> Pid_map.add (Pid.Pos (Array_.dicho_find id old_table)) node acc)
+	(fun acc (id,node) -> Pid_map.add (Pid.Pos (Array_.dicho_find id pos_table)) node acc)
 	Pid_map.empty
 	old_nodes in
 
@@ -153,11 +139,11 @@ module P_graph = struct
       List.fold_left
 	(fun acc (ast_edge, loc) ->
 	  let i1 =
-	    match Id.build_opt ast_edge.Ast.src old_table with
+	    match Id.build_opt ast_edge.Ast.src pos_table with
               | Some i -> Pid.Pos i
               | None -> Pid.Neg (Id.build ~loc ast_edge.Ast.src new_table) in
 	  let i2 =
-	    match Id.build_opt ast_edge.Ast.tar old_table with
+	    match Id.build_opt ast_edge.Ast.tar pos_table with
               | Some i -> Pid.Pos i
               | None -> Pid.Neg (Id.build ~loc ast_edge.Ast.tar new_table) in
 	  let edge = P_edge.build ~locals (ast_edge, loc) in
