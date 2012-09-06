@@ -483,11 +483,26 @@ module Massoc_make (Ord: OrderedType) = struct
       | Not_found -> (* no key i *) t
       | List_.Not_disjoint -> raise Duplicate
 
+(* New implementation of exists but exists fct not implemented in ocaml < 3.12 *)
+(*
   let exists fct t =
     M.exists
       (fun key list ->
         List.exists (fun elt -> fct key elt) list
       ) t
+*)
+
+  exception True
+  let exists fct t =
+    try
+      M.iter
+        (fun key list ->
+          if List.exists (fun elt -> fct key elt) list
+          then raise True
+        ) t;
+      false
+    with True -> true
+
 end (* module Massoc_make *)
 
 (* ================================================================================ *)
