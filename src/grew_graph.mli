@@ -44,7 +44,7 @@ module P_graph: sig
       ?locals: Label.decl array -> 
       Ast.node list -> 
       Ast.edge list -> 
-	(t * Id.table * (Id.t * P_fs.t) list )
+	(t * Id.table * (Pid.t * P_fs.t) list )
 
   val build_extension:
       ?locals: Label.decl array -> 

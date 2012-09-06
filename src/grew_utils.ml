@@ -73,8 +73,18 @@ module File = struct
 
 (* ================================================================================ *)
 module Pid = struct
-  type t = int
+  (* type t = int *)
+  type t = Pos of int | Neg of int
+
   let compare = Pervasives.compare
+
+  let to_id = function
+    | Pos i -> sprintf "p_%d" i
+    | Neg i -> sprintf "n_%d" i
+
+  let to_string = function
+    | Pos i -> sprintf "Pos %d" i
+    | Neg i -> sprintf "Neg %d" i
 end (* module Pid *)
 
 (* ================================================================================ *)
@@ -94,16 +104,19 @@ module Pid_map =
         false
       with True -> true
 
-    let range key_set m = 
-      IntSet.fold (fun k s -> (IntSet.add (find k m) s)) key_set IntSet.empty
+    (* let range key_set m =  *)
+    (*   IntSet.fold (fun k s -> (IntSet.add (find k m) s)) key_set IntSet.empty *)
 
-    let keys m = 
-      fold (fun k v s -> (IntSet.add k s)) m IntSet.empty
+    (* let keys m =  *)
+    (*   fold (fun k v s -> (IntSet.add k s)) m IntSet.empty *)
 
     (* union of two maps*)
     let union_map m m' = fold (fun k v m'' -> (add k v m'')) m m'
 
   end (* module Pid_map *)
+
+(* ================================================================================ *)
+module Pid_set = Set.Make (Pid)
 
 (* ================================================================================ *)
 module Gid = struct
@@ -479,6 +492,9 @@ end (* module Massoc_make *)
 
 (* ================================================================================ *)
 module Massoc_gid = Massoc_make (Gid)
+
+(* ================================================================================ *)
+module Massoc_pid = Massoc_make (Pid)
 
 (* ================================================================================ *)
 module Massoc = struct

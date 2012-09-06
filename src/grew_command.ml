@@ -53,7 +53,7 @@ module Command  = struct
   let build ?param (kni, kei) table locals ast_command = 
     let get_pid node_name =
       match Id.build_opt node_name table with
-      | Some id -> Pid id
+      | Some id -> Pid (Pid.Pos id)
       | None -> New node_name in
 
     let check_node loc node_id kni = 
@@ -101,7 +101,15 @@ module Command  = struct
         then Error.build ~loc "Node identifier \"%s\" is already used" name_created;
 	let edge = G_edge.make ~locals label in
 	begin
-	  try ((NEW_NEIGHBOUR (name_created, edge, Id.build ~loc ancestor table), loc), (name_created::kni, kei))
+	  try
+            (
+              (NEW_NEIGHBOUR
+                 (name_created,
+                  edge,
+                  Pid.Pos (Id.build ~loc ancestor table)
+                 ), loc),
+              (name_created::kni, kei)
+            )
 	  with Not_found -> 
 	    Log.fcritical "[GRS] tries to build a command New_neighbour (%s) on node %s which is not in the pattern %s"
 	      (G_edge.to_string edge)

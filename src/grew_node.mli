@@ -45,14 +45,14 @@ module P_node: sig
 
   val get_name: t -> Id.name
   val get_fs: t -> P_fs.t
-  val get_next: t -> P_edge.t Massoc.t
+  val get_next: t -> P_edge.t Massoc_pid.t
 
   (** [unif_fs fs t] replaces the feature structure of the node by node.fs unif fs *)
   val unif_fs: P_fs.t -> t -> t
 
   val build: ?pat_vars: string list -> Ast.node -> (Id.name * t)
 
-  val add_edge: P_edge.t -> int -> t -> t option
+  val add_edge: P_edge.t -> Pid.t -> t -> t option
 
   val match_: ?param: Lex_par.t -> t -> G_node.t -> Lex_par.t option
 

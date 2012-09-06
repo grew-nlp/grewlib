@@ -34,15 +34,23 @@ end
 
 (* ================================================================================ *)
 (* [Pid] describes identifier used in pattern graphs *)
-module Pid : sig type t = int end
+module Pid : sig
+  type t = Pos of int | Neg of int
+  val to_id: t -> string
+  val to_string: t -> string
+end
 
 (* ================================================================================ *)
 (* [Pid_map] is the map used in pattern graphs *)
 module Pid_map : sig
-  include Map.S with type key = int
+  include Map.S with type key = Pid.t
 
   val exists: (key -> 'a -> bool) -> 'a t -> bool
 end
+
+(* ================================================================================ *)
+(* [Pid_set] *)
+module Pid_set : Set.S with type elt = Pid.t
 
 (* ================================================================================ *)
 (* [Gid] describes identifier used in full graphs *)
@@ -233,6 +241,8 @@ module Massoc: sig
 end
     
 module Massoc_gid : S with type key = Gid.t
+
+module Massoc_pid : S with type key = Pid.t
 
 
 module Error: sig

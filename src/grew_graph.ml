@@ -87,7 +87,9 @@ module P_graph = struct
     let table = Array.of_list sorted_ids in
 
     (* the nodes, in the same order *)
-    let map_without_edges = List_.foldi_left (fun i acc elt -> Pid_map.add i elt acc) Pid_map.empty node_list in
+    let map_without_edges = List_.foldi_left 
+      (fun i acc elt -> Pid_map.add (Pid.Pos i) elt acc) 
+      Pid_map.empty node_list in
 
     let (map : t) =
       List.fold_left
@@ -95,7 +97,7 @@ module P_graph = struct
 	  let i1 = Id.build ~loc ast_edge.Ast.src table in
 	  let i2 = Id.build ~loc ast_edge.Ast.tar table in
 	  let edge = P_edge.build ~locals (ast_edge, loc) in
-	  (match map_add_edge acc i1 edge i2 with
+	  (match map_add_edge acc (Pid.Pos i1) edge (Pid.Pos i2) with
 	  | Some g -> g
 	  | None -> Error.build "[GRS] [Graph.build] try to build a graph with twice the same edge %s %s"
                 (P_edge.to_string edge)
@@ -132,13 +134,13 @@ module P_graph = struct
     (* the nodes, in the same order stored with index -1, -2, ... -N *)
     let ext_map_without_edges =
       List_.foldi_left
-	(fun i acc elt -> Pid_map.add (-i-1) elt acc)
+	(fun i acc elt -> Pid_map.add (Pid.Neg i) elt acc)
 	Pid_map.empty
 	new_node_list in
 
     let old_map_without_edges =
       List.fold_left
-	(fun acc (id,node) -> Pid_map.add (Array_.dicho_find id old_table) node acc)
+	(fun acc (id,node) -> Pid_map.add (Pid.Pos (Array_.dicho_find id old_table)) node acc)
 	Pid_map.empty
 	old_nodes in
 
@@ -146,11 +148,13 @@ module P_graph = struct
       List.fold_left
 	(fun acc (ast_edge, loc) ->
 	  let i1 =
-	    match Id.build_opt ast_edge.Ast.src old_table
-	    with Some i -> i | None -> -1-(Id.build ~loc ast_edge.Ast.src new_table) in
+	    match Id.build_opt ast_edge.Ast.src old_table with
+              | Some i -> Pid.Pos i
+              | None -> Pid.Neg (Id.build ~loc ast_edge.Ast.src new_table) in
 	  let i2 =
-	    match Id.build_opt ast_edge.Ast.tar old_table
-	    with Some i -> i | None -> -1-(Id.build ~loc ast_edge.Ast.tar new_table) in
+	    match Id.build_opt ast_edge.Ast.tar old_table with
+              | Some i -> Pid.Pos i 
+              | None -> Pid.Neg (Id.build ~loc ast_edge.Ast.tar new_table) in
 	  let edge = P_edge.build ~locals (ast_edge, loc) in
 	  match map_add_edge acc i1 edge i2 with
 	  | Some map -> map
@@ -171,21 +175,21 @@ module P_graph = struct
     let not_root =
       Pid_map.fold
 	(fun _ node acc ->
-	  Massoc.fold_left
+	  Massoc_pid.fold
 	    (fun acc2 tar _ ->
 	      if !tree_prop
 	      then
-		if IntSet.mem tar acc2
+		if Pid_set.mem tar acc2
 		then (tree_prop := false; acc2)
-		else IntSet.add tar acc2
-	      else IntSet.add tar acc2
+		else Pid_set.add tar acc2
+	      else Pid_set.add tar acc2
 	    ) acc (P_node.get_next node)
-	) graph IntSet.empty in
+	) graph Pid_set.empty in
 
     let roots =
       Pid_map.fold
 	(fun id _ acc ->
-	  if IntSet.mem id not_root
+	  if Pid_set.mem id not_root
 	  then acc
 	  else id::acc
 	) graph [] in
