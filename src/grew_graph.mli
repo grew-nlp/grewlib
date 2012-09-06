@@ -68,10 +68,7 @@ end (* module Concat_item *)
 
 (* ==================================================================================================== *)
 module G_graph: sig
-  type t = {
-      map: G_node.t Gid_map.t; (* node description *)
-      lub: int;             (* least upper bound *)
-    }
+  type t = G_node.t Gid_map.t
 
   val empty: t
 

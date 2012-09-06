@@ -372,10 +372,10 @@ module Rule = struct
         gid_map_exists (* should be Gid_map.exists with ocaml 3.12 *)
           (fun _ node ->
             List.exists (fun e -> P_edge.compatible edge e) (Massoc_gid.assoc gid (G_node.get_next node))
-          ) graph.G_graph.map
+          ) graph
     | Feature_eq (pid1, feat_name1, pid2, feat_name2) ->
-        let gnode1 = Gid_map.find (Pid_map.find pid1 matching.n_match) graph.G_graph.map in
-        let gnode2 = Gid_map.find (Pid_map.find pid2 matching.n_match) graph.G_graph.map in
+        let gnode1 = Gid_map.find (Pid_map.find pid1 matching.n_match) graph in
+        let gnode2 = Gid_map.find (Pid_map.find pid2 matching.n_match) graph in
         (match (G_fs.get_atom feat_name1 (G_node.get_fs gnode1),
                 G_fs.get_atom feat_name2 (G_node.get_fs gnode2)
                ) with
@@ -383,7 +383,7 @@ module Rule = struct
         | _ -> false)
     | Filter (pid, fs) ->
         let gid = Pid_map.find pid matching.n_match in
-        let gnode = Gid_map.find gid graph.G_graph.map in
+        let gnode = Gid_map.find gid graph in
         P_fs.filter fs (G_node.get_fs gnode)
 
   (* returns all extension of the partial input matching *)
@@ -438,7 +438,7 @@ module Rule = struct
         Gid_map.fold
           (fun gid _ acc ->
             (extend_matching_from (positive,neg) graph pid gid partial) @ acc
-          ) graph.G_graph.map []
+          ) graph []
 
   and extend_matching_from (positive,neg) (graph:G_graph.t) pid (gid : Gid.t) partial =
     if List.mem gid partial.already_matched_gids
