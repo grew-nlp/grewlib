@@ -198,47 +198,6 @@ module type S =
 
 module Massoc_make (Ord : OrderedType) : S with type key = Ord.t
 
-(* ================================================================================ *)
-(* module Massoc implements multi-association data: keys are (hardly coded as) int and the same key can be
-associated with a set of values *)
-module Massoc: sig
-  type 'a t
-
-  val empty: 'a t
-
-  (* an empty list returned if the key is undefined *)
-  val assoc: int -> 'a t -> 'a list
-
-  val is_empty: 'a t -> bool
-
-  val to_string: ('a -> string) -> 'a t -> string
-
-  val iter: (int -> 'a -> unit) -> 'a t -> unit
-
-  val add: int -> 'a -> 'a t -> 'a t option
-
-  val fold_left: ('b -> int -> 'a -> 'b) -> 'b -> 'a t -> 'b
-
-  (* raise Not_found if no (key,elt) *)
-  val remove: int -> 'a -> 'a t -> 'a t
-
-  (* raise Not_found if no (key,elt) *)
-  val remove_key: int -> 'a t -> 'a t
-
-  (* [mem key value t ] test if the couple (key, value) is in the massoc [t]. *)
-  val mem: int -> 'a -> 'a t -> bool
-
-  (* mem_key key t] tests is [key] is associated to at least one value in [t]. *)
-  val mem_key: int -> 'a t -> bool
-
-  exception Not_disjoint
-  val disjoint_union: 'a t -> 'a t -> 'a t
-
-  exception Duplicate
-  val merge_key: int -> int -> 'a t -> 'a t
-
-  val exists: (int -> 'a -> bool) -> 'a t -> bool
-end
 
 module Massoc_gid : S with type key = Gid.t
 

@@ -63,7 +63,6 @@ module G_node = struct
 
   let rm_out_edges t = {t with next = Massoc_gid.empty}
 
-
   let build_neighbour t = {empty with pos = match t.pos with Some x -> Some (x+1) | None -> None}
 
   let pos_comp n1 n2 = Pervasives.compare n1.pos n2.pos
