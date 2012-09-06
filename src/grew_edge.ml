@@ -6,38 +6,50 @@ open Grew_ast
 
 (* ================================================================================ *)
 module Label = struct
+  (* [decl] is the type for a label declaration: the name and an optionnal color *)
   type decl = string * string option
 
-  type t = int
-  
+  (* Global names and colors are recorded in two aligned arrays *)
   let full = ref [||]
   let colors = ref [||]
-      
-  let init string_edge_list = 
+
+  (* Internal representation of labels *)
+  type t =
+    | Global of int
+    | Local of int
+
+  (* [init string_edge_list] updates global arrays [full] and [colors] *)
+  let init string_edge_list =
     let slist = List.sort (fun (x,_) (y,_) -> compare x y) string_edge_list in
     let (labels, cols) = List.split slist in
     full := Array.of_list labels;
     colors := Array.of_list cols
 
-  let to_string t = !full.(t)
-  let to_int t = t
+  let to_string ?(locals=[||]) = function
+    | Global i -> !full.(i)
+    | Local i -> fst locals.(i)
 
-  let from_string ?loc ?(locals=[||]) string = 
-    try Id.build ?loc string !full
-    with Not_found -> 
-      try -1 - (Array_.dicho_find_assoc string locals)
+  let to_int = function
+    | Global i -> Some i
+    | Local _ -> None
+
+  let from_string ?loc ?(locals=[||]) string =
+    try Global (Id.build ?loc string !full)
+    with Not_found ->
+      try Local (Array_.dicho_find_assoc string locals)
       with Not_found ->	Error.build "[Label.from_string] unknown edge label '%s'" string
 
-  let get_color l = !colors.(l)
-end
-(* ================================================================================ *)
+  let get_color = function
+    | Global l -> !colors.(l)
+    | _ -> None
+end (* module Label *)
 
 
 (* ================================================================================ *)
 module G_edge = struct
   type t = Label.t
 
-  let to_string = Label.to_string
+  let to_string ?(locals=[||]) t = Label.to_string ~locals t
 
   let make ?loc ?(locals=[||]) string = Label.from_string ?loc ~locals string
 
@@ -59,12 +71,12 @@ module G_edge = struct
     | (true,None) -> Printf.sprintf "{ label = \"%s\"; color=red}" (Label.to_string l)
     | (true,Some c) -> Printf.sprintf "{ label = \"%s\"; forecolor=%s; color=red; bottom; }" (Label.to_string l) c
 
-end
-(* ================================================================================ *)
+end (* module G_edge *)
+
 
 (* ================================================================================ *)
 module P_edge = struct
-  type u_label = 
+  type u_label =
     | Pos of Label.t list
     | Neg of Label.t list
 
@@ -83,7 +95,7 @@ module P_edge = struct
 
   let build ?locals (ast_edge, loc) =
     { id = ast_edge.Ast.edge_id;
-      u_label = 
+      u_label =
       if ast_edge.Ast.negative
       then Neg (List.sort compare (List.map (Label.from_string ~loc ?locals) ast_edge.Ast.edge_labels))
       else Pos (List.sort compare (List.map (Label.from_string ~loc ?locals) ast_edge.Ast.edge_labels))
@@ -116,7 +128,7 @@ module P_edge = struct
 
   let match_list pattern_edge graph_edge_list =
     match pattern_edge with
-    | {id = None; u_label = Pos l} when List.exists (fun label -> List.mem label l) graph_edge_list -> 
+    | {id = None; u_label = Pos l} when List.exists (fun label -> List.mem label l) graph_edge_list ->
         Ok (List.hd graph_edge_list)
     | {id = None; u_label = Neg l} when List.exists (fun label -> not (List.mem label l)) graph_edge_list ->
         Ok (List.hd graph_edge_list)
@@ -130,5 +142,5 @@ module P_edge = struct
 	| list -> Binds (i, list))
     | _ -> Fail
 
-end
-(* ================================================================================ *)
+end (* module P_edge *)
+

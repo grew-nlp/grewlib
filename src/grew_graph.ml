@@ -339,11 +339,12 @@ module G_graph = struct
 
   let add_neighbour loc graph node_id label =
 
-    (* index is a new number (higher then lub and uniquely defined by (node_id,label) *)
-    (* let index = graph.lub + ((Label.to_int label) * graph.lub) + node_id in *)
-
     let index = match node_id with
-      | Gid.Old id -> Gid.New (id, Label.to_int label)
+      | Gid.Old id -> 
+        (match Label.to_int label with
+          | Some label_int -> Gid.New (id, label_int)
+          | None -> Error.run ~loc "[Graph.add_neighbour] try to add neighbour with a local label"
+        )
       | Gid.New _ -> Error.run ~loc "[Graph.add_neighbour] try to add neighbour node to a neighbour node" in
 
     if Gid_map.mem index graph.map
