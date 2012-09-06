@@ -63,7 +63,7 @@ module Rule = struct
   type pid = Pid.t
    
   (* the [gid] type is used for graph identifier *)
-  type gid = int
+  type gid = Gid.t
 
   (* the rewriting depth is bounded to stop rewriting when the system is not terminating *) 
   let max_depth = ref 500
@@ -280,8 +280,8 @@ module Rule = struct
   let a_match_add edge matching = {matching with a_match = edge::matching.a_match }
 
   let up_deco matching = 
-    { Deco.nodes = Pid_map.fold (fun _ gid acc -> gid::acc) matching.n_match [];
-      Deco.edges = List.fold_left (fun acc (_,edge) -> edge::acc) matching.a_match matching.e_match;
+    { G_deco.nodes = Pid_map.fold (fun _ gid acc -> gid::acc) matching.n_match [];
+      G_deco.edges = List.fold_left (fun acc (_,edge) -> edge::acc) matching.a_match matching.e_match;
     }
 
   let find cnode ?loc (matching, created_nodes) =
@@ -296,14 +296,14 @@ module Rule = struct
 
   let down_deco (matching,created_nodes) commands =
     {
-     Deco.nodes = List.fold_left
+     G_deco.nodes = List.fold_left
        (fun acc -> function
          | (Command.UPDATE_FEAT (tar_cn,_,_),loc)
          | (Command.SHIFT_EDGE (_,tar_cn),loc) -> 
              (find tar_cn (matching, created_nodes)) :: acc
          | _ -> acc
        ) [] commands;
-     Deco.edges = List.fold_left
+     G_deco.edges = List.fold_left
        (fun acc -> function 
          | (Command.ADD_EDGE (src_cn,tar_cn,edge),loc) ->  
              (find src_cn (matching, created_nodes), edge, find tar_cn (matching, created_nodes)) :: acc
@@ -364,7 +364,7 @@ module Rule = struct
         let gid = Pid_map.find pid matching.n_match in
         gid_map_exists (* should be Gid_map.exists with ocaml 3.12 *)
           (fun _ node ->
-            List.exists (fun e -> P_edge.compatible edge e) (Massoc.assoc gid (G_node.get_next node))
+            List.exists (fun e -> P_edge.compatible edge e) (Massoc_gid.assoc gid (G_node.get_next node))
           ) graph.G_graph.map
     | Feature_eq (pid1, feat_name1, pid2, feat_name2) ->
         let gnode1 = Gid_map.find (Pid_map.find pid1 matching.n_match) graph.G_graph.map in
@@ -393,7 +393,7 @@ module Rule = struct
               let src_gid = Pid_map.find src_pid partial.sub.n_match in
               let tar_gid = Pid_map.find tar_pid partial.sub.n_match in
               let src_gnode = G_graph.find src_gid graph in
-              let g_edges = Massoc.assoc tar_gid (G_node.get_next src_gnode) in
+              let g_edges = Massoc_gid.assoc tar_gid (G_node.get_next src_gnode) in
               
               match P_edge.match_list p_edge g_edges with
               | P_edge.Fail -> (* no good edge in graph for this pattern edge -> stop here *)
@@ -410,7 +410,7 @@ module Rule = struct
             let candidates = (* candidates (of type (gid, matching)) for m(tar_pid) = gid) with new partial matching m *)
               let src_gid = Pid_map.find src_pid partial.sub.n_match in
               let src_gnode = G_graph.find src_gid graph in
-              Massoc.fold_left 
+              Massoc_gid.fold
                 (fun acc gid_next g_edge ->
                   match P_edge.match_ p_edge g_edge with
                   | P_edge.Fail -> (* g_edge does not fit, no new candidate *)

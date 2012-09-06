@@ -4,7 +4,7 @@ open Grew_graph
 
 (**/**)
 type graph = G_graph.t
-type deco = Deco.t
+type deco = G_deco.t
 (**/**)
 
 type module_name = string

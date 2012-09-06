@@ -3,8 +3,8 @@ open Grew_utils
 open Grew_edge
 
 module Command : sig
-  type pid = int (* the int in the pattern *)
-  type gid = int (* the int in the graph *)
+  type pid = Pid.t
+  type gid = Gid.t
 
   type cnode =       (* a command node is either: *)
     | Pid of pid     (* a node identified in the pattern *)

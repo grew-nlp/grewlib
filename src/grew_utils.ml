@@ -104,28 +104,6 @@ module Pid_map =
 (* union of two maps*)
     let union_map m m' = fold (fun k v m'' -> (add k v m'')) m m'
 
-    exception MatchNotInjective
-
-(*
- * union of two injective maps having different ranges :
- * \forall x \neq y \in m: m(x) \neq m(y)
- * \forall x' \neq y' \in m': m'(x) \neq m'(y)W
- * \forall x \in m /\ m': m(x) = m'(x)
- * \forall x \in m : x \not\in\m' => \forall y \in m' m(x) \neq m'(y)
- *)
-    let union_if m m' = 
-      let keys_m = keys m in
-      let keys_m' = keys m' in
-      let inter_keys = IntSet.inter keys_m keys_m' in
-      if IntSet.for_all (fun elt -> (find elt m) = (find elt m')) inter_keys
-      then 
-        let keys_s_m' = IntSet.diff keys_m' inter_keys in
-        let range_m = range keys_m m in 
-        let range_m' = range keys_s_m' m' in
-        if (IntSet.inter range_m range_m') = IntSet.empty
-        then union_map m m'
-        else raise MatchNotInjective
-      else raise MatchNotInjective          
   end (* module Pid_map *)
 (* ================================================================================ *)
     
@@ -133,8 +111,15 @@ module Pid_map =
 
 (* ================================================================================ *)
 module Gid = struct
-  type t = int
+  type t =
+    | Old of int
+    | New of int * int (* identifier for "created nodes" *)
+
   let compare = Pervasives.compare
+
+  let to_string = function
+    | Old i -> sprintf "%d" i
+    | New (i,j) -> sprintf"%d__%d" i j
 end
 
 module Gid_map = Map.Make (Gid)
@@ -361,6 +346,141 @@ module List_ = struct
       )
 end
 
+module type OrderedType =
+  sig
+    type t
+    val compare: t -> t -> int
+  end
+
+
+module type S =
+  sig
+    type key
+
+    type +'a t
+
+    val empty: 'a t
+
+    (* an empty list returned if the key is undefined *) 
+    val assoc: key -> 'a t -> 'a list
+
+    val is_empty: 'a t -> bool
+
+    val to_string: ('a -> string) -> 'a t -> string
+
+    val iter: (key -> 'a -> unit) -> 'a t -> unit
+
+    val add: key -> 'a -> 'a t -> 'a t option
+
+    val fold: ('b -> key -> 'a -> 'b) -> 'b -> 'a t -> 'b
+
+    (* raise Not_found if no (key,elt) *)
+    val remove: key -> 'a -> 'a t -> 'a t
+
+    (* raise Not_found if no (key,elt) *)
+    val remove_key: key -> 'a t -> 'a t
+
+    (* [mem key value t ] test if the couple (key, value) is in the massoc [t]. *)
+    val mem: key -> 'a -> 'a t -> bool
+
+    (* mem_key key t] tests is [key] is associated to at least one value in [t]. *)
+    val mem_key: key -> 'a t -> bool
+
+    exception Not_disjoint
+    val disjoint_union: 'a t -> 'a t -> 'a t 
+
+    exception Duplicate
+    val merge_key: key -> key -> 'a t -> 'a t
+
+    val exists: (key -> 'a -> bool) -> 'a t -> bool
+  end
+
+
+module Massoc_make (Ord: OrderedType) = struct
+  module M = Map.Make (Ord)
+
+  type key = Ord.t
+
+  type 'a t = ('a list) M.t
+
+  let empty = M.empty
+
+  let is_empty t = (t=empty)
+
+  let assoc key t = 
+    try M.find key t 
+    with Not_found -> []
+
+  let to_string _ _ = failwith "Not implemted" 
+
+  let iter fct t =
+    M.iter 
+      (fun key list -> List.iter (fun elt -> fct key elt) list
+      ) t
+
+  let add key elt t = 
+    try
+      let list = M.find key t in
+      match List_.usort_insert elt list with 
+        | Some l -> Some (M.add key l t)
+        | None -> None
+    with Not_found -> Some (M.add key [elt] t)
+
+  let fold fct init t =
+    M.fold
+      (fun key list acc ->
+        List.fold_left 
+          (fun acc2 elt ->
+            fct acc2 key elt)
+          acc list)
+      t init
+      
+  (* Not found raised in the value is not defined *)
+  let remove key value t =
+    match M.find key t with
+      | [one] when one=value -> M.remove key t
+      | old -> M.add key (List_.usort_remove value old) t
+
+  let rec remove_key key t = M.remove key t
+
+  let rec mem key value t =
+    try List_.sort_mem value (M.find key t)
+    with Not_found -> false
+
+  let rec mem_key key t = M.mem key t
+
+  exception Not_disjoint
+
+  let disjoint_union t1 t2 =
+    M.fold 
+      (fun key list acc ->
+        try 
+          let old = M.find key acc in
+          M.add key (List_.sort_disjoint_union list old) acc
+        with
+          | Not_found -> M.add key list acc
+          | List_.Not_disjoint -> raise Not_disjoint
+      ) t1 t2
+
+  exception Duplicate
+    
+  let merge_key i j t =
+    try
+      let old_i = M.find i t in
+      let old_j = try M.find j t with Not_found -> [] in
+      M.add j (List_.sort_disjoint_union old_i old_j) (M.remove i t)
+    with 
+      | Not_found -> (* no key i *) t
+      | List_.Not_disjoint -> raise Duplicate
+
+  let exists fct t =
+    M.exists
+      (fun key list ->
+        List.exists (fun elt -> fct key elt) list
+      ) t
+end (* module Massoc_make *)
+
+module Massoc_gid = Massoc_make (Gid)
 
 module Massoc = struct
   (* Massoc is implemented with caml lists *)
@@ -458,7 +578,7 @@ module Massoc = struct
 
 
   let exists fct t = List.exists (fun (key,list) -> List.exists (fun value -> fct key value) list) t
-end
+end (* module Massoc *)
 
 module Error = struct
 
@@ -477,8 +597,6 @@ module Error = struct
   let bug_ ?loc message = raise (Bug (message, loc))
   let bug ?loc = Printf.ksprintf (bug_ ?loc)
 end
-
-
 
 module Id = struct
   type name = string

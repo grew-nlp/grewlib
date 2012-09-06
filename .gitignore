@@ -1,0 +1,13 @@
+*.cmo
+*.cmi
+*.o
+*.cmx
+*.annot
+*.a
+*.cma
+*.cmxa
+Makefile
+
+confdefs.h
+config.log
+config.status

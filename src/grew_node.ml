@@ -10,7 +10,7 @@ module G_node = struct
   type t = {
       fs: G_fs.t;
       pos: int option;
-      next: G_edge.t Massoc.t;
+      next: G_edge.t Massoc_gid.t;
     }
 
   let get_fs t = t.fs
@@ -18,12 +18,12 @@ module G_node = struct
 
   let set_fs t fs = {t with fs = fs}
 
-  let empty = { fs = G_fs.empty; pos = None; next = Massoc.empty }
+  let empty = { fs = G_fs.empty; pos = None; next = Massoc_gid.empty }
 
   let to_string t = 
     Printf.sprintf "  fs=[%s]\n  next=%s\n" 
       (G_fs.to_string t.fs)
-      (Massoc.to_string G_edge.to_string t.next)
+      (Massoc_gid.to_string G_edge.to_string t.next)
 
   let to_gr t = 
     sprintf "%s [%s] " 
@@ -31,7 +31,7 @@ module G_node = struct
       (G_fs.to_gr t.fs)
 
   let add_edge g_edge gid_tar t =
-    match Massoc.add gid_tar g_edge t.next with
+    match Massoc_gid.add gid_tar g_edge t.next with
     | Some l -> Some {t with next = l}
     | None -> None
 
@@ -39,30 +39,30 @@ module G_node = struct
     (ast_node.Ast.node_id, 
      { fs = G_fs.build ast_node.Ast.fs;
        pos = ast_node.Ast.position;
-       next = Massoc.empty;
+       next = Massoc_gid.empty;
      } )
 
   let of_conll line = {
       fs = G_fs.of_conll line;
       pos = Some line.Conll.num;
-      next = Massoc.empty;
+      next = Massoc_gid.empty;
     }
     
     
-  let remove id_tar label t = {t with next = Massoc.remove id_tar label t.next}
+  let remove (id_tar : Gid.t) label t = {t with next = Massoc_gid.remove id_tar label t.next}
       
   let remove_key node_id t = 
-    try {t with next = Massoc.remove_key node_id t.next} with Not_found -> t
+    try {t with next = Massoc_gid.remove_key node_id t.next} with Not_found -> t
 
   let merge_key ?(strict=false) src_id tar_id t = 
-    try Some {t with next = Massoc.merge_key src_id tar_id t.next}
-    with Massoc.Duplicate -> if strict then None else Some t
+    try Some {t with next = Massoc_gid.merge_key src_id tar_id t.next}
+    with Massoc_gid.Duplicate -> if strict then None else Some t
 
   let shift_out ?(strict=false) src_t tar_t = 
-    try Some {tar_t with next = Massoc.disjoint_union src_t.next tar_t.next}
-    with Massoc.Not_disjoint -> if strict then None else Some tar_t
+    try Some {tar_t with next = Massoc_gid.disjoint_union src_t.next tar_t.next}
+    with Massoc_gid.Not_disjoint -> if strict then None else Some tar_t
 
-  let rm_out_edges t = {t with next = Massoc.empty}
+  let rm_out_edges t = {t with next = Massoc_gid.empty}
 
 
   let build_neighbour t = {empty with pos = match t.pos with Some x -> Some (x+1) | None -> None}

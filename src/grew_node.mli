@@ -13,21 +13,21 @@ module G_node: sig
   val to_gr: t -> string
 
   val get_fs: t -> G_fs.t
-  val get_next: t -> G_edge.t Massoc.t
+  val get_next: t -> G_edge.t Massoc_gid.t
 
   val set_fs: t -> G_fs.t -> t
 
 (* FIXME move Gid up and replace int by Gid.t *) 
-  val remove: int -> G_edge.t -> t -> t 
+  val remove: Gid.t -> G_edge.t -> t -> t 
 
-  val remove_key: int -> t -> t 
+  val remove_key: Gid.t -> t -> t 
 
-  val merge_key: ?strict:bool -> int -> int -> t -> t option
+  val merge_key: ?strict:bool -> Gid.t -> Gid.t -> t -> t option
   val shift_out: ?strict:bool -> t -> t -> t option
 
   val rm_out_edges: t -> t
 
-  val add_edge: G_edge.t -> int -> t -> t option
+  val add_edge: G_edge.t -> Gid.t -> t -> t option
   val build: Ast.node -> (Id.name * t)
   val of_conll: Conll.line -> t
 

@@ -40,14 +40,19 @@ module Pid : sig type t = int end
 (* [Pid_map] is the map used in pattern graphs *)
 module Pid_map : sig
   include Map.S with type key = int
-  exception MatchNotInjective
+
   val exists: (key -> 'a -> bool) -> 'a t -> bool
-  val union_if: int t -> int t -> int t
 end
 
 (* ================================================================================ *)
 (* [Gid] describes identifier used in full graphs *)
-module Gid : sig type t = int end
+module Gid : sig
+  type t = 
+    | Old of int
+    | New of int * int (* identifier for "created nodes" *)
+
+  val to_string: t -> string
+end
 
 (* ================================================================================ *)
 (* [Gid_map] is the map used in full graphs *)
@@ -124,6 +129,67 @@ module List_: sig
   val foldi_left: (int -> 'a -> 'b -> 'a) -> 'a -> 'b list -> 'a
 end
 
+module type OrderedType =
+  sig
+    type t
+      (** The type of the map keys. *)
+    val compare : t -> t -> int
+      (** A total ordering function over the keys.
+          This is a two-argument function [f] such that
+          [f e1 e2] is zero if the keys [e1] and [e2] are equal,
+          [f e1 e2] is strictly negative if [e1] is smaller than [e2],
+          and [f e1 e2] is strictly positive if [e1] is greater than [e2].
+          Example: a suitable ordering function is the generic structural
+          comparison function {!Pervasives.compare}. *)
+  end
+(** Input signature of the functor {!Map.Make}. *)
+
+
+module type S =
+  sig
+    type key
+    
+    type +'a t
+
+    val empty: 'a t
+
+    (* an empty list returned if the key is undefined *) 
+    val assoc: key -> 'a t -> 'a list
+
+    val is_empty: 'a t -> bool
+
+    val to_string: ('a -> string) -> 'a t -> string
+
+    val iter: (key -> 'a -> unit) -> 'a t -> unit
+
+    val add: key -> 'a -> 'a t -> 'a t option
+
+    val fold: ('b -> key -> 'a -> 'b) -> 'b -> 'a t -> 'b
+
+    (* raise Not_found if no (key,elt) *)
+    val remove: key -> 'a -> 'a t -> 'a t
+
+    (* raise Not_found if no (key,elt) *)
+    val remove_key: key -> 'a t -> 'a t
+
+    (* [mem key value t ] test if the couple (key, value) is in the massoc [t]. *)
+    val mem: key -> 'a -> 'a t -> bool
+
+    (* mem_key key t] tests is [key] is associated to at least one value in [t]. *)
+    val mem_key: key -> 'a t -> bool
+
+    exception Not_disjoint
+    val disjoint_union: 'a t -> 'a t -> 'a t 
+
+    exception Duplicate
+    val merge_key: key -> key -> 'a t -> 'a t
+
+    val exists: (key -> 'a -> bool) -> 'a t -> bool
+  end
+
+
+module Massoc_make (Ord : OrderedType) : S with type key = Ord.t
+
 (* ================================================================================ *)
 (* module Massoc implements multi-association data: keys are (hardly coded as) int and the same key can be
 associated with a set of values *)
@@ -147,7 +213,7 @@ module Massoc: sig
 
   (* raise Not_found if no (key,elt) *)
   val remove: int -> 'a -> 'a t -> 'a t
-      
+
   (* raise Not_found if no (key,elt) *)
   val remove_key: int -> 'a t -> 'a t
 
@@ -166,6 +232,7 @@ module Massoc: sig
   val exists: (int -> 'a -> bool) -> 'a t -> bool
 end
     
+module Massoc_gid : S with type key = Gid.t
 
 
 module Error: sig
@@ -210,7 +277,7 @@ module Conll: sig
     gov: int;
     dep_lab: string;
   }
-        
+  
   val load: string -> line list
 end
 

@@ -1,14 +1,14 @@
 open Grew_graph
 
 type graph = G_graph.t
-type deco = Deco.t
+type deco = G_deco.t
 
 type module_name = string
 
 type rule_app = {
     rule_name: string;
-    up: Deco.t;
-    down: Deco.t;
+    up: G_deco.t;
+    down: G_deco.t;
   }
 
 (* the main type for display the result of a rewriting *)
@@ -24,6 +24,6 @@ and big_step = {
     small_step: (G_graph.t * rule_app) list;
   }
 
-let to_dot_graph ?main_feat ?(deco=Deco.empty) graph = G_graph.to_dot ?main_feat graph ~deco
-let to_dep_graph ?main_feat ?(deco=Deco.empty) graph = G_graph.to_dep ?main_feat ~deco graph
+let to_dot_graph ?main_feat ?(deco=G_deco.empty) graph = G_graph.to_dot ?main_feat graph ~deco
+let to_dep_graph ?main_feat ?(deco=G_deco.empty) graph = G_graph.to_dep ?main_feat ~deco graph
 let to_gr_graph graph = G_graph.to_gr graph 

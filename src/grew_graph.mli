@@ -5,14 +5,29 @@ open Grew_node
 open Grew_utils
 open Grew_command
 
-module Deco: sig
-  type t = 
-      { nodes: int list;
-	edges: (int * Label.t * int) list;
+(* ================================================================================ *)
+module P_deco: sig
+  type t =
+      { nodes: Pid.t list;
+	edges: (Pid.t * P_edge.t * Pid.t) list;
       }
+
   val empty:t
 end
+(* ================================================================================ *)
 
+(* ================================================================================ *)
+module G_deco: sig
+  type t =
+      { nodes: Gid.t list;
+	edges: (Gid.t * G_edge.t * Gid.t) list;
+      }
+
+  val empty:t
+end
+(* ================================================================================ *)
+
+(* ================================================================================ *)
 module P_graph: sig
   type t = P_node.t Pid_map.t
 
@@ -41,6 +56,7 @@ module P_graph: sig
   val roots: t -> Pid.t list
 
 end
+(* ================================================================================ *)
 
 
 
@@ -64,37 +80,37 @@ module G_graph: sig
   val of_conll: ?loc:Loc.t -> Conll.line list -> t
 
   val to_gr: t -> string
-  val to_dot: ?main_feat:string -> ?deco:Deco.t -> t -> string
+  val to_dot: ?main_feat:string -> ?deco:G_deco.t -> t -> string
   val to_sentence: ?main_feat:string -> t -> string
-  val to_dep: ?main_feat:string -> ?deco:Deco.t -> t -> string
+  val to_dep: ?main_feat:string -> ?deco:G_deco.t -> t -> string
 
 
   type concat_item =
     | Feat of (Gid.t * string)
     | String of string
 
-  val add_edge: t -> int -> G_edge.t -> int -> t option
-  val del_edge : ?edge_ident: string -> Loc.t -> t -> int -> G_edge.t -> int -> t
-  val del_node : t -> int -> t
+  val add_edge: t -> Gid.t -> G_edge.t -> Gid.t -> t option
+  val del_edge : ?edge_ident: string -> Loc.t -> t -> Gid.t -> G_edge.t -> Gid.t -> t
+  val del_node : t -> Gid.t -> t
 
-  val add_neighbour : Loc.t -> t -> int -> G_edge.t -> (int * t) 
-  val merge_node : Loc.t -> t -> int -> int -> t option
+  val add_neighbour : Loc.t -> t -> Gid.t -> G_edge.t -> (Gid.t * t) 
+  val merge_node : Loc.t -> t -> Gid.t -> Gid.t -> t option
 
-  val shift_in : Loc.t -> t -> int -> int -> t
-  val shift_out : Loc.t -> t -> int -> int -> t
-  val shift_edges : Loc.t -> t -> int -> int -> t
+  val shift_in : Loc.t -> t -> Gid.t -> Gid.t -> t
+  val shift_out : Loc.t -> t -> Gid.t -> Gid.t -> t
+  val shift_edges : Loc.t -> t -> Gid.t -> Gid.t -> t
 
   (** [update_feat tar_id tar_feat_name concat_items] sets the feature of the node [tar_id] 
       with feature name [tar_feat_name] to be the contatenation of values described by the [concat_items].
       It returns both the new graph and the new feature value produced as the second element *)
-  val update_feat: ?loc:Loc.t -> t -> int -> string -> concat_item list -> (t * string)
+  val update_feat: ?loc:Loc.t -> t -> Gid.t -> string -> concat_item list -> (t * string)
 
-  val set_feat: ?loc:Loc.t -> t -> int -> string -> string -> t
+  val set_feat: ?loc:Loc.t -> t -> Gid.t -> string -> string -> t
 
-  val del_feat: t -> int -> string -> t
+  val del_feat: t -> Gid.t -> string -> t
 
   (** [edge_out t id edge] returns true iff there is an out-edge from the node [id] with a label compatible with [edge] *)
-  val edge_out: t -> int -> P_edge.t -> bool
+  val edge_out: t -> Gid.t -> P_edge.t -> bool
 
   val equals: t -> t -> bool
 
