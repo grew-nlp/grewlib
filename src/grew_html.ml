@@ -447,7 +447,7 @@ module Html = struct
     bprintf buff "Sentences -- <a href=\"index.html\">Rewriting stats</a> -- <a href=\"doc/index.html\">GRS documentation</a>\n";
     bprintf buff "<h2>Sentences list</h2>\n";
 
-    bprintf buff "<center><table cellpadding=3 cellspacing=0 width=95%>\n";
+    bprintf buff "<center><table cellpadding=3 cellspacing=0 width=95%%>\n";
     bprintf buff "<tr><th class=\"first\">Number of normal forms</th><th>Sentence</th></tr>\n";
 
     List.iter
