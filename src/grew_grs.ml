@@ -28,10 +28,6 @@ module Rewrite_history = struct
     | { good_nf = l} -> List.fold_left (fun acc t -> acc + (num_sol t)) 0 l
 
 
-  (** [save_nfs ?main_feat base_name t] does two things:
-      - write PNG files of normal forms
-      - returns a list of couples (rules, file)
-  *)
   let save_nfs ?main_feat ~dot base_name t =
     let rec loop file_name rules t =
       match (t.good_nf, t.bad_nf) with
@@ -52,36 +48,6 @@ module Rewrite_history = struct
     in loop base_name [] t
 
 
-  let error_html ?main_feat ?(dot=false) ?(init_graph=true) ?header prefix msg inst_opt =
-    (* remove files from previous runs *)
-    let _ = Unix.system (sprintf "rm -f %s*.html" prefix) in
-    let _ = Unix.system (sprintf "rm -f %s*.dep" prefix) in
-    let _ = Unix.system (sprintf "rm -f %s*.png" prefix) in
-
-    (match inst_opt, init_graph with
-      | (Some inst, true) when dot -> Instance.save_dot_png ?main_feat prefix inst
-      | (Some inst, true) -> Instance.save_dep_png ?main_feat prefix inst
-      | _ -> ()
-    );
-
-    let local = Filename.basename prefix in
-
-    (* All normal forms view *)
-    let html_ch = open_out (sprintf "%s.html" prefix) in
-
-    let title = sprintf "Sentence: %s --- ERROR" local in
-    let () = Html.enter html_ch ~title ?header prefix in
-
-    if init_graph
-    then
-      begin
-        fprintf html_ch "<h6>Initial graph</h6>\n";
-        fprintf html_ch "<div width=100%% style=\"overflow-x:auto\"><IMG SRC=\"%s.png\"></div>\n" local
-      end;
-    fprintf html_ch "<h2>ERROR: %s</h2>\n" msg;
-    Html.leave html_ch;
-    close_out html_ch
-
   let save_gr base t =
     let rec loop file_name t =
       match (t.good_nf, t.bad_nf) with
@@ -89,78 +55,6 @@ module Rewrite_history = struct
         | l, _ -> List_.iteri (fun i son -> loop (sprintf "%s_%d" file_name i) son) l
     in loop base t
 
-  let save_html ?main_feat ?(dot=false) ?(init_graph=true) ?(out_gr=false)  ?header ~graph_file prefix t =
-    (* remove files from previous runs *)
-    let _ = Unix.system (sprintf "rm -f %s*.html" prefix) in
-    let _ = Unix.system (sprintf "rm -f %s*.dep" prefix) in
-    let _ = Unix.system (sprintf "rm -f %s*.png" prefix) in
-
-    (if init_graph then Instance.save_dep_png ?main_feat prefix t.instance);
-
-    let nf_files = save_nfs ?main_feat ~dot prefix t in
-
-    let l = List.length nf_files in
-
-    let local = Filename.basename prefix in
-
-    (* All normal forms view *)
-    let html_ch = open_out (sprintf "%s.html" prefix) in
-
-    let title = sprintf "Sentence: %s --- %d Normal form%s" local l (if l>1 then "s" else "") in
-    let () = Html.enter html_ch ~title ?header prefix in
-
-    fprintf html_ch "<b>Input file</b>: <a href=\"%s\">%s</a><br/>\n"
-      graph_file (Filename.basename graph_file);
-
-    fprintf html_ch "<b>Input sentence</b>: <font color=\"green\"><i>%s</i></font></p><br/>\n"
-      (G_graph.to_sentence ?main_feat t.instance.Instance.graph);
-
-    if init_graph
-    then
-      begin
-        fprintf html_ch "<h6>Initial graph</h6>\n";
-        fprintf html_ch "<div width=100%% style=\"overflow-x:auto\"><IMG SRC=\"%s.png\"></div>\n" local
-      end;
-
-
-    List_.iteri
-      (fun i (rules_list,file_name) ->
-        fprintf html_ch "<h6>Solution %d</h6>\n" (i+1);
-
-        let local_name = Filename.basename file_name in
-
-        if out_gr
-        then fprintf html_ch "<p><a href=\"%s.gr\">gr file</a>\n" local_name;
-
-        (* the png file *)
-        fprintf html_ch "<div width=100%% style=\"overflow-x:auto\"><IMG SRC=\"%s.png\"></div>\n" local_name;
-
-        (* the modules list *)
-        fprintf html_ch "<b>Modules applied</b>: %d<br/>\n" (List.length rules_list);
-
-        let id = sprintf "id_%d" (i+1) in
-
-        fprintf html_ch "<a style=\"cursor:pointer;\"\n";
-        fprintf html_ch "  onClick=\"if (document.getElementById('%s').style.display == 'none')\n" id;
-        fprintf html_ch "      { document.getElementById('%s').style.display = 'block'; document.getElementById('p_%s').innerHTML = 'Hide applied rules'; }\n" id id;
-        fprintf html_ch " else { document.getElementById('%s').style.display = 'none';; document.getElementById('p_%s').innerHTML = 'Show applied rules'; }\">" id id;
-        fprintf html_ch "         <b><p id=\"p_%s\">Show applied rules</p></b>\n" id;
-        fprintf html_ch "</a>\n";
-
-        fprintf html_ch " <div id=\"%s\" style=\"display:none;\">\n" id;
-
-        List.iter
-          (fun (mod_name,rules) ->
-            fprintf html_ch "<p><b><font color=\"red\">%s: </font></b><font color=\"green\">%s</font></p>\n"
-              mod_name
-              (List_.to_string (fun x -> x) ", " rules);
-          )
-          rules_list;
-        fprintf html_ch " </div>\n"
-
-      ) nf_files;
-    Html.leave html_ch;
-    close_out html_ch
 end
 
 

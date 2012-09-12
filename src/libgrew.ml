@@ -34,7 +34,7 @@ let set_timeout t = Timeout.timeout := t
 
 IFDEF DEP2PICT THEN
 let build_doc file dir grs_ast grs =
-  Html.proceed ~dep:true file dir grs_ast;
+  Html_doc.build ~dep:true file dir grs_ast;
   
   (* draw pattern graphs for all rules and all filters *)
   let fct module_ rule_ = 
@@ -45,7 +45,7 @@ let build_doc file dir grs_ast grs =
   Grs.filter_iter fct grs
 ELSE
 let build_doc file dir grs_ast grs =
-  Html.proceed ~dep:false file dir grs_ast
+  Html_doc.build ~dep:false file dir grs_ast
 END
 
 let load_grs ?doc_output_dir file =
@@ -155,7 +155,7 @@ let write_html
     rew_hist
     output_base =
   ignore (
-  Rewrite_history.save_html 
+  Html_rh.build
     ?main_feat
     ?dot
     ~out_gr
@@ -174,7 +174,7 @@ let error_html
     ?init
     output_base =
   ignore (
-  Rewrite_history.error_html 
+  Html_rh.error
     ?main_feat
     ?dot
     ~init_graph: (not no_init)
@@ -191,7 +191,7 @@ let make_index ~title ~grs_file ~html ~grs ~seq ~input_dir ~output_dir ~base_nam
       ) init base_names in
   Corpus_stat.save_html title grs_file input_dir output_dir corpus_stat
 
-let html_sentences = Html.html_sentences
+let html_sentences = Html_sentences.build
 
 let get_css_file = Filename.concat DATA_DIR "style.css"
 

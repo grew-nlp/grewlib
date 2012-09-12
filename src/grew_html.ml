@@ -3,11 +3,12 @@ open Log
 
 open Grew_utils
 open Grew_ast
+open Grew_graph
 open Grew_rule
 open Grew_grs
 
 
-let header ?title buff =
+let html_header ?title buff =
   let wnl fmt = Printf.ksprintf (fun x -> Printf.bprintf buff "%s\n" x) fmt in
 
   wnl "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\">";
@@ -161,7 +162,7 @@ module Html_doc = struct
     let w fmt  = Printf.ksprintf (fun x -> Printf.bprintf buff "%s" x) fmt in
 
     let title = sprintf "Grew -- Module %s" module_.Ast.module_id in
-    header ~title buff;
+    html_header ~title buff;
 
     wnl "  <body>";
     wnl "    <div class=\"navbar\">";
@@ -196,7 +197,7 @@ module Html_doc = struct
     let w fmt  = Printf.ksprintf (fun x -> Printf.bprintf buff "%s" x) fmt in
 
     let title = sprintf "Grew -- Rule %s/%s" mid rid in
-    header ~title buff;
+    html_header ~title buff;
 
     wnl "  <body>";
     wnl "    <div class=\"navbar\">";
@@ -266,7 +267,7 @@ module Html_doc = struct
     let wnl fmt = Printf.ksprintf (fun x -> Printf.bprintf buff "%s\n" x) fmt in
 
     let title = sprintf "Grew -- List of sequences" in
-    header ~title buff;
+    html_header ~title buff;
 
     wnl "  <body>";
     wnl "  <div class=\"navbar\">&nbsp;<a href=\"index.html\">Up</a></div>";
@@ -292,7 +293,7 @@ module Html_doc = struct
     let wnl fmt = Printf.ksprintf (fun x -> Printf.bprintf buff "%s\n" x) fmt in
 
     let title = sprintf "Grew -- Index of modules" in
-    header ~title buff;
+    html_header ~title buff;
 
     wnl "  <body>";
     wnl "  <div class=\"navbar\">&nbsp;<a href=\"index.html\">Up</a></div>";
@@ -323,7 +324,7 @@ module Html_doc = struct
     let w fmt = Printf.ksprintf (fun x -> Printf.bprintf buff "%s" x) fmt in
 
     let title = sprintf "Grew -- Features domain" in
-    header ~title buff;
+    html_header ~title buff;
 
     wnl "  <body>";
     wnl "  <div class=\"navbar\">&nbsp;<a href=\"index.html\">Up</a></div>";
@@ -368,7 +369,7 @@ module Html_doc = struct
     let wnl fmt = Printf.ksprintf (fun x -> Printf.bprintf buff "%s\n" x) fmt in
 
     let title = sprintf "Grew -- Graph Rewriting System: %s" (Filename.basename file) in
-    header ~title buff;
+    html_header ~title buff;
 
     wnl "  <body>";
     wnl "<a href=\"../sentences.html\">Sentences</a> -- <a href=\"../index.html\">Rewriting stats</a> -- GRS documentation";
@@ -450,29 +451,165 @@ module Html_doc = struct
     done
 end
 
+module Html_rh = struct
+  let build ?main_feat ?(dot=false) ?(init_graph=true) ?(out_gr=false) ?header ~graph_file prefix t =
+
+    (* remove files from previous runs *)
+    let _ = Unix.system (sprintf "rm -f %s*.html" prefix) in
+    let _ = Unix.system (sprintf "rm -f %s*.dep" prefix) in
+    let _ = Unix.system (sprintf "rm -f %s*.png" prefix) in
+
+    (if init_graph then Instance.save_dep_png ?main_feat prefix t.Rewrite_history.instance);
+
+    let nf_files = Rewrite_history.save_nfs ?main_feat ~dot prefix t in
+
+    let l = List.length nf_files in
+
+    let local = Filename.basename prefix in
+
+    let buff = Buffer.create 32 in
+    let wnl fmt = Printf.ksprintf (fun x -> Printf.bprintf buff "%s\n" x) fmt in
+
+    let title = sprintf "Sentence: %s --- %d Normal form%s" local l (if l>1 then "s" else "") in
+    html_header ~title buff;
+
+    wnl "<body>";
+    wnl "<a href=\"sentences.html\">Sentences</a> -- <a href=\"index.html\">Rewriting stats</a> -- <a href=\"doc/index.html\">GRS documentation</a>";
+
+    wnl "<h1>%s</h1>" title;
+
+    begin
+      match header with
+        | Some h -> wnl "%s</br>" h
+        | None -> ()
+    end;
+
+    wnl "<b>Input file</b>: <a href=\"%s\">%s</a><br/>"
+      graph_file (Filename.basename graph_file);
+
+    wnl "<b>Input sentence</b>: <font color=\"green\"><i>%s</i></font></p><br/>"
+      (G_graph.to_sentence ?main_feat t.Rewrite_history.instance.Instance.graph);
+
+    if init_graph
+    then
+      begin
+        wnl "<h6>Initial graph</h6>";
+        wnl "<div width=100%% style=\"overflow-x:auto\"><IMG SRC=\"%s.png\"></div>" local
+      end;
+
+    List_.iteri
+      (fun i (rules_list,file_name) ->
+        wnl "<h6>Solution %d</h6>" (i+1);
+
+        let local_name = Filename.basename file_name in
+
+        if out_gr
+        then wnl "<p><a href=\"%s.gr\">gr file</a>" local_name;
+
+        (* the png file *)
+        wnl "<div width=100%% style=\"overflow-x:auto\"><IMG SRC=\"%s.png\"></div>" local_name;
+
+        (* the modules list *)
+        wnl "<b>Modules applied</b>: %d<br/>" (List.length rules_list);
+
+        let id = sprintf "id_%d" (i+1) in
+
+        wnl "<a style=\"cursor:pointer;\"";
+        wnl "  onClick=\"if (document.getElementById('%s').style.display == 'none')" id;
+        wnl "      { document.getElementById('%s').style.display = 'block'; document.getElementById('p_%s').innerHTML = 'Hide applied rules'; }" id id;
+        wnl " else { document.getElementById('%s').style.display = 'none';; document.getElementById('p_%s').innerHTML = 'Show applied rules'; }\">" id id;
+        wnl "         <b><p id=\"p_%s\">Show applied rules</p></b>" id;
+        wnl "</a>";
+
+        wnl " <div id=\"%s\" style=\"display:none;\">" id;
+
+        List.iter
+          (fun (mod_name,rules) ->
+            wnl "<p><b><font color=\"red\">%s: </font></b><font color=\"green\">%s</font></p>"
+              mod_name
+              (List_.to_string (fun x -> x) ", " rules);
+          )
+          rules_list;
+        wnl " </div>"
+
+      ) nf_files;
+
+    wnl "</body>";
+    wnl "</html>";
+
+    let out_ch = open_out (sprintf "%s.html" prefix) in
+    fprintf out_ch "%s" (Buffer.contents buff);
+    close_out out_ch
+
+
+
+  let error ?main_feat ?(dot=false) ?(init_graph=true) ?header prefix msg inst_opt =
+    (* remove files from previous runs *)
+    let _ = Unix.system (sprintf "rm -f %s*.html" prefix) in
+    let _ = Unix.system (sprintf "rm -f %s*.dep" prefix) in
+    let _ = Unix.system (sprintf "rm -f %s*.png" prefix) in
+
+    (match inst_opt, init_graph with
+      | (Some inst, true) when dot -> Instance.save_dot_png ?main_feat prefix inst
+      | (Some inst, true) -> Instance.save_dep_png ?main_feat prefix inst
+      | _ -> ()
+    );
+
+    let local = Filename.basename prefix in
+
+    let buff = Buffer.create 32 in
+    let wnl fmt = Printf.ksprintf (fun x -> Printf.bprintf buff "%s\n" x) fmt in
+
+    let title = sprintf "Sentence: %s --- ERROR" local in
+    html_header ~title buff;
+
+    wnl "<body>";
+    wnl "<a href=\"sentences.html\">Sentences</a> -- <a href=\"index.html\">Rewriting stats</a> -- <a href=\"doc/index.html\">GRS documentation</a>";
+
+    wnl "<h1>%s</h1>" title;
+
+    if init_graph
+    then
+      begin
+        wnl "<h6>Initial graph</h6>";
+        wnl "<div width=100%% style=\"overflow-x:auto\"><IMG SRC=\"%s.png\"></div>" local
+      end;
+
+    wnl "<h2>ERROR: %s</h2>" msg;
+    wnl "</body>\n</html>";
+
+    let out_ch = open_out (sprintf "%s.html" prefix) in
+    fprintf out_ch "%s" (Buffer.contents buff);
+    close_out out_ch
+end
+
 module Html_sentences = struct
   let build output_dir sentences =
     let buff = Buffer.create 32 in
-    header ~title:"Sentence list" buff;
+    let wnl fmt = Printf.ksprintf (fun x -> Printf.bprintf buff "%s\n" x) fmt in
 
-    bprintf buff "  <body>";
-    bprintf buff "Sentences -- <a href=\"index.html\">Rewriting stats</a> -- <a href=\"doc/index.html\">GRS documentation</a>\n";
-    bprintf buff "<h2>Sentences list</h2>\n";
+    html_header ~title:"Sentence list" buff;
 
-    bprintf buff "<center><table cellpadding=3 cellspacing=0 width=\"95%%\">\n";
-    bprintf buff "<tr><th class=\"first\">Number of normal forms</th><th>Sentence</th></tr>\n";
+    wnl "  <body>";
+    wnl "Sentences -- <a href=\"index.html\">Rewriting stats</a> -- <a href=\"doc/index.html\">GRS documentation</a>";
+    wnl "<h2>Sentences list</h2>";
+
+    wnl "<center><table cellpadding=3 cellspacing=0 width=\"95%%\">";
+    wnl "<tr><th class=\"first\">Number of normal forms</th><th>Sentence</th></tr>";
 
     List.iter
       (fun (base_name_opt, amb, sentence) ->
-        bprintf buff "<tr>\n";
-        bprintf buff "    <td class=\"first_stats\">%d</td>\n" amb;
+        wnl "<tr>";
+        wnl "    <td class=\"first_stats\">%d</td>" amb;
         (match base_name_opt with
-          | Some base_name -> bprintf buff "  <td class=\"stats\"><a href=\"%s.html\">%s</a></td>\n" base_name sentence
-          | None -> bprintf buff "  <td class=\"stats\">%s</td>\n" sentence);
-        bprintf buff "</tr>\n";
+          | Some base_name -> wnl "  <td class=\"stats\"><a href=\"%s.html\">%s</a></td>" base_name sentence
+          | None -> wnl "  <td class=\"stats\">%s</td>" sentence);
+        wnl "</tr>";
       ) sentences;
 
-    bprintf buff "</table></center>\n";
+    wnl "</table></center>";
+    wnl "</body>";
+    wnl "</html>";
 
     let out_ch = open_out (Filename.concat output_dir "sentences.html") in
     fprintf out_ch "%s" (Buffer.contents buff);

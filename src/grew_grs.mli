@@ -15,26 +15,16 @@ module Rewrite_history: sig
 
   val num_sol: t -> int
     
-  val error_html: 
+  (** [save_nfs ?main_feat base_name t] does two things:
+      - write PNG files of normal forms
+      - returns a list of couples (rules, file)
+  *)
+  val save_nfs:
     ?main_feat: string -> 
-    ?dot: bool ->
-    ?init_graph:bool -> 
-    ?header:string -> 
-    string -> 
-    string -> 
-    Instance.t option -> 
-    unit
-
-  val save_html: 
-    ?main_feat: string -> 
-    ?dot: bool ->
-    ?init_graph:bool -> 
-    ?out_gr:bool -> 
-    ?header:string -> 
-    graph_file:string -> 
+    dot: bool ->
     string -> 
     t -> 
-    unit
+    ((string * string list) list * string) list
 
   val save_gr: string -> t -> unit
 end
