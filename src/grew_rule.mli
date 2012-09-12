@@ -7,36 +7,34 @@ open Grew_ast
 
 module Instance : sig
   type t = {
-      graph: G_graph.t;
-      commands: Command.h list;
-      rules: string list;
-      big_step: Grew_types.big_step option;
-    }
+    graph: G_graph.t;
+    history: Command.h list;
+    rules: string list;
+    big_step: Grew_types.big_step option;
+    free_index: int;
+    activated_node: Gid.t list;
+  }
 
-  val empty:t
+  (** [from_graph graph] return a fresh instance based on the input [graph]. *)
+  val from_graph: G_graph.t -> t
 
-  val build: Ast.gr -> t	
-
-  val of_conll: ?loc:Loc.t -> Conll.line list -> t
-
-  (* rev_steps reverse the small step list: during rewriting, the last rule is in the head of the list and the reverse is needed for display *)
+  (** [rev_steps t] reverses the small step list: during rewriting, the last rule
+      is in the head of the list and the reverse is needed for display. *)
   val rev_steps: t -> t
 
-  val clear: t -> t
-  val from_graph: G_graph.t -> t
-  val get_graph: t -> G_graph.t
+  (** [flatten inst] returns a fresh representation of the graph where gid created by node
+      activation are map to basic gid. Graphs are flattened after each moduke. *)
+  val flatten: t -> t
 
+  (** [to_gr t] returns a string which contains the "gr" code of the current graph *)
   val to_gr: t -> string
 
-  (* [save_dep_png base t] writes a file "base.png" with the dep representation of [t].
+  (** [save_dep_png base t] writes a file "base.png" with the dep representation of [t].
      NB: if the Dep2pict is not available, nothing is done *)
   val save_dep_png: ?main_feat: string -> string -> t -> unit
 
-  (* [save_dot_png base t] writes a file "base.png" with the dot representation of [t] *)
+  (** [save_dot_png base t] writes a file "base.png" with the dot representation of [t] *)
   val save_dot_png: ?main_feat: string -> string -> t -> unit
-
-
-
 end
 
 module Instance_set : Set.S with type elt = Instance.t

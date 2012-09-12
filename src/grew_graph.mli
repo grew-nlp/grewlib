@@ -83,17 +83,16 @@ module G_graph: sig
   (* Build functions *)
   (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
 
-  val build:
-      ?locals: Label.decl array ->
-      Ast.node list ->
-      Ast.edge list ->
-	t
+  val build: ?locals: Label.decl array -> Ast.gr -> t
 
   val of_conll: ?loc:Loc.t -> Conll.line list -> t
 
   (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
   (* Update functions *)
   (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
+
+
+  val rename: (Gid.t * Gid.t) list -> t -> t
 
   (** [add_edge graph id_src label id_tar] tries to add an edge grom [id_src] to [id_tar] with [label] to [graph].
       if it succeeds, [Some new_graph] is returned

@@ -294,7 +294,7 @@ module Grs = struct
             ~confluent: next.Modul.confluent
             next.Modul.rules
             next.Modul.filters
-            (Instance.clear instance) in
+            (Instance.flatten instance) in
         let good_list = Instance_set.elements good_set
         and bad_list = Instance_set.elements bad_set in
         {
@@ -317,7 +317,7 @@ module Grs = struct
             ~confluent: next.Modul.confluent
             next.Modul.rules
             next.Modul.filters
-            (Instance.clear instance) in
+            (Instance.flatten instance) in
         let inst_list = Instance_set.elements good_set
               (* and bad_list = Instance_set.elements bad_set *) in
 

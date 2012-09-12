@@ -57,7 +57,7 @@ module Pid_set : Set.S with type elt = Pid.t
 module Gid : sig
   type t =
     | Old of int
-    | New of int * int (* identifier for "created nodes" *)
+    | New of (int * int) (* identifier for "created nodes" *)
 
   val to_string: t -> string
 end
@@ -193,6 +193,8 @@ module type S =
     val merge_key: key -> key -> 'a t -> 'a t
 
     val exists: (key -> 'a -> bool) -> 'a t -> bool
+
+    val rename: (key * key) list -> 'a t -> 'a t
   end
 
 

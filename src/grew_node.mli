@@ -33,6 +33,8 @@ module G_node: sig
   val pos_comp: t -> t -> int
 
   val build_neighbour: t -> t
+
+  val rename: (Gid.t * Gid.t) list -> t -> t
 end
 (* ================================================================================ *)
 

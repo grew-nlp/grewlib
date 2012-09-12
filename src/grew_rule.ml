@@ -12,35 +12,44 @@ open Grew_graph
 (* ================================================================================ *)
 module Instance = struct
   type t = {
-      graph: G_graph.t;
-      commands: Command.h list;
-      rules: string list;
-      big_step: Grew_types.big_step option;
+    graph: G_graph.t;
+    history: Command.h list;
+    rules: string list;
+    big_step: Grew_types.big_step option;
+    free_index: int;
+    activated_node: Gid.t list;
+  }
+
+  let empty = {graph = G_graph.empty; rules=[]; history=[]; big_step=None; free_index=0; activated_node=[];}
+
+  let from_graph graph =
+    {empty with
+      graph = graph;
+      free_index = match (Gid_map.max_binding graph) with
+        | (Gid.Old i,_) -> i+1
+        | _ -> Error.bug "[Instance.from_graph]"
     }
-
-  let empty = {graph = G_graph.empty; rules=[]; commands=[]; big_step=None;}
-
-  let from_graph g = {empty with graph = g}
-
-  let build gr_ast =
-    let graph = G_graph.build gr_ast.Ast.nodes gr_ast.Ast.edges in
-    { empty with graph = graph }
-
-  let of_conll ?loc lines =
-    { empty with graph = G_graph.of_conll ?loc lines }
 
   let rev_steps t =
     { t with big_step = match t.big_step with
-    | None -> None
-    | Some bs -> Some {bs with Grew_types.small_step = List.rev bs.Grew_types.small_step }
+      | None -> None
+      | Some bs -> Some {bs with Grew_types.small_step = List.rev bs.Grew_types.small_step }
     }
 
-  let clear t = {empty with graph = t.graph } (* FIXME: normalization of node ids ??? *)
-  let get_graph t = t.graph
+  let flatten t =
+    (* [mapping] is list of couple (node_id, node_id) used to flatten the graph *)
+    let (mapping, new_free) = List.fold_left
+      (fun (acc_map, next_free) node_id ->
+        (
+          (node_id, Gid.Old next_free) :: acc_map,
+          next_free + 1
+        )
+      ) ([], t.free_index) t.activated_node in
+    { empty with graph = G_graph.rename mapping t.graph; free_index = new_free }
 
   (* comparison is done on the list of commands *)
   (* only graph rewrited from the same init graph can be "compared" *)
-  let compare t1 t2 = Pervasives.compare t1.commands t2.commands
+  let compare t1 t2 = Pervasives.compare t1.history t2.history
 
   let to_gr t = G_graph.to_gr t.graph
 
@@ -493,7 +502,7 @@ module Rule = struct
               (
                {instance with
                 Instance.graph = new_graph;
-                commands = List_.sort_insert (Command.H_ADD_EDGE (src_gid,tar_gid,edge)) instance.Instance.commands
+                history = List_.sort_insert (Command.H_ADD_EDGE (src_gid,tar_gid,edge)) instance.Instance.history
               },
                created_nodes
               )
@@ -507,7 +516,7 @@ module Rule = struct
         (
          {instance with
           Instance.graph = G_graph.del_edge loc instance.Instance.graph src_gid edge tar_gid;
-          commands = List_.sort_insert (Command.H_DEL_EDGE_EXPL (src_gid,tar_gid,edge)) instance.Instance.commands
+           history = List_.sort_insert (Command.H_DEL_EDGE_EXPL (src_gid,tar_gid,edge)) instance.Instance.history
         },
          created_nodes
         )
@@ -519,7 +528,7 @@ module Rule = struct
         (
          {instance with
           Instance.graph = G_graph.del_edge ~edge_ident loc instance.Instance.graph src_gid edge tar_gid;
-          commands = List_.sort_insert (Command.H_DEL_EDGE_EXPL (src_gid,tar_gid,edge)) instance.Instance.commands
+          history = List_.sort_insert (Command.H_DEL_EDGE_EXPL (src_gid,tar_gid,edge)) instance.Instance.history
         },
          created_nodes
         )
@@ -529,7 +538,7 @@ module Rule = struct
         (
          {instance with
           Instance.graph = G_graph.del_node instance.Instance.graph node_gid;
-          commands = List_.sort_insert (Command.H_DEL_NODE node_gid) instance.Instance.commands
+          history = List_.sort_insert (Command.H_DEL_NODE node_gid) instance.Instance.history
         },
          created_nodes
         )
@@ -542,7 +551,7 @@ module Rule = struct
             (
              {instance with
               Instance.graph = new_graph;
-              commands = List_.sort_insert (Command.H_MERGE_NODE (src_gid,tar_gid)) instance.Instance.commands
+              history = List_.sort_insert (Command.H_MERGE_NODE (src_gid,tar_gid)) instance.Instance.history
             },
              created_nodes
             )
@@ -570,9 +579,7 @@ module Rule = struct
         (
          {instance with
           Instance.graph = new_graph;
-          commands = List_.sort_insert
-            (Command.H_UPDATE_FEAT (tar_gid,tar_feat_name,new_feature_value))
-            instance.Instance.commands
+          history = List_.sort_insert (Command.H_UPDATE_FEAT (tar_gid,tar_feat_name,new_feature_value)) instance.Instance.history
         },
          created_nodes
         )
@@ -582,7 +589,7 @@ module Rule = struct
         (
          {instance with
           Instance.graph = G_graph.del_feat instance.Instance.graph tar_gid feat_name;
-          commands = List_.sort_insert (Command.H_DEL_FEAT (tar_gid,feat_name)) instance.Instance.commands
+          history = List_.sort_insert (Command.H_DEL_FEAT (tar_gid,feat_name)) instance.Instance.history
         },
          created_nodes
         )
@@ -593,7 +600,8 @@ module Rule = struct
         (
          {instance with
           Instance.graph = new_graph;
-          commands = List_.sort_insert (Command.H_NEW_NEIGHBOUR (created_name,edge,new_gid)) instance.Instance.commands
+          history = List_.sort_insert (Command.H_NEW_NEIGHBOUR (created_name,edge,new_gid)) instance.Instance.history;
+          activated_node = new_gid :: instance.Instance.activated_node;
         },
          (created_name,new_gid) :: created_nodes
         )
@@ -604,7 +612,7 @@ module Rule = struct
         (
          {instance with
           Instance.graph = G_graph.shift_in loc instance.Instance.graph src_gid tar_gid;
-          commands = List_.sort_insert (Command.H_SHIFT_IN (src_gid,tar_gid)) instance.Instance.commands
+          history = List_.sort_insert (Command.H_SHIFT_IN (src_gid,tar_gid)) instance.Instance.history
         },
          created_nodes
         )
@@ -615,7 +623,7 @@ module Rule = struct
         (
          {instance with
           Instance.graph = G_graph.shift_out loc instance.Instance.graph src_gid tar_gid;
-          commands = List_.sort_insert (Command.H_SHIFT_OUT (src_gid,tar_gid)) instance.Instance.commands
+          history = List_.sort_insert (Command.H_SHIFT_OUT (src_gid,tar_gid)) instance.Instance.history
         },
          created_nodes
         )
@@ -624,11 +632,11 @@ module Rule = struct
         let src_gid = node_find src_cn in
         let tar_gid = node_find tar_cn in
         (
-         {instance with
-          Instance.graph = G_graph.shift_edges loc instance.Instance.graph src_gid tar_gid;
-          commands = List_.sort_insert (Command.H_SHIFT_EDGE (src_gid,tar_gid)) instance.Instance.commands
-        },
-         created_nodes
+          {instance with
+            Instance.graph = G_graph.shift_edges loc instance.Instance.graph src_gid tar_gid;
+            history = List_.sort_insert (Command.H_SHIFT_EDGE (src_gid,tar_gid)) instance.Instance.history
+          },
+          created_nodes
         )
 
 (** [apply_rule instance matching rule] returns a new instance after the application of the rule

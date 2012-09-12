@@ -122,9 +122,14 @@ module Pid_set = Set.Make (Pid)
 module Gid = struct
   type t =
     | Old of int
-    | New of int * int (* identifier for "created nodes" *)
+    | New of (int * int) (* identifier for "created nodes" *)
 
-  let compare = Pervasives.compare
+  (* a compore function which ensures that new nodes are a the "end" of the graph *)
+  let compare t1 t2 = match (t1,t2) with
+    | Old _ , New _ -> -1
+    | New _, Old _ -> 1
+    | Old o1, Old o2 -> Pervasives.compare o1 o2
+    | New n1, New n2 -> Pervasives.compare n1 n2
 
   let to_string = function
     | Old i -> sprintf "%d" i
@@ -350,8 +355,8 @@ module List_ = struct
   let foldi_left f init l =
     fst
       (List.fold_left
-	 (fun (acc,i) elt -> (f i acc elt, i+1))
-	 (init,0) l
+         (fun (acc,i) elt -> (f i acc elt, i+1))
+         (init,0) l
       )
 end (* module List_ *)
 
@@ -403,6 +408,8 @@ module type S =
     val merge_key: key -> key -> 'a t -> 'a t
 
     val exists: (key -> 'a -> bool) -> 'a t -> bool
+
+    val rename: (key * key) list -> 'a t -> 'a t
   end (* module type S *)
 
 (* ================================================================================ *)
@@ -502,6 +509,13 @@ module Massoc_make (Ord: OrderedType) = struct
         ) t;
       false
     with True -> true
+
+  let rename mapping t =
+    M.fold
+      (fun key value acc ->
+        let new_key = try List.assoc key mapping with Not_found -> key in
+        M.add new_key value acc
+      ) t M.empty
 
 end (* module Massoc_make *)
 

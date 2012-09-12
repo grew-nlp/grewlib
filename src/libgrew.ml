@@ -72,13 +72,11 @@ let to_sentence ?main_feat gr =
 
 let get_sequence_names grs = Grs.sequence_names grs
 
-let empty_gr = Instance.empty
-
 let load_gr file =
   if (Sys.file_exists file) then (
     try
       let gr_ast = Grew_parser.gr_of_file file in
-      Instance.build gr_ast
+      Instance.from_graph (G_graph.build gr_ast)
     with
     | Grew_parser.Parse_error (msg,Some (sub_file,l)) -> 
         raise (Parsing_err (sprintf "[file:%s, line:%d] %s" sub_file l msg))
@@ -94,9 +92,8 @@ let load_gr file =
 
 let load_conll file =
   try
-    (* let lines = File.read file in *)
-    (* Instance.of_conll (List.map Conll.parse lines) *)
-    Instance.of_conll ~loc:(file,-1) (Conll.load file)
+    let graph = G_graph.of_conll ~loc:(file,-1) (Conll.load file) in
+    Instance.from_graph graph
   with
     | Grew_parser.Parse_error (msg,Some (sub_file,l)) -> 
         raise (Parsing_err (sprintf "[file:%s, line:%d] %s" sub_file l msg))

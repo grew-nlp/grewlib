@@ -66,6 +66,8 @@ module G_node = struct
   let build_neighbour t = {empty with pos = match t.pos with Some x -> Some (x+1) | None -> None}
 
   let pos_comp n1 n2 = Pervasives.compare n1.pos n2.pos
+
+  let rename mapping n = {n with next = Massoc_gid.rename mapping n.next}
 end
 (* ================================================================================ *)
 

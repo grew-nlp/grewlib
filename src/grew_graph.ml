@@ -9,7 +9,7 @@ open Grew_node
 open Grew_command
 
 
-(* ================================================================================ *)
+(* ==================================================================================================== *)
 module P_deco = struct
   type t = {
     nodes: Pid.t list;
@@ -19,17 +19,7 @@ module P_deco = struct
   let empty = {nodes=[]; edges=[]}
 end (* module P_deco *)
 
-(* ================================================================================ *)
-module G_deco = struct
-  type t = {
-    nodes: Gid.t list;
-    edges: (Gid.t * G_edge.t * Gid.t) list;
-  }
-
-  let empty = {nodes=[]; edges=[]}
-end (* module G_deco *)
-
-(* ================================================================================ *)
+(* ==================================================================================================== *)
 module P_graph = struct
   type t = P_node.t Pid_map.t
 
@@ -58,7 +48,7 @@ module P_graph = struct
   let build ?pat_vars ?(locals=[||]) (full_node_list : Ast.node list) full_edge_list =
 
     (* NB: insert searches for a previous node with the Same name and uses unification rather than constraint *)
-    (* NB: insertion of new node at the end of the list: not efficient but graph building is not the hard part. *) 
+    (* NB: insertion of new node at the end of the list: not efficient but graph building is not the hard part. *)
     let rec insert (ast_node, loc) = function
       | [] -> [P_node.build ?pat_vars (ast_node, loc)]
       | (node_id,fs)::tail when ast_node.Ast.node_id = node_id ->
@@ -67,8 +57,8 @@ module P_graph = struct
 
     let (named_nodes : (Id.name * P_node.t) list) =
       List.fold_left
-        (fun acc ast_node -> insert ast_node acc) 
-        [] full_node_list in 
+        (fun acc ast_node -> insert ast_node acc)
+        [] full_node_list in
 
     let sorted_nodes = List.sort (fun (id1,_) (id2,_) -> Pervasives.compare id1 id2) named_nodes in
     let (sorted_ids, node_list) = List.split sorted_nodes in
@@ -186,6 +176,15 @@ module P_graph = struct
   let roots graph = snd (tree_and_roots graph)
 end (* module P_graph *)
 
+(* ==================================================================================================== *)
+module G_deco = struct
+  type t = {
+    nodes: Gid.t list;
+    edges: (Gid.t * G_edge.t * Gid.t) list;
+  }
+
+  let empty = {nodes=[]; edges=[]}
+end (* module G_deco *)
 
 (* ==================================================================================================== *)
 module Concat_item = struct
@@ -210,20 +209,24 @@ module G_graph = struct
     Massoc_gid.exists (fun _ e -> P_edge.compatible p_edge e) (G_node.get_next node)
 
   (* -------------------------------------------------------------------------------- *)
-  let map_add_edge map id_src label id_tar =
+  let add_edge graph id_src label id_tar =
     let node_src =
       (* Not found can be raised when adding an edge from pos to neg *)
-      try Gid_map.find id_src map with Not_found -> G_node.empty in
+      try Gid_map.find id_src graph with Not_found -> G_node.empty in
     match G_node.add_edge label id_tar node_src with
     | None -> None
-    | Some new_node -> Some (Gid_map.add id_src new_node map)
+    | Some new_node -> Some (Gid_map.add id_src new_node graph)
 
   (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
   (* Build functions *)
   (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
 
   (* -------------------------------------------------------------------------------- *)
-  let build ?(locals=[||]) full_node_list full_edge_list =
+  (* let build ?(locals=[||]) full_node_list full_edge_list = *)
+
+  let build ?(locals=[||]) gr_ast =
+    let full_node_list = gr_ast.Ast.nodes
+    and full_edge_list = gr_ast.Ast.edges in
 
     let named_nodes =
       let rec loop already_bound = function
@@ -250,7 +253,7 @@ module G_graph = struct
 	  let i1 = Id.build ~loc ast_edge.Ast.src table in
 	  let i2 = Id.build ~loc ast_edge.Ast.tar table in
 	  let edge = G_edge.build ~locals (ast_edge, loc) in
-	  (match map_add_edge acc (Gid.Old i1) edge (Gid.Old i2) with
+	  (match add_edge acc (Gid.Old i1) edge (Gid.Old i2) with
 	  | Some g -> g
 	  | None -> Error.build "[GRS] [Graph.build] try to build a graph with twice the same edge %s %s"
                 (G_edge.to_string edge)
@@ -289,13 +292,18 @@ module G_graph = struct
 
     nodes_with_edges
 
-
   (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
   (* Update functions *)
   (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
 
   (* -------------------------------------------------------------------------------- *)
-  let add_edge graph id_src label id_tar = map_add_edge graph id_src label id_tar
+  let rename mapping graph =
+    Gid_map.fold
+      (fun id node acc ->
+        let new_id = try List.assoc id mapping with Not_found -> id in
+        let new_node = G_node.rename mapping node in
+        Gid_map.add new_id new_node acc
+      ) graph Gid_map.empty
 
   (* -------------------------------------------------------------------------------- *)
   let del_edge ?edge_ident loc graph id_src label id_tar =
@@ -380,10 +388,12 @@ module G_graph = struct
     let tar_node = Gid_map.find tar_gid graph in
 
     if Massoc_gid.mem_key tar_gid (G_node.get_next src_node)
-    then Error.run ~loc "[Graph.shift_edges] dependency from src to tar";
+    then Error.run ~loc "[Graph.shift_edges] dependency from src (gid=%s) to tar (gid=%s)"
+      (Gid.to_string src_gid) (Gid.to_string tar_gid);
 
     if Massoc_gid.mem_key src_gid (G_node.get_next tar_node)
-    then Error.run ~loc "[Graph.shift_edges] dependency from tar to src";
+    then Error.run ~loc "[Graph.shift_edges] dependency from tar (gid=%s) to src (gid=%s)"
+      (Gid.to_string tar_gid) (Gid.to_string src_gid);
 
     Gid_map.mapi
       (fun node_id node ->
