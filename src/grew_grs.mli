@@ -3,7 +3,6 @@ open Grew_graph
 open Grew_rule
 open Grew_ast
 
-
 module Rewrite_history: sig
   type t = {
       instance: Instance.t;
@@ -40,15 +39,26 @@ module Rewrite_history: sig
   val save_gr: string -> t -> unit
 end
 
-module Sequence: sig
-  type t
+module Modul: sig
+  type t = {
+    name: string;
+    local_labels: (string * string option) array;
+    rules: Rule.t list;
+    filters: Rule.t list;
+    confluent: bool;
+    loc: Loc.t;
+  }
 end
+
+
 
 module Grs: sig
   type t
 
   val empty:t
   
+  val get_modules: t -> Modul.t list
+
   val sequence_names: t -> string list
 
   val build: Ast.grs -> t
@@ -60,33 +70,6 @@ module Grs: sig
 
   val rule_iter: (string -> Rule.t -> unit) -> t -> unit
   val filter_iter: (string -> Rule.t -> unit) -> t -> unit
-end
 
-    
-module Gr_stat: sig
-  
-  type t
-
-  val from_rew_history: Rewrite_history.t -> t
-
-  val save: string -> t -> unit
-
-  val load: string -> t
-end
-
-    
-module Corpus_stat: sig
-
-  type t
-
-  val empty: grs:Grs.t -> seq:string -> t
-
-  val add_gr_stat: string -> Gr_stat.t -> t -> t
-
-  val save_html: 
-    title: string -> 
-    grs_file: string ->
-    input_dir:string -> 
-    output_dir:string -> 
-      t -> unit
+  val modules_of_sequence: t -> string -> Modul.t list
 end

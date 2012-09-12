@@ -1,5 +1,5 @@
 
-FILES_DEP = grew_utils grew_ast grew_html grew_fs grew_edge grew_node grew_graph grew_types grew_command grew_rule grew_grs
+FILES_DEP = grew_utils grew_ast grew_fs grew_edge grew_node grew_graph grew_types grew_command grew_rule grew_grs grew_html
 FILES_ML = $(FILES_DEP:%=%.ml)
 FILES_MLI = $(FILES_DEP:%=%.mli)
 FILES_CMI = $(FILES_DEP:%=%.cmi)
@@ -139,7 +139,7 @@ grew_ast.cmx: $(GREW_AST_CMX) grew_ast.cmi grew_ast.ml
 
 
 ###### grew_html.ml ##############################################################
-GREW_HTML_DEP = grew_utils grew_ast
+GREW_HTML_DEP = grew_utils grew_ast grew_rule grew_grs
 GREW_HTML_CMI = $(GREW_HTML_DEP:%=%.cmi)
 GREW_HTML_CMO = $(GREW_HTML_DEP:%=%.cmo)
 GREW_HTML_CMX = $(GREW_HTML_DEP:%=%.cmx)
