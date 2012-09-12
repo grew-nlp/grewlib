@@ -23,6 +23,8 @@ val rewrite: gr:Instance.t -> grs:Grs.t -> seq:string -> Rewrite_history.t
 
 val is_empty: Rewrite_history.t -> bool
 
+val num_sol: Rewrite_history.t -> int
+
 (** display a gr with a grs in a rew_display 
 @param gr the grapth to rewrite
 @param grs the graph rewriting system
@@ -88,6 +90,8 @@ val make_index:
     output_dir: string -> 
     base_names: string list -> 
       unit
+
+val html_sentences: string -> (string option * int * string) list -> unit
 
 val get_css_file: string
 

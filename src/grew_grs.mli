@@ -13,6 +13,8 @@ module Rewrite_history: sig
     }
 
   val is_empty: t -> bool
+
+  val num_sol: t -> int
     
   val error_html: 
     ?main_feat: string -> 

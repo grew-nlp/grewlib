@@ -144,7 +144,10 @@ module Html = struct
     wnl "<html>";
     wnl "  <head>";
     wnl "    <link rel=\"stylesheet\" href=\"style.css\" type=\"text/css\">";
-    (match title with Some t -> wnl "    <title>%s</title>" t | None -> ());
+    (match title with
+      | Some t -> wnl "    <title>%s</title>" (Str.global_replace (Str.regexp "#") " " t)
+      | None -> ()
+    );
     wnl "  </head>";
     wnl "  <body>"
 
@@ -358,7 +361,7 @@ module Html = struct
     let title = sprintf "Grew -- Graph Rewriting System: %s" (Filename.basename file) in
     header ~title buff;
 
-    wnl "  <div class=\"navbar\">&nbsp;<a href=\"../index.html\">Rewriting Stats</a></div>";
+    wnl "<a href=\"../sentences.html\">Sentences</a> -- <a href=\"../index.html\">Rewriting stats</a> -- GRS documentation";
 
     wnl "<h1>Graph Rewriting System: %s</h1>" (Filename.basename file);
     wnl "<center><b>full path</b>: %s</center>" file;
@@ -434,6 +437,34 @@ module Html = struct
           );
         close_out page_out_ch;
       done;
-    done;
+    done
+
+
+  let html_sentences output_dir sentences =
+    let buff = Buffer.create 32 in
+    header ~title:"Sentence list" buff;
+
+    bprintf buff "Sentences -- <a href=\"index.html\">Rewriting stats</a> -- <a href=\"doc/index.html\">GRS documentation</a>\n";
+    bprintf buff "<h2>Sentences list</h2>\n";
+
+    bprintf buff "<center><table cellpadding=3 cellspacing=0 width=95%>\n";
+    bprintf buff "<tr><th class=\"first\">Number of normal forms</th><th>Sentence</th></tr>\n";
+
+    List.iter
+      (fun (base_name_opt, amb, sentence) ->
+        bprintf buff "<tr>\n";
+        bprintf buff "    <td class=\"first_stats\">%d</td>\n" amb;
+        (match base_name_opt with
+          | Some base_name -> bprintf buff "  <td class=\"stats\"><a href=\"%s.html\">%s</a></td>\n" base_name sentence
+          | None -> bprintf buff "  <td class=\"stats\">%s</td>\n" sentence);
+        bprintf buff "</tr>\n";
+      ) sentences;
+
+    bprintf buff "</table></center>\n";
+
+    let out_ch = open_out (Filename.concat output_dir "sentences.html") in
+    fprintf out_ch "%s" (Buffer.contents buff);
+    close_out out_ch
+
 end (* module Html *)
 

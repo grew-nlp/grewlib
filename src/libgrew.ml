@@ -26,6 +26,8 @@ type rew_history = Rewrite_history.t
 
 let is_empty = Rewrite_history.is_empty
 
+let num_sol = Rewrite_history.num_sol
+
 let empty_grs = Grs.empty
 
 let set_timeout t = Timeout.timeout := t
@@ -188,6 +190,8 @@ let make_index ~title ~grs_file ~html ~grs ~seq ~input_dir ~output_dir ~base_nam
         Corpus_stat.add_gr_stat base_name (Gr_stat.load (Filename.concat output_dir (base_name^".stat"))) acc
       ) init base_names in
   Corpus_stat.save_html title grs_file input_dir output_dir corpus_stat
+
+let html_sentences = Html.html_sentences
 
 let get_css_file = Filename.concat DATA_DIR "style.css"
 

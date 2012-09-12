@@ -109,7 +109,7 @@ module Rewrite_history = struct
     let title = sprintf "Sentence: %s --- %d Normal form%s" local l (if l>1 then "s" else "") in
     let () = Html.enter html_ch ~title ?header prefix in
 
-    fprintf html_ch "<b>Input file</b>: <a href=\"%s\">%s</a></h2><br/>\n"
+    fprintf html_ch "<b>Input file</b>: <a href=\"%s\">%s</a><br/>\n"
       graph_file (Filename.basename graph_file);
 
     fprintf html_ch "<b>Input sentence</b>: <font color=\"green\"><i>%s</i></font></p><br/>\n"
@@ -575,10 +575,10 @@ module Corpus_stat = struct
     fprintf out_ch "  <meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />\n";
     fprintf out_ch "</head>\n";
 
-    fprintf out_ch "<h1>%s</h1>\n" title;
-    fprintf out_ch "<b>Grs file</b>:<a href =\"%s\">%s</a> -- <a href=\"doc/index.html\">Documentation</a><br/>\n" (Filename.basename grs_file) (Filename.basename grs_file);
-    fprintf out_ch "<b>Input dir</b>: %s<br/>\n" input_dir;
-    fprintf out_ch "<b>%d Sentences</b><br/>\n<br/>\n" t.num;
+    fprintf out_ch "<a href=\"sentences.html\">Sentences</a> -- Rewriting stats -- <a href=\"doc/index.html\">GRS documentation</a>\n";
+
+    fprintf out_ch "<h1>%s</h1>\n" (Str.global_replace (Str.regexp "#") " " title);
+    fprintf out_ch "<h2>Rewriting stats</h2>\n";
 
     fprintf out_ch "<center><table cellpadding=3 cellspacing=0 width=95%%>\n";
     List.iter
