@@ -167,9 +167,9 @@ module Html_doc = struct
     wnl "  <body>";
     wnl "    <div class=\"navbar\">";
     w "      ";
-    (match prev with Some p -> w "&nbsp;<a href=\"%s.html\">Previous</a> " p | _ -> ());
-    w "&nbsp;<a href=\"index.html\">Up</a> ";
-    (match next with Some n -> w "&nbsp;<a href=\"%s.html\">Next</a> " n | _ -> ());
+    (match prev with Some p -> w "&nbsp;<a href=\"%s.html\">Previous</a>" p | _ -> ());
+    w "&nbsp;<a href=\"index.html\">Up</a>";
+    (match next with Some n -> w "&nbsp;<a href=\"%s.html\">Next</a>" n | _ -> ());
     wnl "    </div>";
 
     wnl "    <center><h1>Module <div class=\"module_title\">%s</div></h1></center><br/>" module_.Ast.module_id;
@@ -202,9 +202,9 @@ module Html_doc = struct
     wnl "  <body>";
     wnl "    <div class=\"navbar\">";
     w "      ";
-    (match prev with Some p -> w "&nbsp;<a href=\"%s_%s.html\">Previous</a> " mid p | _ -> ());
+    (match prev with Some p -> w "&nbsp;<a href=\"%s_%s.html\">Previous</a>" mid p | _ -> ());
     w "&nbsp;<a href=\"%s.html\">Up</a>" mid;
-    (match next with Some n -> w "&nbsp;<a href=\"%s_%s.html\">Next</a> " mid n | _ -> ());
+    (match next with Some n -> w "&nbsp;<a href=\"%s_%s.html\">Next</a>" mid n | _ -> ());
     wnl "    </div>";
 
     wnl "<center><h1>Rule <a href=\"%s.html\">%s</a>.<div class=\"module_title\">%s</div></h1></center>" mid mid rid;
@@ -595,15 +595,16 @@ module Html_sentences = struct
     wnl "<h2>Sentences list</h2>";
 
     wnl "<center><table cellpadding=3 cellspacing=0 width=\"95%%\">";
-    wnl "<tr><th class=\"first\">Number of normal forms</th><th>Sentence</th></tr>";
+    wnl "<tr><th class=\"first\">Number of normal forms</th><th>Sentence Id</th><th>Sentence</th></tr>";
 
     List.iter
-      (fun (base_name_opt, amb, sentence) ->
+      (fun (rewrited, base_name, amb, sentence) ->
         wnl "<tr>";
         wnl "    <td class=\"first_stats\">%d</td>" amb;
-        (match base_name_opt with
-          | Some base_name -> wnl "  <td class=\"stats\"><a href=\"%s.html\">%s</a></td>" base_name sentence
-          | None -> wnl "  <td class=\"stats\">%s</td>" sentence);
+        if rewrited
+        then wnl "    <td class=\"stats\"><a href=\"%s.html\">%s</a></td>" base_name base_name
+        else wnl "    <td class=\"stats\">%s</td>" base_name;
+        wnl "  <td class=\"stats\">%s</td>" sentence;
         wnl "</tr>";
       ) sentences;
 
