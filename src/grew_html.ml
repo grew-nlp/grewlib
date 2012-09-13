@@ -15,7 +15,7 @@ let html_header ?title buff =
 
   wnl "<html>";
   wnl "  <head>";
-  wnl "    <meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\">\n";
+  wnl "    <meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\">";
   wnl "    <link rel=\"stylesheet\" href=\"style.css\" type=\"text/css\">";
   (match title with
     | Some t -> wnl "    <title>%s</title>" (Str.global_replace (Str.regexp "#") " " t)
@@ -242,7 +242,7 @@ module Html_doc = struct
         (match rule_.Ast.lp with
           | None -> ()
           | Some lines ->
-            wnl "<b>Local parameters</b></br>";
+            wnl "<b>Local parameters</b><br/>";
             output_table args lines
         );
 
@@ -250,7 +250,7 @@ module Html_doc = struct
         List.iter
           (fun file ->
             let filename = Filename.concat module_.Ast.mod_dir file in
-            wnl "<b>File:</b> %s</br>" file;
+            wnl "<b>File:</b> %s<br/>" file;
             let lines =
               try File.read filename
               with Sys_error msg -> wnl "<font color=\"red\">Error: %s</font>" msg; [] in
@@ -480,7 +480,7 @@ module Html_rh = struct
 
     begin
       match header with
-        | Some h -> wnl "%s</br>" h
+        | Some h -> wnl "%s<br/>" h
         | None -> ()
     end;
 
@@ -793,15 +793,13 @@ module Corpus_stat = struct
           IntMap.add sol (StringSet.add base_name old) t.amb in
         { t with map = new_map; num = t.num+1; amb=new_amb; }
 
-
-
-  let unfoldable_set output_dir out_ch ?(bound=10) id file_set =
+  let unfoldable_set output_dir buff ?(bound=10) id file_set =
     let counter = ref 0 in
 
     StringSet.iter
       (fun file ->
         if !counter = bound
-        then fprintf out_ch "<div id=\"%s\" style=\"display:none;\">\n" id;
+        then bprintf buff "<div id=\"%s\" style=\"display:none;\">\n" id;
         incr counter;
 
         let link =
@@ -809,20 +807,20 @@ module Corpus_stat = struct
           then sprintf "<a href=\"%s.html\">%s</a>" file file
           else file in
 
-        fprintf out_ch "%s &nbsp;&nbsp;\n" link
+        bprintf buff "%s &nbsp;&nbsp;\n" link
       ) file_set;
 
     if (!counter > bound)
     then
       begin
-        fprintf out_ch "</div>\n";
+        bprintf buff "</div>\n";
         let if_part = sprintf "document.getElementById('%s').style.display = 'block'; document.getElementById('p_%s').innerHTML = '- Show first %d -';" id id bound in
         let else_part = sprintf "document.getElementById('%s').style.display = 'none'; document.getElementById('p_%s').innerHTML = '+ Show all +';" id id in
-        fprintf out_ch "  <div>\n";
-        fprintf out_ch "    <a style=\"cursor:pointer;\" onClick=\"if (document.getElementById('%s').style.display == 'none') { %s } else { %s }\">\n" id if_part else_part;
-        fprintf out_ch "      <b><p id=\"p_%s\">+ Show all +</p></b>\n" id;
-        fprintf out_ch "    </a>\n";
-        fprintf out_ch "  </div>\n";
+        bprintf buff "  <div>\n";
+        bprintf buff "    <a style=\"cursor:pointer;\" onClick=\"if (document.getElementById('%s').style.display == 'none') { %s } else { %s }\">\n" id if_part else_part;
+        bprintf buff "      <b><p id=\"p_%s\">+ Show all +</p></b>\n" id;
+        bprintf buff "    </a>\n";
+        bprintf buff "  </div>\n";
       end
 
 
@@ -836,27 +834,24 @@ module Corpus_stat = struct
    (* put the css file the [output_dir] *)
     ignore(Sys.command("cp "^(Filename.concat DATA_DIR "style.css")^" "^(Filename.concat output_dir "style.css")));
 
-   (* output of index.html *)
-    let out_ch = open_out (Filename.concat output_dir "index.html") in
+    let buff = Buffer.create 32 in
+    let wnl fmt = Printf.ksprintf (fun x -> Printf.bprintf buff "%s\n" x) fmt in
+    let w fmt  = Printf.ksprintf (fun x -> Printf.bprintf buff "%s" x) fmt in
 
-    fprintf out_ch "<head>\n";
-    fprintf out_ch "  <link rel=\"stylesheet\" href=\"style.css\" type=\"text/css\">\n";
-    fprintf out_ch "  <title>%s</title>\n" title;
-    fprintf out_ch "  <meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />\n";
-    fprintf out_ch "</head>\n";
+    html_header ~title buff;
 
-    fprintf out_ch "<a href=\"sentences.html\">Sentences</a> -- Rewriting stats -- <a href=\"doc/index.html\">GRS documentation</a>\n";
+    wnl "<a href=\"sentences.html\">Sentences</a> -- Rewriting stats -- <a href=\"doc/index.html\">GRS documentation</a>";
 
-    fprintf out_ch "<h1>%s</h1>\n" (Str.global_replace (Str.regexp "#") " " title);
-    fprintf out_ch "<h2>Rewriting stats</h2>\n";
+    wnl "<h1>%s</h1>" (Str.global_replace (Str.regexp "#") " " title);
+    wnl "<h2>Rewriting stats</h2>";
 
-    fprintf out_ch "<center><table cellpadding=3 cellspacing=0 width=\"95%%\">\n";
+    wnl "<center><table cellpadding=3 cellspacing=0 width=\"95%%\">";
     List.iter
       (fun modul ->
         let modul_name = modul.Modul.name in
         let rules = StringMap.find modul_name t.map in
-        fprintf out_ch "<tr><td colspan=\"5\" style=\"padding: 0px;\"><h6>Module %s</h6></td></tr>\n" modul_name;
-        fprintf out_ch "<tr><th class=\"first\">Rule</th><th>#occ(min/max)</th><th>#files</th><th>Ratio</th><th>Files</th></tr>\n";
+        wnl "<tr><td colspan=\"5\" style=\"padding: 0px;\"><h6>Module %s</h6></td></tr>" modul_name;
+        wnl "<tr><th class=\"first\">Rule</th><th>#occ(min/max)</th><th>#files</th><th>Ratio</th><th>Files</th></tr>";
         let ((min_occ, max_occ), full_sent) =
           StringMap.fold
             (fun _ ((v_min,v_max), file_set) ((acc_min,acc_max), acc_sent) ->
@@ -864,13 +859,13 @@ module Corpus_stat = struct
             )
             rules ((0,0),StringSet.empty) in
         let tot_sent = StringSet.cardinal full_sent in
-        fprintf out_ch "<tr>\n";
-        fprintf out_ch "<td class=\"first_total\">Total for module</td>\n";
-        fprintf out_ch "<td class=\"total\">%d/%d</td>" min_occ max_occ;
-        fprintf out_ch "<td class=\"total\">%d</td>" tot_sent;
-        fprintf out_ch "<td class=\"total\">%.2f%%</td>" (ratio tot_sent);
-        fprintf out_ch "<td class=\"total\">&nbsp;</td>\n";
-        fprintf out_ch "</tr>\n";
+        wnl "<tr>";
+        wnl "  <td class=\"first_total\">Total for module</td>";
+        wnl "  <td class=\"total\">%d/%d</td>" min_occ max_occ;
+        wnl "  <td class=\"total\">%d</td>" tot_sent;
+        wnl "  <td class=\"total\">%.2f%%</td>" (ratio tot_sent);
+        wnl "  <td class=\"total\">&nbsp;</td>";
+        wnl "</tr>";
 
         List.iter (* iteration on list to keep the same order in html output and in grs input *)
           (fun rule ->
@@ -880,20 +875,18 @@ module Corpus_stat = struct
             let id = sprintf "%s_%s" modul_name rule_name in
             let file_num = StringSet.cardinal file_set in
 
-            fprintf out_ch "<tr>\n";
-            fprintf out_ch "  <td class=\"first_stats\"  valign=top><a href=\"doc/%s.html\">%s</a></td>\n"
-              id
-              rule_name;
-            fprintf out_ch "  <td class=\"stats\"  valign=top>%d/%d</td>\n" min_occ max_occ;
-            fprintf out_ch "  <td class=\"stats\"  valign=top>%d</td>\n" file_num;
-            fprintf out_ch "  <td class=\"stats\"  valign=top>%.2f%%</td>\n" (ratio file_num);
+            wnl "<tr>";
+            wnl "  <td class=\"first_stats\"  valign=top><a href=\"doc/%s.html\">%s</a></td>" id rule_name;
+            wnl "  <td class=\"stats\"  valign=top>%d/%d</td>" min_occ max_occ;
+            wnl "  <td class=\"stats\"  valign=top>%d</td>" file_num;
+            wnl "  <td class=\"stats\"  valign=top>%.2f%%</td>" (ratio file_num);
 
-            fprintf out_ch "  <td class=\"stats\">\n";
+            wnl "  <td class=\"stats\">";
             (if file_num = 0
-             then fprintf out_ch "  &nbsp;"
-             else unfoldable_set output_dir out_ch id file_set);
-            fprintf out_ch "  </td>\n";
-            fprintf out_ch "</tr>\n";
+             then w "  &nbsp;"
+             else unfoldable_set output_dir buff id file_set);
+            wnl "  </td>";
+            wnl "</tr>";
           ) modul.Modul.rules
       ) t.modules;
 
@@ -901,52 +894,58 @@ module Corpus_stat = struct
     if not (IntMap.is_empty t.amb)
     then
       begin
-        fprintf out_ch "<tr><td colspan=5><h6>Rewriting ambiguity</h6></td></tr>\n";
-        fprintf out_ch "<tr><th class=\"first\" >Number of normal forms</th><th colspan=2 width=20>#files</th><th >Ratio</th><th>Files</th></tr>\n";
+        wnl "<tr><td colspan=5><h6>Rewriting ambiguity</h6></td></tr>";
+        wnl "<tr><th class=\"first\" >Number of normal forms</th><th colspan=2 width=20>#files</th><th >Ratio</th><th>Files</th></tr>";
 
         IntMap.iter
           (fun num set ->
             let id = sprintf "amb_%d" num in
             let num_files = StringSet.cardinal set in
-            fprintf out_ch "<tr>\n";
-            fprintf out_ch "  <td class=\"first_stats\">%d</td>\n" num;
-            fprintf out_ch "  <td class=\"stats\" colspan=2>%d</td>\n" num_files;
-            fprintf out_ch "  <td class=\"stats\">%.2f%%</td>\n" (ratio num_files);
-            fprintf out_ch "  <td class=\"stats\">";
+            wnl "<tr>";
+            wnl "  <td class=\"first_stats\">%d</td>" num;
+            wnl "  <td class=\"stats\" colspan=2>%d</td>" num_files;
+            wnl "  <td class=\"stats\">%.2f%%</td>" (ratio num_files);
+            w "  <td class=\"stats\">";
 
-            unfoldable_set output_dir out_ch id set;
+            unfoldable_set output_dir buff id set;
 
-            fprintf out_ch "  </td>\n";
-            fprintf out_ch "</tr>\n") t.amb
+            wnl "  </td>";
+            wnl "</tr>") t.amb
       end;
 
     (* add a subtable for sentence that produces an error *)
     (match List.length t.error with
       | 0 -> ()
       | nb_errors ->
-        fprintf out_ch "<tr><td colspan=5><h6>ERRORS</h6></td></tr>\n";
-        fprintf out_ch "<tr><th class=\"first\" >Rule</th><th colspan=2 width=20>#files</th><th >Ratio</th><th>Files</th></tr>\n";
+        wnl "<tr><td colspan=5><h6>ERRORS</h6></td></tr>";
+        wnl "<tr><th class=\"first\" >Rule</th><th colspan=2 width=20>#files</th><th >Ratio</th><th>Files</th></tr>";
 
-        fprintf out_ch "<tr>\n";
-        fprintf out_ch "<td class=\"first_stats\">Errors</td>\n";
-        fprintf out_ch "<td class=\"stats\" colspan=2>%d</td>\n" nb_errors;
-        fprintf out_ch "<td class=\"stats\">%.2f%%</td>\n" (ratio nb_errors);
-        fprintf out_ch "<td class=\"stats\">";
+        wnl "<tr>";
+        wnl "<td class=\"first_stats\">Errors</td>";
+        wnl "<td class=\"stats\" colspan=2>%d</td>" nb_errors;
+        wnl "<td class=\"stats\">%.2f%%</td>" (ratio nb_errors);
+        w "<td class=\"stats\">";
 
         match t.error with
-          | [] -> fprintf out_ch "&nbsp;"
+          | [] -> w "&nbsp;"
           | l ->
             List.iter
               (fun (file,err) ->
                 if Sys.file_exists (Filename.concat output_dir (sprintf "%s.html" file))
-                then fprintf out_ch "<a href=\"%s.html\">%s</a>: %s<br/>" file file err
-                else fprintf out_ch "%s: %s<br/>" file err
+                then w "<a href=\"%s.html\">%s</a>: %s<br/>" file file err
+                else wnl "%s: %s<br/>" file err
               )
               (List.rev l);
 
-            fprintf out_ch "</td>\n";
-            fprintf out_ch "</tr>");
+            wnl "</td>";
+            wnl "</tr>");
 
-    fprintf out_ch "</table></center>\n";
+    wnl "</table></center>";
+    wnl "  </body>";
+    wnl "</html>";
+
+    let out_ch = open_out (Filename.concat output_dir "index.html") in
+    fprintf out_ch "%s" (Buffer.contents buff);
     close_out out_ch
+
 end (* module Stat *)
