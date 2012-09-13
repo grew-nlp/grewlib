@@ -178,6 +178,7 @@ module Grs = struct
       module_names
 
   let rewrite grs sequence instance =
+    Timeout.start ();
     let modules_to_apply = modules_of_sequence grs sequence in
 
     let rec loop instance = function

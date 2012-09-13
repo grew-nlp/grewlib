@@ -845,7 +845,6 @@ module Rule = struct
     | None -> Instance.rev_steps instance
 
   let normalize modul_name ?(confluent=false) rules filters instance =
-    Timeout.start ();
     if confluent
     then
       let output = conf_normalize instance rules in
