@@ -77,6 +77,7 @@ and global = parse
 | "feature"     { FEATURE }
 | "file"        { FILE }
 | "labels"      { LABELS }
+| "new_nodes"   { NEW_NODES }
 | "match"       { MATCH }
 | "without"     { WITHOUT }
 | "commands"    { COMMANDS }

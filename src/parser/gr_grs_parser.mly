@@ -52,6 +52,7 @@ let localize t = (t,get_loc ())
 %token FEATURE                     /* feature */
 %token FILE                        /* file */
 %token LABELS                      /* labels */
+%token NEW_NODES                   /* labels */
 %token MATCH                       /* match */
 %token WITHOUT                     /* without */
 %token COMMANDS                    /* commands */
@@ -258,10 +259,11 @@ modules:
         | x = list(grew_module) { x }
         
 grew_module: 
-        | doc = option(module_doc) MODULE conf = boption(CONFLUENT) id = module_id LACC l = option(local_labels) r = rules RACC 
+        | doc=option(module_doc) MODULE conf=boption(CONFLUENT) id=module_id LACC l=option(local_labels) nn=option(new_nodes) r=rules RACC 
            {
             { Ast.module_id = fst id; 
               local_labels = (match l with None -> [] | Some x -> x);
+              new_node_names = (match nn with None -> [] | Some x -> x);
               rules = r;
               confluent = conf;
               module_doc = (match doc with Some d -> d | None -> []);
@@ -269,6 +271,10 @@ grew_module:
               mod_dir = "";
             }
           }
+
+new_nodes:
+        (* "new_nodes {a, b, c}" *)
+        | NEW_NODES x = delimited(LACC,separated_nonempty_list_final_opt(COMA,IDENT),RACC) { x:string list }
 
 module_id:
         | id = IDENT { (id,!Parser_global.current_line+1) }

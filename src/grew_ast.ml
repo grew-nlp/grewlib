@@ -107,6 +107,7 @@ module Ast = struct
   type modul = {
       module_id:Id.name;
       local_labels: (string * string option) list;
+      new_node_names: string list;
       rules: rule list;
       confluent: bool;
       module_doc:string list;
