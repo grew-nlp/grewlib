@@ -506,26 +506,47 @@ commands:
         | COMMANDS x = delimited(LACC,separated_nonempty_list_final_opt(SEMIC,command),RACC) { x }
 
 command:
+        (* del_edge e *)
         | DEL_EDGE n = IDENT
             { localize (Ast.Del_edge_name n) }
+
+        (* del_edge m -[x]-> n *)
         | DEL_EDGE n1 = IDENT label = delimited(LTR_EDGE_LEFT,IDENT,LTR_EDGE_RIGHT) n2 = IDENT 
             { localize (Ast.Del_edge_expl (n1,n2,label)) }
+
+        (* add_edge m -[x]-> n *)
         | ADD_EDGE n1 = IDENT label = delimited(LTR_EDGE_LEFT,IDENT,LTR_EDGE_RIGHT) n2 = IDENT
             { localize (Ast.Add_edge (n1,n2,label)) }
+
+        (* shift_in m ==> n *)
         | SHIFT_IN n1 = IDENT LONGARROW n2 = IDENT 
             { localize (Ast.Shift_in (n1,n2)) }
+
+        (* shift_out m ==> n *)
         | SHIFT_OUT n1 = IDENT LONGARROW n2 = IDENT 
             { localize (Ast.Shift_out (n1,n2)) }
+
+        (* shift m ==> n *)
         | SHIFT n1 = IDENT LONGARROW n2 = IDENT 
             { localize (Ast.Shift_edge (n1,n2)) }
+
+        (* merge m ==> n *)
         | MERGE n1 = IDENT LONGARROW n2 = IDENT 
             { localize (Ast.Merge_node (n1,n2)) }
+
+        (* del_node n *)
         | DEL_NODE n = IDENT
             { localize (Ast.Del_node n) }
+
+        (* add_node n: <-[x]- m *)
         | ADD_NODE n1 = IDENT DDOT label = delimited(RTL_EDGE_LEFT,IDENT,RTL_EDGE_RIGHT) n2 = IDENT 
             { localize (Ast.New_neighbour (n1,n2,label)) }
+
+        (* del_feat m.cat *)
         | DEL_FEAT qfn = QFN 
             { localize (Ast.Del_feat qfn) }
+
+        (* m.cat = n.x + "_" + nn.y *)
         | qfn = QFN EQUAL items = separated_nonempty_list (PLUS, concat_item)
             { localize (Ast.Update_feat (qfn, items)) }
 
