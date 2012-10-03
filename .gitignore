@@ -11,3 +11,4 @@ Makefile
 confdefs.h
 config.log
 config.status
+doc/arch.pdf
