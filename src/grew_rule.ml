@@ -62,27 +62,22 @@ ELSE
 ENDIF
 end (* module Instance *)
 
-module Instance_set = Set.Make (Instance)
 (* ================================================================================ *)
+module Instance_set = Set.Make (Instance)
 
+(* ================================================================================ *)
 module Rule = struct
-  (* the [pid] type is used for pattern identifier *)
-  type pid = Pid.t
-
-  (* the [gid] type is used for graph identifier *)
-  type gid = Gid.t
-
   (* the rewriting depth is bounded to stop rewriting when the system is not terminating *)
   let max_depth = ref 500
 
   type const =
-    | Cst_out of pid * P_edge.t
-    | Cst_in of pid * P_edge.t
-    | Feature_eq of pid * string * pid * string
-    | Feature_diseq of pid * string * pid * string
+    | Cst_out of Pid.t * P_edge.t
+    | Cst_in of Pid.t * P_edge.t
+    | Feature_eq of Pid.t * string * Pid.t * string
+    | Filter of Pid.t * P_fs.t (* used when a without impose a fs on a node defined by the match pattern *)
 
-    | Feature_ineq of Ast.ineq * pid * string * pid * string
-    | Filter of pid * P_fs.t (* used when a without impose a fs on a node defined by the match pattern *)
+    | Feature_ineq of Ast.ineq * Pid.t * string * Pid.t * string
+    | Filter of Pid.t * P_fs.t (* used when a without impose a fs on a node defined by the match pattern *)
 
   let build_pos_constraint ?locals pos_table const =
     let pid_of_name loc node_name = Pid.Pos (Id.build ~loc node_name pos_table) in
@@ -171,6 +166,9 @@ module Rule = struct
 
   let get_loc t = t.loc
 
+  let is_filter t = t.commands = []
+
+  (* ====================================================================== *)
   let to_dep t =
     let buff = Buffer.create 32 in
     bprintf buff "[GRAPH] { scale = 200; }\n";
@@ -228,19 +226,25 @@ module Rule = struct
     bprintf buff "}\n";
     Buffer.contents buff
 
-  let is_filter t = t.commands = []
-
+  (* ====================================================================== *)
   let build_commands ?param ?(locals=[||]) pos pos_table ast_commands =
-    let known_node_ids = Array.to_list pos_table in
+    let known_c_ident_ids = List.map (fun x -> (x,None)) (Array.to_list pos_table) in
     let known_edge_ids = get_edge_ids pos in
-    let rec loop (kni,kei) = function
+
+    let rec loop (kci,kei) = function
       | [] -> []
       | ast_command :: tail ->
-          let (command, (new_kni, new_kei)) =
-            Command.build ?param (kni,kei) pos_table locals ast_command in
-          command :: (loop (new_kni,new_kei) tail) in
-    loop (known_node_ids, known_edge_ids) ast_commands
+          let (command, (new_kci, new_kei)) =
+            Command.build
+              ?param
+              (kci,kei)
+              pos_table
+              locals
+              ast_command in
+          command :: (loop (new_kci,new_kei) tail) in
+    loop (known_c_ident_ids, known_edge_ids) ast_commands
 
+  (* ====================================================================== *)
   let parse_vars loc vars =
     let rec parse_cmd_vars = function
       | [] -> []
@@ -253,6 +257,7 @@ module Rule = struct
       | x::t -> Error.bug ~loc "Illegal feature definition '%s' in the lexical rule" x in
     parse_pat_vars vars
 
+  (* ====================================================================== *)
   let build ?(locals=[||]) dir rule_ast =
 
     let (param, pat_vars, cmd_vars) =
@@ -286,10 +291,11 @@ module Rule = struct
       param_names = (pat_vars,cmd_vars)
     }
 
+  (* ====================================================================== *)
   type matching = {
-      n_match: gid Pid_map.t;                   (* partial fct: pattern nodes |--> graph nodes *)
-      e_match: (string*(gid*Label.t*gid)) list; (* edge matching: edge ident  |--> (src,label,tar) *)
-      a_match: (gid*Label.t*gid) list;          (* anonymous edge mached *)
+      n_match: Gid.t Pid_map.t;                   (* partial fct: pattern nodes |--> graph nodes *)
+      e_match: (string*(Gid.t*Label.t*Gid.t)) list; (* edge matching: edge ident  |--> (src,label,tar) *)
+      a_match: (Gid.t*Label.t*Gid.t) list;          (* anonymous edge mached *)
       m_param: Lex_par.t option;
     }
 
@@ -311,7 +317,7 @@ module Rule = struct
 
   let find cnode ?loc (matching, created_nodes) =
     match cnode with
-    | Command.Pid pid ->
+    | Command.Pat pid ->
         (try Pid_map.find pid matching.n_match
         with Not_found -> Error.bug ?loc "Inconsistent matching pid '%s' not found" (Pid.to_string pid))
     | Command.New name ->
@@ -340,9 +346,9 @@ module Rule = struct
 (* ================================================================================ *)
   type partial = {
       sub: matching;
-      unmatched_nodes: pid list;
-      unmatched_edges: (pid * P_edge.t * pid) list;
-      already_matched_gids: gid list; (* to ensure injectivity *)
+      unmatched_nodes: Pid.t list;
+      unmatched_edges: (Pid.t * P_edge.t * Pid.t) list;
+      already_matched_gids: Gid.t list; (* to ensure injectivity *)
       check: const list (* constraints to verify at the end of the matching *)
     }
 
@@ -686,14 +692,18 @@ module Rule = struct
         (instance, [])
         rule.commands in
 
-    let rule_app = {Grew_types.rule_name = rule.name; up = up_deco matching; down = down_deco (matching,created_nodes) rule.commands } in
+    let rule_app = {
+      Grew_types.rule_name = rule.name;
+      up = up_deco matching;
+      down = down_deco (matching,created_nodes) rule.commands
+    } in
 
     {new_instance with
-     Instance.rules = rule.name :: new_instance.Instance.rules;
-     big_step = match new_instance.Instance.big_step with
-     | None -> Some { Grew_types.first = rule_app; small_step = [] }
-     | Some bs -> Some { bs with Grew_types.small_step = (instance.Instance.graph, rule_app) :: bs.Grew_types.small_step }
-   }
+      Instance.rules = rule.name :: new_instance.Instance.rules;
+      big_step = match new_instance.Instance.big_step with
+        | None -> Some { Grew_types.first = rule_app; small_step = [] }
+        | Some bs -> Some { bs with Grew_types.small_step = (instance.Instance.graph, rule_app) :: bs.Grew_types.small_step }
+    }
 
 (*-----------------------------*)
 

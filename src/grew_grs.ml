@@ -9,9 +9,8 @@ open Grew_command
 open Grew_graph
 open Grew_rule
 
-
+(* ==================================================================================================== *)
 module Rewrite_history = struct
-
   type t = {
     instance: Instance.t;
     module_name: string;
@@ -26,7 +25,6 @@ module Rewrite_history = struct
     | { good_nf = []; bad_nf = [] } -> 1
     | { good_nf = [] } -> 0 (* dead branch *)
     | { good_nf = l} -> List.fold_left (fun acc t -> acc + (num_sol t)) 0 l
-
 
   let save_nfs ?main_feat ~dot base_name t =
     let rec loop file_name rules t =
@@ -47,7 +45,6 @@ module Rewrite_history = struct
             [] l
     in loop base_name [] t
 
-
   let save_gr base t =
     let rec loop file_name t =
       match (t.good_nf, t.bad_nf) with
@@ -63,11 +60,9 @@ module Rewrite_history = struct
         | [one], [] -> loop one
         | _ -> Error.run "Not a single rewriting"
     in loop t
-end
+end (* module Rewrite_history *)
 
-
-
-
+(* ==================================================================================================== *)
 module Modul = struct
   type t = {
     name: string;
@@ -102,8 +97,9 @@ module Modul = struct
         loc = ast_module.Ast.mod_loc;
       } in
     check modul; modul
-end
+end (* module Modul *)
 
+(* ==================================================================================================== *)
 module Sequence = struct
   type t = {
     name: string;
@@ -127,8 +123,9 @@ module Sequence = struct
         loc = ast_sequence.Ast.seq_loc;
       } in
     check module_list sequence; sequence
-end
+end (* module Sequence *)
 
+(* ==================================================================================================== *)
 module Grs = struct
 
   type t = {
@@ -253,4 +250,4 @@ module Grs = struct
       (fun modul ->
         List.iter (fun filter -> fct modul.Modul.name filter) modul.Modul.filters
       ) grs.modules
-end
+end (* module Grs *)

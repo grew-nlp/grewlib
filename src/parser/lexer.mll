@@ -15,6 +15,19 @@
     | [node; feat_name] -> (node, feat_name)
     | _ -> Log.fcritical "[BUG] \"%s\" is not a feature" string_feat
 
+  let parse_ext_ident string =
+    match Str.split (Str.regexp "#") string with
+    | [base; ext] -> (base, Some ext)
+    | _ -> Log.fcritical "[BUG] \"%s\" is not an extented ident" string
+
+  let parse_ext_qfn string =
+    match Str.split (Str.regexp "\\.") string with
+    | [ext_ident; feat_name] -> (parse_ext_ident ext_ident, feat_name)
+    | _ -> Log.fcritical "[BUG] \"%s\" is not an extented qfn" string
+
+
+
+
   let split_comment com =
     let raw = Str.split (Str.regexp "\n") com in
     List.filter (fun l -> not (Str.string_match (Str.regexp "[ \t]*$") l 0)) raw
@@ -106,6 +119,10 @@ and global = parse
 | ident as id              { IDENT id }
 | '$' ident as pat_var     { PAT pat_var}
 | '@' ident as cmd_var     { CMD cmd_var }
+
+| ident '#' ident as ext_ident              { EXT_IDENT (parse_ext_ident ext_ident) }
+| ident '#' ident ['.'] ident as ext_qfn    { EXT_QFN (parse_ext_qfn ext_qfn) }
+
 
 | '{'   { LACC }
 | '}'   { RACC }

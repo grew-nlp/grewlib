@@ -20,9 +20,6 @@ module Ast : sig
 
   type feature = u_feature * Loc.t
 
-(* qualified feature name "A.lemma" *)
-  type qfn = string * string
-
   type u_node = {
       node_id: Id.name;
       position: int option;
@@ -45,14 +42,16 @@ module Ast : sig
 
   val string_of_ineq: ineq -> string
 
+  type feature_name = string
+
   type u_const = 
     | Start of Id.name * string list (* (source, labels) *)
     | Cst_out of Id.name
     | End of Id.name * string list (* (target, labels) *)
     | Cst_in of Id.name
-    | Feature_eq of qfn * qfn
-    | Feature_diseq of qfn * qfn
-    | Feature_ineq of ineq * qfn * qfn
+    | Feature_eq of (Id.name * feature_name) * (Id.name * feature_name)
+    | Feature_diseq of (Id.name * feature_name) * (Id.name * feature_name)
+    | Feature_ineq of ineq * (Id.name * feature_name) * (Id.name * feature_name)
 
   type const = u_const * Loc.t
 
@@ -62,24 +61,29 @@ module Ast : sig
       pat_const: const list;
     }
 
+  (* the base node name and the eventual new_node extension *)
+  type c_ident = Id.name * string option
+
+  val c_ident_to_string: c_ident -> string
+
   type concat_item =
-    | Qfn_item of (string * string)
+    | Qfn_item of (c_ident * feature_name)
     | String_item of string
     | Param_item of string
-          
-  type u_command = 
-    | Del_edge_expl of (Id.name * Id.name * string)
-    | Del_edge_name of string
-    | Add_edge of (Id.name * Id.name * string)
-    | Shift_in of (Id.name*Id.name)
-    | Shift_out of (Id.name*Id.name)
-    | Shift_edge of (Id.name*Id.name)
-    | Merge_node of (Id.name*Id.name)
-    | New_neighbour of (Id.name * Id.name * string)
-    | Del_node of Id.name
 
-    | Del_feat of qfn
-    | Update_feat of qfn * concat_item list
+  type u_command = 
+    | Del_edge_expl of (c_ident * c_ident * string)
+    | Del_edge_name of string
+    | Add_edge of (c_ident * c_ident * string)
+    | Shift_in of (c_ident*c_ident)
+    | Shift_out of (c_ident*c_ident)
+    | Shift_edge of (c_ident*c_ident)
+    | Merge_node of (c_ident*c_ident)
+    | New_neighbour of (c_ident * c_ident * string)
+    | Del_node of c_ident
+
+    | Del_feat of (c_ident * feature_name)
+    | Update_feat of (c_ident * feature_name) * concat_item list
 
   type command = u_command * Loc.t
 

@@ -78,7 +78,13 @@ let localize t = (t,get_loc ())
 %token <string> CMD                /* @id */
 
 %token <string>           IDENT    /* indentifier */
-%token <Grew_ast.Ast.qfn> QFN      /* ident.ident */
+%token <Grew_utils.Id.name * Grew_ast.Ast.feature_name>
+                          QFN      /* ident.ident */
+%token <Grew_utils.Id.name * string option>
+                          EXT_IDENT
+%token <(Grew_utils.Id.name * string option) * Grew_ast.Ast.feature_name>
+                          EXT_QFN
+
 %token <string>           STRING
 %token <int>              INT
 %token <string list>      COMMENT
@@ -511,62 +517,66 @@ pat_const:
 commands:
         | COMMANDS x = delimited(LACC,separated_nonempty_list_final_opt(SEMIC,command),RACC) { x }
 
+cident:
+        | i=IDENT      { (i, None) }
+        | ei=EXT_IDENT { ei }
+
 command:
         (* del_edge e *)
         | DEL_EDGE n = IDENT
             { localize (Ast.Del_edge_name n) }
 
         (* del_edge m -[x]-> n *)
-        | DEL_EDGE n1 = IDENT label = delimited(LTR_EDGE_LEFT,IDENT,LTR_EDGE_RIGHT) n2 = IDENT 
+        | DEL_EDGE n1 = cident label = delimited(LTR_EDGE_LEFT,IDENT,LTR_EDGE_RIGHT) n2 = cident
             { localize (Ast.Del_edge_expl (n1,n2,label)) }
 
         (* add_edge m -[x]-> n *)
-        | ADD_EDGE n1 = IDENT label = delimited(LTR_EDGE_LEFT,IDENT,LTR_EDGE_RIGHT) n2 = IDENT
+        | ADD_EDGE n1 = cident label = delimited(LTR_EDGE_LEFT,IDENT,LTR_EDGE_RIGHT) n2 = cident
             { localize (Ast.Add_edge (n1,n2,label)) }
 
         (* shift_in m ==> n *)
-        | SHIFT_IN n1 = IDENT LONGARROW n2 = IDENT 
+        | SHIFT_IN n1 = cident LONGARROW n2 = cident
             { localize (Ast.Shift_in (n1,n2)) }
 
         (* shift_out m ==> n *)
-        | SHIFT_OUT n1 = IDENT LONGARROW n2 = IDENT 
+        | SHIFT_OUT n1 = cident LONGARROW n2 = cident
             { localize (Ast.Shift_out (n1,n2)) }
 
         (* shift m ==> n *)
-        | SHIFT n1 = IDENT LONGARROW n2 = IDENT 
+        | SHIFT n1 = cident LONGARROW n2 = cident
             { localize (Ast.Shift_edge (n1,n2)) }
 
         (* merge m ==> n *)
-        | MERGE n1 = IDENT LONGARROW n2 = IDENT 
+        | MERGE n1 = cident LONGARROW n2 = cident
             { localize (Ast.Merge_node (n1,n2)) }
 
         (* del_node n *)
-        | DEL_NODE n = IDENT
+        | DEL_NODE n = cident
             { localize (Ast.Del_node n) }
 
         (* add_node n: <-[x]- m *)
-        | ADD_NODE n1 = IDENT DDOT label = delimited(RTL_EDGE_LEFT,IDENT,RTL_EDGE_RIGHT) n2 = IDENT 
+        | ADD_NODE n1 = cident DDOT label = delimited(RTL_EDGE_LEFT,IDENT,RTL_EDGE_RIGHT) n2 = cident
             { localize (Ast.New_neighbour (n1,n2,label)) }
 
         (* del_feat m.cat *)
-        | DEL_FEAT qfn = QFN 
+        | DEL_FEAT qfn = EXT_QFN
             { localize (Ast.Del_feat qfn) }
 
         (* m.cat = n.x + "_" + nn.y *)
-        | qfn = QFN EQUAL items = separated_nonempty_list (PLUS, concat_item)
+        | qfn = EXT_QFN EQUAL items = separated_nonempty_list (PLUS, concat_item)
             { localize (Ast.Update_feat (qfn, items)) }
 
 concat_item:
-        | qfn = QFN    { Ast.Qfn_item qfn }
-        | s = IDENT    { Ast.String_item s }
-        | s = STRING   { Ast.String_item s }
-        | p = CMD      { Ast.Param_item p }
-        | p = PAT      { Ast.Param_item p }
+        | qfn = EXT_QFN    { Ast.Qfn_item qfn }
+        | s = IDENT        { Ast.String_item s }
+        | s = STRING       { Ast.String_item s }
+        | p = CMD          { Ast.Param_item p }
+        | p = PAT          { Ast.Param_item p }
 
 /*=============================================================================================*/
 /*                                                                                             */
 /* SEQUENCE DEFINITION                                                                         */
-/*                                                                                             */
+/*                                                                                              */
 /* sequence { ant; p7_to_p7p-mc}                                                               */
 /*                                                                                             */
 /*=============================================================================================*/

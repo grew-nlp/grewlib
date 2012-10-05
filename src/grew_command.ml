@@ -6,13 +6,12 @@ open Grew_ast
 open Grew_edge
 open Grew_fs
 
+(* ==================================================================================================== *)
 module Command  = struct 
-  type pid = Pid.t
-  type gid = Gid.t
-	
-  type cnode =       (* a command node is either: *)
-    | Pid of pid     (* a node identified in the pattern *)
-    | New of string  (* a node introduced by a new_neighbour *)
+  type cnode =               (* a command node is either: *)
+    | Pat of Pid.t           (* a node identified in the pattern *)
+    | New of string          (* a node introduced by a new_neighbour *)
+    | Act of Pid.t * string  (* a node introduced by a activate *)
 
   type item =
     | Feat of (cnode * string)
@@ -28,7 +27,7 @@ module Command  = struct
     | ADD_EDGE of (cnode * cnode * G_edge.t)
     | DEL_FEAT of (cnode * string)
     | UPDATE_FEAT of (cnode * string * item list)
-    | NEW_NEIGHBOUR of (string * G_edge.t * pid)
+    | NEW_NEIGHBOUR of (string * G_edge.t * Pid.t)
     | SHIFT_EDGE of (cnode * cnode)
     | SHIFT_IN of (cnode * cnode)
     | SHIFT_OUT of (cnode * cnode)
@@ -38,66 +37,72 @@ module Command  = struct
 
   (* a item in the command history: command applied to a graph *)
   type h = 
-    | H_DEL_NODE of gid
-    | H_DEL_EDGE_EXPL of (gid * gid *G_edge.t) 
+    | H_DEL_NODE of Gid.t
+    | H_DEL_EDGE_EXPL of (Gid.t * Gid.t *G_edge.t)
     | H_DEL_EDGE_NAME of string
-    | H_ADD_EDGE of (gid * gid * G_edge.t)
-    | H_DEL_FEAT of (gid *string)
-    | H_UPDATE_FEAT of (gid * string * string)
-    | H_NEW_NEIGHBOUR of (string * G_edge.t * gid)
-    | H_SHIFT_EDGE of (gid * gid)
-    | H_SHIFT_IN of (gid * gid)
-    | H_SHIFT_OUT of (gid * gid)
-    | H_MERGE_NODE of (gid * gid)
+    | H_ADD_EDGE of (Gid.t * Gid.t * G_edge.t)
+    | H_DEL_FEAT of (Gid.t * string)
+    | H_UPDATE_FEAT of (Gid.t * string * string)
+    | H_NEW_NEIGHBOUR of (string * G_edge.t * Gid.t)
+    | H_SHIFT_EDGE of (Gid.t * Gid.t)
+    | H_SHIFT_IN of (Gid.t * Gid.t)
+    | H_SHIFT_OUT of (Gid.t * Gid.t)
+    | H_MERGE_NODE of (Gid.t * Gid.t)
 
-  let build ?param (kni, kei) table locals ast_command = 
-    let get_pid node_name =
-      match Id.build_opt node_name table with
-      | Some id -> Pid (Pid.Pos id)
-      | None -> New node_name in
+  let build ?param (kci, kei) table locals ast_command =
 
-    let check_node loc node_id kni = 
-      if not (List.mem node_id kni) 
-      then Error.build ~loc "Unbound node identifier \"%s\"" node_id in
+    let pid_of_c_ident = function
+        | (node_name, None) -> Pat (Pid.Pos (Id.build node_name table))
+        | (node_name, Some n) ->  Act (Pid.Pos (Id.build node_name table), n) in
+
+    let check_c_ident loc c_ident kci =
+      if not (List.mem c_ident kci)
+      then Error.build ~loc "Unbound c_ident identifier \"%s\"" (Ast.c_ident_to_string c_ident) in
 
     let check_edge loc edge_id kei = 
       if not (List.mem edge_id kei) 
       then Error.build ~loc "Unbound edge identifier \"%s\"" edge_id in
 
     match ast_command with
-    | (Ast.Del_edge_expl (i, j, lab), loc) ->
-        check_node loc i kni; check_node loc j kni;
+      | (Ast.Del_edge_expl (i, j, lab), loc) ->
+        check_c_ident loc i kci;
+        check_c_ident loc j kci;
 	let edge = G_edge.make ~locals lab in
-	((DEL_EDGE_EXPL (get_pid i, get_pid j, edge), loc), (kni, kei))
+	((DEL_EDGE_EXPL (pid_of_c_ident i, pid_of_c_ident j, edge), loc), (kci, kei))
 	  
-    | (Ast.Del_edge_name id, loc) -> 
+      | (Ast.Del_edge_name id, loc) ->
         check_edge loc id kei;
-        (DEL_EDGE_NAME id, loc), (kni, List_.rm id kei)
+        (DEL_EDGE_NAME id, loc), (kci, List_.rm id kei)
 	  
-    | (Ast.Add_edge (i, j, lab), loc) ->
-        check_node loc i kni; check_node loc j kni;
+      | (Ast.Add_edge (i, j, lab), loc) ->
+        check_c_ident loc i kci;
+        check_c_ident loc j kci;
 	let edge = G_edge.make ~locals lab in
-	((ADD_EDGE (get_pid i, get_pid j, edge), loc), (kni, kei))
-	  
-    | (Ast.Shift_edge (i, j), loc) ->
-        check_node loc i kni; check_node loc j kni;
-	((SHIFT_EDGE (get_pid i, get_pid j), loc), (kni, kei))
+	((ADD_EDGE (pid_of_c_ident i, pid_of_c_ident j, edge), loc), (kci, kei))
 
-    | (Ast.Shift_in (i, j), loc) ->
-        check_node loc i kni; check_node loc j kni;
-	((SHIFT_IN (get_pid i, get_pid j), loc), (kni, kei))
+      | (Ast.Shift_edge (i, j), loc) ->
+        check_c_ident loc i kci;
+        check_c_ident loc j kci;
+	((SHIFT_EDGE (pid_of_c_ident i, pid_of_c_ident j), loc), (kci, kei))
 
-    | (Ast.Shift_out (i, j), loc) ->
-        check_node loc i kni; check_node loc j kni;
-	((SHIFT_OUT (get_pid i, get_pid j), loc), (kni, kei))
+      | (Ast.Shift_in (i, j), loc) ->
+        check_c_ident loc i kci;
+        check_c_ident loc j kci;
+	((SHIFT_IN (pid_of_c_ident i, pid_of_c_ident j), loc), (kci, kei))
 
-    | (Ast.Merge_node (i, j), loc) ->
-        check_node loc i kni; check_node loc j kni;
-	((MERGE_NODE (get_pid i, get_pid j), loc), (List_.rm i kni, kei))
-	  
-    | (Ast.New_neighbour (name_created, ancestor, label), loc) -> 
-        check_node loc ancestor kni;
-        if List.mem name_created kni
+      | (Ast.Shift_out (i, j), loc) ->
+        check_c_ident loc i kci;
+        check_c_ident loc j kci;
+	((SHIFT_OUT (pid_of_c_ident i, pid_of_c_ident j), loc), (kci, kei))
+
+      | (Ast.Merge_node (i, j), loc) ->
+        check_c_ident loc i kci;
+        check_c_ident loc j kci;
+	((MERGE_NODE (pid_of_c_ident i, pid_of_c_ident j), loc), (List_.rm i kci, kei))
+
+      | (Ast.New_neighbour ((name_created, None), ancestor, label), loc) ->
+        check_c_ident loc ancestor kci;
+        if List.mem (name_created, None) kci
         then Error.build ~loc "Node identifier \"%s\" is already used" name_created;
 	let edge = G_edge.make ~locals label in
 	begin
@@ -106,39 +111,40 @@ module Command  = struct
               (NEW_NEIGHBOUR
                  (name_created,
                   edge,
-                  Pid.Pos (Id.build ~loc ancestor table)
+                  Pid.Pos (Id.build ~loc (fst ancestor) table)
                  ), loc),
-              (name_created::kni, kei)
+              ((name_created, None)::kci, kei)
             )
 	  with Not_found -> 
 	    Log.fcritical "[GRS] tries to build a command New_neighbour (%s) on node %s which is not in the pattern %s"
 	      (G_edge.to_string edge)
-	      ancestor
+	      (fst ancestor)
 	      (Loc.to_string loc)
 	end
 	  
-    | (Ast.Del_node n, loc) ->
-        check_node loc n kni;
-	((DEL_NODE (get_pid n), loc), (List_.rm n kni, kei))
+      | (Ast.Del_node n, loc) ->
+        check_c_ident loc n kci;
+	((DEL_NODE (pid_of_c_ident n), loc), (List_.rm n kci, kei))
 	  
-    | (Ast.Del_feat (node,feat_name), loc) ->
-        check_node loc node kni;
-        ((DEL_FEAT (get_pid node, feat_name), loc), (kni, kei))
+      | (Ast.Del_feat (c_ident,feat_name), loc) ->
+        check_c_ident loc c_ident kci;
+        ((DEL_FEAT (pid_of_c_ident c_ident, feat_name), loc), (kci, kei))
 
-    | (Ast.Update_feat ((tar_node, tar_feat_name), ast_items), loc) ->
-        check_node loc tar_node kni;
+      | (Ast.Update_feat ((c_ident, feat_name), ast_items), loc) ->
+        check_c_ident loc c_ident kci;
         let items = List.map 
-            (function
-              | Ast.Qfn_item (node,feat_name) -> check_node loc node kni; Feat (get_pid node, feat_name)
-              | Ast.String_item s -> String s
-              | Ast.Param_item var -> 
-                  match param with
-                  | None -> Error.build "Unknown command variable '%s'" var
-                  | Some (par,cmd) -> 
-                      match (List_.pos var par, List_.pos var cmd) with
-                      | (_,Some index) -> Param_out index
-                      | (Some index,_) -> Param_in index
-                      | _ -> Error.build "Unknown command variable '%s'" var
-            ) ast_items in
-        ((UPDATE_FEAT (get_pid tar_node, tar_feat_name, items), loc), (kni, kei))
-end
+          (function
+            | Ast.Qfn_item (ci,fn) -> check_c_ident loc ci kci; Feat (pid_of_c_ident ci, fn)
+            | Ast.String_item s -> String s
+            | Ast.Param_item var ->
+              match param with
+                | None -> Error.build "Unknown command variable '%s'" var
+                | Some (par,cmd) ->
+                  match (List_.pos var par, List_.pos var cmd) with
+                    | (_,Some index) -> Param_out index
+                    | (Some index,_) -> Param_in index
+                    | _ -> Error.build "Unknown command variable '%s'" var
+          ) ast_items in
+        ((UPDATE_FEAT (pid_of_c_ident c_ident, feat_name, items), loc), (kci, kei))
+      | _ -> failwith "TODO remove with new neighbour"
+end (* module Command *)
