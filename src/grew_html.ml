@@ -46,6 +46,7 @@ module Html_doc = struct
     | Ast.Shift_edge (n1,n2) -> bprintf buff "shift %s ==> %s" (Ast.c_ident_to_string n1) (Ast.c_ident_to_string n2)
     | Ast.Merge_node (n1,n2) -> bprintf buff "merge %s ==> %s" (Ast.c_ident_to_string n1) (Ast.c_ident_to_string n2)
     | Ast.New_neighbour (n1,n2,label) -> bprintf buff "add_node %s: <-[%s]- %s" (Ast.c_ident_to_string n1) label (Ast.c_ident_to_string n2)
+    | Ast.Activate n -> bprintf buff "activate %s" (Ast.c_ident_to_string n)
     | Ast.Del_node n -> bprintf buff "del_node %s" (Ast.c_ident_to_string n)
     | Ast.Update_feat ((n,fn),item_list) ->
       bprintf buff "%s.%s = %s" (Ast.c_ident_to_string n) fn (List_.to_string string_of_concat_item " + " item_list)

@@ -121,6 +121,8 @@ module Command  = struct
 	      (fst ancestor)
 	      (Loc.to_string loc)
 	end
+
+      | (Ast.Activate n, loc) -> failwith "Not implemented"
 	  
       | (Ast.Del_node n, loc) ->
         check_c_ident loc n kci;

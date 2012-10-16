@@ -52,7 +52,8 @@ let localize t = (t,get_loc ())
 %token FEATURE                     /* feature */
 %token FILE                        /* file */
 %token LABELS                      /* labels */
-%token NEW_NODES                   /* labels */
+%token NEW_NODES                   /* new_nodes */
+%token ACTIVATE                    /* activate */
 %token MATCH                       /* match */
 %token WITHOUT                     /* without */
 %token COMMANDS                    /* commands */
@@ -521,6 +522,9 @@ cident:
         | i=IDENT      { (i, None) }
         | ei=EXT_IDENT { ei }
 
+eident:
+        | ei=EXT_IDENT { ei }
+
 command:
         (* del_edge e *)
         | DEL_EDGE n = IDENT
@@ -557,6 +561,10 @@ command:
         (* add_node n: <-[x]- m *)
         | ADD_NODE n1 = cident DDOT label = delimited(RTL_EDGE_LEFT,IDENT,RTL_EDGE_RIGHT) n2 = cident
             { localize (Ast.New_neighbour (n1,n2,label)) }
+
+        (* activate n#a *)
+        | ACTIVATE n = eident
+            { localize (Ast.Activate n) }
 
         (* del_feat m.cat *)
         | DEL_FEAT qfn = EXT_QFN

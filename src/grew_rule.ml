@@ -74,7 +74,7 @@ module Rule = struct
     | Cst_out of Pid.t * P_edge.t
     | Cst_in of Pid.t * P_edge.t
     | Feature_eq of Pid.t * string * Pid.t * string
-    | Filter of Pid.t * P_fs.t (* used when a without impose a fs on a node defined by the match pattern *)
+    | Feature_diseq of Pid.t * string * Pid.t * string
 
     | Feature_ineq of Ast.ineq * Pid.t * string * Pid.t * string
     | Filter of Pid.t * P_fs.t (* used when a without impose a fs on a node defined by the match pattern *)

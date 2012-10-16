@@ -94,6 +94,7 @@ module Ast = struct
     | Merge_node of (c_ident*c_ident)
     | New_neighbour of (c_ident * c_ident * string)
     | Del_node of c_ident
+    | Activate of c_ident
 
     | Del_feat of (c_ident * feature_name)
     | Update_feat of (c_ident * feature_name) * concat_item list
