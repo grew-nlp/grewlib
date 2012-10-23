@@ -195,34 +195,56 @@ end (* module Concat_item *)
 
 (* ==================================================================================================== *)
 module G_graph = struct
-  type t = G_node.t Gid_map.t (* node description *)
+  type t = {
+    meta: (string * string) list;
+    map: G_node.t Gid_map.t; (* node description *)
+  }
 
-  let empty = Gid_map.empty
+  let empty = {meta=[]; map=Gid_map.empty}
 
-  let find node_id graph = Gid_map.find node_id graph
+  let find node_id graph = Gid_map.find node_id graph.map
 
-  let equals t t' = Gid_map.equal (fun node1 node2 -> node1 = node2) t t'
+  let equals t t' = Gid_map.equal (fun node1 node2 -> node1 = node2) t.map t'.map
+
+(* Ocaml < 3.12 doesn't have exists function for maps! *)
+  exception True
+  let node_exists fct t =
+    try
+      Gid_map.iter (fun _ v -> if fct v then raise True) t.map;
+      false
+    with True -> true
+(* Ocaml < 3.12 doesn't have exists function for maps! *)
+
+  let fold_gid fct t init =
+    Gid_map.fold (fun gid _ acc -> fct gid acc) t.map init
+
+  let max_binding t =
+    match Gid_map.max_binding t.map with
+      | (Gid.Old i,_) -> i
+      | _ -> Error.bug "[G_graph.max_binding]"
 
   (* is there an edge e out of node i ? *)
   let edge_out graph node_id p_edge =
-    let node = Gid_map.find node_id graph in
+    let node = Gid_map.find node_id graph.map in
     Massoc_gid.exists (fun _ e -> P_edge.compatible p_edge e) (G_node.get_next node)
 
   (* -------------------------------------------------------------------------------- *)
-  let add_edge graph id_src label id_tar =
+  let map_add_edge map id_src label id_tar =
     let node_src =
       (* Not found can be raised when adding an edge from pos to neg *)
-      try Gid_map.find id_src graph with Not_found -> G_node.empty in
+      try Gid_map.find id_src map with Not_found -> G_node.empty in
     match G_node.add_edge label id_tar node_src with
     | None -> None
-    | Some new_node -> Some (Gid_map.add id_src new_node graph)
+    | Some new_node -> Some (Gid_map.add id_src new_node map)
+
+  let add_edge graph id_src label id_tar =
+    match map_add_edge graph.map id_src label id_tar with
+      | Some new_map -> Some {graph with map = new_map }
+      | None -> None
 
   (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
   (* Build functions *)
   (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
-
-  (* -------------------------------------------------------------------------------- *)
-  (* let build ?(locals=[||]) full_node_list full_edge_list = *)
 
   let build ?(locals=[||]) gr_ast =
     let full_node_list = gr_ast.Ast.nodes
@@ -253,7 +275,7 @@ module G_graph = struct
 	  let i1 = Id.build ~loc ast_edge.Ast.src table in
 	  let i2 = Id.build ~loc ast_edge.Ast.tar table in
 	  let edge = G_edge.build ~locals (ast_edge, loc) in
-	  (match add_edge acc (Gid.Old i1) edge (Gid.Old i2) with
+	  (match map_add_edge acc (Gid.Old i1) edge (Gid.Old i2) with
 	  | Some g -> g
 	  | None -> Error.build "[GRS] [Graph.build] try to build a graph with twice the same edge %s %s"
                 (G_edge.to_string edge)
@@ -261,7 +283,7 @@ module G_graph = struct
 	  )
 	) map_without_edges full_edge_list in
 
-    map
+    {meta=gr_ast.Ast.meta; map=map}
 
   (* -------------------------------------------------------------------------------- *)
   let of_conll ?loc lines =
@@ -290,7 +312,7 @@ module G_graph = struct
             | Some new_node -> Gid_map.add (Gid.Old line.Conll.gov) new_node acc
         ) nodes lines in
 
-    nodes_with_edges
+    {meta=[]; map=nodes_with_edges}
 
   (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
   (* Update functions *)
@@ -298,32 +320,36 @@ module G_graph = struct
 
   (* -------------------------------------------------------------------------------- *)
   let rename mapping graph =
-    Gid_map.fold
-      (fun id node acc ->
-        let new_id = try List.assoc id mapping with Not_found -> id in
-        let new_node = G_node.rename mapping node in
-        Gid_map.add new_id new_node acc
-      ) graph Gid_map.empty
+    {graph with map = 
+        Gid_map.fold
+          (fun id node acc ->
+            let new_id = try List.assoc id mapping with Not_found -> id in
+            let new_node = G_node.rename mapping node in
+            Gid_map.add new_id new_node acc
+          ) graph.map Gid_map.empty
+    }
 
   (* -------------------------------------------------------------------------------- *)
   let del_edge ?edge_ident loc graph id_src label id_tar =
     let node_src =
-      try Gid_map.find id_src graph
+      try Gid_map.find id_src graph.map
       with Not_found ->
         match edge_ident with
         | None -> Log.fcritical "[RUN] Some edge refers to a dead node, please report"
         | Some id -> Error.run ~loc "[Graph.del_edge] cannot find source node of edge \"%s\"" id in
-    try Gid_map.add id_src (G_node.remove id_tar label node_src) graph
+    try {graph with map = Gid_map.add id_src (G_node.remove id_tar label node_src) graph.map}
     with Not_found -> Error.run ~loc "[Graph.del_edge] cannot find edge '%s'" (G_edge.to_string label)
 
   (* -------------------------------------------------------------------------------- *)
   let del_node graph node_id =
-    Gid_map.fold
-      (fun id value acc ->
-	if id = node_id
-	then acc
-	else Gid_map.add id (G_node.remove_key node_id value) acc
-      ) graph Gid_map.empty
+    {graph with map = 
+        Gid_map.fold
+          (fun id value acc ->
+	    if id = node_id
+	    then acc
+	    else Gid_map.add id (G_node.remove_key node_id value) acc
+          ) graph.map Gid_map.empty
+    }
 
   (* -------------------------------------------------------------------------------- *)
   let add_neighbour loc graph node_id label =
@@ -336,56 +362,60 @@ module G_graph = struct
         )
       | Gid.New _ -> Error.run ~loc "[Graph.add_neighbour] try to add neighbour node to a neighbour node" in
 
-    if Gid_map.mem index graph
+    if Gid_map.mem index graph.map
     then Error.run ~loc "[Graph.add_neighbour] try to build twice the \"same\" neighbour node (with label '%s')" (Label.to_string label);
 
-    let node = Gid_map.find node_id graph in
+    let node = Gid_map.find node_id graph.map in
     (* put the new node on the right of its "parent" *)
-    let new_graph = Gid_map.add index (G_node.build_neighbour node) graph in
-    match add_edge new_graph node_id label index with
-    | Some g -> (index, g)
+    let new_map = Gid_map.add index (G_node.build_neighbour node) graph.map in
+    match map_add_edge new_map node_id label index with
+    | Some g -> (index, {graph with map = new_map})
     | None -> Log.bug "[Graph.add_neighbour] add_edge must not fail"; exit 1
 
   (* -------------------------------------------------------------------------------- *)
   let shift_in loc graph src_gid tar_gid =
-    let tar_node = Gid_map.find tar_gid graph in
+    let tar_node = Gid_map.find tar_gid graph.map in
 
     if Massoc_gid.mem_key src_gid (G_node.get_next tar_node)
     then Error.run ~loc "[Graph.shift_in] dependency from tar to src";
 
-    Gid_map.mapi
-      (fun node_id node ->
-        match G_node.merge_key src_gid tar_gid node with
-          | Some new_node -> new_node
-          | None -> Error.run ~loc "[Graph.shift_in] create duplicate edge"
-      ) graph
+    { graph with map =
+        Gid_map.mapi
+          (fun node_id node ->
+            match G_node.merge_key src_gid tar_gid node with
+              | Some new_node -> new_node
+              | None -> Error.run ~loc "[Graph.shift_in] create duplicate edge"
+          ) graph.map
+    }
 
   (* -------------------------------------------------------------------------------- *)
   (* move all out-edges from id_src are moved to out-edges out off node id_tar *)
   let shift_out loc graph src_gid tar_gid =
-    let src_node = Gid_map.find src_gid graph in
-    let tar_node = Gid_map.find tar_gid graph in
+    let src_node = Gid_map.find src_gid graph.map in
+    let tar_node = Gid_map.find tar_gid graph.map in
 
     if Massoc_gid.mem_key tar_gid (G_node.get_next src_node)
     then Error.run ~loc "[Graph.shift_out] dependency from src to tar";
 
-    Gid_map.mapi
-      (fun node_id node ->
-	if node_id = src_gid
-	then (* [src_id] becomes without out-edges *)
-          G_node.rm_out_edges node
-	else if node_id = tar_gid
-	then
-          match G_node.shift_out src_node tar_node with
-            | Some n -> n
-            | None -> Error.run ~loc "[Graph.shift_out] common successor"
-	else node (* other nodes don't change *)
-      ) graph
+    {graph with map =
+        Gid_map.mapi
+          (fun node_id node ->
+	    if node_id = src_gid
+	    then (* [src_id] becomes without out-edges *)
+              G_node.rm_out_edges node
+	    else if node_id = tar_gid
+	    then
+              match G_node.shift_out src_node tar_node with
+                | Some n -> n
+                | None -> Error.run ~loc "[Graph.shift_out] common successor"
+	    else node (* other nodes don't change *)
+          ) graph.map
+    }
 
   (* -------------------------------------------------------------------------------- *)
   let shift_edges loc graph src_gid tar_gid =
-    let src_node = Gid_map.find src_gid graph in
-    let tar_node = Gid_map.find tar_gid graph in
+    let src_node = Gid_map.find src_gid graph.map in
+    let tar_node = Gid_map.find tar_gid graph.map in
 
     if Massoc_gid.mem_key tar_gid (G_node.get_next src_node)
     then Error.run ~loc "[Graph.shift_edges] dependency from src (gid=%s) to tar (gid=%s)"
@@ -395,44 +425,47 @@ module G_graph = struct
     then Error.run ~loc "[Graph.shift_edges] dependency from tar (gid=%s) to src (gid=%s)"
       (Gid.to_string tar_gid) (Gid.to_string src_gid);
 
-    Gid_map.mapi
-      (fun node_id node ->
-	if node_id = src_gid
-	then (* [src_id] becomes an isolated node *)
-          G_node.rm_out_edges node
-	else if node_id = tar_gid
-	then
-          match G_node.shift_out src_node tar_node with
-            | Some n -> n
-            | None -> Error.run ~loc "[Graph.shift_edges] common successor"
-	else
-          match G_node.merge_key src_gid tar_gid node with
-            | Some n -> n
-            | None -> Error.run ~loc "[Graph.shift_edges] create duplicate edge"
-      ) graph
+    let new_map =
+      Gid_map.mapi
+        (fun node_id node ->
+	  if node_id = src_gid
+	  then (* [src_id] becomes an isolated node *)
+            G_node.rm_out_edges node
+	  else if node_id = tar_gid
+	  then
+            match G_node.shift_out src_node tar_node with
+              | Some n -> n
+              | None -> Error.run ~loc "[Graph.shift_edges] common successor"
+	  else
+            match G_node.merge_key src_gid tar_gid node with
+              | Some n -> n
+              | None -> Error.run ~loc "[Graph.shift_edges] create duplicate edge"
+        ) graph.map in
+    { graph with map = new_map }
 
   (* -------------------------------------------------------------------------------- *)
   let merge_node loc graph src_gid tar_gid =
     let se_graph = shift_edges loc graph src_gid tar_gid in
 
-    let src_node = Gid_map.find src_gid se_graph in
-    let tar_node = Gid_map.find tar_gid se_graph in
+    let src_node = Gid_map.find src_gid se_graph.map in
+    let tar_node = Gid_map.find tar_gid se_graph.map in
 
     match G_fs.unif (G_node.get_fs src_node) (G_node.get_fs tar_node) with
     | Some new_fs ->
-      Some
-        (Gid_map.add
-	   tar_gid
-           (G_node.set_fs tar_node new_fs)
-	   (Gid_map.remove src_gid se_graph)
-        )
+      Some {graph with map =
+          (Gid_map.add
+	     tar_gid
+             (G_node.set_fs tar_node new_fs)
+	     (Gid_map.remove src_gid se_graph.map)
+          )
+           }
     | None -> None
 
   (* -------------------------------------------------------------------------------- *)
   let set_feat ?loc graph node_id feat_name new_value =
-    let node = Gid_map.find node_id graph in
+    let node = Gid_map.find node_id graph.map in
     let new_fs = G_fs.set_feat ?loc feat_name new_value (G_node.get_fs node) in
-    Gid_map.add node_id (G_node.set_fs node new_fs) graph
+    { graph with map = Gid_map.add node_id (G_node.set_fs node new_fs) graph.map }
 
   (* -------------------------------------------------------------------------------- *)
   let update_feat ?loc graph tar_id tar_feat_name item_list =
@@ -440,7 +473,7 @@ module G_graph = struct
       List.map
         (function
           | Concat_item.Feat (node_gid, feat_name) ->
-              let node = Gid_map.find node_gid graph in
+              let node = Gid_map.find node_gid graph.map in
               (match G_fs.get_atom feat_name (G_node.get_fs node) with
               | Some atom -> atom
               | None -> Error.run ?loc "Some feature (named \"%s\") is not defined" feat_name
@@ -453,9 +486,9 @@ module G_graph = struct
 
   (* -------------------------------------------------------------------------------- *)
   let del_feat graph node_id feat_name =
-    let node = Gid_map.find node_id graph in
+    let node = Gid_map.find node_id graph.map in
     let new_fs = G_fs.del_feat feat_name (G_node.get_fs node) in
-    Gid_map.add node_id (G_node.set_fs node new_fs) graph
+    { graph with map = Gid_map.add node_id (G_node.set_fs node new_fs) graph.map }
 
   (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
   (* Output functions *)
@@ -467,26 +500,33 @@ module G_graph = struct
 
     bprintf buff "graph {\n";
 
+    (* meta data *)
+    List.iter
+      (fun (name, value) ->
+        bprintf buff "  %s = \"%s\";\n" name value
+      ) graph.meta;
+
     (* nodes *)
     Gid_map.iter
       (fun id node ->
-        bprintf buff "N_%s %s;\n" (Gid.to_string id) (G_node.to_gr node)
-      ) graph;
+        bprintf buff "  N_%s %s;\n" (Gid.to_string id) (G_node.to_gr node)
+      ) graph.map;
+
     (* edges *)
     Gid_map.iter
       (fun id node ->
 	Massoc_gid.iter
 	  (fun tar edge ->
-	    bprintf buff "N_%s -[%s]-> N_%s;\n" (Gid.to_string id) (G_edge.to_string edge) (Gid.to_string tar)
+	    bprintf buff "  N_%s -[%s]-> N_%s;\n" (Gid.to_string id) (G_edge.to_string edge) (Gid.to_string tar)
 	  ) (G_node.get_next node)
-      ) graph;
+      ) graph.map;
 
     bprintf buff "}\n";
     Buffer.contents buff
 
   (* -------------------------------------------------------------------------------- *)
   let to_sentence ?main_feat graph =
-    let nodes = Gid_map.fold (fun id elt acc -> (id,elt)::acc) graph [] in
+    let nodes = Gid_map.fold (fun id elt acc -> (id,elt)::acc) graph.map [] in
     let snodes = List.sort (fun (_,n1) (_,n2) -> G_node.pos_comp n1 n2) nodes in
 
     let words = List.map
@@ -516,7 +556,7 @@ module G_graph = struct
 
     bprintf buff "[WORDS] { \n";
 
-    let nodes = Gid_map.fold (fun id elt acc -> (id,elt)::acc) graph [] in
+    let nodes = Gid_map.fold (fun id elt acc -> (id,elt)::acc) graph.map [] in
     let snodes = List.sort (fun (_,n1) (_,n2) -> G_node.pos_comp n1 n2) nodes in
 
     (* nodes *)
@@ -539,7 +579,7 @@ module G_graph = struct
 	    let deco = List.mem (gid,g_edge,tar) deco.G_deco.edges in
 	    bprintf buff "N_%s -> N_%s %s\n" (Gid.to_string gid) (Gid.to_string tar) (G_edge.to_dep ~deco g_edge)
 	  ) (G_node.get_next elt)
-      ) graph;
+      ) graph.map;
 
     bprintf buff "} \n";
     Buffer.contents buff
@@ -559,7 +599,7 @@ module G_graph = struct
 	  (Gid.to_string id)
           (G_fs.to_dot ?main_feat (G_node.get_fs node))
           (if List.mem id deco.G_deco.nodes then "red" else "black")
-      ) graph;
+      ) graph.map;
 
     (* edges *)
     Gid_map.iter
@@ -569,7 +609,7 @@ module G_graph = struct
 	    let deco = List.mem (id,g_edge,tar) deco.G_deco.edges in
 	    bprintf buff "  N_%s -> N_%s%s\n" (Gid.to_string id) (Gid.to_string tar) (G_edge.to_dot ~deco g_edge)
 	  ) (G_node.get_next node)
-      ) graph;
+      ) graph.map;
 
     bprintf buff "}\n";
     Buffer.contents buff

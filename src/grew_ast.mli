@@ -126,7 +126,8 @@ module Ast : sig
     }
 
   type gr = {
-      nodes: node list;
-      edges: edge list;
-    }
+    meta: (string * string) list;
+    nodes: node list;
+    edges: edge list;
+  }
 end (* module Ast *)

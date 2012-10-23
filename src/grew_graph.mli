@@ -68,13 +68,22 @@ end (* module Concat_item *)
 
 (* ==================================================================================================== *)
 module G_graph: sig
-  type t = G_node.t Gid_map.t
+  type t
 
   val empty: t
 
+  (** [find gid graph] return the g_node associated with [gid] in [graph].
+      [Not_found] is raised if [gid] is not defined in [graph]. *)
   val find: Gid.t -> t -> G_node.t
 
   val equals: t -> t -> bool
+
+  val node_exists: (G_node.t -> bool) -> t -> bool
+
+  val fold_gid: (Gid.t -> 'a -> 'a) -> t -> 'a -> 'a
+
+  (** raise ??? *)
+  val max_binding: t -> int
 
   (** [edge_out t id edge] returns true iff there is an out-edge from the node [id] with a label compatible with [edge] *)
   val edge_out: t -> Gid.t -> P_edge.t -> bool

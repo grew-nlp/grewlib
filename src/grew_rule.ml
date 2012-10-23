@@ -25,9 +25,7 @@ module Instance = struct
   let from_graph graph =
     {empty with
       graph = graph;
-      free_index = match (Gid_map.max_binding graph) with
-        | (Gid.Old i,_) -> i+1
-        | _ -> Error.bug "[Instance.from_graph]"
+      free_index = (G_graph.max_binding graph) + 1;
     }
 
   let rev_steps t =
@@ -362,14 +360,14 @@ module Rule = struct
       check = pattern.constraints;
     }
 
-(* Ocaml < 3.12 doesn't have exists function for maps! *)
-  exception True
-  let gid_map_exists fct map =
-    try
-      Gid_map.iter (fun k v -> if fct k v then raise True) map;
-      false
-    with True -> true
-(* Ocaml < 3.12 doesn't have exists function for maps! *)
+(* (\* Ocaml < 3.12 doesn't have exists function for maps! *\) *)
+(*   exception True *)
+(*   let gid_map_exists fct map = *)
+(*     try *)
+(*       Gid_map.iter (fun k v -> if fct k v then raise True) map; *)
+(*       false *)
+(*     with True -> true *)
+(* (\* Ocaml < 3.12 doesn't have exists function for maps! *\) *)
 
 
   let fullfill graph matching = function
@@ -378,13 +376,13 @@ module Rule = struct
         G_graph.edge_out graph gid edge
     | Cst_in (pid,edge) ->
         let gid = Pid_map.find pid matching.n_match in
-        gid_map_exists (* should be Gid_map.exists with ocaml 3.12 *)
-          (fun _ node ->
+        G_graph.node_exists
+          (fun node ->
             List.exists (fun e -> P_edge.compatible edge e) (Massoc_gid.assoc gid (G_node.get_next node))
           ) graph
     | Feature_eq (pid1, feat_name1, pid2, feat_name2) ->
-        let gnode1 = Gid_map.find (Pid_map.find pid1 matching.n_match) graph in
-        let gnode2 = Gid_map.find (Pid_map.find pid2 matching.n_match) graph in
+        let gnode1 = G_graph.find (Pid_map.find pid1 matching.n_match) graph in
+        let gnode2 = G_graph.find (Pid_map.find pid2 matching.n_match) graph in
         (match (G_fs.get_atom feat_name1 (G_node.get_fs gnode1),
                 G_fs.get_atom feat_name2 (G_node.get_fs gnode2)
                ) with
@@ -392,7 +390,7 @@ module Rule = struct
         | _ -> false)
     | Filter (pid, fs) ->
         let gid = Pid_map.find pid matching.n_match in
-        let gnode = Gid_map.find gid graph in
+        let gnode = G_graph.find gid graph in
         P_fs.filter fs (G_node.get_fs gnode)
 
   (* returns all extension of the partial input matching *)
@@ -444,8 +442,8 @@ module Rule = struct
               ) candidates
         end
     | [], pid :: _ ->
-        Gid_map.fold
-          (fun gid _ acc ->
+        G_graph.fold_gid
+          (fun gid acc ->
             (extend_matching_from (positive,neg) graph pid gid partial) @ acc
           ) graph []
 

@@ -56,12 +56,6 @@ module Ast = struct
       pat_const: const list;
     }
 
-
-  type graph = {
-      nodes: (Id.name * node) list;
-      edge: edge list;
-    }
-        
   type concat_item =
     | Qfn_item of (string * string)
     | String_item of string
@@ -138,7 +132,8 @@ module Ast = struct
     }
 
   type gr = {
-      nodes: node list;
-      edges: edge list;
-    }
+    meta: (string * string) list;
+    nodes: node list;
+    edges: edge list;
+  }
 end (* module Ast *)        

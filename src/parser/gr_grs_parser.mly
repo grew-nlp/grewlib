@@ -10,6 +10,7 @@ type pat_item =
   | Pat_const of Ast.const
 
 type graph_item =
+  | Graph_meta of (string * string)
   | Graph_node of Ast.node
   | Graph_edge of Ast.edge
 
@@ -94,22 +95,33 @@ let localize t = (t,get_loc ())
 |   x=X; separator                                                       { [x] }
 |   x=X; separator; xs = separated_nonempty_list_final_opt(separator,X)  { x :: xs }
 
+
+/*=============================================================================================*/
+/*  BASIC DEFINITIONS                                                                          */
+/*=============================================================================================*/
+value:
+        | v = IDENT { v }
+        | v = STRING { v }
+        | v = INT { string_of_int v }
+
 /*=============================================================================================*/
 /*  GREW GRAPH                                                                                 */
 /*=============================================================================================*/
-
-
-
 gr: 
         | GRAPH LACC items = separated_list_final_opt(SEMIC,gr_item) RACC EOF 
             {
              {
+              Ast.meta = List_.opt_map (function Graph_meta n -> Some n | _ -> None) items;
               Ast.nodes = List_.opt_map (function Graph_node n -> Some n | _ -> None) items;
               Ast.edges = List_.opt_map (function Graph_edge n -> Some n | _ -> None) items;
             }
            }
 
 gr_item:
+        (* sentence = "Jean dort." *)
+        | id = IDENT EQUAL value = value
+            { Graph_meta (id, value) }
+
         (* B (1) [phon="pense", lemma="penser", cat=v, mood=ind ] *)
         | id = IDENT position = option(delimited(LPAREN,index,RPAREN)) feats = delimited(LBRACKET,separated_list_final_opt(COMA,node_features),RBRACKET) 
             { Graph_node (localize {Ast.node_id = id; position=position; fs=feats}) }
@@ -187,9 +199,9 @@ features_group:
 %inline feature:
         | name = feature_name DDOT values = features_values 
             { 
-              if List.length values == 1 && List.hd values = "*"
+              if values = ["*"]
               then Ast.Open name 
-              else Ast.Closed (name,List.sort Pervasives.compare values)
+              else Ast.Closed (name, List.sort Pervasives.compare values)
             }
 
 feature_name:
@@ -197,7 +209,7 @@ feature_name:
 
 features_values:
         | STAR { ["*"] }
-        | x = separated_nonempty_list(COMA,feature_value) { x }
+        | x = separated_nonempty_list(COMA,value) { x }
 
 
 /*=============================================================================================*/
@@ -379,23 +391,15 @@ pat_node:
         | id = IDENT feats = delimited(LBRACKET,separated_list_final_opt(COMA,node_features),RBRACKET) 
             { localize ({Ast.node_id = id; position=None; fs= feats}) }
 
-
-
-
 node_features:
         | name = IDENT EQUAL STAR 
             { localize {Ast.kind = Ast.Disequality []; name=name; } } 
-        | name = IDENT EQUAL values = separated_nonempty_list(PIPE,feature_value) 
+        | name = IDENT EQUAL values = separated_nonempty_list(PIPE,value)
             { localize {Ast.kind = Ast.Equality values; name=name; } } 
-        | name = IDENT DISEQUAL values = separated_nonempty_list(PIPE,feature_value) 
+        | name = IDENT DISEQUAL values = separated_nonempty_list(PIPE,value)
             { localize {Ast.kind = Ast.Disequality values; name=name; } } 
         | name = IDENT EQUAL p = PAT
             { localize {Ast.kind = Ast.Param p; name=name; } } 
-
-feature_value:
-        | v = IDENT { v }
-        | v = STRING { v }
-        | v = INT { string_of_int v }
 
 pat_edge:
         (* "e: A -> B" OR "e: A -[*]-> B" *)
