@@ -145,6 +145,9 @@ let save_index ~dirname ~base_names =
 let save_gr base rew_hist = 
   Rewrite_history.save_gr base rew_hist
 
+let save_det_gr base rew_hist =
+  Rewrite_history.save_det_gr base rew_hist
+
 let write_html 
     ?(no_init=false)
     ?(out_gr=false)

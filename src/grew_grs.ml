@@ -55,6 +55,14 @@ module Rewrite_history = struct
         | l, _ -> List_.iteri (fun i son -> loop (sprintf "%s_%d" file_name i) son) l
     in loop base t
 
+  (* suppose that all modules are confluent and produced exacly one normal form *)
+  let save_det_gr base t =
+    let rec loop t =
+      match (t.good_nf, t.bad_nf) with
+        | [],[] -> File.write (Instance.to_gr t.instance) (base^".gr")
+        | [one], [] -> loop one
+        | _ -> Error.run "Not a single rewriting"
+    in loop t
 end
 
 
