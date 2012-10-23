@@ -12,21 +12,25 @@ module Domain = struct
 
   let init ast_domain = current := Some ast_domain
 
-  let check ?loc name values = match !current with
-  | None -> ()
-  | Some d ->
-      let rec loop = function
-        | [] -> Error.build ?loc "[GRS] Unknown feature name '%s'" name
-        | ((Ast.Open n)::_) when n = name -> ()
-        | ((Ast.Closed (n,vs))::_) when n = name -> 
+  let check ?loc name values =
+    if name.[0] <> '_'
+    then
+    match (name.[0], !current) with
+      | ('_', _)
+      | (_,None) -> ()
+      | (_, Some d) ->
+        let rec loop = function
+          | [] -> Error.build ?loc "[GRS] Unknown feature name '%s'" name
+          | ((Ast.Open n)::_) when n = name -> ()
+          | ((Ast.Closed (n,vs))::_) when n = name ->
             (match List_.sort_diff values vs with 
-            | [] -> ()
-            | l -> Error.build ?loc "Unknown feature values '%s' for feature name '%s'" 
-	          (List_.to_string (fun x->x) ", " l)
-	          name
+              | [] -> ()
+              | l -> Error.build ?loc "Unknown feature values '%s' for feature name '%s'"
+	        (List_.to_string (fun x->x) ", " l)
+	        name
             )
-        | _::t -> loop t in
-      loop d
+          | _::t -> loop t in
+        loop d
 end
 
 (* ==================================================================================================== *)
@@ -44,6 +48,8 @@ module G_feature = struct
     | _ -> Error.build "Illegal feature declaration in Graph (must be '=' and atomic)"
 
   let to_string (feat_name, feat_val) = sprintf "%s=%s" feat_name feat_val
+
+  let to_gr (feat_name, feat_val) = sprintf "%s=\"%s\"" feat_name feat_val
       
   let to_dot (feat_name, feat_val) =
     match Str.split (Str.regexp ":C:") feat_val with
@@ -123,7 +129,7 @@ module G_fs = struct
   let get_atom = List_.sort_assoc
 
   let to_string t = List_.to_string G_feature.to_string "," t
-  let to_gr = to_string
+  let to_gr t = List_.to_string G_feature.to_gr ", " t
 
   let build ast_fs =
     let unsorted = List.map (fun feat -> G_feature.build feat) ast_fs in
