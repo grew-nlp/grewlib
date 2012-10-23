@@ -110,12 +110,11 @@ gr:
            }
 
 gr_item:
+        (* B (1) [phon="pense", lemma="penser", cat=v, mood=ind ] *)
         | id = IDENT position = option(delimited(LPAREN,index,RPAREN)) feats = delimited(LBRACKET,separated_list_final_opt(COMA,node_features),RBRACKET) 
             { Graph_node (localize {Ast.node_id = id; position=position; fs=feats}) }
 
-        | n1 = IDENT labels = delimited(LTR_EDGE_LEFT_NEG,separated_nonempty_list(PIPE,IDENT),LTR_EDGE_RIGHT) n2 = IDENT
-            { Graph_edge (localize {Ast.edge_id = None; src=n1; edge_labels=labels; tar=n2; negative=true; }) }
-
+        (* A -[x|y|z]-> B*)
         | n1 = IDENT labels = delimited(LTR_EDGE_LEFT,separated_nonempty_list(PIPE,IDENT),LTR_EDGE_RIGHT) n2 = IDENT
             { Graph_edge (localize {Ast.edge_id = None; src=n1; edge_labels=labels; tar=n2; negative=false; }) }
 
@@ -401,7 +400,7 @@ feature_value:
 pat_edge:
         (* "e: A -> B" OR "e: A -[*]-> B" *)
         | id = edge_id n1 = IDENT GOTO_NODE n2 = IDENT
-        | id = edge_id n1 = IDENT LTR_EDGE_LEFT_NEG STAR LTR_EDGE_RIGHT n2 = IDENT
+        | id = edge_id n1 = IDENT LTR_EDGE_LEFT STAR LTR_EDGE_RIGHT n2 = IDENT
                { localize ({Ast.edge_id = Some id; src=n1; edge_labels=[]; tar=n2; negative=true}) }
 
         (* "A -> B" *)
