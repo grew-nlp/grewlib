@@ -76,6 +76,8 @@ module G_graph: sig
       [Not_found] is raised if [gid] is not defined in [graph]. *)
   val find: Gid.t -> t -> G_node.t
 
+  val to_raw: t -> ((string * string) list list) * (int * string * int) list
+
   val equals: t -> t -> bool
 
   val node_exists: (G_node.t -> bool) -> t -> bool

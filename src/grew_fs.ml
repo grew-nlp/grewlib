@@ -113,6 +113,8 @@ module G_fs = struct
   (* list are supposed to be striclty ordered wrt compare*)
   type t = G_feature.t list
 
+  let to_raw t = t
+
   let empty = []
 
   let set_feat ?loc feature_name atom t =

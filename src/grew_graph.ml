@@ -223,6 +223,35 @@ module G_graph = struct
       | (Gid.Old i,_) -> i
       | _ -> Error.bug "[G_graph.max_binding]"
 
+  let list_search test =
+    let rec loop n = function
+      | [] -> raise Not_found
+      | x::_ when test x -> n
+      | _::t -> loop (n+1) t
+    in loop 0
+
+  let to_raw t =
+    let node_list = ref [] in
+    Gid_map.iter
+      (fun pid node ->
+        node_list := (pid, G_fs.to_raw (G_node.get_fs node)) :: !node_list
+      )
+      t;
+    let search pid = list_search (fun (x,_) -> x=pid) !node_list in
+    let edge_list = ref [] in
+    Gid_map.iter
+      (fun src_pid node ->
+        Massoc_gid.iter
+          (fun tar_pid edge ->
+            edge_list := (search src_pid, G_edge.to_string edge, search tar_pid) :: !edge_list
+          )
+          (G_node.get_next node)
+      )
+      t;
+    (List.map snd !node_list, !edge_list)
+
+  let equals t t' = Gid_map.equal (fun node1 node2 -> node1 = node2) t t'
+
   (* is there an edge e out of node i ? *)
   let edge_out graph node_id p_edge =
     let node = Gid_map.find node_id graph.map in
