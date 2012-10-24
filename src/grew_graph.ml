@@ -381,7 +381,6 @@ module G_graph = struct
 
   (* -------------------------------------------------------------------------------- *)
   let add_neighbour loc graph node_id label =
-
     let index = match node_id with
       | Gid.Old id ->
         (match Label.to_int label with
@@ -396,8 +395,9 @@ module G_graph = struct
     let node = Gid_map.find node_id graph.map in
     (* put the new node on the right of its "parent" *)
     let new_map = Gid_map.add index (G_node.build_neighbour node) graph.map in
+
     match map_add_edge new_map node_id label index with
-    | Some g -> (index, {graph with map = new_map})
+    | Some g -> (index, {graph with map = g})
     | None -> Log.bug "[Graph.add_neighbour] add_edge must not fail"; exit 1
 
   (* -------------------------------------------------------------------------------- *)
