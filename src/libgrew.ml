@@ -75,22 +75,22 @@ let to_sentence ?main_feat gr =
 let get_sequence_names grs = Grs.sequence_names grs
 
 let load_gr file =
-  if (Sys.file_exists file) then (
-    try
-      let gr_ast = Grew_parser.gr_of_file file in
-      Instance.from_graph (G_graph.build gr_ast)
-    with
-    | Grew_parser.Parse_error (msg,Some (sub_file,l)) -> 
-        raise (Parsing_err (sprintf "[file:%s, line:%d] %s" sub_file l msg))
-    | Grew_parser.Parse_error (msg,None) -> 
-        raise (Parsing_err (sprintf "[file:%s] %s" file msg))
-    | Error.Build (msg,loc) -> raise (Build (msg,loc))
-    | Error.Bug (msg, loc) -> raise (Bug (msg,loc))
-    | exc -> raise (Bug (sprintf "[Libgrew.load_gr] UNCATCHED EXCEPTION: %s" (Printexc.to_string exc), None))
-
-   ) else (
-    raise (File_dont_exists file)
-   )
+  if Sys.file_exists file
+  then
+    begin
+      try
+        let gr_ast = Grew_parser.gr_of_file file in
+        Instance.from_graph (G_graph.build gr_ast)
+      with
+        | Grew_parser.Parse_error (msg,Some (sub_file,l)) ->
+          raise (Parsing_err (sprintf "[file:%s, line:%d] %s" sub_file l msg))
+        | Grew_parser.Parse_error (msg,None) ->
+          raise (Parsing_err (sprintf "[file:%s] %s" file msg))
+        | Error.Build (msg,loc) -> raise (Build (msg,loc))
+        | Error.Bug (msg, loc) -> raise (Bug (msg,loc))
+        | exc -> raise (Bug (sprintf "[Libgrew.load_gr] UNCATCHED EXCEPTION: %s" (Printexc.to_string exc), None))
+    end
+  else raise (File_dont_exists file)
 
 let load_conll file =
   try
@@ -119,6 +119,9 @@ let load_graph file =
             Parsing_err _ ->
               Log.fcritical "[Libgrew.load_graph] Cannot guess input file format of file '%s'. Use .gr or .conll file extension" file
     end
+
+let raw_graph instance =
+  G_graph.to_raw instance.Instance.graph
 
 let rewrite ~gr ~grs ~seq = 
   try Grs.rewrite grs seq gr

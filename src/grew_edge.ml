@@ -10,34 +10,41 @@ module Label = struct
   type decl = string * string option
 
   (* Global names and colors are recorded in two aligned arrays *)
-  let full = ref [||]
+  let full = ref None
   let colors = ref [||]
 
   (* Internal representation of labels *)
   type t =
     | Global of int
     | Local of int
+    | No_domain of string
 
   (* [init string_edge_list] updates global arrays [full] and [colors] *)
   let init string_edge_list =
     let slist = List.sort (fun (x,_) (y,_) -> compare x y) string_edge_list in
     let (labels, cols) = List.split slist in
-    full := Array.of_list labels;
+    full := Some (Array.of_list labels);
     colors := Array.of_list cols
 
-  let to_string ?(locals=[||]) = function
-    | Global i -> !full.(i)
-    | Local i -> fst locals.(i)
+  let to_string ?(locals=[||]) t =
+    match (!full, t) with
+      | (None, No_domain s) -> s
+      | (Some table, Global i) -> table.(i)
+      | (Some _, Local i) -> fst locals.(i)
+      | _ -> Error.bug "[Label.to_string] inconsistent data"
 
   let to_int = function
     | Global i -> Some i
-    | Local _ -> None
+    | _ -> None
 
   let from_string ?loc ?(locals=[||]) string =
-    try Global (Id.build ?loc string !full)
-    with Not_found ->
-      try Local (Array_.dicho_find_assoc string locals)
-      with Not_found ->	Error.build "[Label.from_string] unknown edge label '%s'" string
+    match !full with
+      | None -> No_domain string
+      | Some table ->
+        try Global (Id.build ?loc string table)
+        with Not_found ->
+          try Local (Array_.dicho_find_assoc string locals)
+          with Not_found -> Error.build "[Label.from_string] unknown edge label '%s'" string
 
   let get_color = function
     | Global l -> !colors.(l)

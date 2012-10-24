@@ -230,13 +230,14 @@ module G_graph = struct
       | _::t -> loop (n+1) t
     in loop 0
 
-  let to_raw t =
+  let to_raw graph =
     let node_list = ref [] in
     Gid_map.iter
       (fun pid node ->
         node_list := (pid, G_fs.to_raw (G_node.get_fs node)) :: !node_list
       )
-      t;
+      graph.map;
+    node_list := List.sort (fun x y -> Gid.compare (fst x) (fst y)) !node_list;
     let search pid = list_search (fun (x,_) -> x=pid) !node_list in
     let edge_list = ref [] in
     Gid_map.iter
@@ -247,10 +248,8 @@ module G_graph = struct
           )
           (G_node.get_next node)
       )
-      t;
-    (List.map snd !node_list, !edge_list)
-
-  let equals t t' = Gid_map.equal (fun node1 node2 -> node1 = node2) t t'
+      graph.map;
+    (graph.meta, List.map snd !node_list, !edge_list)
 
   (* is there an edge e out of node i ? *)
   let edge_out graph node_id p_edge =

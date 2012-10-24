@@ -61,6 +61,16 @@ File extension should be '.gr' or '.conll'.
 *)
 val load_graph: string -> Instance.t
 
+(** [raw_graph instance] returns all graph information with a triple of basic caml types:
+    - the meta data
+    - the list of node (node is a list of feature (feature is string * string))
+    - the list of edge (src, label, tar) where src and tar refers to the position in the node list
+*)
+val raw_graph: Instance.t ->
+    (string * string) list *
+    (string * string) list list *
+    (int * string * int) list
+
 val save_index: dirname:string -> base_names: string list -> unit
 
 val write_html: 
