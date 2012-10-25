@@ -230,27 +230,6 @@ module G_graph = struct
       | _::t -> loop (n+1) t
     in loop 0
 
-  let to_raw graph =
-    let node_list = ref [] in
-    Gid_map.iter
-      (fun pid node ->
-        node_list := (pid, G_fs.to_raw (G_node.get_fs node)) :: !node_list
-      )
-      graph.map;
-    node_list := List.sort (fun x y -> Gid.compare (fst x) (fst y)) !node_list;
-    let search pid = list_search (fun (x,_) -> x=pid) !node_list in
-    let edge_list = ref [] in
-    Gid_map.iter
-      (fun src_pid node ->
-        Massoc_gid.iter
-          (fun tar_pid edge ->
-            edge_list := (search src_pid, G_edge.to_string edge, search tar_pid) :: !edge_list
-          )
-          (G_node.get_next node)
-      )
-      graph.map;
-    (graph.meta, List.map snd !node_list, !edge_list)
-
   (* is there an edge e out of node i ? *)
   let edge_out graph node_id p_edge =
     let node = Gid_map.find node_id graph.map in
@@ -535,10 +514,12 @@ module G_graph = struct
       ) graph.meta;
 
     (* nodes *)
-    Gid_map.iter
-      (fun id node ->
+    let nodes = Gid_map.fold (fun id node acc -> (id,node)::acc) graph.map [] in
+    let sorted_nodes = List.sort (fun (_,n1) (_,n2) -> G_node.pos_comp n1 n2) nodes in
+    List.iter
+      (fun (id,node) ->
         bprintf buff "  N_%s %s;\n" (Gid.to_string id) (G_node.to_gr node)
-      ) graph.map;
+      ) sorted_nodes;
 
     (* edges *)
     Gid_map.iter
@@ -641,5 +622,26 @@ module G_graph = struct
 
     bprintf buff "}\n";
     Buffer.contents buff
+
+  (* -------------------------------------------------------------------------------- *)
+  let to_raw graph =
+
+    let nodes = Gid_map.fold (fun id elt acc -> (id,elt)::acc) graph.map [] in
+    let snodes = List.sort (fun (_,n1) (_,n2) -> G_node.pos_comp n1 n2) nodes in
+    let raw_nodes = List.map (fun (pid,node) -> (pid, G_fs.to_raw (G_node.get_fs node))) snodes in
+
+    let search pid = list_search (fun (x,_) -> x=pid) raw_nodes in
+    let edge_list = ref [] in
+    Gid_map.iter
+      (fun src_pid node ->
+        Massoc_gid.iter
+          (fun tar_pid edge ->
+            edge_list := (search src_pid, G_edge.to_string edge, search tar_pid) :: !edge_list
+          )
+          (G_node.get_next node)
+      )
+      graph.map;
+    (graph.meta, List.map snd raw_nodes, !edge_list)
+
 end (* module G_graph *)
 (* ================================================================================ *)
