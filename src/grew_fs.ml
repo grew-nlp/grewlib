@@ -4,6 +4,13 @@ open Log
 open Grew_utils
 open Grew_ast
 
+
+type value = String of string | Int of int
+
+let string_of_value = function
+  | String s -> s
+  | Int i -> string_of_int i
+
 (* ==================================================================================================== *)
 module Domain = struct
   let current = ref None
@@ -31,30 +38,65 @@ module Domain = struct
             )
           | _::t -> loop t in
         loop d
+
+  let build ?loc name values =
+    match (name.[0], !current) with
+      | ('_', _)
+      | (_, None) -> List.map (fun s -> String s) values (* no check on feat_name starting with '_' *)
+      | (_, Some d) ->
+        let rec loop = function
+          | [] -> Error.build ?loc "[GRS] Unknown feature name '%s'" name
+          | ((Ast.Open n)::_) when n = name ->
+            List.map (fun s -> String s) values
+          | ((Ast.Int n)::_) when n = name ->
+            (try List.map (fun s -> Int (int_of_string s)) values
+            with Failure _ -> Error.build ?loc "[GRS] The feature '%s' is of type int" name)
+          | ((Ast.Closed (n,vs))::_) when n = name ->
+            (match List_.sort_diff values vs with
+              | [] -> List.map (fun s -> String s) values
+              | l -> Error.build ?loc "Unknown feature values '%s' for feature name '%s'"
+	        (List_.to_string (fun x->x) ", " l)
+	        name
+            )
+          | _::t -> loop t in
+        loop d
+
+  let build_one ?loc name value =
+    match build ?loc name [value] with
+      | [x] -> x
+      | _ -> Error.bug ?loc "[Domain.build_one]"
 end
 
 (* ==================================================================================================== *)
 module G_feature = struct
-  type t = string * string
+
+  type t = string * value
 
   let get_name = fst
 
   let compare feat1 feat2 = Pervasives.compare (get_name feat1) (get_name feat2)
 
-  let build = function
+  let build (x : Ast.feature) = match x with
     | ({Ast.kind=Ast.Equality [atom]; name=name},loc) ->
-	Domain.check ~loc name [atom];
-	(name, atom)
+	(* Domain.check ~loc name [atom]; *)
+	(* (name, atom) *)
+      (name, Domain.build_one ~loc name atom)
     | _ -> Error.build "Illegal feature declaration in Graph (must be '=' and atomic)"
 
-  let to_string (feat_name, feat_val) = sprintf "%s=%s" feat_name feat_val
+  let to_string (feat_name, feat_val) = sprintf "%s=%s" feat_name (string_of_value feat_val)
 
-  let to_gr (feat_name, feat_val) = sprintf "%s=\"%s\"" feat_name feat_val
+  let to_gr (feat_name, feat_val) =
+    match feat_val with
+      | String s -> sprintf "%s=\"%s\"" feat_name s
+      | Int i -> sprintf "%s=\"%d\"" feat_name i
       
   let to_dot (feat_name, feat_val) =
-    match Str.split (Str.regexp ":C:") feat_val with
-    | [] -> Error.bug "[G_feature.to_dot] feature value '%s'" feat_val
-    | fv::_ -> sprintf "%s=%s" feat_name fv
+    match feat_val with
+      | Int i -> sprintf "%s=%d" feat_name i
+      | String s ->
+        match Str.split (Str.regexp ":C:") s with
+          | [] -> Error.bug "[G_feature.to_dot] feature value '%s'" s
+          | fv::_ -> sprintf "%s=%s" feat_name fv
 end
 
 (* ==================================================================================================== *)
@@ -62,8 +104,8 @@ module P_feature = struct
   (* feature= (feature_name, disjunction of atomic values) *) 
 
   type v = 
-    | Equal of string list  (* with Equal constr, the list MUST never be empty *)
-    | Different of string list
+    | Equal of value list  (* with Equal constr, the list MUST never be empty *)
+    | Different of value list
     | Param of int 
 
   type t = string * v
@@ -82,9 +124,9 @@ module P_feature = struct
     | _ -> Error.build "cannot unify heterogeneous pattern features"
         
   let to_string ?param_names = function
-    | (feat_name, Equal atoms) -> sprintf "%s=%s" feat_name (List_.to_string (fun x->x) "|" atoms)
+    | (feat_name, Equal atoms) -> sprintf "%s=%s" feat_name (List_.to_string string_of_value "|" atoms)
     | (feat_name, Different []) -> sprintf "%s=*" feat_name
-    | (feat_name, Different atoms) -> sprintf "%s<>%s" feat_name (List_.to_string (fun x->x) "|" atoms)
+    | (feat_name, Different atoms) -> sprintf "%s<>%s" feat_name (List_.to_string string_of_value "|" atoms)
     | (feat_name, Param index) -> 
       match param_names with
         | None -> sprintf "%s=$%d" feat_name index 
@@ -92,13 +134,15 @@ module P_feature = struct
 
   let build ?pat_vars = function
     | ({Ast.kind=Ast.Equality unsorted_values; name=name}, loc) ->
-	let values = List.sort Pervasives.compare unsorted_values in
-	Domain.check ~loc name values;
-	(name, Equal values)
+      let values = Domain.build ~loc name unsorted_values in (name, Equal values)
+	(* let values = List.sort Pervasives.compare unsorted_values in *)
+	(* Domain.check ~loc name values; *)
+	(* (name, Equal values) *)
     | ({Ast.kind=Ast.Disequality unsorted_values; name=name}, loc) ->
-	let values = List.sort Pervasives.compare unsorted_values in
-	Domain.check ~loc name values;
-	(name, Different values)
+      let values = Domain.build ~loc name unsorted_values in (name, Different values)
+	(* let values = List.sort Pervasives.compare unsorted_values in *)
+	(* Domain.check ~loc name values; *)
+	(* (name, Different values) *)
     | ({Ast.kind=Ast.Param var; name=name}, loc) ->
         match pat_vars with
         | None -> Error.bug ~loc "[P_feature.build] param '%s' in an unparametrized rule" var
@@ -113,22 +157,28 @@ module G_fs = struct
   (* list are supposed to be striclty ordered wrt compare*)
   type t = G_feature.t list
 
-  let to_raw t = t
+  let to_raw t = List.map (fun (name, value) -> (name, string_of_value value)) t
 
   let empty = []
 
   let set_feat ?loc feature_name atom t =
-    Domain.check ?loc feature_name [atom];
+    let new_value = Domain.build_one ?loc feature_name atom in
+    (* Domain.check ?loc feature_name [atom]; *)
     let rec loop = function
-    | [] -> [(feature_name, atom)]
-    | ((fn,_)::_) as t when feature_name < fn -> (feature_name, atom)::t
-    | (fn,_)::t when feature_name = fn -> (feature_name, atom)::t
+    | [] -> [(feature_name, new_value)]
+    | ((fn,_)::_) as t when feature_name < fn -> (feature_name, new_value)::t
+    | (fn,_)::t when feature_name = fn -> (feature_name, new_value)::t
     | (fn,a)::t -> (fn,a) :: (loop t) 
     in loop t
 
   let del_feat = List_.sort_remove_assoc
 
   let get_atom = List_.sort_assoc
+
+  let get_string_atom feat_name t = 
+    match List_.sort_assoc feat_name t with
+      | None -> None
+      | Some v -> Some (string_of_value v)
 
   let to_string t = List_.to_string G_feature.to_string "," t
   let to_gr t = List_.to_string G_feature.to_gr ", " t
@@ -138,7 +188,11 @@ module G_fs = struct
     List.sort G_feature.compare unsorted
 
   let of_conll line =
-    let unsorted = ("phon", line.Conll.phon) :: ("lemma", line.Conll.lemma) :: ("cat", line.Conll.pos2) :: line.Conll.morph in
+    let unsorted =
+      ("phon", String line.Conll.phon)
+      :: ("lemma", String line.Conll.lemma)
+      :: ("cat", String line.Conll.pos2)
+      :: (List.map (fun (f,v) -> (f, String v)) line.Conll.morph) in
     List.sort G_feature.compare unsorted
 
   exception Fail_unif 
@@ -169,19 +223,20 @@ module G_fs = struct
   let to_dot ?main_feat t =
     match get_main ?main_feat t with
     | (None, _) -> List_.to_string G_feature.to_dot "\\n" t
-    | (Some atom, sub) -> sprintf "{%s|%s}" atom (List_.to_string G_feature.to_dot "\\n" sub)
+    | (Some atom, sub) ->
+      sprintf "{%s|%s}" (string_of_value atom) (List_.to_string G_feature.to_dot "\\n" sub)
           
   let to_word ?main_feat t =
     match get_main ?main_feat t with
       | (None, _) -> "#"
-      | (Some atom, _) -> atom
+      | (Some atom, _) -> string_of_value atom
         
   let to_dep ?main_feat t =
     let (main_opt, sub) = get_main ?main_feat t in
     sprintf " word=\"%s\"; subword=\"%s\"; " 
-      (match main_opt with Some atom -> atom | None -> "")
+      (match main_opt with Some atom -> string_of_value atom | None -> "")
       (List_.to_string G_feature.to_string "#" sub)
-end
+end (* module G_fs *)
  
 (* ==================================================================================================== *)
 module P_fs = struct
@@ -221,7 +276,7 @@ module P_fs = struct
           (match acc with
           | None -> Log.bug "[P_fs.compatible] Illegal parametrized pattern feature"; exit 2
           | Some param ->
-              (match Lex_par.filter index atom param with
+              (match Lex_par.filter index (string_of_value atom) param with
               | None -> raise Fail
               | Some new_param -> loop (Some new_param) (t_pat,t)
               )

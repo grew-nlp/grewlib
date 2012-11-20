@@ -383,8 +383,8 @@ module Rule = struct
     | Feature_eq (pid1, feat_name1, pid2, feat_name2) ->
         let gnode1 = G_graph.find (Pid_map.find pid1 matching.n_match) graph in
         let gnode2 = G_graph.find (Pid_map.find pid2 matching.n_match) graph in
-        (match (G_fs.get_atom feat_name1 (G_node.get_fs gnode1),
-                G_fs.get_atom feat_name2 (G_node.get_fs gnode2)
+        (match (G_fs.get_string_atom feat_name1 (G_node.get_fs gnode1),
+                G_fs.get_string_atom feat_name2 (G_node.get_fs gnode2)
                ) with
         | Some fv1, Some fv2 when fv1 = fv2 -> true
         | _ -> false)

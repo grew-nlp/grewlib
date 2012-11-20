@@ -481,7 +481,7 @@ module G_graph = struct
         (function
           | Concat_item.Feat (node_gid, feat_name) ->
               let node = Gid_map.find node_gid graph.map in
-              (match G_fs.get_atom feat_name (G_node.get_fs node) with
+              (match G_fs.get_string_atom feat_name (G_node.get_fs node) with
               | Some atom -> atom
               | None -> Error.run ?loc "Some feature (named \"%s\") is not defined" feat_name
               )

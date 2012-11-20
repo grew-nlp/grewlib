@@ -28,6 +28,7 @@ let localize t = (t,get_loc ())
 %token COMA                        /* , */
 %token SEMIC                       /* ; */
 %token STAR                        /* * */
+%token SHARP                       /* # */
 %token PLUS                        /* + */
 %token EQUAL                       /* = */
 %token DISEQUAL                    /* <> */
@@ -198,10 +199,11 @@ features_group:
         
 %inline feature:
         | name = feature_name DDOT values = features_values 
-            { 
-              if values = ["*"]
-              then Ast.Open name 
-              else Ast.Closed (name, List.sort Pervasives.compare values)
+            {
+              match values with
+                | ["*"] -> Ast.Open name
+                | ["#"] -> Ast.Int name
+                | _ -> Ast.Closed (name, List.sort Pervasives.compare values)
             }
 
 feature_name:
@@ -209,6 +211,7 @@ feature_name:
 
 features_values:
         | STAR { ["*"] }
+        | SHARP { ["#"] }
         | x = separated_nonempty_list(COMA,value) { x }
 
 

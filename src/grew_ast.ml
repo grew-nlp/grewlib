@@ -7,6 +7,7 @@ module Ast = struct
   type feature_spec = 
     | Closed of string * string list (* (the name, the set of atomic values) *)
     | Open of string (* the name *)
+    | Int of string (* the name *)
           
   type domain = feature_spec list
         
