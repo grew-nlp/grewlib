@@ -36,8 +36,12 @@ module G_node = struct
     | None -> None
 
   let build (ast_node, loc) =
+    let fs = G_fs.build ast_node.Ast.fs in
+    let fs_with_num = match ast_node.Ast.position with
+      | None -> fs
+      | Some num -> G_fs.set_feat "num" (string_of_int num) fs in
     (ast_node.Ast.node_id,
-     { fs = G_fs.build ast_node.Ast.fs;
+     { fs = fs_with_num;
        pos = ast_node.Ast.position;
        next = Massoc_gid.empty;
      } )

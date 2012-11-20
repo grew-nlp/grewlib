@@ -197,7 +197,9 @@ module G_fs = struct
     let unsorted =
       ("phon", String line.Conll.phon)
       :: ("lemma", String line.Conll.lemma)
-      :: ("cat", String line.Conll.pos2)
+      :: ("cat", String line.Conll.pos1)
+      :: ("pos", String line.Conll.pos2)
+      :: ("num", Int line.Conll.num)
       :: (List.map (fun (f,v) -> (f, String v)) line.Conll.morph) in
     List.sort G_feature.compare unsorted
 

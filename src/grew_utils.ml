@@ -648,7 +648,6 @@ module Lex_par = struct
     Str.global_replace (Str.regexp "\\( \\|\t\\)*$") ""
     (Str.global_replace (Str.regexp "^\\( \\|\t\\)*") "" s)
 
-
   let parse_line ?loc nb_p nb_c line =
     let line = rm_peripheral_white line in
     if line = "" || line.[0] = '%'
