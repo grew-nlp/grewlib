@@ -79,6 +79,9 @@ module Rule = struct
     | Cst_out of pid * P_edge.t
     | Cst_in of pid * P_edge.t
     | Feature_eq of pid * string * pid * string
+    | Feature_diseq of pid * string * pid * string
+
+    | Feature_ineq of Ast.ineq * pid * string * pid * string
     | Filter of pid * P_fs.t (* used when a without impose a fs on a node defined by the match pattern *)
 
   let build_pos_constraint ?locals pos_table const =
@@ -94,6 +97,10 @@ module Rule = struct
         Cst_in (pid_of_name loc node_name, P_edge.all)
       | (Ast.Feature_eq ((node_name1, feat_name1), (node_name2, feat_name2)), loc) ->
         Feature_eq (pid_of_name loc node_name1, feat_name1, pid_of_name loc node_name2, feat_name2)
+      | (Ast.Feature_diseq ((node_name1, feat_name1), (node_name2, feat_name2)), loc) ->
+        Feature_diseq (pid_of_name loc node_name1, feat_name1, pid_of_name loc node_name2, feat_name2)
+      | (Ast.Feature_ineq (ineq, (node_name1, feat_name1), (node_name2, feat_name2)), loc) ->
+        Feature_ineq (ineq, pid_of_name loc node_name1, feat_name1, pid_of_name loc node_name2, feat_name2)
 
   type pattern = {
       graph: P_graph.t;
@@ -128,6 +135,10 @@ module Rule = struct
         Cst_in (pid_of_name loc node_name, P_edge.all)
       | (Ast.Feature_eq ((node_name1, feat_name1), (node_name2, feat_name2)), loc) ->
         Feature_eq (pid_of_name loc node_name1, feat_name1, pid_of_name loc node_name2, feat_name2)
+      | (Ast.Feature_diseq ((node_name1, feat_name1), (node_name2, feat_name2)), loc) ->
+        Feature_diseq (pid_of_name loc node_name1, feat_name1, pid_of_name loc node_name2, feat_name2)
+      | (Ast.Feature_ineq (ineq, (node_name1, feat_name1), (node_name2, feat_name2)), loc) ->
+        Feature_ineq (ineq, pid_of_name loc node_name1, feat_name1, pid_of_name loc node_name2, feat_name2)
 
   let build_neg_pattern ?(locals=[||]) pos_table pattern_ast =
     let (extension, neg_table) =
@@ -370,28 +381,44 @@ module Rule = struct
 (* (\* Ocaml < 3.12 doesn't have exists function for maps! *\) *)
 
 
-  let fullfill graph matching = function
-    | Cst_out (pid,edge) ->
+  let fullfill graph matching cst =
+    let get_node pid = G_graph.find (Pid_map.find pid matching.n_match) graph in
+    let get_string_feat pid feat_name = G_fs.get_string_atom feat_name (G_node.get_fs (get_node pid)) in
+    let get_int_feat pid feat_name = G_fs.get_int_feat feat_name (G_node.get_fs (get_node pid)) in
+
+    match cst with
+      | Cst_out (pid,edge) ->
         let gid = Pid_map.find pid matching.n_match in
         G_graph.edge_out graph gid edge
-    | Cst_in (pid,edge) ->
+      | Cst_in (pid,edge) ->
         let gid = Pid_map.find pid matching.n_match in
         G_graph.node_exists
           (fun node ->
             List.exists (fun e -> P_edge.compatible edge e) (Massoc_gid.assoc gid (G_node.get_next node))
           ) graph
-    | Feature_eq (pid1, feat_name1, pid2, feat_name2) ->
-        let gnode1 = G_graph.find (Pid_map.find pid1 matching.n_match) graph in
-        let gnode2 = G_graph.find (Pid_map.find pid2 matching.n_match) graph in
-        (match (G_fs.get_string_atom feat_name1 (G_node.get_fs gnode1),
-                G_fs.get_string_atom feat_name2 (G_node.get_fs gnode2)
-               ) with
-        | Some fv1, Some fv2 when fv1 = fv2 -> true
-        | _ -> false)
-    | Filter (pid, fs) ->
+      | Filter (pid, fs) ->
         let gid = Pid_map.find pid matching.n_match in
         let gnode = G_graph.find gid graph in
         P_fs.filter fs (G_node.get_fs gnode)
+      | Feature_eq (pid1, feat_name1, pid2, feat_name2) ->
+        begin
+          match (get_string_feat pid1 feat_name1, get_string_feat pid2 feat_name2) with
+            | Some fv1, Some fv2 when fv1 = fv2 -> true
+            | _ -> false
+        end
+      | Feature_diseq (pid1, feat_name1, pid2, feat_name2) ->
+        begin
+          match (get_string_feat pid1 feat_name1, get_string_feat pid2 feat_name2) with
+            | Some fv1, Some fv2 when fv1 <> fv2 -> true
+            | _ -> false
+        end
+      | Feature_ineq (ineq, pid1, feat_name1, pid2, feat_name2) ->
+        match (ineq, get_int_feat pid1 feat_name1, get_int_feat pid2 feat_name2) with
+            | (Ast.Lt, Some fv1, Some fv2) when fv1 < fv2 -> true
+            | (Ast.Gt, Some fv1, Some fv2) when fv1 > fv2 -> true
+            | (Ast.Le, Some fv1, Some fv2) when fv1 <= fv2 -> true
+            | (Ast.Ge, Some fv1, Some fv2) when fv1 >= fv2 -> true
+            | _ -> false
 
   (* returns all extension of the partial input matching *)
   let rec extend_matching (positive,neg) (graph:G_graph.t) (partial:partial) =

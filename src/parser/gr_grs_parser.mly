@@ -32,6 +32,12 @@ let localize t = (t,get_loc ())
 %token PLUS                        /* + */
 %token EQUAL                       /* = */
 %token DISEQUAL                    /* <> */
+
+%token LT                          /* < */
+%token GT                          /* > */
+%token LE                          /* <= or ≤ */
+%token GE                          /* >= or ≥ */
+
 %token PIPE                        /* | */
 %token GOTO_NODE                   /* -> */
 %token LTR_EDGE_LEFT               /* -[ */
@@ -124,14 +130,14 @@ gr_item:
             { Graph_meta (id, value) }
 
         (* B (1) [phon="pense", lemma="penser", cat=v, mood=ind ] *)
-        | id = IDENT position = option(delimited(LPAREN,index,RPAREN)) feats = delimited(LBRACKET,separated_list_final_opt(COMA,node_features),RBRACKET) 
+        | id = IDENT position = option(delimited(LPAREN,num,RPAREN)) feats = delimited(LBRACKET,separated_list_final_opt(COMA,node_features),RBRACKET) 
             { Graph_node (localize {Ast.node_id = id; position=position; fs=feats}) }
 
         (* A -[x|y|z]-> B*)
         | n1 = IDENT labels = delimited(LTR_EDGE_LEFT,separated_nonempty_list(PIPE,IDENT),LTR_EDGE_RIGHT) n2 = IDENT
             { Graph_edge (localize {Ast.edge_id = None; src=n1; edge_labels=labels; tar=n2; negative=false; }) }
 
-index:
+num:
         | INT { $1 }
 
 
@@ -196,7 +202,6 @@ features_group:
 %inline features:
         | LACC x = separated_nonempty_list_final_opt(SEMIC,feature) RACC { x }
 
-        
 %inline feature:
         | name = feature_name DDOT values = features_values 
             {
@@ -433,7 +438,6 @@ pat_edge:
 
 edge_id:
         | id = IDENT DDOT { id }
-                
 
 pat_const:
         (* "A -[X|Y]-> *" *)
@@ -452,8 +456,25 @@ pat_const:
         | STAR GOTO_NODE n2 = IDENT
             { localize (Ast.Cst_in n2) }
 
+        (* X.cat = Y.cat *)
         | qfn1 = QFN EQUAL qfn2 = QFN
             { localize (Ast.Feature_eq (qfn1, qfn2)) }
+
+        (* X.num < Y.num *)
+        | qfn1 = QFN LT qfn2 = QFN
+            { localize (Ast.Feature_ineq (Ast.Lt, qfn1, qfn2)) }
+
+        (* X.num > Y.num *)
+        | qfn1 = QFN GT qfn2 = QFN
+            { localize (Ast.Feature_ineq (Ast.Gt, qfn1, qfn2)) }
+
+        (* X.num <= Y.num *)
+        | qfn1 = QFN LE qfn2 = QFN
+            { localize (Ast.Feature_ineq (Ast.Le, qfn1, qfn2)) }
+
+        (* X.num >= Y.num *)
+        | qfn1 = QFN GE qfn2 = QFN
+            { localize (Ast.Feature_ineq (Ast.Ge, qfn1, qfn2)) }
 
 /*=============================================================================================*/
 /*                                                                                             */

@@ -83,7 +83,9 @@ module Html_doc = struct
     | Ast.Cst_out id -> bprintf buff "%s -> *" id
     | Ast.End (id,labels) -> bprintf buff "* -[%s]-> %s" (List_.to_string (fun x->x) "|" labels) id
     | Ast.Cst_in id -> bprintf buff "* -> %s" id
-    | Ast.Feature_eq (qfn_l, qfn_r) -> bprintf buff "%s = %s" (string_of_qfn qfn_l) (string_of_qfn qfn_r));
+    | Ast.Feature_eq (qfn_l, qfn_r) -> bprintf buff "%s = %s" (string_of_qfn qfn_l) (string_of_qfn qfn_r)
+    | Ast.Feature_diseq (qfn_l, qfn_r) -> bprintf buff "%s <> %s" (string_of_qfn qfn_l) (string_of_qfn qfn_r)
+    | Ast.Feature_ineq (ineq, qfn_l, qfn_r) -> bprintf buff "%s %s %s" (string_of_qfn qfn_l) (Ast.string_of_ineq ineq) (string_of_qfn qfn_r));
     bprintf buff "\n"
 
   let buff_html_pos_pattern buff pos_pattern =

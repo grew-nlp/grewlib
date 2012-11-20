@@ -120,6 +120,12 @@ and global = parse
 | '#'   { SHARP }
 | '='   { EQUAL }
 | "<>"  { DISEQUAL }
+
+| "<"        { LT }
+| ">"        { GT }
+| "<=" | "≤" { LE }
+| ">=" | "≥" { GE }
+
 | '|'   { PIPE }
 | "->"  { GOTO_NODE }
 | "-[^" { LTR_EDGE_LEFT_NEG }

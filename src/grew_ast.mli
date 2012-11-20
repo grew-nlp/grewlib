@@ -16,7 +16,7 @@ module Ast : sig
   type u_feature = {
       name: string;
       kind: feature_kind;
-    }  
+    }
 
   type feature = u_feature * Loc.t
 
@@ -41,12 +41,18 @@ module Ast : sig
 
   type edge = u_edge * Loc.t
 
+  type ineq = Lt | Gt | Le | Ge
+
+  val string_of_ineq: ineq -> string
+
   type u_const = 
     | Start of Id.name * string list (* (source, labels) *)
     | Cst_out of Id.name
     | End of Id.name * string list (* (target, labels) *)
     | Cst_in of Id.name
     | Feature_eq of qfn * qfn
+    | Feature_diseq of qfn * qfn
+    | Feature_ineq of ineq * qfn * qfn
 
   type const = u_const * Loc.t
 

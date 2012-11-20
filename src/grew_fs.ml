@@ -180,6 +180,12 @@ module G_fs = struct
       | None -> None
       | Some v -> Some (string_of_value v)
 
+  let get_int_feat feat_name t =
+    match List_.sort_assoc feat_name t with
+      | None -> None
+      | Some (Int i) -> Some i
+      | Some _ -> Error.build "[Fs.get_int_feat]"
+
   let to_string t = List_.to_string G_feature.to_string "," t
   let to_gr t = List_.to_string G_feature.to_gr ", " t
 
