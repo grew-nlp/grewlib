@@ -39,7 +39,8 @@ module Domain = struct
           | _::t -> loop t in
         loop d
 
-  let build ?loc name values =
+  let build ?loc name unsorted_values =
+    let values = List.sort Pervasives.compare unsorted_values in
     match (name.[0], !current) with
       | ('_', _)
       | (_, None) -> List.map (fun s -> String s) values (* no check on feat_name starting with '_' *)
