@@ -460,19 +460,19 @@ pat_const:
         | qfn1 = QFN EQUAL qfn2 = QFN
             { localize (Ast.Feature_eq (qfn1, qfn2)) }
 
-        (* X.num < Y.num *)
+        (* X.position < Y.position *)
         | qfn1 = QFN LT qfn2 = QFN
             { localize (Ast.Feature_ineq (Ast.Lt, qfn1, qfn2)) }
 
-        (* X.num > Y.num *)
+        (* X.position > Y.position *)
         | qfn1 = QFN GT qfn2 = QFN
             { localize (Ast.Feature_ineq (Ast.Gt, qfn1, qfn2)) }
 
-        (* X.num <= Y.num *)
+        (* X.position <= Y.position *)
         | qfn1 = QFN LE qfn2 = QFN
             { localize (Ast.Feature_ineq (Ast.Le, qfn1, qfn2)) }
 
-        (* X.num >= Y.num *)
+        (* X.position >= Y.position *)
         | qfn1 = QFN GE qfn2 = QFN
             { localize (Ast.Feature_ineq (Ast.Ge, qfn1, qfn2)) }
 

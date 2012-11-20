@@ -200,7 +200,7 @@ module G_fs = struct
       :: ("lemma", String line.Conll.lemma)
       :: ("cat", String line.Conll.pos1)
       :: ("pos", String line.Conll.pos2)
-      :: ("num", Int line.Conll.num)
+      :: ("position", Int line.Conll.num)
       :: (List.map (fun (f,v) -> (f, String v)) line.Conll.morph) in
     List.sort G_feature.compare unsorted
 
