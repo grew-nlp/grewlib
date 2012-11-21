@@ -483,7 +483,7 @@ module G_graph = struct
               let node = Gid_map.find node_gid graph.map in
               (match G_fs.get_string_atom feat_name (G_node.get_fs node) with
               | Some atom -> atom
-              | None -> Error.run ?loc "Some feature (named \"%s\") is not defined" feat_name
+              | None -> Error.run ?loc "Cannot update_feat, some feature (named \"%s\") is not defined" feat_name
               )
           | Concat_item.String s -> s
         ) item_list in

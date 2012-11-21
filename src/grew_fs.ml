@@ -19,32 +19,12 @@ module Domain = struct
 
   let init ast_domain = current := Some ast_domain
 
-  let check ?loc name values =
-    if name.[0] <> '_'
-    then
-    match (name.[0], !current) with
-      | ('_', _)
-      | (_,None) -> ()
-      | (_, Some d) ->
-        let rec loop = function
-          | [] -> Error.build ?loc "[GRS] Unknown feature name '%s'" name
-          | ((Ast.Open n)::_) when n = name -> ()
-          | ((Ast.Closed (n,vs))::_) when n = name ->
-            (match List_.sort_diff values vs with 
-              | [] -> ()
-              | l -> Error.build ?loc "Unknown feature values '%s' for feature name '%s'"
-	        (List_.to_string (fun x->x) ", " l)
-	        name
-            )
-          | _::t -> loop t in
-        loop d
-
   let build ?loc name unsorted_values =
     let values = List.sort Pervasives.compare unsorted_values in
     match (name.[0], !current) with
-      | ('_', _)
-      | (_, None) -> List.map (fun s -> String s) values (* no check on feat_name starting with '_' *)
-      | (_, Some d) ->
+      | ('_', _) (* no check on feat_name starting with '_' *)
+      | (_, None) -> List.map (fun s -> String s) values (* no domain defined *)
+      | (_, Some dom) ->
         let rec loop = function
           | [] -> Error.build ?loc "[GRS] Unknown feature name '%s'" name
           | ((Ast.Open n)::_) when n = name ->
@@ -60,7 +40,7 @@ module Domain = struct
 	        name
             )
           | _::t -> loop t in
-        loop d
+        loop dom
 
   let build_one ?loc name value =
     match build ?loc name [value] with
@@ -79,25 +59,18 @@ module G_feature = struct
 
   let build (x : Ast.feature) = match x with
     | ({Ast.kind=Ast.Equality [atom]; name=name},loc) ->
-	(* Domain.check ~loc name [atom]; *)
-	(* (name, atom) *)
       (name, Domain.build_one ~loc name atom)
     | _ -> Error.build "Illegal feature declaration in Graph (must be '=' and atomic)"
 
   let to_string (feat_name, feat_val) = sprintf "%s=%s" feat_name (string_of_value feat_val)
 
-  let to_gr (feat_name, feat_val) =
-    match feat_val with
-      | String s -> sprintf "%s=\"%s\"" feat_name s
-      | Int i -> sprintf "%s=\"%d\"" feat_name i
+  let to_gr (feat_name, feat_val) = sprintf "%s=%s" feat_name (string_of_value feat_val)
       
   let to_dot (feat_name, feat_val) =
-    match feat_val with
-      | Int i -> sprintf "%s=%d" feat_name i
-      | String s ->
-        match Str.split (Str.regexp ":C:") s with
-          | [] -> Error.bug "[G_feature.to_dot] feature value '%s'" s
-          | fv::_ -> sprintf "%s=%s" feat_name fv
+    let string_val = string_of_value feat_val in
+    match Str.split (Str.regexp ":C:") string_val with
+      | [] -> Error.bug "[G_feature.to_dot] feature value '%s'" string_val
+      | fv::_ -> sprintf "%s=%s" feat_name fv
 end
 
 (* ==================================================================================================== *)
@@ -136,14 +109,8 @@ module P_feature = struct
   let build ?pat_vars = function
     | ({Ast.kind=Ast.Equality unsorted_values; name=name}, loc) ->
       let values = Domain.build ~loc name unsorted_values in (name, Equal values)
-	(* let values = List.sort Pervasives.compare unsorted_values in *)
-	(* Domain.check ~loc name values; *)
-	(* (name, Equal values) *)
     | ({Ast.kind=Ast.Disequality unsorted_values; name=name}, loc) ->
       let values = Domain.build ~loc name unsorted_values in (name, Different values)
-	(* let values = List.sort Pervasives.compare unsorted_values in *)
-	(* Domain.check ~loc name values; *)
-	(* (name, Different values) *)
     | ({Ast.kind=Ast.Param var; name=name}, loc) ->
         match pat_vars with
         | None -> Error.bug ~loc "[P_feature.build] param '%s' in an unparametrized rule" var
@@ -164,7 +131,6 @@ module G_fs = struct
 
   let set_feat ?loc feature_name atom t =
     let new_value = Domain.build_one ?loc feature_name atom in
-    (* Domain.check ?loc feature_name [atom]; *)
     let rec loop = function
     | [] -> [(feature_name, new_value)]
     | ((fn,_)::_) as t when feature_name < fn -> (feature_name, new_value)::t
@@ -196,12 +162,12 @@ module G_fs = struct
 
   let of_conll line =
     let unsorted =
-      ("phon", String line.Conll.phon)
-      :: ("lemma", String line.Conll.lemma)
-      :: ("cat", String line.Conll.pos1)
-      :: ("pos", String line.Conll.pos2)
-      :: ("position", Int line.Conll.num)
-      :: (List.map (fun (f,v) -> (f, String v)) line.Conll.morph) in
+      ("phon", Domain.build_one "phon" line.Conll.phon)
+      :: ("lemma", Domain.build_one "lemma" line.Conll.lemma)
+      :: ("cat", Domain.build_one "cat" line.Conll.pos1)
+      :: ("pos", Domain.build_one "pos" line.Conll.pos2)
+      :: ("position", Domain.build_one "position" (string_of_int line.Conll.num))
+      :: (List.map (fun (f,v) -> (f, Domain.build_one f v)) line.Conll.morph) in
     List.sort G_feature.compare unsorted
 
   exception Fail_unif 
