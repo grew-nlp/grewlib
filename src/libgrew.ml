@@ -197,7 +197,7 @@ let make_index ~title ~grs_file ~html ~grs ~seq ~input_dir ~output_dir ~base_nam
       ) init base_names in
   Corpus_stat.save_html title grs_file input_dir output_dir corpus_stat
 
-let html_sentences = Html_sentences.build
+let html_sentences ~title = Html_sentences.build ~title
 
 let get_css_file = Filename.concat DATA_DIR "style.css"
 

@@ -167,6 +167,8 @@ module Html_doc = struct
     html_header ~title buff;
 
     wnl "  <body>";
+    wnl "<a href=\"../sentences.html\">Sentences</a> -- <a href=\"../index.html\">Rewriting stats</a> -- GRS documentation";
+
     wnl "    <div class=\"navbar\">";
     w "      ";
     (match prev with Some p -> w "&nbsp;<a href=\"%s.html\">Previous</a>" p | _ -> ());
@@ -202,6 +204,8 @@ module Html_doc = struct
     html_header ~title buff;
 
     wnl "  <body>";
+    wnl "<a href=\"../sentences.html\">Sentences</a> -- <a href=\"../index.html\">Rewriting stats</a> -- GRS documentation";
+
     wnl "    <div class=\"navbar\">";
     w "      ";
     (match prev with Some p -> w "&nbsp;<a href=\"%s_%s.html\">Previous</a>" mid p | _ -> ());
@@ -272,6 +276,8 @@ module Html_doc = struct
     html_header ~title buff;
 
     wnl "  <body>";
+    wnl "<a href=\"../sentences.html\">Sentences</a> -- <a href=\"../index.html\">Rewriting stats</a> -- GRS documentation";
+
     wnl "  <div class=\"navbar\">&nbsp;<a href=\"index.html\">Up</a></div>";
     wnl "  <center><h1>List of sequences</h1></center>";
     List.iter
@@ -329,6 +335,8 @@ module Html_doc = struct
     html_header ~title buff;
 
     wnl "  <body>";
+    wnl "<a href=\"../sentences.html\">Sentences</a> -- <a href=\"../index.html\">Rewriting stats</a> -- GRS documentation";
+
     wnl "  <div class=\"navbar\">&nbsp;<a href=\"index.html\">Up</a></div>";
 
     wnl "  <h6>Features</h6>";
@@ -587,15 +595,17 @@ module Html_rh = struct
 end
 
 module Html_sentences = struct
-  let build output_dir sentences =
+  let build ~title output_dir sentences =
     let buff = Buffer.create 32 in
     let wnl fmt = Printf.ksprintf (fun x -> Printf.bprintf buff "%s\n" x) fmt in
 
-    html_header ~title:"Sentence list" buff;
+    html_header ~title buff;
 
     wnl "  <body>";
     wnl "Sentences -- <a href=\"index.html\">Rewriting stats</a> -- <a href=\"doc/index.html\">GRS documentation</a>";
-    wnl "<h2>Sentences list</h2>";
+    wnl "<h1>%s</h1>" (Str.global_replace (Str.regexp "#") " " title);
+
+     wnl "<h2>Sentences list</h2>";
 
     wnl "<center><table cellpadding=3 cellspacing=0 width=\"95%%\">";
     wnl "<tr><th class=\"first\">Number of normal forms</th><th>Sentence Id</th><th>Sentence</th></tr>";
@@ -747,8 +757,8 @@ module Corpus_stat = struct
   type t = {
     modules: Modul.t list;                                   (* ordered list of modules in the sequence *)
     map: ((int*int) * StringSet.t) StringMap.t StringMap.t;  (* map: see above *)
-      amb: StringSet.t IntMap.t;                               (* key: nb of sols |-> set: sentence concerned *)
-      error: (string * string) list;                           (* (file, msg) *)
+    amb: StringSet.t IntMap.t;                               (* key: nb of sols |-> set: sentence concerned *)
+    error: (string * string) list;                           (* (file, msg) *)
     num: int;                                                (* an integer id relative to the corpus *)
   }
 

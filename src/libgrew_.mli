@@ -103,7 +103,7 @@ val make_index:
     base_names: string list -> 
       unit
 
-val html_sentences: string -> (bool * string * int * string) list -> unit
+val html_sentences: title:string -> string -> (bool * string * int * string) list -> unit
 
 val get_css_file: string
 

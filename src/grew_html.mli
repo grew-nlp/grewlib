@@ -8,7 +8,7 @@ module Html_doc : sig
 end
 
 module Html_sentences : sig
-  val build: string -> (bool * string * int * string) list -> unit
+  val build: title:string -> string -> (bool * string * int * string) list -> unit
 end
 
 
