@@ -248,8 +248,7 @@ module Conll: sig
     pos1: string;
     pos2: string;
     morph: (string * string) list;
-    gov: int;
-    dep_lab: string;
+    deps: ( int * string ) list;
   }
 
   val load: string -> line list

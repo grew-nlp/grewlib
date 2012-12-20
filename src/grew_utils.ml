@@ -594,8 +594,7 @@ module Conll = struct
       pos1: string;
       pos2: string;
       morph: (string * string) list;
-      gov: int;
-      dep_lab: string;
+      deps: ( int * string ) list;
     }
 
   let load file =
@@ -615,7 +614,10 @@ module Conll = struct
 
     let parse (line_num, line) =
       match Str.split (Str.regexp "\t") line with
-      | [ num; phon; lemma; pos1; pos2; morph; gov; dep_lab; _; _ ] ->
+      | [ num; phon; lemma; pos1; pos2; morph; govs; dep_labs; _; _ ] ->
+        let gov_list = List.map int_of_string (Str.split (Str.regexp "|") govs)
+        and lab_list = Str.split (Str.regexp "|") dep_labs in
+        let deps = List.combine gov_list lab_list in
           {line_num = line_num;
            num = int_of_string num;
            phon = escape_quote phon;
@@ -623,8 +625,7 @@ module Conll = struct
            pos1 = pos1;
            pos2 = pos2;
            morph = parse_morph line_num morph;
-           gov = int_of_string gov;
-           dep_lab = dep_lab;
+           deps = deps;
          }
       | l ->
           Error.build ~loc:(file,line_num) "[Conll.load] illegal line, %d fields (10 are expected)\n>>>>>%s<<<<<<" (List.length l) line in

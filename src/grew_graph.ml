@@ -307,16 +307,19 @@ module G_graph = struct
           (* add line number information in loc *)
           let loc = Loc.opt_set_line line.Conll.line_num loc in
 
-          if line.Conll.gov=0
-          then acc
-          else
-            let gov_node =
-              try Gid_map.find (Gid.Old line.Conll.gov) acc
-              with Not_found ->
-                Error.build ?loc "[G_graph.of_conll] the line refers to unknown gov %d" line.Conll.gov in
-            match G_node.add_edge (G_edge.make ?loc line.Conll.dep_lab) (Gid.Old line.Conll.num) gov_node with
-            | None -> acc
-            | Some new_node -> Gid_map.add (Gid.Old line.Conll.gov) new_node acc
+          List.fold_left
+            (fun acc2 (gov, dep_lab) ->
+              if gov=0
+              then acc
+              else
+                let gov_node =
+                  try Gid_map.find (Gid.Old gov) acc
+                  with Not_found ->
+                    Error.build ?loc "[G_graph.of_conll] the line refers to unknown gov %d" gov in
+                match G_node.add_edge (G_edge.make ?loc dep_lab) (Gid.Old line.Conll.num) gov_node with
+                  | None -> acc
+                  | Some new_node -> Gid_map.add (Gid.Old gov) new_node acc2
+            ) acc line.Conll.deps
         ) nodes lines in
 
     {meta=[]; map=nodes_with_edges}
