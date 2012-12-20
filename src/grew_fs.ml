@@ -64,7 +64,7 @@ module G_feature = struct
 
   let to_string (feat_name, feat_val) = sprintf "%s=%s" feat_name (string_of_value feat_val)
 
-  let to_gr (feat_name, feat_val) = sprintf "%s=%s" feat_name (string_of_value feat_val)
+  let to_gr (feat_name, feat_val) = sprintf "%s=\"%s\"" feat_name (string_of_value feat_val)
       
   let to_dot (feat_name, feat_val) =
     let string_val = string_of_value feat_val in
