@@ -24,6 +24,7 @@ checksums           md5      @MD5_SUM@ \
 
 depends_build	    port:ocaml \
                     port:libcaml-ansiterminal \
+                    port:libcaml-dep2pict \
                     port:libcaml-log \
                     port:ocaml-menhir
 				

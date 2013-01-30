@@ -1,0 +1,9 @@
+opam-version: "1"
+maintainer: "Bruno.Guillaume@loria.fr"
+build: [
+  ["./configure"]
+  ["make"]
+  ["make" "install"]
+]
+depends: ["ANSITerminal" "libcaml-log" "menhir" "libcaml-dep2pict"]
+
