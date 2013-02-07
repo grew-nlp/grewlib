@@ -6,12 +6,12 @@ open Grew_ast
 
 (* ================================================================================ *)
 module Label = struct
-  (* [decl] is the type for a label declaration: the name and an optionnal color *)
-  type decl = string * string option
+  (* [decl] is the type for a label declaration: the name and a list of display options *)
+  type decl = string * string list
 
-  (* Global names and colors are recorded in two aligned arrays *)
+  (* Global names and display options are recorded in two aligned arrays *)
   let full = ref None
-  let colors = ref [||]
+  let options = ref [||]
 
   (* Internal representation of labels *)
   type t =
@@ -19,12 +19,12 @@ module Label = struct
     | Local of int
     | No_domain of string
 
-  (* [init string_edge_list] updates global arrays [full] and [colors] *)
+  (* [init string_edge_list] updates global arrays [full] and [options] *)
   let init string_edge_list =
     let slist = List.sort (fun (x,_) (y,_) -> compare x y) string_edge_list in
-    let (labels, cols) = List.split slist in
+    let (labels, opts) = List.split slist in
     full := Some (Array.of_list labels);
-    colors := Array.of_list cols
+    options := Array.of_list opts
 
   let to_string ?(locals=[||]) t =
     match (!full, t) with
@@ -46,9 +46,9 @@ module Label = struct
           try Local (Array_.dicho_find_assoc string locals)
           with Not_found -> Error.build "[Label.from_string] unknown edge label '%s'" string
 
-  let get_color = function
-    | Global l -> !colors.(l)
-    | _ -> None
+  let get_options = function
+    | Global l -> !options.(l)
+    | _ -> []
 end (* module Label *)
 
 
@@ -66,18 +66,43 @@ module G_edge = struct
     | (true, _) -> Error.build "Negative edge spec are forbidden in graphs%s" (Loc.to_string loc)
     | (false, _) -> Error.build "Only atomic edge valus are allowed in graphs%s" (Loc.to_string loc)
 
+  let color_of_option = function
+    | [] -> None
+    | c::_ -> Some (String.sub c 1 ((String.length c) - 1))
+
   let to_dot ?(deco=false) l =
-    match Label.get_color l with
+    match color_of_option (Label.get_options l) with
     | None -> Printf.sprintf "[label=\"%s\", color=%s]" (Label.to_string l) (if deco then "red" else "black")
     | Some c -> Printf.sprintf "[label=\"%s\", fontcolor=%s, color=%s]" (Label.to_string l) c (if deco then "red" else "black")
 
-  let to_dep ?(deco=false) l =
-    match (deco,Label.get_color l) with
-    | (false,None) -> Printf.sprintf "{ label = \"%s\"; }" (Label.to_string l)
-    | (false,Some c) -> Printf.sprintf "{ label = \"%s\"; forecolor=%s; color=%s; bottom; }" (Label.to_string l) c c
-    | (true,None) -> Printf.sprintf "{ label = \"%s\"; color=red}" (Label.to_string l)
-    | (true,Some c) -> Printf.sprintf "{ label = \"%s\"; forecolor=%s; color=red; bottom; }" (Label.to_string l) c
+  let position_of_option options = 
+    if List.mem "@bottom" options
+    then "bottom; "
+    else ""
 
+  let to_dep ?(deco=false) l =
+    let pos = position_of_option (Label.get_options l) in
+    match (deco,color_of_option (Label.get_options l)) with
+    | (false,None) -> Printf.sprintf "{ label = \"%s\"%s}" (Label.to_string l) pos
+    | (false,Some c) -> Printf.sprintf "{ label = \"%s\"; forecolor=%s; color=%s%s}" (Label.to_string l) c c pos
+    | (true,None) -> Printf.sprintf "{ label = \"%s\"; color=red%s}" (Label.to_string l) pos
+    | (true,Some c) -> Printf.sprintf "{ label = \"%s\"; forecolor=%s; color=red%s}" (Label.to_string l) c pos
+
+  let to_dep ?(deco=false) l =
+    let string = Label.to_string l in
+    let options = Label.get_options l in
+    let (prefix, label) = match Str.bounded_split (Str.regexp ":") string 2 with
+      | ["S"; l] -> (Some "S", l)
+      | ["D"; l] -> (Some "D", l)
+      | _ -> (None, string) in
+    let pos = if List.mem "@bottom" options || prefix = Some "D" then "; bottom" else "" in
+    let style = if deco then "style=dot; " else "" in
+    let color = match (List.filter (fun x -> x <> "@bottom") options, prefix) with
+      | (c::_, _) -> "; color="^c
+      | ([], Some "S") -> "; color=red; forecolor=red"
+      | ([], Some "D") -> "; color=blue; forecolor=blue"
+      | _ -> "" in
+    sprintf "{ label = \"%s\"%s%s%s}" label pos style color 
 end (* module G_edge *)
 
 

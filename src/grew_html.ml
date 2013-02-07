@@ -155,8 +155,8 @@ module Html_doc = struct
         ]
 
   let of_opt_color = function
-    | None -> "black"
-    | Some c -> c
+    | [] -> "black"
+    | c::_ -> String.sub c 1 ((String.length c) - 1)
 
   let module_page_text prev next module_ =
     let buff = Buffer.create 32 in

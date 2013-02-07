@@ -140,6 +140,8 @@ gr_item:
 num:
         | INT { $1 }
 
+label_ident:
+        | x = separated_nonempty_list(DDOT,IDENT) { String.concat ":" x }
 
 
 
@@ -232,10 +234,9 @@ features_values:
         | x = delimited(LACC,separated_nonempty_list_final_opt(COMA,label),RACC) { x }
         
 %inline label:
-        | x = IDENT color = option(ddot_color)  { (x, color) }
+        (* | x = IDENT color = option(ddot_color)  { (x, color) } *)
 
-ddot_color:
-        | DDOT color = IDENT { color }
+        | x = label_ident display = list(CMD)  { (x, display) }
 
 global_labels:
         | LABELS x = labels { x }

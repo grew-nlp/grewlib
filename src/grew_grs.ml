@@ -71,7 +71,7 @@ end
 module Modul = struct
   type t = {
     name: string;
-    local_labels: (string * string option) array;
+    local_labels: (string * string list) array;
     rules: Rule.t list;
     filters: Rule.t list;
     confluent: bool;

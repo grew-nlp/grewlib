@@ -5,8 +5,8 @@ open Grew_ast
 (** The module [Label] defines the type of atomic label edges *)
 
 module Label : sig
-  (* [decl] is the type for a label declaration: the name and an optionnal color *)
-  type decl = string * string option
+  (* [decl] is the type for a label declaration: the name and a list of diplay options *)
+  type decl = string * string list
 
   type t
 

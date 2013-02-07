@@ -106,7 +106,7 @@ module Ast = struct
 
   type modul = {
       module_id:Id.name;
-      local_labels: (string * string option) list;
+      local_labels: (string * string list) list;
       rules: rule list;
       confluent: bool;
       module_doc:string list;
@@ -130,14 +130,14 @@ module Ast = struct
 
   type grs_with_include = {
       domain_wi: domain;
-      labels_wi: (string * string option) list;    (* the list of global edge labels *)
+      labels_wi: (string * string list) list;    (* the list of global edge labels *)
       modules_wi: module_or_include list; 
       sequences_wi: sequence list;
     }
 
   type grs = {
       domain: domain;
-      labels: (string * string option) list;
+      labels: (string * string list) list;
       modules: modul list;
       sequences: sequence list;
     }
