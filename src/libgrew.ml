@@ -3,6 +3,7 @@ include Grew_types
 open Printf
 open Log
 
+open Grew_fs
 open Grew_utils
 open Grew_graph
 open Grew_rule
@@ -202,3 +203,5 @@ let html_sentences ~title = Html_sentences.build ~title
 let get_css_file = Filename.concat DATA_DIR "style.css"
 
 let graph_of_instance instance = instance.Instance.graph
+
+let feature_names () = Domain.feature_names ()

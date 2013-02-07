@@ -562,7 +562,7 @@ module G_graph = struct
       ]
 
   (* -------------------------------------------------------------------------------- *)
-  let to_dep ?main_feat ?(deco=G_deco.empty) graph =
+  let to_dep ?filter ?main_feat ?(deco=G_deco.empty) graph =
     let buff = Buffer.create 32 in
     bprintf buff "[GRAPH] { opacity=0; scale = 200; fontname=\"Arial\"; }\n";
 
@@ -576,9 +576,9 @@ module G_graph = struct
       (fun (id, node) ->
 	if List.mem id deco.G_deco.nodes
 	then bprintf buff
-            "N_%s { %sforecolor=red; subcolor=red; }\n" (Gid.to_string id) (G_fs.to_dep ?main_feat (G_node.get_fs node))
+            "N_%s { %sforecolor=red; subcolor=red; }\n" (Gid.to_string id) (G_fs.to_dep ?filter ?main_feat (G_node.get_fs node))
 	else bprintf buff
-            "N_%s { %s }\n" (Gid.to_string id) (G_fs.to_dep ?main_feat (G_node.get_fs node))
+            "N_%s { %s }\n" (Gid.to_string id) (G_fs.to_dep ?filter ?main_feat (G_node.get_fs node))
       ) snodes;
     bprintf buff "} \n";
 

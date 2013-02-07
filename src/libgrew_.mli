@@ -108,3 +108,5 @@ val html_sentences: title:string -> string -> (bool * string * int * string) lis
 val get_css_file: string
 
 val graph_of_instance: Instance.t -> G_graph.t
+
+val feature_names: unit -> string list option

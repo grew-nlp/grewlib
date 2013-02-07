@@ -46,6 +46,11 @@ module Domain = struct
     match build ?loc name [value] with
       | [x] -> x
       | _ -> Error.bug ?loc "[Domain.build_one]"
+
+  let feature_names () =
+    match !current with
+      | None -> None
+      | Some dom -> Some (List.map (function Ast.Closed (fn, _) | Ast.Open fn | Ast.Int fn -> fn) dom)
 end
 
 (* ==================================================================================================== *)
@@ -206,11 +211,14 @@ module G_fs = struct
       | (None, _) -> "#"
       | (Some atom, _) -> string_of_value atom
         
-  let to_dep ?main_feat t =
+  let to_dep ?main_feat ?filter t =
     let (main_opt, sub) = get_main ?main_feat t in
+    let reduced_sub = match filter with
+      | None -> sub
+      | Some l -> List.filter (fun (fn,_) -> List.mem fn l) sub in
     sprintf " word=\"%s\"; subword=\"%s\"; " 
       (match main_opt with Some atom -> string_of_value atom | None -> "")
-      (List_.to_string G_feature.to_string "#" sub)
+      (List_.to_string G_feature.to_string "#" reduced_sub)
 end (* module G_fs *)
  
 (* ==================================================================================================== *)
@@ -226,7 +234,11 @@ module P_fs = struct
 
   let to_string t = List_.to_string P_feature.to_string "\\n" t
 
-  let to_dep param_names t = List_.to_string (P_feature.to_string ~param_names) "#" t
+  let to_dep ?filter param_names t =
+    let reduced = match filter with
+      | None -> t
+      | Some l -> List.filter (fun (fn,_) -> List.mem fn l) t in
+    List_.to_string (P_feature.to_string ~param_names) "#" reduced
 
   let to_dot t = List_.to_string P_feature.to_string "\\n" t
 

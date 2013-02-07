@@ -32,5 +32,5 @@ and big_step = {
 (** {2 Types displaying} *)
 
 val to_dot_graph : ?main_feat:string -> ?deco:deco -> graph -> string
-val to_dep_graph : ?main_feat:string -> ?deco:deco -> graph -> string
+val to_dep_graph : ?filter: string list -> ?main_feat:string -> ?deco:deco -> graph -> string
 val to_gr_graph: graph -> string

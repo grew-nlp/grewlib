@@ -5,6 +5,8 @@ module Domain: sig
   val reset: unit -> unit
 
   val init: Ast.domain -> unit
+
+  val feature_names: unit -> string list option
 end
 
 (* [G_fs] define the ferute srtuctures that are used in graphs *)
@@ -29,7 +31,7 @@ module G_fs: sig
   val to_gr: t -> string
   val to_dot: ?main_feat: string -> t -> string
   val to_word: ?main_feat: string -> t -> string
-  val to_dep: ?main_feat: string -> t -> string
+  val to_dep: ?main_feat: string -> ?filter: string list -> t -> string
   val to_raw: t -> (string * string) list
 
   val to_string: t -> string
@@ -52,7 +54,7 @@ module P_fs: sig
   
   val to_string: t -> string
 
-  val to_dep: (string list * string list) -> t -> string
+  val to_dep: ?filter: string list -> (string list * string list) -> t -> string
 
   val to_dot: t -> string
 
