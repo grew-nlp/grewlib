@@ -52,7 +52,11 @@ val to_sentence: ?main_feat:string -> Instance.t -> string
 
 val save_gr: string -> Rewrite_history.t -> unit
 
+val save_conll: string -> Rewrite_history.t -> unit
+
 val save_det_gr: string -> Rewrite_history.t -> unit
+
+val save_det_conll: string -> Rewrite_history.t -> unit
 
 (** get a graph from a file either in 'gr' or 'conll' format.
 File extension should be '.gr' or '.conll'.

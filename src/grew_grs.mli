@@ -29,10 +29,12 @@ module Rewrite_history: sig
   (** [save_gr base_name t] saves one gr_file for each normal form defined in [t].
       Output files are named according to [base_name] and the Gorn adress in the rewriting tree. *)
   val save_gr: string -> t -> unit
+  val save_conll: string -> t -> unit
 
   (** [save_det_gr base_name t] supposes that the current GRS is deterministic.
       It writes exactly one output file named [base_name].gr with the unique normal form. *)
   val save_det_gr: string -> t -> unit
+  val save_det_conll: string -> t -> unit
 end
 
 module Modul: sig

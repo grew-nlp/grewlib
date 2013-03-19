@@ -29,8 +29,11 @@ module Instance : sig
   (** [to_gr t] returns a string which contains the "gr" code of the current graph *)
   val to_gr: t -> string
 
+  (** [to_conll t] returns a string which contains the "conll" code of the current graph *)
+  val to_conll: t -> string
+
   (** [save_dep_png base t] writes a file "base.png" with the dep representation of [t].
-     NB: if the Dep2pict is not available, nothing is done *)
+      NB: if the Dep2pict is not available, nothing is done *)
   val save_dep_png: ?main_feat: string -> string -> t -> unit
 
   (** [save_dot_png base t] writes a file "base.png" with the dot representation of [t] *)

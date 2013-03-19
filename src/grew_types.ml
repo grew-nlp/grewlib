@@ -27,3 +27,4 @@ and big_step = {
 let to_dot_graph ?main_feat ?(deco=G_deco.empty) graph = G_graph.to_dot ?main_feat graph ~deco
 let to_dep_graph ?filter ?main_feat ?(deco=G_deco.empty) graph = G_graph.to_dep ?filter ?main_feat ~deco graph
 let to_gr_graph graph = G_graph.to_gr graph 
+let to_conll_graph graph = G_graph.to_conll graph

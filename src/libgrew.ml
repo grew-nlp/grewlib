@@ -146,11 +146,13 @@ let save_index ~dirname ~base_names =
   List.iter (fun f -> fprintf out_ch "%s\n" f) base_names;
   close_out out_ch
 
-let save_gr base rew_hist = 
-  Rewrite_history.save_gr base rew_hist
+let save_gr base rew_hist = Rewrite_history.save_gr base rew_hist
 
-let save_det_gr base rew_hist =
-  Rewrite_history.save_det_gr base rew_hist
+let save_conll base rew_hist = Rewrite_history.save_conll base rew_hist
+
+let save_det_gr base rew_hist = Rewrite_history.save_det_gr base rew_hist
+
+let save_det_conll base rew_hist = Rewrite_history.save_det_conll base rew_hist
 
 let write_html 
     ?(no_init=false)

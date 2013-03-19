@@ -134,7 +134,7 @@ gr_item:
             { Graph_node (localize {Ast.node_id = id; position=position; fs=feats}) }
 
         (* A -[x|y|z]-> B*)
-        | n1 = IDENT labels = delimited(LTR_EDGE_LEFT,separated_nonempty_list(PIPE,IDENT),LTR_EDGE_RIGHT) n2 = IDENT
+        | n1 = IDENT labels = delimited(LTR_EDGE_LEFT,separated_nonempty_list(PIPE,label_ident),LTR_EDGE_RIGHT) n2 = IDENT
             { Graph_edge (localize {Ast.edge_id = None; src=n1; edge_labels=labels; tar=n2; negative=false; }) }
 
 num:
@@ -413,7 +413,7 @@ node_features:
 pat_edge:
         (* "e: A -> B" OR "e: A -[*]-> B" *)
         | id = edge_id n1 = IDENT GOTO_NODE n2 = IDENT
-        | id = edge_id n1 = IDENT LTR_EDGE_LEFT STAR LTR_EDGE_RIGHT n2 = IDENT
+        | id = edge_id n1 = IDENT LTR_EDGE_LEFT STAR LTR_EDGE_RIGHT n2 = label_ident
                { localize ({Ast.edge_id = Some id; src=n1; edge_labels=[]; tar=n2; negative=true}) }
 
         (* "A -> B" *)
@@ -421,19 +421,19 @@ pat_edge:
                { localize ({Ast.edge_id = None; src=n1; edge_labels=[]; tar=n2; negative=true}) }
 
         (* "e: A -[^X|Y]-> B" *)
-        | id = edge_id n1 = IDENT labels = delimited(LTR_EDGE_LEFT_NEG,separated_nonempty_list(PIPE,IDENT),LTR_EDGE_RIGHT) n2 = IDENT
+        | id = edge_id n1 = IDENT labels = delimited(LTR_EDGE_LEFT_NEG,separated_nonempty_list(PIPE,label_ident),LTR_EDGE_RIGHT) n2 = IDENT
             { localize ({Ast.edge_id = Some id; src=n1; edge_labels=labels; tar=n2; negative=true}) }
             
         (* "A -[^X|Y]-> B"*)
-        | n1 = IDENT labels = delimited(LTR_EDGE_LEFT_NEG,separated_nonempty_list(PIPE,IDENT),LTR_EDGE_RIGHT) n2 = IDENT
+        | n1 = IDENT labels = delimited(LTR_EDGE_LEFT_NEG,separated_nonempty_list(PIPE,label_ident),LTR_EDGE_RIGHT) n2 = IDENT
             { localize ({Ast.edge_id = None; src=n1; edge_labels=labels; tar=n2; negative=true}) }
 
         (* "e: A -[X|Y]-> B" *)
-        | id = edge_id n1 = IDENT labels = delimited(LTR_EDGE_LEFT,separated_nonempty_list(PIPE,IDENT),LTR_EDGE_RIGHT) n2 = IDENT
+        | id = edge_id n1 = IDENT labels = delimited(LTR_EDGE_LEFT,separated_nonempty_list(PIPE,label_ident),LTR_EDGE_RIGHT) n2 = IDENT
             { localize ({Ast.edge_id = Some id; src=n1; edge_labels=labels; tar=n2; negative=false}) }       
 
         (* "A -[X|Y]-> B" *)
-        | n1 = IDENT labels = delimited(LTR_EDGE_LEFT,separated_nonempty_list(PIPE,IDENT),LTR_EDGE_RIGHT) n2 = IDENT
+        | n1 = IDENT labels = delimited(LTR_EDGE_LEFT,separated_nonempty_list(PIPE,label_ident),LTR_EDGE_RIGHT) n2 = IDENT
             { localize ({Ast.edge_id = None; src=n1; edge_labels=labels; tar=n2; negative=false}) }
 
 
@@ -442,7 +442,7 @@ edge_id:
 
 pat_const:
         (* "A -[X|Y]-> *" *)
-        | n1 = IDENT labels = delimited(LTR_EDGE_LEFT,separated_nonempty_list(PIPE,IDENT),LTR_EDGE_RIGHT) STAR
+        | n1 = IDENT labels = delimited(LTR_EDGE_LEFT,separated_nonempty_list(PIPE,label_ident),LTR_EDGE_RIGHT) STAR
             { localize (Ast.Start (n1,labels)) }
 
         (* "A -> *" *)
@@ -450,7 +450,7 @@ pat_const:
             { localize (Ast.Cst_out n1) }
 
         (* "* -[X|Y]-> A" *)
-        | STAR labels = delimited(LTR_EDGE_LEFT,separated_nonempty_list(PIPE,IDENT),LTR_EDGE_RIGHT) n2 = IDENT
+        | STAR labels = delimited(LTR_EDGE_LEFT,separated_nonempty_list(PIPE,label_ident),LTR_EDGE_RIGHT) n2 = IDENT
             { localize (Ast.End (n2,labels)) }
 
         (* "* -> A" *)
@@ -509,9 +509,9 @@ commands:
 command:
         | DEL_EDGE n = IDENT
             { localize (Ast.Del_edge_name n) }
-        | DEL_EDGE n1 = IDENT label = delimited(LTR_EDGE_LEFT,IDENT,LTR_EDGE_RIGHT) n2 = IDENT 
+        | DEL_EDGE n1 = IDENT label = delimited(LTR_EDGE_LEFT,label_ident,LTR_EDGE_RIGHT) n2 = IDENT
             { localize (Ast.Del_edge_expl (n1,n2,label)) }
-        | ADD_EDGE n1 = IDENT label = delimited(LTR_EDGE_LEFT,IDENT,LTR_EDGE_RIGHT) n2 = IDENT
+        | ADD_EDGE n1 = IDENT label = delimited(LTR_EDGE_LEFT,label_ident,LTR_EDGE_RIGHT) n2 = IDENT
             { localize (Ast.Add_edge (n1,n2,label)) }
         | SHIFT_IN n1 = IDENT LONGARROW n2 = IDENT 
             { localize (Ast.Shift_in (n1,n2)) }
@@ -519,11 +519,11 @@ command:
             { localize (Ast.Shift_out (n1,n2)) }
         | SHIFT n1 = IDENT LONGARROW n2 = IDENT 
             { localize (Ast.Shift_edge (n1,n2)) }
-        | MERGE n1 = IDENT LONGARROW n2 = IDENT 
+        | MERGE n1 = IDENT LONGARROW n2 = IDENT
             { localize (Ast.Merge_node (n1,n2)) }
         | DEL_NODE n = IDENT
             { localize (Ast.Del_node n) }
-        | ADD_NODE n1 = IDENT DDOT label = delimited(RTL_EDGE_LEFT,IDENT,RTL_EDGE_RIGHT) n2 = IDENT 
+        | ADD_NODE n1 = IDENT DDOT label = delimited(RTL_EDGE_LEFT,label_ident,RTL_EDGE_RIGHT) n2 = IDENT
             { localize (Ast.New_neighbour (n1,n2,label)) }
         | DEL_FEAT qfn = QFN 
             { localize (Ast.Del_feat qfn) }

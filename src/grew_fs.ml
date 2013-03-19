@@ -216,9 +216,15 @@ module G_fs = struct
     let reduced_sub = match filter with
       | None -> sub
       | Some l -> List.filter (fun (fn,_) -> List.mem fn l) sub in
-    sprintf " word=\"%s\"; subword=\"%s\"; " 
+    sprintf " word=\"%s\"; subword=\"%s\""
       (match main_opt with Some atom -> string_of_value atom | None -> "")
       (List_.to_string G_feature.to_string "#" reduced_sub)
+
+  let to_conll ?exclude t =
+    let reduced_t = match exclude with
+      | None -> t
+      | Some list -> List.filter (fun (fn,_) -> not (List.mem fn list || fn.[0]='_')) t in
+    String.concat "|" (List.map (function (fn, String "true") -> fn | (fn, fv) -> fn^"="^(string_of_value fv)) reduced_t)
 end (* module G_fs *)
  
 (* ==================================================================================================== *)

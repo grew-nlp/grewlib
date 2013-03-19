@@ -33,6 +33,7 @@ module G_fs: sig
   val to_word: ?main_feat: string -> t -> string
   val to_dep: ?main_feat: string -> ?filter: string list -> t -> string
   val to_raw: t -> (string * string) list
+  val to_conll: ?exclude: string list -> t -> string
 
   val to_string: t -> string
 

@@ -51,6 +51,8 @@ module Instance = struct
 
   let to_gr t = G_graph.to_gr t.graph
 
+  let to_conll t = G_graph.to_conll t.graph
+
   let save_dot_png ?main_feat base t =
     ignore (Grew_utils.png_file_from_dot (G_graph.to_dot ?main_feat t.graph) (base^".png"))
 

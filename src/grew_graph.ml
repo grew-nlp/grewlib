@@ -223,7 +223,7 @@ module G_graph = struct
       | (Gid.Old i,_) -> i
       | _ -> Error.bug "[G_graph.max_binding]"
 
-  let list_search test =
+  let list_num test =
     let rec loop n = function
       | [] -> raise Not_found
       | x::_ when test x -> n
@@ -563,22 +563,23 @@ module G_graph = struct
 
   (* -------------------------------------------------------------------------------- *)
   let to_dep ?filter ?main_feat ?(deco=G_deco.empty) graph =
-    let buff = Buffer.create 32 in
-    bprintf buff "[GRAPH] { opacity=0; scale = 200; fontname=\"Arial\"; }\n";
-
-    bprintf buff "[WORDS] { \n";
-
     let nodes = Gid_map.fold (fun id elt acc -> (id,elt)::acc) graph.map [] in
     let snodes = List.sort (fun (_,n1) (_,n2) -> G_node.pos_comp n1 n2) nodes in
+
+    let buff = Buffer.create 32 in
+    bprintf buff "[GRAPH] { opacity=0; scale = 200; fontname=\"Arial\"; }\n";
+    bprintf buff "[WORDS] { \n";
 
     (* nodes *)
     List.iter
       (fun (id, node) ->
-	if List.mem id deco.G_deco.nodes
-	then bprintf buff
-            "N_%s { %sforecolor=red; subcolor=red; }\n" (Gid.to_string id) (G_fs.to_dep ?filter ?main_feat (G_node.get_fs node))
-	else bprintf buff
-            "N_%s { %s }\n" (Gid.to_string id) (G_fs.to_dep ?filter ?main_feat (G_node.get_fs node))
+        let fs = G_node.get_fs node in
+        let dep_fs = G_fs.to_dep ?filter ?main_feat fs in
+        let style = match (List.mem id deco.G_deco.nodes, G_fs.get_string_atom "sem" fs) with
+          | (true, _) -> "; forecolor=red; subcolor=red; "
+          | (false, Some "void") -> "; forecolor=\"#AAAAAA\"; subcolor=\"#AAAAAA\"; "
+          | _ -> "" in
+	bprintf buff "N_%s { %s%s }\n" (Gid.to_string id) dep_fs style
       ) snodes;
     bprintf buff "} \n";
 
@@ -631,20 +632,57 @@ module G_graph = struct
 
     let nodes = Gid_map.fold (fun id elt acc -> (id,elt)::acc) graph.map [] in
     let snodes = List.sort (fun (_,n1) (_,n2) -> G_node.pos_comp n1 n2) nodes in
-    let raw_nodes = List.map (fun (pid,node) -> (pid, G_fs.to_raw (G_node.get_fs node))) snodes in
+    let raw_nodes = List.map (fun (gid,node) -> (gid, G_fs.to_raw (G_node.get_fs node))) snodes in
 
-    let search pid = list_search (fun (x,_) -> x=pid) raw_nodes in
+    let get_num gid = list_num (fun (x,_) -> x=gid) raw_nodes in
     let edge_list = ref [] in
     Gid_map.iter
-      (fun src_pid node ->
+      (fun src_gid node ->
         Massoc_gid.iter
-          (fun tar_pid edge ->
-            edge_list := (search src_pid, G_edge.to_string edge, search tar_pid) :: !edge_list
+          (fun tar_gid edge ->
+            edge_list := (get_num src_gid, G_edge.to_string edge, get_num tar_gid) :: !edge_list
           )
           (G_node.get_next node)
       )
       graph.map;
     (graph.meta, List.map snd raw_nodes, !edge_list)
+
+  (* -------------------------------------------------------------------------------- *)
+  let to_conll graph =
+
+    let nodes = Gid_map.fold (fun gid node acc -> (gid,node)::acc) graph.map [] in
+    let snodes = List.sort (fun (_,n1) (_,n2) -> G_node.pos_comp n1 n2) nodes in
+    let get_num gid = list_num (fun (x,_) -> x=gid) snodes in
+
+    (* Warning: [govs_labs] maps [gid]s to [num]s *)
+    let govs_labs =
+      Gid_map.fold
+        (fun src_gid node acc ->
+          let src_num = get_num src_gid in
+          Massoc_gid.fold
+            (fun acc2 tar_gid edge  ->
+              let old = try Gid_map.find tar_gid acc2 with Not_found -> [] in
+              Gid_map.add tar_gid ((string_of_int src_num, G_edge.to_string edge)::old) acc2
+            ) acc (G_node.get_next node)
+        ) graph.map Gid_map.empty in
+
+    let buff = Buffer.create 32 in
+    Gid_map.iter
+      (fun gid node ->
+        let (govs,labs) = List.split (try Gid_map.find gid govs_labs with Not_found -> []) in
+        let fs = G_node.get_fs node in
+        bprintf buff "%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t_\t_\n"
+          (get_num gid)
+          (match G_fs.get_string_atom "phon" fs with Some p -> p | None -> "NO_PHON")
+          (match G_fs.get_string_atom "lemma" fs with Some p -> p | None -> "NO_LEMMA")
+          (match G_fs.get_string_atom "cat" fs with Some p -> p | None -> "NO_CAT")
+          (match G_fs.get_string_atom "pos" fs with Some p -> p | None -> "_")
+          (G_fs.to_conll ~exclude: ["phon"; "lemma"; "cat"; "pos"; "position"] fs)
+          (String.concat "|" govs)
+          (String.concat "|" labs)
+      )
+      graph.map;
+    Buffer.contents buff
 
 end (* module G_graph *)
 (* ================================================================================ *)
