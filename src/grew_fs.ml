@@ -166,13 +166,15 @@ module G_fs = struct
     List.sort G_feature.compare unsorted
 
   let of_conll line =
-    let unsorted =
+    let unsorted_without_pos =
       ("phon", Domain.build_one "phon" line.Conll.phon)
       :: ("lemma", Domain.build_one "lemma" line.Conll.lemma)
       :: ("cat", Domain.build_one "cat" line.Conll.pos1)
-      :: ("pos", Domain.build_one "pos" line.Conll.pos2)
       :: ("position", Domain.build_one "position" (string_of_int line.Conll.num))
       :: (List.map (fun (f,v) -> (f, Domain.build_one f v)) line.Conll.morph) in
+    let unsorted = match line.Conll.pos2 with
+      | "_" -> unsorted_without_pos
+      | s -> ("pos", Domain.build_one "pos" s) :: unsorted_without_pos in
     List.sort G_feature.compare unsorted
 
   exception Fail_unif 
