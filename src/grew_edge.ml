@@ -66,9 +66,11 @@ module G_edge = struct
     | (true, _) -> Error.build "Negative edge spec are forbidden in graphs%s" (Loc.to_string loc)
     | (false, _) -> Error.build "Only atomic edge valus are allowed in graphs%s" (Loc.to_string loc)
 
+  let rm_first_char = function "" -> "" | s -> String.sub s 1 ((String.length s) - 1)
+
   let color_of_option = function
     | [] -> None
-    | c::_ -> Some (String.sub c 1 ((String.length c) - 1))
+    | c::_ -> Some (rm_first_char c)
 
   let to_dot ?(deco=false) l =
     match color_of_option (Label.get_options l) with
@@ -96,9 +98,9 @@ module G_edge = struct
       | ["D"; l] -> (Some "D", l)
       | _ -> (None, string) in
     let pos = if List.mem "@bottom" options || prefix = Some "D" then "; bottom" else "" in
-    let style = if deco then "style=dot; " else "" in
+    let style = if deco then "; style=dot" else "" in
     let color = match (List.filter (fun x -> x <> "@bottom") options, prefix) with
-      | (c::_, _) -> "; color="^c
+      | (c::_, _) -> "; color="^(rm_first_char c)
       | ([], Some "S") -> "; color=red; forecolor=red"
       | ([], Some "D") -> "; color=blue; forecolor=blue"
       | _ -> "" in
