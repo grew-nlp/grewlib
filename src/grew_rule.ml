@@ -90,11 +90,11 @@ module Rule = struct
     let pid_of_name loc node_name = Pid.Pos (Id.build ~loc node_name pos_table) in
     match const with
       | (Ast.Start (node_name, labels), loc) ->
-        Cst_out (pid_of_name loc node_name, P_edge.make ?locals labels)
+        Cst_out (pid_of_name loc node_name, P_edge.make ~loc ?locals labels)
       | (Ast.Cst_out node_name, loc) ->
         Cst_out (pid_of_name loc node_name, P_edge.all)
       | (Ast.End (node_name, labels),loc) ->
-        Cst_in (pid_of_name loc node_name, P_edge.make ?locals labels)
+        Cst_in (pid_of_name loc node_name, P_edge.make ~loc ?locals labels)
       | (Ast.Cst_in node_name, loc) ->
         Cst_in (pid_of_name loc node_name, P_edge.all)
       | (Ast.Feature_eq ((node_name1, feat_name1), (node_name2, feat_name2)), loc) ->
@@ -128,11 +128,11 @@ module Rule = struct
         | None -> Pid.Neg (Id.build ~loc node_name neg_table) in
     match const with
       | (Ast.Start (node_name, labels),loc) ->
-        Cst_out (pid_of_name loc node_name, P_edge.make ?locals labels)
+        Cst_out (pid_of_name loc node_name, P_edge.make ~loc ?locals labels)
       | (Ast.Cst_out node_name, loc) ->
         Cst_out (pid_of_name loc node_name, P_edge.all)
       | (Ast.End (node_name, labels),loc) ->
-        Cst_in (pid_of_name loc node_name, P_edge.make ?locals labels)
+        Cst_in (pid_of_name loc node_name, P_edge.make ~loc ?locals labels)
       | (Ast.Cst_in node_name, loc) ->
         Cst_in (pid_of_name loc node_name, P_edge.all)
       | (Ast.Feature_eq ((node_name1, feat_name1), (node_name2, feat_name2)), loc) ->

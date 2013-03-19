@@ -67,7 +67,7 @@ module Command  = struct
     match ast_command with
     | (Ast.Del_edge_expl (i, j, lab), loc) ->
         check_node loc i kni; check_node loc j kni;
-	let edge = G_edge.make ~locals lab in
+	let edge = G_edge.make ~loc ~locals lab in
 	((DEL_EDGE_EXPL (get_pid i, get_pid j, edge), loc), (kni, kei))
 	  
     | (Ast.Del_edge_name id, loc) -> 
@@ -76,7 +76,7 @@ module Command  = struct
 	  
     | (Ast.Add_edge (i, j, lab), loc) ->
         check_node loc i kni; check_node loc j kni;
-	let edge = G_edge.make ~locals lab in
+	let edge = G_edge.make ~loc ~locals lab in
 	((ADD_EDGE (get_pid i, get_pid j, edge), loc), (kni, kei))
 	  
     | (Ast.Shift_edge (i, j), loc) ->
@@ -99,7 +99,7 @@ module Command  = struct
         check_node loc ancestor kni;
         if List.mem name_created kni
         then Error.build ~loc "Node identifier \"%s\" is already used" name_created;
-	let edge = G_edge.make ~locals label in
+	let edge = G_edge.make ~loc ~locals label in
 	begin
 	  try
             (

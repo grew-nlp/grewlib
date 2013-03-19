@@ -123,9 +123,9 @@ module P_edge = struct
 
   let get_id t = t.id
 
-  let make ?(id=None) ?(neg=false) ?(locals=[||]) = function
-    | l when neg -> {id=id; u_label=Neg (List.sort compare (List.map (Label.from_string ~locals) l))}
-    | l -> {id=id; u_label=Pos (List.sort compare (List.map (Label.from_string ~locals) l))}
+  let make ?loc ?(id=None) ?(neg=false) ?(locals=[||]) = function
+    | l when neg -> {id=id; u_label=Neg (List.sort compare (List.map (Label.from_string ?loc ~locals) l))}
+    | l -> {id=id; u_label=Pos (List.sort compare (List.map (Label.from_string ?loc ~locals) l))}
 
   let build ?locals (ast_edge, loc) =
     { id = ast_edge.Ast.edge_id;
