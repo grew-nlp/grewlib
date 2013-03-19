@@ -26,22 +26,22 @@ include ../config/Makefile
 #executables
 
 grew.byte: $(FILES_CMO) parser/parser_global.cmo parser_byte parser/grew_parser.cmo grew.ml
-	$(OCAMLC) $(BYTE_FLAGS) -o grew.byte $(ANSITERMINAL_BYTE) $(LOG_BYTE)  \
+	$(OCAMLC) $(BYTE_FLAGS) -o grew.byte $(XML_LIGHT_BYTE) $(ANSITERMINAL_BYTE) $(LOG_BYTE)  \
 	$(FILES_CMO) -I parser $(PARSER_CMO) \
 	grew.ml
 
 grew: $(FILES_CMX) parser/parser_global.cmx parser_opt parser/grew_parser.cmx grew.ml
-	$(OCAMLOPT) $(OPT_FLAGS) -o grew str.cmxa unix.cmxa $(ANSITERMINAL_OPT) $(LOG_OPT) \
+	$(OCAMLOPT) $(OPT_FLAGS) -o grew str.cmxa unix.cmxa $(XML_LIGHT_OPT) $(ANSITERMINAL_OPT) $(LOG_OPT) \
 	$(FILES_CMX) -I parser $(PARSER_CMX) \
 	grew.ml
 
 test.byte: parser/parser_global.cmo parser_byte parser/grew_parser.cmo $(FILES_CMO) $(FILES_CMI) test.ml
-	$(OCAMLC) $(BYTE_FLAGS) -o test.byte $(ANSITERMINAL_BYTE) $(LOG_BYTE) \
+	$(OCAMLC) $(BYTE_FLAGS) -o test.byte $(XML_LIGHT_BYTE) $(ANSITERMINAL_BYTE) $(LOG_BYTE) \
 	$(FILES_CMO) -I parser $(PARSER_CMO) \
 	test.ml
 
 test: parser/parser_global.cmx parser_opt parser/grew_parser.cmx $(FILES_CMX) $(FILES_CMI) test.ml
-	$(OCAMLOPT) $(OPT_FLAGS) -o test str.cmxa unix.cmxa $(ANSITERMINAL_OPT) $(LOG_OPT) \
+	$(OCAMLOPT) $(OPT_FLAGS) -o test str.cmxa unix.cmxa $(XML_LIGHT_OPT) $(ANSITERMINAL_OPT) $(LOG_OPT) \
 	$(FILES_CMX) -I parser $(PARSER_CMX) \
 	test.ml
 
@@ -70,19 +70,19 @@ libgrew.mli : grew_types.mli libgrew_.mli
 
 libgrew.cma : $(FILES_CMO) parser_byte libgrew.mli libgrew.ml
 ifeq (@DEP2PICT@,no) 
-	$(OCAMLC) -c -pp 'camlp4o pa_macro.cmo' $(BYPE_FLAGS) $(FILES_CMO) str.cma -I parser $(PARSER_CMO) libgrew.mli
-	$(OCAMLC) -a -o libgrew.cma $(BYPE_FLAGS) -pp 'camlp4o pa_macro.cmo -DDATA_DIR=\"$(DATA_DIR)\"' -linkall $(FILES_CMO) -I parser $(PARSER_CMO) libgrew.ml
+	$(OCAMLC) -c -pp 'camlp4o pa_macro.cmo' $(BYTE_FLAGS) $(FILES_CMO) $(XML_LIGHT_BYTE) str.cma -I parser $(PARSER_CMO) libgrew.mli
+	$(OCAMLC) -a -o libgrew.cma $(BYTE_FLAGS) -pp 'camlp4o pa_macro.cmo -DDATA_DIR=\"$(DATA_DIR)\"' -linkall $(FILES_CMO) -I parser $(PARSER_CMO) libgrew.ml
 else
-	$(OCAMLC) -c -pp 'camlp4o pa_macro.cmo -DDEP2PICT' $(BYPE_FLAGS) $(FILES_CMO) str.cma -I parser $(PARSER_CMO) libgrew.mli
-	$(OCAMLC) -a -o libgrew.cma $(BYPE_FLAGS) -pp 'camlp4o pa_macro.cmo -DDATA_DIR=\"$(DATA_DIR)\" -DDEP2PICT' -linkall $(FILES_CMO) -I parser $(PARSER_CMO) libgrew.ml
+	$(OCAMLC) -c -pp 'camlp4o pa_macro.cmo -DDEP2PICT' $(BYTE_FLAGS) $(FILES_CMO) $(XML_LIGHT_BYTE) str.cma -I parser $(PARSER_CMO) libgrew.mli
+	$(OCAMLC) -a -o libgrew.cma $(BYTE_FLAGS) -pp 'camlp4o pa_macro.cmo -DDATA_DIR=\"$(DATA_DIR)\" -DDEP2PICT' -linkall $(FILES_CMO) -I parser $(PARSER_CMO) libgrew.ml
 endif
 
 libgrew.cmxa : $(FILES_CMX) parser_opt libgrew.mli libgrew.ml
 ifeq (@DEP2PICT@,no)
-	$(OCAMLOPT) -c -pp 'camlp4o pa_macro.cmo' $(OPT_FLAGS) $(FILES_CMX) str.cmxa -I parser $(PARSER_CMX) libgrew.mli
+	$(OCAMLOPT) -c -pp 'camlp4o pa_macro.cmo' $(OPT_FLAGS) $(FILES_CMX) $(XML_LIGHT_OPT) str.cmxa -I parser $(PARSER_CMX) libgrew.mli
 	$(OCAMLOPT) -a -o libgrew.cmxa $(OPT_FLAGS) -pp 'camlp4o pa_macro.cmo -DDATA_DIR=\"$(DATA_DIR)\"' -linkall $(FILES_CMX) -I parser $(PARSER_CMX) libgrew.ml
 else
-	$(OCAMLOPT) -c -pp 'camlp4o pa_macro.cmo -DDEP2PICT' $(FILES_CMX) str.cmxa -I parser $(PARSER_CMX) libgrew.mli
+	$(OCAMLOPT) -c -pp 'camlp4o pa_macro.cmo -DDEP2PICT' $(FILES_CMX) $(XML_LIGHT_OPT) str.cmxa -I parser $(PARSER_CMX) libgrew.mli
 	$(OCAMLOPT) -a -o libgrew.cmxa -pp 'camlp4o pa_macro.cmo -DDATA_DIR=\"$(DATA_DIR)\" -DDEP2PICT' -linkall $(FILES_CMX) -I parser $(PARSER_CMX) libgrew.ml
 endif
 
@@ -212,13 +212,13 @@ GREW_GRAPH_CMO = $(GREW_GRAPH_DEP:%=%.cmo)
 GREW_GRAPH_CMX = $(GREW_GRAPH_DEP:%=%.cmx)
 
 grew_graph.cmi: $(GREW_GRAPH_CMI) grew_graph.mli
-	$(OCAMLC) -c grew_graph.mli
+	$(OCAMLC) -c $(XML_LIGHT_BYTE) grew_graph.mli
 
 grew_graph.cmo: $(GREW_GRAPH_CMO) grew_graph.cmi grew_graph.ml
-	$(OCAMLC) $(BYTE_FLAGS) -c $(DEPENDS_DIR) grew_graph.ml
+	$(OCAMLC) $(BYTE_FLAGS) -c $(DEPENDS_DIR) $(XML_LIGHT_BYTE) grew_graph.ml
 
 grew_graph.cmx: $(GREW_GRAPH_CMX) grew_graph.cmi grew_graph.ml
-	$(OCAMLOPT) $(OPT_FLAGS) -c $(DEPENDS_DIR) grew_graph.ml
+	$(OCAMLOPT) $(OPT_FLAGS) -c $(DEPENDS_DIR) $(XML_LIGHT_OPT) grew_graph.ml
 ################################################################################
 
 

@@ -79,7 +79,15 @@ module Rewrite_history = struct
         | _ -> Error.run "Not a single rewriting"
     in loop t
 
-
+  let det_dep_string t =
+    let rec loop t =
+      match (t.good_nf, t.bad_nf) with
+        | [],[] ->
+          let graph = t.instance.Instance.graph in
+          G_graph.to_dep graph
+        | [one], [] -> loop one
+        | _ -> Error.run "Not a single rewriting"
+    in loop t
 end
 
 

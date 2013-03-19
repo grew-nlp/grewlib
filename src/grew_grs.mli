@@ -35,6 +35,8 @@ module Rewrite_history: sig
       It writes exactly one output file named [base_name].gr with the unique normal form. *)
   val save_det_gr: string -> t -> unit
   val save_det_conll: string -> t -> unit
+
+  val det_dep_string: t -> string
 end
 
 module Modul: sig

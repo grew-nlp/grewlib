@@ -16,6 +16,7 @@ module G_node: sig
   val get_next: t -> G_edge.t Massoc_gid.t
 
   val set_fs: t -> G_fs.t -> t
+  val set_pos: t -> int -> t
 
   val remove: Gid.t -> G_edge.t -> t -> t
 

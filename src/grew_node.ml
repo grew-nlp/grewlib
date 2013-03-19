@@ -17,6 +17,7 @@ module G_node = struct
   let get_next t = t.next
 
   let set_fs t fs = {t with fs = fs}
+  let set_pos t pos = {t with pos = Some pos}
 
   let empty = { fs = G_fs.empty; pos = None; next = Massoc_gid.empty }
 

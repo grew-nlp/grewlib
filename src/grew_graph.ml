@@ -8,6 +8,7 @@ open Grew_fs
 open Grew_node
 open Grew_command
 
+module Str_map = Map.Make (String)
 
 (* ==================================================================================================== *)
 module P_deco = struct
@@ -323,6 +324,53 @@ module G_graph = struct
         ) nodes lines in
 
     {meta=[]; map=nodes_with_edges}
+
+  (* -------------------------------------------------------------------------------- *)
+  let opt_att atts name =
+    try Some (List.assoc name atts)
+    with Not_found -> None
+
+  (** [of_xml d_xml] loads a graph in the xml format: [d_xml] must be a <D> xml element *)
+  let of_xml d_xml =
+    match d_xml with
+      | Xml.Element ("D", _, t_or_r_list) ->
+        let (t_list, r_list) = List.partition (function Xml.Element ("T",_,_) -> true | _ -> false) t_or_r_list in
+        let (nodes_without_edges, mapping) =
+          List_.foldi_left
+            (fun i (acc, acc_map) t_xml ->
+              match t_xml with
+                | Xml.Element ("T", t_atts, [Xml.PCData phon]) ->
+                  let id = List.assoc "id" t_atts in
+                  let other_feats = List.filter (fun (n,_) -> not (List.mem n ["id"; "start"; "end"; "label"])) t_atts in
+                  let new_fs =
+                    List.fold_left
+                      (fun acc2 (fn,fv) -> G_fs.set_feat fn fv acc2)
+                      G_fs.empty
+                      (("phon", phon) :: ("cat", (List.assoc "label" t_atts)) :: other_feats) in
+                  let new_node = G_node.set_fs (G_node.set_pos G_node.empty i) new_fs in
+                  (Gid_map.add (Gid.Old i) new_node acc, Str_map.add id (Gid.Old i) acc_map)
+                | _ -> Log.critical "[G_graph.of_xml] Not a wellformed <T> tag"
+            ) (Gid_map.empty, Str_map.empty) t_list in
+        let final_map =
+          List.fold_left
+            (fun acc r_xml ->
+              match r_xml with
+                | Xml.Element ("R", r_atts, _) ->
+                  let src = List.assoc "from" r_atts
+                  and tar = List.assoc "to" r_atts
+                  and label = List.assoc "label" r_atts in
+                  let gid_tar = Str_map.find tar mapping in
+                  let gid_src = Str_map.find src mapping in
+                  let old_node = Gid_map.find gid_src acc in
+                  let new_map =
+                    match G_node.add_edge (G_edge.make label) gid_tar old_node with
+                      | Some new_node -> Gid_map.add gid_src new_node acc
+                      | None -> Log.critical "[G_graph.of_xml] Fail to add edge" in
+                  new_map
+                | _ -> Log.critical "[G_graph.of_xml] Not a wellformed <R> tag"
+            ) nodes_without_edges r_list in
+        {meta=[]; map=final_map}
+      | _ -> Log.critical "[G_graph.of_xml] Not a <D> tag"
 
   (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
   (* Update functions *)
@@ -652,7 +700,7 @@ module G_graph = struct
 
     let nodes = Gid_map.fold (fun gid node acc -> (gid,node)::acc) graph.map [] in
     let snodes = List.sort (fun (_,n1) (_,n2) -> G_node.pos_comp n1 n2) nodes in
-    let get_num gid = list_num (fun (x,_) -> x=gid) snodes in
+    let get_num gid = (list_num (fun (x,_) -> x=gid) snodes) + 1 in
 
     (* Warning: [govs_labs] maps [gid]s to [num]s *)
     let govs_labs =

@@ -50,6 +50,8 @@ val get_sequence_names: Grs.t -> string list
 
 val to_sentence: ?main_feat:string -> Instance.t -> string
 
+val save_graph_conll: string -> Instance.t -> unit
+
 val save_gr: string -> Rewrite_history.t -> unit
 
 val save_conll: string -> Rewrite_history.t -> unit
@@ -58,12 +60,16 @@ val save_det_gr: string -> Rewrite_history.t -> unit
 
 val save_det_conll: string -> Rewrite_history.t -> unit
 
+val det_dep_string: Rewrite_history.t -> string
+
 (** get a graph from a file either in 'gr' or 'conll' format.
 File extension should be '.gr' or '.conll'.
 @raise Parsing_err if libgrew can't parse the file
 @raise File_dont_exists if the file doesn't exists
 *)
 val load_graph: string -> Instance.t
+
+val xml_graph: Xml.xml -> Instance.t
 
 (** [raw_graph instance] returns all graph information with a triple of basic caml types:
     - the meta data

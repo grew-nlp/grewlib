@@ -121,6 +121,12 @@ let load_graph file =
               Log.fcritical "[Libgrew.load_graph] Cannot guess input file format of file '%s'. Use .gr or .conll file extension" file
     end
 
+let xml_graph xml =
+  try Instance.from_graph (G_graph.of_xml xml) with
+    | Error.Build (msg,loc) -> raise (Build (msg,loc))
+    | Error.Bug (msg, loc) -> raise (Bug (msg,loc))
+    | exc -> raise (Bug (sprintf "[Libgrew.load_conll] UNCATCHED EXCEPTION: %s" (Printexc.to_string exc), None))
+
 let raw_graph instance =
   G_graph.to_raw instance.Instance.graph
 
@@ -146,6 +152,11 @@ let save_index ~dirname ~base_names =
   List.iter (fun f -> fprintf out_ch "%s\n" f) base_names;
   close_out out_ch
 
+let save_graph_conll filename graph =
+  let out_ch = open_out filename in
+  fprintf out_ch "%s" (Instance.to_conll graph);
+  close_out out_ch
+
 let save_gr base rew_hist = Rewrite_history.save_gr base rew_hist
 
 let save_conll base rew_hist = Rewrite_history.save_conll base rew_hist
@@ -153,6 +164,8 @@ let save_conll base rew_hist = Rewrite_history.save_conll base rew_hist
 let save_det_gr base rew_hist = Rewrite_history.save_det_gr base rew_hist
 
 let save_det_conll base rew_hist = Rewrite_history.save_det_conll base rew_hist
+
+let det_dep_string rew_hist = Rewrite_history.det_dep_string rew_hist
 
 let write_html 
     ?(no_init=false)
