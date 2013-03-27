@@ -717,7 +717,7 @@ module G_graph = struct
     let buff = Buffer.create 32 in
     Gid_map.iter
       (fun gid node ->
-        let (govs,labs) = List.split (try Gid_map.find gid govs_labs with Not_found -> []) in
+        let (govs,labs) = List.split (try Gid_map.find gid govs_labs with Not_found -> ["0","root"]) in
         let fs = G_node.get_fs node in
         bprintf buff "%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t_\t_\n"
           (get_num gid)
