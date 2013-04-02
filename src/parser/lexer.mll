@@ -24,9 +24,11 @@
 
 let digit = ['0'-'9']
 let letter = ['a'-'z' 'A'-'Z']
-
+let hex = ['0'-'9' 'a'-'f' 'A'-'F']
 (* an identifier is either a single letter or its lenght is >=2 and it doesn't end with a '-' *)
 let ident = letter | (letter | '_') (letter | digit | '_' | '\'' | '-')* (letter | digit | '_' | '\'')
+
+let color = hex hex hex hex hex hex
 
 rule comment target = parse
 | '\n' { incr Parser_global.current_line; Lexing.new_line lexbuf; target lexbuf }
@@ -103,8 +105,10 @@ and global = parse
 | digit+ as number         { INT (int_of_string number) }
 | ident ['.'] ident as qfn { QFN (parse_qfn qfn) }
 | ident as id              { IDENT id }
-| '$' ident as pat_var     { PAT pat_var}
-| '@' ident as cmd_var     { CMD cmd_var }
+| '$' ident as pat_var     { DOLLAR_ID pat_var}
+| '@' ident as cmd_var     { AROBAS_ID cmd_var }
+| "@#" color as col        { COLOR col }
+
 
 | '{'   { LACC }
 | '}'   { RACC }

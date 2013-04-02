@@ -73,8 +73,9 @@ let localize t = (t,get_loc ())
 %token ADD_NODE                    /* add_node */
 %token DEL_FEAT                    /* del_feat */
 
-%token <string> PAT                /* $id */
-%token <string> CMD                /* @id */
+%token <string> DOLLAR_ID          /* $id */
+%token <string> AROBAS_ID          /* @id */
+%token <string> COLOR              /* @#89abCD */
 
 %token <string>           IDENT    /* indentifier */
 %token <Grew_ast.Ast.qfn> QFN      /* ident.ident */
@@ -234,9 +235,11 @@ features_values:
         | x = delimited(LACC,separated_nonempty_list_final_opt(COMA,label),RACC) { x }
         
 %inline label:
-        (* | x = IDENT color = option(ddot_color)  { (x, color) } *)
+        | x = label_ident display_list = list(display)  { (x, display_list) }
 
-        | x = label_ident display = list(CMD)  { (x, display) }
+display:
+        | dis = AROBAS_ID   { dis }
+        | col = COLOR       { col }
 
 global_labels:
         | LABELS x = labels { x }
@@ -351,8 +354,8 @@ param:
 file:
         | FILE f=STRING {f}
 var:
-        | i = PAT {i}
-        | i = CMD {i}
+        | i = DOLLAR_ID {i}
+        | i = AROBAS_ID {i}
 
 pos_item:
         | MATCH i = pn_item { i }
@@ -407,7 +410,7 @@ node_features:
             { localize {Ast.kind = Ast.Equality values; name=name; } } 
         | name = IDENT DISEQUAL values = separated_nonempty_list(PIPE,value)
             { localize {Ast.kind = Ast.Disequality values; name=name; } } 
-        | name = IDENT EQUAL p = PAT
+        | name = IDENT EQUAL p = DOLLAR_ID
             { localize {Ast.kind = Ast.Param p; name=name; } } 
 
 pat_edge:
@@ -531,11 +534,11 @@ command:
             { localize (Ast.Update_feat (qfn, items)) }
 
 concat_item:
-        | qfn = QFN    { Ast.Qfn_item qfn }
-        | s = IDENT    { Ast.String_item s }
-        | s = STRING   { Ast.String_item s }
-        | p = CMD      { Ast.Param_item p }
-        | p = PAT      { Ast.Param_item p }
+        | qfn = QFN       { Ast.Qfn_item qfn }
+        | s = IDENT       { Ast.String_item s }
+        | s = STRING      { Ast.String_item s }
+        | p = AROBAS_ID   { Ast.Param_item p }
+        | p = DOLLAR_ID   { Ast.Param_item p }
 
 /*=============================================================================================*/
 /*                                                                                             */

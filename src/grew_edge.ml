@@ -83,14 +83,6 @@ module G_edge = struct
     else ""
 
   let to_dep ?(deco=false) l =
-    let pos = position_of_option (Label.get_options l) in
-    match (deco,color_of_option (Label.get_options l)) with
-    | (false,None) -> Printf.sprintf "{ label = \"%s\"%s}" (Label.to_string l) pos
-    | (false,Some c) -> Printf.sprintf "{ label = \"%s\"; forecolor=%s; color=%s%s}" (Label.to_string l) c c pos
-    | (true,None) -> Printf.sprintf "{ label = \"%s\"; color=red%s}" (Label.to_string l) pos
-    | (true,Some c) -> Printf.sprintf "{ label = \"%s\"; forecolor=%s; color=red%s}" (Label.to_string l) c pos
-
-  let to_dep ?(deco=false) l =
     let string = Label.to_string l in
     let options = Label.get_options l in
     let (prefix, label) = match Str.bounded_split (Str.regexp ":") string 2 with
@@ -100,7 +92,7 @@ module G_edge = struct
     let pos = if List.mem "@bottom" options || prefix = Some "D" then "; bottom" else "" in
     let style = if deco then "; style=dot" else "" in
     let color = match (List.filter (fun x -> x <> "@bottom") options, prefix) with
-      | (c::_, _) -> "; color="^(rm_first_char c)
+      | (c::_, _) -> let col = rm_first_char c in sprintf "; color=%s; forecolor=%s" col col
       | ([], Some "S") -> "; color=red; forecolor=red"
       | ([], Some "D") -> "; color=blue; forecolor=blue"
       | _ -> "" in
