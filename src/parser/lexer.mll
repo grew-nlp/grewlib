@@ -10,10 +10,10 @@
   let tmp_string = ref ""
   let escaped = ref false
 
-  let parse_qfn string_feat =
-    match Str.split (Str.regexp "\\.") string_feat with
-    | [node; feat_name] -> (node, feat_name)
-    | _ -> Log.fcritical "[BUG] \"%s\" is not a feature" string_feat
+  let parse_couple string =
+    match Str.split (Str.regexp "\\.") string with
+    | [s1; s2] -> (s1, s2)
+    | _ -> Log.fcritical "[BUG] \"%s\" is not a couple" string
 
   let split_comment com =
     let raw = Str.split (Str.regexp "\n") com in
@@ -24,10 +24,10 @@
 
 let digit = ['0'-'9']
 let letter = ['a'-'z' 'A'-'Z']
-let hex = ['0'-'9' 'a'-'f' 'A'-'F']
-(* an identifier is either a single letter or its lenght is >=2 and it doesn't end with a '-' *)
-let ident = letter | (letter | '_') (letter | digit | '_' | '\'' | '-')* (letter | digit | '_' | '\'')
+(* an identifier is either a single letter, "_", or its lenght is >=2 and it doesn't end with a '-' *)
+let ident = (letter | '_') | (letter | '_') (letter | digit | '_' | '\'' | '-')* (letter | digit | '_' | '\'')
 
+let hex = ['0'-'9' 'a'-'f' 'A'-'F']
 let color = hex hex hex hex hex hex
 
 rule comment target = parse
@@ -103,12 +103,11 @@ and global = parse
 | "graph"       { GRAPH }
 
 | digit+ as number         { INT (int_of_string number) }
-| ident ['.'] ident as qfn { QFN (parse_qfn qfn) }
+| ident ['.'] ident as c   { PAIR (parse_couple c) }
 | ident as id              { IDENT id }
 | '$' ident as pat_var     { DOLLAR_ID pat_var}
 | '@' ident as cmd_var     { AROBAS_ID cmd_var }
 | "@#" color as col        { COLOR col }
-
 
 | '{'   { LACC }
 | '}'   { RACC }

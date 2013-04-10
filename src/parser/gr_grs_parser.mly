@@ -78,7 +78,7 @@ let localize t = (t,get_loc ())
 %token <string> COLOR              /* @#89abCD */
 
 %token <string>           IDENT    /* indentifier */
-%token <Grew_ast.Ast.qfn> QFN      /* ident.ident */
+%token <string * string>  PAIR     /* ident.ident */
 %token <string>           STRING
 %token <int>              INT
 %token <string list>      COMMENT
@@ -142,9 +142,11 @@ num:
         | INT { $1 }
 
 label_ident:
-        | x = separated_nonempty_list(DDOT,IDENT) { String.concat ":" x }
+        | x = separated_nonempty_list(DDOT,label_item) { String.concat ":" x }
 
-
+label_item:
+        | x = IDENT    { x }
+        | p = PAIR { (fst p)^"."^(snd p) }
 
 
 
@@ -461,23 +463,23 @@ pat_const:
             { localize (Ast.Cst_in n2) }
 
         (* X.cat = Y.cat *)
-        | qfn1 = QFN EQUAL qfn2 = QFN
+        | qfn1 = PAIR EQUAL qfn2 = PAIR
             { localize (Ast.Feature_eq (qfn1, qfn2)) }
 
         (* X.position < Y.position *)
-        | qfn1 = QFN LT qfn2 = QFN
+        | qfn1 = PAIR LT qfn2 = PAIR
             { localize (Ast.Feature_ineq (Ast.Lt, qfn1, qfn2)) }
 
         (* X.position > Y.position *)
-        | qfn1 = QFN GT qfn2 = QFN
+        | qfn1 = PAIR GT qfn2 = PAIR
             { localize (Ast.Feature_ineq (Ast.Gt, qfn1, qfn2)) }
 
         (* X.position <= Y.position *)
-        | qfn1 = QFN LE qfn2 = QFN
+        | qfn1 = PAIR LE qfn2 = PAIR
             { localize (Ast.Feature_ineq (Ast.Le, qfn1, qfn2)) }
 
         (* X.position >= Y.position *)
-        | qfn1 = QFN GE qfn2 = QFN
+        | qfn1 = PAIR GE qfn2 = PAIR
             { localize (Ast.Feature_ineq (Ast.Ge, qfn1, qfn2)) }
 
 /*=============================================================================================*/
@@ -528,13 +530,13 @@ command:
             { localize (Ast.Del_node n) }
         | ADD_NODE n1 = IDENT DDOT label = delimited(RTL_EDGE_LEFT,label_ident,RTL_EDGE_RIGHT) n2 = IDENT
             { localize (Ast.New_neighbour (n1,n2,label)) }
-        | DEL_FEAT qfn = QFN 
+        | DEL_FEAT qfn = PAIR
             { localize (Ast.Del_feat qfn) }
-        | qfn = QFN EQUAL items = separated_nonempty_list (PLUS, concat_item)
+        | qfn = PAIR EQUAL items = separated_nonempty_list (PLUS, concat_item)
             { localize (Ast.Update_feat (qfn, items)) }
 
 concat_item:
-        | qfn = QFN       { Ast.Qfn_item qfn }
+        | qfn = PAIR      { Ast.Qfn_item qfn }
         | s = IDENT       { Ast.String_item s }
         | s = STRING      { Ast.String_item s }
         | p = AROBAS_ID   { Ast.Param_item p }
