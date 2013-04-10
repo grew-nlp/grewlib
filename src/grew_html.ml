@@ -904,8 +904,9 @@ module Corpus_stat = struct
       ) t.modules;
 
    (* add a subtable for sentence ambiguity *)
-    if not (IntMap.is_empty t.amb)
-    then
+    if (List.for_all (fun m -> m.Modul.confluent) t.modules) || (IntMap.is_empty t.amb)
+    then ()
+    else
       begin
         wnl "<tr><td colspan=5><h6>Rewriting ambiguity</h6></td></tr>";
         wnl "<tr><th class=\"first\" >Number of normal forms</th><th colspan=2 width=20>#files</th><th >Ratio</th><th>Files</th></tr>";
