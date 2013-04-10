@@ -625,7 +625,7 @@ module G_graph = struct
         let dep_fs = G_fs.to_dep ?filter ?main_feat fs in
         let style = match (List.mem id deco.G_deco.nodes, G_fs.get_string_atom "sem" fs) with
           | (true, _) -> "; forecolor=red; subcolor=red; "
-          | (false, Some "void") -> "; forecolor=\"#AAAAAA\"; subcolor=\"#AAAAAA\"; "
+          | (false, Some "void") -> "; forecolor=red; subcolor=red; "
           | _ -> "" in
 	bprintf buff "N_%s { %s%s }\n" (Gid.to_string id) dep_fs style
       ) snodes;
