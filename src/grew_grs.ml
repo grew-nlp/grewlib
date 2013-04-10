@@ -9,7 +9,7 @@ open Grew_command
 open Grew_graph
 open Grew_rule
 
-
+(* ==================================================================================================== *)
 module Rewrite_history = struct
 
   type t = {
@@ -71,11 +71,16 @@ module Rewrite_history = struct
         | _ -> Error.run "Not a single rewriting"
     in loop t
 
-  let save_det_conll base t =
+  let save_det_conll ?header base t =
     let rec loop t =
       match (t.good_nf, t.bad_nf) with
-        | [],[] -> File.write (Instance.to_conll t.instance) (base^".conll")
-        | [one], [] -> loop one
+        | ([],[]) ->
+          let output =
+            match header with
+              | Some h -> sprintf "%% %s\n%s" h (Instance.to_conll t.instance)
+              | None -> Instance.to_conll t.instance in
+          File.write output (base^".conll")
+        | ([one], []) -> loop one
         | _ -> Error.run "Not a single rewriting"
     in loop t
 
@@ -88,11 +93,9 @@ module Rewrite_history = struct
         | [one], [] -> loop one
         | _ -> Error.run "Not a single rewriting"
     in loop t
-end
+end (* Rewrite_history *)
 
-
-
-
+(* ==================================================================================================== *)
 module Modul = struct
   type t = {
     name: string;
@@ -127,8 +130,9 @@ module Modul = struct
         loc = ast_module.Ast.mod_loc;
       } in
     check modul; modul
-end
+end (* module Modul *)
 
+(* ==================================================================================================== *)
 module Sequence = struct
   type t = {
     name: string;
@@ -152,13 +156,14 @@ module Sequence = struct
         loc = ast_sequence.Ast.seq_loc;
       } in
     check module_list sequence; sequence
-end
+end (* module Sequence *)
 
+(* ==================================================================================================== *)
 module Grs = struct
 
   type t = {
-    labels: Label.t list;    (* the list of global edge labels *)
-    modules: Modul.t list;          (* the ordered list of modules used from rewriting *)
+    labels: Label.t list;        (* the list of global edge labels *)
+    modules: Modul.t list;       (* the ordered list of modules used from rewriting *)
     sequences: Sequence.t list;
   }
 
@@ -278,4 +283,4 @@ module Grs = struct
       (fun modul ->
         List.iter (fun filter -> fct modul.Modul.name filter) modul.Modul.filters
       ) grs.modules
-end
+end (* module Grs *)

@@ -34,7 +34,7 @@ module Rewrite_history: sig
   (** [save_det_gr base_name t] supposes that the current GRS is deterministic.
       It writes exactly one output file named [base_name].gr with the unique normal form. *)
   val save_det_gr: string -> t -> unit
-  val save_det_conll: string -> t -> unit
+  val save_det_conll: ?header:string -> string -> t -> unit
 
   val det_dep_string: t -> string
 end

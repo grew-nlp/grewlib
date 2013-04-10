@@ -163,7 +163,7 @@ let save_conll base rew_hist = Rewrite_history.save_conll base rew_hist
 
 let save_det_gr base rew_hist = Rewrite_history.save_det_gr base rew_hist
 
-let save_det_conll base rew_hist = Rewrite_history.save_det_conll base rew_hist
+let save_det_conll ?header base rew_hist = Rewrite_history.save_det_conll ?header base rew_hist
 
 let det_dep_string rew_hist = Rewrite_history.det_dep_string rew_hist
 
