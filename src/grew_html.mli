@@ -15,6 +15,7 @@ end
 module Html_rh: sig
 
   val build:
+    ?filter: string list ->
     ?main_feat: string ->
     ?dot: bool ->
     ?init_graph:bool ->

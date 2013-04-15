@@ -53,14 +53,14 @@ module Instance = struct
 
   let to_conll t = G_graph.to_conll t.graph
 
-  let save_dot_png ?main_feat base t =
+  let save_dot_png ?filter ?main_feat base t =
     ignore (Grew_utils.png_file_from_dot (G_graph.to_dot ?main_feat t.graph) (base^".png"))
 
 IFDEF DEP2PICT THEN
-  let save_dep_png ?main_feat base t =
-    ignore (Dep2pict.Dep2pict.fromDepStringToPng (G_graph.to_dep ?main_feat t.graph) (base^".png"))
+  let save_dep_png ?filter ?main_feat base t =
+    ignore (Dep2pict.Dep2pict.fromDepStringToPng (G_graph.to_dep ?filter ?main_feat t.graph) (base^".png"))
 ELSE
-  let save_dep_png ?main_feat base t = ()
+  let save_dep_png ?filter ?main_feat base t = ()
 ENDIF
 end (* module Instance *)
 

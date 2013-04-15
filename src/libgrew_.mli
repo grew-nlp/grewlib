@@ -58,7 +58,7 @@ val save_conll: string -> Rewrite_history.t -> unit
 
 val save_det_gr: string -> Rewrite_history.t -> unit
 
-val save_det_conll: string -> Rewrite_history.t -> unit
+val save_det_conll: ?header:string -> string -> Rewrite_history.t -> unit
 
 val det_dep_string: Rewrite_history.t -> string
 
@@ -86,6 +86,7 @@ val save_index: dirname:string -> base_names: string list -> unit
 val write_html: 
     ?no_init: bool ->
     ?out_gr: bool ->
+    ?filter: string list ->
     ?main_feat: string -> 
     ?dot: bool ->
     header: string ->

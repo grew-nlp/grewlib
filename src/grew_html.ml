@@ -463,16 +463,16 @@ module Html_doc = struct
 end
 
 module Html_rh = struct
-  let build ?main_feat ?(dot=false) ?(init_graph=true) ?(out_gr=false) ?header ~graph_file prefix t =
+  let build ?filter ?main_feat ?(dot=false) ?(init_graph=true) ?(out_gr=false) ?header ~graph_file prefix t =
 
     (* remove files from previous runs *)
     let _ = Unix.system (sprintf "rm -f %s*.html" prefix) in
     let _ = Unix.system (sprintf "rm -f %s*.dep" prefix) in
     let _ = Unix.system (sprintf "rm -f %s*.png" prefix) in
 
-    (if init_graph then Instance.save_dep_png ?main_feat prefix t.Rewrite_history.instance);
+    (if init_graph then Instance.save_dep_png ?filter ?main_feat prefix t.Rewrite_history.instance);
 
-    let nf_files = Rewrite_history.save_nfs ?main_feat ~dot prefix t in
+    let nf_files = Rewrite_history.save_nfs ?filter ?main_feat ~dot prefix t in
 
     let l = List.length nf_files in
 

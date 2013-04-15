@@ -20,6 +20,7 @@ module Rewrite_history: sig
       - returns a list of couples (rules, file)
   *)
   val save_nfs:
+    ?filter: string list -> 
     ?main_feat: string -> 
     dot: bool ->
     string -> 

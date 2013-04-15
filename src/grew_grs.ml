@@ -28,11 +28,11 @@ module Rewrite_history = struct
     | { good_nf = l} -> List.fold_left (fun acc t -> acc + (num_sol t)) 0 l
 
 
-  let save_nfs ?main_feat ~dot base_name t =
+  let save_nfs ?filter ?main_feat ~dot base_name t =
     let rec loop file_name rules t =
       match (t.good_nf, t.bad_nf) with
-        | [],[] when dot -> Instance.save_dot_png ?main_feat file_name t.instance; [rules, file_name]
-        | [],[] -> Instance.save_dep_png ?main_feat file_name t.instance; [rules, file_name]
+        | [],[] when dot -> Instance.save_dot_png ?filter ?main_feat file_name t.instance; [rules, file_name]
+        | [],[] -> Instance.save_dep_png ?filter ?main_feat file_name t.instance; [rules, file_name]
         | [],_ -> []
         | l, _ ->
           List_.foldi_left

@@ -170,7 +170,8 @@ let det_dep_string rew_hist = Rewrite_history.det_dep_string rew_hist
 let write_html 
     ?(no_init=false)
     ?(out_gr=false)
-    ?main_feat 
+    ?filter
+    ?main_feat
     ?dot
     ~header
     ~graph_file
@@ -178,6 +179,7 @@ let write_html
     output_base =
   ignore (
   Html_rh.build
+    ?filter
     ?main_feat
     ?dot
     ~out_gr
