@@ -1,7 +1,7 @@
 opam-version: "1"
 maintainer: "Bruno.Guillaume@loria.fr"
 build: [
-  ["./configure"]
+  ["./configure" "--prefix" prefix]
   ["make"]
   ["make" "install"]
 ]
