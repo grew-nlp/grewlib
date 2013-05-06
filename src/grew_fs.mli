@@ -27,7 +27,7 @@ module G_fs: sig
       It returns [None] if there is no feature named [f] in [t] *)
   val get_string_atom: string -> t -> string option
 
-  val get_int_feat: string -> t -> int option
+  val get_float_feat: string -> t -> float option
   val to_gr: t -> string
   val to_dot: ?main_feat: string -> t -> string
   val to_word: ?main_feat: string -> t -> string

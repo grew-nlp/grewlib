@@ -9,7 +9,7 @@ open Grew_fs
 module G_node = struct
   type t = {
       fs: G_fs.t;
-      pos: int option;
+      pos: float option;
       next: G_edge.t Massoc_gid.t;
     }
 
@@ -28,7 +28,7 @@ module G_node = struct
 
   let to_gr t =
     sprintf "%s [%s] "
-      (match t.pos with Some i -> sprintf "(%d)" i | None -> "")
+      (match t.pos with Some i -> sprintf "(%g)" i | None -> "")
       (G_fs.to_gr t.fs)
 
   let add_edge g_edge gid_tar t =
@@ -43,13 +43,14 @@ module G_node = struct
       | Some num -> G_fs.set_feat "position" (string_of_int num) fs in
     (ast_node.Ast.node_id,
      { fs = fs_with_num;
-       pos = ast_node.Ast.position;
+       pos = (match ast_node.Ast.position with Some n -> Some (float n) | None -> None);
        next = Massoc_gid.empty;
      } )
 
-  let of_conll line = {
+  let of_conll line =
+    {
       fs = G_fs.of_conll line;
-      pos = Some line.Conll.num;
+      pos = Some (String_.to_float line.Conll.num);
       next = Massoc_gid.empty;
     }
 
@@ -68,7 +69,7 @@ module G_node = struct
 
   let rm_out_edges t = {t with next = Massoc_gid.empty}
 
-  let build_neighbour t = {empty with pos = match t.pos with Some x -> Some (x+1) | None -> None}
+  let build_neighbour t = {empty with pos = match t.pos with Some x -> Some (x +. 0.01) | None -> None}
 
   let pos_comp n1 n2 = Pervasives.compare n1.pos n2.pos
 

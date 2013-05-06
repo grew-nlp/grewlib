@@ -8,14 +8,25 @@ module IntSet = Set.Make (struct type t = int let compare = Pervasives.compare e
 module IntMap = Map.Make (struct type t = int let compare = Pervasives.compare end)
 
 
+(* ================================================================================ *)
+module String_ = struct
 
-let png_file_from_dot dot output_file =
-  let temp_file_name,out_ch = Filename.open_temp_file ~mode:[Open_rdonly;Open_wronly;Open_text] "grewui_" ".dot" in
-  fprintf out_ch "%s" dot;
-  close_out out_ch;
-  ignore(Sys.command(sprintf "dot -Tpng -o %s %s " output_file temp_file_name))
+  let to_float string =
+    try float_of_string string
+    with _ -> float_of_string (Str.global_replace (Str.regexp "\\.") "," string)
 
+  let of_float float = Str.global_replace (Str.regexp ",") "." (sprintf "%g" float)
 
+end (* module String_ *)
+
+(* ================================================================================ *)
+module Dot = struct
+  let to_png_file dot output_file =
+    let temp_file_name,out_ch = Filename.open_temp_file ~mode:[Open_rdonly;Open_wronly;Open_text] "grewui_" ".dot" in
+    fprintf out_ch "%s" dot;
+    close_out out_ch;
+    ignore(Sys.command(sprintf "dot -Tpng -o %s %s " output_file temp_file_name))
+end (* module Dot *)
 
 (* ================================================================================ *)
 module Loc = struct
@@ -124,7 +135,7 @@ module Gid = struct
     | Old of int
     | New of (int * int) (* identifier for "created nodes" *)
 
-  (* a compore function which ensures that new nodes are a the "end" of the graph *)
+  (* a compare function which ensures that new nodes are at the "end" of the graph *)
   let compare t1 t2 = match (t1,t2) with
     | Old _ , New _ -> -1
     | New _, Old _ -> 1
@@ -588,13 +599,13 @@ end  (* module Html *)
 module Conll = struct
   type line = {
       line_num: int;
-      num: int;
+      num: string;
       phon: string;
       lemma: string;
       pos1: string;
       pos2: string;
       morph: (string * string) list;
-      deps: ( int * string ) list;
+      deps: (string * string ) list;
     }
 
   let load file =
@@ -615,11 +626,11 @@ module Conll = struct
     let parse (line_num, line) =
       match Str.split (Str.regexp "\t") line with
       | [ num; phon; lemma; pos1; pos2; morph; govs; dep_labs; _; _ ] ->
-        let gov_list = List.map int_of_string (Str.split (Str.regexp "|") govs)
+        let gov_list = Str.split (Str.regexp "|") govs
         and lab_list = Str.split (Str.regexp "|") dep_labs in
         let deps = List.combine gov_list lab_list in
           {line_num = line_num;
-           num = int_of_string num;
+           num = num;
            phon = escape_quote phon;
            lemma = escape_quote lemma;
            pos1 = pos1;

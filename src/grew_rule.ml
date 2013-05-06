@@ -54,7 +54,7 @@ module Instance = struct
   let to_conll t = G_graph.to_conll t.graph
 
   let save_dot_png ?filter ?main_feat base t =
-    ignore (Grew_utils.png_file_from_dot (G_graph.to_dot ?main_feat t.graph) (base^".png"))
+    ignore (Dot.to_png_file (G_graph.to_dot ?main_feat t.graph) (base^".png"))
 
 IFDEF DEP2PICT THEN
   let save_dep_png ?filter ?main_feat base t =
@@ -386,7 +386,7 @@ module Rule = struct
   let fullfill graph matching cst =
     let get_node pid = G_graph.find (Pid_map.find pid matching.n_match) graph in
     let get_string_feat pid feat_name = G_fs.get_string_atom feat_name (G_node.get_fs (get_node pid)) in
-    let get_int_feat pid feat_name = G_fs.get_int_feat feat_name (G_node.get_fs (get_node pid)) in
+    let get_float_feat pid feat_name = G_fs.get_float_feat feat_name (G_node.get_fs (get_node pid)) in
 
     match cst with
       | Cst_out (pid,edge) ->
@@ -415,7 +415,7 @@ module Rule = struct
             | _ -> false
         end
       | Feature_ineq (ineq, pid1, feat_name1, pid2, feat_name2) ->
-        match (ineq, get_int_feat pid1 feat_name1, get_int_feat pid2 feat_name2) with
+        match (ineq, get_float_feat pid1 feat_name1, get_float_feat pid2 feat_name2) with
             | (Ast.Lt, Some fv1, Some fv2) when fv1 < fv2 -> true
             | (Ast.Gt, Some fv1, Some fv2) when fv1 > fv2 -> true
             | (Ast.Le, Some fv1, Some fv2) when fv1 <= fv2 -> true

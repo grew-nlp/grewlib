@@ -296,34 +296,35 @@ module G_graph = struct
   (* -------------------------------------------------------------------------------- *)
   let of_conll ?loc lines =
 
-    let nodes =
-      List.fold_left
-        (fun acc line ->
-          Gid_map.add (Gid.Old line.Conll.num) (G_node.of_conll line) acc
-        ) Gid_map.empty lines in
+    let sorted_lines = List.sort (fun line1 line2 -> Pervasives.compare line1.Conll.num line2.Conll.num) lines in
 
-    let nodes_with_edges =
+    let table = Array.of_list (List.map (fun line -> line.Conll.num) sorted_lines) in
+
+    let map_without_edges =
+      List_.foldi_left (fun i acc line -> Gid_map.add (Gid.Old i) (G_node.of_conll line) acc) Gid_map.empty sorted_lines in
+
+    let map_with_edges =
       List.fold_left
         (fun acc line ->
           (* add line number information in loc *)
           let loc = Loc.opt_set_line line.Conll.line_num loc in
-
           List.fold_left
             (fun acc2 (gov, dep_lab) ->
-              if gov=0
-              then acc
+              if gov = "0"
+              then acc2
               else
-                let gov_node =
-                  try Gid_map.find (Gid.Old gov) acc
-                  with Not_found ->
-                    Error.build ?loc "[G_graph.of_conll] the line refers to unknown gov %d" gov in
-                match G_node.add_edge (G_edge.make ?loc dep_lab) (Gid.Old line.Conll.num) gov_node with
-                  | None -> acc
-                  | Some new_node -> Gid_map.add (Gid.Old gov) new_node acc2
+                let gov_id = Id.build ?loc gov table in
+                let dep_id = Id.build ?loc line.Conll.num table in
+                let edge = G_edge.make ?loc dep_lab in
+                (match map_add_edge acc2 (Gid.Old gov_id) edge (Gid.Old dep_id) with
+	          | Some g -> g
+	          | None -> Error.build "[GRS] [Graph.of_conll] try to build a graph with twice the same edge %s %s"
+                    (G_edge.to_string edge)
+                    (match loc with Some l -> Loc.to_string l | None -> "")
+	        )
             ) acc line.Conll.deps
-        ) nodes lines in
-
-    {meta=[]; map=nodes_with_edges}
+        ) map_without_edges lines in
+    {meta=[]; map=map_with_edges}
 
   (* -------------------------------------------------------------------------------- *)
   let opt_att atts name =
@@ -347,7 +348,7 @@ module G_graph = struct
                       (fun acc2 (fn,fv) -> G_fs.set_feat fn fv acc2)
                       G_fs.empty
                       (("phon", phon) :: ("cat", (List.assoc "label" t_atts)) :: other_feats) in
-                  let new_node = G_node.set_fs (G_node.set_pos G_node.empty i) new_fs in
+                  let new_node = G_node.set_fs (G_node.set_pos G_node.empty (float i)) new_fs in
                   (Gid_map.add (Gid.Old i) new_node acc, Str_map.add id (Gid.Old i) acc_map)
                 | _ -> Log.critical "[G_graph.of_xml] Not a wellformed <T> tag"
             ) (Gid_map.empty, Str_map.empty) t_list in

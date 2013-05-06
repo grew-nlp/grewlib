@@ -5,11 +5,11 @@ open Grew_utils
 open Grew_ast
 
 
-type value = String of string | Int of int
+type value = String of string | Float of float
 
 let string_of_value = function
   | String s -> s
-  | Int i -> string_of_int i
+  | Float i -> String_.of_float i
 
 (* ==================================================================================================== *)
 module Domain = struct
@@ -30,7 +30,7 @@ module Domain = struct
           | ((Ast.Open n)::_) when n = name ->
             List.map (fun s -> String s) values
           | ((Ast.Int n)::_) when n = name ->
-            (try List.map (fun s -> Int (int_of_string s)) values
+            (try List.map (fun s -> Float (String_.to_float s)) values
             with Failure _ -> Error.build ?loc "[GRS] The feature '%s' is of type int" name)
           | ((Ast.Closed (n,vs))::_) when n = name ->
             (match List_.sort_diff values vs with
@@ -152,11 +152,11 @@ module G_fs = struct
       | None -> None
       | Some v -> Some (string_of_value v)
 
-  let get_int_feat feat_name t =
+  let get_float_feat feat_name t =
     match List_.sort_assoc feat_name t with
       | None -> None
-      | Some (Int i) -> Some i
-      | Some _ -> Error.build "[Fs.get_int_feat]"
+      | Some (Float i) -> Some i
+      | Some _ -> Error.build "[Fs.get_float_feat]"
 
   let to_string t = List_.to_string G_feature.to_string "," t
   let to_gr t = List_.to_string G_feature.to_gr ", " t
@@ -170,7 +170,7 @@ module G_fs = struct
       ("phon", Domain.build_one "phon" line.Conll.phon)
       :: ("lemma", Domain.build_one "lemma" line.Conll.lemma)
       :: ("cat", Domain.build_one "cat" line.Conll.pos1)
-      :: ("position", Domain.build_one "position" (string_of_int line.Conll.num))
+      :: ("position", Domain.build_one "position" line.Conll.num)
       :: (List.map (fun (f,v) -> (f, Domain.build_one f v)) line.Conll.morph) in
     let unsorted = match line.Conll.pos2 with
       | "_" -> unsorted_without_pos

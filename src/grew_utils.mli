@@ -5,8 +5,23 @@ module StringSet : Set.S with type elt = string
 module IntSet : Set.S with type elt = int
 module IntMap : Map.S with type key = int
 
+(* ================================================================================ *)
+(* [Pid_set] *)
+module String_: sig
+  (* [to_float]: robust conversion of string to float whatever is the locale *)
+  val to_float: string -> float
 
-val png_file_from_dot: string -> string -> unit
+  (* [to_float]: robust conversion of float to string whatever is the locale *)
+  val of_float: float -> string
+end
+
+
+(* ================================================================================ *)
+(* [Dot] function to manipulate the dot format *)
+module Dot: sig
+  val to_png_file: string -> string -> unit
+end
+
 
 (* ================================================================================ *)
 (* [Loc] general module to describe errors location: (file name, line number in file) *)
@@ -242,13 +257,13 @@ end
 module Conll: sig
   type line = {
     line_num: int;
-    num: int;
+    num: string;
     phon: string;
     lemma: string;
     pos1: string;
     pos2: string;
     morph: (string * string) list;
-    deps: ( int * string ) list;
+    deps: (string * string ) list;
   }
 
   val load: string -> line list
