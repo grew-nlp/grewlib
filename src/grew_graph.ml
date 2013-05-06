@@ -716,8 +716,8 @@ module G_graph = struct
         ) graph.map Gid_map.empty in
 
     let buff = Buffer.create 32 in
-    Gid_map.iter
-      (fun gid node ->
+    List.iter
+      (fun (gid, node) ->
         let (govs,labs) = List.split (try Gid_map.find gid govs_labs with Not_found -> ["0","root"]) in
         let fs = G_node.get_fs node in
         bprintf buff "%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t_\t_\n"
@@ -730,7 +730,7 @@ module G_graph = struct
           (String.concat "|" govs)
           (String.concat "|" labs)
       )
-      graph.map;
+      snodes;
     Buffer.contents buff
 
 end (* module G_graph *)
