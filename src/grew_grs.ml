@@ -89,10 +89,23 @@ module Rewrite_history = struct
       match (t.good_nf, t.bad_nf) with
         | [],[] ->
           let graph = t.instance.Instance.graph in
-          G_graph.to_dep graph
+          Some (G_graph.to_dep graph)
         | [one], [] -> loop one
-        | _ -> Error.run "Not a single rewriting"
+        | _ -> None
     in loop t
+
+  let conll_dep_string ?(keep_empty_rh=false) t =
+    if (not keep_empty_rh) && is_empty t
+    then None
+    else
+      let rec loop t =
+        match (t.good_nf, t.bad_nf) with
+          | [],[] ->
+            let graph = t.instance.Instance.graph in
+            Some (G_graph.to_conll graph)
+          | [one], [] -> loop one
+          | _ -> None
+      in loop t
 end (* Rewrite_history *)
 
 (* ==================================================================================================== *)

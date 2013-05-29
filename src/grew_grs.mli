@@ -37,7 +37,9 @@ module Rewrite_history: sig
   val save_det_gr: string -> t -> unit
   val save_det_conll: ?header:string -> string -> t -> unit
 
-  val det_dep_string: t -> string
+  val det_dep_string: t -> string option
+
+  val conll_dep_string: ?keep_empty_rh:bool -> t -> string option
 end
 
 module Modul: sig

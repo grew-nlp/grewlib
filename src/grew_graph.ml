@@ -302,7 +302,9 @@ module G_graph = struct
     let table = Array.of_list (List.map (fun line -> line.Conll.num) sorted_lines) in
 
     let map_without_edges =
-      List_.foldi_left (fun i acc line -> Gid_map.add (Gid.Old i) (G_node.of_conll line) acc) Gid_map.empty sorted_lines in
+      List_.foldi_left
+        (fun i acc line -> Gid_map.add (Gid.Old i) (G_node.of_conll line) acc)
+        Gid_map.empty sorted_lines in
 
     let map_with_edges =
       List.fold_left

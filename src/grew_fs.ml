@@ -178,7 +178,7 @@ module G_fs = struct
       :: ("position", Domain.build_one "position" line.Conll.num)
       :: (List.map (fun (f,v) -> (f, Domain.build_one f v)) line.Conll.morph) in
     let unsorted = match line.Conll.pos2 with
-      | "_" -> unsorted_without_pos
+      | "" | "_" -> unsorted_without_pos
       | s -> ("pos", Domain.build_one "pos" s) :: unsorted_without_pos in
     List.sort G_feature.compare unsorted
 

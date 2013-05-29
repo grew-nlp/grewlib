@@ -21,7 +21,7 @@ module Html_rh: sig
     ?init_graph:bool ->
     ?out_gr:bool ->
     ?header:string ->
-    graph_file:string ->
+    ?graph_file:string ->
     string ->
     Rewrite_history.t ->
     unit

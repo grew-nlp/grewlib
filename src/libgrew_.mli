@@ -62,7 +62,9 @@ val save_det_gr: string -> Rewrite_history.t -> unit
 
 val save_det_conll: ?header:string -> string -> Rewrite_history.t -> unit
 
-val det_dep_string: Rewrite_history.t -> string
+val det_dep_string: Rewrite_history.t -> string option
+
+val conll_dep_string: ?keep_empty_rh:bool -> Rewrite_history.t -> string option
 
 (** get a graph from a file either in 'gr' or 'conll' format.
 File extension should be '.gr' or '.conll'.
@@ -70,6 +72,8 @@ File extension should be '.gr' or '.conll'.
 @raise File_dont_exists if the file doesn't exists
 *)
 val load_graph: string -> Instance.t
+
+val of_conll: string -> (int * string) list -> Instance.t
 
 val xml_graph: Xml.xml -> Instance.t
 
@@ -92,7 +96,7 @@ val write_html:
     ?main_feat: string -> 
     ?dot: bool ->
     header: string ->
-    graph_file: string ->
+    ?graph_file: string ->
     Rewrite_history.t -> string -> unit
 
 val error_html: 

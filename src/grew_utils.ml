@@ -610,40 +610,43 @@ module Conll = struct
 
   let root = { line_num = -1; num="0"; phon="ROOT"; lemma="__"; pos1="_X"; pos2=""; morph=[]; deps=[] }
 
-  let load file =
-    let parse_morph line_num = function
-      | "_" -> []
-      | morph ->
-          List.map
-            (fun feat ->
-              match Str.split (Str.regexp "=") feat with
-              | [feat_name] -> (feat_name, "true")
-              | [feat_name; feat_value] -> (feat_name, feat_value)
-              | _ -> Error.build ~loc:(file,line_num) "[Conll.load] illegal morphology \n>>>>>%s<<<<<<" morph
-            ) (Str.split (Str.regexp "|") morph) in
+  let parse_morph file_name line_num = function
+    | "_" -> []
+    | morph ->
+      List.map
+        (fun feat ->
+          match Str.split (Str.regexp "=") feat with
+            | [feat_name] -> (feat_name, "true")
+            | [feat_name; feat_value] -> (feat_name, feat_value)
+            | _ -> Error.build ~loc:(file_name,line_num) "[Conll.load] illegal morphology \n>>>>>%s<<<<<<" morph
+        ) (Str.split (Str.regexp "|") morph)
 
-    let escape_quote s = Str.global_replace (Str.regexp "\"") "\\\"" s in
-
-    let parse (line_num, line) =
+  let underscore s = if s = "" then "_" else s
+  let parse_line file_name (line_num, line) =
+    try
       match Str.split (Str.regexp "\t") line with
-      | [ num; phon; lemma; pos1; pos2; morph; govs; dep_labs; _; _ ] ->
-        let gov_list = Str.split (Str.regexp "|") govs
-        and lab_list = Str.split (Str.regexp "|") dep_labs in
-        let deps = List.combine gov_list lab_list in
+        | [ num; phon; lemma; pos1; pos2; morph; govs; dep_labs; _; _ ] ->
+          let gov_list = if govs = "_" then [] else Str.split (Str.regexp "|") govs
+          and lab_list = if dep_labs = "_" then [] else Str.split (Str.regexp "|") dep_labs in
+          let deps = List.combine gov_list lab_list in
           {line_num = line_num;
            num = num;
-           phon = phon;
-           lemma = lemma;
-           pos1 = pos1;
-           pos2 = pos2;
-           morph = parse_morph line_num morph;
+           phon = underscore phon;
+           lemma = underscore lemma;
+           pos1 = underscore pos1;
+           pos2 = underscore pos2;
+           morph = parse_morph file_name line_num morph;
            deps = deps;
          }
-      | l ->
-          Error.build ~loc:(file,line_num) "[Conll.load] illegal line, %d fields (10 are expected)\n>>>>>%s<<<<<<" (List.length l) line in
+        | l ->
+          Error.build ~loc:(file_name,line_num) "[Conll.load] illegal line, %d fields (10 are expected)\n>>>>>%s<<<<<<" (List.length l) line
+    with exc -> Error.build ~loc:(file_name,line_num) "[Conll.load] illegal line, exc=%s\n>>>>>%s<<<<<<" (Printexc.to_string exc) line
 
-    let lines = File.read_ln file in
-    List.map parse lines
+  let load file_name =
+    let lines = File.read_ln file_name in
+    List.map (parse_line file_name) lines
+
+  let parse file_name lines = List.map (parse_line file_name) lines
 end (* module Conll *)
 
 (* ================================================================================ *)

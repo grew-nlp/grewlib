@@ -269,6 +269,8 @@ module Conll: sig
   val root:line
 
   val load: string -> line list
+
+  val parse: string -> (int * string) list -> line list
 end
 
 (** module for rule that are lexically parametrized *)

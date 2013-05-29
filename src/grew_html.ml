@@ -463,7 +463,7 @@ module Html_doc = struct
 end
 
 module Html_rh = struct
-  let build ?filter ?main_feat ?(dot=false) ?(init_graph=true) ?(out_gr=false) ?header ~graph_file prefix t =
+  let build ?filter ?main_feat ?(dot=false) ?(init_graph=true) ?(out_gr=false) ?header ?graph_file prefix t =
 
     (* remove files from previous runs *)
     let _ = Unix.system (sprintf "rm -f %s*.html" prefix) in
@@ -495,8 +495,13 @@ module Html_rh = struct
         | None -> ()
     end;
 
-    wnl "<b>Input file</b>: <a href=\"%s\">%s</a><br/>"
-      graph_file (Filename.basename graph_file);
+    begin
+      match graph_file with
+        | Some gf ->
+          wnl "<b>Input file</b>: <a href=\"%s\">%s</a><br/>"
+            gf (Filename.basename gf)
+        | None -> ()
+    end;
 
     wnl "<b>Input sentence</b>: <font color=\"green\"><i>%s</i></font></p><br/>"
       (G_graph.to_sentence ?main_feat t.Rewrite_history.instance.Instance.graph);

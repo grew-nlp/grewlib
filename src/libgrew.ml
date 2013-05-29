@@ -39,9 +39,8 @@ let handle ?(name="") ?(file="No file defined") fct () =
     | Error.Run (msg, loc) -> raise (Run (msg,loc))
     | exc -> raise (Bug (sprintf "[Libgrew.%s] UNCATCHED EXCEPTION: %s" name (Printexc.to_string exc), None))
 
-
 let is_empty rh =
-  handle ~name:"num_sol" (fun () -> Rewrite_history.is_empty rh) ()
+  handle ~name:"is_empty" (fun () -> Rewrite_history.is_empty rh) ()
 
 let num_sol rh =
   handle ~name:"num_sol" (fun () -> Rewrite_history.num_sol rh) ()
@@ -110,6 +109,13 @@ let load_conll file =
       Instance.from_graph graph
     ) ()
 
+let of_conll file_name line_list =
+  handle ~name:"of_conll"
+    (fun () ->
+      let graph = G_graph.of_conll (Conll.parse file_name line_list) in
+      Instance.from_graph graph
+    ) ()
+
 let load_graph file =
   handle ~name:"load_graph" ~file
     (fun () ->
@@ -171,6 +177,9 @@ let save_det_conll ?header base rew_hist =
 let det_dep_string rew_hist =
   handle ~name:"det_dep_string" (fun () -> Rewrite_history.det_dep_string rew_hist) ()
 
+let conll_dep_string ?keep_empty_rh rew_hist =
+  handle ~name:"conll_dep_string" (fun () -> Rewrite_history.conll_dep_string ?keep_empty_rh rew_hist) ()
+
 let write_html 
     ?(no_init=false)
     ?(out_gr=false)
@@ -178,7 +187,7 @@ let write_html
     ?main_feat
     ?dot
     ~header
-    ~graph_file
+    ?graph_file
     rew_hist
     output_base =
   handle ~name:"write_html" (fun () ->
@@ -190,7 +199,7 @@ let write_html
         ~out_gr
         ~init_graph: (not no_init)
         ~header
-        ~graph_file
+        ?graph_file
         output_base rew_hist
     )
   ) ()

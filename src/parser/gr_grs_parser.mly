@@ -366,7 +366,7 @@ neg_item:
         | WITHOUT i = pn_item { i }
           
 pn_item: 
-        | l = delimited(LACC,separated_nonempty_list_final_opt(SEMIC,pat_item),RACC)
+        | l = delimited(LACC,separated_list_final_opt(SEMIC,pat_item),RACC)
             {
              {
               Ast.pat_nodes = List_.opt_map (function Pat_node n -> Some n | _ -> None) l;
