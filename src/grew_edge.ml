@@ -28,7 +28,7 @@ module Label = struct
 
   let to_string ?(locals=[||]) t =
     match (!full, t) with
-      | (None, No_domain s) -> s
+      | (_, No_domain s) -> s
       | (Some table, Global i) -> table.(i)
       | (Some _, Local i) -> fst locals.(i)
       | _ -> Error.bug "[Label.to_string] inconsistent data"
@@ -57,6 +57,8 @@ module G_edge = struct
   type t = Label.t
 
   let to_string ?(locals=[||]) t = Label.to_string ~locals t
+
+  let root = Label.No_domain "root"
 
   let make ?loc ?(locals=[||]) string = Label.from_string ?loc ~locals string
 

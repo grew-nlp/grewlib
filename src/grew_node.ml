@@ -48,11 +48,14 @@ module G_node = struct
      } )
 
   let of_conll line =
-    {
-      fs = G_fs.of_conll line;
-      pos = Some (String_.to_float line.Conll.num);
-      next = Massoc_gid.empty;
-    }
+    if line = Conll.root
+    then { fs = G_fs.empty; pos = Some 0.; next = Massoc_gid.empty }
+    else
+      {
+        fs = G_fs.of_conll line;
+        pos = Some (String_.to_float line.Conll.num);
+        next = Massoc_gid.empty;
+      }
 
   let remove (id_tar : Gid.t) label t = {t with next = Massoc_gid.remove id_tar label t.next}
 

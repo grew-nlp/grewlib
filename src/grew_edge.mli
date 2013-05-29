@@ -28,6 +28,8 @@ module G_edge: sig
 
   val to_string: ?locals:Label.decl array -> t -> string
 
+  val root: t
+
   val make: ?loc:Loc.t -> ?locals:Label.decl array -> string -> t
 
   val build: ?locals:Label.decl array -> Ast.edge -> t

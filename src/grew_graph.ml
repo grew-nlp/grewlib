@@ -295,8 +295,9 @@ module G_graph = struct
 
   (* -------------------------------------------------------------------------------- *)
   let of_conll ?loc lines =
-
-    let sorted_lines = List.sort (fun line1 line2 -> Pervasives.compare line1.Conll.num line2.Conll.num) lines in
+    let sorted_lines =
+      Conll.root ::
+      (List.sort (fun line1 line2 -> Pervasives.compare line1.Conll.num line2.Conll.num) lines) in
 
     let table = Array.of_list (List.map (fun line -> line.Conll.num) sorted_lines) in
 
@@ -308,20 +309,17 @@ module G_graph = struct
         (fun acc line ->
           (* add line number information in loc *)
           let loc = Loc.opt_set_line line.Conll.line_num loc in
+          let dep_id = Id.build ?loc line.Conll.num table in
           List.fold_left
             (fun acc2 (gov, dep_lab) ->
-              if gov = "0"
-              then acc2
-              else
-                let gov_id = Id.build ?loc gov table in
-                let dep_id = Id.build ?loc line.Conll.num table in
-                let edge = G_edge.make ?loc dep_lab in
-                (match map_add_edge acc2 (Gid.Old gov_id) edge (Gid.Old dep_id) with
-	          | Some g -> g
-	          | None -> Error.build "[GRS] [Graph.of_conll] try to build a graph with twice the same edge %s %s"
-                    (G_edge.to_string edge)
-                    (match loc with Some l -> Loc.to_string l | None -> "")
-	        )
+              let gov_id = Id.build ?loc gov table in
+              let edge = if gov = "0" then G_edge.root else G_edge.make ?loc dep_lab in
+              (match map_add_edge acc2 (Gid.Old gov_id) edge (Gid.Old dep_id) with
+	        | Some g -> g
+	        | None -> Error.build "[GRS] [Graph.of_conll] try to build a graph with twice the same edge %s %s"
+                  (G_edge.to_string edge)
+                  (match loc with Some l -> Loc.to_string l | None -> "")
+	      )
             ) acc line.Conll.deps
         ) map_without_edges lines in
     {meta=[]; map=map_with_edges}
@@ -624,9 +622,9 @@ module G_graph = struct
       (fun (id, node) ->
         let fs = G_node.get_fs node in
         let dep_fs = G_fs.to_dep ?filter ?main_feat fs in
-        let style = match (List.mem id deco.G_deco.nodes, G_fs.get_string_atom "sem" fs) with
+        let style = match (List.mem id deco.G_deco.nodes, G_fs.get_string_atom "void" fs) with
           | (true, _) -> "; forecolor=red; subcolor=red; "
-          | (false, Some "void") -> "; forecolor=red; subcolor=red; "
+          | (false, Some "y") -> "; forecolor=red; subcolor=red; "
           | _ -> "" in
 	bprintf buff "N_%s { %s%s }\n" (Gid.to_string id) dep_fs style
       ) snodes;
@@ -698,10 +696,9 @@ module G_graph = struct
 
   (* -------------------------------------------------------------------------------- *)
   let to_conll graph =
-
     let nodes = Gid_map.fold (fun gid node acc -> (gid,node)::acc) graph.map [] in
     let snodes = List.sort (fun (_,n1) (_,n2) -> G_node.pos_comp n1 n2) nodes in
-    let get_num gid = (list_num (fun (x,_) -> x=gid) snodes) + 1 in
+    let get_num gid = (list_num (fun (x,_) -> x=gid) snodes) in
 
     (* Warning: [govs_labs] maps [gid]s to [num]s *)
     let govs_labs =
@@ -718,19 +715,31 @@ module G_graph = struct
     let buff = Buffer.create 32 in
     List.iter
       (fun (gid, node) ->
-        let (govs,labs) = List.split (try Gid_map.find gid govs_labs with Not_found -> ["0","root"]) in
+        let gov_labs = try Gid_map.find gid govs_labs with Not_found -> [] in
+
+        let sorted_gov_labs =
+          List.sort
+            (fun (g1,l1) (g2,l2) ->
+              if l1 <> "" && l1.[0] <> 'I' && l1.[0] <> 'D'
+              then -1
+              else if l2 <> "" && l2.[0] <> 'I' && l2.[0] <> 'D'
+              then 1
+              else compare (String_.to_float g1) (String_.to_float g2)
+            ) gov_labs in
+
+        let (govs,labs) = List.split sorted_gov_labs in
         let fs = G_node.get_fs node in
-        bprintf buff "%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t_\t_\n"
-          (get_num gid)
-          (match G_fs.get_string_atom "phon" fs with Some p -> p | None -> "NO_PHON")
-          (match G_fs.get_string_atom "lemma" fs with Some p -> p | None -> "NO_LEMMA")
-          (match G_fs.get_string_atom "cat" fs with Some p -> p | None -> "NO_CAT")
-          (match G_fs.get_string_atom "pos" fs with Some p -> p | None -> "_")
-          (G_fs.to_conll ~exclude: ["phon"; "lemma"; "cat"; "pos"; "position"] fs)
-          (String.concat "|" govs)
-          (String.concat "|" labs)
+          bprintf buff "%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t_\t_\n"
+            (get_num gid)
+            (match G_fs.get_string_atom "phon" fs with Some p -> p | None -> "NO_PHON")
+            (match G_fs.get_string_atom "lemma" fs with Some p -> p | None -> "NO_LEMMA")
+            (match G_fs.get_string_atom "cat" fs with Some p -> p | None -> "NO_CAT")
+            (match G_fs.get_string_atom "pos" fs with Some p -> p | None -> "_")
+            (G_fs.to_conll ~exclude: ["phon"; "lemma"; "cat"; "pos"; "position"] fs)
+            (String.concat "|" govs)
+            (String.concat "|" labs)
       )
-      snodes;
+      (List.tl snodes) (* do not consider the root node in CONLL output *);
     Buffer.contents buff
 
 end (* module G_graph *)

@@ -266,6 +266,8 @@ module Conll: sig
     deps: (string * string ) list;
   }
 
+  val root:line
+
   val load: string -> line list
 end
 

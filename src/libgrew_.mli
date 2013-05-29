@@ -6,6 +6,8 @@ open Grew_graph
 open Grew_rule
 open Grew_grs
 
+val css_file: string
+
 exception Parsing_err of string
 exception File_dont_exists of string
 
@@ -116,8 +118,12 @@ val make_index:
 
 val html_sentences: title:string -> string -> (bool * string * int * string) list -> unit
 
-val get_css_file: string
-
 val graph_of_instance: Instance.t -> G_graph.t
 
 val feature_names: unit -> string list option
+
+val to_dot_graph : ?main_feat:string -> ?deco:deco -> graph -> string
+val to_dep_graph : ?filter: string list -> ?main_feat:string -> ?deco:deco -> graph -> string
+val to_gr_graph: graph -> string
+val to_conll_graph: graph -> string
+

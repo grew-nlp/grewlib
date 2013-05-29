@@ -608,8 +608,9 @@ module Conll = struct
       deps: (string * string ) list;
     }
 
-  let load file =
+  let root = { line_num = -1; num="0"; phon="ROOT"; lemma="__"; pos1="_X"; pos2=""; morph=[]; deps=[] }
 
+  let load file =
     let parse_morph line_num = function
       | "_" -> []
       | morph ->
@@ -631,8 +632,8 @@ module Conll = struct
         let deps = List.combine gov_list lab_list in
           {line_num = line_num;
            num = num;
-           phon = escape_quote phon;
-           lemma = escape_quote lemma;
+           phon = phon;
+           lemma = lemma;
            pos1 = pos1;
            pos2 = pos2;
            morph = parse_morph line_num morph;

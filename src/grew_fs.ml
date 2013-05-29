@@ -8,6 +8,10 @@ open Grew_ast
 type value = String of string | Float of float
 
 let string_of_value = function
+  | String s -> Str.global_replace (Str.regexp "\"") "\\\"" s
+  | Float i -> String_.of_float i
+
+let conll_string_of_value = function
   | String s -> s
   | Float i -> String_.of_float i
 
@@ -35,6 +39,7 @@ module Domain = struct
           | ((Ast.Closed (n,vs))::_) when n = name ->
             (match List_.sort_diff values vs with
               | [] -> List.map (fun s -> String s) values
+              | l when List.for_all (fun x -> x.[0] = '_') l -> List.map (fun s -> String s) values
               | l -> Error.build ?loc "Unknown feature values '%s' for feature name '%s'"
 	        (List_.to_string (fun x->x) ", " l)
 	        name
@@ -150,7 +155,7 @@ module G_fs = struct
   let get_string_atom feat_name t = 
     match List_.sort_assoc feat_name t with
       | None -> None
-      | Some v -> Some (string_of_value v)
+      | Some v -> Some (conll_string_of_value v)
 
   let get_float_feat feat_name t =
     match List_.sort_assoc feat_name t with
@@ -219,14 +224,20 @@ module G_fs = struct
       | None -> sub
       | Some l -> List.filter (fun (fn,_) -> List.mem fn l) sub in
     sprintf " word=\"%s\"; subword=\"%s\""
-      (match main_opt with Some atom -> string_of_value atom | None -> "")
+      (match main_opt with Some atom -> string_of_value atom | None -> "_")
       (List_.to_string G_feature.to_string "#" reduced_sub)
 
   let to_conll ?exclude t =
     let reduced_t = match exclude with
       | None -> t
       | Some list -> List.filter (fun (fn,_) -> not (List.mem fn list || fn.[0]='_')) t in
-    String.concat "|" (List.map (function (fn, String "true") -> fn | (fn, fv) -> fn^"="^(string_of_value fv)) reduced_t)
+    match reduced_t with
+      | [] -> "_"
+      | _ -> String.concat "|"
+        (List.map
+           (function (fn, String "true") -> fn | (fn, fv) -> fn^"="^(string_of_value fv))
+           reduced_t
+        )
 end (* module G_fs *)
  
 (* ==================================================================================================== *)
