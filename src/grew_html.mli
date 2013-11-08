@@ -3,7 +3,8 @@ open Grew_rule
 open Grew_grs
 
 module Html_doc : sig
-  val build: dep:bool -> string -> Grs.t -> unit
+  (* dep is a flag which is true iff dep file are shown in doc (iff dep2pict is available) *)
+  val build: dep:bool -> corpus:bool -> string -> Grs.t -> unit
 end
 
 module Html_sentences : sig

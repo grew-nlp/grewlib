@@ -46,7 +46,7 @@ val empty_grs: Grs.t
 val load_grs: string -> Grs.t
 
 (** [build_html_doc directory grs ] *)
-val build_html_doc: string -> Grs.t -> unit
+val build_html_doc: ?corpus:bool -> string -> Grs.t -> unit
 
 (** give the list of sequence names defined in a GRS 
 @return a string list

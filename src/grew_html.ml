@@ -169,7 +169,7 @@ module Html_doc = struct
     | [] -> "black"
     | c::_ -> String.sub c 1 ((String.length c) - 1)
 
-  let module_page_text prev next module_ =
+  let module_page_text ~corpus prev next module_ =
     let buff = Buffer.create 32 in
     let wnl fmt = Printf.ksprintf (fun x -> Printf.bprintf buff "%s\n" x) fmt in
     let w fmt  = Printf.ksprintf (fun x -> Printf.bprintf buff "%s" x) fmt in
@@ -178,7 +178,8 @@ module Html_doc = struct
     html_header ~title buff;
 
     wnl "  <body>";
-    wnl "<a href=\"../sentences.html\">Sentences</a> -- <a href=\"../index.html\">Rewriting stats</a> -- GRS documentation";
+    if corpus
+    then wnl "<a href=\"../sentences.html\">Sentences</a> -- <a href=\"../index.html\">Rewriting stats</a> -- GRS documentation";
 
     wnl "    <div class=\"navbar\">";
     w "      ";
@@ -203,7 +204,7 @@ module Html_doc = struct
     wnl "</html>";
     Buffer.contents buff
 
-  let rule_page_text ~dep prev next rule_ module_ =
+  let rule_page_text ~corpus ~dep prev next rule_ module_ =
     let rid = rule_.Ast.rule_id in
     let mid = module_.Ast.module_id in
 
@@ -215,7 +216,8 @@ module Html_doc = struct
     html_header ~title buff;
 
     wnl "  <body>";
-    wnl "<a href=\"../sentences.html\">Sentences</a> -- <a href=\"../index.html\">Rewriting stats</a> -- GRS documentation";
+    if corpus
+    then wnl "<a href=\"../sentences.html\">Sentences</a> -- <a href=\"../index.html\">Rewriting stats</a> -- GRS documentation";
 
     wnl "    <div class=\"navbar\">";
     w "      ";
@@ -279,7 +281,7 @@ module Html_doc = struct
     Buffer.contents buff
 
 
-  let sequences_text ast =
+  let sequences_text ~corpus ast =
     let buff = Buffer.create 32 in
     let wnl fmt = Printf.ksprintf (fun x -> Printf.bprintf buff "%s\n" x) fmt in
 
@@ -287,7 +289,8 @@ module Html_doc = struct
     html_header ~title buff;
 
     wnl "  <body>";
-    wnl "<a href=\"../sentences.html\">Sentences</a> -- <a href=\"../index.html\">Rewriting stats</a> -- GRS documentation";
+    if corpus
+    then wnl "<a href=\"../sentences.html\">Sentences</a> -- <a href=\"../index.html\">Rewriting stats</a> -- GRS documentation";
 
     wnl "  <div class=\"navbar\">&nbsp;<a href=\"index.html\">Up</a></div>";
     wnl "  <center><h1>List of sequences</h1></center>";
@@ -337,7 +340,7 @@ module Html_doc = struct
     Buffer.contents buff
 
 
-  let domain_text ast =
+  let domain_text ~corpus ast =
     let buff = Buffer.create 32 in
     let wnl fmt = Printf.ksprintf (fun x -> Printf.bprintf buff "%s\n" x) fmt in
     let w fmt = Printf.ksprintf (fun x -> Printf.bprintf buff "%s" x) fmt in
@@ -346,7 +349,8 @@ module Html_doc = struct
     html_header ~title buff;
 
     wnl "  <body>";
-    wnl "<a href=\"../sentences.html\">Sentences</a> -- <a href=\"../index.html\">Rewriting stats</a> -- GRS documentation";
+    if corpus
+    then wnl "<a href=\"../sentences.html\">Sentences</a> -- <a href=\"../index.html\">Rewriting stats</a> -- GRS documentation";
 
     wnl "  <div class=\"navbar\">&nbsp;<a href=\"index.html\">Up</a></div>";
 
@@ -376,8 +380,7 @@ module Html_doc = struct
     wnl "</html>";
     Buffer.contents buff
 
-  (* dep is a flag which is true iff dep file are shown in doc (iff dep2pict is available) *)
-  let build ~dep output_dir grs =
+  let build ~dep ~corpus output_dir grs =
     let filename = Grs.get_filename grs in
     let ast = Grs.get_ast grs in
     ignore(Sys.command ("rm -rf "^output_dir));
@@ -396,7 +399,8 @@ module Html_doc = struct
     html_header ~title buff;
 
     wnl "  <body>";
-    wnl "<a href=\"../sentences.html\">Sentences</a> -- <a href=\"../index.html\">Rewriting stats</a> -- GRS documentation";
+    if corpus
+    then wnl "<a href=\"../sentences.html\">Sentences</a> -- <a href=\"../index.html\">Rewriting stats</a> -- GRS documentation";
 
     wnl "<h1>Graph Rewriting System: %s</h1>" (Filename.basename filename);
     wnl "<center><b>full path</b>: %s</center>" filename;
@@ -427,7 +431,7 @@ module Html_doc = struct
     let sequences = Filename.concat output_dir "sequences.html" in
 
     let sequences_out_ch = open_out sequences in
-    output_string sequences_out_ch (sequences_text ast);
+    output_string sequences_out_ch (sequences_text ~corpus ast);
     close_out sequences_out_ch;
 
     (** Modules.html **)
@@ -441,7 +445,7 @@ module Html_doc = struct
     let domain = Filename.concat output_dir "domain.html" in
 
     let domain_out_ch = open_out domain in
-    output_string domain_out_ch (domain_text ast);
+    output_string domain_out_ch (domain_text ~corpus ast);
     close_out domain_out_ch;
 
     (** Modules + rules **)
@@ -450,7 +454,7 @@ module Html_doc = struct
       let page = Filename.concat output_dir (modules_array.(i).Ast.module_id^".html") in
       let page_out_ch = open_out page in
       output_string page_out_ch
-        (module_page_text
+        (module_page_text ~corpus
            (try Some (modules_array.(i-1).Ast.module_id) with _ -> None)
            (try Some (modules_array.(i+1).Ast.module_id) with _ -> None)
            modules_array.(i)
@@ -463,7 +467,7 @@ module Html_doc = struct
         let page = Filename.concat output_dir (modules_array.(i).Ast.module_id^"_"^rules_array.(j).Ast.rule_id^".html") in
         let page_out_ch = open_out page in
         output_string page_out_ch
-          (rule_page_text
+          (rule_page_text ~corpus
              ~dep
              (try Some (rules_array.(j-1).Ast.rule_id) with _ -> None)
              (try Some (rules_array.(j+1).Ast.rule_id) with _ -> None)

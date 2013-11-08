@@ -55,10 +55,10 @@ let num_sol rh =
 
 
 IFDEF DEP2PICT THEN
-let build_html_doc dir grs =
+let build_html_doc ?(corpus=false) dir grs =
   handle ~name:"build_doc [with Dep2pict]"
     (fun () ->
-      Html_doc.build ~dep:true dir grs;
+      Html_doc.build ~corpus ~dep:true dir grs;
 
       (* draw pattern graphs for all rules and all filters *)
       let fct module_ rule_ =
@@ -69,8 +69,8 @@ let build_html_doc dir grs =
       Grs.filter_iter fct grs
     ) ()
 ELSE
-let build_html_doc dir grs =
-  handle ~name:"build_doc [without Dep2pict]" (fun () -> Html_doc.build ~dep:false grs_ dir) ()
+let build_html_doc ?(corpus=false) dir grs =
+  handle ~name:"build_doc [without Dep2pict]" (fun () -> Html_doc.build ~corpus ~dep:false grs_ dir) ()
 END
 
 let load_grs file =
