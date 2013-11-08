@@ -7,27 +7,6 @@ module StringMap = Map.Make (String)
 module IntSet = Set.Make (struct type t = int let compare = Pervasives.compare end)
 module IntMap = Map.Make (struct type t = int let compare = Pervasives.compare end)
 
-
-(* ================================================================================ *)
-module String_ = struct
-
-  let to_float string =
-    try float_of_string string
-    with _ -> float_of_string (Str.global_replace (Str.regexp "\\.") "," string)
-
-  let of_float float = Str.global_replace (Str.regexp ",") "." (sprintf "%g" float)
-
-end (* module String_ *)
-
-(* ================================================================================ *)
-module Dot = struct
-  let to_png_file dot output_file =
-    let temp_file_name,out_ch = Filename.open_temp_file ~mode:[Open_rdonly;Open_wronly;Open_text] "grewui_" ".dot" in
-    fprintf out_ch "%s" dot;
-    close_out out_ch;
-    ignore(Sys.command(sprintf "dot -Tpng -o %s %s " output_file temp_file_name))
-end (* module Dot *)
-
 (* ================================================================================ *)
 module Loc = struct
   type t = string * int
@@ -42,6 +21,48 @@ module Loc = struct
     | None -> ""
     | Some x -> to_string x
 end (* module Loc *)
+
+(* ================================================================================ *)
+module Error = struct
+
+  exception Build of (string * Loc.t option)
+  exception Run of (string * Loc.t option)
+  exception Bug of (string * Loc.t option)
+
+  let build_ ?loc message =
+    Log.fmessage "[%s] %s" (match loc with None -> "?" | Some x -> Loc.to_string x) message;
+    raise (Build (message, loc))
+  let build ?loc = Printf.ksprintf (build_ ?loc)
+
+  let run_ ?loc message = raise (Run (message, loc))
+  let run ?loc = Printf.ksprintf (run_ ?loc)
+
+  let bug_ ?loc message = raise (Bug (message, loc))
+  let bug ?loc = Printf.ksprintf (bug_ ?loc)
+end (* module Error *)
+
+(* ================================================================================ *)
+module String_ = struct
+
+  let to_float string =
+    try float_of_string string
+    with _ ->
+      try float_of_string (Str.global_replace (Str.regexp "\\.") "," string)
+      with _ -> Error.build "[String_.to_float] cannot convert '%s'" string
+
+  let of_float float = Str.global_replace (Str.regexp ",") "." (sprintf "%g" float)
+
+end (* module String_ *)
+
+(* ================================================================================ *)
+module Dot = struct
+  let to_png_file dot output_file =
+    let temp_file_name,out_ch = Filename.open_temp_file ~mode:[Open_rdonly;Open_wronly;Open_text] "grewui_" ".dot" in
+    fprintf out_ch "%s" dot;
+    close_out out_ch;
+    ignore(Sys.command(sprintf "dot -Tpng -o %s %s " output_file temp_file_name))
+end (* module Dot *)
+
 
 (* ================================================================================ *)
 module File = struct
@@ -536,24 +557,6 @@ module Massoc_gid = Massoc_make (Gid)
 (* ================================================================================ *)
 module Massoc_pid = Massoc_make (Pid)
 
-(* ================================================================================ *)
-module Error = struct
-
-  exception Build of (string * Loc.t option)
-  exception Run of (string * Loc.t option)
-  exception Bug of (string * Loc.t option)
-
-  let build_ ?loc message =
-    Log.fmessage "[%s] %s" (match loc with None -> "?" | Some x -> Loc.to_string x) message;
-    raise (Build (message, loc))
-  let build ?loc = Printf.ksprintf (build_ ?loc)
-
-  let run_ ?loc message = raise (Run (message, loc))
-  let run ?loc = Printf.ksprintf (run_ ?loc)
-
-  let bug_ ?loc message = raise (Bug (message, loc))
-  let bug ?loc = Printf.ksprintf (bug_ ?loc)
-end (* module Error *)
 
 (* ================================================================================ *)
 module Id = struct
