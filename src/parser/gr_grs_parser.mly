@@ -52,6 +52,8 @@ let localize t = (t,get_loc ())
 %token FEATURE                     /* feature */
 %token FILE                        /* file */
 %token LABELS                      /* labels */
+%token NEW_NODES                   /* new_nodes */
+%token ACTIVATE                    /* activate */
 %token MATCH                       /* match */
 %token WITHOUT                     /* without */
 %token COMMANDS                    /* commands */
@@ -78,7 +80,12 @@ let localize t = (t,get_loc ())
 %token <string> COLOR              /* @#89abCD */
 
 %token <string>           IDENT    /* indentifier */
-%token <string * string>  PAIR     /* ident.ident */
+%token <Grew_utils.Id.name * Grew_ast.Ast.feature_name>
+                          QFN      /* ident.ident */
+%token <Grew_utils.Id.name * string option>
+                          EXT_IDENT
+%token <(Grew_utils.Id.name * string option) * Grew_ast.Ast.feature_name>
+                          EXT_QFN
 %token <string>           STRING
 %token <int>              INT
 %token <string list>      COMMENT
@@ -146,7 +153,7 @@ label_ident:
 
 label_item:
         | x = IDENT    { x }
-        | p = PAIR { (fst p)^"."^(snd p) }
+        | p = QFN { (fst p)^"."^(snd p) }
 
 
 
@@ -264,10 +271,11 @@ modules:
         | x = list(grew_module) { x }
         
 grew_module: 
-        | doc = option(module_doc) MODULE conf = boption(CONFLUENT) id = module_id LACC l = option(local_labels) r = rules RACC 
+        | doc=option(module_doc) MODULE conf=boption(CONFLUENT) id=module_id LACC l=option(local_labels) nn=option(new_nodes) r=rules RACC 
            {
             { Ast.module_id = fst id; 
               local_labels = (match l with None -> [] | Some x -> x);
+              new_node_names = (match nn with None -> [] | Some x -> x);
               rules = r;
               confluent = conf;
               module_doc = (match doc with Some d -> d | None -> []);
@@ -275,6 +283,10 @@ grew_module:
               mod_dir = "";
             }
           }
+
+new_nodes:
+        (* "new_nodes {a, b, c}" *)
+        | NEW_NODES x = delimited(LACC,separated_nonempty_list_final_opt(COMA,IDENT),RACC) { x:string list }
 
 module_id:
         | id = IDENT { (id,!Parser_global.current_line+1) }
@@ -463,23 +475,23 @@ pat_const:
             { localize (Ast.Cst_in n2) }
 
         (* X.cat = Y.cat *)
-        | qfn1 = PAIR EQUAL qfn2 = PAIR
+        | qfn1 = QFN EQUAL qfn2 = QFN
             { localize (Ast.Feature_eq (qfn1, qfn2)) }
 
         (* X.position < Y.position *)
-        | qfn1 = PAIR LT qfn2 = PAIR
+        | qfn1 = QFN LT qfn2 = QFN
             { localize (Ast.Feature_ineq (Ast.Lt, qfn1, qfn2)) }
 
         (* X.position > Y.position *)
-        | qfn1 = PAIR GT qfn2 = PAIR
+        | qfn1 = QFN GT qfn2 = QFN
             { localize (Ast.Feature_ineq (Ast.Gt, qfn1, qfn2)) }
 
         (* X.position <= Y.position *)
-        | qfn1 = PAIR LE qfn2 = PAIR
+        | qfn1 = QFN LE qfn2 = QFN
             { localize (Ast.Feature_ineq (Ast.Le, qfn1, qfn2)) }
 
         (* X.position >= Y.position *)
-        | qfn1 = PAIR GE qfn2 = PAIR
+        | qfn1 = QFN GE qfn2 = QFN
             { localize (Ast.Feature_ineq (Ast.Ge, qfn1, qfn2)) }
 
 /*=============================================================================================*/
@@ -511,41 +523,74 @@ pat_const:
 commands:
         | COMMANDS x = delimited(LACC,separated_nonempty_list_final_opt(SEMIC,command),RACC) { x }
 
+cident:
+        | i=IDENT      { (i, None) }
+        | ei=EXT_IDENT { ei }
+
+eident:
+        | ei=EXT_IDENT { ei }
+
 command:
+        (* del_edge e *)
         | DEL_EDGE n = IDENT
             { localize (Ast.Del_edge_name n) }
-        | DEL_EDGE n1 = IDENT label = delimited(LTR_EDGE_LEFT,label_ident,LTR_EDGE_RIGHT) n2 = IDENT
+
+        (* del_edge m -[x]-> n *)
+        | DEL_EDGE n1 = cident label = delimited(LTR_EDGE_LEFT,label_ident,LTR_EDGE_RIGHT) n2 = cident
             { localize (Ast.Del_edge_expl (n1,n2,label)) }
-        | ADD_EDGE n1 = IDENT label = delimited(LTR_EDGE_LEFT,label_ident,LTR_EDGE_RIGHT) n2 = IDENT
+
+        (* add_edge m -[x]-> n *)
+        | ADD_EDGE n1 = cident label = delimited(LTR_EDGE_LEFT,label_ident,LTR_EDGE_RIGHT) n2 = cident
+
             { localize (Ast.Add_edge (n1,n2,label)) }
-        | SHIFT_IN n1 = IDENT LONGARROW n2 = IDENT 
+
+        (* shift_in m ==> n *)
+        | SHIFT_IN n1 = cident LONGARROW n2 = cident
             { localize (Ast.Shift_in (n1,n2)) }
-        | SHIFT_OUT n1 = IDENT LONGARROW n2 = IDENT 
+
+        (* shift_out m ==> n *)
+        | SHIFT_OUT n1 = cident LONGARROW n2 = cident
             { localize (Ast.Shift_out (n1,n2)) }
-        | SHIFT n1 = IDENT LONGARROW n2 = IDENT 
+
+        (* shift m ==> n *)
+        | SHIFT n1 = cident LONGARROW n2 = cident
             { localize (Ast.Shift_edge (n1,n2)) }
-        | MERGE n1 = IDENT LONGARROW n2 = IDENT
+
+        (* merge m ==> n *)
+        | MERGE n1 = cident LONGARROW n2 = cident
             { localize (Ast.Merge_node (n1,n2)) }
-        | DEL_NODE n = IDENT
+
+        (* del_node n *)
+        | DEL_NODE n = cident
             { localize (Ast.Del_node n) }
-        | ADD_NODE n1 = IDENT DDOT label = delimited(RTL_EDGE_LEFT,label_ident,RTL_EDGE_RIGHT) n2 = IDENT
+
+        (* add_node n: <-[x]- m *)
+        | ADD_NODE n1 = cident DDOT label = delimited(RTL_EDGE_LEFT,label_ident,RTL_EDGE_RIGHT) n2 = cident
             { localize (Ast.New_neighbour (n1,n2,label)) }
-        | DEL_FEAT qfn = PAIR
+
+        (* activate n#a *)
+        | ACTIVATE n = eident
+            { localize (Ast.Activate n) }
+
+        (* del_feat m.cat *)
+        | DEL_FEAT qfn = EXT_QFN
             { localize (Ast.Del_feat qfn) }
-        | qfn = PAIR EQUAL items = separated_nonempty_list (PLUS, concat_item)
+
+        (* m.cat = n.x + "_" + nn.y *)
+        | qfn = EXT_QFN EQUAL items = separated_nonempty_list (PLUS, concat_item)
             { localize (Ast.Update_feat (qfn, items)) }
 
 concat_item:
-        | qfn = PAIR      { Ast.Qfn_item qfn }
-        | s = IDENT       { Ast.String_item s }
-        | s = STRING      { Ast.String_item s }
-        | p = AROBAS_ID   { Ast.Param_item p }
-        | p = DOLLAR_ID   { Ast.Param_item p }
+        | qfn = EXT_QFN    { Ast.Qfn_item qfn }
+        | s = IDENT        { Ast.String_item s }
+        | s = STRING       { Ast.String_item s }
+        | p = AROBAS_ID    { Ast.Param_item p }
+        | p = DOLLAR_ID    { Ast.Param_item p }
 
 /*=============================================================================================*/
 /*                                                                                             */
 /* SEQUENCE DEFINITION                                                                         */
-/*                                                                                             */
+/*                                                                                              */
 /* sequence { ant; p7_to_p7p-mc}                                                               */
 /*                                                                                             */
 /*=============================================================================================*/

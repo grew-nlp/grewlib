@@ -27,27 +27,31 @@ let html_header ?title buff =
 module Html_doc = struct
 
   let string_of_concat_item = function
-    | Ast.Qfn_item (n,f) -> sprintf "%s.%s" n f
+    | Ast.Qfn_item (n,fn) -> sprintf "%s.%s" (Ast.c_ident_to_string n) fn
     | Ast.String_item s -> sprintf "\"%s\"" s
     | Ast.Param_item var -> sprintf "%s" var
-
-  let string_of_qfn (node, feat_name) = sprintf "%s.%s" node feat_name
 
   let buff_html_command ?(li_html=false) buff (u_command,_) =
     bprintf buff "      ";
     if li_html then bprintf buff "<li>";
     (match u_command with
-    | Ast.Del_edge_expl (n1,n2,label) -> bprintf buff "del_edge %s -[%s]-> %s" n1 label n2
+    | Ast.Del_edge_expl (n1,n2,label) ->
+      bprintf buff "del_edge %s -[%s]-> %s" (Ast.c_ident_to_string n1) label (Ast.c_ident_to_string n2)
     | Ast.Del_edge_name name -> bprintf buff "del_edge %s" name
-    | Ast.Add_edge (n1,n2,label) -> bprintf buff "add_edge %s -[%s]-> %s" n1 label n2
-    | Ast.Shift_in (n1,n2) -> bprintf buff "shift_in %s ==> %s" n1 n2
-    | Ast.Shift_out (n1,n2) -> bprintf buff "shift_out %s ==> %s" n1 n2
-    | Ast.Shift_edge (n1,n2) -> bprintf buff "shift %s ==> %s" n1 n2
-    | Ast.Merge_node (n1,n2) -> bprintf buff "merge %s ==> %s" n1 n2
-    | Ast.New_neighbour (n1,n2,label) -> bprintf buff "add_node %s: <-[%s]- %s" n1 label n2
-    | Ast.Del_node n -> bprintf buff "del_node %s" n
-    | Ast.Update_feat (qfn,item_list) -> bprintf buff "%s = %s" (string_of_qfn qfn) (List_.to_string string_of_concat_item " + " item_list)
-    | Ast.Del_feat qfn -> bprintf buff "del_feat %s" (string_of_qfn qfn)
+    | Ast.Add_edge (n1,n2,label) ->
+      bprintf buff "add_edge %s -[%s]-> %s" (Ast.c_ident_to_string n1) label (Ast.c_ident_to_string n2)
+    | Ast.Shift_in (n1,n2) ->
+      bprintf buff "shift_in %s ==> %s" (Ast.c_ident_to_string n1) (Ast.c_ident_to_string n2)
+    | Ast.Shift_out (n1,n2) -> bprintf buff "shift_out %s ==> %s" (Ast.c_ident_to_string n1) (Ast.c_ident_to_string n2)
+    | Ast.Shift_edge (n1,n2) -> bprintf buff "shift %s ==> %s" (Ast.c_ident_to_string n1) (Ast.c_ident_to_string n2)
+    | Ast.Merge_node (n1,n2) -> bprintf buff "merge %s ==> %s" (Ast.c_ident_to_string n1) (Ast.c_ident_to_string n2)
+    | Ast.New_neighbour (n1,n2,label) -> bprintf buff "add_node %s: <-[%s]- %s" (Ast.c_ident_to_string n1) label (Ast.c_ident_to_string n2)
+    | Ast.Activate n -> bprintf buff "activate %s" (Ast.c_ident_to_string n)
+    | Ast.Del_node n -> bprintf buff "del_node %s" (Ast.c_ident_to_string n)
+    | Ast.Update_feat ((n,fn),item_list) ->
+      bprintf buff "%s.%s = %s" (Ast.c_ident_to_string n) fn (List_.to_string string_of_concat_item " + " item_list)
+    | Ast.Del_feat (n,fn) ->
+      bprintf buff "del_feat %s.%s" (Ast.c_ident_to_string n) fn
     );
     if li_html then bprintf buff "</li>\n" else bprintf buff ";\n"
 
@@ -83,9 +87,10 @@ module Html_doc = struct
     | Ast.Cst_out id -> bprintf buff "%s -> *" id
     | Ast.End (id,labels) -> bprintf buff "* -[%s]-> %s" (List_.to_string (fun x->x) "|" labels) id
     | Ast.Cst_in id -> bprintf buff "* -> %s" id
-    | Ast.Feature_eq (qfn_l, qfn_r) -> bprintf buff "%s = %s" (string_of_qfn qfn_l) (string_of_qfn qfn_r)
-    | Ast.Feature_diseq (qfn_l, qfn_r) -> bprintf buff "%s <> %s" (string_of_qfn qfn_l) (string_of_qfn qfn_r)
-    | Ast.Feature_ineq (ineq, qfn_l, qfn_r) -> bprintf buff "%s %s %s" (string_of_qfn qfn_l) (Ast.string_of_ineq ineq) (string_of_qfn qfn_r));
+    | Ast.Feature_eq ((n_l,fn_l), (n_r,fn_r)) -> bprintf buff "%s.%s = %s.%s" n_l fn_l n_r fn_r;
+    | Ast.Feature_diseq ((n_l,fn_l), (n_r,fn_r)) -> bprintf buff "%s.%s <> %s.%s" n_l fn_l n_r fn_r;
+    | Ast.Feature_ineq (ineq, (n_l,fn_l), (n_r,fn_r)) -> bprintf buff "%s.%s %s %s.%s" n_l fn_l (Ast.string_of_ineq ineq) n_r fn_r
+    );
     bprintf buff "\n"
 
   let buff_html_pos_pattern buff pos_pattern =

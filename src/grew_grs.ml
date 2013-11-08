@@ -11,7 +11,6 @@ open Grew_rule
 
 (* ==================================================================================================== *)
 module Rewrite_history = struct
-
   type t = {
     instance: Instance.t;
     module_name: string;
@@ -26,7 +25,6 @@ module Rewrite_history = struct
     | { good_nf = []; bad_nf = [] } -> 1
     | { good_nf = [] } -> 0 (* dead branch *)
     | { good_nf = l} -> List.fold_left (fun acc t -> acc + (num_sol t)) 0 l
-
 
   let save_nfs ?filter ?main_feat ~dot base_name t =
     let rec loop file_name rules t =
@@ -46,7 +44,6 @@ module Rewrite_history = struct
             )
             [] l
     in loop base_name [] t
-
 
   let save_gr base t =
     let rec loop file_name t =
@@ -106,7 +103,7 @@ module Rewrite_history = struct
           | [one], [] -> loop one
           | _ -> None
       in loop t
-end (* Rewrite_history *)
+end (* module Rewrite_history *)
 
 (* ==================================================================================================== *)
 module Modul = struct
