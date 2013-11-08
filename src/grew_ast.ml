@@ -247,4 +247,6 @@ module Ast = struct
     nodes: node list;
     edges: edge list;
   }
+
+  let empty_grs = { domain = []; labels = []; modules = []; sequences= [] }
 end (* module Ast *)

@@ -55,10 +55,10 @@ let num_sol rh =
 
 
 IFDEF DEP2PICT THEN
-let build_doc file dir grs_ast grs =
-  handle ~name:"build_doc [with Dep2pict]" ~file
+let build_html_doc dir grs =
+  handle ~name:"build_doc [with Dep2pict]"
     (fun () ->
-      Html_doc.build ~dep:true file dir grs_ast;
+      Html_doc.build ~dep:true dir grs;
 
       (* draw pattern graphs for all rules and all filters *)
       let fct module_ rule_ =
@@ -69,22 +69,16 @@ let build_doc file dir grs_ast grs =
       Grs.filter_iter fct grs
     ) ()
 ELSE
-let build_doc file dir grs_ast grs =
-  handle ~name:"build_doc [without Dep2pict]" (fun () -> Html_doc.build ~dep:false file dir grs_ast) ()
+let build_html_doc dir grs =
+  handle ~name:"build_doc [without Dep2pict]" (fun () -> Html_doc.build ~dep:false grs_ dir) ()
 END
 
-let load_grs ?doc_output_dir file =
+let load_grs file =
   handle ~name:"load_grs" ~file
     (fun () ->
       if not (Sys.file_exists file)
       then raise (File_dont_exists file)
-      else
-        let grs_ast = Grew_parser.grs_of_file file in
-        let grs = Grs.build grs_ast in
-        (match doc_output_dir with
-          | None -> ()
-          | Some dir -> build_doc file dir grs_ast grs);
-        grs
+      else Grs.build file
     ) ()
 
 let to_sentence ?main_feat gr =

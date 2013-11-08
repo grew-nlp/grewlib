@@ -169,4 +169,6 @@ module Ast : sig
     nodes: node list;
     edges: edge list;
   }
+
+  val empty_grs: grs
 end (* module Ast *)

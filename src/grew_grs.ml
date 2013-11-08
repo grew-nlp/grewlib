@@ -8,6 +8,7 @@ open Grew_edge
 open Grew_command
 open Grew_graph
 open Grew_rule
+open Grew_parser
 
 (* ==================================================================================================== *)
 module Rewrite_history = struct
@@ -175,13 +176,17 @@ module Grs = struct
     labels: Label.t list;        (* the list of global edge labels *)
     modules: Modul.t list;       (* the ordered list of modules used from rewriting *)
     sequences: Sequence.t list;
+    filename: string;
+    ast: Ast.grs;
   }
 
   let get_modules t = t.modules
+  let get_ast t = t.ast
+  let get_filename t = t.filename
 
   let sequence_names t = List.map (fun s -> s.Sequence.name) t.sequences
 
-  let empty = {labels=[]; modules=[]; sequences=[];}
+  let empty = {labels=[]; modules=[]; sequences=[]; ast=Ast.empty_grs; filename=""; }
 
   let check t =
     (* check for duplicate modules *)
@@ -200,14 +205,15 @@ module Grs = struct
       | s::tail -> loop (s.Sequence.name :: already_defined) tail in
     loop [] t.sequences
 
-  let build ast_grs =
-    Label.init ast_grs.Ast.labels;
-    Domain.init ast_grs.Ast.domain;
-    let modules = List.map Modul.build ast_grs.Ast.modules in
+  let build filename =
+    let ast = Grew_parser.grs_of_file filename in
+    Label.init ast.Ast.labels;
+    Domain.init ast.Ast.domain;
+    let modules = List.map Modul.build ast.Ast.modules in
     let grs = {
-      labels = List.map (fun (l,_) -> Label.from_string l) ast_grs.Ast.labels;
-      modules = modules;
-      sequences = List.map (Sequence.build modules) ast_grs.Ast.sequences;
+      labels = List.map (fun (l,_) -> Label.from_string l) ast.Ast.labels;
+      sequences = List.map (Sequence.build modules) ast.Ast.sequences;
+      modules; ast; filename;
     } in
     check grs; grs
 

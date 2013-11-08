@@ -1,10 +1,9 @@
 
-open Grew_ast
 open Grew_rule
 open Grew_grs
 
 module Html_doc : sig
-  val build: dep:bool -> string -> string -> Ast.grs -> unit
+  val build: dep:bool -> string -> Grs.t -> unit
 end
 
 module Html_sentences : sig

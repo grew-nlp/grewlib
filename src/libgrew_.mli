@@ -43,7 +43,10 @@ val empty_grs: Grs.t
 @raise Parsing_err if libgrew can't parse the file
 @raise File_dont_exists if the file doesn't exists
 *)
-val load_grs : ?doc_output_dir:string -> string -> Grs.t
+val load_grs: string -> Grs.t
+
+(** [build_html_doc directory grs ] *)
+val build_html_doc: string -> Grs.t -> unit
 
 (** give the list of sequence names defined in a GRS 
 @return a string list

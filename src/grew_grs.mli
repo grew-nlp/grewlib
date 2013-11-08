@@ -62,9 +62,14 @@ module Grs: sig
   
   val get_modules: t -> Modul.t list
 
+  val get_ast: t -> Ast.grs
+
+  val get_filename: t -> string
+
   val sequence_names: t -> string list
 
-  val build: Ast.grs -> t
+  (** [build filename] returns the GRS defined in the file [filename] *)
+  val build: string -> t
 
   val rewrite: t -> string -> Instance.t -> Rewrite_history.t
 

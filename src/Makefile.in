@@ -1,14 +1,18 @@
 
-FILES_DEP = grew_utils grew_ast grew_fs grew_edge grew_node grew_graph grew_types grew_command grew_rule grew_grs grew_html
-FILES_ML = $(FILES_DEP:%=%.ml)
-FILES_MLI = $(FILES_DEP:%=%.mli)
+PRE_FILES_DEP = grew_utils grew_ast
+PRE_FILES_CMO = $(PRE_FILES_DEP:%=%.cmo)
+PRE_FILES_CMX = $(PRE_FILES_DEP:%=%.cmx)
+
+POST_FILES_DEP = grew_fs grew_edge grew_node grew_graph grew_types grew_command grew_rule grew_grs grew_html
+POST_FILES_CMO = $(POST_FILES_DEP:%=%.cmo)
+POST_FILES_CMX = $(POST_FILES_DEP:%=%.cmx)
+
+FILES_DEP = $(PRE_FILES_DEP) $(POST_FILES_DEP)
 FILES_CMI = $(FILES_DEP:%=%.cmi)
 FILES_CMO = $(FILES_DEP:%=%.cmo)
 FILES_CMX = $(FILES_DEP:%=%.cmx)
 
 PARSER_DEP = parser_global lexer gr_grs_parser grew_parser
-PARSER_ML = $(PARSER_DEP:%=%.ml)
-PARSER_MLI = $(PARSER_DEP:%=%.mli)
 PARSER_CMI = $(PARSER_DEP:%=%.cmi)
 PARSER_CMO = $(PARSER_DEP:%=%.cmo)
 PARSER_CMX = $(PARSER_DEP:%=%.cmx)
@@ -25,12 +29,12 @@ include ../config/Makefile
 
 #executables
 
-grew.byte: $(FILES_CMO) parser/parser_global.cmo parser_byte parser/grew_parser.cmo grew.ml
+grew.byte: parser/parser_global.cmo parser_byte parser/grew_parser.cmo $(FILES_CMO) grew.ml
 	$(OCAMLC) $(BYTE_FLAGS) -o grew.byte $(XML_LIGHT_BYTE) $(ANSITERMINAL_BYTE) $(LOG_BYTE)  \
 	$(FILES_CMO) -I parser $(PARSER_CMO) \
 	grew.ml
 
-grew: $(FILES_CMX) parser/parser_global.cmx parser_opt parser/grew_parser.cmx grew.ml
+grew: parser/parser_global.cmx parser_opt parser/grew_parser.cmx $(FILES_CMX) grew.ml
 	$(OCAMLOPT) $(OPT_FLAGS) -o grew str.cmxa unix.cmxa $(XML_LIGHT_OPT) $(ANSITERMINAL_OPT) $(LOG_OPT) \
 	$(FILES_CMX) -I parser $(PARSER_CMX) \
 	grew.ml
@@ -44,6 +48,7 @@ test: parser/parser_global.cmx parser_opt parser/grew_parser.cmx $(FILES_CMX) $(
 	$(OCAMLOPT) $(OPT_FLAGS) -o test str.cmxa unix.cmxa $(XML_LIGHT_OPT) $(ANSITERMINAL_OPT) $(LOG_OPT) \
 	$(FILES_CMX) -I parser $(PARSER_CMX) \
 	test.ml
+
 
 #parser
 parser_opt: 
@@ -71,19 +76,19 @@ libgrew.mli : grew_types.mli libgrew_.mli
 libgrew.cma : $(FILES_CMO) parser_byte libgrew.mli libgrew.ml
 ifeq (@DEP2PICT@,no) 
 	$(OCAMLC) -c -pp 'camlp4o pa_macro.cmo' $(BYTE_FLAGS) $(FILES_CMO) $(XML_LIGHT_BYTE) str.cma -I parser $(PARSER_CMO) libgrew.mli
-	$(OCAMLC) -a -o libgrew.cma $(BYTE_FLAGS) -pp 'camlp4o pa_macro.cmo -DDATA_DIR=\"$(DATA_DIR)\"' -linkall $(FILES_CMO) -I parser $(PARSER_CMO) libgrew.ml
+	$(OCAMLC) -a -o libgrew.cma $(BYTE_FLAGS) -pp 'camlp4o pa_macro.cmo -DDATA_DIR=\"$(DATA_DIR)\"' -linkall -I parser $(PRE_FILES_CMO) $(PARSER_CMO) $(POST_FILES_CMO) libgrew.ml
 else
 	$(OCAMLC) -c -pp 'camlp4o pa_macro.cmo -DDEP2PICT' $(BYTE_FLAGS) $(FILES_CMO) $(XML_LIGHT_BYTE) str.cma -I parser $(PARSER_CMO) libgrew.mli
-	$(OCAMLC) -a -o libgrew.cma $(BYTE_FLAGS) -pp 'camlp4o pa_macro.cmo -DDATA_DIR=\"$(DATA_DIR)\" -DDEP2PICT' -linkall $(FILES_CMO) -I parser $(PARSER_CMO) libgrew.ml
+	$(OCAMLC) -a -o libgrew.cma $(BYTE_FLAGS) -pp 'camlp4o pa_macro.cmo -DDATA_DIR=\"$(DATA_DIR)\" -DDEP2PICT' -linkall -I parser $(PRE_FILES_CMO) $(PARSER_CMO) $(POST_FILES_CMO) libgrew.ml
 endif
 
 libgrew.cmxa : $(FILES_CMX) parser_opt libgrew.mli libgrew.ml
 ifeq (@DEP2PICT@,no)
 	$(OCAMLOPT) -c -pp 'camlp4o pa_macro.cmo' $(OPT_FLAGS) $(FILES_CMX) $(XML_LIGHT_OPT) str.cmxa -I parser $(PARSER_CMX) libgrew.mli
-	$(OCAMLOPT) -a -o libgrew.cmxa $(OPT_FLAGS) -pp 'camlp4o pa_macro.cmo -DDATA_DIR=\"$(DATA_DIR)\"' -linkall $(FILES_CMX) -I parser $(PARSER_CMX) libgrew.ml
+	$(OCAMLOPT) -a -o libgrew.cmxa $(OPT_FLAGS) -pp 'camlp4o pa_macro.cmo -DDATA_DIR=\"$(DATA_DIR)\"' -linkall -I parser $(PRE_FILES_CMX) $(PARSER_CMX) $(POST_FILES_CMX) libgrew.ml
 else
 	$(OCAMLOPT) -c -pp 'camlp4o pa_macro.cmo -DDEP2PICT' $(FILES_CMX) $(XML_LIGHT_OPT) str.cmxa -I parser $(PARSER_CMX) libgrew.mli
-	$(OCAMLOPT) -a -o libgrew.cmxa -pp 'camlp4o pa_macro.cmo -DDATA_DIR=\"$(DATA_DIR)\" -DDEP2PICT' -linkall $(FILES_CMX) -I parser $(PARSER_CMX) libgrew.ml
+	$(OCAMLOPT) -a -o libgrew.cmxa -pp 'camlp4o pa_macro.cmo -DDATA_DIR=\"$(DATA_DIR)\" -DDEP2PICT' -linkall -I parser $(PRE_FILES_CMX) $(PARSER_CMX) $(POST_FILES_CMX) libgrew.ml
 endif
 
 DEPENDS_DIR= -I parser
@@ -290,10 +295,10 @@ GREW_GRS_CMX = $(GREW_GRS_DEP:%=%.cmx)
 grew_grs.cmi: $(GREW_GRS_CMI) grew_grs.mli
 	$(OCAMLC) -c grew_grs.mli
 
-grew_grs.cmo: $(GREW_GRS_CMO) grew_grs.cmi grew_grs.ml
+grew_grs.cmo: parser_byte $(GREW_GRS_CMO) grew_grs.cmi grew_grs.ml
 	$(OCAMLC) $(BYTE_FLAGS) -pp 'camlp4o pa_macro.cmo -DDATA_DIR=\"$(DATA_DIR)\"' -c $(DEPENDS_DIR) grew_grs.ml
 
-grew_grs.cmx: $(GREW_GRS_CMX) grew_grs.cmi grew_grs.ml
+grew_grs.cmx: parser_opt $(GREW_GRS_CMX) grew_grs.cmi grew_grs.ml
 	$(OCAMLOPT) $(OPT_FLAGS) -pp 'camlp4o pa_macro.cmo -DDATA_DIR=\"$(DATA_DIR)\"' -c $(DEPENDS_DIR) grew_grs.ml
 ################################################################################
 

@@ -377,7 +377,9 @@ module Html_doc = struct
     Buffer.contents buff
 
   (* dep is a flag which is true iff dep file are shown in doc (iff dep2pict is available) *)
-  let build ~dep file output_dir ast =
+  let build ~dep output_dir grs =
+    let filename = Grs.get_filename grs in
+    let ast = Grs.get_ast grs in
     ignore(Sys.command ("rm -rf "^output_dir));
     ignore(Sys.command ("mkdir "^output_dir));
     ignore(Sys.command ("cp "^DATA_DIR^"/style.css "^output_dir));
@@ -390,14 +392,14 @@ module Html_doc = struct
     let buff = Buffer.create 32 in
     let wnl fmt = Printf.ksprintf (fun x -> Printf.bprintf buff "%s\n" x) fmt in
 
-    let title = sprintf "Grew -- Graph Rewriting System: %s" (Filename.basename file) in
+    let title = sprintf "Grew -- Graph Rewriting System: %s" (Filename.basename filename) in
     html_header ~title buff;
 
     wnl "  <body>";
     wnl "<a href=\"../sentences.html\">Sentences</a> -- <a href=\"../index.html\">Rewriting stats</a> -- GRS documentation";
 
-    wnl "<h1>Graph Rewriting System: %s</h1>" (Filename.basename file);
-    wnl "<center><b>full path</b>: %s</center>" file;
+    wnl "<h1>Graph Rewriting System: %s</h1>" (Filename.basename filename);
+    wnl "<center><b>full path</b>: %s</center>" filename;
 
     wnl "<a href=domain.html>Domain</a><br/>";
     wnl "<a href=modules.html>Index of modules</a><br/>";
@@ -471,7 +473,9 @@ module Html_doc = struct
         close_out page_out_ch;
       done;
     done
-end
+end (* module Html_doc *)
+
+(* ==================================================================================================== *)
 
 module Html_rh = struct
   let build ?filter ?main_feat ?(dot=false) ?(init_graph=true) ?(out_gr=false) ?header ?graph_file prefix t =
