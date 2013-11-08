@@ -71,7 +71,7 @@ module Command  = struct
         check_act_id loc act_i kai;
         check_act_id loc act_j kai;
 	let edge = G_edge.make ~loc ~locals lab in
-	((DEL_EDGE_EXPL (pid_of_act_id act_i, pid_of_act_id act_j, edge), loc), (kai, kei))
+	((DEL_EDGE_EXPL (pid_of_act_id loc act_i, pid_of_act_id loc act_j, edge), loc), (kai, kei))
 	  
       | (Ast.Del_edge_name id, loc) ->
         check_edge loc id kei;
@@ -81,27 +81,27 @@ module Command  = struct
         check_act_id loc act_i kai;
         check_act_id loc act_j kai;
 	let edge = G_edge.make ~loc ~locals lab in
-	((ADD_EDGE (pid_of_act_id act_i, pid_of_act_id act_j, edge), loc), (kai, kei))
+	((ADD_EDGE (pid_of_act_id loc act_i, pid_of_act_id loc act_j, edge), loc), (kai, kei))
 
       | (Ast.Shift_edge (act_i, act_j), loc) ->
         check_act_id loc act_i kai;
         check_act_id loc act_j kai;
-	((SHIFT_EDGE (pid_of_act_id act_i, pid_of_act_id act_j), loc), (kai, kei))
+	((SHIFT_EDGE (pid_of_act_id loc act_i, pid_of_act_id loc act_j), loc), (kai, kei))
 
       | (Ast.Shift_in (act_i, act_j), loc) ->
         check_act_id loc act_i kai;
         check_act_id loc act_j kai;
-	((SHIFT_IN (pid_of_act_id act_i, pid_of_act_id act_j), loc), (kai, kei))
+	((SHIFT_IN (pid_of_act_id loc act_i, pid_of_act_id loc act_j), loc), (kai, kei))
 
       | (Ast.Shift_out (act_i, act_j), loc) ->
         check_act_id loc act_i kai;
         check_act_id loc act_j kai;
-	((SHIFT_OUT (pid_of_act_id act_i, pid_of_act_id act_j), loc), (kai, kei))
+	((SHIFT_OUT (pid_of_act_id loc act_i, pid_of_act_id loc act_j), loc), (kai, kei))
 
       | (Ast.Merge_node (act_i, act_j), loc) ->
         check_act_id loc act_i kai;
         check_act_id loc act_j kai;
-	((MERGE_NODE (pid_of_act_id act_i, pid_of_act_id act_j), loc), (List_.rm act_i kai, kei))
+	((MERGE_NODE (pid_of_act_id loc act_i, pid_of_act_id loc act_j), loc), (List_.rm act_i kai, kei))
 
       | (Ast.New_neighbour (new_id, ancestor, label), loc) ->
         check_act_id loc ancestor kai;
@@ -129,21 +129,21 @@ module Command  = struct
 	  
       | (Ast.Del_node act_n, loc) ->
         check_act_id loc act_n kai;
-        ((DEL_NODE (pid_of_act_id act_n), loc), (List_.rm act_n kai, kei))
+        ((DEL_NODE (pid_of_act_id loc act_n), loc), (List_.rm act_n kai, kei))
 	  
       | (Ast.Del_feat (act_id, feat_name), loc) ->
         check_act_id loc act_id kai;
-        ((DEL_FEAT (pid_of_act_id act_id, feat_name), loc), (kai, kei))
+        ((DEL_FEAT (pid_of_act_id loc act_id, feat_name), loc), (kai, kei))
 
       | (Ast.Update_feat ((act_id, feat_name), ast_items), loc) ->
         check_act_id loc act_id kai;
-        let items = List.map 
+        let items = List.map
           (function
             (* special case of a basic identifier understood as a string *)
             | Ast.Qfn_item ci when Ast.is_simple ci -> String (Ast.complex_id_to_string ci)
             | Ast.Qfn_item ci ->
               let (act_id,feature_name) = Ast.act_qfn_of_ci ci in
-              check_act_id loc act_id kai; Feat (pid_of_act_id act_id, feature_name)
+              check_act_id loc act_id kai; Feat (pid_of_act_id loc act_id, feature_name)
             | Ast.String_item s -> String s
             | Ast.Param_item var ->
               match param with
@@ -154,5 +154,5 @@ module Command  = struct
                     | (Some index,_) -> Param_in index
                     | _ -> Error.build "Unknown command variable '%s'" var
           ) ast_items in
-        ((UPDATE_FEAT (pid_of_act_id act_id, feat_name, items), loc), (kai, kei))
+        ((UPDATE_FEAT (pid_of_act_id loc act_id, feat_name, items), loc), (kai, kei))
 end (* module Command *)
