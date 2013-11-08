@@ -11,6 +11,7 @@ module G_node = struct
       fs: G_fs.t;
       pos: float option;
       next: G_edge.t Massoc_gid.t;
+      conll_root: bool;
     }
 
   let get_fs t = t.fs
@@ -19,7 +20,9 @@ module G_node = struct
   let set_fs t fs = {t with fs = fs}
   let set_pos t pos = {t with pos = Some pos}
 
-  let empty = { fs = G_fs.empty; pos = None; next = Massoc_gid.empty }
+  let empty = { fs = G_fs.empty; pos = None; next = Massoc_gid.empty; conll_root=false }
+
+  let is_conll_root t = t.conll_root
 
   let to_string t =
     Printf.sprintf "  fs=[%s]\n  next=%s\n"
@@ -45,16 +48,18 @@ module G_node = struct
      { fs = fs_with_num;
        pos = (match ast_node.Ast.position with Some n -> Some (float n) | None -> None);
        next = Massoc_gid.empty;
+       conll_root=false;
      } )
 
   let of_conll line =
     if line = Conll.root
-    then { fs = G_fs.empty; pos = Some 0.; next = Massoc_gid.empty }
+    then { fs = G_fs.empty; pos = Some 0.; next = Massoc_gid.empty; conll_root=true; }
     else
       {
         fs = G_fs.of_conll line;
         pos = Some (String_.to_float line.Conll.num);
         next = Massoc_gid.empty;
+        conll_root=false;
       }
 
   let remove (id_tar : Gid.t) label t = {t with next = Massoc_gid.remove id_tar label t.next}

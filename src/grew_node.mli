@@ -18,6 +18,8 @@ module G_node: sig
   val set_fs: t -> G_fs.t -> t
   val set_pos: t -> float -> t
 
+  val is_conll_root: t -> bool
+
   val remove: Gid.t -> G_edge.t -> t -> t
 
   val remove_key: Gid.t -> t -> t

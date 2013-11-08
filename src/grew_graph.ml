@@ -698,7 +698,9 @@ module G_graph = struct
 
   (* -------------------------------------------------------------------------------- *)
   let to_conll graph =
-    let nodes = Gid_map.fold (fun gid node acc -> (gid,node)::acc) graph.map [] in
+    let nodes = Gid_map.fold
+      (fun gid node acc -> if G_node.is_conll_root node then acc else (gid,node)::acc)
+      graph.map [] in
     let snodes = List.sort (fun (_,n1) (_,n2) -> G_node.pos_comp n1 n2) nodes in
     let get_num gid = (list_num (fun (x,_) -> x=gid) snodes) in
 
@@ -744,7 +746,7 @@ module G_graph = struct
             (String.concat "|" govs)
             (String.concat "|" labs)
       )
-      (List.tl snodes) (* do not consider the root node in CONLL output *);
+      snodes;
     Buffer.contents buff
 
 end (* module G_graph *)
