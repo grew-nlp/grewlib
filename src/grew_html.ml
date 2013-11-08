@@ -83,13 +83,19 @@ module Html_doc = struct
   let buff_html_const buff (u_const,_) =
     bprintf buff "      ";
     (match u_const with
-    | Ast.Start (id,labels) -> bprintf buff "%s -[%s]-> *" id (List_.to_string (fun x->x) "|" labels)
-    | Ast.Cst_out id -> bprintf buff "%s -> *" id
-    | Ast.End (id,labels) -> bprintf buff "* -[%s]-> %s" (List_.to_string (fun x->x) "|" labels) id
-    | Ast.Cst_in id -> bprintf buff "* -> %s" id
-    | Ast.Feature_eq ((n_l,fn_l), (n_r,fn_r)) -> bprintf buff "%s.%s = %s.%s" n_l fn_l n_r fn_r;
-    | Ast.Feature_diseq ((n_l,fn_l), (n_r,fn_r)) -> bprintf buff "%s.%s <> %s.%s" n_l fn_l n_r fn_r;
-    | Ast.Feature_ineq (ineq, (n_l,fn_l), (n_r,fn_r)) -> bprintf buff "%s.%s %s %s.%s" n_l fn_l (Ast.string_of_ineq ineq) n_r fn_r
+    | Ast.Start (c_ident,labels) ->
+      bprintf buff "%s -[%s]-> *" (Ast.c_ident_to_string c_ident) (List_.to_string (fun x->x) "|" labels)
+    | Ast.Cst_out c_ident ->
+      bprintf buff "%s -> *" (Ast.c_ident_to_string c_ident)
+    | Ast.End (c_ident,labels) ->
+      bprintf buff "* -[%s]-> %s" (List_.to_string (fun x->x) "|" labels) (Ast.c_ident_to_string c_ident)
+    | Ast.Cst_in c_ident -> bprintf buff "* -> %s" (Ast.c_ident_to_string c_ident)
+    | Ast.Feature_eq ((c_ident_l,fn_l), (c_ident_r,fn_r)) ->
+      bprintf buff "%s.%s = %s.%s" (Ast.c_ident_to_string c_ident_l) fn_l (Ast.c_ident_to_string c_ident_r) fn_r;
+    | Ast.Feature_diseq ((c_ident_l,fn_l), (c_ident_r,fn_r)) ->
+      bprintf buff "%s.%s <> %s.%s" (Ast.c_ident_to_string c_ident_l) fn_l (Ast.c_ident_to_string c_ident_r) fn_r;
+    | Ast.Feature_ineq (ineq, (c_ident_l,fn_l), (c_ident_r,fn_r)) ->
+      bprintf buff "%s.%s %s %s.%s" (Ast.c_ident_to_string c_ident_l) fn_l (Ast.string_of_ineq ineq) (Ast.c_ident_to_string c_ident_r) fn_r
     );
     bprintf buff "\n"
 

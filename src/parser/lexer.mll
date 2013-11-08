@@ -10,23 +10,20 @@
   let tmp_string = ref ""
   let escaped = ref false
 
-  let parse_couple string =
-    match Str.split (Str.regexp "\\.") string with
-    | [s1; s2] -> (s1, s2)
-    | _ -> Log.fcritical "[BUG] \"%s\" is not a couple" string
-
   let parse_ext_ident string =
     match Str.split (Str.regexp "#") string with
     | [base; ext] -> (base, Some ext)
     | _ -> Log.fcritical "[BUG] \"%s\" is not an extented ident" string
 
-  let parse_ext_qfn string =
+  let parse_short_qfn string =
+    match Str.split (Str.regexp "\\.") string with
+    | [s1; s2] -> ((s1,None), s2)
+    | _ -> Log.fcritical "[BUG] \"%s\" is not a couple" string
+
+  let parse_long_qfn string =
     match Str.split (Str.regexp "\\.") string with
     | [ext_ident; feat_name] -> (parse_ext_ident ext_ident, feat_name)
     | _ -> Log.fcritical "[BUG] \"%s\" is not an extented qfn" string
-
-
-
 
   let split_comment com =
     let raw = Str.split (Str.regexp "\n") com in
@@ -117,14 +114,15 @@ and global = parse
 | "graph"       { GRAPH }
 
 | digit+ as number         { INT (int_of_string number) }
-| ident ['.'] ident as c   { QFN (parse_couple c) }
 | ident as id              { IDENT id }
 | '$' ident as pat_var     { DOLLAR_ID pat_var}
 | '@' ident as cmd_var     { AROBAS_ID cmd_var }
 | "@#" color as col        { COLOR col }
 
 | ident '#' ident as ext_ident              { EXT_IDENT (parse_ext_ident ext_ident) }
-| ident '#' ident ['.'] ident as ext_qfn    { EXT_QFN (parse_ext_qfn ext_qfn) }
+
+| ident ['.'] ident as qfn                  { QFN (parse_short_qfn qfn) }
+| ident '#' ident ['.'] ident as qfn        { QFN (parse_long_qfn qfn) }
 
 
 | '{'   { LACC }

@@ -38,6 +38,11 @@ module Ast : sig
 
   type edge = u_edge * Loc.t
 
+  (* the base node name and the eventual new_node extension *)
+  type c_ident = Id.name * string option
+
+  val c_ident_to_string: c_ident -> string
+
   type ineq = Lt | Gt | Le | Ge
 
   val string_of_ineq: ineq -> string
@@ -45,13 +50,13 @@ module Ast : sig
   type feature_name = string
 
   type u_const = 
-    | Start of Id.name * string list (* (source, labels) *)
-    | Cst_out of Id.name
-    | End of Id.name * string list (* (target, labels) *)
-    | Cst_in of Id.name
-    | Feature_eq of (Id.name * feature_name) * (Id.name * feature_name)
-    | Feature_diseq of (Id.name * feature_name) * (Id.name * feature_name)
-    | Feature_ineq of ineq * (Id.name * feature_name) * (Id.name * feature_name)
+    | Start of c_ident * string list (* (source, labels) *)
+    | Cst_out of c_ident
+    | End of c_ident * string list (* (target, labels) *)
+    | Cst_in of c_ident
+    | Feature_eq of (c_ident * feature_name) * (c_ident * feature_name)
+    | Feature_diseq of (c_ident * feature_name) * (c_ident * feature_name)
+    | Feature_ineq of ineq * (c_ident * feature_name) * (c_ident * feature_name)
 
   type const = u_const * Loc.t
 
@@ -60,11 +65,6 @@ module Ast : sig
       pat_edges: edge list;
       pat_const: const list;
     }
-
-  (* the base node name and the eventual new_node extension *)
-  type c_ident = Id.name * string option
-
-  val c_ident_to_string: c_ident -> string
 
   type concat_item =
     | Qfn_item of (c_ident * feature_name)

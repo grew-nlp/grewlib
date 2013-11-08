@@ -84,20 +84,21 @@ module Rule = struct
   let build_pos_constraint ?locals pos_table const =
     let pid_of_name loc node_name = Pid.Pos (Id.build ~loc node_name pos_table) in
     match const with
-      | (Ast.Start (node_name, labels), loc) ->
+      | (Ast.Start ((node_name,None), labels), loc) ->
         Cst_out (pid_of_name loc node_name, P_edge.make ~loc ?locals labels)
-      | (Ast.Cst_out node_name, loc) ->
+      | (Ast.Cst_out (node_name,None), loc) ->
         Cst_out (pid_of_name loc node_name, P_edge.all)
-      | (Ast.End (node_name, labels),loc) ->
+      | (Ast.End ((node_name,None), labels),loc) ->
         Cst_in (pid_of_name loc node_name, P_edge.make ~loc ?locals labels)
-      | (Ast.Cst_in node_name, loc) ->
+      | (Ast.Cst_in (node_name,None), loc) ->
         Cst_in (pid_of_name loc node_name, P_edge.all)
-      | (Ast.Feature_eq ((node_name1, feat_name1), (node_name2, feat_name2)), loc) ->
+      | (Ast.Feature_eq (((node_name1,None), feat_name1), ((node_name2,None), feat_name2)), loc) ->
         Feature_eq (pid_of_name loc node_name1, feat_name1, pid_of_name loc node_name2, feat_name2)
-      | (Ast.Feature_diseq ((node_name1, feat_name1), (node_name2, feat_name2)), loc) ->
+      | (Ast.Feature_diseq (((node_name1,None), feat_name1), ((node_name2,None), feat_name2)), loc) ->
         Feature_diseq (pid_of_name loc node_name1, feat_name1, pid_of_name loc node_name2, feat_name2)
-      | (Ast.Feature_ineq (ineq, (node_name1, feat_name1), (node_name2, feat_name2)), loc) ->
+      | (Ast.Feature_ineq (ineq, ((node_name1,None), feat_name1), ((node_name2,None), feat_name2)), loc) ->
         Feature_ineq (ineq, pid_of_name loc node_name1, feat_name1, pid_of_name loc node_name2, feat_name2)
+      | _ -> Log.critical "Constraints on activated nodes not implemented"
 
   type pattern = {
       graph: P_graph.t;
@@ -122,20 +123,21 @@ module Rule = struct
         | Some i -> Pid.Pos i
         | None -> Pid.Neg (Id.build ~loc node_name neg_table) in
     match const with
-      | (Ast.Start (node_name, labels),loc) ->
+      | (Ast.Start ((node_name,None), labels),loc) ->
         Cst_out (pid_of_name loc node_name, P_edge.make ~loc ?locals labels)
-      | (Ast.Cst_out node_name, loc) ->
+      | (Ast.Cst_out (node_name,None), loc) ->
         Cst_out (pid_of_name loc node_name, P_edge.all)
-      | (Ast.End (node_name, labels),loc) ->
+      | (Ast.End ((node_name,None), labels),loc) ->
         Cst_in (pid_of_name loc node_name, P_edge.make ~loc ?locals labels)
-      | (Ast.Cst_in node_name, loc) ->
+      | (Ast.Cst_in (node_name,None), loc) ->
         Cst_in (pid_of_name loc node_name, P_edge.all)
-      | (Ast.Feature_eq ((node_name1, feat_name1), (node_name2, feat_name2)), loc) ->
+      | (Ast.Feature_eq (((node_name1,None), feat_name1), ((node_name2,None), feat_name2)), loc) ->
         Feature_eq (pid_of_name loc node_name1, feat_name1, pid_of_name loc node_name2, feat_name2)
-      | (Ast.Feature_diseq ((node_name1, feat_name1), (node_name2, feat_name2)), loc) ->
+      | (Ast.Feature_diseq (((node_name1,None), feat_name1), ((node_name2,None), feat_name2)), loc) ->
         Feature_diseq (pid_of_name loc node_name1, feat_name1, pid_of_name loc node_name2, feat_name2)
-      | (Ast.Feature_ineq (ineq, (node_name1, feat_name1), (node_name2, feat_name2)), loc) ->
+      | (Ast.Feature_ineq (ineq, ((node_name1,None), feat_name1), ((node_name2,None), feat_name2)), loc) ->
         Feature_ineq (ineq, pid_of_name loc node_name1, feat_name1, pid_of_name loc node_name2, feat_name2)
+      | _ -> Log.critical "Constraints on activated nodes not implemented"
 
   let build_neg_pattern ?(locals=[||]) pos_table pattern_ast =
     let (extension, neg_table) =

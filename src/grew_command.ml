@@ -67,7 +67,7 @@ module Command  = struct
       | (Ast.Del_edge_expl (i, j, lab), loc) ->
         check_c_ident loc i kci;
         check_c_ident loc j kci;
-	let edge = G_edge.make (* XXX: ~loc *) ~locals lab in
+	let edge = G_edge.make ~loc ~locals lab in
 	((DEL_EDGE_EXPL (pid_of_c_ident i, pid_of_c_ident j, edge), loc), (kci, kei))
 	  
       | (Ast.Del_edge_name id, loc) ->
@@ -77,7 +77,7 @@ module Command  = struct
       | (Ast.Add_edge (i, j, lab), loc) ->
         check_c_ident loc i kci;
         check_c_ident loc j kci;
-	let edge = G_edge.make (* XXX: ~loc *) ~locals lab in
+	let edge = G_edge.make ~loc ~locals lab in
 	((ADD_EDGE (pid_of_c_ident i, pid_of_c_ident j, edge), loc), (kci, kei))
 
       | (Ast.Shift_edge (i, j), loc) ->

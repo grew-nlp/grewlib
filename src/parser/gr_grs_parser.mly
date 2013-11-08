@@ -79,13 +79,11 @@ let localize t = (t,get_loc ())
 %token <string> AROBAS_ID          /* @id */
 %token <string> COLOR              /* @#89abCD */
 
-%token <string>           IDENT    /* indentifier */
-%token <Grew_utils.Id.name * Grew_ast.Ast.feature_name>
-                          QFN      /* ident.ident */
-%token <Grew_utils.Id.name * string option>
-                          EXT_IDENT
-%token <(Grew_utils.Id.name * string option) * Grew_ast.Ast.feature_name>
-                          EXT_QFN
+%token <string>                                                            IDENT    /* indentifier */
+%token <Grew_utils.Id.name * string option>                                EXT_IDENT
+%token <(Grew_utils.Id.name * string option) * Grew_ast.Ast.feature_name>  QFN
+
+
 %token <string>           STRING
 %token <int>              INT
 %token <string list>      COMMENT
@@ -153,7 +151,9 @@ label_ident:
 
 label_item:
         | x = IDENT    { x }
-        | p = QFN { (fst p)^"."^(snd p) }
+        | p = QFN      { match p with ((n1, None), n2) -> (n1^"."^n2) | _ -> failwith ("Invalid label identifier") }
+(* last line is a hack to see mod.app as a valid label_item: reuse of QFN outside of the right context !!! *)
+
 
 
 
@@ -459,19 +459,26 @@ edge_id:
 
 pat_const:
         (* "A -[X|Y]-> *" *)
-        | n1 = IDENT labels = delimited(LTR_EDGE_LEFT,separated_nonempty_list(PIPE,label_ident),LTR_EDGE_RIGHT) STAR
+        | n1 = c_ident labels = delimited(LTR_EDGE_LEFT,separated_nonempty_list(PIPE,label_ident),LTR_EDGE_RIGHT) STAR
             { localize (Ast.Start (n1,labels)) }
 
         (* "A -> *" *)
         | n1 = IDENT GOTO_NODE STAR
+            { localize (Ast.Cst_out (n1,None)) }
+        | n1 = EXT_IDENT GOTO_NODE STAR
             { localize (Ast.Cst_out n1) }
 
+        (* TODO: the next line should replace the previous one, but it give a conflit ... *)
+        (* (\* "A -> *" *\) *)
+        (* | n1 = c_ident GOTO_NODE STAR *)
+        (*     { Printf.printf "===== A#e -> * ======>%s<====\n%!" (Ast.c_ident_to_string n1); localize (Ast.Cst_out n1) } *)
+
         (* "* -[X|Y]-> A" *)
-        | STAR labels = delimited(LTR_EDGE_LEFT,separated_nonempty_list(PIPE,label_ident),LTR_EDGE_RIGHT) n2 = IDENT
+        | STAR labels = delimited(LTR_EDGE_LEFT,separated_nonempty_list(PIPE,label_ident),LTR_EDGE_RIGHT) n2 = c_ident
             { localize (Ast.End (n2,labels)) }
 
         (* "* -> A" *)
-        | STAR GOTO_NODE n2 = IDENT
+        | STAR GOTO_NODE n2 = c_ident
             { localize (Ast.Cst_in n2) }
 
         (* X.cat = Y.cat *)
@@ -523,7 +530,7 @@ pat_const:
 commands:
         | COMMANDS x = delimited(LACC,separated_nonempty_list_final_opt(SEMIC,command),RACC) { x }
 
-cident:
+c_ident:
         | i=IDENT      { (i, None) }
         | ei=EXT_IDENT { ei }
 
@@ -536,36 +543,36 @@ command:
             { localize (Ast.Del_edge_name n) }
 
         (* del_edge m -[x]-> n *)
-        | DEL_EDGE n1 = cident label = delimited(LTR_EDGE_LEFT,label_ident,LTR_EDGE_RIGHT) n2 = cident
+        | DEL_EDGE n1 = c_ident label = delimited(LTR_EDGE_LEFT,label_ident,LTR_EDGE_RIGHT) n2 = c_ident
             { localize (Ast.Del_edge_expl (n1,n2,label)) }
 
         (* add_edge m -[x]-> n *)
-        | ADD_EDGE n1 = cident label = delimited(LTR_EDGE_LEFT,label_ident,LTR_EDGE_RIGHT) n2 = cident
+        | ADD_EDGE n1 = c_ident label = delimited(LTR_EDGE_LEFT,label_ident,LTR_EDGE_RIGHT) n2 = c_ident
 
             { localize (Ast.Add_edge (n1,n2,label)) }
 
         (* shift_in m ==> n *)
-        | SHIFT_IN n1 = cident LONGARROW n2 = cident
+        | SHIFT_IN n1 = c_ident LONGARROW n2 = c_ident
             { localize (Ast.Shift_in (n1,n2)) }
 
         (* shift_out m ==> n *)
-        | SHIFT_OUT n1 = cident LONGARROW n2 = cident
+        | SHIFT_OUT n1 = c_ident LONGARROW n2 = c_ident
             { localize (Ast.Shift_out (n1,n2)) }
 
         (* shift m ==> n *)
-        | SHIFT n1 = cident LONGARROW n2 = cident
+        | SHIFT n1 = c_ident LONGARROW n2 = c_ident
             { localize (Ast.Shift_edge (n1,n2)) }
 
         (* merge m ==> n *)
-        | MERGE n1 = cident LONGARROW n2 = cident
+        | MERGE n1 = c_ident LONGARROW n2 = c_ident
             { localize (Ast.Merge_node (n1,n2)) }
 
         (* del_node n *)
-        | DEL_NODE n = cident
+        | DEL_NODE n = c_ident
             { localize (Ast.Del_node n) }
 
         (* add_node n: <-[x]- m *)
-        | ADD_NODE n1 = cident DDOT label = delimited(RTL_EDGE_LEFT,label_ident,RTL_EDGE_RIGHT) n2 = cident
+        | ADD_NODE n1 = c_ident DDOT label = delimited(RTL_EDGE_LEFT,label_ident,RTL_EDGE_RIGHT) n2 = c_ident
             { localize (Ast.New_neighbour (n1,n2,label)) }
 
         (* activate n#a *)
@@ -573,15 +580,15 @@ command:
             { localize (Ast.Activate n) }
 
         (* del_feat m.cat *)
-        | DEL_FEAT qfn = EXT_QFN
+        | DEL_FEAT qfn = QFN
             { localize (Ast.Del_feat qfn) }
 
         (* m.cat = n.x + "_" + nn.y *)
-        | qfn = EXT_QFN EQUAL items = separated_nonempty_list (PLUS, concat_item)
+        | qfn = QFN EQUAL items = separated_nonempty_list (PLUS, concat_item)
             { localize (Ast.Update_feat (qfn, items)) }
 
 concat_item:
-        | qfn = EXT_QFN    { Ast.Qfn_item qfn }
+        | qfn = QFN        { Ast.Qfn_item qfn }
         | s = IDENT        { Ast.String_item s }
         | s = STRING       { Ast.String_item s }
         | p = AROBAS_ID    { Ast.Param_item p }

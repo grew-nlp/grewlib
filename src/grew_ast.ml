@@ -39,6 +39,14 @@ module Ast = struct
     }
   type edge = u_edge * Loc.t
 
+  (* the base node name and the eventual new_node extension *)
+  type c_ident = Id.name * string option
+
+  let c_ident_to_string (string_node, new_opt) =
+    match new_opt with
+      | None -> string_node
+      | Some a -> sprintf "%s#%s" string_node a
+
   type ineq = Lt | Gt | Le | Ge
 
   let string_of_ineq = function
@@ -49,17 +57,17 @@ module Ast = struct
 
   type feature_name = string
 
-  type u_const = 
-    | Start of Id.name * string list (* (source, labels) *)
-    | Cst_out of Id.name
-    | End of Id.name * string list (* (target, labels) *)
-    | Cst_in of Id.name
-    | Feature_eq of (Id.name * feature_name) * (Id.name * feature_name)
-    | Feature_diseq of (Id.name * feature_name) * (Id.name * feature_name)
-    | Feature_ineq of ineq * (Id.name * feature_name) * (Id.name * feature_name)
+  type u_const =
+    | Start of c_ident * string list (* (source, labels) *)
+    | Cst_out of c_ident
+    | End of c_ident * string list (* (target, labels) *)
+    | Cst_in of c_ident
+    | Feature_eq of (c_ident * feature_name) * (c_ident * feature_name)
+    | Feature_diseq of (c_ident * feature_name) * (c_ident * feature_name)
+    | Feature_ineq of ineq * (c_ident * feature_name) * (c_ident * feature_name)
 
   type const = u_const * Loc.t
-        
+
   type pattern = {
       pat_nodes: node list;
       pat_edges: edge list;
@@ -70,14 +78,6 @@ module Ast = struct
       nodes: (Id.name * node) list;
       edge: edge list;
     }
-
-  (* the base node name and the eventual new_node extension *)
-  type c_ident = Id.name * string option
-
-  let c_ident_to_string (string_node, new_opt) =
-    match new_opt with
-      | None -> string_node
-      | Some a -> sprintf "%s#%s" string_node a
 
   type concat_item =
     | Qfn_item of (c_ident * feature_name)
