@@ -726,7 +726,10 @@ module G_graph = struct
               then -1
               else if l2 <> "" && l2.[0] <> 'I' && l2.[0] <> 'D'
               then 1
-              else compare (String_.to_float g1) (String_.to_float g2)
+              else
+                match compare (String_.to_float g1) (String_.to_float g2) with
+                  | 0 -> compare l1 l2
+                  | x -> x
             ) gov_labs in
 
         let (govs,labs) = List.split sorted_gov_labs in
