@@ -51,9 +51,12 @@ module Command  = struct
 
   let build ?param (kai, kei) table locals ast_command =
 
-    let pid_of_act_id = function
-        | (node_name, None) -> Pat (Pid.Pos (Id.build node_name table))
-        | (node_name, Some n) -> Act (Pid.Pos (Id.build node_name table), n) in
+    let pid_of_act_id loc = function
+        | (node_name, Some n) -> Act (Pid.Pos (Id.build ~loc node_name table), n)
+        | (node_name, None) ->
+          try  (* TODO: remove with activate *)
+            Pat (Pid.Pos (Id.build ~loc node_name table))
+          with _ -> New node_name in
 
     let check_act_id loc act_id kai =
       if not (List.mem act_id kai)
