@@ -144,7 +144,6 @@ module P_graph = struct
 	  | Some map -> map
 	  | None -> Log.fbug "[GRS] [Graph.build_extension] add_edge cannot fail in pattern extension (1)"; exit 2
 	) ext_map_without_edges full_edge_list in
-
     ({ext_map = ext_map_with_all_edges; old_map = old_map_without_edges}, new_table)
 
   (* [tree_and_roots t] returns:

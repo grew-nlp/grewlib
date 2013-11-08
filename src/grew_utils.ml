@@ -29,9 +29,7 @@ module Error = struct
   exception Run of (string * Loc.t option)
   exception Bug of (string * Loc.t option)
 
-  let build_ ?loc message =
-    Log.fmessage "[%s] %s" (match loc with None -> "?" | Some x -> Loc.to_string x) message;
-    raise (Build (message, loc))
+  let build_ ?loc message = raise (Build (message, loc))
   let build ?loc = Printf.ksprintf (build_ ?loc)
 
   let run_ ?loc message = raise (Run (message, loc))

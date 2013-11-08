@@ -9,7 +9,7 @@ module Domain: sig
   val feature_names: unit -> string list option
 end
 
-(* [G_fs] define the ferute srtuctures that are used in graphs *)
+(* [G_fs] define the feature srtuctures that are used in graphs *)
 module G_fs: sig
   type t
 

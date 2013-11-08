@@ -154,7 +154,7 @@ module Sequence = struct
     List.iter
       (fun module_name ->
         if not (List.exists (fun modul -> modul.Modul.name = module_name) module_list)
-        then Error.build ~loc:t.loc "sequence \"%s\", refers to the unknown module \"%s\"."
+        then Error.build ~loc:t.loc "sequence \"%s\" refers to the unknown module \"%s\"."
           t.name module_name
       ) t.def
 
