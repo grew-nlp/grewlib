@@ -90,6 +90,24 @@ module Ast = struct
 
   type domain = feature_spec list
 
+  let is_defined feature_name domain =
+    List.exists (function
+      | Closed (fn,_) when fn = feature_name -> true
+      | Open fn when fn = feature_name -> true
+      | Int fn when fn = feature_name -> true
+      | _ -> false
+    ) domain
+
+  let rec normalize_domain = function
+    | [] -> [Int "position"]
+    | (Int "position") :: tail -> Log.warning "[Domain] declaration of the feature name \"position\" in useless"; normalize_domain tail
+    | (Open "position") :: _
+    | (Closed ("position",_)) :: _ ->
+      Error.build "[Domain] The feature named \"position\" is reserved and must be types 'integer', you cannot not redefine it"
+    | (Int fn) :: tail |  (Open fn) :: tail |  Closed (fn,_) :: tail when is_defined fn tail ->
+      Error.build "[Domain] The feature named \"%s\" is defined several times" fn
+    | x :: tail -> x :: (normalize_domain tail)
+
   type feature_kind = 
     | Equality of feature_value list
     | Disequality of feature_value list

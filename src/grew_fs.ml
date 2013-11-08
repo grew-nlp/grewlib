@@ -21,7 +21,8 @@ module Domain = struct
 
   let reset () = current := None
 
-  let init ast_domain = current := Some ast_domain
+  let init ast_domain =
+    current := Some (Ast.normalize_domain ast_domain)
 
   let build ?loc name unsorted_values =
     let values = List.sort Pervasives.compare unsorted_values in

@@ -42,6 +42,7 @@ module Ast : sig
     | Int of feature_name (* position *)
 
   type domain = feature_spec list
+  val normalize_domain: domain -> domain
 
   type feature_kind = 
     | Equality of feature_value list
