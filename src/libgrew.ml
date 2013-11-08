@@ -30,6 +30,13 @@ exception Bug of string * (string * int) option
 let handle ?(name="") ?(file="No file defined") fct () =
   (* Printf.printf " ==========> %s ...%!" name; *)
   try fct () with
+    (* Raise again already catched exceptions *)
+    | Parsing_err msg -> raise (Parsing_err msg)
+    | Build (msg,loc) -> raise (Build (msg,loc))
+    | Bug (msg, loc) -> raise (Bug (msg,loc))
+    | Run (msg, loc) -> raise (Run (msg,loc))
+
+    (* Catch new exceptions *)
     | Grew_parser.Parse_error (msg,Some (sub_file,l)) ->
         raise (Parsing_err (sprintf "[file:%s, line:%d] %s" sub_file l msg))
     | Grew_parser.Parse_error (msg,None) ->
@@ -37,6 +44,7 @@ let handle ?(name="") ?(file="No file defined") fct () =
     | Error.Build (msg,loc) -> raise (Build (msg,loc))
     | Error.Bug (msg, loc) -> raise (Bug (msg,loc))
     | Error.Run (msg, loc) -> raise (Run (msg,loc))
+
     | exc -> raise (Bug (sprintf "[Libgrew.%s] UNCATCHED EXCEPTION: %s" name (Printexc.to_string exc), None))
 
 let is_empty rh =
@@ -172,7 +180,7 @@ let save_det_gr base rew_hist =
   handle ~name:"save_det_gr" (fun () -> Rewrite_history.save_det_gr base rew_hist) ()
 
 let save_det_conll ?header base rew_hist =
-  handle ~name:"save_det_conll" (fun () -> Rewrite_history.save_det_conll ?header base rew_hist) ()
+  handle ~name:"save_deeeet_conll" (fun () -> Rewrite_history.save_det_conll ?header base rew_hist) ()
 
 let det_dep_string rew_hist =
   handle ~name:"det_dep_string" (fun () -> Rewrite_history.det_dep_string rew_hist) ()

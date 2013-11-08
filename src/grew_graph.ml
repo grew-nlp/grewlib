@@ -129,14 +129,16 @@ module P_graph = struct
     let ext_map_with_all_edges =
       List.fold_left
 	(fun acc (ast_edge, loc) ->
+          let src = ast_edge.Ast.src
+          and tar = ast_edge.Ast.tar in
 	  let i1 =
-	    match Id.build_opt ast_edge.Ast.src pos_table with
+	    match Id.build_opt src pos_table with
               | Some i -> Pid.Pos i
-              | None -> Pid.Neg (Id.build ~loc ast_edge.Ast.src new_table) in
+              | None -> Pid.Neg (Id.build ~loc src new_table) in
 	  let i2 =
-	    match Id.build_opt ast_edge.Ast.tar pos_table with
+	    match Id.build_opt tar pos_table with
               | Some i -> Pid.Pos i
-              | None -> Pid.Neg (Id.build ~loc ast_edge.Ast.tar new_table) in
+              | None -> Pid.Neg (Id.build ~loc tar new_table) in
 	  let edge = P_edge.build ~locals (ast_edge, loc) in
 	  match map_add_edge acc i1 edge i2 with
 	  | Some map -> map
@@ -262,9 +264,10 @@ module G_graph = struct
       let rec loop already_bound = function
         | [] -> []
         | (ast_node, loc) :: tail ->
-            let tail = loop (ast_node.Ast.node_id :: already_bound) tail in
-            if List.mem ast_node.Ast.node_id already_bound
-            then Error.build "[GRS] [Graph.build] try to build a graph with twice the same node id '%s'" ast_node.Ast.node_id
+          let node_id = ast_node.Ast.node_id in
+            let tail = loop (node_id :: already_bound) tail in
+            if List.mem node_id already_bound
+            then Error.build "[GRS] [Graph.build] try to build a graph with twice the same node id '%s'" node_id
             else G_node.build (ast_node, loc) :: tail in
       loop [] full_node_list in
 
@@ -303,7 +306,9 @@ module G_graph = struct
 
     let map_without_edges =
       List_.foldi_left
-        (fun i acc line -> Gid_map.add (Gid.Old i) (G_node.of_conll line) acc)
+        (fun i acc line ->
+          let loc = Loc.opt_set_line i loc in
+          Gid_map.add (Gid.Old i) (G_node.of_conll ?loc line) acc)
         Gid_map.empty sorted_lines in
 
     let map_with_edges =
@@ -699,7 +704,7 @@ module G_graph = struct
   (* -------------------------------------------------------------------------------- *)
   let to_conll graph =
     let nodes = Gid_map.fold
-      (fun gid node acc -> if G_node.is_conll_root node then acc else (gid,node)::acc)
+      (fun gid node acc -> (gid,node)::acc)
       graph.map [] in
     let snodes = List.sort (fun (_,n1) (_,n2) -> G_node.pos_comp n1 n2) nodes in
     let get_num gid = (list_num (fun (x,_) -> x=gid) snodes) in
@@ -719,23 +724,24 @@ module G_graph = struct
     let buff = Buffer.create 32 in
     List.iter
       (fun (gid, node) ->
-        let gov_labs = try Gid_map.find gid govs_labs with Not_found -> [] in
+        if not (G_node.is_conll_root node)
+        then
+          let gov_labs = try Gid_map.find gid govs_labs with Not_found -> [] in
 
-        let sorted_gov_labs =
-          List.sort
-            (fun (g1,l1) (g2,l2) ->
-              if l1 <> "" && l1.[0] <> 'I' && l1.[0] <> 'D'
-              then -1
-              else if l2 <> "" && l2.[0] <> 'I' && l2.[0] <> 'D'
-              then 1
-              else
-                match compare (String_.to_float g1) (String_.to_float g2) with
-                  | 0 -> compare l1 l2
-                  | x -> x
-            ) gov_labs in
-
-        let (govs,labs) = List.split sorted_gov_labs in
-        let fs = G_node.get_fs node in
+          let sorted_gov_labs =
+            List.sort
+              (fun (g1,l1) (g2,l2) ->
+                if l1 <> "" && l1.[0] <> 'I' && l1.[0] <> 'D'
+                then -1
+                else if l2 <> "" && l2.[0] <> 'I' && l2.[0] <> 'D'
+                then 1
+                else
+                  match compare (String_.to_float g1) (String_.to_float g2) with
+                    | 0 -> compare l1 l2
+                    | x -> x
+              ) gov_labs in
+          let (govs,labs) = List.split sorted_gov_labs in
+          let fs = G_node.get_fs node in
           bprintf buff "%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t_\t_\n"
             (get_num gid)
             (match G_fs.get_string_atom "phon" fs with Some p -> p | None -> "NO_PHON")

@@ -8,30 +8,30 @@ open Grew_fs
 
 (* ==================================================================================================== *)
 module Command  = struct 
-  type cnode =               (* a command node is either: *)
+  type command_node =        (* a command node is either: *)
     | Pat of Pid.t           (* a node identified in the pattern *)
     | New of string          (* a node introduced by a new_neighbour *)
     | Act of Pid.t * string  (* a node introduced by a activate *)
 
   type item =
-    | Feat of (cnode * string)
+    | Feat of (command_node * string)
     | String of string
     | Param_in of int
     | Param_out of int
 
   (* the command in pattern *)
   type p = 
-    | DEL_NODE of cnode
-    | DEL_EDGE_EXPL of (cnode * cnode * G_edge.t) 
+    | DEL_NODE of command_node
+    | DEL_EDGE_EXPL of (command_node * command_node * G_edge.t)
     | DEL_EDGE_NAME of string
-    | ADD_EDGE of (cnode * cnode * G_edge.t)
-    | DEL_FEAT of (cnode * string)
-    | UPDATE_FEAT of (cnode * string * item list)
+    | ADD_EDGE of (command_node * command_node * G_edge.t)
+    | DEL_FEAT of (command_node * string)
+    | UPDATE_FEAT of (command_node * string * item list)
     | NEW_NEIGHBOUR of (string * G_edge.t * Pid.t)
-    | SHIFT_EDGE of (cnode * cnode)
-    | SHIFT_IN of (cnode * cnode)
-    | SHIFT_OUT of (cnode * cnode)
-    | MERGE_NODE of (cnode * cnode)
+    | SHIFT_EDGE of (command_node * command_node)
+    | SHIFT_IN of (command_node * command_node)
+    | SHIFT_OUT of (command_node * command_node)
+    | MERGE_NODE of (command_node * command_node)
 
   type t = p * Loc.t  (* remember command location to be able to localize a command failure *)
 
@@ -49,71 +49,71 @@ module Command  = struct
     | H_SHIFT_OUT of (Gid.t * Gid.t)
     | H_MERGE_NODE of (Gid.t * Gid.t)
 
-  let build ?param (kci, kei) table locals ast_command =
+  let build ?param (kai, kei) table locals ast_command =
 
-    let pid_of_c_ident = function
+    let pid_of_act_id = function
         | (node_name, None) -> Pat (Pid.Pos (Id.build node_name table))
-        | (node_name, Some n) ->  Act (Pid.Pos (Id.build node_name table), n) in
+        | (node_name, Some n) -> Act (Pid.Pos (Id.build node_name table), n) in
 
-    let check_c_ident loc c_ident kci =
-      if not (List.mem c_ident kci)
-      then Error.build ~loc "Unbound c_ident identifier \"%s\"" (Ast.c_ident_to_string c_ident) in
+    let check_act_id loc act_id kai =
+      if not (List.mem act_id kai)
+      then Error.build ~loc "Unbound node identifier \"%s\"" (Ast.act_id_to_string act_id) in
 
     let check_edge loc edge_id kei = 
       if not (List.mem edge_id kei) 
       then Error.build ~loc "Unbound edge identifier \"%s\"" edge_id in
 
     match ast_command with
-      | (Ast.Del_edge_expl (i, j, lab), loc) ->
-        check_c_ident loc i kci;
-        check_c_ident loc j kci;
+      | (Ast.Del_edge_expl (act_i, act_j, lab), loc) ->
+        check_act_id loc act_i kai;
+        check_act_id loc act_j kai;
 	let edge = G_edge.make ~loc ~locals lab in
-	((DEL_EDGE_EXPL (pid_of_c_ident i, pid_of_c_ident j, edge), loc), (kci, kei))
+	((DEL_EDGE_EXPL (pid_of_act_id act_i, pid_of_act_id act_j, edge), loc), (kai, kei))
 	  
       | (Ast.Del_edge_name id, loc) ->
         check_edge loc id kei;
-        (DEL_EDGE_NAME id, loc), (kci, List_.rm id kei)
+        (DEL_EDGE_NAME id, loc), (kai, List_.rm id kei)
 
-      | (Ast.Add_edge (i, j, lab), loc) ->
-        check_c_ident loc i kci;
-        check_c_ident loc j kci;
+      | (Ast.Add_edge (act_i, act_j, lab), loc) ->
+        check_act_id loc act_i kai;
+        check_act_id loc act_j kai;
 	let edge = G_edge.make ~loc ~locals lab in
-	((ADD_EDGE (pid_of_c_ident i, pid_of_c_ident j, edge), loc), (kci, kei))
+	((ADD_EDGE (pid_of_act_id act_i, pid_of_act_id act_j, edge), loc), (kai, kei))
 
-      | (Ast.Shift_edge (i, j), loc) ->
-        check_c_ident loc i kci;
-        check_c_ident loc j kci;
-	((SHIFT_EDGE (pid_of_c_ident i, pid_of_c_ident j), loc), (kci, kei))
+      | (Ast.Shift_edge (act_i, act_j), loc) ->
+        check_act_id loc act_i kai;
+        check_act_id loc act_j kai;
+	((SHIFT_EDGE (pid_of_act_id act_i, pid_of_act_id act_j), loc), (kai, kei))
 
-      | (Ast.Shift_in (i, j), loc) ->
-        check_c_ident loc i kci;
-        check_c_ident loc j kci;
-	((SHIFT_IN (pid_of_c_ident i, pid_of_c_ident j), loc), (kci, kei))
+      | (Ast.Shift_in (act_i, act_j), loc) ->
+        check_act_id loc act_i kai;
+        check_act_id loc act_j kai;
+	((SHIFT_IN (pid_of_act_id act_i, pid_of_act_id act_j), loc), (kai, kei))
 
-      | (Ast.Shift_out (i, j), loc) ->
-        check_c_ident loc i kci;
-        check_c_ident loc j kci;
-	((SHIFT_OUT (pid_of_c_ident i, pid_of_c_ident j), loc), (kci, kei))
+      | (Ast.Shift_out (act_i, act_j), loc) ->
+        check_act_id loc act_i kai;
+        check_act_id loc act_j kai;
+	((SHIFT_OUT (pid_of_act_id act_i, pid_of_act_id act_j), loc), (kai, kei))
 
-      | (Ast.Merge_node (i, j), loc) ->
-        check_c_ident loc i kci;
-        check_c_ident loc j kci;
-	((MERGE_NODE (pid_of_c_ident i, pid_of_c_ident j), loc), (List_.rm i kci, kei))
+      | (Ast.Merge_node (act_i, act_j), loc) ->
+        check_act_id loc act_i kai;
+        check_act_id loc act_j kai;
+	((MERGE_NODE (pid_of_act_id act_i, pid_of_act_id act_j), loc), (List_.rm act_i kai, kei))
 
-      | (Ast.New_neighbour ((name_created, None), ancestor, label), loc) ->
-        check_c_ident loc ancestor kci;
-        if List.mem (name_created, None) kci
-        then Error.build ~loc "Node identifier \"%s\" is already used" name_created;
+      | (Ast.New_neighbour (new_id, ancestor, label), loc) ->
+        check_act_id loc ancestor kai;
+        if List.mem (new_id, None) kai
+        then Error.build ~loc "Node identifier \"%s\" is already used" new_id;
 	let edge = G_edge.make ~loc ~locals label in
 	begin
 	  try
             (
               (NEW_NEIGHBOUR
-                 (name_created,
+                 (new_id,
                   edge,
                   Pid.Pos (Id.build ~loc (fst ancestor) table)
                  ), loc),
-              ((name_created, None)::kci, kei)
+              ((new_id, None)::kai, kei)
             )
 	  with Not_found -> 
 	    Log.fcritical "[GRS] tries to build a command New_neighbour (%s) on node %s which is not in the pattern %s"
@@ -124,19 +124,23 @@ module Command  = struct
 
       | (Ast.Activate n, loc) -> failwith "Not implemented"
 	  
-      | (Ast.Del_node n, loc) ->
-        check_c_ident loc n kci;
-	((DEL_NODE (pid_of_c_ident n), loc), (List_.rm n kci, kei))
+      | (Ast.Del_node act_n, loc) ->
+        check_act_id loc act_n kai;
+        ((DEL_NODE (pid_of_act_id act_n), loc), (List_.rm act_n kai, kei))
 	  
-      | (Ast.Del_feat (c_ident,feat_name), loc) ->
-        check_c_ident loc c_ident kci;
-        ((DEL_FEAT (pid_of_c_ident c_ident, feat_name), loc), (kci, kei))
+      | (Ast.Del_feat (act_id, feat_name), loc) ->
+        check_act_id loc act_id kai;
+        ((DEL_FEAT (pid_of_act_id act_id, feat_name), loc), (kai, kei))
 
-      | (Ast.Update_feat ((c_ident, feat_name), ast_items), loc) ->
-        check_c_ident loc c_ident kci;
+      | (Ast.Update_feat ((act_id, feat_name), ast_items), loc) ->
+        check_act_id loc act_id kai;
         let items = List.map 
           (function
-            | Ast.Qfn_item (ci,fn) -> check_c_ident loc ci kci; Feat (pid_of_c_ident ci, fn)
+            (* special case of a basic identifier understood as a string *)
+            | Ast.Qfn_item ci when Ast.is_simple ci -> String (Ast.complex_id_to_string ci)
+            | Ast.Qfn_item ci ->
+              let (act_id,feature_name) = Ast.act_qfn_of_ci ci in
+              check_act_id loc act_id kai; Feat (pid_of_act_id act_id, feature_name)
             | Ast.String_item s -> String s
             | Ast.Param_item var ->
               match param with
@@ -147,6 +151,5 @@ module Command  = struct
                     | (Some index,_) -> Param_in index
                     | _ -> Error.build "Unknown command variable '%s'" var
           ) ast_items in
-        ((UPDATE_FEAT (pid_of_c_ident c_ident, feat_name, items), loc), (kci, kei))
-      | _ -> failwith "TODO remove with new neighbour"
+        ((UPDATE_FEAT (pid_of_act_id act_id, feat_name, items), loc), (kai, kei))
 end (* module Command *)

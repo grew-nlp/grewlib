@@ -31,7 +31,7 @@ module G_node: sig
 
   val add_edge: G_edge.t -> Gid.t -> t -> t option
   val build: Ast.node -> (Id.name * t)
-  val of_conll: Conll.line -> t
+  val of_conll: ?loc:Loc.t -> Conll.line -> t
 
   val pos_comp: t -> t -> int
 

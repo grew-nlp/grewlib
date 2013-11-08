@@ -4,48 +4,120 @@ open Log
 open Grew_utils
 
 module Ast = struct
+  let dot_split s = Str.split (Str.regexp "\\.") s
+  let get_single s = match dot_split s with
+    | [one] -> one
+    | _ -> Error.build "The identifier '%s' contains the '.' symbol" s
+
+  type feature_name = string (* cat, num, ... *)
+  type feature_atom = string (* V, N, inf, ... *)
+  type feature_value = string (* V, 4, "free text", ... *)
+
+  (* -------------------------------------------------------------------------------- *)
+  (* complex_id: V, V#alpha, V.cat, V#alpha.cat, p_obj.loc *)
+  type complex_id =
+    | No_sharp of string
+    | Sharp of string * string
+
+  let complex_id_to_string = function
+    | No_sharp x -> x
+    | Sharp (x,y) -> x ^ "#" ^ y
+
+  (* -------------------------------------------------------------------------------- *)
+  (* simple_id: V *)
+  type simple_id = Id.name
+
+  let simple_id_of_ci ci = match ci with
+    | No_sharp s -> get_single s
+    | Sharp _ -> Error.build "The identifier '%s' must be basic (without '#' symbol)" (complex_id_to_string ci)
+  let is_simple = function
+    | No_sharp s when List.length (dot_split s) = 1 -> true
+    | _ -> false
+
+  (* -------------------------------------------------------------------------------- *)
+  (* label_id: p_obj.loc x.y.z *)
+  type label_id = string
+
+  let label_id_of_ci ci = match ci with
+    | No_sharp s -> s
+    | Sharp _ -> Error.build "The identifier '%s' must be a label (without '#' symbol)" (complex_id_to_string ci)
+
+  (* -------------------------------------------------------------------------------- *)
+  (* act_id: V, V#alpha *)
+  type act_id = Id.name * string option
+
+  let act_id_of_ci = function
+    | No_sharp s -> (get_single s, None)
+    | Sharp (s1,s2) -> (get_single s1, Some (get_single s2))
+
+  let act_id_to_string = function
+    | (base, None) -> base
+    | (base, Some ln) -> sprintf "%s#%s" base ln
+
+  (* -------------------------------------------------------------------------------- *)
+  (* simple_qfn: V.cat *)
+  type simple_qfn = Id.name * feature_name
+  let simple_qfn_of_ci ci = match ci with
+    | No_sharp s ->
+      (match dot_split s with
+        | [base;fn] -> (base, fn)
+        | _ -> Error.build "The identifier '%s' must be a qualified feature name (with one '.' symbol)" s
+      )
+    | Sharp _ -> Error.build "The identifier '%s' must be a qualified feature name (without '#' symbol)" (complex_id_to_string ci)
+  let simple_qfn_to_string (name, feat_name) = sprintf "%s.%s" name feat_name
+
+
+  (* -------------------------------------------------------------------------------- *)
+  (* act_qfn: V.cat, V#alpha.cat *)
+  type act_qfn = act_id * feature_name
+
+  let act_qfn_of_ci = function
+    | No_sharp s ->
+      (match dot_split s with
+        | [base;fn] -> ((base, None), fn)
+        | _ -> Error.build "The identifier '%s' must be a qualified feature name (with one '.' symbol)" s
+      )
+    | Sharp (base, s) ->
+      (match dot_split s with
+        | [ext;fn] -> ((get_single base, Some ext), fn)
+        | _ -> Error.build "The identifier '%s' must be a qualified feature name (with one '.' symbol)" s
+      )
+
   type feature_spec = 
-    | Closed of string * string list (* (the name, the set of atomic values) *)
-    | Open of string (* the name *)
-    | Int of string (* the name *)
-          
+    | Closed of feature_name * feature_atom list (* cat:V,N *)
+    | Open of feature_name (* phon, lemma, ... *)
+    | Int of feature_name (* position *)
+
   type domain = feature_spec list
-        
+
   type feature_kind = 
-    | Equality of string list 
-    | Disequality of string list
-    | Param of string
+    | Equality of feature_value list
+    | Disequality of feature_value list
+    | Param of string (* $ident *)
 
   type u_feature = {
-      name: string;
-      kind: feature_kind;
-    }  
-
+    name: feature_name;
+    kind: feature_kind;
+  }
   type feature = u_feature * Loc.t
-        
+
   type u_node = {
       node_id: Id.name;
       position: int option;
       fs: feature list;
     }
   type node = u_node * Loc.t
-        
+
+  type edge_label = string
+
   type u_edge = {
       edge_id: Id.name option;
       src: Id.name;
-      edge_labels: string list;
+      edge_labels: edge_label list;
       tar: Id.name;
       negative: bool;
     }
   type edge = u_edge * Loc.t
-
-  (* the base node name and the eventual new_node extension *)
-  type c_ident = Id.name * string option
-
-  let c_ident_to_string (string_node, new_opt) =
-    match new_opt with
-      | None -> string_node
-      | Some a -> sprintf "%s#%s" string_node a
 
   type ineq = Lt | Gt | Le | Ge
 
@@ -55,17 +127,14 @@ module Ast = struct
     | Le -> "≤"
     | Ge -> "≥"
 
-  type feature_name = string
-
   type u_const =
-    | Start of c_ident * string list (* (source, labels) *)
-    | Cst_out of c_ident
-    | End of c_ident * string list (* (target, labels) *)
-    | Cst_in of c_ident
-    | Feature_eq of (c_ident * feature_name) * (c_ident * feature_name)
-    | Feature_diseq of (c_ident * feature_name) * (c_ident * feature_name)
-    | Feature_ineq of ineq * (c_ident * feature_name) * (c_ident * feature_name)
-
+    | Start of Id.name * edge_label list (* (source, labels) *)
+    | Cst_out of Id.name
+    | End of Id.name * edge_label list (* (target, labels) *)
+    | Cst_in of Id.name
+    | Feature_eq of simple_qfn * simple_qfn
+    | Feature_diseq of simple_qfn * simple_qfn
+    | Feature_ineq of ineq * simple_qfn * simple_qfn
   type const = u_const * Loc.t
 
   type pattern = {
@@ -80,25 +149,24 @@ module Ast = struct
     }
 
   type concat_item =
-    | Qfn_item of (c_ident * feature_name)
+    | Qfn_item of complex_id (* Warning: either a simple string (without .) of a real qualified feature_name *)
     | String_item of string
     | Param_item of string
 
   type u_command = 
-    | Del_edge_expl of (c_ident * c_ident * string)
+    | Del_edge_expl of (act_id * act_id * edge_label)
     | Del_edge_name of string
-    | Add_edge of (c_ident * c_ident * string)
-    | Shift_in of (c_ident*c_ident)
-    | Shift_out of (c_ident*c_ident)
-    | Shift_edge of (c_ident*c_ident)
-    | Merge_node of (c_ident*c_ident)
-    | New_neighbour of (c_ident * c_ident * string)
-    | Del_node of c_ident
-    | Activate of c_ident
+    | Add_edge of (act_id * act_id * edge_label)
+    | Shift_in of (act_id * act_id)
+    | Shift_out of (act_id * act_id)
+    | Shift_edge of (act_id * act_id)
+    | Merge_node of (act_id * act_id)
+    | New_neighbour of (Id.name * act_id * edge_label)
+    | Del_node of act_id
+    | Activate of act_id
 
-    | Del_feat of (c_ident * feature_name)
-    | Update_feat of (c_ident * feature_name) * concat_item list
-
+    | Del_feat of act_qfn
+    | Update_feat of act_qfn * concat_item list
   type command = u_command * Loc.t
 
   (* the [rule] type is used for 3 kids of module items:
@@ -161,4 +229,4 @@ module Ast = struct
     nodes: node list;
     edges: edge list;
   }
-end (* module Ast *)        
+end (* module Ast *)

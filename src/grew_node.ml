@@ -51,12 +51,12 @@ module G_node = struct
        conll_root=false;
      } )
 
-  let of_conll line =
+  let of_conll ?loc line =
     if line = Conll.root
     then { fs = G_fs.empty; pos = Some 0.; next = Massoc_gid.empty; conll_root=true; }
     else
       {
-        fs = G_fs.of_conll line;
+        fs = G_fs.of_conll ?loc line;
         pos = Some (String_.to_float line.Conll.num);
         next = Massoc_gid.empty;
         conll_root=false;

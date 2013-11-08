@@ -19,6 +19,9 @@ let parse_handle file fct lexbuf =
   | Failure msg ->
       let cp = lexbuf.Lexing.lex_curr_p.Lexing.pos_lnum in
       raise (Parse_error ("Failure:"^msg, Some (file,cp)))
+  | Error.Build (msg,_) ->
+      let cp = lexbuf.Lexing.lex_curr_p.Lexing.pos_lnum in
+      raise (Parse_error ("Syntax error:"^msg, Some (file,cp)))
   | err -> 
       let cp = lexbuf.Lexing.lex_curr_p.Lexing.pos_lnum in
       raise (Parse_error ("Unexpected error:"^(Printexc.to_string err), Some (file,cp)))

@@ -39,7 +39,7 @@ module G_fs: sig
 
   val build: Ast.feature list -> t
 
-  val of_conll: Conll.line -> t
+  val of_conll: ?loc:Loc.t -> Conll.line -> t
 
   (** [unif t1 t2] returns [Some t] if [t] is the unification of two graph feature structures
       [None] is returned if the two feature structures cannot be unified. *)

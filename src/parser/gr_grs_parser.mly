@@ -1,10 +1,11 @@
 %{
 
 open Grew_ast
+
 open Grew_utils
 
 (* Some intermediate sum types used in sub-functions when building the ast *)
-type pat_item = 
+type pat_item =
   | Pat_node of Ast.node
   | Pat_edge of Ast.edge
   | Pat_const of Ast.const
@@ -79,10 +80,7 @@ let localize t = (t,get_loc ())
 %token <string> AROBAS_ID          /* @id */
 %token <string> COLOR              /* @#89abCD */
 
-%token <string>                                                            IDENT    /* indentifier */
-%token <Grew_utils.Id.name * string option>                                EXT_IDENT
-%token <(Grew_utils.Id.name * string option) * Grew_ast.Ast.feature_name>  QFN
-
+%token <Grew_ast.Ast.complex_id>   COMPLEX_ID
 
 %token <string>           STRING
 %token <int>              INT
@@ -101,27 +99,35 @@ let localize t = (t,get_loc ())
 %public separated_list_final_opt(separator,X):
 |                                                               { [] }
 |   x=X                                                         { [x] }
-|   x=X; separator; xs = separated_list_final_opt(separator,X)  { x :: xs }
+|   x=X; separator; xs=separated_list_final_opt(separator,X)    { x :: xs }
 
 %public separated_nonempty_list_final_opt(separator,X):
 |   x=X                                                                  { [x] }
 |   x=X; separator                                                       { [x] }
-|   x=X; separator; xs = separated_nonempty_list_final_opt(separator,X)  { x :: xs }
-
+|   x=X; separator; xs=separated_nonempty_list_final_opt(separator,X)    { x :: xs }
 
 /*=============================================================================================*/
 /*  BASIC DEFINITIONS                                                                          */
 /*=============================================================================================*/
-value:
-        | v = IDENT { v }
-        | v = STRING { v }
-        | v = INT { string_of_int v }
+string_or_int:
+        | v=COMPLEX_ID    { Ast.simple_id_of_ci v }
+        | v=STRING        { v }
+        | v=INT           { string_of_int v }
+
+label_ident:
+        | x=separated_nonempty_list(DDOT,COMPLEX_ID)   { String.concat ":" (List.map Ast.label_id_of_ci x) }
+
+simple_id_with_loc:
+        | id=COMPLEX_ID { (Ast.simple_id_of_ci id,!Parser_global.current_line+1) }
+
+num:
+        | INT           { $1 }
 
 /*=============================================================================================*/
 /*  GREW GRAPH                                                                                 */
 /*=============================================================================================*/
-gr: 
-        | GRAPH LACC items = separated_list_final_opt(SEMIC,gr_item) RACC EOF 
+gr:
+        | GRAPH LACC items=separated_list_final_opt(SEMIC,gr_item) RACC EOF
             {
              {
               Ast.meta = List_.opt_map (function Graph_meta n -> Some n | _ -> None) items;
@@ -132,253 +138,192 @@ gr:
 
 gr_item:
         (* sentence = "Jean dort." *)
-        | id = IDENT EQUAL value = value
-            { Graph_meta (id, value) }
+        | id=COMPLEX_ID EQUAL value=string_or_int
+            { Graph_meta (Ast.simple_id_of_ci id, value) }
 
         (* B (1) [phon="pense", lemma="penser", cat=v, mood=ind ] *)
-        | id = IDENT position = option(delimited(LPAREN,num,RPAREN)) feats = delimited(LBRACKET,separated_list_final_opt(COMA,node_features),RBRACKET) 
-            { Graph_node (localize {Ast.node_id = id; position=position; fs=feats}) }
+        (* B [phon="pense", lemma="penser", cat=v, mood=ind ] *)
+        | id=COMPLEX_ID position=option(delimited(LPAREN,num,RPAREN)) feats=delimited(LBRACKET,separated_list_final_opt(COMA,node_features),RBRACKET)
+            { Graph_node (localize {Ast.node_id = Ast.simple_id_of_ci id; position=position; fs=feats}) }
 
         (* A -[x|y|z]-> B*)
-        | n1 = IDENT labels = delimited(LTR_EDGE_LEFT,separated_nonempty_list(PIPE,label_ident),LTR_EDGE_RIGHT) n2 = IDENT
-            { Graph_edge (localize {Ast.edge_id = None; src=n1; edge_labels=labels; tar=n2; negative=false; }) }
-
-num:
-        | INT { $1 }
-
-label_ident:
-        | x = separated_nonempty_list(DDOT,label_item) { String.concat ":" x }
-
-label_item:
-        | x = IDENT    { x }
-        | p = QFN      { match p with ((n1, None), n2) -> (n1^"."^n2) | _ -> failwith ("Invalid label identifier") }
-(* last line is a hack to see mod.app as a valid label_item: reuse of QFN outside of the right context !!! *)
-
-
-
-
-
-
-
+        | n1=COMPLEX_ID labels=delimited(LTR_EDGE_LEFT,separated_nonempty_list(PIPE,label_ident),LTR_EDGE_RIGHT) n2=COMPLEX_ID
+            { Graph_edge (localize {Ast.edge_id = None; src=Ast.simple_id_of_ci n1; edge_labels=labels; tar=Ast.simple_id_of_ci n2; negative=false; }) }
 
 /*=============================================================================================*/
 /*  GREW GRAPH SYSTEM REWRITING                                                                */
 /*=============================================================================================*/
-
-
 grs_with_include:
-        | f = features_group g = global_labels m = module_or_include_list s = sequences EOF 
+        | f=features_group g=labels m=module_or_include_list s=sequences EOF
             {
-             { Ast.domain_wi=f; 
-               labels_wi=g; 
-               modules_wi=m; 
+             { Ast.domain_wi=f;
+               labels_wi=g;
+               modules_wi=m;
                sequences_wi=s;
              }
            }
-     
+
 grs:
-        | f = features_group g = global_labels m = modules s = sequences EOF 
+        | f=features_group g=labels m=modules s=sequences EOF
             {
-             { Ast.domain=f; 
-               labels=g; 
-               modules=m; 
+             { Ast.domain=f;
+               labels=g;
+               modules=m;
                sequences=s;
              }
            }
-       
+
 module_or_include_list:
-        | x = list(module_or_include) { x }
+        | x=list(module_or_include) { x }
 
 module_or_include:
-        | m = grew_module        { Ast.Modul m }
-        | INCLUDE sub = subfile SEMIC { Ast.Includ sub } 
+        | m=grew_module             { Ast.Modul m }
+        | INCLUDE sub=subfile SEMIC { Ast.Includ sub }
 
 subfile:
-        | f = STRING  { localize f }
+        | f=STRING  { localize f }
 
 /*=============================================================================================*/
-/*                                                                                             */
 /* FEATURES DOMAIN DEFINITION                                                                  */
-/*                                                                                             */
-/* features {                                                                                  */
-/*      cat: n, np, v, adj;                                                                    */
-/*      mood: inf, ind, subj, pastp, presp;                                                    */
-/*      lemma: *; phon: *                                                                      */
-/* }                                                                                           */
-/*                                                                                             */
 /*=============================================================================================*/
-
 features_group:
-        | FEATURES x = features { x }
-        
+        | FEATURES x=features { x }
+
 %inline features:
-        | LACC x = separated_nonempty_list_final_opt(SEMIC,feature) RACC { x }
+        | LACC x=separated_nonempty_list_final_opt(SEMIC,feature) RACC { x }
 
 %inline feature:
-        | name = feature_name DDOT values = features_values 
+        (* phon:* *)
+        (* pos=# *)
+        (* m: ind,inf,part,subj,imp *)
+        | feature_name=feature_name DDOT feature_values=features_values
             {
-              match values with
-                | ["*"] -> Ast.Open name
-                | ["#"] -> Ast.Int name
-                | _ -> Ast.Closed (name, List.sort Pervasives.compare values)
+              match feature_values with
+                | ["*"] -> Ast.Open feature_name
+                | ["#"] -> Ast.Int feature_name
+                | _ -> Ast.Closed (feature_name, List.sort Pervasives.compare feature_values)
             }
 
 feature_name:
-        | word = IDENT { word }
+        | ci=COMPLEX_ID { Ast.simple_id_of_ci ci }
+
+feature_value:
+        | v=string_or_int  { v }
 
 features_values:
-        | STAR { ["*"] }
-        | SHARP { ["#"] }
-        | x = separated_nonempty_list(COMA,value) { x }
+        | STAR                                          { ["*"] }
+        | SHARP                                         { ["#"] }
+        | x=separated_nonempty_list(COMA,feature_value) { x }
 
 
 /*=============================================================================================*/
-/*                                                                                             */
 /* GLOBAL LABELS DEFINITION                                                                    */
-/*                                                                                             */
-/* labels { OBJ, SUBJ, DE_OBJ, ANT }                                                           */
-/*                                                                                             */
 /*=============================================================================================*/
-
 %inline labels:
-        | x = delimited(LACC,separated_nonempty_list_final_opt(COMA,label),RACC) { x }
-        
+        (* labels { OBJ, SUBJ, DE_OBJ, ANT } *)
+        | LABELS x=delimited(LACC,separated_nonempty_list_final_opt(COMA,label),RACC) { x }
+
 %inline label:
-        | x = label_ident display_list = list(display)  { (x, display_list) }
+        | x=label_ident display_list=list(display)  { (x, display_list) }
 
 display:
-        | dis = AROBAS_ID   { dis }
-        | col = COLOR       { col }
-
-global_labels:
-        | LABELS x = labels { x }
-
+        | dis=AROBAS_ID   { dis }
+        | col=COLOR       { col }
 
 /*=============================================================================================*/
-/*                                                                                             */
 /* MODULE DEFINITION                                                                           */
-/*                                                                                             */
-/* module p7_to_p7p-mc {                                                                       */
-/*   ...                                                                                       */
-/* }                                                                                           */
-/*                                                                                             */
 /*=============================================================================================*/
-
 included:
-        | x = list (module_or_include) EOF { x }
+        | x=list(module_or_include) EOF { x }
 
 modules:
-        | x = list(grew_module) { x }
-        
-grew_module: 
-        | doc=option(module_doc) MODULE conf=boption(CONFLUENT) id=module_id LACC l=option(local_labels) nn=option(new_nodes) r=rules RACC 
+        | x=list(grew_module) { x }
+
+grew_module:
+        | doc=option(COMMENT) MODULE conf=boption(CONFLUENT) id_loc=simple_id_with_loc LACC l=option(labels) nn=option(new_nodes) r=rules RACC
            {
-            { Ast.module_id = fst id; 
+            { Ast.module_id = fst id_loc;
               local_labels = (match l with None -> [] | Some x -> x);
               new_node_names = (match nn with None -> [] | Some x -> x);
               rules = r;
               confluent = conf;
               module_doc = (match doc with Some d -> d | None -> []);
-              mod_loc = (!Parser_global.current_file, snd id);
+              mod_loc = (!Parser_global.current_file, snd id_loc);
               mod_dir = "";
             }
           }
 
 new_nodes:
         (* "new_nodes {a, b, c}" *)
-        | NEW_NODES x = delimited(LACC,separated_nonempty_list_final_opt(COMA,IDENT),RACC) { x:string list }
-
-module_id:
-        | id = IDENT { (id,!Parser_global.current_line+1) }
-
-module_doc:
-        | comment = COMMENT { comment } 
-
-/*=============================================================================================*/
-/*                                                                                             */
-/* LOCAL LABELS DEFINITION                                                                     */
-/*                                                                                             */
-/* labels {ANT_TMP}                                                                            */
-/*                                                                                             */
-/*=============================================================================================*/
-
-
-
-local_labels:
-        | LABELS x = labels { x }
+        | NEW_NODES x=delimited(LACC,separated_nonempty_list_final_opt(COMA,COMPLEX_ID),RACC)
+            { List.map Ast.simple_id_of_ci x }
 
 
 /*=============================================================================================*/
-/*                                                                                             */
 /* RULES DEFINITION                                                                            */
-/*                                                                                             */
-/* rule ant_prorel_init {                                                                      */
-/*   ...                                                                                       */
-/* }                                                                                           */
 /*=============================================================================================*/
-
 rules:
         | r = list(rule) { r }
 
-rule: 
-        | doc = option(rule_doc) RULE id = rule_id LACC p = pos_item n = list(neg_item) cmds = commands RACC 
-            { 
-              { Ast.rule_id = fst id;
+rule:
+        | doc=option(COMMENT) RULE id_loc=simple_id_with_loc LACC p=pos_item n=list(neg_item) cmds=commands RACC
+            {
+              { Ast.rule_id = fst id_loc;
                 pos_pattern = p;
                 neg_patterns = n;
                 commands = cmds;
                 param = None;
                 lp = None;
                 rule_doc = begin match doc with Some d -> d | None -> [] end;
-                rule_loc = (!Parser_global.current_file,snd id);
+                rule_loc = (!Parser_global.current_file,snd id_loc);
               }
-            }         
-        | doc = option(rule_doc) LEX_RULE id = rule_id param=option(param) LACC p = pos_item n = list(neg_item) cmds = commands RACC lp = option(lp)
-            { 
-              { Ast.rule_id = fst id;
+            }
+        | doc=option(COMMENT) LEX_RULE id_loc=simple_id_with_loc param=option(param) LACC p=pos_item n=list(neg_item) cmds=commands RACC lp=option(lp)
+            {
+              { Ast.rule_id = fst id_loc;
                 pos_pattern = p;
                 neg_patterns = n;
                 commands = cmds;
                 param = param;
                 lp = lp;
                 rule_doc = begin match doc with Some d -> d | None -> [] end;
-                rule_loc = (!Parser_global.current_file,snd id);
+                rule_loc = (!Parser_global.current_file,snd id_loc);
               }
-            }         
-        | doc = option(rule_doc) FILTER id = rule_id LACC p = pos_item n = list(neg_item) RACC 
-            { 
-              { Ast.rule_id = fst id;
+            }
+        | doc=option(COMMENT) FILTER id_loc=simple_id_with_loc LACC p=pos_item n=list(neg_item) RACC
+            {
+              { Ast.rule_id = fst id_loc;
                 pos_pattern = p;
                 neg_patterns = n;
                 commands = [];
                 param = None;
                 lp = None;
                 rule_doc = begin match doc with Some d -> d | None -> [] end;
-                rule_loc = (!Parser_global.current_file,snd id);
+                rule_loc = (!Parser_global.current_file,snd id_loc);
               }
             }
 
 lp:
-        | lp = LP  {lp}
+        | lp = LP  { lp }
 
 param:
-        | LPAREN FEATURE vars = separated_nonempty_list(COMA,var) RPAREN { ([],vars) }
-        | LPAREN FEATURE vars = separated_nonempty_list(COMA,var) SEMIC files = separated_list(COMA, file) RPAREN { (files,vars) }
+        | LPAREN FEATURE vars=separated_nonempty_list(COMA,var) RPAREN                                       { ([],vars) }
+        | LPAREN FEATURE vars=separated_nonempty_list(COMA,var) SEMIC files=separated_list(COMA,file) RPAREN { (files,vars) }
 
 file:
-        | FILE f=STRING {f}
+        | FILE f=STRING     { f }
 var:
-        | i = DOLLAR_ID {i}
-        | i = AROBAS_ID {i}
+        | i=DOLLAR_ID       { i }
+        | i=AROBAS_ID       { i }
 
 pos_item:
-        | MATCH i = pn_item { i }
+        | MATCH i=pn_item   { i }
 
 neg_item:
-        | WITHOUT i = pn_item { i }
-          
-pn_item: 
-        | l = delimited(LACC,separated_list_final_opt(SEMIC,pat_item),RACC)
+        | WITHOUT i=pn_item { i }
+
+pn_item:
+        | l=delimited(LACC,separated_list_final_opt(SEMIC,pat_item),RACC)
             {
              {
               Ast.pat_nodes = List_.opt_map (function Pat_node n -> Some n | _ -> None) l;
@@ -386,236 +331,177 @@ pn_item:
               Ast.pat_const = List_.opt_map (function Pat_const n -> Some n | _ -> None) l;
             }
            }
-        
-rule_id:
-        | id = IDENT { (id,!Parser_global.current_line+1) }
 
-rule_doc:
-        | comment = COMMENT { comment } 
-        
 /*=============================================================================================*/
-/*                                                                                             */
 /* MATCH DEFINITION                                                                            */
-/*                                                                                             */
-/* match {                                                                                     */
-/*      P [cat = prorel];                                                                      */
-/*      N -> P;                                                                                */
-/*                                                                                             */
-/*      without { P -[ANT]-> * }                                                               */
-/*      without { P -[ANT_TMP]-> * }                                                           */
-/*    }                                                                                        */
-/*                                                                                             */
 /*=============================================================================================*/
-
-
 pat_item:
-        | n = pat_node { Pat_node n }
-        | e = pat_edge { Pat_edge e }
-        | c = pat_const { Pat_const c }
+        | n=pat_node  { Pat_node n }
+        | e=pat_edge  { Pat_edge e }
+        | c=pat_const { Pat_const c }
 
 pat_node:
-        | id = IDENT feats = delimited(LBRACKET,separated_list_final_opt(COMA,node_features),RBRACKET) 
-            { localize ({Ast.node_id = id; position=None; fs= feats}) }
+        (* R [cat=V, lemma=$lemma ] *)
+        | id=COMPLEX_ID feats=delimited(LBRACKET,separated_list_final_opt(COMA,node_features),RBRACKET)
+            { localize ({Ast.node_id = Ast.simple_id_of_ci id; position=None; fs= feats}) }
 
 node_features:
-        | name = IDENT EQUAL STAR 
-            { localize {Ast.kind = Ast.Disequality []; name=name; } } 
-        | name = IDENT EQUAL values = separated_nonempty_list(PIPE,value)
-            { localize {Ast.kind = Ast.Equality values; name=name; } } 
-        | name = IDENT DISEQUAL values = separated_nonempty_list(PIPE,value)
-            { localize {Ast.kind = Ast.Disequality values; name=name; } } 
-        | name = IDENT EQUAL p = DOLLAR_ID
-            { localize {Ast.kind = Ast.Param p; name=name; } } 
+        (* cat=* *)
+        | name=COMPLEX_ID EQUAL STAR
+            { localize {Ast.kind = Ast.Disequality []; name=Ast.simple_id_of_ci name; } }
+
+        (* cat=n|v|adj *)
+        | name=COMPLEX_ID EQUAL values=separated_nonempty_list(PIPE,feature_value)
+            { localize {Ast.kind = Ast.Equality values; name=Ast.simple_id_of_ci name; } }
+
+        (* cat<>n|v|adj *)
+        | name=COMPLEX_ID DISEQUAL values=separated_nonempty_list(PIPE,feature_value)
+            { localize {Ast.kind = Ast.Disequality values; name=Ast.simple_id_of_ci name; } }
+
+        (* lemma=$lem *)
+        | name=COMPLEX_ID EQUAL p=DOLLAR_ID
+            { localize {Ast.kind = Ast.Param p; name=Ast.simple_id_of_ci name; } }
 
 pat_edge:
         (* "e: A -> B" OR "e: A -[*]-> B" *)
-        | id = edge_id n1 = IDENT GOTO_NODE n2 = IDENT
-        | id = edge_id n1 = IDENT LTR_EDGE_LEFT STAR LTR_EDGE_RIGHT n2 = label_ident
-               { localize ({Ast.edge_id = Some id; src=n1; edge_labels=[]; tar=n2; negative=true}) }
+        | id=COMPLEX_ID DDOT n1=COMPLEX_ID GOTO_NODE n2=COMPLEX_ID
+        | id=COMPLEX_ID DDOT n1=COMPLEX_ID LTR_EDGE_LEFT STAR LTR_EDGE_RIGHT n2=COMPLEX_ID
+               { localize ({Ast.edge_id = Some (Ast.simple_id_of_ci id); src=Ast.simple_id_of_ci n1; edge_labels=[]; tar=Ast.simple_id_of_ci n2; negative=true}) }
 
         (* "A -> B" *)
-        | n1 = IDENT GOTO_NODE n2 = IDENT
-               { localize ({Ast.edge_id = None; src=n1; edge_labels=[]; tar=n2; negative=true}) }
+        | n1=COMPLEX_ID GOTO_NODE n2=COMPLEX_ID
+               { localize ({Ast.edge_id = None; src=Ast.simple_id_of_ci n1; edge_labels=[]; tar=Ast.simple_id_of_ci n2; negative=true}) }
 
         (* "e: A -[^X|Y]-> B" *)
-        | id = edge_id n1 = IDENT labels = delimited(LTR_EDGE_LEFT_NEG,separated_nonempty_list(PIPE,label_ident),LTR_EDGE_RIGHT) n2 = IDENT
-            { localize ({Ast.edge_id = Some id; src=n1; edge_labels=labels; tar=n2; negative=true}) }
-            
+        | id=COMPLEX_ID DDOT n1=COMPLEX_ID labels=delimited(LTR_EDGE_LEFT_NEG,separated_nonempty_list(PIPE,label_ident),LTR_EDGE_RIGHT) n2=COMPLEX_ID
+            { localize ({Ast.edge_id = Some (Ast.simple_id_of_ci id); src=Ast.simple_id_of_ci n1; edge_labels=labels; tar=Ast.simple_id_of_ci n2; negative=true}) }
+
         (* "A -[^X|Y]-> B"*)
-        | n1 = IDENT labels = delimited(LTR_EDGE_LEFT_NEG,separated_nonempty_list(PIPE,label_ident),LTR_EDGE_RIGHT) n2 = IDENT
-            { localize ({Ast.edge_id = None; src=n1; edge_labels=labels; tar=n2; negative=true}) }
+        | n1=COMPLEX_ID labels=delimited(LTR_EDGE_LEFT_NEG,separated_nonempty_list(PIPE,label_ident),LTR_EDGE_RIGHT) n2=COMPLEX_ID
+            { localize ({Ast.edge_id = None; src=Ast.simple_id_of_ci n1; edge_labels=labels; tar=Ast.simple_id_of_ci n2; negative=true}) }
 
         (* "e: A -[X|Y]-> B" *)
-        | id = edge_id n1 = IDENT labels = delimited(LTR_EDGE_LEFT,separated_nonempty_list(PIPE,label_ident),LTR_EDGE_RIGHT) n2 = IDENT
-            { localize ({Ast.edge_id = Some id; src=n1; edge_labels=labels; tar=n2; negative=false}) }       
+        | id=COMPLEX_ID DDOT n1=COMPLEX_ID labels=delimited(LTR_EDGE_LEFT,separated_nonempty_list(PIPE,label_ident),LTR_EDGE_RIGHT) n2=COMPLEX_ID
+            { localize ({Ast.edge_id = Some (Ast.simple_id_of_ci id); src=Ast.simple_id_of_ci n1; edge_labels=labels; tar=Ast.simple_id_of_ci n2; negative=false}) }
 
         (* "A -[X|Y]-> B" *)
-        | n1 = IDENT labels = delimited(LTR_EDGE_LEFT,separated_nonempty_list(PIPE,label_ident),LTR_EDGE_RIGHT) n2 = IDENT
-            { localize ({Ast.edge_id = None; src=n1; edge_labels=labels; tar=n2; negative=false}) }
-
-
-edge_id:
-        | id = IDENT DDOT { id }
+        | n1=COMPLEX_ID labels=delimited(LTR_EDGE_LEFT,separated_nonempty_list(PIPE,label_ident),LTR_EDGE_RIGHT) n2=COMPLEX_ID
+            { localize ({Ast.edge_id = None; src=Ast.simple_id_of_ci n1; edge_labels=labels; tar=Ast.simple_id_of_ci n2; negative=false}) }
 
 pat_const:
         (* "A -[X|Y]-> *" *)
-        | n1 = c_ident labels = delimited(LTR_EDGE_LEFT,separated_nonempty_list(PIPE,label_ident),LTR_EDGE_RIGHT) STAR
-            { localize (Ast.Start (n1,labels)) }
+        | n=COMPLEX_ID labels=delimited(LTR_EDGE_LEFT,separated_nonempty_list(PIPE,label_ident),LTR_EDGE_RIGHT) STAR
+            { localize (Ast.Start (Ast.simple_id_of_ci n,labels)) }
 
         (* "A -> *" *)
-        | n1 = IDENT GOTO_NODE STAR
-            { localize (Ast.Cst_out (n1,None)) }
-        | n1 = EXT_IDENT GOTO_NODE STAR
-            { localize (Ast.Cst_out n1) }
-
-        (* TODO: the next line should replace the previous one, but it give a conflit ... *)
-        (* (\* "A -> *" *\) *)
-        (* | n1 = c_ident GOTO_NODE STAR *)
-        (*     { Printf.printf "===== A#e -> * ======>%s<====\n%!" (Ast.c_ident_to_string n1); localize (Ast.Cst_out n1) } *)
+        | n=COMPLEX_ID GOTO_NODE STAR
+            { localize (Ast.Cst_out (Ast.simple_id_of_ci n)) }
 
         (* "* -[X|Y]-> A" *)
-        | STAR labels = delimited(LTR_EDGE_LEFT,separated_nonempty_list(PIPE,label_ident),LTR_EDGE_RIGHT) n2 = c_ident
-            { localize (Ast.End (n2,labels)) }
+        | STAR labels=delimited(LTR_EDGE_LEFT,separated_nonempty_list(PIPE,label_ident),LTR_EDGE_RIGHT) n=COMPLEX_ID
+            { localize (Ast.End (Ast.simple_id_of_ci n,labels)) }
 
         (* "* -> A" *)
-        | STAR GOTO_NODE n2 = c_ident
-            { localize (Ast.Cst_in n2) }
+        | STAR GOTO_NODE n=COMPLEX_ID
+            { localize (Ast.Cst_in (Ast.simple_id_of_ci n)) }
 
         (* X.cat = Y.cat *)
-        | qfn1 = QFN EQUAL qfn2 = QFN
-            { localize (Ast.Feature_eq (qfn1, qfn2)) }
+        | qfn1=COMPLEX_ID EQUAL qfn2=COMPLEX_ID
+            { localize (Ast.Feature_eq (Ast.simple_qfn_of_ci qfn1, Ast.simple_qfn_of_ci qfn2)) }
 
         (* X.position < Y.position *)
-        | qfn1 = QFN LT qfn2 = QFN
-            { localize (Ast.Feature_ineq (Ast.Lt, qfn1, qfn2)) }
+        | qfn1=COMPLEX_ID LT qfn2=COMPLEX_ID
+            { localize (Ast.Feature_ineq (Ast.Lt, Ast.simple_qfn_of_ci qfn1, Ast.simple_qfn_of_ci qfn2)) }
 
         (* X.position > Y.position *)
-        | qfn1 = QFN GT qfn2 = QFN
-            { localize (Ast.Feature_ineq (Ast.Gt, qfn1, qfn2)) }
+        | qfn1=COMPLEX_ID GT qfn2=COMPLEX_ID
+            { localize (Ast.Feature_ineq (Ast.Gt, Ast.simple_qfn_of_ci qfn1, Ast.simple_qfn_of_ci qfn2)) }
 
         (* X.position <= Y.position *)
-        | qfn1 = QFN LE qfn2 = QFN
-            { localize (Ast.Feature_ineq (Ast.Le, qfn1, qfn2)) }
+        | qfn1=COMPLEX_ID LE qfn2=COMPLEX_ID
+            { localize (Ast.Feature_ineq (Ast.Le, Ast.simple_qfn_of_ci qfn1, Ast.simple_qfn_of_ci qfn2)) }
 
         (* X.position >= Y.position *)
-        | qfn1 = QFN GE qfn2 = QFN
-            { localize (Ast.Feature_ineq (Ast.Ge, qfn1, qfn2)) }
+        | qfn1=COMPLEX_ID GE qfn2=COMPLEX_ID
+            { localize (Ast.Feature_ineq (Ast.Ge, Ast.simple_qfn_of_ci qfn1, Ast.simple_qfn_of_ci qfn2)) }
+
 
 /*=============================================================================================*/
-/*                                                                                             */
 /* COMMANDS DEFINITION                                                                         */
-/*                                                                                             */
-/* commands {                                                                                  */
-/*      del_edge A -[OBJ]-> B;                                                                 */
-/*      del_edge e;                                                                            */
-/*                                                                                             */
-/*      add_edge A -[ATS]-> B;                                                                 */
-/*                                                                                             */
-/*      shift A ==> B;                                                                         */
-/*                                                                                             */
-/*      del_node A;                                                                            */
-/*                                                                                             */
-/*      add_node D: <-[SUJ]- A;                                                                */
-/*                                                                                             */
-/*      A.mood = inf;                                                                          */
-/*                                                                                             */
-/*      B.tense = A.tense;                                                                     */
-/*                                                                                             */
-/*      del_feat A.tense;                                                                      */
-/* }                                                                                           */
-/*                                                                                             */
 /*=============================================================================================*/
-
-
 commands:
-        | COMMANDS x = delimited(LACC,separated_nonempty_list_final_opt(SEMIC,command),RACC) { x }
-
-c_ident:
-        | i=IDENT      { (i, None) }
-        | ei=EXT_IDENT { ei }
-
-eident:
-        | ei=EXT_IDENT { ei }
+        | COMMANDS x=delimited(LACC,separated_nonempty_list_final_opt(SEMIC,command),RACC) { x }
 
 command:
         (* del_edge e *)
-        | DEL_EDGE n = IDENT
-            { localize (Ast.Del_edge_name n) }
+        | DEL_EDGE n=COMPLEX_ID
+            { localize (Ast.Del_edge_name (Ast.simple_id_of_ci n)) }
 
         (* del_edge m -[x]-> n *)
-        | DEL_EDGE n1 = c_ident label = delimited(LTR_EDGE_LEFT,label_ident,LTR_EDGE_RIGHT) n2 = c_ident
-            { localize (Ast.Del_edge_expl (n1,n2,label)) }
+        | DEL_EDGE src=COMPLEX_ID label=delimited(LTR_EDGE_LEFT,label_ident,LTR_EDGE_RIGHT) tar=COMPLEX_ID
+            { localize (Ast.Del_edge_expl (Ast.act_id_of_ci src, Ast.act_id_of_ci tar, label)) }
 
         (* add_edge m -[x]-> n *)
-        | ADD_EDGE n1 = c_ident label = delimited(LTR_EDGE_LEFT,label_ident,LTR_EDGE_RIGHT) n2 = c_ident
-
-            { localize (Ast.Add_edge (n1,n2,label)) }
+        | ADD_EDGE src=COMPLEX_ID label=delimited(LTR_EDGE_LEFT,label_ident,LTR_EDGE_RIGHT) tar=COMPLEX_ID
+            { localize (Ast.Add_edge (Ast.act_id_of_ci src, Ast.act_id_of_ci tar, label)) }
 
         (* shift_in m ==> n *)
-        | SHIFT_IN n1 = c_ident LONGARROW n2 = c_ident
-            { localize (Ast.Shift_in (n1,n2)) }
+        | SHIFT_IN src=COMPLEX_ID LONGARROW tar=COMPLEX_ID
+            { localize (Ast.Shift_in (Ast.act_id_of_ci src, Ast.act_id_of_ci tar)) }
 
         (* shift_out m ==> n *)
-        | SHIFT_OUT n1 = c_ident LONGARROW n2 = c_ident
-            { localize (Ast.Shift_out (n1,n2)) }
+        | SHIFT_OUT src=COMPLEX_ID LONGARROW tar=COMPLEX_ID
+            { localize (Ast.Shift_out (Ast.act_id_of_ci src, Ast.act_id_of_ci tar)) }
 
         (* shift m ==> n *)
-        | SHIFT n1 = c_ident LONGARROW n2 = c_ident
-            { localize (Ast.Shift_edge (n1,n2)) }
+        | SHIFT src=COMPLEX_ID LONGARROW tar=COMPLEX_ID
+            { localize (Ast.Shift_edge (Ast.act_id_of_ci src, Ast.act_id_of_ci tar)) }
 
         (* merge m ==> n *)
-        | MERGE n1 = c_ident LONGARROW n2 = c_ident
-            { localize (Ast.Merge_node (n1,n2)) }
+        | MERGE src=COMPLEX_ID LONGARROW tar=COMPLEX_ID
+            { localize (Ast.Merge_node (Ast.act_id_of_ci src, Ast.act_id_of_ci tar)) }
 
         (* del_node n *)
-        | DEL_NODE n = c_ident
-            { localize (Ast.Del_node n) }
+        | DEL_NODE ci=COMPLEX_ID
+            { localize (Ast.Del_node (Ast.act_id_of_ci ci)) }
 
         (* add_node n: <-[x]- m *)
-        | ADD_NODE n1 = c_ident DDOT label = delimited(RTL_EDGE_LEFT,label_ident,RTL_EDGE_RIGHT) n2 = c_ident
-            { localize (Ast.New_neighbour (n1,n2,label)) }
+        | ADD_NODE new_ci=COMPLEX_ID DDOT label=delimited(RTL_EDGE_LEFT,label_ident,RTL_EDGE_RIGHT) anc_ci=COMPLEX_ID
+            { localize (Ast.New_neighbour (Ast.simple_id_of_ci new_ci, Ast.act_id_of_ci anc_ci,label)) }
 
         (* activate n#a *)
-        | ACTIVATE n = eident
-            { localize (Ast.Activate n) }
+        | ACTIVATE ci=COMPLEX_ID
+            { localize (Ast.Activate (Ast.act_id_of_ci ci)) }
 
         (* del_feat m.cat *)
-        | DEL_FEAT qfn = QFN
-            { localize (Ast.Del_feat qfn) }
+        | DEL_FEAT qfn=COMPLEX_ID
+            { localize (Ast.Del_feat (Ast.act_qfn_of_ci qfn)) }
 
         (* m.cat = n.x + "_" + nn.y *)
-        | qfn = QFN EQUAL items = separated_nonempty_list (PLUS, concat_item)
-            { localize (Ast.Update_feat (qfn, items)) }
+        | qfn=COMPLEX_ID EQUAL items=separated_nonempty_list (PLUS, concat_item)
+            { localize (Ast.Update_feat ((Ast.act_qfn_of_ci qfn), items)) }
 
 concat_item:
-        | qfn = QFN        { Ast.Qfn_item qfn }
-        | s = IDENT        { Ast.String_item s }
-        | s = STRING       { Ast.String_item s }
-        | p = AROBAS_ID    { Ast.Param_item p }
-        | p = DOLLAR_ID    { Ast.Param_item p }
+        | cid=COMPLEX_ID   { Ast.Qfn_item cid }
+        | s=STRING         { Ast.String_item s }
+        | p=AROBAS_ID      { Ast.Param_item p }
+        | p=DOLLAR_ID      { Ast.Param_item p }
+
 
 /*=============================================================================================*/
-/*                                                                                             */
 /* SEQUENCE DEFINITION                                                                         */
-/*                                                                                              */
-/* sequence { ant; p7_to_p7p-mc}                                                               */
-/*                                                                                             */
 /*=============================================================================================*/
-
 sequences:
-        | SEQUENCES seq = delimited(LACC,list(sequence),RACC) { seq }
+        | SEQUENCES seq=delimited(LACC,list(sequence),RACC) { seq }
 
 sequence:
-        | doc = option(COMMENT) id = sequence_id mod_names = delimited(LACC,separated_list_final_opt(SEMIC,IDENT),RACC) 
-            { 
-              { Ast.seq_name = fst id; 
-                seq_mod = mod_names ; 
-                seq_doc = begin match doc with Some d -> d | None -> [] end; 
-                seq_loc = (!Parser_global.current_file,snd id);
-              } 
+        (* sequence { ant; p7_to_p7p-mc} *)
+        | doc=option(COMMENT) id_loc=simple_id_with_loc mod_names=delimited(LACC,separated_list_final_opt(SEMIC,COMPLEX_ID),RACC)
+            {
+              { Ast.seq_name = fst id_loc;
+                seq_mod = List.map (fun x -> Ast.simple_id_of_ci x) mod_names ;
+                seq_doc = begin match doc with Some d -> d | None -> [] end;
+                seq_loc = (!Parser_global.current_file,snd id_loc);
+              }
             }
-
-sequence_id:
-        | id = IDENT { (id,!Parser_global.current_line+1) }
-
 %%

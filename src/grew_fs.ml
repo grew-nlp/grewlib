@@ -170,13 +170,13 @@ module G_fs = struct
     let unsorted = List.map (fun feat -> G_feature.build feat) ast_fs in
     List.sort G_feature.compare unsorted
 
-  let of_conll line =
+  let of_conll ?loc line =
     let unsorted_without_pos =
-      ("phon", Domain.build_one "phon" line.Conll.phon)
-      :: ("lemma", Domain.build_one "lemma" line.Conll.lemma)
-      :: ("cat", Domain.build_one "cat" line.Conll.pos1)
-      :: ("position", Domain.build_one "position" line.Conll.num)
-      :: (List.map (fun (f,v) -> (f, Domain.build_one f v)) line.Conll.morph) in
+      ("phon", Domain.build_one ?loc "phon" line.Conll.phon)
+      :: ("lemma", Domain.build_one ?loc "lemma" line.Conll.lemma)
+      :: ("cat", Domain.build_one ?loc "cat" line.Conll.pos1)
+      :: ("position", Domain.build_one ?loc "position" line.Conll.num)
+      :: (List.map (fun (f,v) -> (f, Domain.build_one ?loc f v)) line.Conll.morph) in
     let unsorted = match line.Conll.pos2 with
       | "" | "_" -> unsorted_without_pos
       | s -> ("pos", Domain.build_one "pos" s) :: unsorted_without_pos in
