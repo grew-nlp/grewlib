@@ -33,6 +33,7 @@ let localize t = (t,get_loc ())
 %token PLUS                        /* + */
 %token EQUAL                       /* = */
 %token DISEQUAL                    /* <> */
+%token BANG                        /* ! */
 
 %token LT                          /* < */
 %token GT                          /* > */
@@ -361,6 +362,10 @@ node_features:
         (* lemma=$lem *)
         | name=COMPLEX_ID EQUAL p=DOLLAR_ID
             { localize {Ast.kind = Ast.Param p; name=Ast.simple_id_of_ci name; } }
+
+        (* !lemma *)
+        | BANG name=COMPLEX_ID
+            { localize {Ast.kind = Ast.Absent; name=Ast.simple_id_of_ci name; } }
 
 pat_edge:
         (* "e: A -> B" OR "e: A -[*]-> B" *)

@@ -91,7 +91,8 @@ module P_feature = struct
   type v = 
     | Equal of value list  (* with Equal constr, the list MUST never be empty *)
     | Different of value list
-    | Param of int 
+    | Param of int
+    | Absent
 
   type t = string * v
 
@@ -112,6 +113,7 @@ module P_feature = struct
     | (feat_name, Equal atoms) -> sprintf "%s=%s" feat_name (List_.to_string string_of_value "|" atoms)
     | (feat_name, Different []) -> sprintf "%s=*" feat_name
     | (feat_name, Different atoms) -> sprintf "%s<>%s" feat_name (List_.to_string string_of_value "|" atoms)
+    | (feat_name, Absent) -> sprintf "!%s" feat_name
     | (feat_name, Param index) -> 
       match param_names with
         | None -> sprintf "%s=$%d" feat_name index 
@@ -122,6 +124,7 @@ module P_feature = struct
       let values = Domain.build ~loc name unsorted_values in (name, Equal values)
     | ({Ast.kind=Ast.Disequality unsorted_values; name=name}, loc) ->
       let values = Domain.build ~loc name unsorted_values in (name, Different values)
+    | ({Ast.kind=Ast.Absent; name=name}, loc) -> (name, Absent)
     | ({Ast.kind=Ast.Param var; name=name}, loc) ->
         match pat_vars with
         | None -> Error.bug ~loc "[P_feature.build] param '%s' in an unparametrized rule" var
@@ -268,12 +271,17 @@ module P_fs = struct
     let rec loop acc = function
       | [], _ -> acc
 
+      (* a feature_name present only in instance -> Skip it *)
+      | ((fn_pat, fv_pat)::t_pat, (fn, _)::t) when fn_pat > fn -> loop acc ((fn_pat, fv_pat)::t_pat, t)
+
+      (* Three next cases: pattern requires for the absence of a feature. case 1&2: OK, go on, 3: fail *)
+      | ((fn_pat, P_feature.Absent)::t_pat, []) -> loop acc (t_pat, [])
+      | ((fn_pat, P_feature.Absent)::t_pat, (fn, fa)::t) when fn_pat < fn -> loop acc (t_pat, (fn, fa)::t)
+      | ((fn_pat, P_feature.Absent)::t_pat, (fn, fa)::t) when fn_pat = fn -> raise Fail
+
       (* Two next cases: each feature_name present in pattern must be in instance: [] means unif failure *)
       | _, [] -> raise Fail
       | ((fn_pat, _)::_, (fn, _)::_) when fn_pat < fn -> raise Fail
-
-      (* a feature_name present only in instance -> Skip it *)
-      | ((fn_pat, fv_pat)::t_pat, (fn, _)::t) when fn_pat > fn -> loop acc ((fn_pat, fv_pat)::t_pat, t)
 
       (* Next cases: fn_pat = fn *)
       | ((_, (P_feature.Equal fv))::t_pat, (_, fa)::t) when List_.sort_mem fa fv -> loop acc (t_pat,t)
@@ -296,10 +304,16 @@ module P_fs = struct
   let filter fs_p fs_g = 
     let rec loop = function
       | [], fs -> true
+
+      | ((fn1,_)::_ as f1, (fn2,_)::t2) when fn1 > fn2 -> loop (f1, t2)
+
+      | ((fn1,P_feature.Absent)::t1, []) -> loop (t1,[])
+      | ((fn1,P_feature.Absent)::t1, ((fn2,_)::_ as f2)) when fn1 < fn2 -> loop (t1,f2)
+      | ((fn1,P_feature.Absent)::t1, (fn2,_)::_) when fn1 = fn2 -> false
+
       | fs, [] -> false
 
       | ((fn1,_)::_, (fn2,_)::_) when fn1 < fn2 -> false
-      | ((fn1,_)::_ as f1, (fn2,_)::t2) when fn1 > fn2 -> loop (f1, t2)
 
       (* all remaining case are fn1 = fn2 *)
       | ((_, (P_feature.Equal fv))::t1, (_, atom)::t2) when List_.sort_mem atom fv -> loop (t1, t2)

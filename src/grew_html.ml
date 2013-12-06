@@ -61,6 +61,8 @@ module Html_doc = struct
         sprintf "%s=%s" u_feature.Ast.name (List_.to_string (fun x->x) "|" values)
     | Ast.Disequality [] ->
         sprintf "%s=*" u_feature.Ast.name
+    | Ast.Absent ->
+        sprintf "!%s" u_feature.Ast.name
     | Ast.Disequality values ->
         sprintf "%s<>%s" u_feature.Ast.name (List_.to_string (fun x->x) "|" values)
     | Ast.Param index ->

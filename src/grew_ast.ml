@@ -112,6 +112,7 @@ module Ast = struct
     | Equality of feature_value list
     | Disequality of feature_value list
     | Param of string (* $ident *)
+    | Absent
 
   type u_feature = {
     name: feature_name;
