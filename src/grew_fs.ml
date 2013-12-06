@@ -179,7 +179,6 @@ module G_fs = struct
       ("phon", Domain.build_one ?loc "phon" line.Conll.phon)
       :: ("lemma", Domain.build_one ?loc "lemma" line.Conll.lemma)
       :: ("cat", Domain.build_one ?loc "cat" line.Conll.pos1)
-      :: ("position", Domain.build_one ?loc "position" line.Conll.num)
       :: (List.map (fun (f,v) -> (f, Domain.build_one ?loc f v)) line.Conll.morph) in
     let unsorted = match line.Conll.pos2 with
       | "" | "_" -> unsorted_without_pos
@@ -222,11 +221,12 @@ module G_fs = struct
       | (None, _) -> "#"
       | (Some atom, _) -> string_of_value atom
         
-  let to_dep ?main_feat ?filter t =
+  let to_dep ?position ?main_feat ?filter t =
     let (main_opt, sub) = get_main ?main_feat t in
+    let last = match position with Some f when f > 0. -> [("position", Float f)] | _ -> [] in
     let reduced_sub = match filter with
-      | None -> sub
-      | Some l -> List.filter (fun (fn,_) -> List.mem fn l) sub in
+      | None -> sub @ last
+      | Some l -> (List.filter (fun (fn,_) -> List.mem fn l) sub) @ last in
     sprintf " word=\"%s\"; subword=\"%s\""
       (match main_opt with Some atom -> string_of_value atom | None -> "_")
       (List_.to_string G_feature.to_string "#" reduced_sub)
@@ -251,6 +251,18 @@ module P_fs = struct
 
   let empty = []
 
+  let check_position ?param position t =
+    try
+      match List.assoc "position" t with
+        | P_feature.Equal pos_list -> List.mem (Float position) pos_list
+        | P_feature.Different pos_list -> not (List.mem (Float position) pos_list)
+        | P_feature.Absent -> false
+        | P_feature.Param index ->
+          match param with
+            | Some p -> float_of_string (Lex_par.get_param_value index p) = position
+            | None -> Log.bug "[P_fs.check_position] Illegal parametrized pattern feature"; exit 2
+    with Not_found -> true
+
   let build ?pat_vars ast_fs =
     let unsorted = List.map (P_feature.build ?pat_vars) ast_fs in
     List.sort P_feature.compare unsorted 
@@ -268,6 +280,9 @@ module P_fs = struct
   exception Fail
 
   let match_ ?param pattern fs =
+    let pattern_wo_pos =
+      try List.remove_assoc "position" pattern
+      with Not_found -> pattern in
     let rec loop acc = function
       | [], _ -> acc
 
@@ -299,7 +314,7 @@ module P_fs = struct
 
       (* remaining cases: Equal and not list_mem  |  Diff and not list_mem -> fail*)  
       | _ -> raise Fail
-    in loop param (pattern,fs)
+    in loop param (pattern_wo_pos,fs)
 
   let filter fs_p fs_g = 
     let rec loop = function

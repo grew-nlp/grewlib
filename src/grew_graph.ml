@@ -6,7 +6,6 @@ open Grew_ast
 open Grew_edge
 open Grew_fs
 open Grew_node
-open Grew_command
 
 module Str_map = Map.Make (String)
 
@@ -259,15 +258,20 @@ module G_graph = struct
     let full_node_list = gr_ast.Ast.nodes
     and full_edge_list = gr_ast.Ast.edges in
 
+    let next_free_position = ref 1. in
+
     let named_nodes =
       let rec loop already_bound = function
         | [] -> []
         | (ast_node, loc) :: tail ->
           let node_id = ast_node.Ast.node_id in
-            let tail = loop (node_id :: already_bound) tail in
-            if List.mem node_id already_bound
-            then Error.build "[GRS] [Graph.build] try to build a graph with twice the same node id '%s'" node_id
-            else G_node.build (ast_node, loc) :: tail in
+          if List.mem node_id already_bound
+          then Error.build "[GRS] [Graph.build] try to build a graph with twice the same node id '%s'" node_id
+          else
+            let (new_id,new_node) = G_node.build ~def_position:!next_free_position (ast_node, loc) in
+            next_free_position := 1. +. (max !next_free_position (G_node.get_position new_node));
+            let new_tail = loop (node_id :: already_bound) tail in
+            (new_id,new_node) :: new_tail in
       loop [] full_node_list in
 
     let sorted_nodes = List.sort (fun (id1,_) (id2,_) -> Pervasives.compare id1 id2) named_nodes in
@@ -297,9 +301,7 @@ module G_graph = struct
 
   (* -------------------------------------------------------------------------------- *)
   let of_conll ?loc lines =
-    let sorted_lines =
-      Conll.root ::
-      (List.sort (fun line1 line2 -> Pervasives.compare line1.Conll.num line2.Conll.num) lines) in
+    let sorted_lines = Conll.root :: (List.sort Conll.compare lines) in
 
     let table = Array.of_list (List.map (fun line -> line.Conll.num) sorted_lines) in
 
@@ -309,7 +311,6 @@ module G_graph = struct
           let loc = Loc.opt_set_line i loc in
           Gid_map.add (Gid.Old i) (G_node.of_conll ?loc line) acc)
         Gid_map.empty sorted_lines in
-
     let map_with_edges =
       List.fold_left
         (fun acc line ->
@@ -352,7 +353,7 @@ module G_graph = struct
                       (fun acc2 (fn,fv) -> G_fs.set_feat fn fv acc2)
                       G_fs.empty
                       (("phon", phon) :: ("cat", (List.assoc "label" t_atts)) :: other_feats) in
-                  let new_node = G_node.set_fs (G_node.set_pos G_node.empty (float i)) new_fs in
+                  let new_node = G_node.set_fs (G_node.set_position (float i) G_node.empty) new_fs in
                   (Gid_map.add (Gid.Old i) new_node acc, Str_map.add id (Gid.Old i) acc_map)
                 | _ -> Log.critical "[G_graph.of_xml] Not a wellformed <T> tag"
             ) (Gid_map.empty, Str_map.empty) t_list in
@@ -527,8 +528,13 @@ module G_graph = struct
   (* -------------------------------------------------------------------------------- *)
   let set_feat ?loc graph node_id feat_name new_value =
     let node = Gid_map.find node_id graph.map in
-    let new_fs = G_fs.set_feat ?loc feat_name new_value (G_node.get_fs node) in
-    { graph with map = Gid_map.add node_id (G_node.set_fs node new_fs) graph.map }
+    let new_node =
+      match feat_name with
+        | "position" -> G_node.set_position (float_of_string new_value) node
+        | _ ->
+          let new_fs = G_fs.set_feat ?loc feat_name new_value (G_node.get_fs node) in
+          (G_node.set_fs node new_fs) in
+    { graph with map = Gid_map.add node_id new_node graph.map }
 
   (* -------------------------------------------------------------------------------- *)
   let update_feat ?loc graph tar_id tar_feat_name item_list =
@@ -545,7 +551,6 @@ module G_graph = struct
         ) item_list in
     let new_feature_value = List_.to_string (fun s->s) "" strings_to_concat in
     (set_feat ?loc graph tar_id tar_feat_name new_feature_value, new_feature_value)
-
 
   (* -------------------------------------------------------------------------------- *)
   let del_feat graph node_id feat_name =
@@ -570,21 +575,27 @@ module G_graph = struct
       ) graph.meta;
 
     (* nodes *)
-    let nodes = Gid_map.fold (fun id node acc -> (id,node)::acc) graph.map [] in
-    let sorted_nodes = List.sort (fun (_,n1) (_,n2) -> G_node.pos_comp n1 n2) nodes in
+    let nodes = Gid_map.fold
+      (fun id node acc ->
+        if G_node.is_conll_root node
+        then acc
+        else (id,node)::acc
+      ) graph.map [] in
+
+    let sorted_nodes = List.sort (fun (_,n1) (_,n2) -> G_node.position_comp n1 n2) nodes in
     List.iter
       (fun (id,node) ->
         bprintf buff "  N_%s %s;\n" (Gid.to_string id) (G_node.to_gr node)
       ) sorted_nodes;
 
     (* edges *)
-    Gid_map.iter
-      (fun id node ->
+    List.iter
+      (fun (id,node) ->
 	Massoc_gid.iter
 	  (fun tar edge ->
 	    bprintf buff "  N_%s -[%s]-> N_%s;\n" (Gid.to_string id) (G_edge.to_string edge) (Gid.to_string tar)
 	  ) (G_node.get_next node)
-      ) graph.map;
+      ) sorted_nodes;
 
     bprintf buff "}\n";
     Buffer.contents buff
@@ -592,7 +603,7 @@ module G_graph = struct
   (* -------------------------------------------------------------------------------- *)
   let to_sentence ?main_feat graph =
     let nodes = Gid_map.fold (fun id elt acc -> (id,elt)::acc) graph.map [] in
-    let snodes = List.sort (fun (_,n1) (_,n2) -> G_node.pos_comp n1 n2) nodes in
+    let snodes = List.sort (fun (_,n1) (_,n2) -> G_node.position_comp n1 n2) nodes in
 
     let words = List.map
       (fun (id, node) -> G_fs.to_word ?main_feat (G_node.get_fs node)
@@ -617,7 +628,7 @@ module G_graph = struct
   (* -------------------------------------------------------------------------------- *)
   let to_dep ?filter ?main_feat ?(deco=G_deco.empty) graph =
     let nodes = Gid_map.fold (fun id elt acc -> (id,elt)::acc) graph.map [] in
-    let snodes = List.sort (fun (_,n1) (_,n2) -> G_node.pos_comp n1 n2) nodes in
+    let snodes = List.sort (fun (_,n1) (_,n2) -> G_node.position_comp n1 n2) nodes in
 
     let buff = Buffer.create 32 in
     bprintf buff "[GRAPH] { opacity=0; scale = 200; fontname=\"Arial\"; }\n";
@@ -627,7 +638,7 @@ module G_graph = struct
     List.iter
       (fun (id, node) ->
         let fs = G_node.get_fs node in
-        let dep_fs = G_fs.to_dep ?filter ?main_feat fs in
+        let dep_fs = G_fs.to_dep ~position:(G_node.get_position node) ?filter ?main_feat fs in
         let style = match (List.mem id deco.G_deco.nodes, G_fs.get_string_atom "void" fs) with
           | (true, _) -> "; forecolor=red; subcolor=red; "
           | (false, Some "y") -> "; forecolor=red; subcolor=red; "
@@ -684,7 +695,7 @@ module G_graph = struct
   let to_raw graph =
 
     let nodes = Gid_map.fold (fun id elt acc -> (id,elt)::acc) graph.map [] in
-    let snodes = List.sort (fun (_,n1) (_,n2) -> G_node.pos_comp n1 n2) nodes in
+    let snodes = List.sort (fun (_,n1) (_,n2) -> G_node.position_comp n1 n2) nodes in
     let raw_nodes = List.map (fun (gid,node) -> (gid, G_fs.to_raw (G_node.get_fs node))) snodes in
 
     let get_num gid = list_num (fun (x,_) -> x=gid) raw_nodes in
@@ -705,8 +716,13 @@ module G_graph = struct
     let nodes = Gid_map.fold
       (fun gid node acc -> (gid,node)::acc)
       graph.map [] in
-    let snodes = List.sort (fun (_,n1) (_,n2) -> G_node.pos_comp n1 n2) nodes in
-    let get_num gid = (list_num (fun (x,_) -> x=gid) snodes) in
+    let snodes = List.sort (fun (_,n1) (_,n2) -> G_node.position_comp n1 n2) nodes in
+
+    let get_num gid =
+      let gnode = List.assoc gid snodes in
+      if G_node.is_conll_root gnode
+      then 0.
+      else G_node.get_position (List.assoc gid snodes) in
 
     (* Warning: [govs_labs] maps [gid]s to [num]s *)
     let govs_labs =
@@ -716,7 +732,7 @@ module G_graph = struct
           Massoc_gid.fold
             (fun acc2 tar_gid edge  ->
               let old = try Gid_map.find tar_gid acc2 with Not_found -> [] in
-              Gid_map.add tar_gid ((string_of_int src_num, G_edge.to_string edge)::old) acc2
+              Gid_map.add tar_gid ((sprintf "%g" src_num, G_edge.to_string edge)::old) acc2
             ) acc (G_node.get_next node)
         ) graph.map Gid_map.empty in
 
@@ -741,12 +757,12 @@ module G_graph = struct
               ) gov_labs in
           let (govs,labs) = List.split sorted_gov_labs in
           let fs = G_node.get_fs node in
-          bprintf buff "%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t_\t_\n"
+          bprintf buff "%g\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t_\t_\n"
             (get_num gid)
-            (match G_fs.get_string_atom "phon" fs with Some p -> p | None -> "NO_PHON")
-            (match G_fs.get_string_atom "lemma" fs with Some p -> p | None -> "NO_LEMMA")
-            (match G_fs.get_string_atom "cat" fs with Some p -> p | None -> "NO_CAT")
-            (match G_fs.get_string_atom "pos" fs with Some p -> p | None -> "_")
+            (match G_fs.get_string_atom "phon" fs with Some p -> p | None -> "_e_")
+            (match G_fs.get_string_atom "lemma" fs with Some p -> p | None -> "_e_")
+            (match G_fs.get_string_atom "cat" fs with Some p -> p | None -> "X")
+            (match G_fs.get_string_atom "pos" fs with Some p -> p | None -> "X")
             (G_fs.to_conll ~exclude: ["phon"; "lemma"; "cat"; "pos"; "position"] fs)
             (String.concat "|" govs)
             (String.concat "|" labs)

@@ -9,18 +9,20 @@ open Grew_fs
 module G_node = struct
   type t = {
       fs: G_fs.t;
-      pos: float option;
       next: G_edge.t Massoc_gid.t;
+      position: float;
       conll_root: bool;
     }
 
   let get_fs t = t.fs
+  let set_fs t fs = {t with fs = fs}
+
   let get_next t = t.next
 
-  let set_fs t fs = {t with fs = fs}
-  let set_pos t pos = {t with pos = Some pos}
+  let get_position t = t.position
+  let set_position position t = { t with position }
 
-  let empty = { fs = G_fs.empty; pos = None; next = Massoc_gid.empty; conll_root=false }
+  let empty = { fs = G_fs.empty; next = Massoc_gid.empty; position = -1.; conll_root=false }
 
   let is_conll_root t = t.conll_root
 
@@ -29,38 +31,27 @@ module G_node = struct
       (G_fs.to_string t.fs)
       (Massoc_gid.to_string G_edge.to_string t.next)
 
-  let to_gr t =
-    sprintf "%s [%s] "
-      (match t.pos with Some i -> sprintf "(%g)" i | None -> "")
-      (G_fs.to_gr t.fs)
+  let to_gr t = if t.position < 0.
+    then sprintf "[%s] " (G_fs.to_gr t.fs)
+    else sprintf "(%g) [%s] " t.position (G_fs.to_gr t.fs)
 
   let add_edge g_edge gid_tar t =
     match Massoc_gid.add gid_tar g_edge t.next with
     | Some l -> Some {t with next = l}
     | None -> None
 
-  let build (ast_node, loc) =
+  let build ?def_position (ast_node, loc) =
     let fs = G_fs.build ast_node.Ast.fs in
-    let fs_with_num = match ast_node.Ast.position with
-      | None -> fs
-      | Some num -> G_fs.set_feat "position" (string_of_int num) fs in
-    (ast_node.Ast.node_id,
-     { fs = fs_with_num;
-       pos = (match ast_node.Ast.position with Some n -> Some (float n) | None -> None);
-       next = Massoc_gid.empty;
-       conll_root=false;
-     } )
+    let position = match (ast_node.Ast.position, def_position) with
+      | (Some position, _) -> position
+      | (None, Some position) -> position
+      | (None, None) -> Error.bug "Cannot build a node without position" in
+    (ast_node.Ast.node_id, { empty with fs; position })
 
   let of_conll ?loc line =
     if line = Conll.root
-    then { fs = G_fs.empty; pos = Some 0.; next = Massoc_gid.empty; conll_root=true; }
-    else
-      {
-        fs = G_fs.of_conll ?loc line;
-        pos = Some (String_.to_float line.Conll.num);
-        next = Massoc_gid.empty;
-        conll_root=false;
-      }
+    then { empty with conll_root=true }
+    else { empty with fs = G_fs.of_conll ?loc line; position = float_of_string line.Conll.num }
 
   let remove (id_tar : Gid.t) label t = {t with next = Massoc_gid.remove id_tar label t.next}
 
@@ -77,9 +68,9 @@ module G_node = struct
 
   let rm_out_edges t = {t with next = Massoc_gid.empty}
 
-  let build_neighbour t = {empty with pos = match t.pos with Some x -> Some (x +. 0.01) | None -> None}
+  let build_neighbour t = { empty with position = (get_position t) +. 0.01 }
 
-  let pos_comp n1 n2 = Pervasives.compare n1.pos n2.pos
+  let position_comp n1 n2 = Pervasives.compare n1.position n2.position
 
   let rename mapping n = {n with next = Massoc_gid.rename mapping n.next}
 end
@@ -116,11 +107,12 @@ module P_node = struct
     | Some l -> Some {t with next = l}
     | None -> None
 
-  let match_ ?param p_node g_node = P_fs.match_ ?param p_node.fs (G_node.get_fs g_node)
+  let match_ ?param p_node g_node =
+    (* (match param with None -> printf "<None>" | Some p -> printf "<Some>"; Lex_par.dump p); *)
+    if P_fs.check_position ?param (G_node.get_position g_node) p_node.fs
+    then P_fs.match_ ?param p_node.fs (G_node.get_fs g_node)
+    else raise P_fs.Fail
 
   let compare_pos t1 t2 = Pervasives.compare t1.loc t2.loc
 end
 (* ================================================================================ *)
-
-
-

@@ -31,7 +31,7 @@ module G_fs: sig
   val to_gr: t -> string
   val to_dot: ?main_feat: string -> t -> string
   val to_word: ?main_feat: string -> t -> string
-  val to_dep: ?main_feat: string -> ?filter: string list -> t -> string
+  val to_dep: ?position:float -> ?main_feat: string -> ?filter: string list -> t -> string
   val to_raw: t -> (string * string) list
   val to_conll: ?exclude: string list -> t -> string
 
@@ -67,6 +67,10 @@ module P_fs: sig
       If [param] is [Some p], it returns [Some p'] if matching succeeds and else raise [Fail].
    *) 
   val match_: ?param:Lex_par.t -> t -> G_fs.t -> Lex_par.t option
+
+  (** [check_position ?parma position pfs] checks wheter [pfs] is compatible with a node at [position].
+      It returns [true] iff [pfs] has no requirement about position ok if the requirement is satisfied. *)
+  val check_position: ?param:Lex_par.t -> float -> t -> bool
 
   val filter: t -> G_fs.t -> bool
 

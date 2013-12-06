@@ -106,7 +106,8 @@ and global = parse
 
 | "graph"       { GRAPH }
 
-| digit+ as number         { INT (int_of_string number) }
+| digit+ ('.' digit*)? as number  { FLOAT (float_of_string number) }
+
 | '$' ident as pat_var     { DOLLAR_ID pat_var}
 | '@' ident as cmd_var     { AROBAS_ID cmd_var }
 | "@#" color as col        { COLOR col }

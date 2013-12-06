@@ -16,7 +16,7 @@ module G_node: sig
   val get_next: t -> G_edge.t Massoc_gid.t
 
   val set_fs: t -> G_fs.t -> t
-  val set_pos: t -> float -> t
+  val set_position: float -> t -> t
 
   val is_conll_root: t -> bool
 
@@ -30,10 +30,12 @@ module G_node: sig
   val rm_out_edges: t -> t
 
   val add_edge: G_edge.t -> Gid.t -> t -> t option
-  val build: Ast.node -> (Id.name * t)
+  val build: ?def_position: float -> Ast.node -> (Id.name * t)
   val of_conll: ?loc:Loc.t -> Conll.line -> t
 
-  val pos_comp: t -> t -> int
+  val get_position: t -> float
+
+  val position_comp: t -> t -> int
 
   val build_neighbour: t -> t
 

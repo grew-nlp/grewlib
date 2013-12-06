@@ -401,8 +401,12 @@ module Rule = struct
 
   let fullfill graph matching cst =
     let get_node pid = G_graph.find (Pid_map.find pid matching.n_match) graph in
-    let get_string_feat pid feat_name = G_fs.get_string_atom feat_name (G_node.get_fs (get_node pid)) in
-    let get_float_feat pid feat_name = G_fs.get_float_feat feat_name (G_node.get_fs (get_node pid)) in
+    let get_string_feat pid = function
+      | "position" -> Some (sprintf "%g" (G_node.get_position (get_node pid)))
+      | feat_name -> G_fs.get_string_atom feat_name (G_node.get_fs (get_node pid)) in
+    let get_float_feat pid = function
+      | "position" -> Some (G_node.get_position (get_node pid))
+      | feat_name -> G_fs.get_float_feat feat_name (G_node.get_fs (get_node pid)) in
 
     match cst with
       | Cst_out (pid,edge) ->

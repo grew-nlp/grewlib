@@ -132,6 +132,8 @@ module Command  = struct
         ((DEL_NODE (pid_of_act_id loc act_n), loc), (List_.rm act_n kai, kei))
 	  
       | (Ast.Del_feat (act_id, feat_name), loc) ->
+        if feat_name = "position"
+        then Error.build ~loc "Illegal del_feat command: the 'position' feature cannot be deleted";
         check_act_id loc act_id kai;
         ((DEL_FEAT (pid_of_act_id loc act_id, feat_name), loc), (kai, kei))
 

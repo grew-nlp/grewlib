@@ -266,11 +266,15 @@ module Conll: sig
     deps: (string * string ) list;
   }
 
+  val line_to_string: line -> string
+
   val root:line
 
   val load: string -> line list
 
   val parse: string -> (int * string) list -> line list
+
+  val compare: line -> line -> int
 end
 
 (** module for rule that are lexically parametrized *)
@@ -279,6 +283,8 @@ module Lex_par: sig
 
   val empty:t
   val append: t -> t -> t
+
+  val dump: t -> unit
 
   (** [from_lines filename nb_pattern_var nb_command_var strings] *)
   val from_lines: ?loc: Loc.t -> int -> int -> string list -> t

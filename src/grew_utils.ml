@@ -611,6 +611,14 @@ module Conll = struct
 
   let root = { line_num = -1; num="0"; phon="ROOT"; lemma="__"; pos1="_X"; pos2=""; morph=[]; deps=[] }
 
+  let line_to_string l =
+    let (gov_list, lab_list) = List.split l.deps in
+    sprintf "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s"
+      l.num l.phon l.lemma l.pos1 l.pos2
+      (match l.morph with [] -> "_" | list -> String.concat "|" (List.map (fun (f,v) -> sprintf "%s=%s" f v) list))
+      (String.concat "|" (gov_list))
+      (String.concat "|" (lab_list))
+
   let parse_morph file_name line_num = function
     | "_" -> []
     | morph ->
@@ -648,6 +656,9 @@ module Conll = struct
     List.map (parse_line file_name) lines
 
   let parse file_name lines = List.map (parse_line file_name) lines
+
+    (* We would prefer to compare the float equivalent of l1.num l2.num but this would break the dicho_find function *)
+  let compare l1 l2 = Pervasives.compare ((* float_of_string *) l1.num) ((* float_of_string *) l2.num)
 end (* module Conll *)
 
 (* ================================================================================ *)
@@ -660,6 +671,14 @@ module Lex_par = struct
 
   let empty=[]
   let append = List.append
+
+  let dump t =
+    printf "[Lex_par.dump] --> size = %d\n" (List.length t);
+    List.iter (fun (pp,cp) ->
+      printf "%s##%s\n"
+        (String.concat "#" pp)
+        (String.concat "#" cp)
+    ) t
 
   let rm_peripheral_white s =
     Str.global_replace (Str.regexp "\\( \\|\t\\)*$") ""

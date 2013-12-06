@@ -122,7 +122,7 @@ module Ast = struct
 
   type u_node = {
       node_id: Id.name;
-      position: int option;
+      position: float option;
       fs: feature list;
     }
   type node = u_node * Loc.t

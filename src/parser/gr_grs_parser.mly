@@ -84,7 +84,7 @@ let localize t = (t,get_loc ())
 %token <Grew_ast.Ast.complex_id>   COMPLEX_ID
 
 %token <string>           STRING
-%token <int>              INT
+%token <float>            FLOAT
 %token <string list>      COMMENT
 %token <string list>      LP
 
@@ -113,7 +113,7 @@ let localize t = (t,get_loc ())
 string_or_int:
         | v=COMPLEX_ID    { Ast.simple_id_of_ci v }
         | v=STRING        { v }
-        | v=INT           { string_of_int v }
+        | v=FLOAT         { Printf.sprintf "%g" v }
 
 label_ident:
         | x=separated_nonempty_list(DDOT,COMPLEX_ID)   { String.concat ":" (List.map Ast.label_id_of_ci x) }
@@ -122,7 +122,7 @@ simple_id_with_loc:
         | id=COMPLEX_ID { (Ast.simple_id_of_ci id,!Parser_global.current_line+1) }
 
 num:
-        | INT           { $1 }
+        | FLOAT       { $1 }
 
 /*=============================================================================================*/
 /*  GREW GRAPH                                                                                 */
