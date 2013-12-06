@@ -1,7 +1,7 @@
 
 
 (** {2 Grew's core} *)
-open Grew_utils
+open Libgrew_utils
 open Grew_graph
 open Grew_rule
 open Grew_grs

@@ -1,4 +1,4 @@
-open Grew_utils
+open Libgrew_utils
 open Grew_graph
 open Grew_command
 open Grew_edge

@@ -1,6 +1,6 @@
 open Printf
 
-open Grew_utils
+open Libgrew_utils
 open Grew_ast
 open Grew_edge
 open Grew_fs

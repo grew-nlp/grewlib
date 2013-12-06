@@ -4,7 +4,7 @@ open Printf
 open Log
 
 open Grew_fs
-open Grew_utils
+open Libgrew_utils
 open Grew_graph
 open Grew_rule
 open Grew_grs
@@ -28,7 +28,6 @@ exception Run of string * (string * int) option
 exception Bug of string * (string * int) option
 
 let handle ?(name="") ?(file="No file defined") fct () =
-  (* Printf.printf " ==========> %s ...%!" name; *)
   try fct () with
     (* Raise again already catched exceptions *)
     | Parsing_err msg -> raise (Parsing_err msg)

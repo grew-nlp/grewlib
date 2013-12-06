@@ -2,7 +2,7 @@
 
 open Grew_ast
 
-open Grew_utils
+open Libgrew_utils
 
 (* Some intermediate sum types used in sub-functions when building the ast *)
 type pat_item =
