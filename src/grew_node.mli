@@ -37,6 +37,8 @@ module G_node: sig
 
   val position_comp: t -> t -> int
 
+  val get_annot_info: t -> (string * string) option
+
   val build_neighbour: t -> t
 
   val rename: (Gid.t * Gid.t) list -> t -> t

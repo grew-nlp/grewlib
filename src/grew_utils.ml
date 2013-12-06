@@ -71,6 +71,9 @@ module File = struct
 
   let read file =
     let in_ch = open_in file in
+    (* if the input file contains an UTF-8 byte order mark (EF BB BF), skip 3 bytes, else get back to 0 *)
+    (match input_byte in_ch with 0xEF -> seek_in in_ch 3 | _ -> seek_in in_ch 0);
+
     let rev_lines = ref [] in
     try
       while true do
@@ -86,6 +89,9 @@ module File = struct
   (* [read_ln file] returns a list of couples (line_num, line). Blank lines and lines starting with '%' are ignored. *)
   let read_ln file =
     let in_ch = open_in file in
+    (* if the input file contains an UTF-8 byte order mark (EF BB BF), skip 3 bytes, else get back to 0 *)
+    (match input_byte in_ch with 0xEF -> seek_in in_ch 3 | _ -> seek_in in_ch 0);
+
     let cpt = ref 0 in
     let rev_lines = ref [] in
     try
@@ -388,6 +394,14 @@ module List_ = struct
          (fun (acc,i) elt -> (f i acc elt, i+1))
          (init,0) l
       )
+
+  let prev_next_iter fct list =
+    let int_fct prev next elt = fct ?prev ?next elt in
+    let rec loop prev = function
+      | [] -> ()
+      | [last] -> int_fct prev None last
+      | head::snd::tail -> int_fct prev (Some snd) head; loop (Some head) (snd::tail)
+    in loop None list
 end (* module List_ *)
 
 (* ================================================================================ *)

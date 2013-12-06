@@ -92,6 +92,8 @@ val raw_graph: Instance.t ->
 
 val save_index: dirname:string -> base_names: string list -> unit
 
+val write_annot: string -> string -> (string * Rewrite_history.t) list -> unit
+
 val write_html: 
     ?no_init: bool ->
     ?out_gr: bool ->

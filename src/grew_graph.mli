@@ -88,6 +88,7 @@ module G_graph: sig
   (** [edge_out t id edge] returns true iff there is an out-edge from the node [id] with a label compatible with [edge] *)
   val edge_out: t -> Gid.t -> P_edge.t -> bool
 
+  val get_annot_info: t -> (string * string * float)
   (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
   (* Build functions *)
   (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)

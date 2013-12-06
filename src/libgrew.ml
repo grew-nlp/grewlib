@@ -63,8 +63,8 @@ let build_html_doc ?(corpus=false) dir grs =
       (* draw pattern graphs for all rules and all filters *)
       let fct module_ rule_ =
         let dep_code = Rule.to_dep rule_ in
-        let dep_svg_file = sprintf "%s/%s_%s-patt.png" dir module_ (Rule.get_name rule_) in
-        ignore (Dep2pict.Dep2pict.fromDepStringToPng dep_code dep_svg_file) in
+        let dep_png_file = sprintf "%s/%s_%s-patt.png" dir module_ (Rule.get_name rule_) in
+        ignore (Dep2pict.Dep2pict.fromDepStringToPng dep_code dep_png_file) in
       Grs.rule_iter fct grs;
       Grs.filter_iter fct grs
     ) ()
@@ -151,12 +151,16 @@ let display ~gr ~grs ~seq =
 let write_stat filename rew_hist =
   handle ~name:"write_stat" (fun () -> Gr_stat.save filename (Gr_stat.from_rew_history rew_hist)) ()
 
+let write_annot static_dir annot_dir base_name_rew_hist_list =
+  handle ~name:"write_annot" (fun () -> Html_annot.build static_dir annot_dir base_name_rew_hist_list) ()
+
 let save_index ~dirname ~base_names =
   handle ~name:"save_index" (fun () ->
     let out_ch = open_out (Filename.concat dirname "index") in
     List.iter (fun f -> fprintf out_ch "%s\n" f) base_names;
     close_out out_ch
   ) ()
+
 let save_graph_conll filename graph =
   handle ~name:"save_graph_conll" (fun () ->
     let out_ch = open_out filename in

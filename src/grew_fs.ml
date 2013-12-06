@@ -156,6 +156,12 @@ module G_fs = struct
 
   let get_atom = List_.sort_assoc
 
+  let get_annot_info fs =
+    match List.filter (fun (fn,value) -> String.length fn > 1 && String.sub fn 0 2 = "__") fs with
+      | [] -> None
+      | [(fn,value)] -> Some (fn,conll_string_of_value value)
+      | _ -> Error.build "[Fs.get_annot_info] More than one annot feature in the same feature structure"
+
   let get_string_atom feat_name t = 
     match List_.sort_assoc feat_name t with
       | None -> None

@@ -27,6 +27,9 @@ module Rewrite_history: sig
     t -> 
     ((string * string list) list * string) list
 
+  (** [save_annot out_dir base_name t] writes a set of svg_file for an annotation folder. *)
+  val save_annot: string -> string -> t -> (string * int * (string*string*float) * (string*string*float) * (float option * float option)) list
+
   (** [save_gr base_name t] saves one gr_file for each normal form defined in [t].
       Output files are named according to [base_name] and the Gorn adress in the rewriting tree. *)
   val save_gr: string -> t -> unit

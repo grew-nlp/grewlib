@@ -8,7 +8,7 @@ open Grew_rule
 open Grew_grs
 
 
-let html_header ?title buff =
+let html_header ?css_file ?title ?(add_lines=[]) buff =
   let wnl fmt = Printf.ksprintf (fun x -> Printf.bprintf buff "%s\n" x) fmt in
 
   wnl "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\">";
@@ -16,11 +16,15 @@ let html_header ?title buff =
   wnl "<html>";
   wnl "  <head>";
   wnl "    <meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\">";
-  wnl "    <link rel=\"stylesheet\" href=\"style.css\" type=\"text/css\">";
+  (match css_file with
+    | Some file -> wnl "    <link rel=\"stylesheet\" href=\"%s\" type=\"text/css\">" file
+    | None -> ()
+  );
   (match title with
     | Some t -> wnl "    <title>%s</title>" (Str.global_replace (Str.regexp "#") " " t)
     | None -> ()
   );
+  List.iter (fun line -> wnl "    %s" line) add_lines;
   wnl "  </head>";
 
 (* ====================================================================================================*)
@@ -177,7 +181,7 @@ module Html_doc = struct
     let w fmt  = Printf.ksprintf (fun x -> Printf.bprintf buff "%s" x) fmt in
 
     let title = sprintf "Grew -- Module %s" module_.Ast.module_id in
-    html_header ~title buff;
+    html_header ~css_file:"style.css" ~title buff;
 
     wnl "  <body>";
     if corpus
@@ -215,7 +219,7 @@ module Html_doc = struct
     let w fmt  = Printf.ksprintf (fun x -> Printf.bprintf buff "%s" x) fmt in
 
     let title = sprintf "Grew -- Rule %s/%s" mid rid in
-    html_header ~title buff;
+    html_header ~css_file:"style.css" ~title buff;
 
     wnl "  <body>";
     if corpus
@@ -288,7 +292,7 @@ module Html_doc = struct
     let wnl fmt = Printf.ksprintf (fun x -> Printf.bprintf buff "%s\n" x) fmt in
 
     let title = sprintf "Grew -- List of sequences" in
-    html_header ~title buff;
+    html_header ~css_file:"style.css" ~title buff;
 
     wnl "  <body>";
     if corpus
@@ -317,7 +321,7 @@ module Html_doc = struct
     let wnl fmt = Printf.ksprintf (fun x -> Printf.bprintf buff "%s\n" x) fmt in
 
     let title = sprintf "Grew -- Index of modules" in
-    html_header ~title buff;
+    html_header ~css_file:"style.css" ~title buff;
 
     wnl "  <body>";
     wnl "  <div class=\"navbar\">&nbsp;<a href=\"index.html\">Up</a></div>";
@@ -348,7 +352,7 @@ module Html_doc = struct
     let w fmt = Printf.ksprintf (fun x -> Printf.bprintf buff "%s" x) fmt in
 
     let title = sprintf "Grew -- Features domain" in
-    html_header ~title buff;
+    html_header ~css_file:"style.css" ~title buff;
 
     wnl "  <body>";
     if corpus
@@ -398,7 +402,7 @@ module Html_doc = struct
     let wnl fmt = Printf.ksprintf (fun x -> Printf.bprintf buff "%s\n" x) fmt in
 
     let title = sprintf "Grew -- Graph Rewriting System: %s" (Filename.basename filename) in
-    html_header ~title buff;
+    html_header ~css_file:"style.css" ~title buff;
 
     wnl "  <body>";
     if corpus
@@ -482,7 +486,6 @@ module Html_doc = struct
 end (* module Html_doc *)
 
 (* ==================================================================================================== *)
-
 module Html_rh = struct
   let build ?filter ?main_feat ?(dot=false) ?(init_graph=true) ?(out_gr=false) ?header ?graph_file prefix t =
 
@@ -491,7 +494,10 @@ module Html_rh = struct
     let _ = Unix.system (sprintf "rm -f %s*.dep" prefix) in
     let _ = Unix.system (sprintf "rm -f %s*.png" prefix) in
 
-    (if init_graph then Instance.save_dep_png ?filter ?main_feat prefix t.Rewrite_history.instance);
+    (
+      if init_graph
+      then ignore (Instance.save_dep_png ?filter ?main_feat prefix t.Rewrite_history.instance)
+    );
 
     let nf_files = Rewrite_history.save_nfs ?filter ?main_feat ~dot prefix t in
 
@@ -503,7 +509,7 @@ module Html_rh = struct
     let wnl fmt = Printf.ksprintf (fun x -> Printf.bprintf buff "%s\n" x) fmt in
 
     let title = sprintf "Sentence: %s --- %d Normal form%s" local l (if l>1 then "s" else "") in
-    html_header ~title buff;
+    html_header ~css_file:"style.css" ~title buff;
 
     wnl "<body>";
     wnl "<a href=\"sentences.html\">Sentences</a> -- <a href=\"index.html\">Rewriting stats</a> -- <a href=\"doc/index.html\">GRS documentation</a>";
@@ -588,7 +594,7 @@ module Html_rh = struct
 
     (match inst_opt, init_graph with
       | (Some inst, true) when dot -> Instance.save_dot_png ?main_feat prefix inst
-      | (Some inst, true) -> Instance.save_dep_png ?main_feat prefix inst
+      | (Some inst, true) -> ignore (Instance.save_dep_png ?main_feat prefix inst)
       | _ -> ()
     );
 
@@ -598,7 +604,7 @@ module Html_rh = struct
     let wnl fmt = Printf.ksprintf (fun x -> Printf.bprintf buff "%s\n" x) fmt in
 
     let title = sprintf "Sentence: %s --- ERROR" local in
-    html_header ~title buff;
+    html_header ~css_file:"style.css" ~title buff;
 
     wnl "<body>";
     wnl "<a href=\"sentences.html\">Sentences</a> -- <a href=\"index.html\">Rewriting stats</a> -- <a href=\"doc/index.html\">GRS documentation</a>";
@@ -618,14 +624,15 @@ module Html_rh = struct
     let out_ch = open_out (sprintf "%s.html" prefix) in
     fprintf out_ch "%s" (Buffer.contents buff);
     close_out out_ch
-end
+end (* module Html_rh *)
 
+(* ====================================================================================================*)
 module Html_sentences = struct
   let build ~title output_dir sentences =
     let buff = Buffer.create 32 in
     let wnl fmt = Printf.ksprintf (fun x -> Printf.bprintf buff "%s\n" x) fmt in
 
-    html_header ~title buff;
+    html_header ~css_file:"style.css" ~title buff;
 
     wnl "  <body>";
     wnl "Sentences -- <a href=\"index.html\">Rewriting stats</a> -- <a href=\"doc/index.html\">GRS documentation</a>";
@@ -658,7 +665,7 @@ end (* module Html_sentences *)
 
 
 
-
+(* ====================================================================================================*)
 module Gr_stat = struct
 
   (** the type [gr] stores the stats for the rewriting of one gr file *)
@@ -774,6 +781,7 @@ module Gr_stat = struct
     with Sys_error msg -> Error (sprintf "Sys_error: %s" msg)
 end (* module Gr_stat *)
 
+(* ====================================================================================================*)
 module Corpus_stat = struct
   (** the [t] type stores stats for a corpus of gr_files *)
   (*
@@ -877,7 +885,7 @@ module Corpus_stat = struct
     let wnl fmt = Printf.ksprintf (fun x -> Printf.bprintf buff "%s\n" x) fmt in
     let w fmt  = Printf.ksprintf (fun x -> Printf.bprintf buff "%s" x) fmt in
 
-    html_header ~title buff;
+    html_header ~css_file:"style.css" ~title buff;
 
     wnl "<a href=\"sentences.html\">Sentences</a> -- Rewriting stats -- <a href=\"doc/index.html\">GRS documentation</a>";
 
@@ -989,3 +997,133 @@ module Corpus_stat = struct
     close_out out_ch
 
 end (* module Stat *)
+
+
+(* ==================================================================================================== *)
+module Html_annot = struct
+
+  let script_lines static_dir = [
+    "<script src=\"http://ajax.googleapis.com/ajax/libs/jquery/1.8.0/jquery.min.js\"></script>";
+    sprintf "<script type=\"text/JavaScript\" src=\"%s\"></script>" (Filename.concat static_dir "annot.js")
+  ]
+
+  let build static_dir annot_dir bn_rh_list =
+    let alt_list = List_.flat_map
+      (fun (base_name, rew_hist) ->
+        List.mapi
+          (fun i alt ->
+            (sprintf "%s_%d" base_name i, alt)
+          ) (Rewrite_history.save_annot annot_dir base_name rew_hist)
+      ) bn_rh_list in
+
+    let db_buff = Buffer.create 32 in
+    let len = List.length alt_list in
+    let cpt = ref 0 in
+    List_.prev_next_iter
+      (fun ?prev ?next (base_name,(sentid,i,(afn,afv,apos),(bfn,bfv,bpos),(hpa,hpb))) ->
+        incr cpt;
+        let init_pos = match (hpa,hpb) with
+          | (Some p, Some q) -> max 0. ((min p q) -. 500.)
+          | (Some p, None) | (None, Some p) -> max 0. (p -. 500.)
+          | _ -> 0. in
+
+        (* all entries are "skipped" by default *)
+        bprintf db_buff "N%s\n" base_name;
+
+        let a = sprintf "%s_%d_A" sentid i
+        and b = sprintf "%s_%d_B" sentid i in
+        let next_php = match next with
+          | None -> "index.php"
+          | Some (bn,_) -> bn^".php" in
+
+        let buff = Buffer.create 32 in
+        let wnl fmt = Printf.ksprintf (fun x -> Printf.bprintf buff "%s\n" x) fmt in
+        let title = sprintf "Annotation Hit: %d/%d (%s)" !cpt len base_name in
+        wnl "<?php require '%s'; ?>" (Filename.concat static_dir "record_choice.php");
+        wnl "<?php require '%s'; ?>" (Filename.concat static_dir "annot_utils.php");
+        html_header ~css_file:(Filename.concat static_dir "annot.css") ~add_lines:(script_lines static_dir) ~title buff;
+        wnl "<body onload=\"set_view_pos(%g);\">" init_pos;
+        wnl "<h2>%s</h2>" title;
+        wnl "<div id=\"top\"><embed src=\"%s.svg\" type=\"image/svg+xml\"/></div>" a;
+        wnl "<div id=\"bottom\"><embed src=\"%s.svg\" type=\"image/svg+xml\"/></div>" b;
+        wnl "";
+        wnl "<div id=\"middle\">";
+
+        wnl "<table>";
+        wnl "<tr>";
+        wnl "<td><form action=\"index.php\"><input type=\"submit\" value=\"Index\"></form></td>";
+        wnl "<td>";
+        wnl "<form action=\"%s\" method=\"post\">" next_php;
+        wnl "<input type=\"hidden\" name=\"to_log\" value=\"%s#%s#%s#%g\" />" sentid afn afv apos;
+        wnl "<input type=\"hidden\" name=\"hit_id\" value=\"%s_%d\" />" sentid i;
+        wnl "<input type=\"hidden\" name=\"choice\" value=\"U\" />";
+        wnl "<input type=\"submit\" value=\"Choose Up\" >";
+        wnl "</form>";
+        wnl "</td>";
+        wnl "<td/>"; (* empty upper right *)
+        wnl "</tr>";
+        wnl "";
+        wnl "<tr>";
+        (match prev with
+          | Some (bn,_) -> wnl "<td><form action=\"%s.php\"><input type=\"submit\" value=\"<--Prev--\"></form></td>" bn
+          | None -> wnl "<td> <form> <input type=\"submit\" value=\"<--Prev--\" disabled> </form> </td>";
+        );
+        wnl "<td>";
+        wnl "<form action=\"%s\" method=\"post\">" next_php;
+        wnl "<input type=\"hidden\" name=\"to_log\" value=\"No_choice\" />";
+        wnl "<input type=\"hidden\" name=\"hit_id\" value=\"%s_%d\" />" sentid i;
+        wnl "<input type=\"hidden\" name=\"choice\" value=\"N\" />";
+        wnl "<input type=\"submit\" value=\"Don't choose\" >";
+        wnl "</form>";
+        wnl "</td>";
+        (match next with
+          | Some (bn,_) -> wnl "<td><form action=\"%s.php\"><input type=\"submit\" value=\"--Next-->\"></form></td>" bn
+          | None -> wnl "<td> <form> <input type=\"submit\" value=\"--Next-->\" disabled> </form> </td>";
+        );
+        wnl "</tr>";
+        wnl "";
+        wnl "<tr>";
+        wnl "<td/>"; (* empty lower left *)
+        wnl "<td>";
+        wnl "<form action=\"%s\" method=\"post\">" next_php;
+        wnl "<input type=\"hidden\" name=\"to_log\" value=\"%s#%s#%s#%g\" />" sentid bfn bfv bpos;
+        wnl "<input type=\"hidden\" name=\"hit_id\" value=\"%s_%d\" />" sentid i;
+        wnl "<input type=\"hidden\" name=\"choice\" value=\"D\" />";
+        wnl "<input type=\"submit\" value=\"Choose Down\" >";
+        wnl "</form>";
+        wnl "</td>";
+        wnl "<td/>"; (* empty lower right *)
+        wnl "</tr>";
+        wnl "</table>";
+        wnl "</div>";
+        wnl "<?php highlight(\"%s_%d\") ?>" sentid i;
+        wnl "</body>";
+        wnl "</html>";
+
+        let out_ch = open_out (sprintf "%s.php" (Filename.concat annot_dir base_name)) in
+        fprintf out_ch "%s" (Buffer.contents buff);
+        close_out out_ch
+      ) alt_list;
+
+    printf "--------------> annot_dir=%s\n" annot_dir;
+    let out_ch = open_out (Filename.concat annot_dir "status.db") in
+    fprintf out_ch "%s" (Buffer.contents db_buff);
+    close_out out_ch;
+
+    (* creation of the file index.php *)
+    let buff = Buffer.create 32 in
+    let wnl fmt = Printf.ksprintf (fun x -> Printf.bprintf buff "%s\n" x) fmt in
+    let title = sprintf "Annotation task: TODO" in
+    wnl "<?php require '%s'; ?>" (Filename.concat static_dir "record_choice.php");
+    wnl "<?php require '%s'; ?>" (Filename.concat static_dir "annot_utils.php");
+
+    html_header ~css_file:(Filename.concat static_dir "annot.css") ~add_lines:(script_lines static_dir) ~title buff;
+    wnl "<h2>%s</h2>" title;
+    wnl "<?php index_table() ?>";
+
+    let out_ch = open_out (Filename.concat annot_dir "index.php") in
+    fprintf out_ch "%s" (Buffer.contents buff);
+    close_out out_ch;
+    ()
+
+end (* module Html_annot *)

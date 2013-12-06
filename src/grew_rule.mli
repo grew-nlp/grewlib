@@ -35,7 +35,8 @@ module Instance : sig
 
   (** [save_dep_png base t] writes a file "base.png" with the dep representation of [t].
       NB: if the Dep2pict is not available, nothing is done *)
-  val save_dep_png: ?filter: string list -> ?main_feat: string -> string -> t -> unit
+  val save_dep_png: ?filter: string list -> ?main_feat: string -> string -> t -> float option
+  val save_dep_svg: ?filter: string list -> ?main_feat: string -> string -> t -> float option
 
   (** [save_dot_png base t] writes a file "base.png" with the dot representation of [t] *)
   val save_dot_png: ?filter: string list -> ?main_feat: string -> string -> t -> unit

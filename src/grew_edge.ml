@@ -4,28 +4,21 @@ open Printf
 open Grew_utils
 open Grew_ast
 
+
+let rm_first_char = function "" -> "" | s -> String.sub s 1 ((String.length s) - 1)
+
 (* ================================================================================ *)
 module Label = struct
-  (* [decl] is the type for a label declaration: the name and a list of display options *)
-  type decl = string * string list
-
-  (* Global names and display options are recorded in two aligned arrays *)
+  (** Global names and display styles are recorded in two aligned arrays *)
   let full = ref None
-  let options = ref [||]
 
-  (* Internal representation of labels *)
+  (** Internal representation of labels *)
   type t =
-    | Global of int
-    | Local of int
-    | No_domain of string
+    | Global of int       (* globally defined labels: their names are in the [full] array *)
+    | Local of int        (* locally defined labels: names array should be provided! UNTESTED *)
+    | No_domain of string (* out of domain label: name in not constrained *)
 
-  (* [init string_edge_list] updates global arrays [full] and [options] *)
-  let init string_edge_list =
-    let slist = List.sort (fun (x,_) (y,_) -> compare x y) string_edge_list in
-    let (labels, opts) = List.split slist in
-    full := Some (Array.of_list labels);
-    options := Array.of_list opts
-
+  (** [to_string t] returns a string for the label *)
   let to_string ?(locals=[||]) t =
     match (!full, t) with
       | (_, No_domain s) -> s
@@ -37,6 +30,79 @@ module Label = struct
     | Global i -> Some i
     | _ -> None
 
+  (** describe the display style of a label *)
+  type line = Solid | Dot | Dash
+  type style = {
+    text: string;
+    bottom: bool;
+    color: string option;
+    bgcolor: string option;
+    line: line;
+  }
+
+  (** The [default] style value *)
+  let default = { text="UNSET"; bottom=false; color=None; bgcolor=None; line=Solid }
+
+  let styles = ref ([||] : style array)
+
+  let get_style = function
+    | Global i -> !styles.(i)
+    | Local i -> Log.warning "Style of locally defined labels is not implemented"; default
+    | No_domain s -> { default with text=s }
+
+  (** Computes the style of a label from its options and maybe its shape (like I:...). *)
+  let parse_option string_label options =
+    let init_style = match Str.bounded_split (Str.regexp ":") string_label 2 with
+      | ["S"; l] -> {default with text=l; color=Some "red"}
+      | ["D"; l] -> {default with text=l; color=Some "blue"; bottom=true}
+      | ["I"; l] -> {default with text=l; color=Some "grey"}
+      | _ -> {default with text=string_label} in
+      List.fold_left
+        (fun acc_style -> function
+            | "@bottom" -> {acc_style with bottom=true}
+            | "@dash" -> {acc_style with line=Dash}
+            | "@dot" -> {acc_style with line=Dot}
+            | s when String.length s > 4 && String.sub s 0 4 = "@bg_" ->
+              let color = String.sub s 4 ((String.length s) - 4) in
+              {acc_style with bgcolor=Some color}
+            | s -> {acc_style with color=Some (rm_first_char s)}
+        ) init_style options
+
+  (** [decl] is the type for a label declaration: the name and a list of display styles *)
+  type decl = string * string list
+
+  (* [init decl_list] updates global arrays [full] and [styles] *)
+  let init decl_list =
+    let slist = List.sort (fun (x,_) (y,_) -> compare x y) decl_list in
+    let (labels, opts) = List.split slist in
+    let labels_array = Array.of_list labels in
+    full := Some labels_array;
+    styles := Array.mapi (fun i opt -> parse_option labels_array.(i) opt) (Array.of_list opts)
+
+  let to_dep ?(deco=false) t =
+    let style = get_style t in
+    let dep_items =
+      (if style.bottom then ["bottom"] else [])
+      @ (match style.color with Some c -> ["color="^c; "forecolor="^c] | None -> [])
+      @ (match style.bgcolor with Some c -> ["bgcolor="^c] | None -> [])
+      @ (match style.line with
+        | Dot -> ["style=dot"]
+        | Dash -> ["style=dash"]
+        | Solid when deco -> ["style=dot"]
+        | Solid -> []) in
+    sprintf "{ label = \"%s\"; %s}" style.text (String.concat "; " dep_items)
+
+  let to_dot ?(deco=false) t =
+    let style = get_style t in
+    let dot_items =
+      (match style.color with Some c -> ["color="^c; "fontcolor="^c] | None -> [])
+      @ (match style.line with
+        | Dot -> ["style=dotted"]
+        | Dash -> ["style=dashed"]
+        | Solid when deco -> ["style=dotted"]
+        | Solid -> []) in
+    sprintf "[label=\"%s\", %s}" style.text (String.concat ", " dot_items)
+
   let from_string ?loc ?(locals=[||]) string =
     match !full with
       | None -> No_domain string
@@ -45,10 +111,6 @@ module Label = struct
         with Not_found ->
           try Local (Array_.dicho_find_assoc string locals)
           with Not_found -> Error.build "[Label.from_string] unknown edge label '%s'" string
-
-  let get_options = function
-    | Global l -> !options.(l)
-    | _ -> []
 end (* module Label *)
 
 
@@ -68,37 +130,14 @@ module G_edge = struct
     | (true, _) -> Error.build "Negative edge spec are forbidden in graphs%s" (Loc.to_string loc)
     | (false, _) -> Error.build "Only atomic edge valus are allowed in graphs%s" (Loc.to_string loc)
 
-  let rm_first_char = function "" -> "" | s -> String.sub s 1 ((String.length s) - 1)
+  let to_dep ?(deco=false) t = Label.to_dep ~deco t
+  let to_dot ?(deco=false) t = Label.to_dot ~deco t
 
   let color_of_option = function
     | [] -> None
     | c::_ -> Some (rm_first_char c)
 
-  let to_dot ?(deco=false) l =
-    match color_of_option (Label.get_options l) with
-    | None -> Printf.sprintf "[label=\"%s\", color=%s]" (Label.to_string l) (if deco then "red" else "black")
-    | Some c -> Printf.sprintf "[label=\"%s\", fontcolor=%s, color=%s]" (Label.to_string l) c (if deco then "red" else "black")
 
-  let position_of_option options = 
-    if List.mem "@bottom" options
-    then "bottom; "
-    else ""
-
-  let to_dep ?(deco=false) l =
-    let string = Label.to_string l in
-    let options = Label.get_options l in
-    let (prefix, label) = match Str.bounded_split (Str.regexp ":") string 2 with
-      | ["S"; l] -> (Some "S", l)
-      | ["D"; l] -> (Some "D", l)
-      | _ -> (None, string) in
-    let pos = if List.mem "@bottom" options || prefix = Some "D" then "; bottom" else "" in
-    let style = if deco then "; style=dot" else "" in
-    let color = match (List.filter (fun x -> x <> "@bottom") options, prefix) with
-      | (c::_, _) -> let col = rm_first_char c in sprintf "; color=%s; forecolor=%s" col col
-      | ([], Some "S") -> "; color=red; forecolor=red"
-      | ([], Some "D") -> "; color=blue; forecolor=blue"
-      | _ -> "" in
-    sprintf "{ label = \"%s\"%s%s%s}" label pos style color 
 end (* module G_edge *)
 
 

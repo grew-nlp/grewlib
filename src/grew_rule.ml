@@ -58,9 +58,20 @@ module Instance = struct
 
 IFDEF DEP2PICT THEN
   let save_dep_png ?filter ?main_feat base t =
-    ignore (Dep2pict.Dep2pict.fromDepStringToPng (G_graph.to_dep ?filter ?main_feat t.graph) (base^".png"))
+    let (_,_,highlight_position) =
+      Dep2pict.Dep2pict.fromDepStringToPng_with_pos
+        (G_graph.to_dep ?filter ?main_feat t.graph) (base^".png") in
+    highlight_position
+
+  let save_dep_svg ?filter ?main_feat base t =
+    let (_,_,highlight_position) =
+      Dep2pict.Dep2pict.fromDepStringToSvgFile_with_pos
+        (G_graph.to_dep ?filter ?main_feat t.graph) (base^".svg") in
+    highlight_position
+
 ELSE
-  let save_dep_png ?filter ?main_feat base t = ()
+  let save_dep_png ?filter ?main_feat base t = None
+  let save_dep_svg ?filter ?main_feat base t = None
 ENDIF
 end (* module Instance *)
 
@@ -836,20 +847,19 @@ module Rule = struct
 
   (* type: Instance.t -> t list -> Instance_set.t *)
   let normalize_instance modul_name instance rules =
-    let rec loop to_do nf =
-      if to_do = Instance_set.empty
-      then nf
+    let rec loop to_do_set nf_set =
+      if to_do_set = Instance_set.empty
+      then nf_set
       else
-        let (new_to_do,new_nf) =
+        let (new_to_do_set,new_nf_set) =
           Instance_set.fold
-            (fun v (to_do1,nf1) ->
-              let step_of_v = one_step v rules in
-              if step_of_v = [] (* nothing came out of v*)
-              then (to_do1,Instance_set.add (Instance.rev_steps v) nf1)
-              else (List.fold_left (fun acc v1 -> Instance_set.add v1 acc) to_do1 step_of_v,nf1)
+            (fun v (to_do_set_acc,nf_set_acc) ->
+              match one_step v rules with
+                | [] -> (to_do_set_acc,Instance_set.add (Instance.rev_steps v) nf_set_acc)
+                | step_of_v -> (List.fold_left (fun acc v1 -> Instance_set.add v1 acc) to_do_set_acc step_of_v, nf_set_acc)
             )
-            to_do (Instance_set.empty,nf) in
-        loop new_to_do new_nf in
+            to_do_set (Instance_set.empty,nf_set) in
+        loop new_to_do_set new_nf_set in
     let nfs = loop (Instance_set.singleton instance) Instance_set.empty in
     let reduced_nfs = filter_equal_nfs nfs in
 
@@ -857,8 +867,8 @@ module Rule = struct
     let nfs_card = Instance_set.cardinal nfs in
     if reduced_nfs_card < nfs_card
     then Log.fwarning "In module \"%s\", %d nf are produced, only %d different ones" modul_name nfs_card reduced_nfs_card;
-
     reduced_nfs
+
 
   (* [filter_instance instance filters] return a boolean:
      - true iff the instance does NOT match any pattern in [filters] *)

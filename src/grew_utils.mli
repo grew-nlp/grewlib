@@ -153,6 +153,8 @@ module List_: sig
   val sort_remove_assoc: 'a -> ('a * 'b) list -> ('a * 'b) list
 
   val foldi_left: (int -> 'a -> 'b -> 'a) -> 'a -> 'b list -> 'a
+
+  val prev_next_iter: (?prev:'a -> ?next:'a -> 'a -> unit) -> 'a list -> unit
 end
 
 module type OrderedType =

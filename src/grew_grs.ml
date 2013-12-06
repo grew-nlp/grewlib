@@ -31,7 +31,7 @@ module Rewrite_history = struct
     let rec loop file_name rules t =
       match (t.good_nf, t.bad_nf) with
         | [],[] when dot -> Instance.save_dot_png ?filter ?main_feat file_name t.instance; [rules, file_name]
-        | [],[] -> Instance.save_dep_png ?filter ?main_feat file_name t.instance; [rules, file_name]
+        | [],[] -> ignore (Instance.save_dep_png ?filter ?main_feat file_name t.instance); [rules, file_name]
         | [],_ -> []
         | l, _ ->
           List_.foldi_left
@@ -68,6 +68,21 @@ module Rewrite_history = struct
         | [one], [] -> loop one
         | _ -> Error.run "Not a single rewriting"
     in loop t
+
+  let save_annot out_dir base_name t =
+    List_.mapi
+      (fun i alts ->
+        match alts.good_nf with
+      | [alt_1; alt_2] ->
+        let a = sprintf "%s_%d_A" base_name i in
+        let b = sprintf "%s_%d_B" base_name i in
+        let hpa = Instance.save_dep_svg (Filename.concat out_dir a) alt_1.instance in
+        let hpb = Instance.save_dep_svg (Filename.concat out_dir b) alt_2.instance in
+        let (afn,afv,apos) = G_graph.get_annot_info alt_1.instance.Instance.graph
+        and (bfn,bfv,bpos) = G_graph.get_annot_info alt_2.instance.Instance.graph in
+        (base_name,i,(afn,afv,apos),(bfn,bfv,bpos),(hpa,hpb))
+      | _ -> Error.run "Not two alternatives in an annotation rewriting in %s" base_name
+      ) t.good_nf
 
   let save_det_conll ?header base t =
     let rec loop t =

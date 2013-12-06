@@ -40,6 +40,8 @@ module G_node = struct
     | Some l -> Some {t with next = l}
     | None -> None
 
+  let get_annot_info t = G_fs.get_annot_info t.fs
+
   let build ?def_position (ast_node, loc) =
     let fs = G_fs.build ast_node.Ast.fs in
     let position = match (ast_node.Ast.position, def_position) with
