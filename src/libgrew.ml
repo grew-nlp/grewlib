@@ -195,7 +195,7 @@ let det_dep_string rew_hist =
 let conll_dep_string ?keep_empty_rh rew_hist =
   handle ~name:"conll_dep_string" (fun () -> Rewrite_history.conll_dep_string ?keep_empty_rh rew_hist) ()
 
-let write_html 
+let write_html
     ?(no_init=false)
     ?(out_gr=false)
     ?filter
@@ -219,12 +219,12 @@ let write_html
     )
   ) ()
 
-let error_html 
-    ?(no_init=false) 
-    ?main_feat 
+let error_html
+    ?(no_init=false)
+    ?main_feat
     ?dot
     ~header
-    msg 
+    msg
     ?init
     output_base =
   handle ~name:"error_html" (fun () ->

@@ -93,7 +93,7 @@ module Ast = struct
         | _ -> Error.build "The identifier '%s' must be a qualified feature name (with one '.' symbol)" s
       )
 
-  type feature_spec = 
+  type feature_spec =
     | Closed of feature_name * feature_atom list (* cat:V,N *)
     | Open of feature_name (* phon, lemma, ... *)
     | Int of feature_name (* position *)
@@ -118,7 +118,7 @@ module Ast = struct
       Error.build "[Domain] The feature named \"%s\" is defined several times" fn
     | x :: tail -> x :: (normalize_domain tail)
 
-  type feature_kind = 
+  type feature_kind =
     | Equality of feature_value list
     | Disequality of feature_value list
     | Param of string (* $ident *)
@@ -131,21 +131,21 @@ module Ast = struct
   type feature = u_feature * Loc.t
 
   type u_node = {
-      node_id: Id.name;
-      position: float option;
-      fs: feature list;
-    }
+    node_id: Id.name;
+    position: float option;
+    fs: feature list;
+  }
   type node = u_node * Loc.t
 
   type edge_label = string
 
   type u_edge = {
-      edge_id: Id.name option;
-      src: Id.name;
-      edge_labels: edge_label list;
-      tar: Id.name;
-      negative: bool;
-    }
+    edge_id: Id.name option;
+    src: Id.name;
+    edge_labels: edge_label list;
+    tar: Id.name;
+    negative: bool;
+  }
   type edge = u_edge * Loc.t
 
   type ineq = Lt | Gt | Le | Ge
@@ -167,22 +167,22 @@ module Ast = struct
   type const = u_const * Loc.t
 
   type pattern = {
-      pat_nodes: node list;
-      pat_edges: edge list;
-      pat_const: const list;
-    }
+    pat_nodes: node list;
+    pat_edges: edge list;
+    pat_const: const list;
+  }
 
   type graph = {
-      nodes: (Id.name * node) list;
-      edge: edge list;
-    }
+    nodes: (Id.name * node) list;
+    edge: edge list;
+  }
 
   type concat_item =
     | Qfn_item of complex_id (* Warning: either a simple string (without .) of a real qualified feature_name *)
     | String_item of string
     | Param_item of string
 
-  type u_command = 
+  type u_command =
     | Del_edge_expl of (act_id * act_id * edge_label)
     | Del_edge_name of string
     | Add_edge of (act_id * act_id * edge_label)
@@ -202,56 +202,54 @@ module Ast = struct
      - rule     { param=None; ... }
      - lex_rule
      - filter   { param=None; commands=[]; ... }
-   *)
+  *)
   type rule = {
-      rule_id:Id.name;
-      pos_pattern: pattern;
-      neg_patterns: pattern list;
-      commands: command list;
-      param: (string list * string list) option;
-      lp: string list option;
-      rule_doc:string list;
-      rule_loc: Loc.t;
-    }
+    rule_id:Id.name;
+    pos_pattern: pattern;
+    neg_patterns: pattern list;
+    commands: command list;
+    param: (string list * string list) option;
+    lp: string list option;
+    rule_doc:string list;
+    rule_loc: Loc.t;
+  }
 
   type modul = {
-      module_id:Id.name;
-      local_labels: (string * string list) list;
-      new_node_names: string list;
-      rules: rule list;
-      confluent: bool;
-      module_doc:string list;
-      mod_loc:Loc.t;
-      mod_dir: string; (* the directory where the module is defined (for lp file localisation) *)
-    }
-        
+    module_id:Id.name;
+    local_labels: (string * string list) list;
+    new_node_names: string list;
+    rules: rule list;
+    confluent: bool;
+    module_doc:string list;
+    mod_loc:Loc.t;
+    mod_dir: string; (* the directory where the module is defined (for lp file localisation) *)
+  }
+
   type sequence = {
-      seq_name:string;
-      seq_mod:string list;
-      seq_doc:string list;
-      seq_loc:Loc.t;
-    }
-        
-(** 
-    a GRS: graph rewriting system 
- *)
-  type module_or_include = 
+    seq_name:string;
+    seq_mod:string list;
+    seq_doc:string list;
+    seq_loc:Loc.t;
+  }
+
+  (** a GRS: graph rewriting system *)
+  type module_or_include =
     | Modul of modul
     | Includ of (string * Loc.t)
 
   type grs_with_include = {
-      domain_wi: domain;
-      labels_wi: (string * string list) list;    (* the list of global edge labels *)
-      modules_wi: module_or_include list; 
-      sequences_wi: sequence list;
-    }
+    domain_wi: domain;
+    labels_wi: (string * string list) list;    (* the list of global edge labels *)
+    modules_wi: module_or_include list;
+    sequences_wi: sequence list;
+  }
 
   type grs = {
-      domain: domain;
-      labels: (string * string list) list;
-      modules: modul list;
-      sequences: sequence list;
-    }
+    domain: domain;
+    labels: (string * string list) list;
+    modules: modul list;
+    sequences: sequence list;
+  }
 
   type gr = {
     meta: (string * string) list;

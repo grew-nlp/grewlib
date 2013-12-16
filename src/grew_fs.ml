@@ -86,7 +86,7 @@ module G_feature = struct
   let to_string (feat_name, feat_val) = sprintf "%s=%s" feat_name (string_of_value feat_val)
 
   let to_gr (feat_name, feat_val) = sprintf "%s=\"%s\"" feat_name (string_of_value feat_val)
-      
+
   let to_dot (feat_name, feat_val) =
     let string_val = string_of_value feat_val in
     match Str.split (Str.regexp ":C:") string_val with
@@ -96,9 +96,9 @@ end
 
 (* ==================================================================================================== *)
 module P_feature = struct
-  (* feature= (feature_name, disjunction of atomic values) *) 
+  (* feature= (feature_name, disjunction of atomic values) *)
 
-  type v = 
+  type v =
     | Equal of value list  (* with Equal constr, the list MUST never be empty *)
     | Different of value list
     | Param of int
@@ -110,23 +110,23 @@ module P_feature = struct
 
   let compare feat1 feat2 = Pervasives.compare (get_name feat1) (get_name feat2)
 
-  let unif_value v1 v2 = 
+  let unif_value v1 v2 =
     match (v1, v2) with
-    | (Equal l1, Equal l2) -> 
+    | (Equal l1, Equal l2) ->
         (match List_.sort_inter l1 l2 with
-        | [] -> Error.build "Unification failure" 
+        | [] -> Error.build "Unification failure"
         | l -> Equal l)
     | (Different l1, Different l2) -> Different (List_.sort_union l1 l2)
     | _ -> Error.build "cannot unify heterogeneous pattern features"
-        
+
   let to_string ?param_names = function
     | (feat_name, Equal atoms) -> sprintf "%s=%s" feat_name (List_.to_string string_of_value "|" atoms)
     | (feat_name, Different []) -> sprintf "%s=*" feat_name
     | (feat_name, Different atoms) -> sprintf "%s<>%s" feat_name (List_.to_string string_of_value "|" atoms)
     | (feat_name, Absent) -> sprintf "!%s" feat_name
-    | (feat_name, Param index) -> 
+    | (feat_name, Param index) ->
       match param_names with
-        | None -> sprintf "%s=$%d" feat_name index 
+        | None -> sprintf "%s=$%d" feat_name index
         | Some (l,_) -> sprintf "%s=%s" feat_name (List.nth l index)
 
   let build ?pat_vars = function
@@ -138,7 +138,7 @@ module P_feature = struct
     | ({Ast.kind=Ast.Param var; name=name}, loc) ->
         match pat_vars with
         | None -> Error.bug ~loc "[P_feature.build] param '%s' in an unparametrized rule" var
-        | Some l -> 
+        | Some l ->
             match List_.pos var l with
             | Some index -> (name, Param index)
             | None -> Error.build ~loc "[P_feature.build] Unknown pattern variable '%s'" var
@@ -159,7 +159,7 @@ module G_fs = struct
     | [] -> [(feature_name, new_value)]
     | ((fn,_)::_) as t when feature_name < fn -> (feature_name, new_value)::t
     | (fn,_)::t when feature_name = fn -> (feature_name, new_value)::t
-    | (fn,a)::t -> (fn,a) :: (loop t) 
+    | (fn,a)::t -> (fn,a) :: (loop t)
     in loop t
 
   let del_feat = List_.sort_remove_assoc
@@ -172,7 +172,7 @@ module G_fs = struct
       | [(fn,value)] -> Some (fn,conll_string_of_value value)
       | _ -> Error.build "[Fs.get_annot_info] More than one annot feature in the same feature structure"
 
-  let get_string_atom feat_name t = 
+  let get_string_atom feat_name t =
     match List_.sort_assoc feat_name t with
       | None -> None
       | Some v -> Some (conll_string_of_value v)
@@ -201,13 +201,13 @@ module G_fs = struct
       | s -> ("pos", Domain.build_one "pos" s) :: unsorted_without_pos in
     List.sort G_feature.compare unsorted
 
-  exception Fail_unif 
-  let unif fs1 fs2 = 
+  exception Fail_unif
+  let unif fs1 fs2 =
     let rec loop = function
       | [], fs | fs, [] -> fs
       | (f1::t1, f2::t2) when G_feature.compare f1 f2 < 0 -> f1 :: loop (t1, f2::t2)
       | (f1::t1, f2::t2) when G_feature.compare f1 f2 > 0 -> f2 :: loop (f1::t1, t2)
-                                                                    
+
       (* all remaining case are fn1 = fn2 *)
       | ((fn, a1)::t1, (_, a2)::t2) when a1=a2 -> (fn,a1) :: (loop (t1, t2))
       | _ -> raise Fail_unif
@@ -231,12 +231,12 @@ module G_fs = struct
     | (None, _) -> List_.to_string G_feature.to_dot "\\n" t
     | (Some atom, sub) ->
       sprintf "{%s|%s}" (string_of_value atom) (List_.to_string G_feature.to_dot "\\n" sub)
-          
+
   let to_word ?main_feat t =
     match get_main ?main_feat t with
       | (None, _) -> "#"
       | (Some atom, _) -> string_of_value atom
-        
+
   let to_dep ?position ?main_feat ?filter t =
     let (main_opt, sub) = get_main ?main_feat t in
     let last = match position with Some f when f > 0. -> [("position", Float f)] | _ -> [] in
@@ -259,7 +259,7 @@ module G_fs = struct
            reduced_t
         )
 end (* module G_fs *)
- 
+
 (* ==================================================================================================== *)
 module P_fs = struct
   (* list are supposed to be striclty ordered wrt compare*)
@@ -281,7 +281,7 @@ module P_fs = struct
 
   let build ?pat_vars ast_fs =
     let unsorted = List.map (P_feature.build ?pat_vars) ast_fs in
-    List.sort P_feature.compare unsorted 
+    List.sort P_feature.compare unsorted
 
   let to_string t = List_.to_string P_feature.to_string "\\n" t
 
@@ -328,11 +328,11 @@ module P_fs = struct
               )
           )
 
-      (* remaining cases: Equal and not list_mem  |  Diff and not list_mem -> fail*)  
+      (* remaining cases: Equal and not list_mem  |  Diff and not list_mem -> fail*)
       | _ -> raise Fail
     in loop param (pattern_wo_pos,fs)
 
-  let filter fs_p fs_g = 
+  let filter fs_p fs_g =
     let rec loop = function
       | [], fs -> true
 
@@ -353,7 +353,7 @@ module P_fs = struct
 
     in loop (fs_p, fs_g)
 
-  let unif fs1 fs2 = 
+  let unif fs1 fs2 =
     let rec loop = function
       | [], fs -> fs
       | fs, [] -> fs
@@ -363,5 +363,5 @@ module P_fs = struct
 
       (* all remaining case are fn1 = fn2 *)
       | ((fn1,v1)::t1, (fn2,v2)::t2) (* when fn1 = fn2 *) -> (fn1,P_feature.unif_value v1 v2) :: (loop (t1,t2))
-    in loop (fs1, fs2)      
+    in loop (fs1, fs2)
 end

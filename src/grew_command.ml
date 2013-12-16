@@ -17,7 +17,7 @@ open Grew_edge
 open Grew_fs
 
 (* ==================================================================================================== *)
-module Command  = struct 
+module Command  = struct
   type command_node =        (* a command node is either: *)
     | Pat of Pid.t           (* a node identified in the pattern *)
     | New of string          (* a node introduced by a new_neighbour *)
@@ -30,7 +30,7 @@ module Command  = struct
     | Param_out of int
 
   (* the command in pattern *)
-  type p = 
+  type p =
     | DEL_NODE of command_node
     | DEL_EDGE_EXPL of (command_node * command_node * G_edge.t)
     | DEL_EDGE_NAME of string
@@ -46,7 +46,7 @@ module Command  = struct
   type t = p * Loc.t  (* remember command location to be able to localize a command failure *)
 
   (* a item in the command history: command applied to a graph *)
-  type h = 
+  type h =
     | H_DEL_NODE of Gid.t
     | H_DEL_EDGE_EXPL of (Gid.t * Gid.t *G_edge.t)
     | H_DEL_EDGE_NAME of string
@@ -72,8 +72,8 @@ module Command  = struct
       if not (List.mem act_id kai)
       then Error.build ~loc "Unbound node identifier \"%s\"" (Ast.act_id_to_string act_id) in
 
-    let check_edge loc edge_id kei = 
-      if not (List.mem edge_id kei) 
+    let check_edge loc edge_id kei =
+      if not (List.mem edge_id kei)
       then Error.build ~loc "Unbound edge identifier \"%s\"" edge_id in
 
     match ast_command with
@@ -82,7 +82,7 @@ module Command  = struct
         check_act_id loc act_j kai;
 	let edge = G_edge.make ~loc ~locals lab in
 	((DEL_EDGE_EXPL (pid_of_act_id loc act_i, pid_of_act_id loc act_j, edge), loc), (kai, kei))
-	  
+
       | (Ast.Del_edge_name id, loc) ->
         check_edge loc id kei;
         (DEL_EDGE_NAME id, loc), (kai, List_.rm id kei)
@@ -128,7 +128,7 @@ module Command  = struct
                  ), loc),
               ((new_id, None)::kai, kei)
             )
-	  with Not_found -> 
+	  with Not_found ->
 	    Log.fcritical "[GRS] tries to build a command New_neighbour (%s) on node %s which is not in the pattern %s"
 	      (G_edge.to_string edge)
 	      (fst ancestor)
@@ -136,11 +136,11 @@ module Command  = struct
 	end
 
       | (Ast.Activate n, loc) -> failwith "Not implemented"
-	  
+
       | (Ast.Del_node act_n, loc) ->
         check_act_id loc act_n kai;
         ((DEL_NODE (pid_of_act_id loc act_n), loc), (List_.rm act_n kai, kei))
-	  
+
       | (Ast.Del_feat (act_id, feat_name), loc) ->
         if feat_name = "position"
         then Error.build ~loc "Illegal del_feat command: the 'position' feature cannot be deleted";
