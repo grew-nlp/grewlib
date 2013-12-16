@@ -98,7 +98,11 @@ module G_graph: sig
   (** [edge_out t id edge] returns true iff there is an out-edge from the node [id] with a label compatible with [edge] *)
   val edge_out: t -> Gid.t -> P_edge.t -> bool
 
-  val get_annot_info: t -> (string * string * float)
+  (** [get_annot_info graph] searches for exactly one node with an annot-feature (with name starting with "__").
+      It returns the annot-feature name without the prefix "__" together with the position.
+      raise an [Build] exception if there is not exactly one annot-feature (with name starting with "__")  *)
+  val get_annot_info: t -> (string * float)
+
   (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
   (* Build functions *)
   (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)

@@ -88,9 +88,9 @@ module Rewrite_history = struct
         let b = sprintf "%s_%d_B" base_name i in
         let hpa = Instance.save_dep_svg (Filename.concat out_dir a) alt_1.instance in
         let hpb = Instance.save_dep_svg (Filename.concat out_dir b) alt_2.instance in
-        let (afn,afv,apos) = G_graph.get_annot_info alt_1.instance.Instance.graph
-        and (bfn,bfv,bpos) = G_graph.get_annot_info alt_2.instance.Instance.graph in
-        (base_name,i,(afn,afv,apos),(bfn,bfv,bpos),(hpa,hpb))
+        let (afn,apos) = G_graph.get_annot_info alt_1.instance.Instance.graph
+        and (bfn,bpos) = G_graph.get_annot_info alt_2.instance.Instance.graph in
+        (base_name,i,(afn,apos),(bfn,bpos),(hpa,hpb))
       | _ -> Error.run "Not two alternatives in an annotation rewriting in %s" base_name
       ) t.good_nf
 

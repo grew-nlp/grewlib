@@ -46,9 +46,9 @@ module G_fs: sig
   val to_conll: ?exclude: string list -> t -> string
 
   (** [get_annot_info fs] searches for a feature with name starting with "__".
-      It returns the feature_name and the string representation of its feature value.
+      It returns the feature_name without the prefix "__"
       raise an [Build] exception if there is more than one such feature. *)
-  val get_annot_info: t -> (string * string) option
+  val get_annot_info: t -> string option
 
   val to_string: t -> string
 

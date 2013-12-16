@@ -245,7 +245,7 @@ module G_graph = struct
         (fun _ node acc ->
           match (G_node.get_annot_info node, acc) with
             | (None,_) -> acc
-            | (Some (f,v), None) -> Some (f,v,G_node.get_position node)
+            | (Some f, None) -> Some (f,G_node.get_position node)
             | (Some _, Some _) -> Error.build "[G_node.get_annot_info] Two nodes with annot info"
         ) graph.map None in
     match annot_info with

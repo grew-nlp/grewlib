@@ -47,7 +47,10 @@ module G_node: sig
 
   val position_comp: t -> t -> int
 
-  val get_annot_info: t -> (string * string) option
+  (** [get_annot_info node] searches for a feature with name starting with "__".
+      It returns the feature_name without the prefix "__"
+      raise an [Build] exception if there is more than one such feature. *)
+  val get_annot_info: t -> string option
 
   val build_neighbour: t -> t
 

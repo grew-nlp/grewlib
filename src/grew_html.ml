@@ -1017,7 +1017,7 @@ module Html_annot = struct
     sprintf "<script type=\"text/JavaScript\" src=\"%s\"></script>" (Filename.concat static_dir "annot.js")
   ]
 
-  let build static_dir annot_dir bn_rh_list =
+  let build ~title static_dir annot_dir bn_rh_list =
     let alt_list = List_.flat_map
       (fun (base_name, rew_hist) ->
         List.mapi
@@ -1030,7 +1030,7 @@ module Html_annot = struct
     let len = List.length alt_list in
     let cpt = ref 0 in
     List_.prev_next_iter
-      (fun ?prev ?next (base_name,(sentid,i,(afn,afv,apos),(bfn,bfv,bpos),(hpa,hpb))) ->
+      (fun ?prev ?next (base_name,(sentid,i,(afn,apos),(bfn,bpos),(hpa,hpb))) ->
         incr cpt;
         let init_pos = match (hpa,hpb) with
           | (Some p, Some q) -> max 0. ((min p q) -. 500.)
@@ -1064,7 +1064,7 @@ module Html_annot = struct
         wnl "<td><form action=\"index.php\"><input type=\"submit\" value=\"Index\"></form></td>";
         wnl "<td>";
         wnl "<form action=\"%s\" method=\"post\">" next_php;
-        wnl "<input type=\"hidden\" name=\"to_log\" value=\"%s#%s#%s#%g\" />" sentid afn afv apos;
+        wnl "<input type=\"hidden\" name=\"to_log\" value=\"%s#%g#%s\" />" sentid apos afn;
         wnl "<input type=\"hidden\" name=\"hit_id\" value=\"%s_%d\" />" sentid i;
         wnl "<input type=\"hidden\" name=\"choice\" value=\"U\" />";
         wnl "<input type=\"submit\" value=\"Choose Up\" >";
@@ -1080,7 +1080,7 @@ module Html_annot = struct
         );
         wnl "<td>";
         wnl "<form action=\"%s\" method=\"post\">" next_php;
-        wnl "<input type=\"hidden\" name=\"to_log\" value=\"No_choice\" />";
+        wnl "<input type=\"hidden\" name=\"to_log\" value=\"%s#%g#No_choice\" />" sentid bpos;
         wnl "<input type=\"hidden\" name=\"hit_id\" value=\"%s_%d\" />" sentid i;
         wnl "<input type=\"hidden\" name=\"choice\" value=\"N\" />";
         wnl "<input type=\"submit\" value=\"Don't choose\" >";
@@ -1096,7 +1096,7 @@ module Html_annot = struct
         wnl "<td/>"; (* empty lower left *)
         wnl "<td>";
         wnl "<form action=\"%s\" method=\"post\">" next_php;
-        wnl "<input type=\"hidden\" name=\"to_log\" value=\"%s#%s#%s#%g\" />" sentid bfn bfv bpos;
+        wnl "<input type=\"hidden\" name=\"to_log\" value=\"%s#%g#%s\" />" sentid bpos bfn;
         wnl "<input type=\"hidden\" name=\"hit_id\" value=\"%s_%d\" />" sentid i;
         wnl "<input type=\"hidden\" name=\"choice\" value=\"D\" />";
         wnl "<input type=\"submit\" value=\"Choose Down\" >";
@@ -1115,7 +1115,6 @@ module Html_annot = struct
         close_out out_ch
       ) alt_list;
 
-    printf "--------------> annot_dir=%s\n" annot_dir;
     let out_ch = open_out (Filename.concat annot_dir "status.db") in
     fprintf out_ch "%s" (Buffer.contents db_buff);
     close_out out_ch;
@@ -1123,7 +1122,6 @@ module Html_annot = struct
     (* creation of the file index.php *)
     let buff = Buffer.create 32 in
     let wnl fmt = Printf.ksprintf (fun x -> Printf.bprintf buff "%s\n" x) fmt in
-    let title = sprintf "Annotation task: TODO" in
     wnl "<?php require '%s'; ?>" (Filename.concat static_dir "record_choice.php");
     wnl "<?php require '%s'; ?>" (Filename.concat static_dir "annot_utils.php");
 

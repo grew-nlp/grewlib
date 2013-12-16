@@ -160,8 +160,8 @@ let display ~gr ~grs ~seq =
 let write_stat filename rew_hist =
   handle ~name:"write_stat" (fun () -> Gr_stat.save filename (Gr_stat.from_rew_history rew_hist)) ()
 
-let write_annot static_dir annot_dir base_name_rew_hist_list =
-  handle ~name:"write_annot" (fun () -> Html_annot.build static_dir annot_dir base_name_rew_hist_list) ()
+let write_annot ~title static_dir annot_dir base_name_rew_hist_list =
+  handle ~name:"write_annot" (fun () -> Html_annot.build ~title static_dir annot_dir base_name_rew_hist_list) ()
 
 let save_index ~dirname ~base_names =
   handle ~name:"save_index" (fun () ->

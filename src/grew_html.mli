@@ -73,5 +73,5 @@ module Corpus_stat: sig
 end
 
 module Html_annot: sig
-  val build: string -> string -> (string * Rewrite_history.t) list -> unit
+  val build: title:string -> string -> string -> (string * Rewrite_history.t) list -> unit
 end
