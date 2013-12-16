@@ -1,4 +1,12 @@
-
+(**********************************************************************************)
+(*    Libcaml-grew - a Graph Rewriting library dedicated to NLP applications      *)
+(*                                                                                *)
+(*    Copyright 2011-2013 Inria, Université de Lorraine                           *)
+(*                                                                                *)
+(*    Webpage: http://grew.loria.fr                                               *)
+(*    License: CeCILL (see LICENSE folder or "http://www.cecill.info")            *)
+(*    Authors: see AUTHORS file                                                   *)
+(**********************************************************************************)
 
 (** {2 Grew's core} *)
 open Libgrew_utils
