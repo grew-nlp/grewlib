@@ -111,7 +111,7 @@ module Label = struct
         | Dash -> ["style=dashed"]
         | Solid when deco -> ["style=dotted"]
         | Solid -> []) in
-    sprintf "[label=\"%s\", %s}" style.text (String.concat ", " dot_items)
+    sprintf "[label=\"%s\", %s]" style.text (String.concat ", " dot_items)
 
   let from_string ?loc ?(locals=[||]) string =
     match !full with

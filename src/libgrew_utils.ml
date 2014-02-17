@@ -656,24 +656,25 @@ module Conll = struct
 
   let underscore s = if s = "" then "_" else s
   let parse_line file_name (line_num, line) =
-    try
-      match Str.split (Str.regexp "\t") line with
-        | [ num; phon; lemma; pos1; pos2; morph; govs; dep_labs; _; _ ] ->
-          let gov_list = if govs = "_" then [] else Str.split (Str.regexp "|") govs
-          and lab_list = if dep_labs = "_" then [] else Str.split (Str.regexp "|") dep_labs in
-          let deps = List.combine gov_list lab_list in
-          {line_num = line_num;
-           num = num;
-           phon = underscore phon;
-           lemma = underscore lemma;
-           pos1 = underscore pos1;
-           pos2 = underscore pos2;
-           morph = parse_morph file_name line_num morph;
-           deps = deps;
-         }
-        | l ->
-          Error.build ~loc:(file_name,line_num) "[Conll.load] illegal line, %d fields (10 are expected)\n>>>>>%s<<<<<<" (List.length l) line
-    with exc -> Error.build ~loc:(file_name,line_num) "[Conll.load] illegal line, exc=%s\n>>>>>%s<<<<<<" (Printexc.to_string exc) line
+    match Str.split (Str.regexp "\t") line with
+      | [ num; phon; lemma; pos1; pos2; morph; govs; dep_labs; _; _ ] ->
+        begin
+          try
+            let gov_list = if govs = "_" then [] else Str.split (Str.regexp "|") govs
+            and lab_list = if dep_labs = "_" then [] else Str.split (Str.regexp "|") dep_labs in
+            let deps = List.combine gov_list lab_list in
+            {line_num = line_num;
+             num = num;
+             phon = underscore phon;
+             lemma = underscore lemma;
+             pos1 = underscore pos1;
+             pos2 = underscore pos2;
+             morph = parse_morph file_name line_num morph;
+             deps = deps;
+            }
+          with exc -> Error.build ~loc:(file_name,line_num) "[Conll.load] illegal line, exc=%s\n>>>>>%s<<<<<<" (Printexc.to_string exc) line
+        end
+      | l -> Error.build ~loc:(file_name,line_num) "[Conll.load] illegal line, %d fields (10 are expected)\n>>>>>%s<<<<<<" (List.length l) line
 
   let load file_name =
     let lines = File.read_ln file_name in
