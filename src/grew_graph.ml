@@ -355,7 +355,7 @@ module G_graph = struct
           List.fold_left
             (fun acc2 (gov, dep_lab) ->
               let gov_id = Id.build ?loc gov table in
-              let edge = if gov = "0" then G_edge.root else G_edge.make ?loc dep_lab in
+              let edge = G_edge.make ?loc dep_lab in
               (match map_add_edge acc2 (Gid.Old gov_id) edge (Gid.Old dep_id) with
 	        | Some g -> g
 	        | None -> Error.build "[GRS] [Graph.of_conll] try to build a graph with twice the same edge %s %s"
