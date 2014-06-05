@@ -92,6 +92,12 @@ module G_feature = struct
     match Str.split (Str.regexp ":C:") string_val with
       | [] -> Error.bug "[G_feature.to_dot] feature value '%s'" string_val
       | fv::_ -> sprintf "%s=%s" feat_name fv
+
+  let buff_dot buff (feat_name, feat_val) =
+    let string_val = string_of_value feat_val in
+    match Str.split (Str.regexp ":C:") string_val with
+      | [] -> Error.bug "[G_feature.to_dot] feature value '%s'" string_val
+      | fv::_ -> bprintf buff "<TR><TD ALIGN=\"right\">%s</TD><TD>=</TD><TD ALIGN=\"left\">%s</TD></TR>\n" feat_name fv
 end
 
 (* ==================================================================================================== *)
@@ -217,35 +223,77 @@ module G_fs = struct
     let main_list = match main_feat with
     | None -> ["phon"]
     | Some string -> Str.split (Str.regexp "\\( *; *\\)\\|#") string in
-
     let rec loop = function
       | [] -> (None, t)
       | feat_name :: tail ->
           match List_.sort_assoc feat_name t with
-          | Some atom -> (Some atom, List_.sort_remove_assoc feat_name t)
+          | Some atom -> (Some (feat_name, atom), List_.sort_remove_assoc feat_name t)
           | None -> loop tail in
     loop main_list
 
-  let to_dot ?main_feat t =
-    match get_main ?main_feat t with
-    | (None, _) -> List_.to_string G_feature.to_dot "\\n" t
-    | (Some atom, sub) ->
-      sprintf "{%s|%s}" (string_of_value atom) (List_.to_string G_feature.to_dot "\\n" sub)
+  let to_dot ?(decorated_feat=("",[])) ?main_feat t =
+    printf "DEBUG: decorated_feat=[%s]\n%!" (String.concat ";" (snd decorated_feat));
+    let buff = Buffer.create 32 in
+    bprintf buff "<TABLE BORDER=\"0\" CELLBORDER=\"0\" CELLSPACING=\"0\">\n";
+    let () = match (fst decorated_feat) with
+      | "" -> ()
+      | pid -> bprintf buff "<TR><TD COLSPAN=\"3\" BGCOLOR=\"yellow\"><B>[%s]</B></TD></TR>\n" pid in
+
+    let next =
+      match get_main ?main_feat t with
+      | (None, sub) -> sub
+      | (Some (feat_name,atom), sub) ->
+        if List.mem feat_name (snd decorated_feat)
+        then bprintf buff "<TR><TD COLSPAN=\"3\" BGCOLOR=\"yellow\"><B>%s</B></TD></TR>\n" (string_of_value atom)
+        else bprintf buff "<TR><TD COLSPAN=\"3\"><B>%s</B></TD></TR>\n" (string_of_value atom);
+        sub in
+    List.iter
+      (fun g_feat ->
+        G_feature.buff_dot buff g_feat
+      ) next;
+    bprintf buff "</TABLE>\n";
+    Buffer.contents buff
 
   let to_word ?main_feat t =
     match get_main ?main_feat t with
       | (None, _) -> "#"
-      | (Some atom, _) -> string_of_value atom
+      | (Some (_,atom), _) -> string_of_value atom
 
-  let to_dep ?position ?main_feat ?filter t =
+  let to_dep ?(decorated_feat=("",[])) ?position ?main_feat ?filter t =
     let (main_opt, sub) = get_main ?main_feat t in
-    let last = match position with Some f when f > 0. -> [("position", Float f)] | _ -> [] in
-    let reduced_sub = match filter with
-      | None -> sub @ last
-      | Some l -> (List.filter (fun (fn,_) -> List.mem fn l) sub) @ last in
-    sprintf " word=\"%s\"; subword=\"%s\""
-      (match main_opt with Some atom -> string_of_value atom | None -> "_")
-      (List_.to_string G_feature.to_string "#" reduced_sub)
+    let (pid_name, feat_list) = decorated_feat in
+
+    let main = match main_opt with
+      | None -> []
+      | Some (feat_name, atom) ->
+        [ if List.mem feat_name (snd decorated_feat)
+          then sprintf "%s:B:yellow" (string_of_value atom)
+          else string_of_value atom] in
+
+    let word_list = match pid_name with
+      | "" -> main
+      | _ -> (sprintf "[%s]:B:yellow" pid_name)::main in
+
+    let word = match word_list with
+      | [] -> "_"
+      | l ->  String.concat "#" l in
+
+    let last = match position with
+      | Some f when f > 0. -> [G_feature.to_string ("position", Float f)]
+      | _ -> [] in
+
+    let lines = List.fold_left
+      (fun acc (feat_name, atom) ->
+        if List.mem feat_name (snd decorated_feat)
+        then (sprintf "%s:B:yellow" (G_feature.to_string (feat_name, atom))) :: acc
+        else
+          match filter with
+            | Some filt_list when not (List.mem feat_name filt_list) -> acc
+            | _ -> (G_feature.to_string (feat_name, atom)) :: acc
+      ) last sub in
+    let subword = String.concat "#" (List.rev lines) in
+
+    sprintf " word=\"%s\"; subword=\"%s\"" word subword
 
   let to_conll ?exclude t =
     let reduced_t = match exclude with
@@ -282,6 +330,8 @@ module P_fs = struct
   let build ?pat_vars ast_fs =
     let unsorted = List.map (P_feature.build ?pat_vars) ast_fs in
     List.sort P_feature.compare unsorted
+
+  let feat_list t = List.map P_feature.get_name t
 
   let to_string t = List_.to_string P_feature.to_string "\\n" t
 

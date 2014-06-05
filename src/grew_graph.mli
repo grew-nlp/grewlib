@@ -28,11 +28,14 @@ end (* module P_deco *)
 (* ==================================================================================================== *)
 module G_deco: sig
   type t =
-      { nodes: Gid.t list;
+      { nodes: (Gid.t * (string * string list)) list;
 	edges: (Gid.t * G_edge.t * Gid.t) list;
       }
 
   val empty:t
+
+  val dump: t -> unit
+
 end (* module G_deco *)
 
 (* ==================================================================================================== *)

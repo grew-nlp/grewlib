@@ -325,7 +325,7 @@ module Rule = struct
 
   (* ====================================================================== *)
   type matching = {
-      n_match: Gid.t Pid_map.t;                   (* partial fct: pattern nodes |--> graph nodes *)
+      n_match: Gid.t Pid_map.t;                     (* partial fct: pattern nodes |--> graph nodes *)
       e_match: (string*(Gid.t*Label.t*Gid.t)) list; (* edge matching: edge ident  |--> (src,label,tar) *)
       a_match: (Gid.t*Label.t*Gid.t) list;          (* anonymous edge mached *)
       m_param: Lex_par.t option;
@@ -342,8 +342,13 @@ module Rule = struct
 
   let a_match_add edge matching = {matching with a_match = edge::matching.a_match }
 
-  let up_deco matching =
-    { G_deco.nodes = Pid_map.fold (fun _ gid acc -> gid::acc) matching.n_match [];
+  let up_deco rule matching =
+    { G_deco.nodes =
+        Pid_map.fold
+          (fun pid gid acc ->
+            let pnode = P_graph.find pid rule.pos.graph in
+            (gid, (P_node.get_name pnode, P_fs.feat_list (P_node.get_fs pnode))) ::acc
+          ) matching.n_match [];
       G_deco.edges = List.fold_left (fun acc (_,edge) -> edge::acc) matching.a_match matching.e_match;
     }
 
@@ -359,14 +364,18 @@ module Rule = struct
 
 
   let down_deco (matching,created_nodes) commands =
+    let feat_to_highlight = List.fold_left
+      (fun acc -> function
+        | (Command.UPDATE_FEAT (tar_cn,feat_name,_),loc) ->
+          (* | (Command.SHIFT_EDGE (_,tar_cn),loc) *)
+          let gid = find tar_cn (matching, created_nodes) in
+          let old_feat_list = try Gid_map.find gid acc with Not_found -> [] in
+          Gid_map.add gid (feat_name :: old_feat_list) acc
+        | _ -> acc
+      ) Gid_map.empty commands in
+
     {
-     G_deco.nodes = List.fold_left
-       (fun acc -> function
-         | (Command.UPDATE_FEAT (tar_cn,_,_),loc)
-         | (Command.SHIFT_EDGE (_,tar_cn),loc) ->
-             (find tar_cn (matching, created_nodes)) :: acc
-         | _ -> acc
-       ) [] commands;
+     G_deco.nodes = List.map (fun (gid,feat_list) -> (gid, ("",feat_list))) (Gid_map.bindings feat_to_highlight);
      G_deco.edges = List.fold_left
        (fun acc -> function
          | (Command.ADD_EDGE (src_cn,tar_cn,edge),loc) ->
@@ -731,7 +740,7 @@ module Rule = struct
 
     let rule_app = {
       Grew_types.rule_name = rule.name;
-      up = up_deco matching;
+      up = up_deco rule matching;
       down = down_deco (matching,created_nodes) rule.commands
     } in
 

@@ -190,11 +190,30 @@ end (* module P_graph *)
 (* ==================================================================================================== *)
 module G_deco = struct
   type t = {
-    nodes: Gid.t list;
-    edges: (Gid.t * G_edge.t * Gid.t) list;
+    nodes: (Gid.t * (string * string list)) list;  (* a list of (node, (pattern_id, features of nodes implied in the step)) *)
+    edges: (Gid.t * G_edge.t * Gid.t) list;        (* an edge list *)
   }
 
   let empty = {nodes=[]; edges=[]}
+
+  let dump t =
+    printf "|nodes|=%d\n" (List.length t.nodes);
+    List.iter
+      (fun (gid, (pid,list)) ->
+        printf "  - %s %s %s\n"
+          (Gid.to_string gid)
+          pid
+          (String.concat "/" list)
+      ) t.nodes;
+    printf "|edges|=%d\n" (List.length t.edges);
+    List.iter
+      (fun (src, edge, tar) ->
+        printf "  - %s --[%s]--> %s\n"
+          (Gid.to_string src)
+          (G_edge.to_string edge)
+          (Gid.to_string tar)
+      ) t.edges
+
 end (* module G_deco *)
 
 (* ==================================================================================================== *)
@@ -653,11 +672,12 @@ module G_graph = struct
     (* nodes *)
     List.iter
       (fun (id, node) ->
+        let decorated_feat = try List.assoc id deco.G_deco.nodes with Not_found -> ("",[]) in
         let fs = G_node.get_fs node in
-        let dep_fs = G_fs.to_dep ~position:(G_node.get_position node) ?filter ?main_feat fs in
-        let style = match (List.mem id deco.G_deco.nodes, G_fs.get_string_atom "void" fs) with
-          | (true, _) -> "; forecolor=red; subcolor=red; "
-          | (false, Some "y") -> "; forecolor=red; subcolor=red; "
+        let dep_fs = G_fs.to_dep ~decorated_feat ~position:(G_node.get_position node) ?filter ?main_feat fs in
+
+        let style = match G_fs.get_string_atom "void" fs with
+          | Some "y" -> "; forecolor=red; subcolor=red; "
           | _ -> "" in
 	bprintf buff "N_%s { %s%s }\n" (Gid.to_string id) dep_fs style
       ) snodes;
@@ -679,6 +699,10 @@ module G_graph = struct
 
   (* -------------------------------------------------------------------------------- *)
   let to_dot ?main_feat ?(deco=G_deco.empty) graph =
+
+    printf "<==== [G_graph.to_dot] ====>\n";
+    G_deco.dump deco;
+
     let buff = Buffer.create 32 in
 
     bprintf buff "digraph G {\n";
@@ -688,10 +712,14 @@ module G_graph = struct
     (* nodes *)
     Gid_map.iter
       (fun id node ->
-	bprintf buff "  N_%s [label=\"%s\", color=%s]\n"
+        let decorated_feat = 
+          try List.assoc id deco.G_deco.nodes
+          with Not_found -> ("",[]) in
+	bprintf buff "  N_%s [label=<%s>, color=%s]\n"
 	  (Gid.to_string id)
-          (G_fs.to_dot ?main_feat (G_node.get_fs node))
-          (if List.mem id deco.G_deco.nodes then "red" else "black")
+          (G_fs.to_dot ~decorated_feat ?main_feat (G_node.get_fs node))
+          (* TODO: add bgcolor in dot output *)
+          (if List.mem_assoc id deco.G_deco.nodes then "red" else "black")
       ) graph.map;
 
     (* edges *)
