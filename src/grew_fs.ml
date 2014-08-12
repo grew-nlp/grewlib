@@ -18,7 +18,8 @@ open Grew_ast
 type value = String of string | Float of float
 
 let string_of_value = function
-  | String s -> Str.global_replace (Str.regexp "\"") "\\\"" s
+  | String s -> Str.global_replace (Str.regexp "\"") "\\\""
+    (Str.global_replace (Str.regexp "\\\\") "\\\\\\\\" s)
   | Float i -> String_.of_float i
 
 let conll_string_of_value = function

@@ -17,7 +17,6 @@
 
   exception Error of string
 
-  let tmp_string = ref ""
   let escaped = ref false
 
   (* a general notion of "ident" is needed to cover all usages:
@@ -32,7 +31,7 @@
     let raw = Str.split (Str.regexp "\n") com in
     List.filter (fun l -> not (Str.string_match (Str.regexp "[ \t]*$") l 0)) raw
 
-  let lp_buff = Buffer.create 32
+  let buff = Buffer.create 32
 }
 
 let digit = ['0'-'9']
@@ -65,15 +64,29 @@ and comment_multi target = parse
 | _  { comment_multi target lexbuf }
 
 and string_lex target = parse
-| "\\" { escaped := true; tmp_string := !tmp_string^"\\"; string_lex target lexbuf }
-| '\n' { incr Parser_global.current_line; Lexing.new_line lexbuf; tmp_string := !tmp_string^"\n"; string_lex target lexbuf }
-| '\"' { if !escaped then (tmp_string := !tmp_string^"\"";  escaped := false; string_lex target lexbuf) else ( STRING(!tmp_string) ) }
-| _ as c { escaped := false; tmp_string := !tmp_string^(sprintf "%c" c); string_lex target lexbuf }
+  | '\\' {
+    if !escaped
+    then (bprintf buff "\\"; escaped := false; string_lex target lexbuf)
+    else (escaped := true; string_lex target lexbuf)
+  }
+  | '\n' { incr Parser_global.current_line; Lexing.new_line lexbuf; bprintf buff "\n"; string_lex target lexbuf }
+  | '\"' {
+    if !escaped
+    then (bprintf buff "\""; escaped := false; string_lex target lexbuf)
+    else (STRING(Buffer.contents buff) )
+  }
+  | _ as c {
+    if !escaped then bprintf buff "\\";
+    escaped := false;
+    bprintf buff "%c" c;
+    string_lex target lexbuf
+  }
 
+(* a dedicated lexer for lexical parameter: read everything until "#END" *)
 and lp_lex target = parse
-| '\n'                    { incr Parser_global.current_line; Lexing.new_line lexbuf; bprintf lp_buff "\n"; lp_lex target lexbuf }
-| _ as c                  { bprintf lp_buff "%c" c; lp_lex target lexbuf }
-| "#END" [' ' '\t']* '\n' { incr Parser_global.current_line; LP (Str.split (Str.regexp "\n") (Buffer.contents lp_buff)) }
+| '\n'                    { incr Parser_global.current_line; Lexing.new_line lexbuf; bprintf buff "\n"; lp_lex target lexbuf }
+| _ as c                  { bprintf buff "%c" c; lp_lex target lexbuf }
+| "#END" [' ' '\t']* '\n' { incr Parser_global.current_line; LP (Str.split (Str.regexp "\n") (Buffer.contents buff)) }
 
 and global = parse
 | [' ' '\t'] { global lexbuf }
@@ -82,7 +95,7 @@ and global = parse
 | "/*"       { comment_multi global lexbuf }
 | '%'        { comment global lexbuf }
 
-| "#BEGIN" [' ' '\t']* '\n' { incr Parser_global.current_line; Buffer.clear lp_buff; lp_lex global lexbuf}
+| "#BEGIN" [' ' '\t']* '\n' { incr Parser_global.current_line; Buffer.clear buff; lp_lex global lexbuf}
 
 | '\n'       { incr Parser_global.current_line; Lexing.new_line lexbuf; global lexbuf}
 
@@ -153,7 +166,8 @@ and global = parse
 | "<-[" { RTL_EDGE_LEFT }
 | "]-"  { RTL_EDGE_RIGHT }
 | "==>" { LONGARROW }
-| '"'   { tmp_string := ""; string_lex global lexbuf }
+
+| '"'   { Buffer.clear buff; string_lex global lexbuf }
 
 | eof   { EOF }
 | _ as c { raise (Error (sprintf "At line %d: unexpected character '%c'" (lexbuf.Lexing.lex_start_p.Lexing.pos_lnum) c)) }
