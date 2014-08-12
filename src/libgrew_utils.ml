@@ -189,7 +189,7 @@ module Gid = struct
   let to_string = function
     | Old i -> sprintf "%d" i
     | New (i,j) -> sprintf"%d__%d" i j
-    | Act (i,n) -> sprintf"%d#%s" i n
+    | Act (i,n) -> sprintf"%d____%s" i n
 end (* module Gid *)
 
 (* ================================================================================ *)

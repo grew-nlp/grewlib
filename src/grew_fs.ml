@@ -233,9 +233,7 @@ module G_fs = struct
     loop main_list
 
   let to_dot ?(decorated_feat=("",[])) ?main_feat t =
-    printf "DEBUG: decorated_feat=[%s]\n%!" (String.concat ";" (snd decorated_feat));
     let buff = Buffer.create 32 in
-    bprintf buff "<TABLE BORDER=\"0\" CELLBORDER=\"0\" CELLSPACING=\"0\">\n";
     let () = match (fst decorated_feat) with
       | "" -> ()
       | pid -> bprintf buff "<TR><TD COLSPAN=\"3\" BGCOLOR=\"yellow\"><B>[%s]</B></TD></TR>\n" pid in
@@ -252,8 +250,13 @@ module G_fs = struct
       (fun g_feat ->
         G_feature.buff_dot buff g_feat
       ) next;
-    bprintf buff "</TABLE>\n";
-    Buffer.contents buff
+
+    match Buffer.contents buff with
+      | "" -> ""
+      | s -> sprintf "<TABLE BORDER=\"0\" CELLBORDER=\"0\" CELLSPACING=\"0\">\n%s\n</TABLE>\n" s
+
+
+
 
   let to_word ?main_feat t =
     match get_main ?main_feat t with
