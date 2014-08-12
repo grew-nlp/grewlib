@@ -85,4 +85,8 @@ module Rule : sig
     t list -> (* filter list *)
     Instance.t ->
       Instance_set.t * Instance_set.t
+
+  type matching
+  val match_in_graph: t -> G_graph.t -> matching list
+
 end (* module Rule *)

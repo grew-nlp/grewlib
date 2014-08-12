@@ -791,35 +791,49 @@ module Rule = struct
     | x -> false
 
 
-(** [one_step instance rules] computes the list of one-step reduct with rules *)
+(* ================================================================================ *)
+(* ================================================================================ *)
+(* ================================================================================ *)
+(* ================================================================================ *)
+  let match_in_graph rule graph =
+    let pos_graph = rule.pos.graph in
+
+    (* get the list of partial matching for positive part of the pattern *)
+    let matching_list =
+      extend_matching
+        (pos_graph,P_graph.empty)
+        graph
+        (init rule.param rule.pos) in
+
+    let filtered_matching_list =
+      List.filter
+        (fun (sub, already_matched_gids) ->
+          List.for_all
+            (fun without ->
+              let neg_graph = without.graph in
+              let new_partial_matching = update_partial pos_graph without (sub, already_matched_gids) in
+              fulfill (pos_graph,neg_graph) graph new_partial_matching
+            ) rule.neg
+        ) matching_list in
+
+    List.map fst filtered_matching_list
+(* ================================================================================ *)
+(* ================================================================================ *)
+(* ================================================================================ *)
+(* ================================================================================ *)
+
+
+  (** [one_step instance rules] computes the list of one-step reduct with rules *)
   let one_step instance rules =
     List.fold_left
       (fun acc rule ->
-        let pos_graph = rule.pos.graph in
-
-        (* get the list of partial matching for positive part of the pattern *)
-        let matching_list =
-          extend_matching
-            (pos_graph,P_graph.empty)
-            instance.Instance.graph
-            (init rule.param rule.pos) in
-
-        let filtered_matching_list =
-          List.filter
-            (fun (sub, already_matched_gids) ->
-              List.for_all
-                (fun without ->
-                  let neg_graph = without.graph in
-                  let new_partial_matching = update_partial pos_graph without (sub, already_matched_gids) in
-                  fulfill (pos_graph,neg_graph) instance.Instance.graph new_partial_matching
-                ) rule.neg
-            ) matching_list in
+        let matching_list = match_in_graph rule instance.Instance.graph in
 
         List.fold_left
-          (fun acc1 (matching,_) ->
+          (fun acc1 matching ->
             try (apply_rule instance matching rule) :: acc1
-            with Command_execution_fail -> Printf.printf "******\n%!"; acc1
-          ) acc filtered_matching_list
+            with Command_execution_fail -> acc1
+          ) acc matching_list
       ) [] rules
 
 (** [conf_one_step instance rules] computes one Some (one-step reduct) with rules, None if no rule apply *)
