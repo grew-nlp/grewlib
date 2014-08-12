@@ -56,7 +56,7 @@ module Instance = struct
     { empty with graph = G_graph.rename mapping t.graph; free_index = new_free }
 
   (* comparison is done on the list of commands *)
-  (* only graph rewrited from the same init graph can be "compared" *)
+  (* only graph rewritten from the same init graph can be "compared" *)
   let compare t1 t2 = Pervasives.compare t1.history t2.history
 
   let to_gr t = G_graph.to_gr t.graph
