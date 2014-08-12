@@ -50,7 +50,7 @@ module P_graph: sig
 
   type extension = {
       ext_map: P_node.t Pid_map.t; (* node description for new nodes and for edge "Old -> New"  *)
-      old_map: P_node.t Pid_map.t; (* a partial map for new constraints on old nodes "Old [...]" *) 	
+      old_map: P_node.t Pid_map.t; (* a partial map for new constraints on old nodes "Old [...]" *)
     }
 
   (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
@@ -137,6 +137,7 @@ module G_graph: sig
   val del_node: t -> Gid.t -> t
 
   val add_neighbour: Loc.t -> t -> Gid.t -> G_edge.t -> (Gid.t * t)
+  val activate: Loc.t -> Gid.t -> string -> t -> (Gid.t * t)
 
   val merge_node: Loc.t -> t -> Gid.t -> Gid.t -> t option
 

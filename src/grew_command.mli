@@ -15,8 +15,8 @@ open Grew_edge
 (* ==================================================================================================== *)
 module Command : sig
   type command_node =       (* a command node is either: *)
-    | Pat of Pid.t     (* a node identified in the pattern *)
-    | New of string  (* a node introduced by a new_neighbour *)
+    | Pat of Pid.t          (* a node identified in the pattern *)
+    | New of string         (* a node introduced by a new_neighbour *)
     | Act of Pid.t * string (* a node introduced by a activate *)
 
   type item =
@@ -37,8 +37,9 @@ module Command : sig
     | SHIFT_IN of (command_node * command_node)
     | SHIFT_OUT of (command_node * command_node)
     | MERGE_NODE of (command_node * command_node)
+    | ACT_NODE of command_node
 
-	
+
   type t = (p * Loc.t)
   type h =
     | H_DEL_NODE of Gid.t
@@ -52,6 +53,7 @@ module Command : sig
     | H_SHIFT_IN of (Gid.t * Gid.t)
     | H_SHIFT_OUT of (Gid.t * Gid.t)
     | H_MERGE_NODE of (Gid.t * Gid.t)
+    | H_ACT_NODE of (Gid.t * string)
 
   val build:
       ?param: (string list * string list) ->

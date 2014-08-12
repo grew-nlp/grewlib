@@ -22,6 +22,7 @@
   (* a general notion of "ident" is needed to cover all usages:
      with or without '#', with several '.' (separator for feature names and usual symbol for labels...) *)
   let parse_complex_ident string =
+    printf "--parse_complex_ident-->%s<--\n%!" string;
     match Str.split (Str.regexp "#") string with
       | [x] -> Ast.No_sharp x
       | [x;y] -> Ast.Sharp (x,y)
@@ -118,6 +119,7 @@ and global = parse
 | "del_node"    { DEL_NODE }
 | "add_node"    { ADD_NODE }
 | "del_feat"    { DEL_FEAT }
+| "activate"    { ACTIVATE }
 
 | "module"      { MODULE }
 | "confluent"   { CONFLUENT }
