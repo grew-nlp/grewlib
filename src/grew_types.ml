@@ -103,27 +103,6 @@ module Massoc_pid = Massoc_make (Pid)
 
 (* ================================================================================ *)
 module Label = struct
-  (** Global names and display styles are recorded in two aligned arrays *)
-  let full = ref None
-
-  (** Internal representation of labels *)
-  type t =
-    | Global of int       (* globally defined labels: their names are in the [full] array *)
-    | Local of int        (* locally defined labels: names array should be provided! UNTESTED *)
-    | No_domain of string (* out of domain label: name in not constrained *)
-
-  (** [to_string t] returns a string for the label *)
-  let to_string ?(locals=[||]) t =
-    match (!full, t) with
-      | (_, No_domain s) -> s
-      | (Some table, Global i) -> table.(i)
-      | (Some _, Local i) -> fst locals.(i)
-      | _ -> Error.bug "[Label.to_string] inconsistent data"
-
-  let to_int = function
-    | Global i -> Some i
-    | _ -> None
-
   (** describe the display style of a label *)
   type line = Solid | Dot | Dash
   type style = {
@@ -134,15 +113,32 @@ module Label = struct
     line: line;
   }
 
+  (** Global names and display styles are recorded in two aligned arrays *)
+  let full = ref None
+  let styles = ref ([||] : style array)
+
+  (** Internal representation of labels *)
+  type t =
+    | Global of int       (* globally defined labels: their names are in the [full] array *)
+    | Local of int        (* locally defined labels: names array should be provided! UNTESTED *)
+
+  (** [to_string t] returns a string for the label *)
+  let to_string ?(locals=[||]) t =
+    match (!full, t) with
+      | (Some table, Global i) -> table.(i)
+      | (Some _, Local i) -> fst locals.(i)
+      | _ -> Error.bug "[Label.to_string] labels were not properly initialized"
+
+  let to_int = function
+    | Global i -> Some i
+    | _ -> None
+
   (** The [default] style value *)
   let default = { text="UNSET"; bottom=false; color=None; bgcolor=None; line=Solid }
-
-  let styles = ref ([||] : style array)
 
   let get_style = function
     | Global i -> !styles.(i)
     | Local i -> Log.warning "Style of locally defined labels is not implemented"; default
-    | No_domain s -> { default with text=s }
 
   (** Computes the style of a label from its options and maybe its shape (like I:...). *)
   let parse_option string_label options =
@@ -199,7 +195,7 @@ module Label = struct
 
   let from_string ?loc ?(locals=[||]) string =
     match !full with
-      | None -> No_domain string
+      | None -> Error.bug "[Label.from_string] labels were not properly initialized"
       | Some table ->
         try Global (Id.build ?loc string table)
         with Not_found ->
