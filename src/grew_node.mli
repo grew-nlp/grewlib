@@ -8,7 +8,7 @@
 (*    Authors: see AUTHORS file                                                   *)
 (**********************************************************************************)
 
-open Libgrew_utils
+open Grew_base
 open Grew_fs
 open Grew_edge
 open Grew_ast

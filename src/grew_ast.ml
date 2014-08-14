@@ -10,7 +10,7 @@
 
 open Printf
 open Log
-open Libgrew_utils
+open Grew_base
 
 module Ast = struct
   let dot_split s = Str.split (Str.regexp "\\.") s

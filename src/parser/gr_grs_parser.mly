@@ -9,7 +9,7 @@
 (**********************************************************************************)
 
 %{
-open Libgrew_utils
+open Grew_base
 open Grew_ast
 
 (* Some intermediate sum types used in sub-functions when building the ast *)

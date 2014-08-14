@@ -12,7 +12,7 @@ open Printf
 open Log
 
 open Grew_fs
-open Libgrew_utils
+open Grew_base
 open Grew_ast
 open Grew_edge
 open Grew_command
