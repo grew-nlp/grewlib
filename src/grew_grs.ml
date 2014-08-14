@@ -292,7 +292,7 @@ module Grs = struct
     let rec loop instance module_list =
       let instance = {instance with Instance.graph = G_graph.normalize instance.Instance.graph} in
       match module_list with
-      | [] -> Grew_types.Leaf instance.Instance.graph
+      | [] -> Libgrew_types.Leaf instance.Instance.graph
       | next :: tail ->
         let (good_set, bad_set) =
           Rule.normalize
@@ -306,8 +306,8 @@ module Grs = struct
 
         match inst_list with
           | [{Instance.big_step = None}] ->
-            Grew_types.Local_normal_form (instance.Instance.graph, next.Modul.name, loop instance tail)
-          | _ -> Grew_types.Node
+            Libgrew_types.Local_normal_form (instance.Instance.graph, next.Modul.name, loop instance tail)
+          | _ -> Libgrew_types.Node
             (
               instance.Instance.graph,
               next.Modul.name,

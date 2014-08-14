@@ -8,7 +8,7 @@
 (*    Authors: see AUTHORS file                                                   *)
 (**********************************************************************************)
 
-include Grew_types
+include Libgrew_types
 
 open Printf
 open Log

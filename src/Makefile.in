@@ -3,7 +3,7 @@ PRE_FILES_DEP = libgrew_utils grew_ast
 PRE_FILES_CMO = $(PRE_FILES_DEP:%=%.cmo)
 PRE_FILES_CMX = $(PRE_FILES_DEP:%=%.cmx)
 
-POST_FILES_DEP = grew_fs grew_edge grew_node grew_graph grew_types grew_command grew_rule grew_grs grew_html
+POST_FILES_DEP = grew_fs grew_edge grew_node grew_graph libgrew_types grew_command grew_rule grew_grs grew_html
 POST_FILES_CMO = $(POST_FILES_DEP:%=%.cmo)
 POST_FILES_CMX = $(POST_FILES_DEP:%=%.cmx)
 
@@ -59,7 +59,7 @@ parser_byte:
 
 # librairie
 
-libgrew.mli : grew_types.mli libgrew_.mli
+libgrew.mli : libgrew_types.mli libgrew_.mli
 	rm -rf libgrew.mli
 	touch libgrew.mli
 	echo "(** Grew Library" > libgrew.mli
@@ -68,7 +68,7 @@ libgrew.mli : grew_types.mli libgrew_.mli
 	echo "@version 1.0.0" >> libgrew.mli
 	echo "*)" >> libgrew.mli
 	echo "" >> libgrew.mli
-	cat grew_types.mli >> libgrew.mli
+	cat libgrew_types.mli >> libgrew.mli
 	echo "" >> libgrew.mli
 	echo "" >> libgrew.mli
 	cat libgrew_.mli >> libgrew.mli
@@ -94,7 +94,7 @@ endif
 DEPENDS_DIR= -I parser
 
 ###### grew_core.ml ##############################################################
-GREW_CORE_DEP = grew_types
+GREW_CORE_DEP = libgrew_types
 GREW_CORE_CMI = $(GREW_CORE_DEP:%=%.cmi)
 GREW_CORE_CMO = $(GREW_CORE_DEP:%=%.cmo)
 GREW_CORE_CMX = $(GREW_CORE_DEP:%=%.cmx)
@@ -227,20 +227,20 @@ grew_graph.cmx: $(GREW_GRAPH_CMX) grew_graph.cmi grew_graph.ml
 ################################################################################
 
 
-###### grew_types.ml ##############################################################
-GREW_TYPES_DEP = grew_graph 
-GREW_TYPES_CMI = $(GREW_TYPES_DEP:%=%.cmi)
-GREW_TYPES_CMO = $(GREW_TYPES_DEP:%=%.cmo)
-GREW_TYPES_CMX = $(GREW_TYPES_DEP:%=%.cmx)
+###### libgrew_types.ml ##############################################################
+LIBGREW_TYPES_DEP = grew_graph 
+LIBGREW_TYPES_CMI = $(LIBGREW_TYPES_DEP:%=%.cmi)
+LIBGREW_TYPES_CMO = $(LIBGREW_TYPES_DEP:%=%.cmo)
+LIBGREW_TYPES_CMX = $(LIBGREW_TYPES_DEP:%=%.cmx)
 
-grew_types.cmi: $(GREW_TYPES_CMI) grew_types.mli
-	$(OCAMLC) -c grew_types.mli
+libgrew_types.cmi: $(LIBGREW_TYPES_CMI) libgrew_types.mli
+	$(OCAMLC) -c libgrew_types.mli
 
-grew_types.cmo: $(GREW_TYPES_CMO) grew_types.cmi grew_types.ml
-	$(OCAMLC) $(BYTE_FLAGS) -c $(DEPENDS_DIR) grew_types.ml
+libgrew_types.cmo: $(LIBGREW_TYPES_CMO) libgrew_types.cmi libgrew_types.ml
+	$(OCAMLC) $(BYTE_FLAGS) -c $(DEPENDS_DIR) libgrew_types.ml
 
-grew_types.cmx: $(GREW_TYPES_CMX) grew_types.cmi grew_types.ml
-	$(OCAMLOPT) $(OPT_FLAGS) -c $(DEPENDS_DIR) grew_types.ml
+libgrew_types.cmx: $(LIBGREW_TYPES_CMX) libgrew_types.cmi libgrew_types.ml
+	$(OCAMLOPT) $(OPT_FLAGS) -c $(DEPENDS_DIR) libgrew_types.ml
 ################################################################################
 
 
@@ -262,7 +262,7 @@ grew_command.cmx: $(GREW_COMMAND_CMX) grew_command.cmi grew_command.ml
 
 
 ###### grew_rule.ml ##############################################################
-GREW_RULE_DEP = libgrew_utils grew_ast grew_command grew_edge grew_fs grew_node grew_types grew_graph
+GREW_RULE_DEP = libgrew_utils grew_ast grew_command grew_edge grew_fs grew_node libgrew_types grew_graph
 GREW_RULE_CMI = $(GREW_RULE_DEP:%=%.cmi)
 GREW_RULE_CMO = $(GREW_RULE_DEP:%=%.cmo)
 GREW_RULE_CMX = $(GREW_RULE_DEP:%=%.cmx)
@@ -287,7 +287,7 @@ endif
 
 
 ###### grew_grs.ml ##############################################################
-GREW_GRS_DEP = libgrew_utils grew_edge grew_types grew_graph grew_rule
+GREW_GRS_DEP = libgrew_utils grew_edge libgrew_types grew_graph grew_rule
 GREW_GRS_CMI = $(GREW_GRS_DEP:%=%.cmi)
 GREW_GRS_CMO = $(GREW_GRS_DEP:%=%.cmo)
 GREW_GRS_CMX = $(GREW_GRS_DEP:%=%.cmx)
