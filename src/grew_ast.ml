@@ -10,7 +10,6 @@
 
 open Printf
 open Log
-
 open Libgrew_utils
 
 module Ast = struct
@@ -22,6 +21,7 @@ module Ast = struct
   type feature_name = string (* cat, num, ... *)
   type feature_atom = string (* V, N, inf, ... *)
   type feature_value = string (* V, 4, "free text", ... *)
+  type suffix = string
 
   (* -------------------------------------------------------------------------------- *)
   (* complex_id: V, V#alpha, V.cat, V#alpha.cat, p_obj.loc *)
@@ -217,7 +217,7 @@ module Ast = struct
   type modul = {
     module_id:Id.name;
     local_labels: (string * string list) list;
-    new_node_names: string list;
+    suffixes: string list;
     rules: rule list;
     confluent: bool;
     module_doc:string list;

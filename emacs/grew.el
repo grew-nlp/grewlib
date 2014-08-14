@@ -3,10 +3,10 @@
 ;; Mode used to write Grew with emacs (highlight)
 ;; see: https://wikilligramme.loria.fr/doku.php?id=grew:grew
 
-(require 'generic-x) ;;pour Emacs OK, mais semble ne pas marcher avec XEmacs 
+(require 'generic-x) ;;pour Emacs OK, mais semble ne pas marcher avec XEmacs
 (define-generic-mode 'grew-mode
   '("%");;comments
-  '("features" "module" "rule" "lex_rule" "match" "without" "labels" "sequences" "commands" "graph" "confluent" "include" "filter");;keywords
+  '("features" "module" "rule" "lex_rule" "match" "without" "labels" "sequences" "commands" "graph" "confluent" "include" "filter" "suffixes");;keywords
   '(
 ;;    ("class\\s (\*\*)* +\\(\\sw[a-zA-Z0-9_.-]*\\)" 1 'font-lock-type-face);noms de classes
 ;;    ("\?[a-zA-Z0-9]+" . font-lock-variable-name-face)

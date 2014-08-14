@@ -95,6 +95,8 @@ module G_graph: sig
 
   val fold_gid: (Gid.t -> 'a -> 'a) -> t -> 'a -> 'a
 
+  val normalize: t -> t
+
   (** raise ??? *)
   val max_binding: t -> int
 

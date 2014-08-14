@@ -229,6 +229,30 @@ module G_graph = struct
     map: G_node.t Gid_map.t; (* node description *)
   }
 
+  (* -------------------------------------------------------------------------------- *)
+  let rename mapping graph =
+    {graph with map =
+        Gid_map.fold
+          (fun id node acc ->
+            let new_id = try List.assoc id mapping with Not_found -> id in
+            let new_node = G_node.rename mapping node in
+            Gid_map.add new_id new_node acc
+          ) graph.map Gid_map.empty
+    }
+
+  (* -------------------------------------------------------------------------------- *)
+  (* [normalize g] changes all graphs keys to Old _ (used when entering a new module) *)
+  let normalize t =
+    let (_, mapping) =
+      Gid_map.fold
+        (fun key value (max_binding, mapping) ->
+          match key with
+          | Gid.Old n -> (n, mapping)
+          | Gid.New _ -> (max_binding, mapping)
+          | Gid.Act (n,suffix) -> (max_binding+1, (key, (Gid.Old (max_binding+1)))::mapping)
+        ) t.map (0, []) in
+        rename mapping t
+
   let empty = {meta=[]; map=Gid_map.empty}
 
   let find node_id graph = Gid_map.find node_id graph.map
@@ -417,17 +441,6 @@ module G_graph = struct
   (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
 
   (* -------------------------------------------------------------------------------- *)
-  let rename mapping graph =
-    {graph with map =
-        Gid_map.fold
-          (fun id node acc ->
-            let new_id = try List.assoc id mapping with Not_found -> id in
-            let new_node = G_node.rename mapping node in
-            Gid_map.add new_id new_node acc
-          ) graph.map Gid_map.empty
-    }
-
-  (* -------------------------------------------------------------------------------- *)
   let del_edge ?edge_ident loc graph id_src label id_tar =
     let node_src =
       try Gid_map.find id_src graph.map
@@ -450,13 +463,13 @@ module G_graph = struct
     }
 
   (* -------------------------------------------------------------------------------- *)
-  let activate loc node_id new_name graph =
+  let activate loc node_id suffix graph =
     let index = match node_id with
-      | Gid.Old id -> Gid.Act (id, new_name)
+      | Gid.Old id -> Gid.Act (id, suffix)
       | _ -> Error.run ~loc "[Graph.activate] is possible only from a \"ground\" node" in
 
     if Gid_map.mem index graph.map
-    then Error.run ~loc "[Graph.activate] try to activate twice the \"same\" node (with new_name '%s')" new_name;
+    then Error.run ~loc "[Graph.activate] try to activate twice the \"same\" node (with suffix '%s')" suffix;
 
     let node = Gid_map.find node_id graph.map in
     let new_map = Gid_map.add index (G_node.build_new node) graph.map in
@@ -470,7 +483,7 @@ module G_graph = struct
           | Some label_int -> Gid.New (id, label_int)
           | None -> Error.run ~loc "[Graph.add_neighbour] try to add neighbour with a local label"
         )
-      | Gid.New _ -> Error.run ~loc "[Graph.add_neighbour] try to add neighbour node to a neighbour node" in
+      | Gid.New _ | Gid.Act _ -> Error.run ~loc "[Graph.add_neighbour] try to add neighbour node to a neighbour node" in
 
     if Gid_map.mem index graph.map
     then Error.run ~loc "[Graph.add_neighbour] try to build twice the \"same\" neighbour node (with label '%s')" (Label.to_string label);

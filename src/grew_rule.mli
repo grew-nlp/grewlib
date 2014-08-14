@@ -74,7 +74,7 @@ module Rule : sig
 
   (** [build ?local dir ast_rule] returns the Rule.t value corresponding to [ast_rule].
       [dir] is used for localisation of lp files *)
-  val build: ?locals:Label.decl array -> string -> Ast.rule -> t
+  val build: ?locals:Label.decl array -> string list -> string -> Ast.rule -> t
 
   (** [normalize module_name ?confluent rule_list filter_list instance] returns two sets of good normal forms and bad normal forms *)
   (* raise Stop if some command fails to apply *)

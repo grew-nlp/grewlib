@@ -62,7 +62,7 @@ let localize t = (t,get_loc ())
 %token FEATURE                     /* feature */
 %token FILE                        /* file */
 %token LABELS                      /* labels */
-%token NEW_NODES                   /* new_nodes */
+%token SUFFIXES                    /* suffixes */
 %token ACTIVATE                    /* activate */
 %token MATCH                       /* match */
 %token WITHOUT                     /* without */
@@ -249,11 +249,11 @@ modules:
         | x=list(grew_module) { x }
 
 grew_module:
-        | doc=option(COMMENT) MODULE conf=boption(CONFLUENT) id_loc=simple_id_with_loc LACC l=option(labels) nn=option(new_nodes) r=rules RACC
+        | doc=option(COMMENT) MODULE conf=boption(CONFLUENT) id_loc=simple_id_with_loc LACC l=option(labels) suff=option(suffixes) r=rules RACC
            {
             { Ast.module_id = fst id_loc;
               local_labels = (match l with None -> [] | Some x -> x);
-              new_node_names = (match nn with None -> [] | Some x -> x);
+              suffixes = (match suff with None -> [] | Some x -> x);
               rules = r;
               confluent = conf;
               module_doc = (match doc with Some d -> d | None -> []);
@@ -262,9 +262,9 @@ grew_module:
             }
           }
 
-new_nodes:
-        (* "new_nodes {a, b, c}" *)
-        | NEW_NODES x=delimited(LACC,separated_nonempty_list_final_opt(COMA,COMPLEX_ID),RACC)
+suffixes:
+        (* "suffixes {a, b, c}" *)
+        | SUFFIXES x=delimited(LACC,separated_nonempty_list_final_opt(COMA,COMPLEX_ID),RACC)
             { List.map Ast.simple_id_of_ci x }
 
 

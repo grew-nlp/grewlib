@@ -13,10 +13,11 @@ open Grew_graph
 open Grew_rule
 open Grew_ast
 
+(* ==================================================================================================== *)
 module Rewrite_history: sig
   type t = {
       instance: Instance.t;
-      module_name: string; 
+      module_name: string;
       good_nf: t list;
       bad_nf: Instance.t list;
     }
@@ -24,17 +25,17 @@ module Rewrite_history: sig
   val is_empty: t -> bool
 
   val num_sol: t -> int
-    
+
   (** [save_nfs ?main_feat base_name t] does two things:
       - write PNG files of normal forms
       - returns a list of couples (rules, file)
   *)
   val save_nfs:
-    ?filter: string list -> 
-    ?main_feat: string -> 
+    ?filter: string list ->
+    ?main_feat: string ->
     dot: bool ->
-    string -> 
-    t -> 
+    string ->
+    t ->
     ((string * string list) list * string) list
 
   (** [save_annot out_dir base_name t] writes a set of svg_file for an annotation folder. *)
@@ -55,10 +56,12 @@ module Rewrite_history: sig
   val conll_dep_string: ?keep_empty_rh:bool -> t -> string option
 end
 
+(* ==================================================================================================== *)
 module Modul: sig
   type t = {
     name: string;
     local_labels: (string * string list) array;
+    suffixes: string list;
     rules: Rule.t list;
     filters: Rule.t list;
     confluent: bool;
@@ -66,13 +69,12 @@ module Modul: sig
   }
 end
 
-
-
+(* ==================================================================================================== *)
 module Grs: sig
   type t
 
   val empty:t
-  
+
   val get_modules: t -> Modul.t list
 
   val get_ast: t -> Ast.grs

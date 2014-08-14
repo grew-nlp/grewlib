@@ -136,6 +136,7 @@ module Modul = struct
   type t = {
     name: string;
     local_labels: (string * string list) array;
+    suffixes: string list;
     rules: Rule.t list;
     filters: Rule.t list;
     confluent: bool;
@@ -154,14 +155,16 @@ module Modul = struct
   let build ast_module =
     let locals = Array.of_list ast_module.Ast.local_labels in
     Array.sort compare locals;
-    let rules_or_filters = List.map (Rule.build ~locals ast_module.Ast.mod_dir) ast_module.Ast.rules in
+    let suffixes = ast_module.Ast.suffixes in
+    let rules_or_filters = List.map (Rule.build ~locals suffixes ast_module.Ast.mod_dir) ast_module.Ast.rules in
     let (filters, rules) = List.partition Rule.is_filter rules_or_filters in
     let modul =
       {
         name = ast_module.Ast.module_id;
         local_labels = locals;
-        rules = rules;
-        filters = filters;
+        suffixes;
+        rules;
+        filters;
         confluent = ast_module.Ast.confluent;
         loc = ast_module.Ast.mod_loc;
       } in
@@ -260,7 +263,9 @@ module Grs = struct
     Timeout.start ();
     let modules_to_apply = modules_of_sequence grs sequence in
 
-    let rec loop instance = function
+    let rec loop instance module_list =
+      let instance = {instance with Instance.graph = G_graph.normalize instance.Instance.graph} in
+      match module_list with
       | [] -> (* no more modules to apply *)
         {Rewrite_history.instance = instance; module_name = ""; good_nf = []; bad_nf = []; }
       | next::tail ->
@@ -284,7 +289,9 @@ module Grs = struct
   let build_rew_display grs sequence instance =
     let modules_to_apply = modules_of_sequence grs sequence in
 
-    let rec loop instance = function
+    let rec loop instance module_list =
+      let instance = {instance with Instance.graph = G_graph.normalize instance.Instance.graph} in
+      match module_list with
       | [] -> Grew_types.Leaf instance.Instance.graph
       | next :: tail ->
         let (good_set, bad_set) =

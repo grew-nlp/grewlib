@@ -259,7 +259,7 @@ module Rule = struct
     Buffer.contents buff
 
   (* ====================================================================== *)
-  let build_commands ?param ?(locals=[||]) pos pos_table ast_commands =
+  let build_commands ?param ?(locals=[||]) suffixes pos pos_table ast_commands =
     let known_act_ids = List.map (fun x -> (x,None)) (Array.to_list pos_table) in
     let known_edge_ids = get_edge_ids pos in
 
@@ -272,6 +272,7 @@ module Rule = struct
               (kai,kei)
               pos_table
               locals
+              suffixes
               ast_command in
           command :: (loop (new_kai,new_kei) tail) in
     loop (known_act_ids, known_edge_ids) ast_commands
@@ -290,7 +291,7 @@ module Rule = struct
     parse_pat_vars vars
 
   (* ====================================================================== *)
-  let build ?(locals=[||]) dir rule_ast =
+  let build ?(locals=[||]) suffixes dir rule_ast =
 
     let (param, pat_vars, cmd_vars) =
       match rule_ast.Ast.param with
@@ -317,7 +318,7 @@ module Rule = struct
       name = rule_ast.Ast.rule_id;
       pos = pos;
       neg = List.map (fun pattern_ast -> build_neg_pattern ~locals pos_table pattern_ast) rule_ast.Ast.neg_patterns;
-      commands = build_commands ~param:(pat_vars,cmd_vars) ~locals pos pos_table rule_ast.Ast.commands;
+      commands = build_commands ~param:(pat_vars,cmd_vars) ~locals suffixes pos pos_table rule_ast.Ast.commands;
       loc = rule_ast.Ast.rule_loc;
       param = param;
       param_names = (pat_vars,cmd_vars)
@@ -696,6 +697,7 @@ module Rule = struct
         },
          (created_nodes, ((pid, new_name), new_gid) :: activated_nodes)
         )
+    | Command.ACT_NODE _ -> Error.bug "Try to activate a node without suffix" (Loc.to_string loc)
 
     | Command.SHIFT_IN (src_cn,tar_cn) ->
         let src_gid = node_find src_cn in
