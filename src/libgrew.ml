@@ -15,6 +15,8 @@ open Log
 
 open Grew_fs
 open Grew_base
+open Grew_types
+
 open Grew_graph
 open Grew_rule
 open Grew_grs

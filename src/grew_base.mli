@@ -22,6 +22,10 @@ module String_: sig
 
   (* [to_float]: robust conversion of float to string whatever is the locale *)
   val of_float: float -> string
+
+  (* [rm_first_char s] returns the string [s] without the first charater if s is not empty.
+     If s in empty, the empty string is returned  *)
+  val rm_first_char: string -> string
 end
 
 
@@ -53,47 +57,9 @@ module File: sig
      Blanks lines (empty or only with spaces and tabs) are ignored.
      Lines with '%' as the first char are ignored. *)
   val read: string -> string list
+
+  val read_ln: string -> (int * string) list
 end
-
-
-(* ================================================================================ *)
-(* [Pid] describes identifier used in pattern graphs *)
-module Pid : sig
-  type t = Pos of int | Neg of int
-  val compare: t -> t -> int
-  val to_id: t -> string
-  val to_string: t -> string
-end
-
-(* ================================================================================ *)
-(* [Pid_map] is the map used in pattern graphs *)
-module Pid_map : sig
-  include Map.S with type key = Pid.t
-
-  val exists: (key -> 'a -> bool) -> 'a t -> bool
-end
-
-(* ================================================================================ *)
-(* [Pid_set] *)
-module Pid_set : Set.S with type elt = Pid.t
-
-(* ================================================================================ *)
-(* [Gid] describes identifier used in full graphs *)
-module Gid : sig
-  type t =
-    | Old of int
-    | New of (int * int) (* identifier for "created nodes" *)
-    | Act of (int * string)  (* identifier for "activated nodes" *)
-
-  val compare: t -> t -> int
-
-  val to_string: t -> string
-end
-
-(* ================================================================================ *)
-(* [Gid_map] is the map used in full graphs *)
-module Gid_map : Map.S with type key = Gid.t
-
 
 (* ================================================================================ *)
 (* [Array_] contains additional functions on the caml [array] type. *)
@@ -120,10 +86,14 @@ module List_: sig
   val rm: 'a -> 'a list -> 'a list
   val opt: 'a option list -> 'a list
 
+  val set: int -> 'a -> 'a list -> 'a list
+
   (** [pos elt list] return [Some index] if [index] is the smallest position in the [list] equals to [elt]. None is returned if [elt] is not in the [list] *)
   val pos: 'a -> 'a list -> int option
 
   val opt_map: ('a -> 'b option) -> 'a list -> 'b list
+
+  val opt_mapi: (int -> 'a -> 'b option) -> 'a list -> 'b list
 
   val flat_map: ('a -> 'b list) -> 'a list -> 'b list
   (* remove [elt] from [list]. raise Not_found if [elt] is not in [list] *)
@@ -230,12 +200,6 @@ module type S =
 
 module Massoc_make (Ord : OrderedType) : S with type key = Ord.t
 
-
-module Massoc_gid : S with type key = Gid.t
-
-module Massoc_pid : S with type key = Pid.t
-
-
 module Error: sig
   exception Build of (string * Loc.t option)
   exception Run of (string * Loc.t option)
@@ -245,9 +209,6 @@ module Error: sig
   val run: ?loc: Loc.t -> ('a, unit, string, 'b) format4 -> 'a
   val bug: ?loc: Loc.t -> ('a, unit, string, 'b) format4 -> 'a
 end
-
-
-
 
 module Id: sig
   type name = string
@@ -264,58 +225,6 @@ end
 module Html: sig
   val enter: out_channel -> ?title: string -> ?header: string -> string -> unit
   val leave: out_channel -> unit
-end
-
-module Conll: sig
-  type line = {
-    line_num: int;
-    num: string;
-    phon: string;
-    lemma: string;
-    pos1: string;
-    pos2: string;
-    morph: (string * string) list;
-    deps: (string * string ) list;
-  }
-
-  val line_to_string: line -> string
-
-  val root:line
-
-  val load: string -> line list
-
-  val parse: string -> (int * string) list -> line list
-
-  val compare: line -> line -> int
-end
-
-(** module for rule that are lexically parametrized *)
-module Lex_par: sig
-  type t
-
-  val empty:t
-  val append: t -> t -> t
-
-  val dump: t -> unit
-
-  (** [from_lines filename nb_pattern_var nb_command_var strings] *)
-  val from_lines: ?loc: Loc.t -> int -> int -> string list -> t
-
-  (** [load ?loc local_dir_name nb_pattern_var nb_command_var file] *)
-  val load: ?loc: Loc.t -> string -> int -> int -> string -> t
-
-  (** [filter index atom t] returns the subset of [t] which contains only entries
-      which refers to [atom] at the [index]^th pattern_var.
-      [None] is returnes if no such entry s founded.
-   *)
-  val filter: int -> string -> t -> t option
-
-  (** [get_param_value index t] returns the [index]^th param_var. *)
-  val get_param_value: int -> t -> string
-
-  (** [get_command_value index t] supposes that [t] contains iny one element.
-      It returns the [index]^th command_var. *)
-  val get_command_value: int -> t -> string
 end
 
 module Timeout: sig

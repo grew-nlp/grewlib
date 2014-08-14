@@ -9,6 +9,8 @@
 (**********************************************************************************)
 
 open Grew_base
+open Grew_types
+
 open Grew_ast
 
 module Domain: sig
@@ -24,7 +26,7 @@ module G_fs: sig
   type t
 
   val empty: t
-  
+
   (** [set_feat feature_name atom t] adds the feature ([feature_name],[atom]) in [t].
       If [t] already contains a feature named [feature_name], the old value is erased by the new one. *)
   val set_feat: ?loc:Loc.t -> string -> string -> t ->  t
@@ -60,14 +62,14 @@ module G_fs: sig
       [None] is returned if the two feature structures cannot be unified. *)
   val unif: t -> t -> t option
 end
-  
+
 module P_fs: sig
   type t
 
   val empty: t
-  
+
   val build: ?pat_vars: string list -> Ast.feature list -> t
-  
+
   val to_string: t -> string
 
   val to_dep: ?filter: string list -> (string list * string list) -> t -> string
@@ -78,10 +80,10 @@ module P_fs: sig
 
   exception Fail
 
-  (** [match_ ?param t gfs] tries to match the pattern fs [pfs] with the graph fs [gfs] 
+  (** [match_ ?param t gfs] tries to match the pattern fs [pfs] with the graph fs [gfs]
       If [param] is [None], it returns [None] if matching succeeds and else raise [Fail].
       If [param] is [Some p], it returns [Some p'] if matching succeeds and else raise [Fail].
-   *) 
+   *)
   val match_: ?param:Lex_par.t -> t -> G_fs.t -> Lex_par.t option
 
   (** [check_position ?parma position pfs] checks wheter [pfs] is compatible with a node at [position].

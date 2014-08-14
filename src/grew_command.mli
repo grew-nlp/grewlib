@@ -10,6 +10,8 @@
 
 open Grew_ast
 open Grew_base
+open Grew_types
+
 open Grew_edge
 
 (* ==================================================================================================== *)
@@ -60,7 +62,7 @@ module Command : sig
       (Ast.act_id list * string list) ->
       Id.table ->
       Label.decl array ->
-      Ast.suffix list ->
+      suffix list ->
       Ast.command ->
         t * (Ast.act_id list * string list)
 end (* module Command *)
