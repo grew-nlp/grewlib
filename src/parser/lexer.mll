@@ -22,7 +22,6 @@
   (* a general notion of "ident" is needed to cover all usages:
      with or without '#', with several '.' (separator for feature names and usual symbol for labels...) *)
   let parse_complex_ident string =
-    printf "--parse_complex_ident-->%s<--\n%!" string;
     match Str.split (Str.regexp "#") string with
       | [x] -> Ast.No_sharp x
       | [x;y] -> Ast.Sharp (x,y)
@@ -136,8 +135,8 @@ and global = parse
 | '@' ident as cmd_var     { AROBAS_ID cmd_var }
 | "@#" color as col        { COLOR col }
 
-| ident as complex_id                        { COMPLEX_ID (parse_complex_ident complex_id) }
-| ident '#' ident as complex_id              { COMPLEX_ID (parse_complex_ident complex_id) }
+| ident as complex_id              { COMPLEX_ID (parse_complex_ident complex_id) }
+| ident '#' ident as complex_id    { COMPLEX_ID (parse_complex_ident complex_id) }
 
 | '{'   { LACC }
 | '}'   { RACC }

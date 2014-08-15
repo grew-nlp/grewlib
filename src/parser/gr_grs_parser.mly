@@ -10,6 +10,7 @@
 
 %{
 open Grew_base
+open Grew_types
 open Grew_ast
 
 (* Some intermediate sum types used in sub-functions when building the ast *)
@@ -208,9 +209,9 @@ features_group:
         | feature_name=feature_name DDOT feature_values=features_values
             {
               match feature_values with
-                | ["*"] -> Ast.Open feature_name
-                | ["#"] -> Ast.Int feature_name
-                | _ -> Ast.Closed (feature_name, List.sort Pervasives.compare feature_values)
+                | ["*"] -> Domain.Open feature_name
+                | ["#"] -> Domain.Int feature_name
+                | _ -> Domain.Closed (feature_name, List.sort Pervasives.compare feature_values)
             }
 
 feature_name:

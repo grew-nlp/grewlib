@@ -15,62 +15,6 @@ open Grew_base
 open Grew_types
 open Grew_ast
 
-
-type value = String of string | Float of float
-
-let string_of_value = function
-  | String s -> Str.global_replace (Str.regexp "\"") "\\\""
-    (Str.global_replace (Str.regexp "\\\\") "\\\\\\\\" s)
-  | Float i -> String_.of_float i
-
-let conll_string_of_value = function
-  | String s -> s
-  | Float i -> String_.of_float i
-
-(* ==================================================================================================== *)
-module Domain = struct
-  let current = ref None
-
-  let reset () = current := None
-
-  let init ast_domain =
-    current := Some (Ast.normalize_domain ast_domain)
-
-  let build ?loc name unsorted_values =
-    let values = List.sort Pervasives.compare unsorted_values in
-    match (name.[0], !current) with
-      | ('_', _) (* no check on feat_name starting with '_' *)
-      | (_, None) -> List.map (fun s -> String s) values (* no domain defined *)
-      | (_, Some dom) ->
-        let rec loop = function
-          | [] -> Error.build ?loc "[GRS] Unknown feature name '%s'" name
-          | ((Ast.Open n)::_) when n = name ->
-            List.map (fun s -> String s) values
-          | ((Ast.Int n)::_) when n = name ->
-            (try List.map (fun s -> Float (String_.to_float s)) values
-            with Failure _ -> Error.build ?loc "[GRS] The feature '%s' is of type int" name)
-          | ((Ast.Closed (n,vs))::_) when n = name ->
-            (match List_.sort_diff values vs with
-              | [] -> List.map (fun s -> String s) values
-              | l when List.for_all (fun x -> x.[0] = '_') l -> List.map (fun s -> String s) values
-              | l -> Error.build ?loc "Unknown feature values '%s' for feature name '%s'"
-	        (List_.to_string (fun x->x) ", " l)
-	        name
-            )
-          | _::t -> loop t in
-        loop dom
-
-  let build_one ?loc name value =
-    match build ?loc name [value] with
-      | [x] -> x
-      | _ -> Error.bug ?loc "[Domain.build_one]"
-
-  let feature_names () =
-    match !current with
-      | None -> None
-      | Some dom -> Some (List.map (function Ast.Closed (fn, _) | Ast.Open fn | Ast.Int fn -> fn) dom)
-end
-
 (* ==================================================================================================== *)
 module G_feature = struct
 

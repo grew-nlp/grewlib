@@ -19,9 +19,7 @@ open Grew_edge
 open Grew_fs
 open Grew_node
 
-module Str_map = Map.Make (String)
-
-(* ==================================================================================================== *)
+(* ================================================================================ *)
 module P_deco = struct
   type t = {
     nodes: Pid.t list;
@@ -31,7 +29,7 @@ module P_deco = struct
   let empty = {nodes=[]; edges=[]}
 end (* module P_deco *)
 
-(* ==================================================================================================== *)
+(* ================================================================================ *)
 module P_graph = struct
   type t = P_node.t Pid_map.t
 
@@ -189,7 +187,7 @@ module P_graph = struct
   let roots graph = snd (tree_and_roots graph)
 end (* module P_graph *)
 
-(* ==================================================================================================== *)
+(* ================================================================================ *)
 module G_deco = struct
   type t = {
     nodes: (Gid.t * (string * string list)) list;  (* a list of (node, (pattern_id, features of nodes implied in the step)) *)
@@ -217,21 +215,21 @@ module G_deco = struct
       ) t.edges
 end (* module G_deco *)
 
-(* ==================================================================================================== *)
+(* ================================================================================ *)
 module Concat_item = struct
   type t =
     | Feat of (Gid.t * string)
     | String of string
 end (* module Concat_item *)
 
-(* ==================================================================================================== *)
+(* ================================================================================ *)
 module G_graph = struct
   type t = {
     meta: (string * string) list;
     map: G_node.t Gid_map.t; (* node description *)
   }
 
-  (* -------------------------------------------------------------------------------- *)
+  (* ---------------------------------------------------------------------- *)
   let rename mapping graph =
     {graph with map =
         Gid_map.fold
@@ -242,7 +240,7 @@ module G_graph = struct
           ) graph.map Gid_map.empty
     }
 
-  (* -------------------------------------------------------------------------------- *)
+  (* ---------------------------------------------------------------------- *)
   (* [normalize g] changes all graphs keys to Old _ (used when entering a new module) *)
   let normalize t =
     let (_, mapping) =
@@ -310,10 +308,7 @@ module G_graph = struct
       | Some new_map -> Some {graph with map = new_map }
       | None -> None
 
-  (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
-  (* Build functions *)
-  (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
-
+  (* -------------------------------------------------------------------------------- *)
   let build ?(locals=[||]) gr_ast =
     let full_node_list = gr_ast.Ast.nodes
     and full_edge_list = gr_ast.Ast.edges in
@@ -396,7 +391,8 @@ module G_graph = struct
     try Some (List.assoc name atts)
     with Not_found -> None
 
-  (** [of_xml d_xml] loads a graph in the xml format: [d_xml] must be a <D> xml element *)
+ (* -------------------------------------------------------------------------------- *)
+ (** [of_xml d_xml] loads a graph in the xml format: [d_xml] must be a <D> xml element *)
   let of_xml d_xml =
     match d_xml with
       | Xml.Element ("D", _, t_or_r_list) ->
@@ -414,9 +410,9 @@ module G_graph = struct
                       G_fs.empty
                       (("phon", phon) :: ("cat", (List.assoc "label" t_atts)) :: other_feats) in
                   let new_node = G_node.set_fs (G_node.set_position (float i) G_node.empty) new_fs in
-                  (Gid_map.add (Gid.Old i) new_node acc, Str_map.add id (Gid.Old i) acc_map)
+                  (Gid_map.add (Gid.Old i) new_node acc, String_map.add id (Gid.Old i) acc_map)
                 | _ -> Log.critical "[G_graph.of_xml] Not a wellformed <T> tag"
-            ) (Gid_map.empty, Str_map.empty) t_list in
+            ) (Gid_map.empty, String_map.empty) t_list in
         let final_map =
           List.fold_left
             (fun acc r_xml ->
@@ -425,8 +421,8 @@ module G_graph = struct
                   let src = List.assoc "from" r_atts
                   and tar = List.assoc "to" r_atts
                   and label = List.assoc "label" r_atts in
-                  let gid_tar = Str_map.find tar mapping in
-                  let gid_src = Str_map.find src mapping in
+                  let gid_tar = String_map.find tar mapping in
+                  let gid_src = String_map.find src mapping in
                   let old_node = Gid_map.find gid_src acc in
                   let new_map =
                     match G_node.add_edge (G_edge.make label) gid_tar old_node with
@@ -437,10 +433,6 @@ module G_graph = struct
             ) nodes_without_edges r_list in
         {meta=[]; map=final_map}
       | _ -> Log.critical "[G_graph.of_xml] Not a <D> tag"
-
-  (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
-  (* Update functions *)
-  (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
 
   (* -------------------------------------------------------------------------------- *)
   let del_edge ?edge_ident loc graph id_src label id_tar =
@@ -619,10 +611,6 @@ module G_graph = struct
     let node = Gid_map.find node_id graph.map in
     let new_fs = G_fs.del_feat feat_name (G_node.get_fs node) in
     { graph with map = Gid_map.add node_id (G_node.set_fs node new_fs) graph.map }
-
-  (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
-  (* Output functions *)
-  (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
 
   (* -------------------------------------------------------------------------------- *)
   let to_gr graph =

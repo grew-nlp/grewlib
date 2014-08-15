@@ -10,18 +10,10 @@
 
 open Grew_base
 open Grew_types
-
 open Grew_ast
 
-module Domain: sig
-  val reset: unit -> unit
-
-  val init: Ast.domain -> unit
-
-  val feature_names: unit -> string list option
-end
-
-(* [G_fs] define the feature srtuctures that are used in graphs *)
+(* ================================================================================ *)
+(* module [G_fs] defines the feature structures that are used in graphs *)
 module G_fs: sig
   type t
 
@@ -61,8 +53,10 @@ module G_fs: sig
   (** [unif t1 t2] returns [Some t] if [t] is the unification of two graph feature structures
       [None] is returned if the two feature structures cannot be unified. *)
   val unif: t -> t -> t option
-end
+end (* module G_fs *)
 
+(* ================================================================================ *)
+(* module [P_fs] defines the feature structures that are used in patterns *)
 module P_fs: sig
   type t
 
@@ -93,4 +87,4 @@ module P_fs: sig
   val filter: t -> G_fs.t -> bool
 
   val unif: t -> t -> t
-end
+end (* module P_fs *)

@@ -15,6 +15,13 @@ type feature_atom = string (* V, N, inf, ... *)
 type feature_value = string (* V, 4, "free text", ... *)
 type suffix = string
 
+
+type value = String of string | Float of float
+
+val string_of_value : value -> string
+
+val conll_string_of_value : value -> string
+
 (* ================================================================================ *)
 (* [Pid] describes identifier used in pattern graphs *)
 module Pid : sig
@@ -78,8 +85,28 @@ module Label : sig
   val to_dot: ?deco:bool -> t -> string
 
   val from_string: ?loc:Loc.t -> ?locals:decl array -> string -> t
-
 end (* module Label *)
+
+(* ================================================================================ *)
+module Domain: sig
+  type feature_spec =
+    | Closed of feature_name * feature_atom list (* cat:V,N *)
+    | Open of feature_name (* phon, lemma, ... *)
+    | Int of feature_name (* position *)
+
+  type domain = feature_spec list
+  val normalize_domain: domain -> domain
+
+  val reset: unit -> unit
+
+  val init: domain -> unit
+
+  val build: ?loc:Loc.t -> feature_name -> feature_atom list -> value list
+
+  val build_one: ?loc:Loc.t -> feature_name -> feature_atom -> value
+
+  val feature_names: unit -> string list option
+end (* module Domain *)
 
 (* ================================================================================ *)
 module Conll: sig
@@ -106,7 +133,7 @@ module Conll: sig
 end (* module Conll *)
 
 (* ================================================================================ *)
-(** module for rule that are lexically parametrized *)
+(** module for rules that are lexically parametrized *)
 module Lex_par: sig
   type t
 
