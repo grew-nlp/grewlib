@@ -15,7 +15,7 @@ open Grew_base
 open Grew_types
 open Grew_ast
 
-(* ==================================================================================================== *)
+(* ================================================================================ *)
 module G_feature = struct
 
   type t = string * value
@@ -44,9 +44,9 @@ module G_feature = struct
     match Str.split (Str.regexp ":C:") string_val with
       | [] -> Error.bug "[G_feature.to_dot] feature value '%s'" string_val
       | fv::_ -> bprintf buff "<TR><TD ALIGN=\"right\">%s</TD><TD>=</TD><TD ALIGN=\"left\">%s</TD></TR>\n" feat_name fv
-end
+end (* module G_feature *)
 
-(* ==================================================================================================== *)
+(* ================================================================================ *)
 module P_feature = struct
   (* feature= (feature_name, disjunction of atomic values) *)
 
@@ -94,9 +94,9 @@ module P_feature = struct
             match List_.pos var l with
             | Some index -> (name, Param index)
             | None -> Error.build ~loc "[P_feature.build] Unknown pattern variable '%s'" var
-end
+end (* module P_feature *)
 
-(* ==================================================================================================== *)
+(* ================================================================================ *)
 module G_fs = struct
   (* list are supposed to be striclty ordered wrt compare*)
   type t = G_feature.t list
@@ -257,7 +257,7 @@ module G_fs = struct
         )
 end (* module G_fs *)
 
-(* ==================================================================================================== *)
+(* ================================================================================ *)
 module P_fs = struct
   (* list are supposed to be striclty ordered wrt compare*)
   type t = P_feature.t list

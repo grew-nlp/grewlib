@@ -92,14 +92,14 @@ module Domain: sig
   type feature_spec =
     | Closed of feature_name * feature_atom list (* cat:V,N *)
     | Open of feature_name (* phon, lemma, ... *)
-    | Int of feature_name (* position *)
+    | Num of feature_name (* position *)
 
-  type domain = feature_spec list
-  val normalize_domain: domain -> domain
+  type t = feature_spec list
+  val normalize_domain: t -> t
 
   val reset: unit -> unit
 
-  val init: domain -> unit
+  val init: t -> unit
 
   val build: ?loc:Loc.t -> feature_name -> feature_atom list -> value list
 
@@ -161,5 +161,13 @@ module Lex_par: sig
       It returns the [index]^th command_var. *)
   val get_command_value: int -> t -> string
 end (* module Lex_par *)
+
+(* ================================================================================ *)
+module Concat_item : sig
+  type t =
+  | Feat of (Gid.t * feature_name)
+  | String of string
+end (* module Concat_item *)
+
 
 

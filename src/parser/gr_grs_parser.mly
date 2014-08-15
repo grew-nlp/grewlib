@@ -210,7 +210,7 @@ features_group:
             {
               match feature_values with
                 | ["*"] -> Domain.Open feature_name
-                | ["#"] -> Domain.Int feature_name
+                | ["#"] -> Domain.Num feature_name
                 | _ -> Domain.Closed (feature_name, List.sort Pervasives.compare feature_values)
             }
 

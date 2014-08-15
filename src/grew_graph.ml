@@ -216,13 +216,6 @@ module G_deco = struct
 end (* module G_deco *)
 
 (* ================================================================================ *)
-module Concat_item = struct
-  type t =
-    | Feat of (Gid.t * string)
-    | String of string
-end (* module Concat_item *)
-
-(* ================================================================================ *)
 module G_graph = struct
   type t = {
     meta: (string * string) list;

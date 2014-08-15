@@ -38,7 +38,7 @@ let html_header ?css_file ?title ?(add_lines=[]) buff =
   List.iter (fun line -> wnl "    %s" line) add_lines;
   wnl "  </head>";
 
-(* ====================================================================================================*)
+(* ================================================================================*)
 module Html_doc = struct
 
   let string_of_concat_item = function
@@ -377,7 +377,7 @@ module Html_doc = struct
       (function
         | Domain.Closed (feat_name,values) -> wnl "<b>%s</b> : %s<br/>" feat_name (String.concat " | " values)
         | Domain.Open feat_name -> wnl "    <b>%s</b> : *<br/>" feat_name
-        | Domain.Int feat_name -> wnl "    <b>%s</b> : #<br/>" feat_name
+        | Domain.Num feat_name -> wnl "    <b>%s</b> : #<br/>" feat_name
       ) ast.Ast.domain;
     wnl "  </code>";
 
@@ -496,7 +496,7 @@ module Html_doc = struct
     done
 end (* module Html_doc *)
 
-(* ==================================================================================================== *)
+(* ================================================================================ *)
 module Html_rh = struct
   let build ?filter ?main_feat ?(dot=false) ?(init_graph=true) ?(out_gr=false) ?header ?graph_file prefix t =
 
@@ -637,7 +637,7 @@ module Html_rh = struct
     close_out out_ch
 end (* module Html_rh *)
 
-(* ====================================================================================================*)
+(* ================================================================================*)
 module Html_sentences = struct
   let build ~title output_dir sentences =
     let buff = Buffer.create 32 in
@@ -674,9 +674,7 @@ module Html_sentences = struct
     close_out out_ch
 end (* module Html_sentences *)
 
-
-
-(* ====================================================================================================*)
+(* ================================================================================*)
 module Gr_stat = struct
 
   (** the type [gr] stores the stats for the rewriting of one gr file *)
@@ -792,7 +790,7 @@ module Gr_stat = struct
     with Sys_error msg -> Error (sprintf "Sys_error: %s" msg)
 end (* module Gr_stat *)
 
-(* ====================================================================================================*)
+(* ================================================================================*)
 module Corpus_stat = struct
   (** the [t] type stores stats for a corpus of gr_files *)
   (*
@@ -1006,11 +1004,8 @@ module Corpus_stat = struct
     let out_ch = open_out (Filename.concat output_dir "index.html") in
     fprintf out_ch "%s" (Buffer.contents buff);
     close_out out_ch
-
 end (* module Stat *)
 
-
-(* ==================================================================================================== *)
 module Html_annot = struct
 
   let script_lines static_dir = [
@@ -1134,5 +1129,4 @@ module Html_annot = struct
     fprintf out_ch "%s" (Buffer.contents buff);
     close_out out_ch;
     ()
-
 end (* module Html_annot *)

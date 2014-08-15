@@ -21,7 +21,6 @@ open Grew_node
 open Grew_command
 open Grew_graph
 
-
 (* ================================================================================ *)
 module Instance = struct
   type t = {
@@ -69,7 +68,7 @@ module Instance = struct
   let save_dot_png ?filter ?main_feat base t =
     ignore (Dot.to_png_file (G_graph.to_dot ?main_feat t.graph) (base^".png"))
 
-IFDEF DEP2PICT THEN
+  IFDEF DEP2PICT THEN
   let save_dep_png ?filter ?main_feat base t =
     let (_,_,highlight_position) =
       Dep2pict.Dep2pict.fromDepStringToPng_with_pos
@@ -82,10 +81,10 @@ IFDEF DEP2PICT THEN
         (G_graph.to_dep ?filter ?main_feat t.graph) (base^".svg") in
     highlight_position
 
-ELSE
+  ELSE
   let save_dep_png ?filter ?main_feat base t = None
   let save_dep_svg ?filter ?main_feat base t = None
-ENDIF
+  ENDIF
 end (* module Instance *)
 
 (* ================================================================================ *)
@@ -392,7 +391,6 @@ module Rule = struct
    }
 
   exception Fail
-(* ================================================================================ *)
   type partial = {
       sub: matching;
       unmatched_nodes: Pid.t list;
@@ -405,7 +403,7 @@ module Rule = struct
            - all partial matching have the same domain
            - the domain of the pattern P is the disjoint union of domain([sub]) and [unmatched_nodes]
          *)
-
+  (*  ---------------------------------------------------------------------- *)
   let init param pattern =
     let roots = P_graph.roots pattern.graph in
 
@@ -426,16 +424,7 @@ module Rule = struct
       check = pattern.constraints;
     }
 
-(* (\* Ocaml < 3.12 doesn't have exists function for maps! *\) *)
-(*   exception True *)
-(*   let gid_map_exists fct map = *)
-(*     try *)
-(*       Gid_map.iter (fun k v -> if fct k v then raise True) map; *)
-(*       false *)
-(*     with True -> true *)
-(* (\* Ocaml < 3.12 doesn't have exists function for maps! *\) *)
-
-
+  (*  ---------------------------------------------------------------------- *)
   let fullfill graph matching cst =
     let get_node pid = G_graph.find (Pid_map.find pid matching.n_match) graph in
     let get_string_feat pid = function
@@ -479,6 +468,7 @@ module Rule = struct
             | (Ast.Ge, Some fv1, Some fv2) when fv1 >= fv2 -> true
             | _ -> false
 
+  (*  ---------------------------------------------------------------------- *)
   (* returns all extension of the partial input matching *)
   let rec extend_matching (positive,neg) (graph:G_graph.t) (partial:partial) =
     match (partial.unmatched_edges, partial.unmatched_nodes) with
@@ -533,6 +523,7 @@ module Rule = struct
             (extend_matching_from (positive,neg) graph pid gid partial) @ acc
           ) graph []
 
+  (*  ---------------------------------------------------------------------- *)
   and extend_matching_from (positive,neg) (graph:G_graph.t) pid (gid : Gid.t) partial =
     if List.mem gid partial.already_matched_gids
     then [] (* the required association pid -> gid is not injective *)
@@ -569,10 +560,12 @@ module Rule = struct
         extend_matching (positive,neg) graph new_partial
       with P_fs.Fail -> []
 
-(* the exception below is added to handle unification failure in merge!! *)
+  (*  ---------------------------------------------------------------------- *)
+  (* the exception below is added to handle unification failure in merge!! *)
   exception Command_execution_fail
 
-(** [apply_command instance matching created_nodes command] returns [(new_instance, new_created_nodes)] *)
+  (*  ---------------------------------------------------------------------- *)
+  (** [apply_command instance matching created_nodes command] returns [(new_instance, new_created_nodes)] *)
   let apply_command (command,loc) instance matching (created_nodes, (activated_nodes:((Pid.t * string) * Gid.t) list)) =
     let node_find cnode = find ~loc cnode (matching, (created_nodes, activated_nodes)) in
 
@@ -735,9 +728,9 @@ module Rule = struct
           (created_nodes, activated_nodes)
         )
 
-(** [apply_rule instance matching rule] returns a new instance after the application of the rule
-    [Command_execution_fail] is raised if some merge unification fails
- *)
+  (*  ---------------------------------------------------------------------- *)
+  (** [apply_rule instance matching rule] returns a new instance after the application of the rule
+      [Command_execution_fail] is raised if some merge unification fails *)
   let apply_rule instance matching rule =
 
     (* Timeout check *)
@@ -770,8 +763,7 @@ module Rule = struct
         | Some bs -> Some { bs with Libgrew_types.small_step = (instance.Instance.graph, rule_app) :: bs.Libgrew_types.small_step }
     }
 
-(*-----------------------------*)
-
+  (*  ---------------------------------------------------------------------- *)
   let update_partial pos_graph without (sub, already_matched_gids) =
     let neg_graph = without.graph in
     let unmatched_nodes =
@@ -804,16 +796,17 @@ module Rule = struct
    }
 
 
+  (*  ---------------------------------------------------------------------- *)
   let fulfill (pos_graph,neg_graph) graph new_partial_matching  =
     match extend_matching (pos_graph, neg_graph) graph new_partial_matching with
     | [] -> true (* the without pattern in not found -> OK *)
     | x -> false
 
 
-(* ================================================================================ *)
-(* ================================================================================ *)
-(* ================================================================================ *)
-(* ================================================================================ *)
+  (* ================================================================================ *)
+  (* ================================================================================ *)
+  (* ================================================================================ *)
+  (* ================================================================================ *)
   let match_in_graph rule graph =
     let pos_graph = rule.pos.graph in
 
@@ -836,12 +829,13 @@ module Rule = struct
         ) matching_list in
 
     List.map fst filtered_matching_list
-(* ================================================================================ *)
-(* ================================================================================ *)
-(* ================================================================================ *)
-(* ================================================================================ *)
+  (* ================================================================================ *)
+  (* ================================================================================ *)
+  (* ================================================================================ *)
+  (* ================================================================================ *)
 
 
+  (*  ---------------------------------------------------------------------- *)
   (** [one_step instance rules] computes the list of one-step reduct with rules *)
   let one_step instance rules =
     List.fold_left
@@ -855,7 +849,8 @@ module Rule = struct
           ) acc matching_list
       ) [] rules
 
-(** [conf_one_step instance rules] computes one Some (one-step reduct) with rules, None if no rule apply *)
+  (*  ---------------------------------------------------------------------- *)
+  (** [conf_one_step instance rules] computes one Some (one-step reduct) with rules, None if no rule apply *)
   let rec conf_one_step (instance : Instance.t) = function
     | [] -> None
     | rule::rule_tail ->
@@ -883,7 +878,8 @@ module Rule = struct
         with Not_found -> (* try another rule *) conf_one_step instance rule_tail
 
 
-(** filter nfs being equal *)
+  (* ---------------------------------------------------------------------- *)
+  (** filter nfs being equal *)
   let rec filter_equal_nfs nfs =
     Instance_set.fold
       (fun nf acc ->
@@ -892,11 +888,9 @@ module Rule = struct
         else Instance_set.add nf acc
       ) nfs Instance_set.empty
 
-(** normalize [t] according to the [rules]
- * [t] is a raw graph
- * Info about the commands applied on [t] are kept
- *)
-
+  (* ---------------------------------------------------------------------- *)
+  (** normalize [t] according to the [rules]. [t] is a raw graph
+    Info about the commands applied on [t] are kept *)
   (* type: Instance.t -> t list -> Instance_set.t *)
   let normalize_instance modul_name instance rules =
     let rec loop to_do_set nf_set =
@@ -921,7 +915,7 @@ module Rule = struct
     then Log.fwarning "In module \"%s\", %d nf are produced, only %d different ones" modul_name nfs_card reduced_nfs_card;
     reduced_nfs
 
-
+  (* ---------------------------------------------------------------------- *)
   (* [filter_instance instance filters] return a boolean:
      - true iff the instance does NOT match any pattern in [filters] *)
   let filter_instance filters instance =
@@ -950,13 +944,13 @@ module Rule = struct
           else loop filter_tail in
     loop filters
 
-
-
+  (* ---------------------------------------------------------------------- *)
   let rec conf_normalize instance rules =
     match conf_one_step instance rules with
     | Some new_instance -> conf_normalize new_instance rules
     | None -> Instance.rev_steps instance
 
+  (* ---------------------------------------------------------------------- *)
   let normalize modul_name ?(confluent=false) rules filters instance =
     if confluent
     then
@@ -968,5 +962,4 @@ module Rule = struct
       let output_set = normalize_instance modul_name instance rules in
       let (good_set, bad_set) = Instance_set.partition (filter_instance filters) output_set in
       (good_set, bad_set)
-
 end (* module Rule *)

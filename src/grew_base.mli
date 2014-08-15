@@ -137,6 +137,7 @@ module List_: sig
   val prev_next_iter: (?prev:'a -> ?next:'a -> 'a -> unit) -> 'a list -> unit
 end
 
+(* ================================================================================ *)
 module type OrderedType =
   sig
     type t
@@ -152,7 +153,7 @@ module type OrderedType =
   end
 (** Input signature of the functor {!Map.Make}. *)
 
-
+(* ================================================================================ *)
 module type S =
   sig
     type key
@@ -197,9 +198,10 @@ module type S =
     val rename: (key * key) list -> 'a t -> 'a t
   end
 
-
+(* ================================================================================ *)
 module Massoc_make (Ord : OrderedType) : S with type key = Ord.t
 
+(* ================================================================================ *)
 module Error: sig
   exception Build of (string * Loc.t option)
   exception Run of (string * Loc.t option)
@@ -210,6 +212,7 @@ module Error: sig
   val bug: ?loc: Loc.t -> ('a, unit, string, 'b) format4 -> 'a
 end
 
+(* ================================================================================ *)
 module Id: sig
   type name = string
   type t = int
@@ -222,11 +225,7 @@ module Id: sig
   val build_opt: name -> table -> t option
 end
 
-module Html: sig
-  val enter: out_channel -> ?title: string -> ?header: string -> string -> unit
-  val leave: out_channel -> unit
-end
-
+(* ================================================================================ *)
 module Timeout: sig
   exception Stop
 

@@ -14,7 +14,7 @@ open Grew_types
 
 open Grew_edge
 
-(* ==================================================================================================== *)
+(* ================================================================================ *)
 module Command : sig
   type command_node =       (* a command node is either: *)
     | Pat of Pid.t          (* a node identified in the pattern *)

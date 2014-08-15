@@ -89,8 +89,7 @@ module G_node = struct
   let position_comp n1 n2 = Pervasives.compare n1.position n2.position
 
   let rename mapping n = {n with next = Massoc_gid.rename mapping n.next}
-end
-(* ================================================================================ *)
+end (* module G_node *)
 
 (* ================================================================================ *)
 module P_node = struct
@@ -130,5 +129,4 @@ module P_node = struct
     else raise P_fs.Fail
 
   let compare_pos t1 t2 = Pervasives.compare t1.loc t2.loc
-end
-(* ================================================================================ *)
+end (* module P_node *)
