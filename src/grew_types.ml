@@ -217,6 +217,10 @@ module Domain = struct
 
   type t = feature_spec list
 
+  let (current: t option ref) = ref None
+
+  let reset () = current := None
+
   let is_defined feature_name domain =
     List.exists (function
       | Closed (fn,_) when fn = feature_name -> true
@@ -224,6 +228,17 @@ module Domain = struct
       | Num fn when fn = feature_name -> true
       | _ -> false
     ) domain
+
+  let check_feature_name ?loc name =
+    match !current with
+      | None -> ()
+      | Some dom when is_defined name dom -> ()
+      | _ -> Error.build ?loc "The feature name \"%s\" in not defined in the domain" name
+
+  let is_open name =
+      match !current with
+      | None -> true
+      | Some dom -> List.exists (function Open n when n=name -> true | _ -> false) dom
 
   let rec normalize_domain = function
     | [] -> [Num "position"]
@@ -234,10 +249,6 @@ module Domain = struct
     | (Num fn) :: tail |  (Open fn) :: tail |  Closed (fn,_) :: tail when is_defined fn tail ->
       Error.build "[Domain] The feature named \"%s\" is defined several times" fn
     | x :: tail -> x :: (normalize_domain tail)
-
-  let current = ref None
-
-  let reset () = current := None
 
   let init domain =
     current := Some (normalize_domain domain)
@@ -270,6 +281,9 @@ module Domain = struct
     match build ?loc name [value] with
       | [x] -> x
       | _ -> Error.bug ?loc "[Domain.build_one]"
+
+  let check_feature ?loc name value =
+    ignore (build ?loc name [value])
 
   let feature_names () =
     match !current with

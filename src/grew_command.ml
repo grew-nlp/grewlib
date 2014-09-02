@@ -163,6 +163,7 @@ module Command  = struct
           if feat_name = "position"
           then Error.build ~loc "Illegal del_feat command: the 'position' feature cannot be deleted";
           check_act_id loc act_id kai;
+          Domain.check_feature_name ~loc feat_name;
           ((DEL_FEAT (pid_of_act_id loc act_id, feat_name), loc), (kai, kei))
 
       | (Ast.Update_feat ((act_id, feat_name), ast_items), loc) ->
@@ -173,16 +174,23 @@ module Command  = struct
               | Ast.Qfn_item ci when Ast.is_simple ci -> String (Ast.complex_id_to_string ci)
               | Ast.Qfn_item ci ->
                 let (act_id,feature_name) = Ast.act_qfn_of_ci ci in
-                check_act_id loc act_id kai; Feat (pid_of_act_id loc act_id, feature_name)
+                check_act_id loc act_id kai;
+                Domain.check_feature_name ~loc feature_name;
+                Feat (pid_of_act_id loc act_id, feature_name)
               | Ast.String_item s -> String s
               | Ast.Param_item var ->
                 match param with
-                  | None -> Error.build "Unknown command variable '%s'" var
+                  | None -> Error.build ~loc "Unknown command variable '%s'" var
                   | Some (par,cmd) ->
                     match (List_.pos var par, List_.pos var cmd) with
                       | (_,Some index) -> Param_out index
                       | (Some index,_) -> Param_in index
-                      | _ -> Error.build "Unknown command variable '%s'" var
+                      | _ -> Error.build ~loc "Unknown command variable '%s'" var
             ) ast_items in
+            (* check for consistency *)
+            (match items with
+              | [String s] -> Domain.check_feature ~loc feat_name s
+              | _ when Domain.is_open feat_name -> ()
+              | _ -> Error.build ~loc "Only open features can be modified with the concat operator '+' but \"%s\" is not declared as an open feature" feat_name);
           ((UPDATE_FEAT (pid_of_act_id loc act_id, feat_name, items), loc), (kai, kei))
 end (* module Command *)

@@ -21,7 +21,7 @@ open Grew_command
 module P_deco: sig
   type t =
       { nodes: Pid.t list;
-	edges: (Pid.t * P_edge.t * Pid.t) list;
+        edges: (Pid.t * P_edge.t * Pid.t) list;
       }
 
   val empty:t
@@ -31,12 +31,10 @@ end (* module P_deco *)
 module G_deco: sig
   type t =
       { nodes: (Gid.t * (string * string list)) list;
-	edges: (Gid.t * G_edge.t * Gid.t) list;
+        edges: (Gid.t * G_edge.t * Gid.t) list;
       }
 
   val empty:t
-
-  val dump: t -> unit
 end (* module G_deco *)
 
 (* ================================================================================ *)
@@ -54,23 +52,19 @@ module P_graph: sig
       old_map: P_node.t Pid_map.t; (* a partial map for new constraints on old nodes "Old [...]" *)
     }
 
-  (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
-  (* Build functions *)
-  (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
-
   val build:
       ?pat_vars: string list ->
       ?locals: Label.decl array ->
       Ast.node list ->
       Ast.edge list ->
-	(t * Id.table)
+      (t * Id.table)
 
   val build_extension:
       ?locals: Label.decl array ->
       Id.table ->
       Ast.node list ->
       Ast.edge list ->
-	(extension * Id.table)
+      (extension * Id.table)
 end (* module P_graph *)
 
 (* ================================================================================ *)
