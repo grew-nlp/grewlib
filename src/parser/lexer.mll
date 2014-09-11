@@ -40,7 +40,7 @@ let letter = ['a'-'z' 'A'-'Z']
 let ident = (letter | '_') | (letter | '_') (letter | digit | '_' | '.' | '\'' | '-')* (letter | digit | '_' | '\'')
 
 let hex = ['0'-'9' 'a'-'f' 'A'-'F']
-let color = hex hex hex hex hex hex
+let color = hex hex hex hex hex hex | hex hex hex
 
 rule comment target = parse
 | '\n' { incr Parser_global.current_line; Lexing.new_line lexbuf; target lexbuf }
