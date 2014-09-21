@@ -116,6 +116,8 @@ module Domain: sig
   (** [is_open feature_name] returns [true] iff no domain is set or if [feature_name] is defined to be open in the current domain. *)
   val is_open: feature_name -> bool
 
+  (** [sub fn1 fn2] returns [true] iff the domain of [fn1] is a subset if the domain of [fn2]. *)
+  val sub: feature_name -> feature_name -> bool
 end (* module Domain *)
 
 (* ================================================================================ *)
