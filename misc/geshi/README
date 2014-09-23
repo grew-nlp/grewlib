@@ -1,0 +1,2 @@
+A php file for syntax highlighting grew code.
+It can be used for instance in dokuwiki pages; put the file "grew.php" in folder "inc/geshi" in your dokuwiki installation
