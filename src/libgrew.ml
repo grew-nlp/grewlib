@@ -31,30 +31,30 @@ let empty_grs = Grs.empty
 
 let set_timeout t = Timeout.timeout := t
 
+type loc = Loc.t
+let string_of_loc = Loc.to_string
+
 
 exception File_dont_exists of string
 
-exception Parsing_err of string
-exception Build of string * (string * int) option
-exception Run of string * (string * int) option
-exception Bug of string * (string * int) option
+exception Parsing_err of string * loc option
+exception Build of string * loc option
+exception Run of string * loc option
+exception Bug of string * loc option
 
 let handle ?(name="") ?(file="No file defined") fct () =
   try fct () with
     (* Raise again already catched exceptions *)
-    | Parsing_err msg -> raise (Parsing_err msg)
-    | Build (msg,loc) -> raise (Build (msg,loc))
-    | Bug (msg, loc) -> raise (Bug (msg,loc))
-    | Run (msg, loc) -> raise (Run (msg,loc))
+    | Parsing_err (msg,loc_opt) -> raise (Parsing_err (msg,loc_opt))
+    | Build (msg,loc_opt) -> raise (Build (msg,loc_opt))
+    | Bug (msg, loc_opt) -> raise (Bug (msg,loc_opt))
+    | Run (msg, loc_opt) -> raise (Run (msg,loc_opt))
 
     (* Catch new exceptions *)
-    | Grew_parser.Parse_error (msg,Some (sub_file,l)) ->
-        raise (Parsing_err (sprintf "[file:%s, line:%d] %s" sub_file l msg))
-    | Grew_parser.Parse_error (msg,None) ->
-        raise (Parsing_err (sprintf "[file:%s] %s" file msg))
-    | Error.Build (msg,loc) -> raise (Build (msg,loc))
-    | Error.Bug (msg, loc) -> raise (Bug (msg,loc))
-    | Error.Run (msg, loc) -> raise (Run (msg,loc))
+    | Grew_parser.Parse_error (msg, loc_opt) -> raise (Parsing_err (msg, loc_opt))
+    | Error.Build (msg, loc_opt) -> raise (Build (msg, loc_opt))
+    | Error.Bug (msg, loc_opt) -> raise (Bug (msg,loc_opt))
+    | Error.Run (msg, loc_opt) -> raise (Run (msg,loc_opt))
 
     | exc -> raise (Bug (sprintf "[Libgrew.%s] UNCATCHED EXCEPTION: %s" name (Printexc.to_string exc), None))
 
@@ -118,7 +118,7 @@ let load_gr file =
 let load_conll file =
   handle ~name:"load_conll" ~file
     (fun () ->
-      let graph = G_graph.of_conll ~loc:(file,-1) (Conll.load file) in
+      let graph = G_graph.of_conll ~loc:(Loc.file file) (Conll.load file) in
       Instance.from_graph graph
     ) ()
 

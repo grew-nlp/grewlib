@@ -39,7 +39,10 @@ end
 (* ================================================================================ *)
 (* [Loc] general module to describe errors location: (file name, line number in file) *)
 module Loc: sig
-  type t = string * int
+  type t
+
+  val file_line: string -> int -> t
+  val file: string -> t
 
   val opt_set_line: int -> t option -> t option
 

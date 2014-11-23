@@ -22,19 +22,19 @@ module Grew_parser = struct
     try fct lexbuf with
       | Lexer.Error msg ->
         let cp = lexbuf.Lexing.lex_curr_p.Lexing.pos_lnum in
-        raise (Parse_error ("Lexing error:"^msg, Some (file,cp)))
+        raise (Parse_error ("Lexing error:"^msg, Some (Loc.file_line file cp)))
       | Gr_grs_parser.Error ->
         let cp = lexbuf.Lexing.lex_curr_p.Lexing.pos_lnum in
-        raise (Parse_error ("Syntax error:"^(Lexing.lexeme lexbuf), Some (file,cp)))
+        raise (Parse_error ("Syntax error:"^(Lexing.lexeme lexbuf), Some (Loc.file_line file cp)))
       | Failure msg ->
         let cp = lexbuf.Lexing.lex_curr_p.Lexing.pos_lnum in
-        raise (Parse_error ("Failure:"^msg, Some (file,cp)))
+        raise (Parse_error ("Failure:"^msg, Some (Loc.file_line file cp)))
       | Error.Build (msg,_) ->
         let cp = lexbuf.Lexing.lex_curr_p.Lexing.pos_lnum in
-        raise (Parse_error ("Syntax error:"^msg, Some (file,cp)))
+        raise (Parse_error ("Syntax error:"^msg, Some (Loc.file_line file cp)))
       | err ->
         let cp = lexbuf.Lexing.lex_curr_p.Lexing.pos_lnum in
-        raise (Parse_error ("Unexpected error:"^(Printexc.to_string err), Some (file,cp)))
+        raise (Parse_error ("Unexpected error:"^(Printexc.to_string err), Some (Loc.file_line file cp)))
 
   (* ------------------------------------------------------------------------------------------*)
   let parse_file_to_grs_with_includes file =

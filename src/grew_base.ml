@@ -21,15 +21,15 @@ module Int_map = Map.Make (struct type t = int let compare = Pervasives.compare 
 module Loc = struct
   type t = string * int
 
-  let to_string (file,line) = sprintf "(file: %s, line: %d)" (Filename.basename file) line
+  let file_line f l = (f,l)
+
+  let file f = (f, -1)
+
+  let to_string (file,line) = sprintf "[file: %s, line: %d]" (Filename.basename file) line
 
   let opt_set_line line = function
     | None -> None
     | Some (file,_) -> Some (file, line)
-
-  let opt_to_string = function
-    | None -> ""
-    | Some x -> to_string x
 end (* module Loc *)
 
 (* ================================================================================ *)

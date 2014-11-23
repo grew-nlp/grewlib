@@ -16,16 +16,20 @@ open Grew_grs
 
 val css_file: string
 
-exception Parsing_err of string
+type loc = Loc.t
+val string_of_loc: loc -> string
+
 exception File_dont_exists of string
 
+exception Parsing_err of string * loc option
+
 (** raised when a Gr/Grs structure fails to build *)
-exception Build of string * (string * int) option
+exception Build of string * loc option
 
-(** raised during rewriting when a command is undefined *) 
-exception Run of string * (string * int) option
+(** raised during rewriting when a command is undefined *)
+exception Run of string * loc option
 
-exception Bug of string * (string * int) option
+exception Bug of string * loc option
 
 val set_timeout: float option -> unit
 
@@ -35,7 +39,7 @@ val is_empty: Rewrite_history.t -> bool
 
 val num_sol: Rewrite_history.t -> int
 
-(** display a gr with a grs in a rew_display 
+(** display a gr with a grs in a rew_display
 @param gr the grapth to rewrite
 @param grs the graph rewriting system
 @param seq the name of the sequence to apply
@@ -46,7 +50,7 @@ val write_stat: string -> Rewrite_history.t -> unit
 
 val empty_grs: Grs.t
 
-(** get a graph rewriting system from a file 
+(** get a graph rewriting system from a file
 @return a graph rewriting system
 @raise Parsing_err if libgrew can't parse the file
 @raise File_dont_exists if the file doesn't exists
@@ -56,7 +60,7 @@ val load_grs: string -> Grs.t
 (** [build_html_doc directory grs ] *)
 val build_html_doc: ?corpus:bool -> string -> Grs.t -> unit
 
-(** give the list of sequence names defined in a GRS 
+(** give the list of sequence names defined in a GRS
 @return a string list
 *)
 val get_sequence_names: Grs.t -> string list
@@ -102,35 +106,35 @@ val save_index: dirname:string -> base_names: string list -> unit
 
 val write_annot: title:string -> string -> string -> (string * Rewrite_history.t) list -> unit
 
-val write_html: 
+val write_html:
     ?no_init: bool ->
     ?out_gr: bool ->
     ?filter: string list ->
-    ?main_feat: string -> 
+    ?main_feat: string ->
     ?dot: bool ->
     header: string ->
     ?graph_file: string ->
     Rewrite_history.t -> string -> unit
 
-val error_html: 
-    ?no_init:bool -> 
-    ?main_feat:string -> 
+val error_html:
+    ?no_init:bool ->
+    ?main_feat:string ->
     ?dot: bool ->
-    header: string -> 
-    string -> 
-    ?init:Instance.t -> 
-    string -> 
+    header: string ->
+    string ->
+    ?init:Instance.t ->
+    string ->
     unit
 
-val make_index: 
+val make_index:
     title: string ->
-    grs_file: string -> 
-    html: bool -> 
-    grs: Grs.t -> 
+    grs_file: string ->
+    html: bool ->
+    grs: Grs.t ->
     seq: string ->
-    input_dir: string -> 
-    output_dir: string -> 
-    base_names: string list -> 
+    input_dir: string ->
+    output_dir: string ->
+    base_names: string list ->
       unit
 
 val html_sentences: title:string -> string -> (bool * string * int * string) list -> unit

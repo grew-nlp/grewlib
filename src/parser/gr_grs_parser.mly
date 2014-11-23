@@ -24,7 +24,7 @@ type graph_item =
   | Graph_node of Ast.node
   | Graph_edge of Ast.edge
 
-let get_loc () = (!Parser_global.current_file,!Parser_global.current_line+1)
+let get_loc () = Loc.file_line !Parser_global.current_file (!Parser_global.current_line+1)
 let localize t = (t,get_loc ())
 %}
 
@@ -258,7 +258,7 @@ grew_module:
               rules = r;
               confluent = conf;
               module_doc = (match doc with Some d -> d | None -> []);
-              mod_loc = (!Parser_global.current_file, snd id_loc);
+              mod_loc = Loc.file_line !Parser_global.current_file (snd id_loc);
               mod_dir = "";
             }
           }
@@ -285,7 +285,7 @@ rule:
                 param = None;
                 lp = None;
                 rule_doc = begin match doc with Some d -> d | None -> [] end;
-                rule_loc = (!Parser_global.current_file,snd id_loc);
+                rule_loc = Loc.file_line !Parser_global.current_file (snd id_loc);
               }
             }
         | doc=option(COMMENT) LEX_RULE id_loc=simple_id_with_loc param=option(param) LACC p=pos_item n=list(neg_item) cmds=commands RACC lp=option(lp)
@@ -297,7 +297,7 @@ rule:
                 param = param;
                 lp = lp;
                 rule_doc = begin match doc with Some d -> d | None -> [] end;
-                rule_loc = (!Parser_global.current_file,snd id_loc);
+                rule_loc = Loc.file_line !Parser_global.current_file (snd id_loc);
               }
             }
         | doc=option(COMMENT) FILTER id_loc=simple_id_with_loc LACC p=pos_item n=list(neg_item) RACC
@@ -309,7 +309,7 @@ rule:
                 param = None;
                 lp = None;
                 rule_doc = begin match doc with Some d -> d | None -> [] end;
-                rule_loc = (!Parser_global.current_file,snd id_loc);
+                rule_loc = Loc.file_line !Parser_global.current_file (snd id_loc);
               }
             }
 
@@ -516,7 +516,7 @@ sequence:
               { Ast.seq_name = fst id_loc;
                 seq_mod = List.map (fun x -> Ast.simple_id_of_ci x) mod_names ;
                 seq_doc = begin match doc with Some d -> d | None -> [] end;
-                seq_loc = (!Parser_global.current_file,snd id_loc);
+                seq_loc = Loc.file_line !Parser_global.current_file (snd id_loc);
               }
             }
 %%

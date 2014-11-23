@@ -348,7 +348,7 @@ module Conll = struct
           match Str.split (Str.regexp "=") feat with
             | [feat_name] -> (feat_name, "true")
             | [feat_name; feat_value] -> (feat_name, feat_value)
-            | _ -> Error.build ~loc:(file_name,line_num) "[Conll.load] illegal morphology \n>>>>>%s<<<<<<" morph
+            | _ -> Error.build ~loc:(Loc.file_line file_name line_num) "[Conll.load] illegal morphology \n>>>>>%s<<<<<<" morph
         ) (Str.split (Str.regexp "|") morph)
 
   let underscore s = if s = "" then "_" else s
@@ -369,9 +369,9 @@ module Conll = struct
              morph = parse_morph file_name line_num morph;
              deps = deps;
             }
-          with exc -> Error.build ~loc:(file_name,line_num) "[Conll.load] illegal line, exc=%s\n>>>>>%s<<<<<<" (Printexc.to_string exc) line
+          with exc -> Error.build ~loc:(Loc.file_line file_name line_num) "[Conll.load] illegal line, exc=%s\n>>>>>%s<<<<<<" (Printexc.to_string exc) line
         end
-      | l -> Error.build ~loc:(file_name,line_num) "[Conll.load] illegal line, %d fields (10 are expected)\n>>>>>%s<<<<<<" (List.length l) line
+      | l -> Error.build ~loc:(Loc.file_line file_name line_num) "[Conll.load] illegal line, %d fields (10 are expected)\n>>>>>%s<<<<<<" (List.length l) line
 
   let load file_name =
     let lines = File.read_ln file_name in
@@ -435,7 +435,7 @@ module Lex_par = struct
         then Filename.concat dir file
         else file in
       let lines = File.read full_file in
-      List_.opt_mapi (fun i line -> parse_line ~loc:(full_file,i) nb_p nb_c line) lines
+      List_.opt_mapi (fun i line -> parse_line ~loc:(Loc.file_line full_file i) nb_p nb_c line) lines
     with Sys_error _ -> Error.build ?loc "External lexical file '%s' not found" file
 
   let sub x y = List.mem x (Str.split (Str.regexp "|") y)
