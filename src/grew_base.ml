@@ -61,6 +61,12 @@ module String_ = struct
   let of_float float = Str.global_replace (Str.regexp ",") "." (sprintf "%g" float)
 
   let rm_first_char = function "" -> "" | s -> String.sub s 1 ((String.length s) - 1)
+
+  let rm_peripheral_white s =
+    s
+    |> (Str.global_replace (Str.regexp "\\( \\|\t\\)*$") "")
+    |> (Str.global_replace (Str.regexp "^\\( \\|\t\\)*") "")
+
 end (* module String_ *)
 
 (* ================================================================================ *)

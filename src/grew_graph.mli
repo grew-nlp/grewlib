@@ -60,6 +60,7 @@ module P_graph: sig
       (t * Id.table)
 
   val build_extension:
+      ?pat_vars: string list ->
       ?locals: Label.decl array ->
       Id.table ->
       Ast.node list ->

@@ -391,8 +391,12 @@ module Lex_par = struct
 
   type t = item list
 
-  let empty=[]
+  let size = List.length
   let append = List.append
+
+  let signature = function
+    | [] -> Error.bug "[Lex_par.signature] empty data"
+    | (pp,cp)::_ -> (List.length pp,List.length cp)
 
   let dump t =
     printf "[Lex_par.dump] --> size = %d\n" (List.length t);
@@ -402,12 +406,8 @@ module Lex_par = struct
         (String.concat "#" cp)
     ) t
 
-  let rm_peripheral_white s =
-    Str.global_replace (Str.regexp "\\( \\|\t\\)*$") ""
-    (Str.global_replace (Str.regexp "^\\( \\|\t\\)*") "" s)
-
   let parse_line ?loc nb_p nb_c line =
-    let line = rm_peripheral_white line in
+    let line = String_.rm_peripheral_white line in
     if line = "" || line.[0] = '%'
     then None
     else
@@ -415,18 +415,21 @@ module Lex_par = struct
         | [args] when nb_c = 0 ->
           (match Str.split (Str.regexp "#") args with
             | l when List.length l = nb_p -> Some (l,[])
-            | _ -> Error.bug ?loc
+            | _ -> Error.build ?loc
               "Illegal lexical parameter line: \"%s\" doesn't contain %d args"
               line nb_p)
         | [args; values] ->
           (match (Str.split (Str.regexp "#") args, Str.split (Str.regexp "#") values) with
             | (lp,lc) when List.length lp = nb_p && List.length lc = nb_c -> Some (lp,lc)
-            | _ -> Error.bug ?loc
+            | _ -> Error.build ?loc
               "Illegal lexical parameter line: \"%s\" doesn't contain %d args and %d values"
               line nb_p nb_c)
-        | _ -> Error.bug ?loc "Illegal param line: '%s'" line
+        | _ -> Error.build ?loc "Illegal param line: '%s'" line
 
-  let from_lines ?loc nb_p nb_c lines = List_.opt_map (parse_line ?loc nb_p nb_c) lines
+  let from_lines ?loc nb_p nb_c lines =
+    match List_.opt_map (parse_line ?loc nb_p nb_c) lines with
+    | [] -> Error.build ?loc "Empty lexical parameter list"
+    | l -> l
 
   let load ?loc dir nb_p nb_c file =
     try
@@ -435,22 +438,19 @@ module Lex_par = struct
         then Filename.concat dir file
         else file in
       let lines = File.read full_file in
-      List_.opt_mapi (fun i line -> parse_line ~loc:(Loc.file_line full_file i) nb_p nb_c line) lines
+      match List_.opt_mapi (fun i line -> parse_line ~loc:(Loc.file_line full_file i) nb_p nb_c line) lines with
+      | [] -> Error.build ?loc "Empty lexical parameter file '%s'" file
+      | l -> l
     with Sys_error _ -> Error.build ?loc "External lexical file '%s' not found" file
 
-  let sub x y = List.mem x (Str.split (Str.regexp "|") y)
-
-  let filter index atom t =
+  let select index atom t =
     match
       List_.opt_map
         (fun (p_par, c_par) ->
           let par = List.nth p_par index in
-          if atom=par
+          if atom = par
           then Some (p_par, c_par)
-          else
-            if sub atom par (* atom is one of the values of the disjunction par *)
-            then Some (List_.set index atom p_par, c_par)
-            else None
+          else None
         ) t
     with
     | [] -> None

@@ -26,6 +26,10 @@ module String_: sig
   (* [rm_first_char s] returns the string [s] without the first charater if s is not empty.
      If s in empty, the empty string is returned  *)
   val rm_first_char: string -> string
+
+  (* [rm_peripheral_white s] returns the string [s] without any white space ot tab
+    at the beginning or at the end of the string. *)
+  val rm_peripheral_white: string -> string
 end
 
 
@@ -91,7 +95,8 @@ module List_: sig
 
   val set: int -> 'a -> 'a list -> 'a list
 
-  (** [pos elt list] return [Some index] if [index] is the smallest position in the [list] equals to [elt]. None is returned if [elt] is not in the [list] *)
+  (** [pos elt list] return [Some index] if [index] is the smallest position in the [list] equals to [elt].
+      None is returned if [elt] is not in the [list] *)
   val pos: 'a -> 'a list -> int option
 
   val opt_map: ('a -> 'b option) -> 'a list -> 'b list

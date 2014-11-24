@@ -45,7 +45,7 @@ module Ast : sig
   type feature_kind =
     | Equality of feature_value list
     | Disequality of feature_value list
-    | Param of string (* $ident *)
+    | Equal_param of string (* $ident *)
     | Absent
 
   type u_feature = {
@@ -119,7 +119,7 @@ module Ast : sig
       neg_patterns: pattern list;
       commands: command list;
       param: (string list * string list) option; (* (files, vars) *)
-      lp: string list option; (* lexical parameters in the file *)
+      lex_par: string list option; (* lexical parameters in the file *)
       rule_doc:string list;
       rule_loc: Loc.t;
     }

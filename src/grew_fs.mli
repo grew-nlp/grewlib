@@ -74,7 +74,7 @@ module P_fs: sig
 
   exception Fail
 
-  (** [match_ ?param t gfs] tries to match the pattern fs [pfs] with the graph fs [gfs]
+  (** [match_ ?param p_fs g_fs] tries to match the pattern fs [p_fs] with the graph fs [g_fs].
       If [param] is [None], it returns [None] if matching succeeds and else raise [Fail].
       If [param] is [Some p], it returns [Some p'] if matching succeeds and else raise [Fail].
    *)
@@ -84,7 +84,8 @@ module P_fs: sig
       It returns [true] iff [pfs] has no requirement about position ok if the requirement is satisfied. *)
   val check_position: ?param:Lex_par.t -> float -> t -> bool
 
-  val filter: t -> G_fs.t -> bool
-
+  (** [unif fs1 fs2] returns the unification of the two feature structures.
+      It raises (Error.Build msg) exception in case of Failure.
+  *)
   val unif: t -> t -> t
 end (* module P_fs *)

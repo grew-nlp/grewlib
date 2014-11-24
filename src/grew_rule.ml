@@ -169,9 +169,9 @@ module Rule = struct
         and (node_name2, feat_name2) = qfn2 in
         Feature_ineq (ineq, pid_of_name loc node_name1, feat_name1, pid_of_name loc node_name2, feat_name2)
 
-  let build_neg_pattern ?(locals=[||]) pos_table pattern_ast =
+  let build_neg_pattern ~pat_vars ?(locals=[||]) pos_table pattern_ast =
     let (extension, neg_table) =
-      P_graph.build_extension ~locals pos_table pattern_ast.Ast.pat_nodes pattern_ast.Ast.pat_edges in
+      P_graph.build_extension ~pat_vars ~locals pos_table pattern_ast.Ast.pat_nodes pattern_ast.Ast.pat_edges in
     let filters = Pid_map.fold (fun id node acc -> Filter (id, P_node.get_fs node) :: acc) extension.P_graph.old_map [] in
     {
       graph = extension.P_graph.ext_map;
@@ -302,24 +302,25 @@ module Rule = struct
           let (pat_vars, cmd_vars) = parse_vars rule_ast.Ast.rule_loc vars in
           let nb_pv = List.length pat_vars in
           let nb_cv = List.length cmd_vars in
-          let param = List.fold_left
+
+          let local_param = match rule_ast.Ast.lex_par with
+          | None -> None
+          | Some lines -> Some (Lex_par.from_lines ~loc:rule_ast.Ast.rule_loc nb_pv nb_cv lines) in
+
+          let full_param = List.fold_left
             (fun acc file ->
-              Lex_par.append
-                (Lex_par.load ~loc:rule_ast.Ast.rule_loc dir nb_pv nb_cv file)
-                acc
-            )
-            (match rule_ast.Ast.lp with
-              | None -> Lex_par.empty
-              | Some lines -> Lex_par.from_lines ~loc:rule_ast.Ast.rule_loc nb_pv nb_cv lines
-            )
-            files in
-          (Some param, pat_vars, cmd_vars) in
+              match acc with
+              | None -> Some (Lex_par.load ~loc:rule_ast.Ast.rule_loc dir nb_pv nb_cv file)
+              | Some lp -> Some (Lex_par.append (Lex_par.load ~loc:rule_ast.Ast.rule_loc dir nb_pv nb_cv file) lp)
+            ) local_param files in
+
+          (full_param, pat_vars, cmd_vars) in
 
     let (pos, pos_table) = build_pos_pattern ~pat_vars ~locals rule_ast.Ast.pos_pattern in
     {
       name = rule_ast.Ast.rule_id;
       pos = pos;
-      neg = List.map (fun pattern_ast -> build_neg_pattern ~locals pos_table pattern_ast) rule_ast.Ast.neg_patterns;
+      neg = List.map (fun pattern_ast -> build_neg_pattern ~pat_vars ~locals pos_table pattern_ast) rule_ast.Ast.neg_patterns;
       commands = build_commands ~param:(pat_vars,cmd_vars) ~locals suffixes pos pos_table rule_ast.Ast.commands;
       loc = rule_ast.Ast.rule_loc;
       param = param;
@@ -425,7 +426,7 @@ module Rule = struct
     }
 
   (*  ---------------------------------------------------------------------- *)
-  let fullfill graph matching cst =
+  let apply_cst graph matching cst =
     let get_node pid = G_graph.find (Pid_map.find pid matching.n_match) graph in
     let get_string_feat pid = function
       | "position" -> Some (sprintf "%g" (G_node.get_position (get_node pid)))
@@ -437,45 +438,61 @@ module Rule = struct
     match cst with
       | Cst_out (pid,edge) ->
         let gid = Pid_map.find pid matching.n_match in
-        G_graph.edge_out graph gid edge
+        if G_graph.edge_out graph gid edge
+        then matching
+        else raise Fail
       | Cst_in (pid,edge) ->
         let gid = Pid_map.find pid matching.n_match in
-        G_graph.node_exists
+        if G_graph.node_exists
           (fun node ->
             List.exists (fun e -> P_edge.compatible edge e) (Massoc_gid.assoc gid (G_node.get_next node))
           ) graph
+        then matching
+        else raise Fail
       | Filter (pid, fs) ->
-        let gid = Pid_map.find pid matching.n_match in
-        let gnode = G_graph.find gid graph in
-        P_fs.filter fs (G_node.get_fs gnode)
+        begin
+          try
+            let gid = Pid_map.find pid matching.n_match in
+            let gnode = G_graph.find gid graph in
+            let new_param = P_fs.match_ ?param:matching.m_param fs (G_node.get_fs gnode) in
+            {matching with m_param = new_param }
+          with P_fs.Fail -> raise Fail
+        end
       | Feature_eq (pid1, feat_name1, pid2, feat_name2) ->
         begin
           match (get_string_feat pid1 feat_name1, get_string_feat pid2 feat_name2) with
-            | Some fv1, Some fv2 when fv1 = fv2 -> true
-            | _ -> false
+            | Some fv1, Some fv2 when fv1 = fv2 -> matching
+            | _ -> raise Fail
         end
       | Feature_diseq (pid1, feat_name1, pid2, feat_name2) ->
         begin
           match (get_string_feat pid1 feat_name1, get_string_feat pid2 feat_name2) with
-            | Some fv1, Some fv2 when fv1 <> fv2 -> true
-            | _ -> false
+            | Some fv1, Some fv2 when fv1 <> fv2 -> matching
+            | _ -> raise Fail
         end
       | Feature_ineq (ineq, pid1, feat_name1, pid2, feat_name2) ->
         match (ineq, get_float_feat pid1 feat_name1, get_float_feat pid2 feat_name2) with
-            | (Ast.Lt, Some fv1, Some fv2) when fv1 < fv2 -> true
-            | (Ast.Gt, Some fv1, Some fv2) when fv1 > fv2 -> true
-            | (Ast.Le, Some fv1, Some fv2) when fv1 <= fv2 -> true
-            | (Ast.Ge, Some fv1, Some fv2) when fv1 >= fv2 -> true
-            | _ -> false
+            | (Ast.Lt, Some fv1, Some fv2) when fv1 < fv2 -> matching
+            | (Ast.Gt, Some fv1, Some fv2) when fv1 > fv2 -> matching
+            | (Ast.Le, Some fv1, Some fv2) when fv1 <= fv2 -> matching
+            | (Ast.Ge, Some fv1, Some fv2) when fv1 >= fv2 -> matching
+            | _ -> raise Fail
 
   (*  ---------------------------------------------------------------------- *)
   (* returns all extension of the partial input matching *)
   let rec extend_matching (positive,neg) (graph:G_graph.t) (partial:partial) =
     match (partial.unmatched_edges, partial.unmatched_nodes) with
     | [], [] ->
-        if List.for_all (fun const -> fullfill graph partial.sub const) partial.check
-        then [partial.sub, partial.already_matched_gids]
-        else []
+      begin
+        try
+          let new_matching =
+            List.fold_left
+              (fun acc const ->
+                apply_cst graph acc const
+              ) partial.sub partial.check in
+          [new_matching, partial.already_matched_gids]
+        with Fail -> []
+      end
     | (src_pid, p_edge, tar_pid)::tail_ue, _ ->
         begin
           try (* is the tar already found in the matching ? *)
@@ -541,9 +558,7 @@ module Rule = struct
       let g_node = try G_graph.find gid graph with Not_found -> failwith "INS" in
 
       try
-
         let new_param = P_node.match_ ?param: partial.sub.m_param p_node g_node in
-
         (* add all out-edges from pid in pattern *)
         let new_unmatched_edges =
           Massoc_pid.fold
@@ -797,10 +812,10 @@ module Rule = struct
 
 
   (*  ---------------------------------------------------------------------- *)
-  let fulfill (pos_graph,neg_graph) graph new_partial_matching  =
+  let fulfill (pos_graph,neg_graph) graph new_partial_matching =
     match extend_matching (pos_graph, neg_graph) graph new_partial_matching with
     | [] -> true (* the without pattern in not found -> OK *)
-    | x -> false
+    | _ -> false
 
 
   (* ================================================================================ *)
