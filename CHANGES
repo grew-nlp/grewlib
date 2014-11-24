@@ -1,0 +1,17 @@
+Version 0.24 (11/24/14)
+  * Changes in the interface:
+    - the "loc" type is abstract and exported (changes the libgrew interface)
+  * New features:
+    - use a float in a command "node.feat = 123.456"
+    - improve checking for consistency between rules and feature domain at GRS loading time
+    - add the possibility to use parameters in the without part
+  * Bug fixes:
+    - take the feature "position" into account when the user chose features to display
+    - accept colors like "#abc"
+  * Misc
+    - add files for Geshi
+    - code reorganization
+    - add activate mechanism (untested)
+
+Version 0.23 (2014-06-05)
+  Please refer to SVN logs
