@@ -25,7 +25,7 @@ module Instance = struct
     graph: G_graph.t;
     history: Command.h list;
     rules: string list;
-    big_step: Grew_types.big_step option;
+    big_step: Libgrew_types.big_step option;
     free_index: int;
     activated_node: Gid.t list;
   }
@@ -41,7 +41,7 @@ module Instance = struct
   let rev_steps t =
     { t with big_step = match t.big_step with
       | None -> None
-      | Some bs -> Some {bs with Grew_types.small_step = List.rev bs.Grew_types.small_step }
+      | Some bs -> Some {bs with Libgrew_types.small_step = List.rev bs.Libgrew_types.small_step }
     }
 
   let flatten t =
@@ -755,7 +755,7 @@ module Rule = struct
         rule.commands in
 
     let rule_app = {
-      Grew_types.rule_name = rule.name;
+      Libgrew_types.rule_name = rule.name;
       up = up_deco rule matching;
       down = down_deco (matching,created_nodes) rule.commands
     } in
@@ -763,8 +763,8 @@ module Rule = struct
     {new_instance with
       Instance.rules = rule.name :: new_instance.Instance.rules;
       big_step = match new_instance.Instance.big_step with
-        | None -> Some { Grew_types.first = rule_app; small_step = [] }
-        | Some bs -> Some { bs with Grew_types.small_step = (instance.Instance.graph, rule_app) :: bs.Grew_types.small_step }
+        | None -> Some { Libgrew_types.first = rule_app; small_step = [] }
+        | Some bs -> Some { bs with Libgrew_types.small_step = (instance.Instance.graph, rule_app) :: bs.Libgrew_types.small_step }
     }
 
 (*-----------------------------*)

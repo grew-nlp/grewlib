@@ -89,7 +89,7 @@ module Grs: sig
   val rewrite: t -> string -> Instance.t -> Rewrite_history.t
 
   (* only externeal strucutre is returned, each edge contains a "dummy" big_step *)
-  val build_rew_display: t -> string -> Instance.t -> Grew_types.rew_display
+  val build_rew_display: t -> string -> Instance.t -> Libgrew_types.rew_display
 
   val rule_iter: (string -> Rule.t -> unit) -> t -> unit
   val filter_iter: (string -> Rule.t -> unit) -> t -> unit

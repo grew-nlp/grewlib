@@ -21,7 +21,7 @@ module Instance : sig
     graph: G_graph.t;
     history: Command.h list;
     rules: string list;
-    big_step: Grew_types.big_step option;
+    big_step: Libgrew_types.big_step option;
     free_index: int;
     activated_node: Gid.t list;
   }
