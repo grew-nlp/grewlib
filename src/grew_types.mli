@@ -149,10 +149,14 @@ end (* module Conll *)
 module Lex_par: sig
   type t
 
-  val empty:t
   val append: t -> t -> t
 
   val dump: t -> unit
+
+  val size: t -> int
+
+  (** [signature t] returns (number of pattern parameters, number of lexical parameters) *)
+  val signature: t -> (int * int)
 
   (** [from_lines filename nb_pattern_var nb_command_var strings] *)
   val from_lines: ?loc: Loc.t -> int -> int -> string list -> t
@@ -160,11 +164,11 @@ module Lex_par: sig
   (** [load ?loc local_dir_name nb_pattern_var nb_command_var file] *)
   val load: ?loc: Loc.t -> string -> int -> int -> string -> t
 
-  (** [filter index atom t] returns the subset of [t] which contains only entries
+  (** [select index atom t] returns the subset of [t] which contains only entries
       which refers to [atom] at the [index]^th pattern_var.
-      [None] is returnes if no such entry s founded.
+      [None] is returned if no such entry s founded.
    *)
-  val filter: int -> string -> t -> t option
+  val select: int -> string -> t -> t option
 
   (** [get_param_value index t] returns the [index]^th param_var. *)
   val get_param_value: int -> t -> string

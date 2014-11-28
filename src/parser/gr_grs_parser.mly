@@ -24,7 +24,7 @@ type graph_item =
   | Graph_node of Ast.node
   | Graph_edge of Ast.edge
 
-let get_loc () = (!Parser_global.current_file,!Parser_global.current_line+1)
+let get_loc () = Loc.file_line !Parser_global.current_file (!Parser_global.current_line+1)
 let localize t = (t,get_loc ())
 %}
 
@@ -95,7 +95,7 @@ let localize t = (t,get_loc ())
 %token <string>           STRING
 %token <float>            FLOAT
 %token <string list>      COMMENT
-%token <string list>      LP
+%token <string list>      LEX_PAR
 
 %token EOF                         /* end of file */
 
@@ -128,8 +128,14 @@ string_or_int:
 label_ident:
         | x=separated_nonempty_list(DDOT,COMPLEX_ID)   { String.concat ":" (List.map Ast.label_id_of_ci x) }
 
+simple_id:
+        | id=COMPLEX_ID { Ast.simple_id_of_ci id }
+
 simple_id_with_loc:
-        | id=COMPLEX_ID { (Ast.simple_id_of_ci id,!Parser_global.current_line+1) }
+        | id=COMPLEX_ID { (Ast.simple_id_of_ci id, Loc.file_line !Parser_global.current_file (!Parser_global.current_line+1)) }
+
+complex_id_with_loc:
+        | id=COMPLEX_ID { (id, Loc.file_line !Parser_global.current_file (!Parser_global.current_line+1)) }
 
 num:
         | FLOAT       { $1 }
@@ -149,20 +155,21 @@ gr:
 
 gr_item:
         (* sentence = "Jean dort." *)
-        | id=COMPLEX_ID EQUAL value=string_or_int
-            { Graph_meta (Ast.simple_id_of_ci id, value) }
+        | id=simple_id EQUAL value=string_or_int
+            { Graph_meta (id, value) }
 
         (* B (1) [phon="pense", lemma="penser", cat=v, mood=ind ] *)
         (* B [phon="pense", lemma="penser", cat=v, mood=ind ] *)
-        | id=COMPLEX_ID position=option(delimited(LPAREN,num,RPAREN)) feats=delimited(LBRACKET,separated_list_final_opt(COMA,node_features),RBRACKET)
-            { Graph_node (localize {Ast.node_id = Ast.simple_id_of_ci id; position=position; fs=feats}) }
+        | id_loc=simple_id_with_loc position=option(delimited(LPAREN,num,RPAREN)) feats=delimited(LBRACKET,separated_list_final_opt(COMA,node_features),RBRACKET)
+            { let (id,loc) = id_loc in
+              Graph_node ({Ast.node_id = id; position=position; fs=feats}, loc) }
 
-        (* A -[x|y|z]-> B*)
-        | n1=COMPLEX_ID labels=delimited(LTR_EDGE_LEFT,separated_nonempty_list(PIPE,label_ident),LTR_EDGE_RIGHT) n2=COMPLEX_ID
-            { Graph_edge (localize {Ast.edge_id = None; src=Ast.simple_id_of_ci n1; edge_labels=labels; tar=Ast.simple_id_of_ci n2; negative=false; }) }
+        (* A -[x]-> B*)
+        | n1_loc=simple_id_with_loc label=delimited(LTR_EDGE_LEFT,label_ident,LTR_EDGE_RIGHT) n2=simple_id
+            { Graph_edge ({Ast.edge_id = None; src=fst n1_loc; edge_labels=[label]; tar=n2; negative=false }, snd n1_loc) }
 
 /*=============================================================================================*/
-/*  GREW GRAPH SYSTEM REWRITING                                                                */
+/*  GREW GRAPH REWRITING SYSTEM                                                                */
 /*=============================================================================================*/
 grs_with_include:
         | f=features_group g=labels m=module_or_include_list s=sequences EOF
@@ -216,7 +223,7 @@ features_group:
             }
 
 feature_name:
-        | ci=COMPLEX_ID { Ast.simple_id_of_ci ci }
+        | ci=simple_id { ci }
 
 feature_value:
         | v=string_or_int  { v }
@@ -259,15 +266,15 @@ grew_module:
               rules = r;
               confluent = conf;
               module_doc = (match doc with Some d -> d | None -> []);
-              mod_loc = (!Parser_global.current_file, snd id_loc);
+              mod_loc = snd id_loc;
               mod_dir = "";
             }
           }
 
 suffixes:
         (* "suffixes {a, b, c}" *)
-        | SUFFIXES x=delimited(LACC,separated_nonempty_list_final_opt(COMA,COMPLEX_ID),RACC)
-            { List.map Ast.simple_id_of_ci x }
+        | SUFFIXES x=delimited(LACC,separated_nonempty_list_final_opt(COMA,simple_id),RACC)
+            { x }
 
 
 /*=============================================================================================*/
@@ -284,21 +291,21 @@ rule:
                 neg_basics = n;
                 commands = cmds;
                 param = None;
-                lp = None;
+                lex_par = None;
                 rule_doc = begin match doc with Some d -> d | None -> [] end;
-                rule_loc = (!Parser_global.current_file,snd id_loc);
+                rule_loc = snd id_loc;
               }
             }
-        | doc=option(COMMENT) LEX_RULE id_loc=simple_id_with_loc param=option(param) LACC p=pos_item n=list(neg_item) cmds=commands RACC lp=option(lp)
+        | doc=option(COMMENT) LEX_RULE id_loc=simple_id_with_loc param=option(param) LACC p=pos_item n=list(neg_item) cmds=commands RACC lex_par=option(lex_par)
             {
               { Ast.rule_id = fst id_loc;
                 pos_basic = p;
                 neg_basics = n;
                 commands = cmds;
                 param = param;
-                lp = lp;
+                lex_par = lex_par;
                 rule_doc = begin match doc with Some d -> d | None -> [] end;
-                rule_loc = (!Parser_global.current_file,snd id_loc);
+                rule_loc = snd id_loc;
               }
             }
         | doc=option(COMMENT) FILTER id_loc=simple_id_with_loc LACC p=pos_item n=list(neg_item) RACC
@@ -308,14 +315,14 @@ rule:
                 neg_basics = n;
                 commands = [];
                 param = None;
-                lp = None;
+                lex_par = None;
                 rule_doc = begin match doc with Some d -> d | None -> [] end;
-                rule_loc = (!Parser_global.current_file,snd id_loc);
+                rule_loc = snd id_loc;
               }
             }
 
-lp:
-        | lp = LP  { lp }
+lex_par:
+        | lex_par = LEX_PAR  { lex_par }
 
 param:
         | LPAREN FEATURE vars=separated_nonempty_list(COMA,var) RPAREN                                       { ([],vars) }
@@ -353,92 +360,93 @@ pat_item:
 
 pat_node:
         (* R [cat=V, lemma=$lemma ] *)
-        | id=COMPLEX_ID feats=delimited(LBRACKET,separated_list_final_opt(COMA,node_features),RBRACKET)
-            { localize ({Ast.node_id = Ast.simple_id_of_ci id; position=None; fs= feats}) }
+        | id_loc=simple_id_with_loc feats=delimited(LBRACKET,separated_list_final_opt(COMA,node_features),RBRACKET)
+            { ({Ast.node_id = fst id_loc; position=None; fs= feats}, snd id_loc) }
 
 node_features:
         (* cat=* *)
-        | name=COMPLEX_ID EQUAL STAR
-            { localize {Ast.kind = Ast.Disequality []; name=Ast.simple_id_of_ci name; } }
+        | name_loc=simple_id_with_loc EQUAL STAR
+            { let (name,loc) = name_loc in ({Ast.kind = Ast.Disequality []; name},loc) }
 
         (* cat=n|v|adj *)
-        | name=COMPLEX_ID EQUAL values=separated_nonempty_list(PIPE,feature_value)
-            { localize {Ast.kind = Ast.Equality values; name=Ast.simple_id_of_ci name; } }
+        | name_loc=simple_id_with_loc EQUAL values=separated_nonempty_list(PIPE,feature_value)
+            { let (name,loc) = name_loc in ({Ast.kind = Ast.Equality values; name }, loc) }
 
         (* cat<>n|v|adj *)
-        | name=COMPLEX_ID DISEQUAL values=separated_nonempty_list(PIPE,feature_value)
-            { localize {Ast.kind = Ast.Disequality values; name=Ast.simple_id_of_ci name; } }
+        | name_loc=simple_id_with_loc DISEQUAL values=separated_nonempty_list(PIPE,feature_value)
+            { let (name,loc) = name_loc in ( {Ast.kind = Ast.Disequality values; name}, loc) }
 
         (* lemma=$lem *)
-        | name=COMPLEX_ID EQUAL p=DOLLAR_ID
-            { localize {Ast.kind = Ast.Param p; name=Ast.simple_id_of_ci name; } }
+        | name_loc=simple_id_with_loc EQUAL p=DOLLAR_ID
+            { let (name,loc) = name_loc in ( {Ast.kind = Ast.Equal_param p; name }, loc) }
 
         (* !lemma *)
-        | BANG name=COMPLEX_ID
-            { localize {Ast.kind = Ast.Absent; name=Ast.simple_id_of_ci name; } }
+        | BANG name_loc=simple_id_with_loc
+            { let (name,loc) = name_loc in ({Ast.kind = Ast.Absent; name}, loc) }
 
 pat_edge:
         (* "e: A -> B" OR "e: A -[*]-> B" *)
-        | id=COMPLEX_ID DDOT n1=COMPLEX_ID GOTO_NODE n2=COMPLEX_ID
-        | id=COMPLEX_ID DDOT n1=COMPLEX_ID LTR_EDGE_LEFT STAR LTR_EDGE_RIGHT n2=COMPLEX_ID
-               { localize ({Ast.edge_id = Some (Ast.simple_id_of_ci id); src=Ast.simple_id_of_ci n1; edge_labels=[]; tar=Ast.simple_id_of_ci n2; negative=true}) }
+        | id_loc=simple_id_with_loc DDOT n1=simple_id GOTO_NODE n2=simple_id
+        | id_loc=simple_id_with_loc DDOT n1=simple_id LTR_EDGE_LEFT STAR LTR_EDGE_RIGHT n2=simple_id
+            { let (id,loc) = id_loc in ({Ast.edge_id = Some id; src=n1; edge_labels=[]; tar=n2; negative=true}, loc) }
 
-        (* "A -> B" *)
-        | n1=COMPLEX_ID GOTO_NODE n2=COMPLEX_ID
-               { localize ({Ast.edge_id = None; src=Ast.simple_id_of_ci n1; edge_labels=[]; tar=Ast.simple_id_of_ci n2; negative=true}) }
+        (* "A -> B" OR "e: A -[*]-> B" *)
+        | n1_loc=simple_id_with_loc GOTO_NODE n2=simple_id
+        | n1_loc=simple_id_with_loc LTR_EDGE_LEFT STAR LTR_EDGE_RIGHT n2=simple_id
+            { let (n1,loc) = n1_loc in ({Ast.edge_id = None; src=n1; edge_labels=[]; tar=n2; negative=true}, loc) }
 
         (* "e: A -[^X|Y]-> B" *)
-        | id=COMPLEX_ID DDOT n1=COMPLEX_ID labels=delimited(LTR_EDGE_LEFT_NEG,separated_nonempty_list(PIPE,label_ident),LTR_EDGE_RIGHT) n2=COMPLEX_ID
-            { localize ({Ast.edge_id = Some (Ast.simple_id_of_ci id); src=Ast.simple_id_of_ci n1; edge_labels=labels; tar=Ast.simple_id_of_ci n2; negative=true}) }
+        | id_loc=simple_id_with_loc DDOT n1=simple_id labels=delimited(LTR_EDGE_LEFT_NEG,separated_nonempty_list(PIPE,label_ident),LTR_EDGE_RIGHT) n2=simple_id
+            { let (id,loc) = id_loc in ({Ast.edge_id = Some id; src=n1; edge_labels=labels; tar=n2; negative=true}, loc) }
 
         (* "A -[^X|Y]-> B"*)
-        | n1=COMPLEX_ID labels=delimited(LTR_EDGE_LEFT_NEG,separated_nonempty_list(PIPE,label_ident),LTR_EDGE_RIGHT) n2=COMPLEX_ID
-            { localize ({Ast.edge_id = None; src=Ast.simple_id_of_ci n1; edge_labels=labels; tar=Ast.simple_id_of_ci n2; negative=true}) }
+        | n1_loc=simple_id_with_loc labels=delimited(LTR_EDGE_LEFT_NEG,separated_nonempty_list(PIPE,label_ident),LTR_EDGE_RIGHT) n2=simple_id
+            { let (n1,loc) = n1_loc in ({Ast.edge_id = None; src=n1; edge_labels=labels; tar=n2; negative=true}, loc) }
 
         (* "e: A -[X|Y]-> B" *)
-        | id=COMPLEX_ID DDOT n1=COMPLEX_ID labels=delimited(LTR_EDGE_LEFT,separated_nonempty_list(PIPE,label_ident),LTR_EDGE_RIGHT) n2=COMPLEX_ID
-            { localize ({Ast.edge_id = Some (Ast.simple_id_of_ci id); src=Ast.simple_id_of_ci n1; edge_labels=labels; tar=Ast.simple_id_of_ci n2; negative=false}) }
+        | id_loc=simple_id_with_loc DDOT n1=simple_id labels=delimited(LTR_EDGE_LEFT,separated_nonempty_list(PIPE,label_ident),LTR_EDGE_RIGHT) n2=simple_id
+            { let (id,loc) = id_loc in ({Ast.edge_id = Some id; src=n1; edge_labels=labels; tar=n2; negative=false}, loc) }
 
         (* "A -[X|Y]-> B" *)
-        | n1=COMPLEX_ID labels=delimited(LTR_EDGE_LEFT,separated_nonempty_list(PIPE,label_ident),LTR_EDGE_RIGHT) n2=COMPLEX_ID
-            { localize ({Ast.edge_id = None; src=Ast.simple_id_of_ci n1; edge_labels=labels; tar=Ast.simple_id_of_ci n2; negative=false}) }
+        | n1_loc=simple_id_with_loc labels=delimited(LTR_EDGE_LEFT,separated_nonempty_list(PIPE,label_ident),LTR_EDGE_RIGHT) n2=simple_id
+            { let (n1,loc) = n1_loc in ({Ast.edge_id = None; src=n1; edge_labels=labels; tar=n2; negative=false}, loc) }
 
 pat_const:
         (* "A -[X|Y]-> *" *)
-        | n=COMPLEX_ID labels=delimited(LTR_EDGE_LEFT,separated_nonempty_list(PIPE,label_ident),LTR_EDGE_RIGHT) STAR
-            { localize (Ast.Start (Ast.simple_id_of_ci n,labels)) }
+        | n_loc=simple_id_with_loc labels=delimited(LTR_EDGE_LEFT,separated_nonempty_list(PIPE,label_ident),LTR_EDGE_RIGHT) STAR
+            { let (n,loc) = n_loc in (Ast.Start (n,labels), loc) }
 
         (* "A -> *" *)
-        | n=COMPLEX_ID GOTO_NODE STAR
-            { localize (Ast.Cst_out (Ast.simple_id_of_ci n)) }
+        | n_loc=simple_id_with_loc GOTO_NODE STAR
+            { let (n,loc) = n_loc in (Ast.Cst_out (n), loc) }
 
         (* "* -[X|Y]-> A" *)
-        | STAR labels=delimited(LTR_EDGE_LEFT,separated_nonempty_list(PIPE,label_ident),LTR_EDGE_RIGHT) n=COMPLEX_ID
-            { localize (Ast.End (Ast.simple_id_of_ci n,labels)) }
+        | STAR labels=delimited(LTR_EDGE_LEFT,separated_nonempty_list(PIPE,label_ident),LTR_EDGE_RIGHT) n_loc=simple_id_with_loc
+            { let (n,loc) = n_loc in (Ast.End (n,labels), loc) }
 
         (* "* -> A" *)
-        | STAR GOTO_NODE n=COMPLEX_ID
-            { localize (Ast.Cst_in (Ast.simple_id_of_ci n)) }
+        | STAR GOTO_NODE n_loc=simple_id_with_loc
+            { let (n,loc) = n_loc in (Ast.Cst_in (n), loc) }
 
         (* X.cat = Y.cat *)
-        | qfn1=COMPLEX_ID EQUAL qfn2=COMPLEX_ID
-            { localize (Ast.Feature_eq (Ast.simple_qfn_of_ci qfn1, Ast.simple_qfn_of_ci qfn2)) }
+        | qfn1_loc=complex_id_with_loc EQUAL qfn2=COMPLEX_ID
+            { let (qfn1,loc)=qfn1_loc in (Ast.Feature_eq (Ast.simple_qfn_of_ci qfn1, Ast.simple_qfn_of_ci qfn2), loc) }
 
         (* X.position < Y.position *)
-        | qfn1=COMPLEX_ID LT qfn2=COMPLEX_ID
-            { localize (Ast.Feature_ineq (Ast.Lt, Ast.simple_qfn_of_ci qfn1, Ast.simple_qfn_of_ci qfn2)) }
+        | qfn1_loc=complex_id_with_loc LT qfn2=COMPLEX_ID
+            { let (qfn1,loc)=qfn1_loc in (Ast.Feature_ineq (Ast.Lt, Ast.simple_qfn_of_ci qfn1, Ast.simple_qfn_of_ci qfn2), loc) }
 
         (* X.position > Y.position *)
-        | qfn1=COMPLEX_ID GT qfn2=COMPLEX_ID
-            { localize (Ast.Feature_ineq (Ast.Gt, Ast.simple_qfn_of_ci qfn1, Ast.simple_qfn_of_ci qfn2)) }
+        | qfn1_loc=complex_id_with_loc GT qfn2=COMPLEX_ID
+            { let (qfn1,loc)=qfn1_loc in (Ast.Feature_ineq (Ast.Gt, Ast.simple_qfn_of_ci qfn1, Ast.simple_qfn_of_ci qfn2), loc) }
 
         (* X.position <= Y.position *)
-        | qfn1=COMPLEX_ID LE qfn2=COMPLEX_ID
-            { localize (Ast.Feature_ineq (Ast.Le, Ast.simple_qfn_of_ci qfn1, Ast.simple_qfn_of_ci qfn2)) }
+        | qfn1_loc=complex_id_with_loc LE qfn2=COMPLEX_ID
+            { let (qfn1,loc)=qfn1_loc in (Ast.Feature_ineq (Ast.Le, Ast.simple_qfn_of_ci qfn1, Ast.simple_qfn_of_ci qfn2), loc) }
 
         (* X.position >= Y.position *)
-        | qfn1=COMPLEX_ID GE qfn2=COMPLEX_ID
-            { localize (Ast.Feature_ineq (Ast.Ge, Ast.simple_qfn_of_ci qfn1, Ast.simple_qfn_of_ci qfn2)) }
+        | qfn1_loc=complex_id_with_loc GE qfn2=COMPLEX_ID
+            { let (qfn1,loc)=qfn1_loc in (Ast.Feature_ineq (Ast.Ge, Ast.simple_qfn_of_ci qfn1, Ast.simple_qfn_of_ci qfn2), loc) }
 
 
 /*=============================================================================================*/
@@ -449,52 +457,52 @@ commands:
 
 command:
         (* del_edge e *)
-        | DEL_EDGE n=COMPLEX_ID
-            { localize (Ast.Del_edge_name (Ast.simple_id_of_ci n)) }
+        | DEL_EDGE n_loc=simple_id_with_loc
+            { let (n,loc) = n_loc in (Ast.Del_edge_name n, loc) }
 
         (* del_edge m -[x]-> n *)
-        | DEL_EDGE src=COMPLEX_ID label=delimited(LTR_EDGE_LEFT,label_ident,LTR_EDGE_RIGHT) tar=COMPLEX_ID
-            { localize (Ast.Del_edge_expl (Ast.act_id_of_ci src, Ast.act_id_of_ci tar, label)) }
+        | DEL_EDGE src_loc=complex_id_with_loc label=delimited(LTR_EDGE_LEFT,label_ident,LTR_EDGE_RIGHT) tar=COMPLEX_ID
+            { let (src,loc) = src_loc in (Ast.Del_edge_expl (Ast.act_id_of_ci src, Ast.act_id_of_ci tar, label), loc) }
 
         (* add_edge m -[x]-> n *)
-        | ADD_EDGE src=COMPLEX_ID label=delimited(LTR_EDGE_LEFT,label_ident,LTR_EDGE_RIGHT) tar=COMPLEX_ID
-            { localize (Ast.Add_edge (Ast.act_id_of_ci src, Ast.act_id_of_ci tar, label)) }
+        | ADD_EDGE src_loc=complex_id_with_loc label=delimited(LTR_EDGE_LEFT,label_ident,LTR_EDGE_RIGHT) tar=COMPLEX_ID
+            { let (src,loc) = src_loc in (Ast.Add_edge (Ast.act_id_of_ci src, Ast.act_id_of_ci tar, label), loc) }
 
         (* shift_in m ==> n *)
-        | SHIFT_IN src=COMPLEX_ID LONGARROW tar=COMPLEX_ID
-            { localize (Ast.Shift_in (Ast.act_id_of_ci src, Ast.act_id_of_ci tar)) }
+        | SHIFT_IN src_loc=complex_id_with_loc LONGARROW tar=COMPLEX_ID
+            { let (src,loc) = src_loc in (Ast.Shift_in (Ast.act_id_of_ci src, Ast.act_id_of_ci tar), loc) }
 
         (* shift_out m ==> n *)
-        | SHIFT_OUT src=COMPLEX_ID LONGARROW tar=COMPLEX_ID
-            { localize (Ast.Shift_out (Ast.act_id_of_ci src, Ast.act_id_of_ci tar)) }
+        | SHIFT_OUT src_loc=complex_id_with_loc LONGARROW tar=COMPLEX_ID
+            { let (src,loc) = src_loc in (Ast.Shift_out (Ast.act_id_of_ci src, Ast.act_id_of_ci tar), loc) }
 
         (* shift m ==> n *)
-        | SHIFT src=COMPLEX_ID LONGARROW tar=COMPLEX_ID
-            { localize (Ast.Shift_edge (Ast.act_id_of_ci src, Ast.act_id_of_ci tar)) }
+        | SHIFT src_loc=complex_id_with_loc LONGARROW tar=COMPLEX_ID
+            { let (src,loc) = src_loc in (Ast.Shift_edge (Ast.act_id_of_ci src, Ast.act_id_of_ci tar), loc) }
 
         (* merge m ==> n *)
-        | MERGE src=COMPLEX_ID LONGARROW tar=COMPLEX_ID
-            { localize (Ast.Merge_node (Ast.act_id_of_ci src, Ast.act_id_of_ci tar)) }
+        | MERGE src_loc=complex_id_with_loc LONGARROW tar=COMPLEX_ID
+            { let (src,loc) = src_loc in (Ast.Merge_node (Ast.act_id_of_ci src, Ast.act_id_of_ci tar), loc) }
 
         (* del_node n *)
-        | DEL_NODE ci=COMPLEX_ID
-            { localize (Ast.Del_node (Ast.act_id_of_ci ci)) }
+        | DEL_NODE ci_loc=complex_id_with_loc
+            { let (ci,loc) = ci_loc in (Ast.Del_node (Ast.act_id_of_ci ci), loc) }
 
         (* add_node n: <-[x]- m *)
-        | ADD_NODE new_ci=COMPLEX_ID DDOT label=delimited(RTL_EDGE_LEFT,label_ident,RTL_EDGE_RIGHT) anc_ci=COMPLEX_ID
-            { localize (Ast.New_neighbour (Ast.simple_id_of_ci new_ci, Ast.act_id_of_ci anc_ci,label)) }
+        | ADD_NODE new_ci_loc=simple_id_with_loc DDOT label=delimited(RTL_EDGE_LEFT,label_ident,RTL_EDGE_RIGHT) anc_ci=COMPLEX_ID
+            { let (new_ci,loc) = new_ci_loc in (Ast.New_neighbour (new_ci, Ast.act_id_of_ci anc_ci,label), loc) }
 
         (* activate n#a *)
-        | ACTIVATE ci=COMPLEX_ID
-            { localize (Ast.Activate (Ast.act_id_of_ci ci)) }
+        | ACTIVATE ci_loc=complex_id_with_loc
+            { let (ci,loc) = ci_loc in (Ast.Activate (Ast.act_id_of_ci ci), loc) }
 
         (* del_feat m.cat *)
-        | DEL_FEAT qfn=COMPLEX_ID
-            { localize (Ast.Del_feat (Ast.act_qfn_of_ci qfn)) }
+        | DEL_FEAT qfn_loc=complex_id_with_loc
+            { let (qfn,loc) = qfn_loc in (Ast.Del_feat (Ast.act_qfn_of_ci qfn), loc) }
 
         (* m.cat = n.x + "_" + nn.y *)
-        | qfn=COMPLEX_ID EQUAL items=separated_nonempty_list (PLUS, concat_item)
-            { localize (Ast.Update_feat ((Ast.act_qfn_of_ci qfn), items)) }
+        | qfn_loc=complex_id_with_loc EQUAL items=separated_nonempty_list (PLUS, concat_item)
+            { let (qfn,loc) = qfn_loc in (Ast.Update_feat ((Ast.act_qfn_of_ci qfn), items), loc) }
 
 concat_item:
         | cid=COMPLEX_ID   { Ast.Qfn_item cid }
@@ -512,12 +520,12 @@ sequences:
 
 sequence:
         (* sequence { ant; p7_to_p7p-mc} *)
-        | doc=option(COMMENT) id_loc=simple_id_with_loc mod_names=delimited(LACC,separated_list_final_opt(SEMIC,COMPLEX_ID),RACC)
+        | doc=option(COMMENT) id_loc=simple_id_with_loc mod_names=delimited(LACC,separated_list_final_opt(SEMIC,simple_id),RACC)
             {
               { Ast.seq_name = fst id_loc;
-                seq_mod = List.map (fun x -> Ast.simple_id_of_ci x) mod_names ;
+                seq_mod = mod_names;
                 seq_doc = begin match doc with Some d -> d | None -> [] end;
-                seq_loc = (!Parser_global.current_file,snd id_loc);
+                seq_loc = snd id_loc;
               }
             }
 

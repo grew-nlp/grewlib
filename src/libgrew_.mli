@@ -16,16 +16,20 @@ open Grew_grs
 
 val css_file: string
 
-exception Parsing_err of string
+type loc = Loc.t
+val string_of_loc: loc -> string
+
 exception File_dont_exists of string
 
+exception Parsing_err of string * loc option
+
 (** raised when a Gr/Grs structure fails to build *)
-exception Build of string * (string * int) option
+exception Build of string * loc option
 
 (** raised during rewriting when a command is undefined *)
-exception Run of string * (string * int) option
+exception Run of string * loc option
 
-exception Bug of string * (string * int) option
+exception Bug of string * loc option
 
 val set_timeout: float option -> unit
 

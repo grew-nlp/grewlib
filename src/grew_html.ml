@@ -80,7 +80,7 @@ module Html_doc = struct
         sprintf "!%s" u_feature.Ast.name
     | Ast.Disequality values ->
         sprintf "%s<>%s" u_feature.Ast.name (List_.to_string (fun x->x) "|" values)
-    | Ast.Param index ->
+    | Ast.Equal_param index ->
         sprintf "%s=%s" u_feature.Ast.name index
 
   let buff_html_node buff (u_node,_) =
@@ -275,7 +275,7 @@ module Html_doc = struct
         wnl "<h6>Lexical parameters</h6>";
 
         (* output local lexical parameters (if any) *)
-        (match rule_.Ast.lp with
+        (match rule_.Ast.lex_par with
           | None -> ()
           | Some lines ->
             wnl "<b>Local parameters</b><br/>";

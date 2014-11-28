@@ -86,7 +86,7 @@ and string_lex target = parse
 and lp_lex target = parse
 | '\n'                    { incr Parser_global.current_line; Lexing.new_line lexbuf; bprintf buff "\n"; lp_lex target lexbuf }
 | _ as c                  { bprintf buff "%c" c; lp_lex target lexbuf }
-| "#END" [' ' '\t']* '\n' { incr Parser_global.current_line; LP (Str.split (Str.regexp "\n") (Buffer.contents buff)) }
+| "#END" [' ' '\t']* '\n' { incr Parser_global.current_line; LEX_PAR (Str.split (Str.regexp "\n") (Buffer.contents buff)) }
 
 and global = parse
 | [' ' '\t'] { global lexbuf }

@@ -93,7 +93,7 @@ module Ast = struct
   type feature_kind =
     | Equality of feature_value list
     | Disequality of feature_value list
-    | Param of string (* $ident *)
+    | Equal_param of string (* $ident *)
     | Absent
 
   type u_feature = {
@@ -186,7 +186,7 @@ module Ast = struct
     neg_basics: basic list;
     commands: command list;
     param: (string list * string list) option;
-    lp: string list option;
+    lex_par: string list option;
     rule_doc:string list;
     rule_loc: Loc.t;
   }

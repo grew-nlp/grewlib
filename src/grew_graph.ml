@@ -60,7 +60,10 @@ module P_graph = struct
     let rec insert (ast_node, loc) = function
       | [] -> [P_node.build ?pat_vars (ast_node, loc)]
       | (node_id,fs)::tail when ast_node.Ast.node_id = node_id ->
-        (node_id, P_node.unif_fs (P_fs.build ?pat_vars ast_node.Ast.fs) fs) :: tail
+        begin
+          try (node_id, P_node.unif_fs (P_fs.build ?pat_vars ast_node.Ast.fs) fs) :: tail
+          with Error.Build (msg,_) -> raise (Error.Build (msg,Some loc))
+        end
       | head :: tail -> head :: (insert (ast_node, loc) tail) in
 
     let (named_nodes : (Id.name * P_node.t) list) =
@@ -104,9 +107,9 @@ module P_graph = struct
   }
 
   (* -------------------------------------------------------------------------------- *)
-  let build_extension ?(locals=[||]) pos_table full_node_list full_edge_list =
+  let build_extension ?pat_vars ?(locals=[||]) pos_table full_node_list full_edge_list =
 
-    let built_nodes = List.map P_node.build full_node_list in
+    let built_nodes = List.map (P_node.build ?pat_vars) full_node_list in
 
     let (old_nodes, new_nodes) =
       List.partition

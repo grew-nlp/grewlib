@@ -50,50 +50,90 @@ end (* module G_feature *)
 module P_feature = struct
   (* feature= (feature_name, disjunction of atomic values) *)
 
-  type v =
-    | Equal of value list  (* with Equal constr, the list MUST never be empty *)
-    | Different of value list
-    | Param of int
+  type cst =
     | Absent
+    | Equal of value list     (* with Equal constr, the list MUST never be empty *)
+    | Different of value list
+
+  (* NB: in the current version, |in_param| ≤ 1 *)
+  type v = {
+    cst: cst;
+    in_param: int list;  (* the list of parameters to which the value must belong *)
+  }
 
   type t = string * v
+  let dump (feature_name, {cst; in_param}) =
+    printf "[P_feature.dump]\n";
+    printf "%s%s\n"
+      feature_name
+      (match cst with
+      | Different [] -> "=*"
+      | Different l -> "≠" ^ (String.concat "|" (List.map string_of_value l))
+      | Equal l -> "=" ^ (String.concat "|" (List.map string_of_value l))
+      | Absent -> " must be Absent!");
+    printf "in_param=[%s]\n" (String.concat "," (List.map string_of_int in_param));
+    printf "%!"
 
   let get_name = fst
 
   let compare feat1 feat2 = Pervasives.compare (get_name feat1) (get_name feat2)
 
-  let unif_value v1 v2 =
-    match (v1, v2) with
-    | (Equal l1, Equal l2) ->
-        (match List_.sort_inter l1 l2 with
-        | [] -> Error.build "Unification failure"
-        | l -> Equal l)
-    | (Different l1, Different l2) -> Different (List_.sort_union l1 l2)
-    | _ -> Error.build "cannot unify heterogeneous pattern features"
+  let unif_value v1 v2 = match (v1, v2) with
+    | ({cst=Absent;in_param=[]},{cst=Absent;in_param=[]}) -> v1
+    | ({cst=Absent;in_param=[]},_)
+    | (_,{cst=Absent;in_param=[]}) -> Error.build "unification failure"
 
-  let to_string ?param_names = function
-    | (feat_name, Equal atoms) -> sprintf "%s=%s" feat_name (List_.to_string string_of_value "|" atoms)
-    | (feat_name, Different []) -> sprintf "%s=*" feat_name
-    | (feat_name, Different atoms) -> sprintf "%s<>%s" feat_name (List_.to_string string_of_value "|" atoms)
-    | (feat_name, Absent) -> sprintf "!%s" feat_name
-    | (feat_name, Param index) ->
-      match param_names with
-        | None -> sprintf "%s=$%d" feat_name index
-        | Some (l,_) -> sprintf "%s=%s" feat_name (List.nth l index)
+    | ({cst=cst1; in_param=in1}, {cst=cst2; in_param=in2}) ->
+      let cst =  match (cst1, cst2) with
+        | (Equal l1, Equal l2) ->
+            (match List_.sort_inter l1 l2 with
+            | [] -> Error.build "unification failure"
+            | l -> Equal l)
+        | (Equal l1, Different l2)
+        | (Different l2, Equal l1) ->
+            (match List_.sort_diff l1 l2 with
+            | [] -> Error.build "unification failure"
+            | l -> Equal l)
+        | (Different l1, Different l2) -> Different (List_.sort_union l1 l2)
+        | _ -> Error.bug "[P_feature.unif_value] inconsistent match case" in
+      let (in_) = match (in1,in2) with
+        | (_,[]) -> (in1)
+        | ([],_) -> (in2)
+        | _ -> Error.build "more than one parameter constraint for the same feature in not yet implemented" in
+      {cst; in_param=in_}
+
+  let to_string ?param_names t =
+    let param_string index = match param_names with
+      | None -> sprintf "$%d" index
+      | Some (l,_) -> sprintf "%s" (List.nth l index) in
+
+    match t with
+    | (feat_name, {cst=Absent ;in_param=[]}) -> sprintf "!%s" feat_name
+    | (feat_name, {cst=Equal atoms;in_param=[]}) -> sprintf "%s=%s" feat_name (List_.to_string string_of_value "|" atoms)
+    | (feat_name, {cst=Different [];in_param=[]}) -> sprintf "%s=*" feat_name
+    | (feat_name, {cst=Different atoms;in_param=[]}) -> sprintf "%s≠%s" feat_name (List_.to_string string_of_value "|" atoms)
+
+    | (feat_name, {cst=Equal atoms;in_param=[one_in]}) -> sprintf "%s=%s=$%s" feat_name (List_.to_string string_of_value "|" atoms) (param_string one_in)
+    | (feat_name, {cst=Different [];in_param=[one_in]}) -> sprintf "%s=$%s" feat_name (param_string one_in)
+    | (feat_name, {cst=Different atoms;in_param=[one_in]}) -> sprintf "%s≠%s^%s=%s" feat_name (List_.to_string string_of_value "|" atoms) feat_name (param_string one_in)
+
+    | _ -> Error.bug "[P_feature.to_string] multiple parameters are not handled"
 
   let build ?pat_vars = function
+    | ({Ast.kind=Ast.Absent; name=name}, loc) -> (name, {cst=Absent;in_param=[];})
     | ({Ast.kind=Ast.Equality unsorted_values; name=name}, loc) ->
-      let values = Domain.build ~loc name unsorted_values in (name, Equal values)
+      let values = Domain.build ~loc name unsorted_values in (name, {cst=Equal values;in_param=[];})
     | ({Ast.kind=Ast.Disequality unsorted_values; name=name}, loc) ->
-      let values = Domain.build ~loc name unsorted_values in (name, Different values)
-    | ({Ast.kind=Ast.Absent; name=name}, loc) -> (name, Absent)
-    | ({Ast.kind=Ast.Param var; name=name}, loc) ->
-        match pat_vars with
-        | None -> Error.bug ~loc "[P_feature.build] param '%s' in an unparametrized rule" var
-        | Some l ->
-            match List_.pos var l with
-            | Some index -> (name, Param index)
-            | None -> Error.build ~loc "[P_feature.build] Unknown pattern variable '%s'" var
+      let values = Domain.build ~loc name unsorted_values in (name, {cst=Different values;in_param=[];})
+    | ({Ast.kind=Ast.Equal_param var; name=name}, loc) ->
+        begin
+          match pat_vars with
+          | None -> Error.bug ~loc "[P_feature.build] param '%s' in an unparametrized rule" var
+          | Some l ->
+              match List_.pos var l with
+              | Some index -> (name, {cst=Different []; in_param = [index]})
+              | None -> Error.build ~loc "[P_feature.build] Unknown pattern variable '%s'" var
+        end
 end (* module P_feature *)
 
 (* ================================================================================ *)
@@ -200,9 +240,6 @@ module G_fs = struct
       | "" -> ""
       | s -> sprintf "<TABLE BORDER=\"0\" CELLBORDER=\"0\" CELLSPACING=\"0\">\n%s\n</TABLE>\n" s
 
-
-
-
   let to_word ?main_feat t =
     match get_main ?main_feat t with
       | (None, _) -> "#"
@@ -259,7 +296,7 @@ end (* module G_fs *)
 
 (* ================================================================================ *)
 module P_fs = struct
-  (* list are supposed to be striclty ordered wrt compare*)
+  (* list are supposed to be striclty ordered wrt compare *)
   type t = P_feature.t list
 
   let empty = []
@@ -267,13 +304,10 @@ module P_fs = struct
   let check_position ?param position t =
     try
       match List.assoc "position" t with
-        | P_feature.Equal pos_list -> List.mem (Float position) pos_list
-        | P_feature.Different pos_list -> not (List.mem (Float position) pos_list)
-        | P_feature.Absent -> false
-        | P_feature.Param index ->
-          match param with
-            | Some p -> float_of_string (Lex_par.get_param_value index p) = position
-            | None -> Log.bug "[P_fs.check_position] Illegal parametrized pattern feature"; exit 2
+        | {P_feature.cst=P_feature.Equal pos_list; in_param=[]} -> List.mem (Float position) pos_list
+        | {P_feature.cst=P_feature.Different pos_list; in_param=[]} -> not (List.mem (Float position) pos_list)
+        | {P_feature.cst=P_feature.Absent} -> false
+        | _ -> Error.bug "Position can't be parametrized"
     with Not_found -> true
 
   let build ?pat_vars ast_fs =
@@ -294,63 +328,45 @@ module P_fs = struct
 
   exception Fail
 
-  let match_ ?param pattern fs =
-    let pattern_wo_pos =
-      try List.remove_assoc "position" pattern
-      with Not_found -> pattern in
+  let match_ ?param p_fs g_fs =
+    let p_fs_wo_pos =
+      try List.remove_assoc "position" p_fs
+      with Not_found -> p_fs in
     let rec loop acc = function
       | [], _ -> acc
 
       (* a feature_name present only in instance -> Skip it *)
       | ((fn_pat, fv_pat)::t_pat, (fn, _)::t) when fn_pat > fn -> loop acc ((fn_pat, fv_pat)::t_pat, t)
 
-      (* Three next cases: pattern requires for the absence of a feature. case 1&2: OK, go on, 3: fail *)
-      | ((fn_pat, P_feature.Absent)::t_pat, []) -> loop acc (t_pat, [])
-      | ((fn_pat, P_feature.Absent)::t_pat, (fn, fa)::t) when fn_pat < fn -> loop acc (t_pat, (fn, fa)::t)
-      | ((fn_pat, P_feature.Absent)::t_pat, (fn, fa)::t) when fn_pat = fn -> raise Fail
+      (* Two next cases: p_fs requires for the absence of a feature -> OK *)
+      | ((fn_pat, {P_feature.cst=P_feature.Absent})::t_pat, []) -> loop acc (t_pat, [])
+      | ((fn_pat, {P_feature.cst=P_feature.Absent})::t_pat, (fn, fa)::t) when fn_pat < fn -> loop acc (t_pat, (fn, fa)::t)
 
-      (* Two next cases: each feature_name present in pattern must be in instance: [] means unif failure *)
+      (* Two next cases: each feature_name present in p_fs must be in instance: [] means unif failure *)
       | _, [] -> raise Fail
       | ((fn_pat, _)::_, (fn, _)::_) when fn_pat < fn -> raise Fail
 
       (* Next cases: fn_pat = fn *)
-      | ((_, (P_feature.Equal fv))::t_pat, (_, fa)::t) when List_.sort_mem fa fv -> loop acc (t_pat,t)
-      | ((_, (P_feature.Different fv))::t_pat, (_, fa)::t) when not (List_.sort_mem fa fv) -> loop acc (t_pat,t)
+      | ((_, {P_feature.cst=cst; P_feature.in_param=in_param})::t_pat, (_, atom)::t) ->
 
-      | ((_, (P_feature.Param index))::t_pat, (_, atom)::t) ->
-          (match acc with
-          | None -> Log.bug "[P_fs.compatible] Illegal parametrized pattern feature"; exit 2
-          | Some param ->
-              (match Lex_par.filter index (string_of_value atom) param with
+        (* check for the constraint part and fail if needed *)
+        let () = match cst with
+        | P_feature.Absent -> raise Fail
+        | P_feature.Equal fv when not (List_.sort_mem atom fv) -> raise Fail
+        | P_feature.Different fv when List_.sort_mem atom fv -> raise Fail
+        | _ -> () in
+
+        (* if constraint part don't fail, look for lexical parameters *)
+        match (acc, in_param) with
+          | (_,[]) -> loop acc (t_pat,t)
+          | (None,_) -> Log.bug "[P_fs.match_] Parametrized constraint in a non-parametrized rule"; exit 2
+          | (Some param, [index]) ->
+            (match Lex_par.select index (string_of_value atom) param with
               | None -> raise Fail
               | Some new_param -> loop (Some new_param) (t_pat,t)
-              )
-          )
-
-      (* remaining cases: Equal and not list_mem  |  Diff and not list_mem -> fail*)
-      | _ -> raise Fail
-    in loop param (pattern_wo_pos,fs)
-
-  let filter fs_p fs_g =
-    let rec loop = function
-      | [], fs -> true
-
-      | ((fn1,_)::_ as f1, (fn2,_)::t2) when fn1 > fn2 -> loop (f1, t2)
-
-      | ((fn1,P_feature.Absent)::t1, []) -> loop (t1,[])
-      | ((fn1,P_feature.Absent)::t1, ((fn2,_)::_ as f2)) when fn1 < fn2 -> loop (t1,f2)
-      | ((fn1,P_feature.Absent)::t1, (fn2,_)::_) when fn1 = fn2 -> false
-
-      | fs, [] -> false
-
-      | ((fn1,_)::_, (fn2,_)::_) when fn1 < fn2 -> false
-
-      (* all remaining case are fn1 = fn2 *)
-      | ((_, (P_feature.Equal fv))::t1, (_, atom)::t2) when List_.sort_mem atom fv -> loop (t1, t2)
-      | ((_, (P_feature.Different fv))::t1, (_, atom)::t2) when not (List_.sort_mem atom fv) -> loop (t1, t2)
-      | _ -> false
-
-    in loop (fs_p, fs_g)
+            )
+          | _ -> Error.bug "[P_fs.match_] several different parameters contraints for the same feature is not implemented" in
+    loop param (p_fs_wo_pos,g_fs)
 
   let unif fs1 fs2 =
     let rec loop = function
@@ -361,6 +377,8 @@ module P_fs = struct
       | ((fn1,v1)::t1, (fn2,v2)::t2) when fn1 > fn2 -> (fn2,v2) :: (loop ((fn1,v1)::t1,t2))
 
       (* all remaining case are fn1 = fn2 *)
-      | ((fn1,v1)::t1, (fn2,v2)::t2) (* when fn1 = fn2 *) -> (fn1,P_feature.unif_value v1 v2) :: (loop (t1,t2))
+      | ((fn1,v1)::t1, (fn2,v2)::t2) (* when fn1 = fn2 *) ->
+        try (fn1,P_feature.unif_value v1 v2) :: (loop (t1,t2))
+        with Error.Build (msg,_) -> Error.build "Feature '%s', %s" fn1 msg
     in loop (fs1, fs2)
-end
+end (* module P_fs *)
