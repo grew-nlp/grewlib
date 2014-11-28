@@ -34,8 +34,10 @@ module P_graph = struct
   type t = P_node.t Pid_map.t
 
   let empty = Pid_map.empty
+
   let find = Pid_map.find
 
+  (* -------------------------------------------------------------------------------- *)
   let map_add_edge map id_src label id_tar =
     let node_src =
       (* Not found can be raised when adding an edge from pos to neg *)
@@ -43,10 +45,6 @@ module P_graph = struct
     match P_node.add_edge label id_tar node_src with
       | None -> None
       | Some new_node -> Some (Pid_map.add id_src new_node map)
-
-  (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
-  (* Build functions *)
-  (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
 
   (* -------------------------------------------------------------------------------- *)
   let build_filter table (ast_node, loc) =
@@ -155,6 +153,7 @@ module P_graph = struct
         ) ext_map_without_edges full_edge_list in
     ({ext_map = ext_map_with_all_edges; old_map = old_map_without_edges}, new_table)
 
+  (* -------------------------------------------------------------------------------- *)
   (* [tree_and_roots t] returns:
      - a boolean which is true iff the each node has at most one in-edge
      - the list of "roots" (i.e. nodes without in-edge *)
@@ -184,6 +183,7 @@ module P_graph = struct
 
     (!tree_prop, roots)
 
+  (* -------------------------------------------------------------------------------- *)
   let roots graph = snd (tree_and_roots graph)
 end (* module P_graph *)
 
@@ -195,32 +195,16 @@ module G_deco = struct
   }
 
   let empty = {nodes=[]; edges=[]}
-
-  let dump t =
-    printf "|nodes|=%d\n" (List.length t.nodes);
-    List.iter
-      (fun (gid, (pid,list)) ->
-        printf "  - %s %s %s\n"
-          (Gid.to_string gid)
-          pid
-          (String.concat "/" list)
-      ) t.nodes;
-    printf "|edges|=%d\n" (List.length t.edges);
-    List.iter
-      (fun (src, edge, tar) ->
-        printf "  - %s --[%s]--> %s\n"
-          (Gid.to_string src)
-          (G_edge.to_string edge)
-          (Gid.to_string tar)
-      ) t.edges
 end (* module G_deco *)
 
 (* ================================================================================ *)
 module G_graph = struct
   type t = {
-    meta: (string * string) list;
-    map: G_node.t Gid_map.t; (* node description *)
+    meta: (string * string) list; (* meta-informations *)
+    map: G_node.t Gid_map.t;      (* node description *)
   }
+
+  let empty = {meta=[]; map=Gid_map.empty}
 
   (* ---------------------------------------------------------------------- *)
   let rename mapping graph =
@@ -246,7 +230,6 @@ module G_graph = struct
         ) t.map (0, []) in
         rename mapping t
 
-  let empty = {meta=[]; map=Gid_map.empty}
 
   let find node_id graph = Gid_map.find node_id graph.map
 
@@ -296,6 +279,7 @@ module G_graph = struct
       | None -> None
       | Some new_node -> Some (Gid_map.add id_src new_node map)
 
+  (* -------------------------------------------------------------------------------- *)
   let add_edge graph id_src label id_tar =
     match map_add_edge graph.map id_src label id_tar with
       | Some new_map -> Some {graph with map = new_map }
@@ -707,10 +691,6 @@ module G_graph = struct
 
   (* -------------------------------------------------------------------------------- *)
   let to_dot ?main_feat ?(deco=G_deco.empty) graph =
-
-    printf "<==== [G_graph.to_dot] ====>\n";
-    G_deco.dump deco;
-
     let buff = Buffer.create 32 in
 
     bprintf buff "digraph G {\n";
@@ -745,7 +725,6 @@ module G_graph = struct
 
   (* -------------------------------------------------------------------------------- *)
   let to_raw graph =
-
     let nodes = Gid_map.fold (fun id elt acc -> (id,elt)::acc) graph.map [] in
     let snodes = List.sort (fun (_,n1) (_,n2) -> G_node.position_comp n1 n2) nodes in
     let raw_nodes = List.map (fun (gid,node) -> (gid, G_fs.to_raw (G_node.get_fs node))) snodes in

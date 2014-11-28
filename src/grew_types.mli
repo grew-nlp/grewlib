@@ -106,6 +106,16 @@ module Domain: sig
   val build_one: ?loc:Loc.t -> feature_name -> feature_atom -> value
 
   val feature_names: unit -> string list option
+
+  (** [check_feature_name ~loc feature_name] fails iff a domain is set and [feature_name] is not defined in the current domain. *)
+  val check_feature_name: ?loc:Loc.t -> feature_name -> unit
+
+  (** [check_feature ~loc feature_name feature_value] fails iff a domain is set and [feature_name,feature_value] is not defined in the current domain. *)
+  val check_feature: ?loc:Loc.t -> feature_name -> feature_atom -> unit
+
+  (** [is_open feature_name] returns [true] iff no domain is set or if [feature_name] is defined to be open in the current domain. *)
+  val is_open: feature_name -> bool
+
 end (* module Domain *)
 
 (* ================================================================================ *)
