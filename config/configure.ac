@@ -12,7 +12,7 @@ AC_ARG_ENABLE(
  	[AS_HELP_STRING([--enable-dep2pict],[Enable dep2pict (default is yes)])],
 	[dep2pict=$enableval],
 	[dep2pict=yes])
-	
+
 if test "$config" = yes ; then
 
    	# Checks for programs.
@@ -20,19 +20,19 @@ if test "$config" = yes ; then
 	if test "$OCAMLC" = no ; then
 		AC_MSG_ERROR(Cannot find ocamlc)
 	fi
-        AC_SUBST(OCAMLC)
+    AC_SUBST(OCAMLC)
 
-        AC_CHECK_PROGS(OCAMLOPT,ocamlopt.opt ocamlopt,no)
-        if test "$OCAMLOPT" = no ; then
-                AC_MSG_ERROR(Cannot find ocamlopt)
-        fi
-        AC_SUBST(OCAMLOPT)
+    AC_CHECK_PROGS(OCAMLOPT,ocamlopt.opt ocamlopt,no)
+    if test "$OCAMLOPT" = no ; then
+        AC_MSG_ERROR(Cannot find ocamlopt)
+    fi
+    AC_SUBST(OCAMLOPT)
 
-        AC_CHECK_PROGS(OCAMLLEX,ocamllex.opt ocamllex,no)
-        if test "$OCAMLLEX" = no ; then
-                AC_MSG_ERROR(Cannot find ocamllex)
-        fi
-        AC_SUBST(OCAMLLEX)
+    AC_CHECK_PROGS(OCAMLLEX,ocamllex.opt ocamllex,no)
+    if test "$OCAMLLEX" = no ; then
+        AC_MSG_ERROR(Cannot find ocamllex)
+    fi
+    AC_SUBST(OCAMLLEX)
 
 	# Checks for libraries.
 	AC_MSG_CHECKING(for ocaml library path)
@@ -76,7 +76,7 @@ if test "$config" = yes ; then
         else
         	AC_SUBST(DEP2PICT,yes)
         fi
-	
+
 fi
 
 AC_ARG_ENABLE(
