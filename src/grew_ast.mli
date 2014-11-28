@@ -8,7 +8,7 @@
 (*    Authors: see AUTHORS file                                                   *)
 (**********************************************************************************)
 
-open Libgrew_utils
+open Grew_base
 
 module Ast : sig
   type feature_name = string (* cat, num, ... *)

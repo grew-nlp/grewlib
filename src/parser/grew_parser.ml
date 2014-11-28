@@ -8,7 +8,7 @@
 (*    Authors: see AUTHORS file                                                   *)
 (**********************************************************************************)
 
-open Libgrew_utils
+open Grew_base
 open Grew_ast
 
 module Grew_parser = struct

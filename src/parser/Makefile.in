@@ -11,15 +11,15 @@ parser_global.cmx: parser_global.ml
 	$(OCAMLOPT) -c $(OPT_FLAGS) parser_global.ml
 
 gr_grs_parser.ml: gr_grs_parser.mly
-	menhir --infer --ocamlc "ocamlc -c -I .. libgrew_utils.cmo grew_ast.cmo parser_global.cmo"  gr_grs_parser.mly
+	menhir --infer --ocamlc "ocamlc -c -I .. grew_base.cmo grew_ast.cmo parser_global.cmo"  gr_grs_parser.mly
 
-gr_grs_parser.cmx: gr_grs_parser.ml ../libgrew_utils.cmx ../grew_ast.cmx parser_global.cmo
-	$(OCAMLOPT) -c $(OPT_FLAGS) -I .. libgrew_utils.cmx grew_ast.cmx gr_grs_parser.mli
-	$(OCAMLOPT) -c $(OPT_FLAGS) -I .. libgrew_utils.cmx grew_ast.cmx gr_grs_parser.ml
+gr_grs_parser.cmx: gr_grs_parser.ml ../grew_base.cmx ../grew_ast.cmx parser_global.cmo
+	$(OCAMLOPT) -c $(OPT_FLAGS) -I .. grew_base.cmx grew_ast.cmx gr_grs_parser.mli
+	$(OCAMLOPT) -c $(OPT_FLAGS) -I .. grew_base.cmx grew_ast.cmx gr_grs_parser.ml
 
-gr_grs_parser.cmo: gr_grs_parser.ml ../libgrew_utils.cmo ../grew_ast.cmx parser_global.cmo
-	$(OCAMLC) -c $(BYTE_FLAGS) -I .. libgrew_utils.cmo grew_ast.cmo gr_grs_parser.mli
-	$(OCAMLC) -c $(BYTE_FLAGS) -I .. libgrew_utils.cmo grew_ast.cmo gr_grs_parser.ml
+gr_grs_parser.cmo: gr_grs_parser.ml ../grew_base.cmo ../grew_ast.cmx parser_global.cmo
+	$(OCAMLC) -c $(BYTE_FLAGS) -I .. grew_base.cmo grew_ast.cmo gr_grs_parser.mli
+	$(OCAMLC) -c $(BYTE_FLAGS) -I .. grew_base.cmo grew_ast.cmo gr_grs_parser.ml
 
 lexer.ml: lexer.mll
 	ocamllex lexer.mll

@@ -9,7 +9,7 @@
 (**********************************************************************************)
 
 (** {2 Grew's core} *)
-open Libgrew_utils
+open Grew_base
 open Grew_graph
 open Grew_rule
 open Grew_grs

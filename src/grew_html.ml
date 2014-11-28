@@ -11,7 +11,7 @@
 open Printf
 open Log
 
-open Libgrew_utils
+open Grew_base
 open Grew_ast
 open Grew_graph
 open Grew_rule
