@@ -48,7 +48,7 @@ end
 
 
 (* ================================================================================ *)
-(* [File] basic functions to read/write file *)
+(* [File] functions to read/write file *)
 module File: sig
   (** [write data file_name] write [data] in file named [file_name] *)
   val write: string -> string -> unit

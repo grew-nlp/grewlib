@@ -170,7 +170,7 @@ module Command  = struct
           check_act_id loc act_id kai;
           let items = List.map
             (function
-              (* special case of a basic identifier understood as a string *)
+              (* special case of a simple identifier understood as a string *)
               | Ast.Qfn_item ci when Ast.is_simple ci -> String (Ast.complex_id_to_string ci)
               | Ast.Qfn_item ci ->
                 let (act_id,feature_name) = Ast.act_qfn_of_ci ci in

@@ -96,8 +96,8 @@ module P_graph = struct
 
 
   (* -------------------------------------------------------------------------------- *)
-  (* a type for extension of graph: a former graph exists:
-     in grew the former is a positive pattern and an extension is a "without" *)
+  (* a type for extension of graph (a former graph exists):
+     in grew the former is a positive basic and an extension is a negative basic ("without") *)
   type extension = {
     ext_map: P_node.t Pid_map.t; (* node description for new nodes and for edge "Old -> New"  *)
     old_map: P_node.t Pid_map.t; (* a partial map for new constraints on old nodes "Old [...]" *)
@@ -149,7 +149,7 @@ module P_graph = struct
           let edge = P_edge.build ~locals (ast_edge, loc) in
           match map_add_edge acc i1 edge i2 with
             | Some map -> map
-            | None -> Log.fbug "[GRS] [Graph.build_extension] add_edge cannot fail in pattern extension (1)"; exit 2
+            | None -> Log.fbug "[GRS] [Graph.build_extension] add_edge cannot fail in pattern extension"; exit 2
         ) ext_map_without_edges full_edge_list in
     ({ext_map = ext_map_with_all_edges; old_map = old_map_without_edges}, new_table)
 

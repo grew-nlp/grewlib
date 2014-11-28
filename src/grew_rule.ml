@@ -102,7 +102,7 @@ module Rule = struct
     | Feature_diseq of Pid.t * string * Pid.t * string
 
     | Feature_ineq of Ast.ineq * Pid.t * string * Pid.t * string
-    | Filter of Pid.t * P_fs.t (* used when a without impose a fs on a node defined by the match pattern *)
+    | Filter of Pid.t * P_fs.t (* used when a without impose a fs on a node defined by the match basic *)
 
   let build_pos_constraint ?locals pos_table const =
     let pid_of_name loc node_name = Pid.Pos (Id.build ~loc node_name pos_table) in
@@ -123,18 +123,18 @@ module Rule = struct
       | (Ast.Feature_ineq (ineq, (node_name1, feat_name1), (node_name2, feat_name2)), loc) ->
         Feature_ineq (ineq, pid_of_name loc node_name1, feat_name1, pid_of_name loc node_name2, feat_name2)
 
-  type pattern = {
+  type basic = {
     graph: P_graph.t;
     constraints: const list;
   }
 
-  let build_pos_pattern ?pat_vars ?(locals=[||]) pattern_ast =
+  let build_pos_basic ?pat_vars ?(locals=[||]) basic_ast =
     let (graph, pos_table) =
-      P_graph.build ?pat_vars ~locals pattern_ast.Ast.pat_nodes pattern_ast.Ast.pat_edges in
+      P_graph.build ?pat_vars ~locals basic_ast.Ast.pat_nodes basic_ast.Ast.pat_edges in
     (
       {
         graph = graph;
-        constraints = List.map (build_pos_constraint ~locals pos_table) pattern_ast.Ast.pat_const
+        constraints = List.map (build_pos_constraint ~locals pos_table) basic_ast.Ast.pat_const
       },
       pos_table
     )
@@ -169,27 +169,27 @@ module Rule = struct
         and (node_name2, feat_name2) = qfn2 in
         Feature_ineq (ineq, pid_of_name loc node_name1, feat_name1, pid_of_name loc node_name2, feat_name2)
 
-  let build_neg_pattern ?(locals=[||]) pos_table pattern_ast =
+  let build_neg_basic ?(locals=[||]) pos_table basic_ast =
     let (extension, neg_table) =
-      P_graph.build_extension ~locals pos_table pattern_ast.Ast.pat_nodes pattern_ast.Ast.pat_edges in
+      P_graph.build_extension ~locals pos_table basic_ast.Ast.pat_nodes basic_ast.Ast.pat_edges in
     let filters = Pid_map.fold (fun id node acc -> Filter (id, P_node.get_fs node) :: acc) extension.P_graph.old_map [] in
     {
       graph = extension.P_graph.ext_map;
-      constraints = filters @ List.map (build_neg_constraint ~locals pos_table neg_table) pattern_ast.Ast.pat_const ;
+      constraints = filters @ List.map (build_neg_constraint ~locals pos_table neg_table) basic_ast.Ast.pat_const ;
     }
 
-  let get_edge_ids pattern =
+  let get_edge_ids basic =
     Pid_map.fold
       (fun _ node acc ->
         Massoc_pid.fold
           (fun acc2 _ edge -> match P_edge.get_id edge with None -> acc2 | Some id -> id::acc2)
           acc (P_node.get_next node)
-      ) pattern.graph []
+      ) basic.graph []
 
   type t = {
       name: string;
-      pos: pattern;
-      neg: pattern list;
+      pos: basic;
+      neg: basic list;
       commands: Command.t list;
       param: Lex_par.t option;
       param_names: (string list * string list);
@@ -315,22 +315,30 @@ module Rule = struct
             files in
           (Some param, pat_vars, cmd_vars) in
 
-    let (pos, pos_table) = build_pos_pattern ~pat_vars ~locals rule_ast.Ast.pos_pattern in
+    let (pos, pos_table) = build_pos_basic ~pat_vars ~locals rule_ast.Ast.pos_basic in
     {
       name = rule_ast.Ast.rule_id;
       pos = pos;
-      neg = List.map (fun pattern_ast -> build_neg_pattern ~locals pos_table pattern_ast) rule_ast.Ast.neg_patterns;
+      neg = List.map (fun basic_ast -> build_neg_basic ~locals pos_table basic_ast) rule_ast.Ast.neg_basics;
       commands = build_commands ~param:(pat_vars,cmd_vars) ~locals suffixes pos pos_table rule_ast.Ast.commands;
       loc = rule_ast.Ast.rule_loc;
       param = param;
       param_names = (pat_vars,cmd_vars)
     }
 
+  (* an isolated_pattern is a couple (pos, neg list) *)
+  type isolated_pattern = basic * basic list
+
+  let build_isolated_pattern isol_ast =
+    let (pos, pos_table) = build_pos_basic isol_ast.Ast.isol_pos in
+    let negs = List.map (fun basic_ast -> build_neg_basic pos_table basic_ast) isol_ast.Ast.isol_negs in
+    (pos, negs)
+
   (* ====================================================================== *)
   type matching = {
       n_match: Gid.t Pid_map.t;                     (* partial fct: pattern nodes |--> graph nodes *)
       e_match: (string*(Gid.t*Label.t*Gid.t)) list; (* edge matching: edge ident  |--> (src,label,tar) *)
-      a_match: (Gid.t*Label.t*Gid.t) list;          (* anonymous edge mached *)
+      a_match: (Gid.t*Label.t*Gid.t) list;          (* anonymous edge matched *)
       m_param: Lex_par.t option;
     }
 
@@ -404,10 +412,10 @@ module Rule = struct
            - the domain of the pattern P is the disjoint union of domain([sub]) and [unmatched_nodes]
          *)
   (*  ---------------------------------------------------------------------- *)
-  let init param pattern =
-    let roots = P_graph.roots pattern.graph in
+  let init param basic =
+    let roots = P_graph.roots basic.graph in
 
-    let node_list = Pid_map.fold (fun pid _ acc -> pid::acc) pattern.graph [] in
+    let node_list = Pid_map.fold (fun pid _ acc -> pid::acc) basic.graph [] in
 
     (* put all roots in the front of the list to speed up the algo *)
     let sorted_node_list =
@@ -421,7 +429,7 @@ module Rule = struct
       unmatched_nodes = sorted_node_list;
       unmatched_edges = [];
       already_matched_gids = [];
-      check = pattern.constraints;
+      check = basic.constraints;
     }
 
   (*  ---------------------------------------------------------------------- *)
@@ -541,7 +549,6 @@ module Rule = struct
       let g_node = try G_graph.find gid graph with Not_found -> failwith "INS" in
 
       try
-
         let new_param = P_node.match_ ?param: partial.sub.m_param p_node g_node in
 
         (* add all out-edges from pid in pattern *)
@@ -799,7 +806,7 @@ module Rule = struct
   (*  ---------------------------------------------------------------------- *)
   let fulfill (pos_graph,neg_graph) graph new_partial_matching  =
     match extend_matching (pos_graph, neg_graph) graph new_partial_matching with
-    | [] -> true (* the without pattern in not found -> OK *)
+    | [] -> true (* the without basic in not found -> OK *)
     | x -> false
 
 

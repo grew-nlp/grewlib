@@ -268,3 +268,6 @@ let to_gr_graph graph =
 
 let to_conll_graph graph =
   handle ~name:"to_conll_graph" (fun () -> G_graph.to_conll graph) ()
+
+let load_pattern file =
+  handle ~name:"load_pattern" (fun () -> Grew_parser.load_isolated_pattern file) ()

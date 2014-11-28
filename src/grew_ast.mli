@@ -86,7 +86,7 @@ module Ast : sig
     | Feature_ineq of ineq * simple_qfn * simple_qfn
   type const = u_const * Loc.t
 
-  type pattern = {
+  type basic = {
       pat_nodes: node list;
       pat_edges: edge list;
       pat_const: const list;
@@ -115,8 +115,8 @@ module Ast : sig
 
   type rule = {
       rule_id:Id.name;
-      pos_pattern: pattern;
-      neg_patterns: pattern list;
+      pos_basic: basic;
+      neg_basics: basic list;
       commands: command list;
       param: (string list * string list) option; (* (files, vars) *)
       lp: string list option; (* lexical parameters in the file *)
@@ -168,4 +168,10 @@ module Ast : sig
   }
 
   val empty_grs: grs
+
+  (* type for the grep mode *)
+  type isolated_pattern = {
+      isol_pos: basic;
+      isol_negs: basic list;
+    }
 end (* module Ast *)

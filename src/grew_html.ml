@@ -116,18 +116,18 @@ module Html_doc = struct
     );
     bprintf buff "\n"
 
-  let buff_html_pos_pattern buff pos_pattern =
+  let buff_html_pos_basic buff pos_basic =
     bprintf buff "    <font color=\"purple\">match</font> <b>{</b>\n";
-    List.iter (buff_html_node buff) pos_pattern.Ast.pat_nodes;
-    List.iter (buff_html_edge buff) pos_pattern.Ast.pat_edges;
-    List.iter (buff_html_const buff) pos_pattern.Ast.pat_const;
+    List.iter (buff_html_node buff) pos_basic.Ast.pat_nodes;
+    List.iter (buff_html_edge buff) pos_basic.Ast.pat_edges;
+    List.iter (buff_html_const buff) pos_basic.Ast.pat_const;
     bprintf buff "    <b>}</b>\n"
 
-  let buff_html_neg_pattern buff neg_pattern =
+  let buff_html_neg_basic buff neg_basic =
     bprintf buff "    <font color=\"purple\">without</font> <b>{</b>\n";
-    List.iter (buff_html_node buff) neg_pattern.Ast.pat_nodes;
-    List.iter (buff_html_edge buff) neg_pattern.Ast.pat_edges;
-    List.iter (buff_html_const buff) neg_pattern.Ast.pat_const;
+    List.iter (buff_html_node buff) neg_basic.Ast.pat_nodes;
+    List.iter (buff_html_edge buff) neg_basic.Ast.pat_edges;
+    List.iter (buff_html_const buff) neg_basic.Ast.pat_const;
     bprintf buff "    <b>}</b>\n"
 
   let to_html_rules rules =
@@ -151,10 +151,10 @@ module Html_doc = struct
         );
 
         (* the match part *)
-        buff_html_pos_pattern buff rule.Ast.pos_pattern;
+        buff_html_pos_basic buff rule.Ast.pos_basic;
 
         (* the without parts *)
-        List.iter (buff_html_neg_pattern buff) rule.Ast.neg_patterns;
+        List.iter (buff_html_neg_basic buff) rule.Ast.neg_basics;
 
         (*  the commands part *)
         (match rule.Ast.commands with

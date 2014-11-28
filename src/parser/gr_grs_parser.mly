@@ -103,6 +103,7 @@ let localize t = (t,get_loc ())
 %start <Grew_ast.Ast.grs> grs
 %start <Grew_ast.Ast.gr> gr
 %start <Grew_ast.Ast.module_or_include list> included
+%start <Grew_ast.Ast.isolated_pattern> isolated_pattern
 %%
 
 
@@ -279,8 +280,8 @@ rule:
         | doc=option(COMMENT) RULE id_loc=simple_id_with_loc LACC p=pos_item n=list(neg_item) cmds=commands RACC
             {
               { Ast.rule_id = fst id_loc;
-                pos_pattern = p;
-                neg_patterns = n;
+                pos_basic = p;
+                neg_basics = n;
                 commands = cmds;
                 param = None;
                 lp = None;
@@ -291,8 +292,8 @@ rule:
         | doc=option(COMMENT) LEX_RULE id_loc=simple_id_with_loc param=option(param) LACC p=pos_item n=list(neg_item) cmds=commands RACC lp=option(lp)
             {
               { Ast.rule_id = fst id_loc;
-                pos_pattern = p;
-                neg_patterns = n;
+                pos_basic = p;
+                neg_basics = n;
                 commands = cmds;
                 param = param;
                 lp = lp;
@@ -303,8 +304,8 @@ rule:
         | doc=option(COMMENT) FILTER id_loc=simple_id_with_loc LACC p=pos_item n=list(neg_item) RACC
             {
               { Ast.rule_id = fst id_loc;
-                pos_pattern = p;
-                neg_patterns = n;
+                pos_basic = p;
+                neg_basics = n;
                 commands = [];
                 param = None;
                 lp = None;
@@ -519,4 +520,11 @@ sequence:
                 seq_loc = (!Parser_global.current_file,snd id_loc);
               }
             }
+
+/*=============================================================================================*/
+/* ISOLATED PATTERN (grep mode)                                                                 */
+/*=============================================================================================*/
+isolated_pattern:
+        | p=pos_item n=list(neg_item) { {Ast.isol_pos=p; isol_negs=n} }
+
 %%

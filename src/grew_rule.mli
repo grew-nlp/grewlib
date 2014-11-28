@@ -36,7 +36,7 @@ module Instance : sig
   val rev_steps: t -> t
 
   (** [flatten inst] returns a fresh representation of the graph where gid created by node
-      activation are map to basic gid. Graphs are flattened after each module. *)
+      activation are map to elementary gid. Graphs are flattened after each module. *)
   val flatten: t -> t
 
   (** [to_gr t] returns a string which contains the "gr" code of the current graph *)
@@ -70,7 +70,7 @@ module Rule : sig
   (** [is_filter t] returns [true] iff the rule [t] is a filter rule. *)
   val is_filter: t -> bool
 
-  (** [to_dep t] returns a string in the [dep] language describing the pattern. *)
+  (** [to_dep t] returns a string in the [dep] language describing the match basic of the rule *)
   val to_dep: t -> string
 
   (** [build ?local dir ast_rule] returns the Rule.t value corresponding to [ast_rule].
@@ -87,6 +87,14 @@ module Rule : sig
     Instance.t ->
       Instance_set.t * Instance_set.t
 
+  (** the type matching encodes the graph morphism from a pattern to a graph *)
+  (* NB: it was made public for the grep mode *)
   type matching
+
+  (** [match_in_graph rule graph] returns the list of matching of the pattern of the rule into the graph *)
   val match_in_graph: t -> G_graph.t -> matching list
+
+  (** [up_deco rule matching] builds the decoration of the [graph] illustrating the given [matching] of the [rule] *)
+  (* NB: it can be computed independly from the graph itself! *)
+  val up_deco: t -> matching -> G_deco.t
 end (* module Rule *)

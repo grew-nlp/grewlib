@@ -36,7 +36,7 @@ module Ast = struct
 
   let simple_id_of_ci ci = match ci with
     | No_sharp s -> get_single s
-    | Sharp _ -> Error.build "The identifier '%s' must be basic (without '#' symbol)" (complex_id_to_string ci)
+    | Sharp _ -> Error.build "The identifier '%s' must be simple (without '#' symbol)" (complex_id_to_string ci)
   let is_simple = function
     | No_sharp s when List.length (dot_split s) = 1 -> true
     | _ -> false
@@ -138,7 +138,7 @@ module Ast = struct
     | Feature_ineq of ineq * simple_qfn * simple_qfn
   type const = u_const * Loc.t
 
-  type pattern = {
+  type basic = {
     pat_nodes: node list;
     pat_edges: edge list;
     pat_const: const list;
@@ -177,8 +177,8 @@ module Ast = struct
   *)
   type rule = {
     rule_id:Id.name;
-    pos_pattern: pattern;
-    neg_patterns: pattern list;
+    pos_basic: basic;
+    neg_basics: basic list;
     commands: command list;
     param: (string list * string list) option;
     lp: string list option;
@@ -230,4 +230,12 @@ module Ast = struct
   }
 
   let empty_grs = { domain = []; labels = []; modules = []; sequences= [] }
+
+  (* type for the grep mode *)
+  type isolated_pattern = {
+      isol_pos: basic;
+      isol_negs: basic list;
+    }
+
+
 end (* module Ast *)
