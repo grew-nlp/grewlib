@@ -12,12 +12,15 @@ open Log
 open Printf
 
 open Grew_base
+open Grew_types
+
 open Grew_ast
 open Grew_edge
 open Grew_fs
 open Grew_node
 open Grew_command
 open Grew_graph
+
 
 (* ================================================================================ *)
 module Instance = struct

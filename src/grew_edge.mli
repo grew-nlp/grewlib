@@ -9,25 +9,9 @@
 (**********************************************************************************)
 
 open Grew_base
+open Grew_types
+
 open Grew_ast
-
-(* ================================================================================ *)
-(** The module [Label] defines the type of atomic label edges *)
-
-module Label : sig
-  (* [decl] is the type for a label declaration: the name and a list of diplay options *)
-  type decl = string * string list
-
-  type t
-
-  val init: decl list -> unit
-	
-  val to_string: ?locals:decl array -> t -> string
-
-  val to_int: t -> int option
-
-  val from_string: ?loc:Loc.t -> ?locals:decl array -> string -> t
-end (* module Label *)
 
 
 
@@ -37,8 +21,6 @@ module G_edge: sig
   type t = Label.t
 
   val to_string: ?locals:Label.decl array -> t -> string
-
-  val root: t
 
   val make: ?loc:Loc.t -> ?locals:Label.decl array -> string -> t
 

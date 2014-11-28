@@ -9,12 +9,9 @@
 (**********************************************************************************)
 
 open Grew_base
+open Grew_types
 
 module Ast : sig
-  type feature_name = string (* cat, num, ... *)
-  type feature_atom = string (* V, N, inf, ... *)
-  type feature_value = string (* V, 4, "free text", ... *)
-  type suffix = string
 
   (* -------------------------------------------------------------------------------- *)
   (* complex_id: V, V#alpha, V.cat, V#alpha.cat, p_obj.loc *)
@@ -45,7 +42,6 @@ module Ast : sig
   (* act_id: V.cat, V#alpha.cat *)
   type act_qfn = act_id * feature_name
   val act_qfn_of_ci: complex_id -> act_qfn
-
 
   type feature_spec =
     | Closed of feature_name * feature_atom list (* cat:V,N *)
@@ -155,9 +151,6 @@ module Ast : sig
       seq_loc:Loc.t;
     }
 
-(**
-    a GRS: graph rewriting system
- *)
   type module_or_include =
     | Modul of modul
     | Includ of (string * Loc.t)
@@ -169,6 +162,7 @@ module Ast : sig
       sequences_wi: sequence list;
     }
 
+  (* a GRS: graph rewriting system *)
   type grs = {
       domain: domain;
       labels: (string * string list) list;

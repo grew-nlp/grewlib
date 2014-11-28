@@ -60,6 +60,7 @@ module String_ = struct
 
   let of_float float = Str.global_replace (Str.regexp ",") "." (sprintf "%g" float)
 
+  let rm_first_char = function "" -> "" | s -> String.sub s 1 ((String.length s) - 1)
 end (* module String_ *)
 
 (* ================================================================================ *)
@@ -116,84 +117,6 @@ module File = struct
       close_in in_ch;
       List.rev !rev_lines
  end (* module File *)
-
-(* ================================================================================ *)
-module Pid = struct
-  (* type t = int *)
-  type t = Pos of int | Neg of int
-
-  let compare = Pervasives.compare
-
-  let to_id = function
-    | Pos i -> sprintf "p_%d" i
-    | Neg i -> sprintf "n_%d" i
-
-  let to_string = function
-    | Pos i -> sprintf "Pos %d" i
-    | Neg i -> sprintf "Neg %d" i
-end (* module Pid *)
-
-(* ================================================================================ *)
-module Pid_map =
-  struct
-    include Map.Make (Pid)
-
-    exception True
-
-    let exists fct map =
-      try
-        iter
-          (fun key value ->
-            if fct key value
-            then raise True
-          ) map;
-        false
-      with True -> true
-
-    (* let range key_set m =  *)
-    (*   IntSet.fold (fun k s -> (IntSet.add (find k m) s)) key_set IntSet.empty *)
-
-    (* let keys m =  *)
-    (*   fold (fun k v s -> (IntSet.add k s)) m IntSet.empty *)
-
-    (* union of two maps*)
-    let union_map m m' = fold (fun k v m'' -> (add k v m'')) m m'
-
-  end (* module Pid_map *)
-
-(* ================================================================================ *)
-module Pid_set = Set.Make (Pid)
-
-(* ================================================================================ *)
-module Gid = struct
-  type t =
-    | Old of int
-    | New of (int * int) (* identifier for "created nodes" *)
-    | Act of (int * string)  (* identifier for "activated nodes" *)
-
-  (* a compare function which ensures that new nodes are at the "end" of the graph *)
-  let compare t1 t2 = match (t1,t2) with
-    | Old o1, Old o2 -> Pervasives.compare o1 o2
-
-    | Old _ , New _ -> -1
-    | New _, Old _ -> 1
-    | New n1, New n2 -> Pervasives.compare n1 n2
-
-    | Old _ , Act _ -> -1
-    | Act _, Old _ -> 1
-    | Act n1, Act n2 -> Pervasives.compare n1 n2
-
-    | Act _ , New _ -> -1
-    | New _, Act _ -> 1
-
-  let to_string = function
-    | Old i -> sprintf "%d" i
-    | New (i,j) -> sprintf"%d__%d" i j
-    | Act (i,n) -> sprintf"%d____%s" i n
-end (* module Gid *)
-
-(* ================================================================================ *)
-module Gid_map = Map.Make (Gid)
 
 (* ================================================================================ *)
 module Array_ = struct
@@ -584,13 +507,6 @@ module Massoc_make (Ord: OrderedType) = struct
 end (* module Massoc_make *)
 
 (* ================================================================================ *)
-module Massoc_gid = Massoc_make (Gid)
-
-(* ================================================================================ *)
-module Massoc_pid = Massoc_make (Pid)
-
-
-(* ================================================================================ *)
 module Id = struct
   type name = string
 
@@ -629,165 +545,6 @@ module Html = struct
     fprintf out_ch "</body>\n";
     fprintf out_ch "</html>\n";
 end  (* module Html *)
-
-(* ================================================================================ *)
-module Conll = struct
-  type line = {
-      line_num: int;
-      num: string;
-      phon: string;
-      lemma: string;
-      pos1: string;
-      pos2: string;
-      morph: (string * string) list;
-      deps: (string * string ) list;
-    }
-
-  let root = { line_num = -1; num="0"; phon="ROOT"; lemma="__"; pos1="_X"; pos2=""; morph=[]; deps=[] }
-
-  let line_to_string l =
-    let (gov_list, lab_list) = List.split l.deps in
-    sprintf "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s"
-      l.num l.phon l.lemma l.pos1 l.pos2
-      (match l.morph with [] -> "_" | list -> String.concat "|" (List.map (fun (f,v) -> sprintf "%s=%s" f v) list))
-      (String.concat "|" (gov_list))
-      (String.concat "|" (lab_list))
-
-  let parse_morph file_name line_num = function
-    | "_" -> []
-    | morph ->
-      List.map
-        (fun feat ->
-          match Str.split (Str.regexp "=") feat with
-            | [feat_name] -> (feat_name, "true")
-            | [feat_name; feat_value] -> (feat_name, feat_value)
-            | _ -> Error.build ~loc:(file_name,line_num) "[Conll.load] illegal morphology \n>>>>>%s<<<<<<" morph
-        ) (Str.split (Str.regexp "|") morph)
-
-  let underscore s = if s = "" then "_" else s
-  let parse_line file_name (line_num, line) =
-    match Str.split (Str.regexp "\t") line with
-      | [ num; phon; lemma; pos1; pos2; morph; govs; dep_labs; _; _ ] ->
-        begin
-          try
-            let gov_list = if govs = "_" then [] else Str.split (Str.regexp "|") govs
-            and lab_list = if dep_labs = "_" then [] else Str.split (Str.regexp "|") dep_labs in
-            let deps = List.combine gov_list lab_list in
-            {line_num = line_num;
-             num = num;
-             phon = underscore phon;
-             lemma = underscore lemma;
-             pos1 = underscore pos1;
-             pos2 = underscore pos2;
-             morph = parse_morph file_name line_num morph;
-             deps = deps;
-            }
-          with exc -> Error.build ~loc:(file_name,line_num) "[Conll.load] illegal line, exc=%s\n>>>>>%s<<<<<<" (Printexc.to_string exc) line
-        end
-      | l -> Error.build ~loc:(file_name,line_num) "[Conll.load] illegal line, %d fields (10 are expected)\n>>>>>%s<<<<<<" (List.length l) line
-
-  let load file_name =
-    let lines = File.read_ln file_name in
-    List.map (parse_line file_name) lines
-
-  let parse file_name lines = List.map (parse_line file_name) lines
-
-    (* We would prefer to compare the float equivalent of l1.num l2.num but this would break the dicho_find function *)
-  let compare l1 l2 = Pervasives.compare ((* float_of_string *) l1.num) ((* float_of_string *) l2.num)
-end (* module Conll *)
-
-(* ================================================================================ *)
-(* This module defines a type for lexical parameter (i.e. one line in a lexical file) *)
-module Lex_par = struct
-
-  type item = string list * string list (* first list: pattern parameters $id , second list command parameters @id *)
-
-  type t = item list
-
-  let empty=[]
-  let append = List.append
-
-  let dump t =
-    printf "[Lex_par.dump] --> size = %d\n" (List.length t);
-    List.iter (fun (pp,cp) ->
-      printf "%s##%s\n"
-        (String.concat "#" pp)
-        (String.concat "#" cp)
-    ) t
-
-  let rm_peripheral_white s =
-    Str.global_replace (Str.regexp "\\( \\|\t\\)*$") ""
-    (Str.global_replace (Str.regexp "^\\( \\|\t\\)*") "" s)
-
-  let parse_line ?loc nb_p nb_c line =
-    let line = rm_peripheral_white line in
-    if line = "" || line.[0] = '%'
-    then None
-    else
-      match Str.split (Str.regexp "##") line with
-        | [args] when nb_c = 0 ->
-          (match Str.split (Str.regexp "#") args with
-            | l when List.length l = nb_p -> Some (l,[])
-            | _ -> Error.bug ?loc
-              "Illegal lexical parameter line: \"%s\" doesn't contain %d args"
-              line nb_p)
-        | [args; values] ->
-          (match (Str.split (Str.regexp "#") args, Str.split (Str.regexp "#") values) with
-            | (lp,lc) when List.length lp = nb_p && List.length lc = nb_c -> Some (lp,lc)
-            | _ -> Error.bug ?loc
-              "Illegal lexical parameter line: \"%s\" doesn't contain %d args and %d values"
-              line nb_p nb_c)
-        | _ -> Error.bug ?loc "Illegal param line: '%s'" line
-
-  let from_lines ?loc nb_p nb_c lines = List_.opt_map (parse_line ?loc nb_p nb_c) lines
-
-  let load ?loc dir nb_p nb_c file =
-    try
-      let full_file =
-        if Filename.is_relative file
-        then Filename.concat dir file
-        else file in
-      let lines = File.read full_file in
-      List_.opt_mapi (fun i line -> parse_line ~loc:(full_file,i) nb_p nb_c line) lines
-    with Sys_error _ -> Error.build ?loc "External lexical file '%s' not found" file
-
-  let sub x y = List.mem x (Str.split (Str.regexp "|") y)
-
-  let filter index atom t =
-    match
-      List_.opt_map
-        (fun (p_par, c_par) ->
-          let par = List.nth p_par index in
-          if atom=par
-          then Some (p_par, c_par)
-          else
-            if sub atom par (* atom is one of the values of the disjunction par *)
-            then Some (List_.set index atom p_par, c_par)
-            else None
-        ) t
-    with
-    | [] -> None
-    | t -> Some t
-
-  let get_param_value index = function
-    | [] -> Error.bug "[Lex_par.get_command_value] empty parameter"
-    | (params,_)::_ -> List.nth params index
-
-  let get_command_value index = function
-    | [(_,one)] -> List.nth one index
-    | [] -> Error.bug "[Lex_par.get_command_value] empty parameter"
-    | (_,[sing])::tail when index=0 ->
-        Printf.sprintf "%s/%s"
-          sing
-          (List_.to_string
-             (function
-               | (_,[s]) -> s
-               | _ -> Error.bug "[Lex_par.get_command_value] inconsistent param"
-             ) "/" tail
-          )
-    | l -> Error.run "Lexical parameter are not functionnal"
-
-end (* module Lex_par *)
 
 (* ================================================================================ *)
 (* copy from leopar *)
