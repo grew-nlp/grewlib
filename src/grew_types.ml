@@ -29,6 +29,12 @@ let conll_string_of_value = function
   | String s -> s
   | Float i -> String_.of_float i
 
+let dot_color string =
+  match (string.[0], String.length string) with
+  | ('#', 4) -> sprintf "\"#%c%c%c%c%c%c\"" string.[1] string.[1] string.[2] string.[2] string.[3] string.[3]
+  | ('#', 7) -> sprintf "\"%s\"" string
+  | _ -> string
+
 (* ================================================================================ *)
 module Pid = struct
   (* type t = int *)
@@ -190,7 +196,7 @@ module Label = struct
   let to_dot ?(deco=false) t =
     let style = get_style t in
     let dot_items =
-      (match style.color with Some c -> ["color="^c; "fontcolor="^c] | None -> [])
+      (match style.color with Some c -> let d = dot_color c in ["color="^d; "fontcolor="^d] | None -> [])
       @ (match style.line with
         | Dot -> ["style=dotted"]
         | Dash -> ["style=dashed"]
