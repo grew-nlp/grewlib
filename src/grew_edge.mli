@@ -13,8 +13,6 @@ open Grew_types
 
 open Grew_ast
 
-
-
 (* ================================================================================ *)
 (** The module [G_edge] defines the type of Graph label edges: atomic edges *)
 module G_edge: sig
@@ -29,7 +27,6 @@ module G_edge: sig
   val to_dot: ?deco:bool -> t -> string
   val to_dep: ?deco:bool -> t -> string
 end (* module G_edge *)
-
 
 (* ================================================================================ *)
 (** The module [G_edge] defines the type of Graph label edges: atomic edges *)

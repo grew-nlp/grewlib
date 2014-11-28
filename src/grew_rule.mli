@@ -54,7 +54,6 @@ module Instance : sig
   val save_dot_png: ?filter: string list -> ?main_feat: string -> string -> t -> unit
 end (* module Instance *)
 
-
 (* ================================================================================ *)
 module Instance_set : Set.S with type elt = Instance.t
 
@@ -90,5 +89,4 @@ module Rule : sig
 
   type matching
   val match_in_graph: t -> G_graph.t -> matching list
-
 end (* module Rule *)

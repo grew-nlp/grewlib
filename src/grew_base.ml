@@ -511,33 +511,6 @@ module Id = struct
 end (* module Id *)
 
 (* ================================================================================ *)
-module Html = struct
-  let css = String.concat "\n" [
-    "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />";
-    "<link rel=\"stylesheet\" href=\"style.css\" type=\"text/css\">"
-  ]
-
-  let enter out_ch ?title ?header base_name =
-    fprintf out_ch "<html>\n";
-    (match title with
-    | Some t -> fprintf out_ch "<head>\n%s\n<title>%s</title>\n</head>\n" css t
-    | None -> fprintf out_ch "<head>\n%s\n</head>\n" css
-    );
-    fprintf out_ch "<body>\n";
-
-    (match header with None -> () | Some s -> fprintf out_ch "%s\n" s);
-
-    (match title with
-    | Some t -> fprintf out_ch "<h1>%s</h1>\n" t
-    | None -> ()
-    )
-
-  let leave out_ch =
-    fprintf out_ch "</body>\n";
-    fprintf out_ch "</html>\n";
-end  (* module Html *)
-
-(* ================================================================================ *)
 (* copy from leopar *)
 module Timeout = struct
   exception Stop

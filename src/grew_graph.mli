@@ -17,7 +17,7 @@ open Grew_edge
 open Grew_node
 open Grew_command
 
-(* ==================================================================================================== *)
+(* ================================================================================ *)
 module P_deco: sig
   type t =
       { nodes: Pid.t list;
@@ -27,7 +27,7 @@ module P_deco: sig
   val empty:t
 end (* module P_deco *)
 
-(* ==================================================================================================== *)
+(* ================================================================================ *)
 module G_deco: sig
   type t =
       { nodes: (Gid.t * (string * string list)) list;
@@ -37,10 +37,9 @@ module G_deco: sig
   val empty:t
 
   val dump: t -> unit
-
 end (* module G_deco *)
 
-(* ==================================================================================================== *)
+(* ================================================================================ *)
 module P_graph: sig
   type t = P_node.t Pid_map.t
 
@@ -74,14 +73,7 @@ module P_graph: sig
 	(extension * Id.table)
 end (* module P_graph *)
 
-(* ==================================================================================================== *)
-module Concat_item : sig
-  type t =
-    | Feat of (Gid.t * string)
-    | String of string
-end (* module Concat_item *)
-
-(* ==================================================================================================== *)
+(* ================================================================================ *)
 module G_graph: sig
   type t
 
@@ -178,6 +170,4 @@ module G_graph: sig
     (string * string) list *
     (string * string) list list *
     (int * string * int) list
-
-end
-
+end (* module G_graph *)

@@ -105,4 +105,3 @@ module P_edge = struct
 	| list -> Binds (i, list))
     | _ -> Fail
 end (* module P_edge *)
-

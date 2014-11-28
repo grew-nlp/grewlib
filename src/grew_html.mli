@@ -12,16 +12,18 @@
 open Grew_rule
 open Grew_grs
 
+(* ================================================================================ *)
 module Html_doc : sig
   (* dep is a flag which is true iff dep file are shown in doc (iff dep2pict is available) *)
   val build: dep:bool -> corpus:bool -> string -> Grs.t -> unit
-end
+end (* module Html_doc *)
 
+(* ================================================================================ *)
 module Html_sentences : sig
   val build: title:string -> string -> (bool * string * int * string) list -> unit
-end
+end (* module Html_sentences *)
 
-
+(* ================================================================================ *)
 module Html_rh: sig
 
   val build:
@@ -45,8 +47,9 @@ module Html_rh: sig
     string ->
     Instance.t option ->
     unit
-end
+end (* module Html_rh *)
 
+(* ================================================================================ *)
 module Gr_stat: sig
   type t
 
@@ -55,8 +58,9 @@ module Gr_stat: sig
   val save: string -> t -> unit
 
   val load: string -> t
-end
+end (* module Gr_stat *)
 
+(* ================================================================================ *)
 module Corpus_stat: sig
   type t
 
@@ -70,8 +74,9 @@ module Corpus_stat: sig
     input_dir:string ->
     output_dir:string ->
       t -> unit
-end
+end (* module Corpus_stat *)
 
+(* ================================================================================ *)
 module Html_annot: sig
   val build: title:string -> string -> string -> (string * Rewrite_history.t) list -> unit
-end
+end (* module Html_annot *)

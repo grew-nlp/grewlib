@@ -13,7 +13,7 @@ open Grew_graph
 open Grew_rule
 open Grew_ast
 
-(* ==================================================================================================== *)
+(* ================================================================================ *)
 module Rewrite_history: sig
   type t = {
       instance: Instance.t;
@@ -54,9 +54,9 @@ module Rewrite_history: sig
   val det_dep_string: t -> string option
 
   val conll_dep_string: ?keep_empty_rh:bool -> t -> string option
-end
+end (* module Rewrite_history *)
 
-(* ==================================================================================================== *)
+(* ================================================================================ *)
 module Modul: sig
   type t = {
     name: string;
@@ -67,9 +67,9 @@ module Modul: sig
     confluent: bool;
     loc: Loc.t;
   }
-end
+end (* module Modul *)
 
-(* ==================================================================================================== *)
+(* ================================================================================ *)
 module Grs: sig
   type t
 
@@ -95,4 +95,4 @@ module Grs: sig
   val filter_iter: (string -> Rule.t -> unit) -> t -> unit
 
   val modules_of_sequence: t -> string -> Modul.t list
-end
+end (* module Grs *)

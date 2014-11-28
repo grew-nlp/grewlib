@@ -62,12 +62,6 @@ module Pid_map =
         false
       with True -> true
 
-    (* let range key_set m =  *)
-    (*   IntSet.fold (fun k s -> (IntSet.add (find k m) s)) key_set IntSet.empty *)
-
-    (* let keys m =  *)
-    (*   fold (fun k v s -> (IntSet.add k s)) m IntSet.empty *)
-
     (* union of two maps*)
     let union_map m m' = fold (fun k v m'' -> (add k v m'')) m m'
 end (* module Pid_map *)
@@ -214,30 +208,30 @@ module Label = struct
           with Not_found -> Error.build "[Label.from_string] unknown edge label '%s'" string
 end (* module Label *)
 
-(* ==================================================================================================== *)
+(* ================================================================================ *)
 module Domain = struct
   type feature_spec =
     | Closed of feature_name * feature_atom list (* cat:V,N *)
     | Open of feature_name (* phon, lemma, ... *)
-    | Int of feature_name (* position *)
+    | Num of feature_name (* position *)
 
-  type domain = feature_spec list
+  type t = feature_spec list
 
   let is_defined feature_name domain =
     List.exists (function
       | Closed (fn,_) when fn = feature_name -> true
       | Open fn when fn = feature_name -> true
-      | Int fn when fn = feature_name -> true
+      | Num fn when fn = feature_name -> true
       | _ -> false
     ) domain
 
   let rec normalize_domain = function
-    | [] -> [Int "position"]
-    | (Int "position") :: tail -> Log.warning "[Domain] declaration of the feature name \"position\" in useless"; normalize_domain tail
+    | [] -> [Num "position"]
+    | (Num "position") :: tail -> Log.warning "[Domain] declaration of the feature name \"position\" in useless"; normalize_domain tail
     | (Open "position") :: _
     | (Closed ("position",_)) :: _ ->
       Error.build "[Domain] The feature named \"position\" is reserved and must be types 'integer', you cannot not redefine it"
-    | (Int fn) :: tail |  (Open fn) :: tail |  Closed (fn,_) :: tail when is_defined fn tail ->
+    | (Num fn) :: tail |  (Open fn) :: tail |  Closed (fn,_) :: tail when is_defined fn tail ->
       Error.build "[Domain] The feature named \"%s\" is defined several times" fn
     | x :: tail -> x :: (normalize_domain tail)
 
@@ -258,7 +252,7 @@ module Domain = struct
           | [] -> Error.build ?loc "[GRS] Unknown feature name '%s'" name
           | ((Open n)::_) when n = name ->
             List.map (fun s -> String s) values
-          | ((Int n)::_) when n = name ->
+          | ((Num n)::_) when n = name ->
             (try List.map (fun s -> Float (String_.to_float s)) values
             with Failure _ -> Error.build ?loc "[GRS] The feature '%s' is of type int" name)
           | ((Closed (n,vs))::_) when n = name ->
@@ -280,7 +274,7 @@ module Domain = struct
   let feature_names () =
     match !current with
       | None -> None
-      | Some dom -> Some (List.map (function Closed (fn, _) | Open fn | Int fn -> fn) dom)
+      | Some dom -> Some (List.map (function Closed (fn, _) | Open fn | Num fn -> fn) dom)
 end (* Domain *)
 
 (* ================================================================================ *)
@@ -440,3 +434,11 @@ module Lex_par = struct
           )
     | l -> Error.run "Lexical parameter are not functionnal"
 end (* module Lex_par *)
+
+(* ================================================================================ *)
+module Concat_item = struct
+  type t =
+    | Feat of (Gid.t * feature_name)
+    | String of string
+end (* module Concat_item *)
+

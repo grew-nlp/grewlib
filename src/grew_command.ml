@@ -18,7 +18,7 @@ open Grew_ast
 open Grew_edge
 open Grew_fs
 
-(* ==================================================================================================== *)
+(* ================================================================================ *)
 module Command  = struct
   type command_node =        (* a command node is either: *)
     | Pat of Pid.t           (* a node identified in the pattern *)
