@@ -12,7 +12,6 @@ open Grew_base
 open Grew_types
 
 module Ast : sig
-
   (* -------------------------------------------------------------------------------- *)
   (* complex_id: V, V#alpha, V.cat, V#alpha.cat, p_obj.loc *)
   type complex_id =
@@ -42,14 +41,6 @@ module Ast : sig
   (* act_id: V.cat, V#alpha.cat *)
   type act_qfn = act_id * feature_name
   val act_qfn_of_ci: complex_id -> act_qfn
-
-  type feature_spec =
-    | Closed of feature_name * feature_atom list (* cat:V,N *)
-    | Open of feature_name (* phon, lemma, ... *)
-    | Int of feature_name (* position *)
-
-  type domain = feature_spec list
-  val normalize_domain: domain -> domain
 
   type feature_kind =
     | Equality of feature_value list
@@ -156,7 +147,7 @@ module Ast : sig
     | Includ of (string * Loc.t)
 
   type grs_with_include = {
-      domain_wi: domain;
+      domain_wi: Domain.domain;
       labels_wi: (string * string list) list;    (* the list of global edge labels *)
       modules_wi: module_or_include list;
       sequences_wi: sequence list;
@@ -164,7 +155,7 @@ module Ast : sig
 
   (* a GRS: graph rewriting system *)
   type grs = {
-      domain: domain;
+      domain: Domain.domain;
       labels: (string * string list) list;
       modules: modul list;
       sequences: sequence list;

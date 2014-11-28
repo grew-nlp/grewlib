@@ -18,6 +18,17 @@ type feature_atom = string (* V, N, inf, ... *)
 type feature_value = string (* V, 4, "free text", ... *)
 type suffix = string
 
+type value = String of string | Float of float
+
+let string_of_value = function
+  | String s -> Str.global_replace (Str.regexp "\"") "\\\""
+    (Str.global_replace (Str.regexp "\\\\") "\\\\\\\\" s)
+  | Float i -> String_.of_float i
+
+let conll_string_of_value = function
+  | String s -> s
+  | Float i -> String_.of_float i
+
 (* ================================================================================ *)
 module Pid = struct
   (* type t = int *)
@@ -202,6 +213,75 @@ module Label = struct
           try Local (Array_.dicho_find_assoc string locals)
           with Not_found -> Error.build "[Label.from_string] unknown edge label '%s'" string
 end (* module Label *)
+
+(* ==================================================================================================== *)
+module Domain = struct
+  type feature_spec =
+    | Closed of feature_name * feature_atom list (* cat:V,N *)
+    | Open of feature_name (* phon, lemma, ... *)
+    | Int of feature_name (* position *)
+
+  type domain = feature_spec list
+
+  let is_defined feature_name domain =
+    List.exists (function
+      | Closed (fn,_) when fn = feature_name -> true
+      | Open fn when fn = feature_name -> true
+      | Int fn when fn = feature_name -> true
+      | _ -> false
+    ) domain
+
+  let rec normalize_domain = function
+    | [] -> [Int "position"]
+    | (Int "position") :: tail -> Log.warning "[Domain] declaration of the feature name \"position\" in useless"; normalize_domain tail
+    | (Open "position") :: _
+    | (Closed ("position",_)) :: _ ->
+      Error.build "[Domain] The feature named \"position\" is reserved and must be types 'integer', you cannot not redefine it"
+    | (Int fn) :: tail |  (Open fn) :: tail |  Closed (fn,_) :: tail when is_defined fn tail ->
+      Error.build "[Domain] The feature named \"%s\" is defined several times" fn
+    | x :: tail -> x :: (normalize_domain tail)
+
+  let current = ref None
+
+  let reset () = current := None
+
+  let init domain =
+    current := Some (normalize_domain domain)
+
+  let build ?loc name unsorted_values =
+    let values = List.sort Pervasives.compare unsorted_values in
+    match (name.[0], !current) with
+      | ('_', _) (* no check on feat_name starting with '_' *)
+      | (_, None) -> List.map (fun s -> String s) values (* no domain defined *)
+      | (_, Some dom) ->
+        let rec loop = function
+          | [] -> Error.build ?loc "[GRS] Unknown feature name '%s'" name
+          | ((Open n)::_) when n = name ->
+            List.map (fun s -> String s) values
+          | ((Int n)::_) when n = name ->
+            (try List.map (fun s -> Float (String_.to_float s)) values
+            with Failure _ -> Error.build ?loc "[GRS] The feature '%s' is of type int" name)
+          | ((Closed (n,vs))::_) when n = name ->
+            (match List_.sort_diff values vs with
+              | [] -> List.map (fun s -> String s) values
+              | l when List.for_all (fun x -> x.[0] = '_') l -> List.map (fun s -> String s) values
+              | l -> Error.build ?loc "Unknown feature values '%s' for feature name '%s'"
+          (List_.to_string (fun x->x) ", " l)
+          name
+            )
+          | _::t -> loop t in
+        loop dom
+
+  let build_one ?loc name value =
+    match build ?loc name [value] with
+      | [x] -> x
+      | _ -> Error.bug ?loc "[Domain.build_one]"
+
+  let feature_names () =
+    match !current with
+      | None -> None
+      | Some dom -> Some (List.map (function Closed (fn, _) | Open fn | Int fn -> fn) dom)
+end (* Domain *)
 
 (* ================================================================================ *)
 module Conll = struct

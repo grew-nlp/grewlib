@@ -11,11 +11,11 @@
 open Log
 open Printf
 
-module StringSet = Set.Make (String)
-module StringMap = Map.Make (String)
+module String_set = Set.Make (String)
+module String_map = Map.Make (String)
 
-module IntSet = Set.Make (struct type t = int let compare = Pervasives.compare end)
-module IntMap = Map.Make (struct type t = int let compare = Pervasives.compare end)
+module Int_set = Set.Make (struct type t = int let compare = Pervasives.compare end)
+module Int_map = Map.Make (struct type t = int let compare = Pervasives.compare end)
 
 (* ================================================================================ *)
 module Loc = struct
@@ -71,7 +71,6 @@ module Dot = struct
     close_out out_ch;
     ignore(Sys.command(sprintf "dot -Tpng -o %s %s " output_file temp_file_name))
 end (* module Dot *)
-
 
 (* ================================================================================ *)
 module File = struct
@@ -348,56 +347,54 @@ module List_ = struct
 end (* module List_ *)
 
 (* ================================================================================ *)
-module type OrderedType =
-  sig
-    type t
-    val compare: t -> t -> int
-  end (* module type OrderedType *)
+module type OrderedType = sig
+  type t
+  val compare: t -> t -> int
+end (* module type OrderedType *)
 
 (* ================================================================================ *)
-module type S =
-  sig
-    type key
+module type S = sig
+  type key
 
-    type +'a t
+  type +'a t
 
-    val empty: 'a t
+  val empty: 'a t
 
-    (* an empty list returned if the key is undefined *)
-    val assoc: key -> 'a t -> 'a list
+  (* an empty list returned if the key is undefined *)
+  val assoc: key -> 'a t -> 'a list
 
-    val is_empty: 'a t -> bool
+  val is_empty: 'a t -> bool
 
-    val to_string: ('a -> string) -> 'a t -> string
+  val to_string: ('a -> string) -> 'a t -> string
 
-    val iter: (key -> 'a -> unit) -> 'a t -> unit
+  val iter: (key -> 'a -> unit) -> 'a t -> unit
 
-    val add: key -> 'a -> 'a t -> 'a t option
+  val add: key -> 'a -> 'a t -> 'a t option
 
-    val fold: ('b -> key -> 'a -> 'b) -> 'b -> 'a t -> 'b
+  val fold: ('b -> key -> 'a -> 'b) -> 'b -> 'a t -> 'b
 
-    (* raise Not_found if no (key,elt) *)
-    val remove: key -> 'a -> 'a t -> 'a t
+  (* raise Not_found if no (key,elt) *)
+  val remove: key -> 'a -> 'a t -> 'a t
 
-    (* raise Not_found if no (key,elt) *)
-    val remove_key: key -> 'a t -> 'a t
+  (* raise Not_found if no (key,elt) *)
+  val remove_key: key -> 'a t -> 'a t
 
-    (* [mem key value t ] test if the couple (key, value) is in the massoc [t]. *)
-    val mem: key -> 'a -> 'a t -> bool
+  (* [mem key value t ] test if the couple (key, value) is in the massoc [t]. *)
+  val mem: key -> 'a -> 'a t -> bool
 
-    (* mem_key key t] tests is [key] is associated to at least one value in [t]. *)
-    val mem_key: key -> 'a t -> bool
+  (* mem_key key t] tests is [key] is associated to at least one value in [t]. *)
+  val mem_key: key -> 'a t -> bool
 
-    exception Not_disjoint
-    val disjoint_union: 'a t -> 'a t -> 'a t
+  exception Not_disjoint
+  val disjoint_union: 'a t -> 'a t -> 'a t
 
-    exception Duplicate
-    val merge_key: key -> key -> 'a t -> 'a t
+  exception Duplicate
+  val merge_key: key -> key -> 'a t -> 'a t
 
-    val exists: (key -> 'a -> bool) -> 'a t -> bool
+  val exists: (key -> 'a -> bool) -> 'a t -> bool
 
-    val rename: (key * key) list -> 'a t -> 'a t
-  end (* module type S *)
+  val rename: (key * key) list -> 'a t -> 'a t
+end (* module type S *)
 
 (* ================================================================================ *)
 module Massoc_make (Ord: OrderedType) = struct
@@ -477,15 +474,6 @@ module Massoc_make (Ord: OrderedType) = struct
       | Not_found -> (* no key i *) t
       | List_.Not_disjoint -> raise Duplicate
 
-(* New implementation of exists but exists fct not implemented in ocaml < 3.12 *)
-(*
-  let exists fct t =
-    M.exists
-      (fun key list ->
-        List.exists (fun elt -> fct key elt) list
-      ) t
-*)
-
   exception True
   let exists fct t =
     try
@@ -503,7 +491,6 @@ module Massoc_make (Ord: OrderedType) = struct
         let new_key = try List.assoc key mapping with Not_found -> key in
         M.add new_key value acc
       ) t M.empty
-
 end (* module Massoc_make *)
 
 (* ================================================================================ *)
@@ -525,7 +512,10 @@ end (* module Id *)
 
 (* ================================================================================ *)
 module Html = struct
-  let css = "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />\n<link rel=\"stylesheet\" href=\"style.css\" type=\"text/css\">"
+  let css = String.concat "\n" [
+    "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />";
+    "<link rel=\"stylesheet\" href=\"style.css\" type=\"text/css\">"
+  ]
 
   let enter out_ch ?title ?header base_name =
     fprintf out_ch "<html>\n";
@@ -541,6 +531,7 @@ module Html = struct
     | Some t -> fprintf out_ch "<h1>%s</h1>\n" t
     | None -> ()
     )
+
   let leave out_ch =
     fprintf out_ch "</body>\n";
     fprintf out_ch "</html>\n";

@@ -8,11 +8,11 @@
 (*    Authors: see AUTHORS file                                                   *)
 (**********************************************************************************)
 
-module StringMap : Map.S with type key = string
-module StringSet : Set.S with type elt = string
+module String_map : Map.S with type key = string
+module String_set : Set.S with type elt = string
 
-module IntSet : Set.S with type elt = int
-module IntMap : Map.S with type key = int
+module Int_set : Set.S with type elt = int
+module Int_map : Map.S with type key = int
 
 (* ================================================================================ *)
 (* [Pid_set] *)

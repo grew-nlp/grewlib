@@ -143,7 +143,7 @@ grew_ast.cmx: $(GREW_AST_CMX) grew_ast.cmi grew_ast.ml
 
 
 ###### grew_html.ml ##############################################################
-GREW_HTML_DEP = grew_base grew_ast grew_rule grew_grs
+GREW_HTML_DEP = grew_base grew_types grew_ast grew_rule grew_grs
 GREW_HTML_CMI = $(GREW_HTML_DEP:%=%.cmi)
 GREW_HTML_CMO = $(GREW_HTML_DEP:%=%.cmo)
 GREW_HTML_CMX = $(GREW_HTML_DEP:%=%.cmx)

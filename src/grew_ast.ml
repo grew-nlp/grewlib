@@ -11,6 +11,7 @@
 open Printf
 open Log
 open Grew_base
+open Grew_types
 
 (* ================================================================================ *)
 module Ast = struct
@@ -19,12 +20,7 @@ module Ast = struct
     | [one] -> one
     | _ -> Error.build "The identifier '%s' contains the '.' symbol" s
 
-  type feature_name = string (* cat, num, ... *)
-  type feature_atom = string (* V, N, inf, ... *)
-  type feature_value = string (* V, 4, "free text", ... *)
-  type suffix = string
-
-  (* -------------------------------------------------------------------------------- *)
+  (* ---------------------------------------------------------------------- *)
   (* complex_id: V, V#alpha, V.cat, V#alpha.cat, p_obj.loc *)
   type complex_id =
     | No_sharp of string
@@ -34,7 +30,7 @@ module Ast = struct
     | No_sharp x -> x
     | Sharp (x,y) -> x ^ "#" ^ y
 
-  (* -------------------------------------------------------------------------------- *)
+  (* ---------------------------------------------------------------------- *)
   (* simple_id: V *)
   type simple_id = Id.name
 
@@ -45,7 +41,7 @@ module Ast = struct
     | No_sharp s when List.length (dot_split s) = 1 -> true
     | _ -> false
 
-  (* -------------------------------------------------------------------------------- *)
+  (* ---------------------------------------------------------------------- *)
   (* label_id: p_obj.loc x.y.z *)
   type label_id = string
 
@@ -53,7 +49,7 @@ module Ast = struct
     | No_sharp s -> s
     | Sharp _ -> Error.build "The identifier '%s' must be a label (without '#' symbol)" (complex_id_to_string ci)
 
-  (* -------------------------------------------------------------------------------- *)
+  (* ---------------------------------------------------------------------- *)
   (* act_id: V, V#alpha *)
   type act_id = Id.name * string option
 
@@ -65,7 +61,7 @@ module Ast = struct
     | (base, None) -> base
     | (base, Some ln) -> sprintf "%s#%s" base ln
 
-  (* -------------------------------------------------------------------------------- *)
+  (* ---------------------------------------------------------------------- *)
   (* simple_qfn: V.cat *)
   type simple_qfn = Id.name * feature_name
   let simple_qfn_of_ci ci = match ci with
@@ -78,7 +74,7 @@ module Ast = struct
   let simple_qfn_to_string (name, feat_name) = sprintf "%s.%s" name feat_name
 
 
-  (* -------------------------------------------------------------------------------- *)
+  (* ---------------------------------------------------------------------- *)
   (* act_qfn: V.cat, V#alpha.cat *)
   type act_qfn = act_id * feature_name
 
@@ -93,31 +89,6 @@ module Ast = struct
         | [ext;fn] -> ((get_single base, Some ext), fn)
         | _ -> Error.build "The identifier '%s' must be a qualified feature name (with one '.' symbol)" s
       )
-
-  type feature_spec =
-    | Closed of feature_name * feature_atom list (* cat:V,N *)
-    | Open of feature_name (* phon, lemma, ... *)
-    | Int of feature_name (* position *)
-
-  type domain = feature_spec list
-
-  let is_defined feature_name domain =
-    List.exists (function
-      | Closed (fn,_) when fn = feature_name -> true
-      | Open fn when fn = feature_name -> true
-      | Int fn when fn = feature_name -> true
-      | _ -> false
-    ) domain
-
-  let rec normalize_domain = function
-    | [] -> [Int "position"]
-    | (Int "position") :: tail -> Log.warning "[Domain] declaration of the feature name \"position\" in useless"; normalize_domain tail
-    | (Open "position") :: _
-    | (Closed ("position",_)) :: _ ->
-      Error.build "[Domain] The feature named \"position\" is reserved and must be types 'integer', you cannot not redefine it"
-    | (Int fn) :: tail |  (Open fn) :: tail |  Closed (fn,_) :: tail when is_defined fn tail ->
-      Error.build "[Domain] The feature named \"%s\" is defined several times" fn
-    | x :: tail -> x :: (normalize_domain tail)
 
   type feature_kind =
     | Equality of feature_value list
@@ -239,14 +210,14 @@ module Ast = struct
     | Includ of (string * Loc.t)
 
   type grs_with_include = {
-    domain_wi: domain;
+    domain_wi: Domain.domain;
     labels_wi: (string * string list) list;    (* the list of global edge labels *)
     modules_wi: module_or_include list;
     sequences_wi: sequence list;
   }
 
   type grs = {
-    domain: domain;
+    domain: Domain.domain;
     labels: (string * string list) list;
     modules: modul list;
     sequences: sequence list;
