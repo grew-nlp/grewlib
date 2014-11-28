@@ -144,3 +144,9 @@ val to_dep_graph : ?filter: string list -> ?main_feat:string -> ?deco:deco -> gr
 val to_gr_graph: graph -> string
 val to_conll_graph: graph -> string
 
+(* type and function added for the grep mode of grew *)
+type pattern
+type matching
+val load_pattern: string -> pattern
+val match_in_graph: pattern -> graph -> matching list
+val match_deco: pattern -> matching -> deco

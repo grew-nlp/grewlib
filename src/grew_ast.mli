@@ -72,7 +72,6 @@ module Ast : sig
     }
   type edge = u_edge * Loc.t
 
-
   type ineq = Lt | Gt | Le | Ge
   val string_of_ineq: ineq -> string
 
@@ -90,6 +89,11 @@ module Ast : sig
       pat_nodes: node list;
       pat_edges: edge list;
       pat_const: const list;
+    }
+
+  type pattern = {
+      pat_pos: basic;
+      pat_negs: basic list;
     }
 
   type concat_item =
@@ -168,10 +172,4 @@ module Ast : sig
   }
 
   val empty_grs: grs
-
-  (* type for the grep mode *)
-  type isolated_pattern = {
-      isol_pos: basic;
-      isol_negs: basic list;
-    }
 end (* module Ast *)

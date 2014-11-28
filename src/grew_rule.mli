@@ -90,11 +90,14 @@ module Rule : sig
   (** the type matching encodes the graph morphism from a pattern to a graph *)
   (* NB: it was made public for the grep mode *)
   type matching
+  type pattern
+
+  val build_pattern: Ast.pattern -> pattern
 
   (** [match_in_graph rule graph] returns the list of matching of the pattern of the rule into the graph *)
-  val match_in_graph: t -> G_graph.t -> matching list
+  val match_in_graph: ?param:Lex_par.t -> pattern -> G_graph.t -> matching list
 
-  (** [up_deco rule matching] builds the decoration of the [graph] illustrating the given [matching] of the [rule] *)
+  (** [match_deco rule matching] builds the decoration of the [graph] illustrating the given [matching] of the [rule] *)
   (* NB: it can be computed independly from the graph itself! *)
-  val up_deco: t -> matching -> G_deco.t
+  val match_deco: pattern -> matching -> G_deco.t
 end (* module Rule *)

@@ -103,7 +103,7 @@ let localize t = (t,get_loc ())
 %start <Grew_ast.Ast.grs> grs
 %start <Grew_ast.Ast.gr> gr
 %start <Grew_ast.Ast.module_or_include list> included
-%start <Grew_ast.Ast.isolated_pattern> isolated_pattern
+%start <Grew_ast.Ast.pattern> pattern
 %%
 
 
@@ -524,7 +524,6 @@ sequence:
 /*=============================================================================================*/
 /* ISOLATED PATTERN (grep mode)                                                                 */
 /*=============================================================================================*/
-isolated_pattern:
-        | p=pos_item n=list(neg_item) { {Ast.isol_pos=p; isol_negs=n} }
-
+pattern:
+        | p=pos_item n=list(neg_item) EOF { {Ast.pat_pos=p; pat_negs=n} }
 %%

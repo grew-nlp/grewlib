@@ -186,10 +186,12 @@ module Rule = struct
           acc (P_node.get_next node)
       ) basic.graph []
 
+  (* a [pattern] is described by the positive basic and a list of negative basics. *)
+  type pattern = basic * basic list
+
   type t = {
       name: string;
-      pos: basic;
-      neg: basic list;
+      pattern: pattern;
       commands: Command.t list;
       param: Lex_par.t option;
       param_names: (string list * string list);
@@ -204,6 +206,7 @@ module Rule = struct
 
   (* ====================================================================== *)
   let to_dep t =
+    let pos_basic = fst t.pattern in
     let buff = Buffer.create 32 in
     bprintf buff "[GRAPH] { scale = 200; }\n";
 
@@ -214,7 +217,7 @@ module Rule = struct
             (Pid.to_id id) (P_node.get_name node) (P_fs.to_dep t.param_names (P_node.get_fs node))
           )
           :: acc
-        ) t.pos.graph [] in
+        ) pos_basic.graph [] in
 
     (* nodes are sorted to appear in the same order in dep picture and in input file *)
     let sorted_nodes = List.sort (fun (n1,_) (n2,_) -> P_node.compare_pos n1 n2) nodes in
@@ -229,7 +232,7 @@ module Rule = struct
         match cst with
           | Cst_out _ | Cst_in _ -> bprintf buff "  C_%d { word=\"*\"}\n" i
           | _ -> ()
-      ) t.pos.constraints;
+      ) pos_basic.constraints;
     bprintf buff "}\n";
 
     bprintf buff "[EDGES] {\n";
@@ -244,7 +247,7 @@ module Rule = struct
               (P_edge.to_string edge)
           )
           (P_node.get_next node)
-      ) t.pos.graph;
+      ) pos_basic.graph;
 
     List_.iteri
       (fun i cst ->
@@ -256,7 +259,7 @@ module Rule = struct
             bprintf buff "  C_%d -> N_%s {label = \"%s\"; style=dot; bottom; color=green;}\n"
               i (Pid.to_id pid) (P_edge.to_string edge)
           | _ -> ()
-      ) t.pos.constraints;
+      ) pos_basic.constraints;
     bprintf buff "}\n";
     Buffer.contents buff
 
@@ -316,22 +319,19 @@ module Rule = struct
           (Some param, pat_vars, cmd_vars) in
 
     let (pos, pos_table) = build_pos_basic ~pat_vars ~locals rule_ast.Ast.pos_basic in
+    let negs = List.map (fun basic_ast -> build_neg_basic ~locals pos_table basic_ast) rule_ast.Ast.neg_basics in
     {
       name = rule_ast.Ast.rule_id;
-      pos = pos;
-      neg = List.map (fun basic_ast -> build_neg_basic ~locals pos_table basic_ast) rule_ast.Ast.neg_basics;
+      pattern = (pos, negs);
       commands = build_commands ~param:(pat_vars,cmd_vars) ~locals suffixes pos pos_table rule_ast.Ast.commands;
       loc = rule_ast.Ast.rule_loc;
       param = param;
       param_names = (pat_vars,cmd_vars)
     }
 
-  (* an isolated_pattern is a couple (pos, neg list) *)
-  type isolated_pattern = basic * basic list
-
-  let build_isolated_pattern isol_ast =
-    let (pos, pos_table) = build_pos_basic isol_ast.Ast.isol_pos in
-    let negs = List.map (fun basic_ast -> build_neg_basic pos_table basic_ast) isol_ast.Ast.isol_negs in
+  let build_pattern pattern_ast =
+    let (pos, pos_table) = build_pos_basic pattern_ast.Ast.pat_pos in
+    let negs = List.map (fun basic_ast -> build_neg_basic pos_table basic_ast) pattern_ast.Ast.pat_negs in
     (pos, negs)
 
   (* ====================================================================== *)
@@ -353,11 +353,11 @@ module Rule = struct
 
   let a_match_add edge matching = {matching with a_match = edge::matching.a_match }
 
-  let up_deco rule matching =
+  let match_deco pattern matching =
     { G_deco.nodes =
         Pid_map.fold
           (fun pid gid acc ->
-            let pnode = P_graph.find pid rule.pos.graph in
+            let pnode = P_graph.find pid (fst pattern).graph in
             (gid, (P_node.get_name pnode, P_fs.feat_list (P_node.get_fs pnode))) ::acc
           ) matching.n_match [];
       G_deco.edges = List.fold_left (fun acc (_,edge) -> edge::acc) matching.a_match matching.e_match;
@@ -759,7 +759,7 @@ module Rule = struct
 
     let rule_app = {
       Libgrew_types.rule_name = rule.name;
-      up = up_deco rule matching;
+      up = match_deco rule.pattern matching;
       down = down_deco (matching,created_nodes) rule.commands
     } in
 
@@ -814,15 +814,15 @@ module Rule = struct
   (* ================================================================================ *)
   (* ================================================================================ *)
   (* ================================================================================ *)
-  let match_in_graph rule graph =
-    let pos_graph = rule.pos.graph in
+  let match_in_graph ?param (pos, negs) graph =
+    let pos_graph = pos.graph in
 
     (* get the list of partial matching for positive part of the pattern *)
     let matching_list =
       extend_matching
         (pos_graph,P_graph.empty)
         graph
-        (init rule.param rule.pos) in
+        (init param pos) in
 
     let filtered_matching_list =
       List.filter
@@ -832,7 +832,7 @@ module Rule = struct
               let neg_graph = without.graph in
               let new_partial_matching = update_partial pos_graph without (sub, already_matched_gids) in
               fulfill (pos_graph,neg_graph) graph new_partial_matching
-            ) rule.neg
+            ) negs
         ) matching_list in
 
     List.map fst filtered_matching_list
@@ -847,7 +847,7 @@ module Rule = struct
   let one_step instance rules =
     List.fold_left
       (fun acc rule ->
-        let matching_list = match_in_graph rule instance.Instance.graph in
+        let matching_list = match_in_graph ?param:rule.param rule.pattern instance.Instance.graph in
 
         List.fold_left
           (fun acc1 matching ->
@@ -861,25 +861,24 @@ module Rule = struct
   let rec conf_one_step (instance : Instance.t) = function
     | [] -> None
     | rule::rule_tail ->
-        let pos_graph = rule.pos.graph in
+        let (pos,negs) = rule.pattern in
 
         (* get the list of partial matching for positive part of the pattern *)
         let matching_list =
           extend_matching
-            (pos_graph,P_graph.empty)
+            (pos.graph,P_graph.empty)
             instance.Instance.graph
-            (init rule.param rule.pos) in
+            (init rule.param pos) in
 
         try
           let (first_matching_where_all_witout_are_fulfilled,_) =
             List.find
               (fun (sub, already_matched_gids) ->
                 List.for_all
-                  (fun without ->
-                    let neg_graph = without.graph in
-                    let new_partial_matching = update_partial pos_graph without (sub, already_matched_gids) in
-                    fulfill (pos_graph,neg_graph) instance.Instance.graph new_partial_matching
-                  ) rule.neg
+                  (fun neg ->
+                    let new_partial_matching = update_partial pos.graph neg (sub, already_matched_gids) in
+                    fulfill (pos.graph,neg.graph) instance.Instance.graph new_partial_matching
+                  ) negs
               ) matching_list in
           Some (apply_rule instance first_matching_where_all_witout_are_fulfilled rule)
         with Not_found -> (* try another rule *) conf_one_step instance rule_tail
@@ -929,23 +928,22 @@ module Rule = struct
     let rec loop = function
       | [] -> true (* no more filter to check *)
       | filter::filter_tail ->
-          let pos_graph = filter.pos.graph in
+          let (pos,negs) = filter.pattern in
 
           (* get the list of partial matching for positive part of the pattern *)
           let matching_list =
             extend_matching
-              (pos_graph,P_graph.empty)
+              (pos.graph,P_graph.empty)
               instance.Instance.graph
-              (init filter.param filter.pos) in
+              (init filter.param pos) in
 
           if List.exists
               (fun (sub, already_matched_gids) ->
                 List.for_all
-                  (fun without ->
-                    let neg_graph = without.graph in
-                    let new_partial_matching = update_partial pos_graph without (sub, already_matched_gids) in
-                    fulfill (pos_graph,neg_graph) instance.Instance.graph new_partial_matching
-                  ) filter.neg
+                  (fun neg ->
+                    let new_partial_matching = update_partial pos.graph neg (sub, already_matched_gids) in
+                    fulfill (pos.graph,neg.graph) instance.Instance.graph new_partial_matching
+                  ) negs
               ) matching_list
           then (* one of the matching can be extended *) false
           else loop filter_tail in

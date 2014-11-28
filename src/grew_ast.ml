@@ -144,6 +144,11 @@ module Ast = struct
     pat_const: const list;
   }
 
+  type pattern = {
+    pat_pos: basic;
+    pat_negs: basic list;
+  }
+
   type graph = {
     nodes: (Id.name * node) list;
     edge: edge list;
@@ -230,12 +235,5 @@ module Ast = struct
   }
 
   let empty_grs = { domain = []; labels = []; modules = []; sequences= [] }
-
-  (* type for the grep mode *)
-  type isolated_pattern = {
-      isol_pos: basic;
-      isol_negs: basic list;
-    }
-
 
 end (* module Ast *)

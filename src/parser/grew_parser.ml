@@ -97,12 +97,12 @@ module Grew_parser = struct
     with Sys_error msg-> raise (Parse_error (msg, None))
 
   (* ------------------------------------------------------------------------------------------*)
-  let load_isolated_pattern file =
+  let load_pattern file =
     try
       Parser_global.init file;
       let in_ch = open_in file in
       let lexbuf = Lexing.from_channel in_ch in
-      let gr = parse_handle file (Gr_grs_parser.isolated_pattern Lexer.global) lexbuf in
+      let gr = parse_handle file (Gr_grs_parser.pattern Lexer.global) lexbuf in
       close_in in_ch;
       gr
     with Sys_error msg-> raise (Parse_error (msg, None))

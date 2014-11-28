@@ -269,5 +269,12 @@ let to_gr_graph graph =
 let to_conll_graph graph =
   handle ~name:"to_conll_graph" (fun () -> G_graph.to_conll graph) ()
 
+type pattern = Rule.pattern
+type matching = Rule.matching
+
 let load_pattern file =
-  handle ~name:"load_pattern" (fun () -> Grew_parser.load_isolated_pattern file) ()
+  handle ~name:"load_pattern" (fun () -> Rule.build_pattern (Grew_parser.load_pattern file)) ()
+
+let match_in_graph pattern graph = Rule.match_in_graph pattern graph
+
+let match_deco pattern matching = Rule.match_deco pattern matching
