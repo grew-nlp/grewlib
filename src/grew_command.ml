@@ -189,9 +189,10 @@ module Command  = struct
             ) ast_items in
             (* check for consistency *)
             (match items with
-              | [String s] -> Domain.check_feature ~loc feat_name s
-              | [Feat (_,fn)] when Domain.sub fn feat_name -> ()
               | _ when Domain.is_open feat_name -> ()
-              | _ -> Error.build ~loc "Only open features can be modified with the concat operator '+' but \"%s\" is not declared as an open feature" feat_name);
+              | [Param_out _] -> () (* TODO: check that lexical parameters are compatible with the feature domain *)
+              | [String s] -> Domain.check_feature ~loc feat_name s
+              | [Feat (_,fn)] -> ()
+              | _ -> Error.build ~loc "[Update_feat] Only open features can be modified with the concat operator '+' but \"%s\" is not declared as an open feature" feat_name);
           ((UPDATE_FEAT (pid_of_act_id loc act_id, feat_name, items), loc), (kai, kei))
 end (* module Command *)
