@@ -450,6 +450,19 @@ module G_graph = struct
     }
 
   (* -------------------------------------------------------------------------------- *)
+  let activate loc node_id new_name graph =
+    let index = match node_id with
+      | Gid.Old id -> Gid.Act (id, new_name)
+      | _ -> Error.run ~loc "[Graph.activate] is possible only from a \"ground\" node" in
+
+    if Gid_map.mem index graph.map
+    then Error.run ~loc "[Graph.activate] try to activate twice the \"same\" node (with new_name '%s')" new_name;
+
+    let node = Gid_map.find node_id graph.map in
+    let new_map = Gid_map.add index (G_node.build_new node) graph.map in
+    (index, {graph with map = new_map})
+
+  (* -------------------------------------------------------------------------------- *)
   let add_neighbour loc graph node_id label =
     let index = match node_id with
       | Gid.Old id ->

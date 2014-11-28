@@ -83,6 +83,7 @@ module Gid : sig
   type t =
     | Old of int
     | New of (int * int) (* identifier for "created nodes" *)
+    | Act of (int * string)  (* identifier for "activated nodes" *)
 
   val compare: t -> t -> int
 
