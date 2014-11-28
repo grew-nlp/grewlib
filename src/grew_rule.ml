@@ -169,9 +169,10 @@ module Rule = struct
         and (node_name2, feat_name2) = qfn2 in
         Feature_ineq (ineq, pid_of_name loc node_name1, feat_name1, pid_of_name loc node_name2, feat_name2)
 
-  let build_neg_basic ?pat_vars ?(locals=[||]) pos_table basic_ast =
+  let build_neg_basic ~pat_vars ?(locals=[||]) pos_table basic_ast =
     let (extension, neg_table) =
-      P_graph.build_extension ?pat_vars ~locals pos_table basic_ast.Ast.pat_nodes basic_ast.Ast.pat_edges in
+      P_graph.build_extension ~pat_vars ~locals pos_table basic_ast.Ast.pat_nodes basic_ast.Ast.pat_edges in
+
     let filters = Pid_map.fold (fun id node acc -> Filter (id, P_node.get_fs node) :: acc) extension.P_graph.old_map [] in
     {
       graph = extension.P_graph.ext_map;
