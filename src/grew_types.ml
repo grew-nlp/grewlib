@@ -235,6 +235,14 @@ module Domain = struct
       | _ -> false
     ) domain
 
+  let get feature_name domain =
+    List.find (function
+      | Closed (fn,_) when fn = feature_name -> true
+      | Open fn when fn = feature_name -> true
+      | Num fn when fn = feature_name -> true
+      | _ -> false
+    ) domain
+
   let check_feature_name ?loc name =
     match !current with
       | None -> ()
@@ -295,6 +303,18 @@ module Domain = struct
     match !current with
       | None -> None
       | Some dom -> Some (List.map (function Closed (fn, _) | Open fn | Num fn -> fn) dom)
+
+  let sub name1 name2 =
+    match !current with
+      | None -> true
+      | Some dom ->
+      match (get name1 dom, get name2 dom) with
+        | (_, Open _) -> true
+        | (Closed (_,l1), Closed (_,l2)) -> List_.sort_include l1 l2
+        | (Num _, Num _) -> true
+        | _ -> false
+
+
 end (* Domain *)
 
 (* ================================================================================ *)
