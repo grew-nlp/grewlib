@@ -498,6 +498,7 @@ command:
 concat_item:
         | cid=COMPLEX_ID   { Ast.Qfn_item cid }
         | s=STRING         { Ast.String_item s }
+        | f=FLOAT          { Ast.String_item (Printf.sprintf "%g" f) }
         | p=AROBAS_ID      { Ast.Param_item p }
         | p=DOLLAR_ID      { Ast.Param_item p }
 
