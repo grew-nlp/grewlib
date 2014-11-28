@@ -522,7 +522,7 @@ module Massoc_make (Ord: OrderedType) = struct
       | [one] when one=value -> M.remove key t
       | old -> M.add key (List_.usort_remove value old) t
 
-  let rec remove_key key t = M.remove key t
+  let remove_key key t = M.remove key t
 
   let rec mem key value t =
     try List_.sort_mem value (M.find key t)

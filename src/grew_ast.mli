@@ -9,11 +9,12 @@
 (**********************************************************************************)
 
 open Libgrew_utils
- 
+
 module Ast : sig
   type feature_name = string (* cat, num, ... *)
   type feature_atom = string (* V, N, inf, ... *)
   type feature_value = string (* V, 4, "free text", ... *)
+  type suffix = string
 
   (* -------------------------------------------------------------------------------- *)
   (* complex_id: V, V#alpha, V.cat, V#alpha.cat, p_obj.loc *)
@@ -46,7 +47,7 @@ module Ast : sig
   val act_qfn_of_ci: complex_id -> act_qfn
 
 
-  type feature_spec = 
+  type feature_spec =
     | Closed of feature_name * feature_atom list (* cat:V,N *)
     | Open of feature_name (* phon, lemma, ... *)
     | Int of feature_name (* position *)
@@ -54,7 +55,7 @@ module Ast : sig
   type domain = feature_spec list
   val normalize_domain: domain -> domain
 
-  type feature_kind = 
+  type feature_kind =
     | Equality of feature_value list
     | Disequality of feature_value list
     | Param of string (* $ident *)
@@ -88,7 +89,7 @@ module Ast : sig
   type ineq = Lt | Gt | Le | Ge
   val string_of_ineq: ineq -> string
 
-  type u_const = 
+  type u_const =
     | Start of Id.name * edge_label list (* (source, labels) *)
     | Cst_out of Id.name
     | End of Id.name * edge_label list (* (target, labels) *)
@@ -109,7 +110,7 @@ module Ast : sig
     | String_item of string
     | Param_item of string
 
-  type u_command = 
+  type u_command =
     | Del_edge_expl of (act_id * act_id * edge_label)
     | Del_edge_name of string
     | Add_edge of (act_id * act_id * edge_label)
@@ -135,36 +136,36 @@ module Ast : sig
       rule_doc:string list;
       rule_loc: Loc.t;
     }
-        
+
   type modul = {
       module_id:Id.name;
       local_labels: (string * string list) list;
-      new_node_names: string list;
+      suffixes: string list;
       rules: rule list;
       confluent: bool;
       module_doc:string list;
       mod_loc:Loc.t;
       mod_dir: string; (* the directory where the module is defined (for lp file localisation) *)
     }
-        
+
   type sequence = {
       seq_name:string;
       seq_mod:string list;
       seq_doc:string list;
       seq_loc:Loc.t;
     }
-        
-(** 
-    a GRS: graph rewriting system 
+
+(**
+    a GRS: graph rewriting system
  *)
-  type module_or_include = 
+  type module_or_include =
     | Modul of modul
     | Includ of (string * Loc.t)
 
   type grs_with_include = {
       domain_wi: domain;
       labels_wi: (string * string list) list;    (* the list of global edge labels *)
-      modules_wi: module_or_include list; 
+      modules_wi: module_or_include list;
       sequences_wi: sequence list;
     }
 

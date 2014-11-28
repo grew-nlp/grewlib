@@ -63,7 +63,7 @@ module Command  = struct
     | H_MERGE_NODE of (Gid.t * Gid.t)
     | H_ACT_NODE of (Gid.t * string)
 
-  let build ?param (kai, kei) table locals ast_command =
+  let build ?param (kai, kei) table locals suffixes ast_command =
     (* kai stands for "known act ident", kei for "known edge ident" *)
 
     let pid_of_act_id loc = function
@@ -143,12 +143,15 @@ module Command  = struct
 	             (Loc.to_string loc)
 	        end
 
-      | (Ast.Activate (_,None), loc) ->
-          Error.build ~loc "Cannot activate a pattern node"
-
       | (Ast.Activate act_n, loc) ->
-          (* TODO: add a check on source node *)
-          ((ACT_NODE (pid_of_act_id loc act_n), loc), (act_n :: kai, kei))
+        begin
+          match act_n with
+          | (_,None) -> Error.build ~loc "Cannot activate a pattern node"
+          | (src, Some suffix) ->
+            check_act_id loc (src,None) kai;
+            if not (List.mem suffix suffixes) then Error.build ~loc "Undefined suffix \"%s\"" suffix;
+            ((ACT_NODE (pid_of_act_id loc act_n), loc), (act_n :: kai, kei))
+        end
 
       | (Ast.Del_node act_n, loc) ->
           check_act_id loc act_n kai;

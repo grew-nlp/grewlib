@@ -60,6 +60,7 @@ module Command : sig
       (Ast.act_id list * string list) ->
       Id.table ->
       Label.decl array ->
+      Ast.suffix list ->
       Ast.command ->
         t * (Ast.act_id list * string list)
 end (* module Command *)
