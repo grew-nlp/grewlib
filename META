@@ -1,4 +1,4 @@
-name = "libgrew_dev"
+name = "libgrew@DEV@"
 description = "Libgrew"
 version = "@VERSION@"
 requires = ""

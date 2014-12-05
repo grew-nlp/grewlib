@@ -586,7 +586,6 @@ PACKAGE_URL=''
 
 ac_subst_vars='LTLIBOBJS
 LIBOBJS
-VERSION
 SET_MAKE
 TRUNK
 INFO
@@ -1767,7 +1766,7 @@ test -n "$OCAMLC" || OCAMLC="no"
 	fi
 
 
-        for ac_prog in ocamlopt.opt ocamlopt
+    for ac_prog in ocamlopt.opt ocamlopt
 do
   # Extract the first word of "$ac_prog", so it can be a program name with args.
 set dummy $ac_prog; ac_word=$2
@@ -1810,12 +1809,12 @@ fi
 done
 test -n "$OCAMLOPT" || OCAMLOPT="no"
 
-        if test "$OCAMLOPT" = no ; then
-                as_fn_error $? "Cannot find ocamlopt" "$LINENO" 5
-        fi
+    if test "$OCAMLOPT" = no ; then
+        as_fn_error $? "Cannot find ocamlopt" "$LINENO" 5
+    fi
 
 
-        for ac_prog in ocamllex.opt ocamllex
+    for ac_prog in ocamllex.opt ocamllex
 do
   # Extract the first word of "$ac_prog", so it can be a program name with args.
 set dummy $ac_prog; ac_word=$2
@@ -1858,9 +1857,9 @@ fi
 done
 test -n "$OCAMLLEX" || OCAMLLEX="no"
 
-        if test "$OCAMLLEX" = no ; then
-                as_fn_error $? "Cannot find ocamllex" "$LINENO" 5
-        fi
+    if test "$OCAMLLEX" = no ; then
+        as_fn_error $? "Cannot find ocamllex" "$LINENO" 5
+    fi
 
 
 	# Checks for libraries.
@@ -2597,11 +2596,6 @@ TRUNK=`pwd`
 echo ""
 
 ac_config_files="$ac_config_files config/Makefile Makefile src/Makefile src/parser/Makefile"
-
-
-VERSION=`grep "VERSION = .*" config/Makefile.in | sed 's|VERSION = \(.*\)|\1|'`
-
-
 
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether ${MAKE-make} sets \$(MAKE)" >&5

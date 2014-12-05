@@ -139,11 +139,6 @@ src/Makefile \
 src/parser/Makefile \
 )
 
-VERSION=`grep "VERSION = .*" config/Makefile.in | sed 's|VERSION = \(.*\)|\1|'`
-AC_SUBST(VERSION)
-
-
-
 AC_PROG_MAKE_SET
 echo ""
 echo "Creating Makefiles"
