@@ -26,6 +26,7 @@ module Loc = struct
   let file f = (f, -1)
 
   let to_string (file,line) = sprintf "[file: %s, line: %d]" (Filename.basename file) line
+  let to_line (_,line) = line
 
   let opt_set_line line = function
     | None -> None

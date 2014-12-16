@@ -17,6 +17,12 @@ open Grew_grs
 val css_file: string
 
 type loc = Loc.t
+
+
+type instance = Instance.t
+
+
+val line_of_loc: loc -> int
 val string_of_loc: loc -> string
 
 exception File_dont_exists of string
@@ -88,6 +94,7 @@ File extension should be '.gr' or '.conll'.
 *)
 val load_graph: string -> Instance.t
 
+(** [of_conll filename line_list] *)
 val of_conll: string -> (int * string) list -> Instance.t
 
 val xml_graph: Xml.xml -> Instance.t
@@ -151,6 +158,13 @@ val to_conll_graph: graph -> string
 (* type and function added for the grep mode of grew *)
 type pattern
 type matching
+
+(** [load_pattern filename] returns the pattern describer in the fuile *)
 val load_pattern: string -> pattern
+
+(** [match_in_graph patern graph] returns the list of the possible matching og [pattern] in [graph] *)
 val match_in_graph: pattern -> graph -> matching list
+
+(** [match_deco pattern matching] returns the deco to be used in the graphical representation.
+    WARNING: the function supposes that [matching] was find with the given [pattern]! *)
 val match_deco: pattern -> matching -> deco

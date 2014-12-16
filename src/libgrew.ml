@@ -33,7 +33,9 @@ let set_timeout t = Timeout.timeout := t
 
 type loc = Loc.t
 let string_of_loc = Loc.to_string
+let line_of_loc = Loc.to_line
 
+type instance = Instance.t
 
 exception File_dont_exists of string
 
