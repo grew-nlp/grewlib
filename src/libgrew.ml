@@ -127,7 +127,7 @@ let load_conll file =
 let of_conll file_name line_list =
   handle ~name:"of_conll"
     (fun () ->
-      let graph = G_graph.of_conll (Conll.parse file_name line_list) in
+      let graph = G_graph.of_conll ~loc:(Loc.file file_name) (Conll.parse file_name line_list) in
       Instance.from_graph graph
     ) ()
 

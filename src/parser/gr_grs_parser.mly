@@ -127,6 +127,7 @@ string_or_int:
 
 label_ident:
         | x=separated_nonempty_list(DDOT,COMPLEX_ID)   { String.concat ":" (List.map Ast.label_id_of_ci x) }
+        | x=STRING                                     { x }
 
 simple_id:
         | id=COMPLEX_ID { Ast.simple_id_of_ci id }
