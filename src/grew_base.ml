@@ -68,6 +68,37 @@ module String_ = struct
     |> (Str.global_replace (Str.regexp "\\( \\|\t\\)*$") "")
     |> (Str.global_replace (Str.regexp "^\\( \\|\t\\)*") "")
 
+
+  let rec match_star_re re s =
+    let star_re = Str.full_split (Str.regexp "\\*+") re in
+    let len = String.length s in
+    let rec loop pos = function
+      | [] -> pos = len
+
+      | [Str.Delim "*"] -> true
+
+      | Str.Text t :: tail ->
+        if Str.string_match (Str.regexp_string t) s pos
+        then loop (pos+(String.length t)) tail
+        else false
+
+      (* if the [re] ends with some text jump to the end and test for the text *)
+      | [Str.Delim "*"; Str.Text t] ->
+        Str.string_match (Str.regexp_string t) s (len - (String.length t))
+
+      (* if the [re] required for some text [t],
+         we consider the first occurence which is more general than other occurences *)
+      | Str.Delim "*" :: Str.Text t :: tail ->
+        begin
+          try
+          let new_pos = Str.search_forward (Str.regexp_string t) s pos in
+            loop (new_pos+(String.length t)) tail
+          with Not_found -> false
+        end
+      | _ -> Error.build "Ill formed regular expression \"%s\"" re
+    in
+    loop 0 star_re
+
 end (* module String_ *)
 
 (* ================================================================================ *)

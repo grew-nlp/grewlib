@@ -132,12 +132,21 @@ module Label = struct
   type t =
     | Global of int       (* globally defined labels: their names are in the [full] array *)
     | Local of int        (* locally defined labels: names array should be provided! UNTESTED *)
+    | Pattern of string
+
+  let match_ p_label g_label = match (p_label, g_label, !full) with
+    | (Global p, Global g, _) when p=g -> true
+    | (Pattern p, Global i, Some table) when String_.match_star_re p table.(i) -> true
+    | _ -> false
+
+  let match_list p_label_list g_label = List.exists (fun p_label -> match_ p_label g_label) p_label_list
 
   (** [to_string t] returns a string for the label *)
   let to_string ?(locals=[||]) t =
     match (!full, t) with
       | (Some table, Global i) -> table.(i)
       | (Some _, Local i) -> fst locals.(i)
+      | (_, Pattern s) -> s
       | _ -> Error.bug "[Label.to_string] labels were not properly initialized"
 
   let to_int = function
@@ -150,6 +159,7 @@ module Label = struct
   let get_style = function
     | Global i -> !styles.(i)
     | Local i -> Log.warning "Style of locally defined labels is not implemented"; default
+    | Pattern _ -> default
 
   (** Computes the style of a label from its options and maybe its shape (like I:...). *)
   let parse_option string_label options =
@@ -205,13 +215,16 @@ module Label = struct
     sprintf "[label=\"%s\", %s]" style.text (String.concat ", " dot_items)
 
   let from_string ?loc ?(locals=[||]) string =
-    match !full with
-      | None -> Error.bug "[Label.from_string] labels were not properly initialized"
-      | Some table ->
-        try Global (Id.build ?loc string table)
-        with Not_found ->
-          try Local (Array_.dicho_find_assoc string locals)
-          with Not_found -> Error.build "[Label.from_string] unknown edge label '%s'" string
+    if String.contains string '*'
+    then Pattern string
+    else
+      match !full with
+        | None -> Error.bug "[Label.from_string] labels were not properly initialized"
+        | Some table ->
+          try Global (Id.build ?loc string table)
+          with Not_found (* TODO (CANNOT BE RAISED) *) ->
+            try Local (Array_.dicho_find_assoc string locals)
+            with Not_found -> Error.build "[Label.from_string] unknown edge label '%s'" string
 end (* module Label *)
 
 (* ================================================================================ *)

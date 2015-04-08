@@ -74,6 +74,10 @@ module Label : sig
 
   type t
 
+  val match_: t -> t -> bool
+
+  val match_list: t list -> t -> bool
+
   val init: decl list -> unit
 
   val to_string: ?locals:decl array -> t -> string

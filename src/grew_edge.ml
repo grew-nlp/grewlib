@@ -81,26 +81,25 @@ module P_edge = struct
     | Binds of string * Label.t list
 
   let match_ pattern_edge graph_label =
-
     match pattern_edge with
-    | {id = Some i; u_label = Pos l} when List.mem graph_label l -> Binds (i, [graph_label])
-    | {id = None; u_label = Pos l} when List.mem graph_label l -> Ok graph_label
-    | {id = Some i; u_label = Neg l} when not (List.mem graph_label l) -> Binds (i, [graph_label])
-    | {id = None; u_label = Neg l} when not (List.mem graph_label l) -> Ok graph_label
+    | {id = Some i; u_label = Pos l} when Label.match_list l graph_label -> Binds (i, [graph_label])
+    | {id = None; u_label = Pos l} when Label.match_list l graph_label -> Ok graph_label
+    | {id = Some i; u_label = Neg l} when not (Label.match_list l graph_label) -> Binds (i, [graph_label])
+    | {id = None; u_label = Neg l} when not (Label.match_list l graph_label) -> Ok graph_label
     | _ -> Fail
 
   let match_list pattern_edge graph_edge_list =
     match pattern_edge with
-    | {id = None; u_label = Pos l} when List.exists (fun label -> List.mem label l) graph_edge_list ->
+    | {id = None; u_label = Pos l} when List.exists (fun label -> Label.match_list l label) graph_edge_list ->
         Ok (List.hd graph_edge_list)
-    | {id = None; u_label = Neg l} when List.exists (fun label -> not (List.mem label l)) graph_edge_list ->
+    | {id = None; u_label = Neg l} when List.exists (fun label -> not (Label.match_list l label)) graph_edge_list ->
         Ok (List.hd graph_edge_list)
     | {id = Some i; u_label = Pos l} ->
-	(match List.filter (fun label -> List.mem label l) graph_edge_list with
+	(match List.filter (fun label -> Label.match_list l label) graph_edge_list with
 	| [] -> Fail
 	| list -> Binds (i, list))
     | {id = Some i; u_label = Neg l} ->
-	(match List.filter (fun label -> not (List.mem label l)) graph_edge_list with
+	(match List.filter (fun label -> not (Label.match_list l label)) graph_edge_list with
 	| [] -> Fail
 	| list -> Binds (i, list))
     | _ -> Fail

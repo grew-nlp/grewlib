@@ -30,6 +30,9 @@ module String_: sig
   (* [rm_peripheral_white s] returns the string [s] without any white space ot tab
     at the beginning or at the end of the string. *)
   val rm_peripheral_white: string -> string
+
+  (** [match_star_re star_re string] returns true iff the string match the [star_re]  *)
+  val match_star_re: string -> string -> bool
 end
 
 
