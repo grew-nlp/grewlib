@@ -71,13 +71,23 @@ module Rewrite_history = struct
         | l, _ -> List_.iteri (fun i son -> loop (sprintf "%s_%d" file_name i) son) l
     in loop base t
 
+  let save_full_conll base t =
+    let cpt = ref 0 in
+    let rec loop t =
+      match (t.good_nf, t.bad_nf) with
+        | [],[] -> 
+          File.write (Instance.to_conll t.instance) (sprintf "%s__%d.conll" base !cpt);
+          incr cpt
+        | l, _ -> List.iter loop l
+    in loop t
+
   (* suppose that all modules are confluent and produced exacly one normal form *)
   let save_det_gr base t =
     let rec loop t =
       match (t.good_nf, t.bad_nf) with
         | [],[] -> File.write (Instance.to_gr t.instance) (base^".gr")
         | [one], [] -> loop one
-        | _ -> Error.run "Not a single rewriting"
+        | _ -> Error.run "[save_det_gr] Not a single rewriting"
     in loop t
 
   let save_annot out_dir base_name t =
@@ -105,7 +115,7 @@ module Rewrite_history = struct
               | None -> Instance.to_conll t.instance in
           File.write output (base^".conll")
         | ([one], []) -> loop one
-        | _ -> Error.run "Not a single rewriting"
+        | _ -> Error.run "[save_det_conll] Not a single rewriting"
     in loop t
 
   let det_dep_string t =
@@ -270,6 +280,7 @@ module Grs = struct
       | [] -> (* no more modules to apply *)
         {Rewrite_history.instance = instance; module_name = ""; good_nf = []; bad_nf = []; }
       | next::tail ->
+        (* printf "Enter module ==> %s\n%!" next.Modul.name; *)
         let (good_set, bad_set) =
           Rule.normalize
             next.Modul.name

@@ -187,6 +187,9 @@ let save_gr base rew_hist =
 let save_conll base rew_hist =
   handle ~name:"save_conll" (fun () -> Rewrite_history.save_conll base rew_hist) ()
 
+let save_full_conll base rew_hist =
+  handle ~name:"save_full_conll" (fun () -> Rewrite_history.save_full_conll base rew_hist) ()
+
 let save_det_gr base rew_hist =
   handle ~name:"save_det_gr" (fun () -> Rewrite_history.save_det_gr base rew_hist) ()
 

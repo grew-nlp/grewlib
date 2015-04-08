@@ -79,6 +79,8 @@ val save_gr: string -> Rewrite_history.t -> unit
 
 val save_conll: string -> Rewrite_history.t -> unit
 
+val save_full_conll: string -> Rewrite_history.t -> unit
+
 val save_det_gr: string -> Rewrite_history.t -> unit
 
 val save_det_conll: ?header:string -> string -> Rewrite_history.t -> unit
