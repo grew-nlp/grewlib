@@ -36,11 +36,33 @@
 
 let digit = ['0'-'9']
 let letter = ['a'-'z' 'A'-'Z']
-(* an identifier is either a single letter, "_", or its lenght is >=2 and it doesn't end with a '-' *)
-let ident = (letter | '_') | (letter | '_') (letter | digit | '_' | '.' | '\'' | '-')* (letter | digit | '_' | '\'')
+
+(* a general_ident is an arbitrary sequence of:
+   - letter
+   - digit
+   - underscore '_'
+   - dash '-'
+  for basic ident construction and
+   - dot '.'
+   - colon ':'
+   - sharp '#'
+   - star '*'
+  The first characted cannot be a digit, a sharp or a colon (to avoid confusion).
+ *)
+let label_ident =
+  (letter | '_' | '-' | '.' | '*') (letter | digit | '_' | '\'' | '-' | '.' | ':' | '*')*
+
+let general_ident =
+  (letter | '_' | '*') |
+  (letter | '_' | '.' ) (letter | digit | '_' | '\'' | '-' | '.' | '#')* (letter | digit | '_' | '\'' | '.')
 
 let hex = ['0'-'9' 'a'-'f' 'A'-'F']
 let color = hex hex hex hex hex hex | hex hex hex
+
+
+(* ------------------------------------------------------------------------------- *)
+(* Rules                                                                           *)
+(* ------------------------------------------------------------------------------- *)
 
 rule comment target = parse
 | '\n' { incr Parser_global.current_line; Lexing.new_line lexbuf; target lexbuf }
@@ -88,7 +110,42 @@ and lp_lex target = parse
 | _ as c                  { bprintf buff "%c" c; lp_lex target lexbuf }
 | "#END" [' ' '\t']* '\n' { incr Parser_global.current_line; LEX_PAR (Str.split (Str.regexp "\n") (Buffer.contents buff)) }
 
+(* The lexer must be different when label_ident are parsed. The [global] lexer calls either
+   [label_parser] or [standard] depending on the flag [Parser_global.label_flag].
+   Difference are:
+   - a label_ident may contain ':' (like in D:suj:obj) and ':' is a token elsewhere
+   - a label_ident may contain '-' anywhere (like "--" in Tiger) but '-' is fordiden as the first or last character elsewhere
+*)
 and global = parse
+| ""   {  if !Parser_global.label_flag
+          then label_parser global lexbuf
+          else standard global lexbuf
+        }
+
+
+and label_parser target = parse
+| [' ' '\t'] { global lexbuf }
+| "/*"       { comment_multi global lexbuf }
+| '%'        { comment global lexbuf }
+| '\n'       { incr Parser_global.current_line; Lexing.new_line lexbuf; global lexbuf}
+
+| '{'   { LACC }
+| '}'   { Parser_global.label_flag := false; RACC }
+| ','   { COMA }
+| '|'   { PIPE }
+
+| '@' general_ident as cmd_var     { AROBAS_ID cmd_var }
+| "@#" color as col        { COLOR col }
+
+| label_ident as id { ID id }
+| '"'   { Buffer.clear buff; string_lex global lexbuf }
+
+| "]->" { Parser_global.label_flag := false; LTR_EDGE_RIGHT }
+| "]-"  { Parser_global.label_flag := false; RTL_EDGE_RIGHT }
+
+| _ as c { raise (Error (sprintf "At line %d: unexpected character '%c'" (lexbuf.Lexing.lex_start_p.Lexing.pos_lnum) c)) }
+
+and standard target = parse
 | [' ' '\t'] { global lexbuf }
 
 | "%--"      { comment_multi_doc global lexbuf }
@@ -103,7 +160,7 @@ and global = parse
 | "features"    { FEATURES }
 | "feature"     { FEATURE }
 | "file"        { FILE }
-| "labels"      { LABELS }
+| "labels"      { Parser_global.label_flag := true; LABELS }
 | "suffixes"    { SUFFIXES }
 | "match"       { MATCH }
 | "without"     { WITHOUT }
@@ -131,12 +188,12 @@ and global = parse
 
 | digit+ ('.' digit*)? as number  { FLOAT (float_of_string number) }
 
-| '$' ident as pat_var     { DOLLAR_ID pat_var}
-| '@' ident as cmd_var     { AROBAS_ID cmd_var }
+| '$' general_ident as pat_var     { DOLLAR_ID pat_var}
+| '@' general_ident as cmd_var     { AROBAS_ID cmd_var }
 | "@#" color as col        { COLOR col }
 
-| ident as complex_id              { COMPLEX_ID (parse_complex_ident complex_id) }
-| ident '#' ident as complex_id    { COMPLEX_ID (parse_complex_ident complex_id) }
+(* the string "*" is lexed as a ID *)
+| general_ident as id { ID id }
 
 | '{'   { LACC }
 | '}'   { RACC }
@@ -148,7 +205,6 @@ and global = parse
 | ';'   { SEMIC }
 | ','   { COMA }
 | '+'   { PLUS }
-| '*'   { STAR }
 | '#'   { SHARP }
 | '='   { EQUAL }
 | "!"   { BANG }
@@ -161,10 +217,10 @@ and global = parse
 
 | '|'   { PIPE }
 | "->"  { GOTO_NODE }
-| "-[^" { LTR_EDGE_LEFT_NEG }
-| "-["  { LTR_EDGE_LEFT }
+| "-[^" { Parser_global.label_flag := true; LTR_EDGE_LEFT_NEG }
+| "-["  { Parser_global.label_flag := true; LTR_EDGE_LEFT }
 | "]->" { LTR_EDGE_RIGHT }
-| "<-[" { RTL_EDGE_LEFT }
+| "<-[" { Parser_global.label_flag := true; RTL_EDGE_LEFT }
 | "]-"  { RTL_EDGE_RIGHT }
 | "==>" { LONGARROW }
 

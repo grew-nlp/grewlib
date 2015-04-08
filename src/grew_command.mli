@@ -59,10 +59,10 @@ module Command : sig
 
   val build:
       ?param: (string list * string list) ->
-      (Ast.act_id list * string list) ->
+      (Ast.command_node_ident list * string list) ->
       Id.table ->
       Label.decl array ->
       suffix list ->
       Ast.command ->
-        t * (Ast.act_id list * string list)
+        t * (Ast.command_node_ident list * string list)
 end (* module Command *)

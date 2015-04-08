@@ -69,16 +69,22 @@ module Command  = struct
     (* kai stands for "known act ident", kei for "known edge ident" *)
 
     let pid_of_act_id loc = function
-        | (node_name, Some n) -> Act (Pid.Pos (Id.build ~loc node_name table), n)
-        | (node_name, None) ->
+        | Ast.Sharp (node_name, n) -> Act (Pid.Pos (Id.build ~loc node_name table), n)
+        | Ast.No_sharp (node_name) ->
           try  (* TODO: remove with activate *)
             Pat (Pid.Pos (Id.build ~loc node_name table))
           with _ -> New node_name in
 
+    let pid_of_node_id loc node_id = Pat (Pid.Pos (Id.build ~loc node_id table)) in
+
     (* check that an act_id is well-defined earlier *)
     let check_act_id loc act_id kai =
       if not (List.mem act_id kai)
-      then Error.build ~loc "Unbound node identifier \"%s\"" (Ast.act_id_to_string act_id) in
+      then Error.build ~loc "Unbound node identifier \"%s\"" (Ast.dump_command_node_ident act_id) in
+
+    let check_node_id loc node_id kai =
+      if not (List.mem (Ast.No_sharp node_id) kai)
+      then Error.build ~loc "Unbound node identifier \"%s\"" node_id in
 
     (* check that the edge_id is defined in the pattern *)
     let check_edge loc edge_id kei =
@@ -124,7 +130,7 @@ module Command  = struct
 
       | (Ast.New_neighbour (new_id, ancestor, label), loc) ->
           check_act_id loc ancestor kai;
-          if List.mem (new_id, None) kai
+          if List.mem (Ast.No_sharp new_id) kai
           then Error.build ~loc "Node identifier \"%s\" is already used" new_id;
 
           let edge = G_edge.make ~loc ~locals label in
@@ -134,23 +140,23 @@ module Command  = struct
               (NEW_NEIGHBOUR
                  (new_id,
                   edge,
-                  Pid.Pos (Id.build ~loc (fst ancestor) table)
+                  Pid.Pos (Id.build ~loc (Ast.base_command_node_ident ancestor) table)
                  ), loc),
-              ((new_id, None)::kai, kei)
+              ((Ast.No_sharp new_id)::kai, kei)
             )
 	          with not_found ->
 	            Log.fcritical "[GRS] tries to build a command New_neighbour (%s) on node %s which is not in the pattern %s"
 	             (G_edge.to_string edge)
-	             (fst ancestor)
+	             (Ast.base_command_node_ident ancestor)
 	             (Loc.to_string loc)
 	        end
 
       | (Ast.Activate act_n, loc) ->
         begin
           match act_n with
-          | (_,None) -> Error.build ~loc "Cannot activate a pattern node"
-          | (src, Some suffix) ->
-            check_act_id loc (src,None) kai;
+          | Ast.No_sharp _ -> Error.build ~loc "Cannot activate a pattern node"
+          | Ast.Sharp (src, suffix) ->
+            check_act_id loc (Ast.No_sharp src) kai;
             if not (List.mem suffix suffixes) then Error.build ~loc "Undefined suffix \"%s\"" suffix;
             ((ACT_NODE (pid_of_act_id loc act_n), loc), (act_n :: kai, kei))
         end
@@ -170,13 +176,10 @@ module Command  = struct
           check_act_id loc act_id kai;
           let items = List.map
             (function
-              (* special case of a simple identifier understood as a string *)
-              | Ast.Qfn_item ci when Ast.is_simple ci -> String (Ast.complex_id_to_string ci)
-              | Ast.Qfn_item ci ->
-                let (act_id,feature_name) = Ast.act_qfn_of_ci ci in
-                check_act_id loc act_id kai;
+              | Ast.Qfn_item (node_id,feature_name) ->
+                check_node_id loc node_id kai;
                 Domain.check_feature_name ~loc feature_name;
-                Feat (pid_of_act_id loc act_id, feature_name)
+                Feat (pid_of_node_id loc node_id, feature_name)
               | Ast.String_item s -> String s
               | Ast.Param_item var ->
                 match param with

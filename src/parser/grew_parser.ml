@@ -17,7 +17,7 @@ module Grew_parser = struct
   exception Parse_error of (string * Loc.t option)
 
   (* ------------------------------------------------------------------------------------------*)
-  (** general fucntion to handle parse errors *)
+  (** general function to handle parse errors *)
   let parse_handle file fct lexbuf =
     try fct lexbuf with
       | Lexer.Error msg ->

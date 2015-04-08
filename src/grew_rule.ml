@@ -155,18 +155,18 @@ module Rule = struct
       | (Ast.Cst_in id, loc) ->
         Cst_in (pid_of_name loc id, P_edge.all)
 
-      | (Ast.Feature_eq (qfn1, qfn2), loc) ->
-        let (node_name1, feat_name1) = qfn1
-        and (node_name2, feat_name2) = qfn2 in
+      | (Ast.Feature_eq (feat_id1, feat_id2), loc) ->
+        let (node_name1, feat_name1) = feat_id1
+        and (node_name2, feat_name2) = feat_id2 in
 
         Feature_eq (pid_of_name loc node_name1, feat_name1, pid_of_name loc node_name2, feat_name2)
-      | (Ast.Feature_diseq (qfn1, qfn2), loc) ->
-        let (node_name1, feat_name1) = qfn1
-        and (node_name2, feat_name2) = qfn2 in
+      | (Ast.Feature_diseq (feat_id1, feat_id2), loc) ->
+        let (node_name1, feat_name1) = feat_id1
+        and (node_name2, feat_name2) = feat_id2 in
         Feature_diseq (pid_of_name loc node_name1, feat_name1, pid_of_name loc node_name2, feat_name2)
-      | (Ast.Feature_ineq (ineq, qfn1, qfn2), loc) ->
-        let (node_name1, feat_name1) = qfn1
-        and (node_name2, feat_name2) = qfn2 in
+      | (Ast.Feature_ineq (ineq, feat_id1, feat_id2), loc) ->
+        let (node_name1, feat_name1) = feat_id1
+        and (node_name2, feat_name2) = feat_id2 in
         Feature_ineq (ineq, pid_of_name loc node_name1, feat_name1, pid_of_name loc node_name2, feat_name2)
 
   let build_neg_basic ?pat_vars ?(locals=[||]) pos_table basic_ast =
@@ -266,7 +266,7 @@ module Rule = struct
 
   (* ====================================================================== *)
   let build_commands ?param ?(locals=[||]) suffixes pos pos_table ast_commands =
-    let known_act_ids = List.map (fun x -> (x,None)) (Array.to_list pos_table) in
+    let known_act_ids = List.map (fun x -> (Ast.No_sharp x)) (Array.to_list pos_table) in
     let known_edge_ids = get_edge_ids pos in
 
     let rec loop (kai,kei) = function

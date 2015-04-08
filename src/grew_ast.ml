@@ -15,81 +15,91 @@ open Grew_types
 
 (* ================================================================================ *)
 module Ast = struct
-  let dot_split s = Str.split (Str.regexp "\\.") s
-  let get_single s = match dot_split s with
-    | [one] -> one
-    | _ -> Error.build "The identifier '%s' contains the '.' symbol" s
+
+  (* general function for checking that an identifier is of the right kind *)
+  let check_special name allowed s =
+    let sp = Str.full_split (Str.regexp "#\\|\\.\\|:\\|\\*") s in
+    try
+      match List.find
+      (function
+        | Str.Delim d when not (List.mem d allowed) -> true
+        | _ -> false
+      ) sp
+      with
+      | Str.Delim wrong_char ->
+       Error.build "The identifier '%s' is not a valid %s, the character '%s' is illegal" s name wrong_char
+      | Str.Text _ -> Error.bug "[Grew_ast.check_special]"
+    with
+    | Not_found -> ()
 
   (* ---------------------------------------------------------------------- *)
-  (* complex_id: V, V#alpha, V.cat, V#alpha.cat, p_obj.loc *)
-  type complex_id =
-    | No_sharp of string
-    | Sharp of string * string
+  (* simple_ident: cat *)
+  type simple_ident = Id.name
+  let parse_simple_ident s = check_special "simple ident" [] s; s
+  let is_simple_ident s = try ignore (parse_simple_ident s); true with _ -> false
+  let dump_simple_ident name = name
 
-  let complex_id_to_string = function
+  (* ---------------------------------------------------------------------- *)
+  (* label_ident: D:mod.dis *)
+  type label_ident = string
+  let parse_label_ident s = check_special "label ident" [":"; "."] s; s
+  let dump_label_ident name = name
+
+  (* ---------------------------------------------------------------------- *)
+  (* pattern_label_ident: D:mod.* *)
+  type pattern_label_ident = string
+  let parse_pattern_label_ident s = check_special "label ident" [":"; "."; "*"] s; s
+  let dump_pattern_label_ident name = name
+
+  (* ---------------------------------------------------------------------- *)
+  (* feature_ident: V.cat *)
+  type feature_ident = Id.name * feature_name
+  let parse_feature_ident s =
+    check_special "feature ident" ["."] s;
+    match Str.full_split (Str.regexp "\\.") s with
+    | [Str.Text base; Str.Delim "."; Str.Text fn] -> (base, fn)
+    | _ -> Error.build "The identifier '%s' must be a feature identifier (with exactly one '.' symbol, like \"V.cat\" for instance)" s
+  let dump_feature_ident (name, feat_name) = sprintf "%s.%s" name feat_name
+
+
+  (* ---------------------------------------------------------------------- *)
+  (* command_node_id: V, V#alpha *)
+  type command_node_ident =
+    | No_sharp of Id.name
+    | Sharp of Id.name * string
+
+  let parse_command_node_ident s =
+    check_special "feature ident" ["#"] s;
+    match Str.full_split (Str.regexp "#") s with
+    | [Str.Text base; Str.Delim "#"; Str.Text ext] -> Sharp (base, ext)
+    | [Str.Text base] -> No_sharp base
+    | _ -> Error.build "The identifier '%s' must be a command node identifier (with at most one '#' symbol)" s
+
+  let dump_command_node_ident = function
     | No_sharp x -> x
     | Sharp (x,y) -> x ^ "#" ^ y
 
-  (* ---------------------------------------------------------------------- *)
-  (* simple_id: V *)
-  type simple_id = Id.name
 
-  let simple_id_of_ci ci = match ci with
-    | No_sharp s -> get_single s
-    | Sharp _ -> Error.build "The identifier '%s' must be simple (without '#' symbol)" (complex_id_to_string ci)
-  let is_simple = function
-    | No_sharp s when List.length (dot_split s) = 1 -> true
-    | _ -> false
+  let base_command_node_ident = function
+    | No_sharp x -> x
+    | Sharp (x,y) -> x
 
   (* ---------------------------------------------------------------------- *)
-  (* label_id: p_obj.loc x.y.z *)
-  type label_id = string
+  (* command_feature_ident: V.cat, V#alpha.cat *)
+  type command_feature_ident = command_node_ident * feature_name
 
-  let label_id_of_ci ci = match ci with
-    | No_sharp s -> s
-    | Sharp _ -> Error.build "The identifier '%s' must be a label (without '#' symbol)" (complex_id_to_string ci)
+  let parse_command_feature_ident s =
+    check_special "feature ident" ["."; "#"] s;
+    match Str.full_split (Str.regexp "#\\|\\.") s with
+    | [Str.Text base; Str.Delim "#"; Str.Text ext; Str.Delim "."; Str.Text feature_name] -> (Sharp (base, ext), feature_name)
+    | [Str.Text base; Str.Delim "."; Str.Text feature_name] -> (No_sharp base, feature_name)
+    | _ -> Error.build "The identifier '%s' must be a command feature identifier (with exactly one '.' symbol and at most one '#' symbol in the left part)" s
 
-  (* ---------------------------------------------------------------------- *)
-  (* act_id: V, V#alpha *)
-  type act_id = Id.name * string option
-
-  let act_id_of_ci = function
-    | No_sharp s -> (get_single s, None)
-    | Sharp (s1,s2) -> (get_single s1, Some (get_single s2))
-
-  let act_id_to_string = function
-    | (base, None) -> base
-    | (base, Some ln) -> sprintf "%s#%s" base ln
+  let dump_command_feature_ident = function
+    | (No_sharp base, feature_name) -> sprintf "%s.%s" base feature_name
+    | (Sharp (base,ext), feature_name) -> sprintf "%s#%s.%s" base ext feature_name
 
   (* ---------------------------------------------------------------------- *)
-  (* simple_qfn: V.cat *)
-  type simple_qfn = Id.name * feature_name
-  let simple_qfn_of_ci ci = match ci with
-    | No_sharp s ->
-      (match dot_split s with
-        | [base;fn] -> (base, fn)
-        | _ -> Error.build "The identifier '%s' must be a qualified feature name (with one '.' symbol)" s
-      )
-    | Sharp _ -> Error.build "The identifier '%s' must be a qualified feature name (without '#' symbol)" (complex_id_to_string ci)
-  let simple_qfn_to_string (name, feat_name) = sprintf "%s.%s" name feat_name
-
-
-  (* ---------------------------------------------------------------------- *)
-  (* act_qfn: V.cat, V#alpha.cat *)
-  type act_qfn = act_id * feature_name
-
-  let act_qfn_of_ci = function
-    | No_sharp s ->
-      (match dot_split s with
-        | [base;fn] -> ((base, None), fn)
-        | _ -> Error.build "The identifier '%s' must be a qualified feature name (with one '.' symbol)" s
-      )
-    | Sharp (base, s) ->
-      (match dot_split s with
-        | [ext;fn] -> ((get_single base, Some ext), fn)
-        | _ -> Error.build "The identifier '%s' must be a qualified feature name (with one '.' symbol)" s
-      )
-
   type feature_kind =
     | Equality of feature_value list
     | Disequality of feature_value list
@@ -133,9 +143,9 @@ module Ast = struct
     | Cst_out of Id.name
     | End of Id.name * edge_label list (* (target, labels) *)
     | Cst_in of Id.name
-    | Feature_eq of simple_qfn * simple_qfn
-    | Feature_diseq of simple_qfn * simple_qfn
-    | Feature_ineq of ineq * simple_qfn * simple_qfn
+    | Feature_eq of feature_ident * feature_ident
+    | Feature_diseq of feature_ident * feature_ident
+    | Feature_ineq of ineq * feature_ident * feature_ident
   type const = u_const * Loc.t
 
   type basic = {
@@ -155,24 +165,24 @@ module Ast = struct
   }
 
   type concat_item =
-    | Qfn_item of complex_id (* Warning: either a simple string (without .) of a real qualified feature_name *)
+    | Qfn_item of feature_ident
     | String_item of string
     | Param_item of string
 
   type u_command =
-    | Del_edge_expl of (act_id * act_id * edge_label)
+    | Del_edge_expl of (command_node_ident * command_node_ident * edge_label)
     | Del_edge_name of string
-    | Add_edge of (act_id * act_id * edge_label)
-    | Shift_in of (act_id * act_id)
-    | Shift_out of (act_id * act_id)
-    | Shift_edge of (act_id * act_id)
-    | Merge_node of (act_id * act_id)
-    | New_neighbour of (Id.name * act_id * edge_label)
-    | Del_node of act_id
-    | Activate of act_id
+    | Add_edge of (command_node_ident * command_node_ident * edge_label)
+    | Shift_in of (command_node_ident * command_node_ident)
+    | Shift_out of (command_node_ident * command_node_ident)
+    | Shift_edge of (command_node_ident * command_node_ident)
+    | Merge_node of (command_node_ident * command_node_ident)
+    | New_neighbour of (Id.name * command_node_ident * edge_label)
+    | Del_node of command_node_ident
+    | Activate of command_node_ident
 
-    | Del_feat of act_qfn
-    | Update_feat of act_qfn * concat_item list
+    | Del_feat of command_feature_ident
+    | Update_feat of command_feature_ident * concat_item list
   type command = u_command * Loc.t
 
   (* the [rule] type is used for 3 kids of module items:

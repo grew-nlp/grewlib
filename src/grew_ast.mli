@@ -12,36 +12,49 @@ open Grew_base
 open Grew_types
 
 module Ast : sig
+
+  (* ---------------------------------------------------------------------- *)
+  (* simple_ident: V.cat *)
+  type simple_ident = Id.name
+  val parse_simple_ident: string -> simple_ident
+  val is_simple_ident: string -> bool
+  val dump_simple_ident: simple_ident -> string
+
+  (* ---------------------------------------------------------------------- *)
+  (* label_ident: D:mod.dis *)
+  type label_ident = string
+  val parse_label_ident: string -> label_ident
+  val dump_label_ident: label_ident -> string
+
+  (* ---------------------------------------------------------------------- *)
+  (* pattern_label_ident: D:mod.* *)
+  type pattern_label_ident = string
+  val parse_pattern_label_ident: string -> pattern_label_ident
+  val dump_pattern_label_ident: pattern_label_ident -> string
+
+  (* ---------------------------------------------------------------------- *)
+  (* feature_ident: V.cat *)
+  type feature_ident = Id.name * feature_name
+  val parse_feature_ident: string -> feature_ident
+  val dump_feature_ident: feature_ident -> string
+
   (* -------------------------------------------------------------------------------- *)
-  (* complex_id: V, V#alpha, V.cat, V#alpha.cat, p_obj.loc *)
-  type complex_id =
+  (* command_node_ident: V, V#alpha, V.cat, V#alpha.cat, p_obj.loc *)
+  type command_node_ident =
     | No_sharp of string
     | Sharp of string * string
-  val complex_id_to_string: complex_id -> string
+  val parse_command_node_ident: string -> command_node_ident
+  val dump_command_node_ident: command_node_ident -> string
 
-  (* simple_id: V *)
-  type simple_id = Id.name
-  val simple_id_of_ci: complex_id -> string
-  val is_simple: complex_id -> bool
+  val base_command_node_ident: command_node_ident -> string
 
-  (* label_id: V *)
-  type label_id = Id.name
-  val label_id_of_ci: complex_id -> string
+  (* ---------------------------------------------------------------------- *)
+  (* command_feature_ident: V.cat, V#alpha.cat *)
+  type command_feature_ident = command_node_ident * feature_name
+  val parse_command_feature_ident: string -> command_feature_ident
+  val dump_command_feature_ident: command_feature_ident -> string
 
-  (* act_id: V, V#alpha *)
-  type act_id = Id.name * string option
-  val act_id_of_ci: complex_id -> act_id
-  val act_id_to_string: act_id -> string
-
-  (* simple_qfn: V.cat *)
-  type simple_qfn = Id.name * feature_name
-  val simple_qfn_of_ci: complex_id -> simple_qfn
-  val simple_qfn_to_string: simple_qfn -> string
-
-  (* act_id: V.cat, V#alpha.cat *)
-  type act_qfn = act_id * feature_name
-  val act_qfn_of_ci: complex_id -> act_qfn
-
+  (* ---------------------------------------------------------------------- *)
   type feature_kind =
     | Equality of feature_value list
     | Disequality of feature_value list
@@ -80,9 +93,9 @@ module Ast : sig
     | Cst_out of Id.name
     | End of Id.name * edge_label list (* (target, labels) *)
     | Cst_in of Id.name
-    | Feature_eq of simple_qfn * simple_qfn
-    | Feature_diseq of simple_qfn * simple_qfn
-    | Feature_ineq of ineq * simple_qfn * simple_qfn
+    | Feature_eq of feature_ident * feature_ident
+    | Feature_diseq of feature_ident * feature_ident
+    | Feature_ineq of ineq * feature_ident * feature_ident
   type const = u_const * Loc.t
 
   type basic = {
@@ -97,24 +110,24 @@ module Ast : sig
     }
 
   type concat_item =
-    | Qfn_item of complex_id
+    | Qfn_item of feature_ident
     | String_item of string
     | Param_item of string
 
   type u_command =
-    | Del_edge_expl of (act_id * act_id * edge_label)
+    | Del_edge_expl of (command_node_ident * command_node_ident * edge_label)
     | Del_edge_name of string
-    | Add_edge of (act_id * act_id * edge_label)
-    | Shift_in of (act_id * act_id)
-    | Shift_out of (act_id * act_id)
-    | Shift_edge of (act_id * act_id)
-    | Merge_node of (act_id * act_id)
-    | New_neighbour of (Id.name * act_id * edge_label)
-    | Del_node of act_id
-    | Activate of act_id
+    | Add_edge of (command_node_ident * command_node_ident * edge_label)
+    | Shift_in of (command_node_ident * command_node_ident)
+    | Shift_out of (command_node_ident * command_node_ident)
+    | Shift_edge of (command_node_ident * command_node_ident)
+    | Merge_node of (command_node_ident * command_node_ident)
+    | New_neighbour of (Id.name * command_node_ident * edge_label)
+    | Del_node of command_node_ident
+    | Activate of command_node_ident
 
-    | Del_feat of act_qfn
-    | Update_feat of act_qfn * concat_item list
+    | Del_feat of command_feature_ident
+    | Update_feat of command_feature_ident * concat_item list
   type command = u_command * Loc.t
 
   type rule = {

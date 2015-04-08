@@ -42,7 +42,7 @@ let html_header ?css_file ?title ?(add_lines=[]) buff =
 module Html_doc = struct
 
   let string_of_concat_item = function
-    | Ast.Qfn_item id -> sprintf "%s" (Ast.complex_id_to_string id)
+    | Ast.Qfn_item id -> sprintf "%s" (Ast.dump_feature_ident id)
     | Ast.String_item s -> sprintf "\"%s\"" s
     | Ast.Param_item var -> sprintf "%s" var
 
@@ -51,22 +51,22 @@ module Html_doc = struct
     if li_html then bprintf buff "<li>";
     (match u_command with
     | Ast.Del_edge_expl (n1,n2,label) ->
-      bprintf buff "del_edge %s -[%s]-> %s" (Ast.act_id_to_string n1) label (Ast.act_id_to_string n2)
+      bprintf buff "del_edge %s -[%s]-> %s" (Ast.dump_command_node_ident n1) label (Ast.dump_command_node_ident n2)
     | Ast.Del_edge_name name -> bprintf buff "del_edge %s" name
     | Ast.Add_edge (n1,n2,label) ->
-      bprintf buff "add_edge %s -[%s]-> %s" (Ast.act_id_to_string n1) label (Ast.act_id_to_string n2)
+      bprintf buff "add_edge %s -[%s]-> %s" (Ast.dump_command_node_ident n1) label (Ast.dump_command_node_ident n2)
     | Ast.Shift_in (n1,n2) ->
-      bprintf buff "shift_in %s ==> %s" (Ast.act_id_to_string n1) (Ast.act_id_to_string n2)
-    | Ast.Shift_out (n1,n2) -> bprintf buff "shift_out %s ==> %s" (Ast.act_id_to_string n1) (Ast.act_id_to_string n2)
-    | Ast.Shift_edge (n1,n2) -> bprintf buff "shift %s ==> %s" (Ast.act_id_to_string n1) (Ast.act_id_to_string n2)
-    | Ast.Merge_node (n1,n2) -> bprintf buff "merge %s ==> %s" (Ast.act_id_to_string n1) (Ast.act_id_to_string n2)
-    | Ast.New_neighbour (n1,n2,label) -> bprintf buff "add_node %s: <-[%s]- %s" n1 label (Ast.act_id_to_string n2)
-    | Ast.Activate act_id -> bprintf buff "activate %s" (Ast.act_id_to_string act_id)
-    | Ast.Del_node act_id -> bprintf buff "del_node %s" (Ast.act_id_to_string act_id)
+      bprintf buff "shift_in %s ==> %s" (Ast.dump_command_node_ident n1) (Ast.dump_command_node_ident n2)
+    | Ast.Shift_out (n1,n2) -> bprintf buff "shift_out %s ==> %s" (Ast.dump_command_node_ident n1) (Ast.dump_command_node_ident n2)
+    | Ast.Shift_edge (n1,n2) -> bprintf buff "shift %s ==> %s" (Ast.dump_command_node_ident n1) (Ast.dump_command_node_ident n2)
+    | Ast.Merge_node (n1,n2) -> bprintf buff "merge %s ==> %s" (Ast.dump_command_node_ident n1) (Ast.dump_command_node_ident n2)
+    | Ast.New_neighbour (n1,n2,label) -> bprintf buff "add_node %s: <-[%s]- %s" n1 label (Ast.dump_command_node_ident n2)
+    | Ast.Activate act_id -> bprintf buff "activate %s" (Ast.dump_command_node_ident act_id)
+    | Ast.Del_node act_id -> bprintf buff "del_node %s" (Ast.dump_command_node_ident act_id)
     | Ast.Update_feat ((act_id, feat_name),item_list) ->
-      bprintf buff "%s.%s = %s" (Ast.act_id_to_string act_id) feat_name (List_.to_string string_of_concat_item " + " item_list)
+      bprintf buff "%s.%s = %s" (Ast.dump_command_node_ident act_id) feat_name (List_.to_string string_of_concat_item " + " item_list)
     | Ast.Del_feat (act_id, feat_name) ->
-      bprintf buff "del_feat %s.%s" (Ast.act_id_to_string act_id) feat_name
+      bprintf buff "del_feat %s.%s" (Ast.dump_command_node_ident act_id) feat_name
     );
     if li_html then bprintf buff "</li>\n" else bprintf buff ";\n"
 
@@ -107,12 +107,12 @@ module Html_doc = struct
     | Ast.End (ident,labels) ->
       bprintf buff "* -[%s]-> %s" (List_.to_string (fun x->x) "|" labels) ident
     | Ast.Cst_in ident -> bprintf buff "* -> %s" ident
-    | Ast.Feature_eq (qfn_l, qfn_r) ->
-      bprintf buff "%s = %s" (Ast.simple_qfn_to_string qfn_l) (Ast.simple_qfn_to_string qfn_r);
-    | Ast.Feature_diseq (qfn_l, qfn_r) ->
-      bprintf buff "%s <> %s" (Ast.simple_qfn_to_string qfn_l) (Ast.simple_qfn_to_string qfn_r);
-    | Ast.Feature_ineq (ineq, qfn_l, qfn_r) ->
-      bprintf buff "%s %s %s" (Ast.simple_qfn_to_string qfn_l) (Ast.string_of_ineq ineq) (Ast.simple_qfn_to_string qfn_r)
+    | Ast.Feature_eq (feat_id_l, feat_id_r) ->
+      bprintf buff "%s = %s" (Ast.dump_feature_ident feat_id_l) (Ast.dump_feature_ident feat_id_r);
+    | Ast.Feature_diseq (feat_id_l, feat_id_r) ->
+      bprintf buff "%s <> %s" (Ast.dump_feature_ident feat_id_l) (Ast.dump_feature_ident feat_id_r);
+    | Ast.Feature_ineq (ineq, feat_id_l, feat_id_r) ->
+      bprintf buff "%s %s %s" (Ast.dump_feature_ident feat_id_l) (Ast.string_of_ineq ineq) (Ast.dump_feature_ident feat_id_r)
     );
     bprintf buff "\n"
 
