@@ -220,6 +220,15 @@ module List_ = struct
         | None -> opt_map f t
         | Some r -> r :: (opt_map f t)
 
+  let rec try_map exc fct = function
+    | [] -> []
+    | x::t -> let tail =  try_map exc fct t in
+      try (fct x)::tail
+      with e ->
+        if e = exc
+        then tail
+        else raise e
+
   let rec flat_map f = function
     | [] -> []
     | x::t -> (f x)@(flat_map f t)

@@ -105,6 +105,8 @@ module List_: sig
 
   val opt_map: ('a -> 'b option) -> 'a list -> 'b list
 
+  val try_map: exn -> ('a -> 'b) -> 'a list -> 'b list
+
   val opt_mapi: (int -> 'a -> 'b option) -> 'a list -> 'b list
 
   val flat_map: ('a -> 'b list) -> 'a list -> 'b list

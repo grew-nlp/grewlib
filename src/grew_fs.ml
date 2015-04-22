@@ -78,21 +78,23 @@ module P_feature = struct
 
   let compare feat1 feat2 = Pervasives.compare (get_name feat1) (get_name feat2)
 
+  exception Fail_unif
+
   let unif_value v1 v2 = match (v1, v2) with
     | ({cst=Absent;in_param=[]},{cst=Absent;in_param=[]}) -> v1
     | ({cst=Absent;in_param=[]},_)
-    | (_,{cst=Absent;in_param=[]}) -> Error.build "unification failure"
+    | (_,{cst=Absent;in_param=[]}) -> raise Fail_unif
 
     | ({cst=cst1; in_param=in1}, {cst=cst2; in_param=in2}) ->
       let cst =  match (cst1, cst2) with
         | (Equal l1, Equal l2) ->
             (match List_.sort_inter l1 l2 with
-            | [] -> Error.build "unification failure"
+            | [] -> raise Fail_unif
             | l -> Equal l)
         | (Equal l1, Different l2)
         | (Different l2, Equal l1) ->
             (match List_.sort_diff l1 l2 with
-            | [] -> Error.build "unification failure"
+            | [] -> raise Fail_unif
             | l -> Equal l)
         | (Different l1, Different l2) -> Different (List_.sort_union l1 l2)
         | _ -> Error.bug "[P_feature.unif_value] inconsistent match case" in
@@ -368,6 +370,7 @@ module P_fs = struct
           | _ -> Error.bug "[P_fs.match_] several different parameters contraints for the same feature is not implemented" in
     loop param (p_fs_wo_pos,g_fs)
 
+  exception Fail_unif
   let unif fs1 fs2 =
     let rec loop = function
       | [], fs -> fs
@@ -379,6 +382,8 @@ module P_fs = struct
       (* all remaining case are fn1 = fn2 *)
       | ((fn1,v1)::t1, (fn2,v2)::t2) (* when fn1 = fn2 *) ->
         try (fn1,P_feature.unif_value v1 v2) :: (loop (t1,t2))
-        with Error.Build (msg,_) -> Error.build "Feature '%s', %s" fn1 msg
+        with
+        | P_feature.Fail_unif -> raise Fail_unif
+        | Error.Build (msg,_) -> Error.build "Feature '%s', %s" fn1 msg
     in loop (fs1, fs2)
 end (* module P_fs *)

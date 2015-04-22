@@ -107,6 +107,7 @@ module P_graph = struct
   }
 
   (* -------------------------------------------------------------------------------- *)
+  (* It may raise [P_fs.Fail_unif] in case of contradiction on constraints *)
   let build_extension ?pat_vars ?(locals=[||]) pos_table full_node_list full_edge_list =
 
     let built_nodes = List.map (P_node.build ?pat_vars) full_node_list in
@@ -132,9 +133,13 @@ module P_graph = struct
 
     let old_map_without_edges =
       List.fold_left
-        (fun acc (id,node) -> Pid_map.add (Pid.Pos (Array_.dicho_find id pos_table)) node acc)
-        Pid_map.empty
-        old_nodes in
+        (fun acc (id,node) ->
+          let pid_pos = Pid.Pos (Array_.dicho_find id pos_table) in
+          try
+            let old = Pid_map.find pid_pos acc in
+            Pid_map.add pid_pos (P_node.unif_fs (P_node.get_fs node) old) acc
+          with Not_found -> Pid_map.add pid_pos node acc
+        ) Pid_map.empty old_nodes in
 
     let ext_map_with_all_edges =
       List.fold_left

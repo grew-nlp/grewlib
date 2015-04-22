@@ -169,6 +169,7 @@ module Rule = struct
         and (node_name2, feat_name2) = feat_id2 in
         Feature_ineq (ineq, pid_of_name loc node_name1, feat_name1, pid_of_name loc node_name2, feat_name2)
 
+  (* It may raise [P_fs.Fail_unif] in case of contradiction on constraints *)
   let build_neg_basic ?pat_vars ?(locals=[||]) pos_table basic_ast =
     let (extension, neg_table) =
       P_graph.build_extension ?pat_vars ~locals pos_table basic_ast.Ast.pat_nodes basic_ast.Ast.pat_edges in
@@ -321,7 +322,15 @@ module Rule = struct
           (full_param, pat_vars, cmd_vars) in
 
     let (pos, pos_table) = build_pos_basic ~pat_vars ~locals rule_ast.Ast.pos_basic in
-    let negs = List.map (fun basic_ast -> build_neg_basic ~pat_vars ~locals pos_table basic_ast) rule_ast.Ast.neg_basics in
+    let (negs,_) =
+      List.fold_left
+      (fun (acc,pos) basic_ast ->
+        try ((build_neg_basic ~pat_vars ~locals pos_table basic_ast) :: acc, pos+1)
+        with P_fs.Fail_unif ->
+          Log.fwarning "In rule \"%s\" [%s], the wihtout number %d cannot be satisfied, it is skipped"
+            rule_ast.Ast.rule_id (Loc.to_string rule_ast.Ast.rule_loc) pos;
+          (acc, pos+1)
+      ) ([],1) rule_ast.Ast.neg_basics in
     {
       name = rule_ast.Ast.rule_id;
       pattern = (pos, negs);
@@ -333,7 +342,7 @@ module Rule = struct
 
   let build_pattern pattern_ast =
     let (pos, pos_table) = build_pos_basic pattern_ast.Ast.pat_pos in
-    let negs = List.map (fun basic_ast -> build_neg_basic pos_table basic_ast) pattern_ast.Ast.pat_negs in
+    let negs = List_.try_map P_fs.Fail_unif (fun basic_ast -> build_neg_basic pos_table basic_ast) pattern_ast.Ast.pat_negs in
     (pos, negs)
 
   (* ====================================================================== *)
