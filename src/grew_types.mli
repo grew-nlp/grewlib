@@ -94,10 +94,12 @@ end (* module Label *)
 (* ================================================================================ *)
 (** The module [Label_cst] defines contraints on label edges *)
 module Label_cst : sig
-  type t
+  type t =
+  | Pos of Label.t list
+  | Neg of Label.t list
+
+  val to_string: t -> string
   val all: t
-  val positive: Label.t list -> t
-  val negative: Label.t list -> t
   val match_: Label.t -> t -> bool
   val build: ?loc:Loc.t -> ?locals:Label.decl array -> (string list * bool) -> t
 end (* module Label_cst *)

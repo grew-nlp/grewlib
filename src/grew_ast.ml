@@ -127,9 +127,8 @@ module Ast = struct
   type u_edge = {
     edge_id: Id.name option;
     src: Id.name;
-    edge_labels: edge_label list;
+    edge_label_cst: edge_label_cst;
     tar: Id.name;
-    negative: bool;
   }
   type edge = u_edge * Loc.t
 

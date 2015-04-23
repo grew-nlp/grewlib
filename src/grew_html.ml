@@ -109,11 +109,9 @@ module Html_doc = struct
   let buff_html_edge buff (u_edge,_) =
     bprintf buff "      ";
     bprintf buff "%s" (match u_edge.Ast.edge_id with Some n -> n^": " | None -> "");
-    bprintf buff "%s -[%s%s]-> %s;\n"
-      u_edge.Ast.src
-      (if u_edge.Ast.negative then "^" else "")
-      (List_.to_string (fun x->x) "|" u_edge.Ast.edge_labels)
-      u_edge.Ast.tar
+    match u_edge.Ast.edge_label_cst with
+    | (l,true) -> bprintf buff "%s -[^%s]-> %s;\n" u_edge.Ast.src (List_.to_string (fun x->x) "|" l) u_edge.Ast.tar
+    | (l,false) -> bprintf buff "%s -[%s]-> %s;\n" u_edge.Ast.src (List_.to_string (fun x->x) "|" l) u_edge.Ast.tar
 
   let buff_html_const buff (u_const,_) =
     bprintf buff "      ";

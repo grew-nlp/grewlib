@@ -234,17 +234,19 @@ module Label_cst = struct
   | Pos of Label.t list
   | Neg of Label.t list
 
+  let to_string = function
+    | Pos l -> (List_.to_string Label.to_string "|" l)
+    | Neg l -> "^"^(List_.to_string Label.to_string "|" l)
+
   let all = Neg []
-  let positive list = Pos list
-  let negative list = Neg list
 
   let match_ edge = function
     | Pos labels -> Label.match_list labels edge
     | Neg labels -> not (Label.match_list labels edge)
 
   let build ?loc ?locals = function
-  | (edge_labels, true) -> Neg (List.map (Label.from_string ?loc ?locals) edge_labels)
-  | (edge_labels, false) -> Pos (List.map (Label.from_string ?loc ?locals) edge_labels)
+  | (edge_labels, true) -> Neg (List.sort compare (List.map (Label.from_string ?loc ?locals) edge_labels))
+  | (edge_labels, false) -> Pos (List.sort compare (List.map (Label.from_string ?loc ?locals) edge_labels))
 end (* module Label_cst *)
 
 

@@ -186,9 +186,9 @@ gr_item:
             { let (id,loc) = id_loc in
               Graph_node ({Ast.node_id = id; position=position; fs=feats}, loc) }
 
-        (* A -[x]-> B*)
+        (* A -[x]-> B *)
         | n1_loc=simple_id_with_loc label=delimited(LTR_EDGE_LEFT,label_ident,LTR_EDGE_RIGHT) n2=simple_id
-            { Graph_edge ({Ast.edge_id = None; src=fst n1_loc; edge_labels=[label]; tar=n2; negative=false }, snd n1_loc) }
+            { Graph_edge ({Ast.edge_id = None; src=fst n1_loc; edge_label_cst=([label],false); tar=n2}, snd n1_loc) }
 
 /*=============================================================================================*/
 /*  GREW GRAPH REWRITING SYSTEM                                                                */
@@ -403,15 +403,15 @@ node_features:
 pat_edge_or_const:
         (*   "e: A -> B"           *)
         | id_loc=simple_id_with_loc DDOT n1=simple_id EDGE n2=simple_id
-            { let (id,loc) = id_loc in Pat_edge ({Ast.edge_id = Some id; src=n1; edge_labels=[]; tar=n2; negative=true}, loc) }
+            { let (id,loc) = id_loc in Pat_edge ({Ast.edge_id = Some id; src=n1; edge_label_cst=([],true); tar=n2}, loc) }
 
         (* "e: A -[X|Y]-> B" *)
         | id_loc=simple_id_with_loc DDOT n1=simple_id labels=delimited(LTR_EDGE_LEFT,separated_nonempty_list(PIPE,pattern_label_ident),LTR_EDGE_RIGHT) n2=simple_id
-            { let (id,loc) = id_loc in Pat_edge ({Ast.edge_id = Some id; src=n1; edge_labels=labels; tar=n2; negative=false}, loc) }
+            { let (id,loc) = id_loc in Pat_edge ({Ast.edge_id = Some id; src=n1; edge_label_cst=(labels,false); tar=n2}, loc) }
 
         (* "e: A -[^X|Y]-> B" *)
         | id_loc=simple_id_with_loc DDOT n1=simple_id labels=delimited(LTR_EDGE_LEFT_NEG,separated_nonempty_list(PIPE,pattern_label_ident),LTR_EDGE_RIGHT) n2=simple_id
-            { let (id,loc) = id_loc in Pat_edge ({Ast.edge_id = Some id; src=n1; edge_labels=labels; tar=n2; negative=true}, loc) }
+            { let (id,loc) = id_loc in Pat_edge ({Ast.edge_id = Some id; src=n1; edge_label_cst=(labels,false); tar=n2}, loc) }
 
 
         (*   "A -> B"           *)
@@ -423,7 +423,7 @@ pat_edge_or_const:
               | ("*", "*") -> Error.build ~loc "Source and target cannot be both underspecified"
               | ("*", _) -> Pat_const (Ast.Cst_in n2, loc)
               | (_, "*") -> Pat_const (Ast.Cst_out n1, loc)
-              | _ -> Pat_edge ({Ast.edge_id = None; src=n1; edge_labels=[]; tar=n2; negative=true}, loc)
+              | _ -> Pat_edge ({Ast.edge_id = None; src=n1; edge_label_cst=([],true); tar=n2}, loc)
             }
 
         (*   "A -[X|Y]-> B"   *)
@@ -435,7 +435,7 @@ pat_edge_or_const:
               | ("*", "*") -> Error.build ~loc "Source and target cannot be both underspecified"
               | ("*", _) -> Pat_const (Ast.End (n2,labels), loc)
               | (_, "*") -> Pat_const (Ast.Start (n1,labels), loc)
-              | _ -> Pat_edge ({Ast.edge_id = None; src=n1; edge_labels=labels; tar=n2; negative=false}, loc) }
+              | _ -> Pat_edge ({Ast.edge_id = None; src=n1; edge_label_cst=(labels,false); tar=n2}, loc) }
 
         (* "A -[^X|Y]-> B"*)
         | n1_loc=id_with_loc labels=delimited(LTR_EDGE_LEFT_NEG,separated_nonempty_list(PIPE,pattern_label_ident),LTR_EDGE_RIGHT) n2=ID
@@ -444,7 +444,7 @@ pat_edge_or_const:
               | ("*", "*") -> Error.build ~loc "Source and target cannot be both underspecified"
               | ("*", _)
               | (_, "*") -> Error.bug ~loc "Not implemented: pat edge constraint with negative labels"
-              | _ -> Pat_edge ({Ast.edge_id = None; src=n1; edge_labels=labels; tar=n2; negative=true}, loc) }
+              | _ -> Pat_edge ({Ast.edge_id = None; src=n1; edge_label_cst=(labels,true); tar=n2}, loc) }
 
         (* "X.cat = Y.cat" *)
         | feat_id1_loc=feature_ident_with_loc EQUAL feat_id2=feature_ident

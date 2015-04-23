@@ -37,6 +37,7 @@ module P_edge: sig
   val all: t
 
   val get_id: t -> string option
+
   val to_string: t -> string
 
   val build: ?locals:Label.decl array -> Ast.edge -> t
