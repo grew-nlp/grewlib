@@ -107,14 +107,10 @@ module Rule = struct
   let build_pos_constraint ?locals pos_table const =
     let pid_of_name loc node_name = Pid.Pos (Id.build ~loc node_name pos_table) in
     match const with
-      | (Ast.Start (id, labels), loc) ->
-        Cst_out (pid_of_name loc id, Label_cst.build ~loc ?locals (labels, false))
-      | (Ast.Cst_out id, loc) ->
-        Cst_out (pid_of_name loc id, Label_cst.all)
-      | (Ast.End (id, labels),loc) ->
-        Cst_in (pid_of_name loc id, Label_cst.build ~loc ?locals (labels, false))
-      | (Ast.Cst_in id, loc) ->
-        Cst_in (pid_of_name loc id, Label_cst.all)
+      | (Ast.Cst_out (id,label_cst), loc) ->
+        Cst_out (pid_of_name loc id, Label_cst.build ~loc ?locals label_cst)
+      | (Ast.Cst_in (id,label_cst), loc) ->
+        Cst_in (pid_of_name loc id, Label_cst.build ~loc ?locals label_cst)
 
       | (Ast.Feature_eq ((node_name1, feat_name1), (node_name2, feat_name2)), loc) ->
         Feature_eq (pid_of_name loc node_name1, feat_name1, pid_of_name loc node_name2, feat_name2)
@@ -146,14 +142,10 @@ module Rule = struct
         | Some i -> Pid.Pos i
         | None -> Pid.Neg (Id.build ~loc node_name neg_table) in
     match const with
-      | (Ast.Start (id, labels),loc) ->
-        Cst_out (pid_of_name loc id, Label_cst.build ~loc ?locals (labels, false))
-      | (Ast.Cst_out id, loc) ->
-        Cst_out (pid_of_name loc id, Label_cst.all)
-      | (Ast.End (id, labels),loc) ->
-        Cst_in (pid_of_name loc id, Label_cst.build ~loc ?locals (labels, false))
-      | (Ast.Cst_in id, loc) ->
-        Cst_in (pid_of_name loc id, Label_cst.all)
+      | (Ast.Cst_out (id,label_cst), loc) ->
+        Cst_out (pid_of_name loc id, Label_cst.build ~loc ?locals label_cst)
+      | (Ast.Cst_in (id,label_cst), loc) ->
+        Cst_in (pid_of_name loc id, Label_cst.build ~loc ?locals label_cst)
 
       | (Ast.Feature_eq (feat_id1, feat_id2), loc) ->
         let (node_name1, feat_name1) = feat_id1

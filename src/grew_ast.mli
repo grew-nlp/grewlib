@@ -91,10 +91,8 @@ module Ast : sig
   val string_of_ineq: ineq -> string
 
   type u_const =
-    | Start of Id.name * edge_label list (* (source, labels) *)
-    | Cst_out of Id.name
-    | End of Id.name * edge_label list (* (target, labels) *)
-    | Cst_in of Id.name
+    | Cst_out of Id.name * edge_label_cst
+    | Cst_in of Id.name * edge_label_cst
     | Feature_eq of feature_ident * feature_ident
     | Feature_diseq of feature_ident * feature_ident
     | Feature_ineq of ineq * feature_ident * feature_ident

@@ -116,13 +116,20 @@ module Html_doc = struct
   let buff_html_const buff (u_const,_) =
     bprintf buff "      ";
     (match u_const with
-    | Ast.Start (ident,labels) ->
-      bprintf buff "%s -[%s]-> *" ident (List_.to_string (fun x->x) "|" labels)
-    | Ast.Cst_out ident ->
+    | Ast.Cst_out (ident, ([],false)) ->
       bprintf buff "%s -> *" ident
-    | Ast.End (ident,labels) ->
+    | Ast.Cst_out (ident, (labels,false)) ->
+      bprintf buff "%s -[%s]-> *" ident (List_.to_string (fun x->x) "|" labels)
+    | Ast.Cst_out (ident, (labels,true)) ->
+      bprintf buff "%s -[^%s]-> *" ident (List_.to_string (fun x->x) "|" labels)
+
+    | Ast.Cst_in (ident, ([],false)) ->
+      bprintf buff "* -> %s" ident
+    | Ast.Cst_in (ident, (labels,false)) ->
       bprintf buff "* -[%s]-> %s" (List_.to_string (fun x->x) "|" labels) ident
-    | Ast.Cst_in ident -> bprintf buff "* -> %s" ident
+    | Ast.Cst_in (ident, (labels,true)) ->
+      bprintf buff "* -[^%s]-> %s" (List_.to_string (fun x->x) "|" labels) ident
+
     | Ast.Feature_eq (feat_id_l, feat_id_r) ->
       bprintf buff "%s = %s" (Ast.dump_feature_ident feat_id_l) (Ast.dump_feature_ident feat_id_r);
     | Ast.Feature_diseq (feat_id_l, feat_id_r) ->

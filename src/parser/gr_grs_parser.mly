@@ -421,8 +421,8 @@ pat_edge_or_const:
             { let (n1,loc) = n1_loc in
               match (n1,n2) with
               | ("*", "*") -> Error.build ~loc "Source and target cannot be both underspecified"
-              | ("*", _) -> Pat_const (Ast.Cst_in n2, loc)
-              | (_, "*") -> Pat_const (Ast.Cst_out n1, loc)
+              | ("*", _) -> Pat_const (Ast.Cst_in (n2,([],true)), loc)
+              | (_, "*") -> Pat_const (Ast.Cst_out (n1,([],true)), loc)
               | _ -> Pat_edge ({Ast.edge_id = None; src=n1; edge_label_cst=([],true); tar=n2}, loc)
             }
 
@@ -433,8 +433,8 @@ pat_edge_or_const:
             { let (n1,loc) = n1_loc in
               match (n1,n2) with
               | ("*", "*") -> Error.build ~loc "Source and target cannot be both underspecified"
-              | ("*", _) -> Pat_const (Ast.End (n2,labels), loc)
-              | (_, "*") -> Pat_const (Ast.Start (n1,labels), loc)
+              | ("*", _) -> Pat_const (Ast.Cst_in (n2,(labels,false)), loc)
+              | (_, "*") -> Pat_const (Ast.Cst_out (n1,(labels,false)), loc)
               | _ -> Pat_edge ({Ast.edge_id = None; src=n1; edge_label_cst=(labels,false); tar=n2}, loc) }
 
         (* "A -[^X|Y]-> B"*)
@@ -442,8 +442,8 @@ pat_edge_or_const:
             { let (n1,loc) = n1_loc in
               match (n1,n2) with
               | ("*", "*") -> Error.build ~loc "Source and target cannot be both underspecified"
-              | ("*", _)
-              | (_, "*") -> Error.bug ~loc "Not implemented: pat edge constraint with negative labels"
+              | ("*", _) -> Pat_const (Ast.Cst_in (n2,(labels,true)), loc)
+              | (_, "*") -> Pat_const (Ast.Cst_out (n1,(labels,true)), loc)
               | _ -> Pat_edge ({Ast.edge_id = None; src=n1; edge_label_cst=(labels,true); tar=n2}, loc) }
 
         (* "X.cat = Y.cat" *)
