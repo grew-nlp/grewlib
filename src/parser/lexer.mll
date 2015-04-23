@@ -142,6 +142,7 @@ and label_parser target = parse
 
 | "]->" { Parser_global.label_flag := false; LTR_EDGE_RIGHT }
 | "]-"  { Parser_global.label_flag := false; RTL_EDGE_RIGHT }
+| "]=>" { Parser_global.label_flag := false; ARROW_RIGHT }
 
 | _ as c { raise (Error (sprintf "At line %d: unexpected character '%c'" (lexbuf.Lexing.lex_start_p.Lexing.pos_lnum) c)) }
 
@@ -216,13 +217,17 @@ and standard target = parse
 | ">=" | "≥" { GE }
 
 | '|'   { PIPE }
-| "->"  { GOTO_NODE }
+| "->"  { EDGE }
 | "-[^" { Parser_global.label_flag := true; LTR_EDGE_LEFT_NEG }
 | "-["  { Parser_global.label_flag := true; LTR_EDGE_LEFT }
 | "]->" { LTR_EDGE_RIGHT }
 | "<-[" { Parser_global.label_flag := true; RTL_EDGE_LEFT }
 | "]-"  { RTL_EDGE_RIGHT }
-| "==>" { LONGARROW }
+
+| "==>" { ARROW }
+| "=["  { Parser_global.label_flag := true; ARROW_LEFT }
+| "=[^" { Parser_global.label_flag := true; ARROW_LEFT_NEG }
+| "]=>" { ARROW_RIGHT }
 
 | '"'   { Buffer.clear buff; string_lex global lexbuf }
 

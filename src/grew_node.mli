@@ -26,8 +26,9 @@ module G_node: sig
   val get_fs: t -> G_fs.t
   val get_next: t -> G_edge.t Massoc_gid.t
 
-  val set_fs: t -> G_fs.t -> t
+  val set_fs: G_fs.t -> t -> t
   val set_position: float -> t -> t
+  val set_next: G_edge.t Massoc_gid.t -> t -> t
 
   val is_conll_root: t -> bool
 

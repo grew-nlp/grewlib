@@ -35,9 +35,9 @@ module Command : sig
     | DEL_FEAT of (command_node * string)
     | UPDATE_FEAT of (command_node * string * item list)
     | NEW_NEIGHBOUR of (string * G_edge.t * Pid.t)
-    | SHIFT_EDGE of (command_node * command_node)
-    | SHIFT_IN of (command_node * command_node)
-    | SHIFT_OUT of (command_node * command_node)
+    | SHIFT_EDGE of (command_node * command_node * Label.t list * bool)
+    | SHIFT_IN of (command_node * command_node * Label.t list * bool)
+    | SHIFT_OUT of (command_node * command_node * Label.t list * bool)
     | MERGE_NODE of (command_node * command_node)
     | ACT_NODE of command_node
 

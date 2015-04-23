@@ -27,9 +27,10 @@ module G_node = struct
     }
 
   let get_fs t = t.fs
-  let set_fs t fs = {t with fs = fs}
+  let set_fs fs t = {t with fs }
 
   let get_next t = t.next
+  let set_next next t = {t with next }
 
   let get_position t = t.position
   let set_position position t = { t with position }

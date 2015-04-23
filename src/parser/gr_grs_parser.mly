@@ -49,13 +49,18 @@ let localize t = (t,get_loc ())
 %token GE                          /* >= or ≥ */
 
 %token PIPE                        /* | */
-%token GOTO_NODE                   /* -> */
+
+%token EDGE                   /* -> */
 %token LTR_EDGE_LEFT               /* -[ */
 %token LTR_EDGE_LEFT_NEG           /* -[^ */
 %token LTR_EDGE_RIGHT              /* ]-> */
 %token RTL_EDGE_LEFT               /* <-[ */
 %token RTL_EDGE_RIGHT              /* ]- */
-%token LONGARROW                   /* ==> */
+
+%token ARROW                       /* ==> */
+%token ARROW_LEFT                  /* =[ */
+%token ARROW_LEFT_NEG              /* =[^ */
+%token ARROW_RIGHT                 /* ]=> */
 
 %token INCLUDE                     /* include */
 %token FEATURES                    /* features */
@@ -397,7 +402,7 @@ node_features:
 
 pat_edge_or_const:
         (*   "e: A -> B"           *)
-        | id_loc=simple_id_with_loc DDOT n1=simple_id GOTO_NODE n2=simple_id
+        | id_loc=simple_id_with_loc DDOT n1=simple_id EDGE n2=simple_id
             { let (id,loc) = id_loc in Pat_edge ({Ast.edge_id = Some id; src=n1; edge_labels=[]; tar=n2; negative=true}, loc) }
 
         (* "e: A -[X|Y]-> B" *)
@@ -412,7 +417,7 @@ pat_edge_or_const:
         (*   "A -> B"           *)
         (*   "A -> *"           *)
         (*   "* -> A"           *)
-        | n1_loc=id_with_loc GOTO_NODE n2=ID
+        | n1_loc=id_with_loc EDGE n2=ID
             { let (n1,loc) = n1_loc in
               match (n1,n2) with
               | ("*", "*") -> Error.build ~loc "Source and target cannot be both underspecified"
@@ -481,20 +486,58 @@ command:
         | ADD_EDGE src_loc=command_node_ident_with_loc label=delimited(LTR_EDGE_LEFT,label_ident,LTR_EDGE_RIGHT) tar=command_node_ident
             { let (src,loc) = src_loc in (Ast.Add_edge (src, tar, label), loc) }
 
-        (* shift_in m ==> n *)
-        | SHIFT_IN src_loc=command_node_ident_with_loc LONGARROW tar=command_node_ident
-            { let (src,loc) = src_loc in (Ast.Shift_in (src, tar), loc) }
+        (* "shift_in m ==> n" *)
+        | SHIFT_IN src_loc=command_node_ident_with_loc ARROW tar=command_node_ident
+            { let (src,loc) = src_loc in (Ast.Shift_in (src, tar, [], true), loc) }
 
-        (* shift_out m ==> n *)
-        | SHIFT_OUT src_loc=command_node_ident_with_loc LONGARROW tar=command_node_ident
-            { let (src,loc) = src_loc in (Ast.Shift_out (src, tar), loc) }
+        (* "shift_in m =[x*|y]=> n" *)
+        | SHIFT_IN src_loc=command_node_ident_with_loc 
+          labels=delimited(ARROW_LEFT,separated_nonempty_list(PIPE,pattern_label_ident),ARROW_RIGHT)
+          tar=command_node_ident
+            { let (src,loc) = src_loc in (Ast.Shift_in (src, tar, labels, false), loc) }
 
-        (* shift m ==> n *)
-        | SHIFT src_loc=command_node_ident_with_loc LONGARROW tar=command_node_ident
-            { let (src,loc) = src_loc in (Ast.Shift_edge (src, tar), loc) }
+        (* "shift_in m =[^x*|y]=> n" *)
+        | SHIFT_IN src_loc=command_node_ident_with_loc 
+          labels=delimited(ARROW_LEFT_NEG,separated_nonempty_list(PIPE,pattern_label_ident),ARROW_RIGHT)
+          tar=command_node_ident
+            { let (src,loc) = src_loc in (Ast.Shift_in (src, tar, labels, true), loc) }
+
+
+        (* "shift_out m ==> n" *)
+        | SHIFT_OUT src_loc=command_node_ident_with_loc ARROW tar=command_node_ident
+            { let (src,loc) = src_loc in (Ast.Shift_out (src, tar, [], true), loc) }
+
+        (* "shift_out m =[x*|y]=> n" *)
+        | SHIFT_OUT src_loc=command_node_ident_with_loc 
+          labels=delimited(ARROW_LEFT,separated_nonempty_list(PIPE,pattern_label_ident),ARROW_RIGHT)
+          tar=command_node_ident
+            { let (src,loc) = src_loc in (Ast.Shift_out (src, tar, labels, false), loc) }
+
+        (* "shift_out m =[^x*|y]=> n" *)
+        | SHIFT_OUT src_loc=command_node_ident_with_loc 
+          labels=delimited(ARROW_LEFT_NEG,separated_nonempty_list(PIPE,pattern_label_ident),ARROW_RIGHT)
+          tar=command_node_ident
+            { let (src,loc) = src_loc in (Ast.Shift_out (src, tar, labels, true), loc) }
+
+
+        (* "shift m ==> n" *)
+        | SHIFT src_loc=command_node_ident_with_loc ARROW tar=command_node_ident
+            { let (src,loc) = src_loc in (Ast.Shift_edge (src, tar, [], true), loc) }
+
+        (* "shift m =[x*|y]=> n" *)
+        | SHIFT src_loc=command_node_ident_with_loc 
+          labels=delimited(ARROW_LEFT,separated_nonempty_list(PIPE,pattern_label_ident),ARROW_RIGHT)
+          tar=command_node_ident
+            { let (src,loc) = src_loc in (Ast.Shift_edge (src, tar, labels, false), loc) }
+
+        (* "shift m =[^x*|y]=> n" *)
+        | SHIFT src_loc=command_node_ident_with_loc 
+          labels=delimited(ARROW_LEFT_NEG,separated_nonempty_list(PIPE,pattern_label_ident),ARROW_RIGHT)
+          tar=command_node_ident
+            { let (src,loc) = src_loc in (Ast.Shift_edge (src, tar, labels, true), loc) }
 
         (* merge m ==> n *)
-        | MERGE src_loc=command_node_ident_with_loc LONGARROW tar=command_node_ident
+        | MERGE src_loc=command_node_ident_with_loc ARROW tar=command_node_ident
             { let (src,loc) = src_loc in (Ast.Merge_node (src, tar), loc) }
 
         (* del_node n *)

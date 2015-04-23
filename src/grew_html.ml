@@ -55,10 +55,28 @@ module Html_doc = struct
     | Ast.Del_edge_name name -> bprintf buff "del_edge %s" name
     | Ast.Add_edge (n1,n2,label) ->
       bprintf buff "add_edge %s -[%s]-> %s" (Ast.dump_command_node_ident n1) label (Ast.dump_command_node_ident n2)
-    | Ast.Shift_in (n1,n2) ->
+
+    | Ast.Shift_in (n1,n2,[],true) ->
       bprintf buff "shift_in %s ==> %s" (Ast.dump_command_node_ident n1) (Ast.dump_command_node_ident n2)
-    | Ast.Shift_out (n1,n2) -> bprintf buff "shift_out %s ==> %s" (Ast.dump_command_node_ident n1) (Ast.dump_command_node_ident n2)
-    | Ast.Shift_edge (n1,n2) -> bprintf buff "shift %s ==> %s" (Ast.dump_command_node_ident n1) (Ast.dump_command_node_ident n2)
+    | Ast.Shift_in (n1,n2,labels,false) ->
+      bprintf buff "shift_in %s =[%s]=> %s" (Ast.dump_command_node_ident n1) (Ast.dump_command_node_ident n2) (List_.to_string (fun x->x) "|" labels)
+    | Ast.Shift_in (n1,n2,labels,true) ->
+      bprintf buff "shift_in %s =[^%s]=> %s" (Ast.dump_command_node_ident n1) (Ast.dump_command_node_ident n2) (List_.to_string (fun x->x) "|" labels)
+
+    | Ast.Shift_out (n1,n2,[],true) ->
+      bprintf buff "shift_out %s ==> %s" (Ast.dump_command_node_ident n1) (Ast.dump_command_node_ident n2)
+    | Ast.Shift_out (n1,n2,labels,false) ->
+      bprintf buff "shift_out %s =[%s]=> %s" (Ast.dump_command_node_ident n1) (Ast.dump_command_node_ident n2) (List_.to_string (fun x->x) "|" labels)
+    | Ast.Shift_out (n1,n2,labels,true) ->
+      bprintf buff "shift_out %s =[^%s]=> %s" (Ast.dump_command_node_ident n1) (Ast.dump_command_node_ident n2) (List_.to_string (fun x->x) "|" labels)
+
+    | Ast.Shift_edge (n1,n2,[],true) ->
+      bprintf buff "shift %s ==> %s" (Ast.dump_command_node_ident n1) (Ast.dump_command_node_ident n2)
+    | Ast.Shift_edge (n1,n2,labels,false) ->
+      bprintf buff "shift %s =[%s]=> %s" (Ast.dump_command_node_ident n1) (Ast.dump_command_node_ident n2) (List_.to_string (fun x->x) "|" labels)
+    | Ast.Shift_edge (n1,n2,labels,true) ->
+      bprintf buff "shift %s =[^%s]=> %s" (Ast.dump_command_node_ident n1) (Ast.dump_command_node_ident n2) (List_.to_string (fun x->x) "|" labels)
+
     | Ast.Merge_node (n1,n2) -> bprintf buff "merge %s ==> %s" (Ast.dump_command_node_ident n1) (Ast.dump_command_node_ident n2)
     | Ast.New_neighbour (n1,n2,label) -> bprintf buff "add_node %s: <-[%s]- %s" n1 label (Ast.dump_command_node_ident n2)
     | Ast.Activate act_id -> bprintf buff "activate %s" (Ast.dump_command_node_ident act_id)

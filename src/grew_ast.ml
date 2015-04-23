@@ -173,9 +173,12 @@ module Ast = struct
     | Del_edge_expl of (command_node_ident * command_node_ident * edge_label)
     | Del_edge_name of string
     | Add_edge of (command_node_ident * command_node_ident * edge_label)
-    | Shift_in of (command_node_ident * command_node_ident)
-    | Shift_out of (command_node_ident * command_node_ident)
-    | Shift_edge of (command_node_ident * command_node_ident)
+
+    (* 4 args: source, target, labels, flag true iff negative cst *)
+    | Shift_in of (command_node_ident * command_node_ident * edge_label list * bool)
+    | Shift_out of (command_node_ident * command_node_ident * edge_label list * bool)
+    | Shift_edge of (command_node_ident * command_node_ident * edge_label list * bool)
+
     | Merge_node of (command_node_ident * command_node_ident)
     | New_neighbour of (Id.name * command_node_ident * edge_label)
     | Del_node of command_node_ident
@@ -185,7 +188,7 @@ module Ast = struct
     | Update_feat of command_feature_ident * concat_item list
   type command = u_command * Loc.t
 
-  (* the [rule] type is used for 3 kids of module items:
+  (* the [rule] type is used for 3 kinds of module items:
      - rule     { param=None; ... }
      - lex_rule
      - filter   { param=None; commands=[]; ... }

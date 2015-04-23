@@ -41,9 +41,9 @@ module Command  = struct
     | DEL_FEAT of (command_node * string)
     | UPDATE_FEAT of (command_node * string * item list)
     | NEW_NEIGHBOUR of (string * G_edge.t * Pid.t) (* TODO: remove *)
-    | SHIFT_EDGE of (command_node * command_node)
-    | SHIFT_IN of (command_node * command_node)
-    | SHIFT_OUT of (command_node * command_node)
+    | SHIFT_EDGE of (command_node * command_node * Label.t list * bool)
+    | SHIFT_IN of (command_node * command_node * Label.t list * bool)
+    | SHIFT_OUT of (command_node * command_node * Label.t list * bool)
     | MERGE_NODE of (command_node * command_node)
     | ACT_NODE of command_node
 
@@ -108,20 +108,20 @@ module Command  = struct
 	        let edge = G_edge.make ~loc ~locals lab in
         	((ADD_EDGE (pid_of_act_id loc act_i, pid_of_act_id loc act_j, edge), loc), (kai, kei))
 
-      | (Ast.Shift_edge (act_i, act_j), loc) ->
+      | (Ast.Shift_edge (act_i, act_j, labels, neg), loc) ->
           check_act_id loc act_i kai;
           check_act_id loc act_j kai;
-	        ((SHIFT_EDGE (pid_of_act_id loc act_i, pid_of_act_id loc act_j), loc), (kai, kei))
+	        ((SHIFT_EDGE (pid_of_act_id loc act_i, pid_of_act_id loc act_j, List.map (Label.from_string ~loc) labels, neg), loc), (kai, kei))
 
-      | (Ast.Shift_in (act_i, act_j), loc) ->
+      | (Ast.Shift_in (act_i, act_j, labels, neg), loc) ->
           check_act_id loc act_i kai;
           check_act_id loc act_j kai;
-	        ((SHIFT_IN (pid_of_act_id loc act_i, pid_of_act_id loc act_j), loc), (kai, kei))
+	        ((SHIFT_IN (pid_of_act_id loc act_i, pid_of_act_id loc act_j, List.map (Label.from_string ~loc) labels, neg), loc), (kai, kei))
 
-      | (Ast.Shift_out (act_i, act_j), loc) ->
+      | (Ast.Shift_out (act_i, act_j, labels, neg), loc) ->
           check_act_id loc act_i kai;
           check_act_id loc act_j kai;
-	        ((SHIFT_OUT (pid_of_act_id loc act_i, pid_of_act_id loc act_j), loc), (kai, kei))
+	        ((SHIFT_OUT (pid_of_act_id loc act_i, pid_of_act_id loc act_j, List.map (Label.from_string ~loc) labels, neg), loc), (kai, kei))
 
       | (Ast.Merge_node (act_i, act_j), loc) ->
           check_act_id loc act_i kai;

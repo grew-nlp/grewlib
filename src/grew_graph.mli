@@ -133,13 +133,13 @@ module G_graph: sig
   val merge_node: Loc.t -> t -> Gid.t -> Gid.t -> t option
 
   (** move all in arcs to id_src are moved to in arcs on node id_tar from graph, with all its incoming edges *)
-  val shift_in: Loc.t -> t -> Gid.t -> Gid.t -> t
+  val shift_in: Loc.t -> Gid.t -> Gid.t -> (Label.t list * bool) -> t -> t
 
   (** move all out-edges from id_src are moved to out-edges out off node id_tar *)
-  val shift_out: Loc.t -> t -> Gid.t -> Gid.t -> t
+  val shift_out: Loc.t -> Gid.t -> Gid.t -> (Label.t list * bool) -> t -> t
 
   (** move all incident arcs from/to id_src are moved to incident arcs on node id_tar from graph, with all its incoming and outcoming edges *)
-  val shift_edges: Loc.t -> t -> Gid.t -> Gid.t -> t
+  val shift_edges: Loc.t -> Gid.t -> Gid.t -> (Label.t list * bool) -> t -> t
 
   (** [update_feat tar_id tar_feat_name concat_items] sets the feature of the node [tar_id]
       with feature name [tar_feat_name] to be the contatenation of values described by the [concat_items].

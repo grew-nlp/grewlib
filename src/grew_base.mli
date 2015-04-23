@@ -129,6 +129,9 @@ module List_: sig
   (* Insert an element in a sorted list. *)
   val sort_insert: 'a -> 'a list -> 'a list
 
+  (* may raise [Not_found] *)
+  val usort_remove: 'a -> 'a list -> 'a list
+
   (* Insert an element in a usort list. Return Some l or None if the element is already in the list *)
   val usort_insert: ?compare:('a -> 'a -> int) -> 'a -> 'a list -> 'a list option
 
@@ -186,6 +189,8 @@ module type S =
     val iter: (key -> 'a -> unit) -> 'a t -> unit
 
     val add: key -> 'a -> 'a t -> 'a t option
+
+    val replace: key -> 'a list -> 'a t -> 'a t
 
     val fold: ('b -> key -> 'a -> 'b) -> 'b -> 'a t -> 'b
 

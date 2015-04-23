@@ -306,7 +306,7 @@ module List_ = struct
       | [] -> [elt]
       | x::t when compare elt x < 0 -> elt :: x :: t
       | x::t when compare elt x > 0 -> x :: (loop t)
-    | _ -> raise Usort in
+      | _ -> raise Usort in
     try Some (loop l) with Usort -> None
 
   let rec sort_disjoint l1 l2 =
@@ -418,6 +418,8 @@ module type S = sig
 
   val add: key -> 'a -> 'a t -> 'a t option
 
+  val replace: key -> 'a list -> 'a t -> 'a t
+
   val fold: ('b -> key -> 'a -> 'b) -> 'b -> 'a t -> 'b
 
   (* raise Not_found if no (key,elt) *)
@@ -465,6 +467,8 @@ module Massoc_make (Ord: OrderedType) = struct
     M.iter
       (fun key list -> List.iter (fun elt -> fct key elt) list
       ) t
+
+  let replace = M.add
 
   let add key elt t =
     try
