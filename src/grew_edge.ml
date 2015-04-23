@@ -48,10 +48,6 @@ module P_edge = struct
 
   let get_id t = t.id
 
-  let make ?loc ?(id=None) ?(neg=false) ?(locals=[||]) = function
-    | l when neg -> {id=id; u_label=Label_cst.Neg (List.sort compare (List.map (Label.from_string ?loc ~locals) l))}
-    | l -> {id=id; u_label=Label_cst.Pos (List.sort compare (List.map (Label.from_string ?loc ~locals) l))}
-
   let build ?locals (ast_edge, loc) =
     { id = ast_edge.Ast.edge_id;
       u_label = Label_cst.build ~loc ?locals ast_edge.Ast.edge_label_cst
@@ -61,8 +57,6 @@ module P_edge = struct
     match t.id with
     | None -> Label_cst.to_string t.u_label
     | Some i -> sprintf "%s:%s" i (Label_cst.to_string t.u_label)
-
-  let compatible t g_edge = Label_cst.match_ g_edge t.u_label
 
   type edge_matcher =
     | Fail

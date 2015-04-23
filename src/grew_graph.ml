@@ -261,9 +261,9 @@ module G_graph = struct
     in loop 0
 
   (* is there an edge e out of node i ? *)
-  let edge_out graph node_id p_edge =
+  let edge_out graph node_id label_cst =
     let node = Gid_map.find node_id graph.map in
-    Massoc_gid.exists (fun _ e -> P_edge.compatible p_edge e) (G_node.get_next node)
+    Massoc_gid.exists (fun _ e -> Label_cst.match_ e label_cst) (G_node.get_next node)
 
   let get_annot_info graph =
     let annot_info =

@@ -96,8 +96,8 @@ module Rule = struct
   let max_depth = ref 500
 
   type const =
-    | Cst_out of Pid.t * P_edge.t
-    | Cst_in of Pid.t * P_edge.t
+    | Cst_out of Pid.t * Label_cst.t
+    | Cst_in of Pid.t * Label_cst.t
     | Feature_eq of Pid.t * string * Pid.t * string
     | Feature_diseq of Pid.t * string * Pid.t * string
 
@@ -108,13 +108,13 @@ module Rule = struct
     let pid_of_name loc node_name = Pid.Pos (Id.build ~loc node_name pos_table) in
     match const with
       | (Ast.Start (id, labels), loc) ->
-        Cst_out (pid_of_name loc id, P_edge.make ~loc ?locals labels)
+        Cst_out (pid_of_name loc id, Label_cst.build ~loc ?locals (labels, false))
       | (Ast.Cst_out id, loc) ->
-        Cst_out (pid_of_name loc id, P_edge.all)
+        Cst_out (pid_of_name loc id, Label_cst.all)
       | (Ast.End (id, labels),loc) ->
-        Cst_in (pid_of_name loc id, P_edge.make ~loc ?locals labels)
+        Cst_in (pid_of_name loc id, Label_cst.build ~loc ?locals (labels, false))
       | (Ast.Cst_in id, loc) ->
-        Cst_in (pid_of_name loc id, P_edge.all)
+        Cst_in (pid_of_name loc id, Label_cst.all)
 
       | (Ast.Feature_eq ((node_name1, feat_name1), (node_name2, feat_name2)), loc) ->
         Feature_eq (pid_of_name loc node_name1, feat_name1, pid_of_name loc node_name2, feat_name2)
@@ -147,13 +147,13 @@ module Rule = struct
         | None -> Pid.Neg (Id.build ~loc node_name neg_table) in
     match const with
       | (Ast.Start (id, labels),loc) ->
-        Cst_out (pid_of_name loc id, P_edge.make ~loc ?locals labels)
+        Cst_out (pid_of_name loc id, Label_cst.build ~loc ?locals (labels, false))
       | (Ast.Cst_out id, loc) ->
-        Cst_out (pid_of_name loc id, P_edge.all)
+        Cst_out (pid_of_name loc id, Label_cst.all)
       | (Ast.End (id, labels),loc) ->
-        Cst_in (pid_of_name loc id, P_edge.make ~loc ?locals labels)
+        Cst_in (pid_of_name loc id, Label_cst.build ~loc ?locals (labels, false))
       | (Ast.Cst_in id, loc) ->
-        Cst_in (pid_of_name loc id, P_edge.all)
+        Cst_in (pid_of_name loc id, Label_cst.all)
 
       | (Ast.Feature_eq (feat_id1, feat_id2), loc) ->
         let (node_name1, feat_name1) = feat_id1
@@ -254,12 +254,12 @@ module Rule = struct
     List_.iteri
       (fun i cst ->
         match cst with
-          | Cst_out (pid, edge) ->
+          | Cst_out (pid, label_cst) ->
             bprintf buff "  N_%s -> C_%d {label = \"%s\"; style=dot; bottom; color=green;}\n"
-              (Pid.to_id pid) i (P_edge.to_string edge)
-          | Cst_in (pid, edge) ->
+              (Pid.to_id pid) i (Label_cst.to_string label_cst)
+          | Cst_in (pid, label_cst) ->
             bprintf buff "  C_%d -> N_%s {label = \"%s\"; style=dot; bottom; color=green;}\n"
-              i (Pid.to_id pid) (P_edge.to_string edge)
+              i (Pid.to_id pid) (Label_cst.to_string label_cst)
           | _ -> ()
       ) pos_basic.constraints;
     bprintf buff "}\n";
@@ -454,16 +454,16 @@ module Rule = struct
       | feat_name -> G_fs.get_float_feat feat_name (G_node.get_fs (get_node pid)) in
 
     match cst with
-      | Cst_out (pid,edge) ->
+      | Cst_out (pid,label_cst) ->
         let gid = Pid_map.find pid matching.n_match in
-        if G_graph.edge_out graph gid edge
+        if G_graph.edge_out graph gid label_cst
         then matching
         else raise Fail
-      | Cst_in (pid,edge) ->
+      | Cst_in (pid,label_cst) ->
         let gid = Pid_map.find pid matching.n_match in
         if G_graph.node_exists
           (fun node ->
-            List.exists (fun e -> P_edge.compatible edge e) (Massoc_gid.assoc gid (G_node.get_next node))
+            List.exists (fun e -> Label_cst.match_ e label_cst) (Massoc_gid.assoc gid (G_node.get_next node))
           ) graph
         then matching
         else raise Fail

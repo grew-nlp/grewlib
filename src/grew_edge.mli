@@ -42,16 +42,6 @@ module P_edge: sig
 
   val build: ?locals:Label.decl array -> Ast.edge -> t
 
-  val make:
-    ?loc:Loc.t ->
-    ?id: string option ->
-    ?neg:bool ->
-    ?locals:Label.decl array ->
-    string list ->
-    t
-
-  val compatible: t -> G_edge.t -> bool
-
   type edge_matcher =
     | Fail
     | Ok of Label.t
