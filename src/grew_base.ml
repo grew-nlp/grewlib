@@ -84,7 +84,8 @@ module String_ = struct
 
       (* if the [re] ends with some text jump to the end and test for the text *)
       | [Str.Delim "*"; Str.Text t] ->
-        Str.string_match (Str.regexp_string t) s (len - (String.length t))
+        (String.length t <= String.length s) &&
+        (Str.string_match (Str.regexp_string t) s (len - (String.length t)))
 
       (* if the [re] required for some text [t],
          we consider the first occurence which is more general than other occurences *)
