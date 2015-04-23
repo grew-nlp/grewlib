@@ -56,25 +56,25 @@ module Html_doc = struct
     | Ast.Add_edge (n1,n2,label) ->
       bprintf buff "add_edge %s -[%s]-> %s" (Ast.dump_command_node_ident n1) label (Ast.dump_command_node_ident n2)
 
-    | Ast.Shift_in (n1,n2,[],true) ->
+    | Ast.Shift_in (n1,n2,([],true)) ->
       bprintf buff "shift_in %s ==> %s" (Ast.dump_command_node_ident n1) (Ast.dump_command_node_ident n2)
-    | Ast.Shift_in (n1,n2,labels,false) ->
+    | Ast.Shift_in (n1,n2,(labels,false)) ->
       bprintf buff "shift_in %s =[%s]=> %s" (Ast.dump_command_node_ident n1) (Ast.dump_command_node_ident n2) (List_.to_string (fun x->x) "|" labels)
-    | Ast.Shift_in (n1,n2,labels,true) ->
+    | Ast.Shift_in (n1,n2,(labels,true)) ->
       bprintf buff "shift_in %s =[^%s]=> %s" (Ast.dump_command_node_ident n1) (Ast.dump_command_node_ident n2) (List_.to_string (fun x->x) "|" labels)
 
-    | Ast.Shift_out (n1,n2,[],true) ->
+    | Ast.Shift_out (n1,n2,([],true)) ->
       bprintf buff "shift_out %s ==> %s" (Ast.dump_command_node_ident n1) (Ast.dump_command_node_ident n2)
-    | Ast.Shift_out (n1,n2,labels,false) ->
+    | Ast.Shift_out (n1,n2,(labels,false)) ->
       bprintf buff "shift_out %s =[%s]=> %s" (Ast.dump_command_node_ident n1) (Ast.dump_command_node_ident n2) (List_.to_string (fun x->x) "|" labels)
-    | Ast.Shift_out (n1,n2,labels,true) ->
+    | Ast.Shift_out (n1,n2,(labels,true)) ->
       bprintf buff "shift_out %s =[^%s]=> %s" (Ast.dump_command_node_ident n1) (Ast.dump_command_node_ident n2) (List_.to_string (fun x->x) "|" labels)
 
-    | Ast.Shift_edge (n1,n2,[],true) ->
+    | Ast.Shift_edge (n1,n2,([],true)) ->
       bprintf buff "shift %s ==> %s" (Ast.dump_command_node_ident n1) (Ast.dump_command_node_ident n2)
-    | Ast.Shift_edge (n1,n2,labels,false) ->
+    | Ast.Shift_edge (n1,n2,(labels,false)) ->
       bprintf buff "shift %s =[%s]=> %s" (Ast.dump_command_node_ident n1) (Ast.dump_command_node_ident n2) (List_.to_string (fun x->x) "|" labels)
-    | Ast.Shift_edge (n1,n2,labels,true) ->
+    | Ast.Shift_edge (n1,n2,(labels,true)) ->
       bprintf buff "shift %s =[^%s]=> %s" (Ast.dump_command_node_ident n1) (Ast.dump_command_node_ident n2) (List_.to_string (fun x->x) "|" labels)
 
     | Ast.Merge_node (n1,n2) -> bprintf buff "merge %s ==> %s" (Ast.dump_command_node_ident n1) (Ast.dump_command_node_ident n2)

@@ -92,6 +92,17 @@ module Label : sig
 end (* module Label *)
 
 (* ================================================================================ *)
+(** The module [Label_cst] defines contraints on label edges *)
+module Label_cst : sig
+  type t
+  val all: t
+  val positive: Label.t list -> t
+  val negative: Label.t list -> t
+  val match_: Label.t -> t -> bool
+  val build: ?loc:Loc.t -> ?locals:Label.decl array -> (string list * bool) -> t
+end (* module Label_cst *)
+
+(* ================================================================================ *)
 module Domain: sig
   type feature_spec =
     | Closed of feature_name * feature_atom list (* cat:V,N *)

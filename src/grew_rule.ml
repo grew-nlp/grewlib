@@ -728,34 +728,34 @@ module Rule = struct
         )
     | Command.ACT_NODE _ -> Error.bug "Try to activate a node without suffix" (Loc.to_string loc)
 
-    | Command.SHIFT_IN (src_cn,tar_cn,labels,neg) ->
+    | Command.SHIFT_IN (src_cn,tar_cn,label_cst) ->
         let src_gid = node_find src_cn in
         let tar_gid = node_find tar_cn in
         (
          {instance with
-          Instance.graph = G_graph.shift_in loc src_gid tar_gid (labels,neg) instance.Instance.graph;
+          Instance.graph = G_graph.shift_in loc src_gid tar_gid label_cst instance.Instance.graph;
           history = List_.sort_insert (Command.H_SHIFT_IN (src_gid,tar_gid)) instance.Instance.history
         },
          (created_nodes, activated_nodes)
         )
 
-    | Command.SHIFT_OUT (src_cn,tar_cn,labels,neg) ->
+    | Command.SHIFT_OUT (src_cn,tar_cn,label_cst) ->
         let src_gid = node_find src_cn in
         let tar_gid = node_find tar_cn in
         (
          {instance with
-          Instance.graph = G_graph.shift_out loc src_gid tar_gid (labels,neg) instance.Instance.graph;
+          Instance.graph = G_graph.shift_out loc src_gid tar_gid label_cst instance.Instance.graph;
           history = List_.sort_insert (Command.H_SHIFT_OUT (src_gid,tar_gid)) instance.Instance.history
         },
          (created_nodes, activated_nodes)
         )
 
-    | Command.SHIFT_EDGE (src_cn,tar_cn,labels,neg) ->
+    | Command.SHIFT_EDGE (src_cn,tar_cn,label_cst) ->
         let src_gid = node_find src_cn in
         let tar_gid = node_find tar_cn in
         (
           {instance with
-            Instance.graph = G_graph.shift_edges loc src_gid tar_gid (labels,neg) instance.Instance.graph;
+            Instance.graph = G_graph.shift_edges loc src_gid tar_gid label_cst instance.Instance.graph;
             history = List_.sort_insert (Command.H_SHIFT_EDGE (src_gid,tar_gid)) instance.Instance.history
           },
           (created_nodes, activated_nodes)

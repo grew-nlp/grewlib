@@ -121,6 +121,9 @@ module Ast = struct
 
   type edge_label = string
 
+  (* (list of edge_label separated by '|', bool true iff it is a negative constraint) *)
+  type edge_label_cst = edge_label list * bool
+
   type u_edge = {
     edge_id: Id.name option;
     src: Id.name;
@@ -175,9 +178,9 @@ module Ast = struct
     | Add_edge of (command_node_ident * command_node_ident * edge_label)
 
     (* 4 args: source, target, labels, flag true iff negative cst *)
-    | Shift_in of (command_node_ident * command_node_ident * edge_label list * bool)
-    | Shift_out of (command_node_ident * command_node_ident * edge_label list * bool)
-    | Shift_edge of (command_node_ident * command_node_ident * edge_label list * bool)
+    | Shift_in of (command_node_ident * command_node_ident * edge_label_cst)
+    | Shift_out of (command_node_ident * command_node_ident * edge_label_cst)
+    | Shift_edge of (command_node_ident * command_node_ident * edge_label_cst)
 
     | Merge_node of (command_node_ident * command_node_ident)
     | New_neighbour of (Id.name * command_node_ident * edge_label)

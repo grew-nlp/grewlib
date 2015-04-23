@@ -228,6 +228,27 @@ module Label = struct
 end (* module Label *)
 
 (* ================================================================================ *)
+(** The module [Label_cst] defines contraints on label edges *)
+module Label_cst = struct
+  type t =
+  | Pos of Label.t list
+  | Neg of Label.t list
+
+  let all = Neg []
+  let positive list = Pos list
+  let negative list = Neg list
+
+  let match_ edge = function
+    | Pos labels -> Label.match_list labels edge
+    | Neg labels -> not (Label.match_list labels edge)
+
+  let build ?loc ?locals = function
+  | (edge_labels, true) -> Neg (List.map (Label.from_string ?loc ?locals) edge_labels)
+  | (edge_labels, false) -> Pos (List.map (Label.from_string ?loc ?locals) edge_labels)
+end (* module Label_cst *)
+
+
+(* ================================================================================ *)
 module Domain = struct
   type feature_spec =
     | Closed of feature_name * feature_atom list (* cat:V,N *)
