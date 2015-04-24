@@ -260,6 +260,7 @@ labels:
 
 label:
         | x=label_ident display_list=list(display)  { (x, display_list) }
+        | x=STRING                                  { (x,[]) }
 
 display:
         | dis=AROBAS_ID   { dis }
