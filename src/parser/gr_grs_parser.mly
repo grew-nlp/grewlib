@@ -451,6 +451,10 @@ pat_edge_or_const:
         | feat_id1_loc=feature_ident_with_loc EQUAL feat_id2=feature_ident
             { let (feat_id1,loc)=feat_id1_loc in Pat_const (Ast.Feature_eq (feat_id1, feat_id2), loc) }
 
+        (* "X.cat <> Y.cat" *)
+        | feat_id1_loc=feature_ident_with_loc DISEQUAL feat_id2=feature_ident
+            { let (feat_id1,loc)=feat_id1_loc in Pat_const (Ast.Feature_diseq (feat_id1, feat_id2), loc) }
+
         (* "X.position < Y.position" *)
         | feat_id1_loc=feature_ident_with_loc LT feat_id2=feature_ident
             { let (feat_id1,loc)=feat_id1_loc in Pat_const (Ast.Feature_ineq (Ast.Lt, feat_id1, feat_id2), loc) }
