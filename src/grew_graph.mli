@@ -105,6 +105,10 @@ module G_graph: sig
 
   val of_conll: ?loc:Loc.t -> Conll.line list -> t
 
+  (** input : "Le/DET/le petit/ADJ/petit chat/NC/chat dort/V/dormir ./PONCT/." 
+      It supposes that "SUC" is defined in current relations *)
+  val of_brown: string -> t
+
   val of_xml: Xml.xml -> t
   (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
   (* Update functions *)

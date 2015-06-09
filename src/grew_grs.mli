@@ -47,8 +47,9 @@ module Rewrite_history: sig
   val save_conll: string -> t -> unit
 
   (** [save_full_conll base_name t] saves one conll_file for each normal form defined in [t].
-      Output files are named according to [base_name] and a secondary index after "__". *)
-  val save_full_conll: string -> t -> unit
+      Output files are named according to [base_name] and a secondary index after "__".
+      The number of conll file produced is returned. *)
+  val save_full_conll: string -> t -> int
 
   (** [save_det_gr base_name t] supposes that the current GRS is deterministic.
       It writes exactly one output file named [base_name].gr with the unique normal form. *)

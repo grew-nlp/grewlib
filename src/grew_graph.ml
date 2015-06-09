@@ -372,6 +372,27 @@ module G_graph = struct
     {meta=[]; map=map_with_edges}
 
   (* -------------------------------------------------------------------------------- *)
+  (** input : "Le/DET/le petit/ADJ/petit chat/NC/chat dort/V/dormir ./PONCT/." *)
+  let of_brown brown =
+    let units = Str.split (Str.regexp " ") brown in
+      let conll_lines = List_.mapi
+      (fun i item -> match Str.split (Str.regexp "/") item with
+        | [phon;pos;lemma] -> 
+        {
+          Conll.line_num=0;
+          num = sprintf "%d" (i+1);
+          phon;
+          lemma;
+          pos1 = "_";
+          pos2 = pos;
+          morph = [];
+          deps = [(sprintf "%d" i, "SUC")]
+          }
+        | _ -> failwith "Unexpected MElt output"
+      ) units in 
+    of_conll conll_lines
+
+  (* -------------------------------------------------------------------------------- *)
   let opt_att atts name =
     try Some (List.assoc name atts)
     with Not_found -> None

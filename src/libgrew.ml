@@ -131,6 +131,13 @@ let of_conll file_name line_list =
       Instance.from_graph graph
     ) ()
 
+let of_brown brown =
+  handle ~name:"of_brown"
+    (fun () ->
+      let graph = G_graph.of_brown brown in
+      Instance.from_graph graph
+    ) ()
+
 let load_graph file =
   handle ~name:"load_graph" ~file
     (fun () ->

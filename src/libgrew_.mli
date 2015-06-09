@@ -79,7 +79,10 @@ val save_gr: string -> Rewrite_history.t -> unit
 
 val save_conll: string -> Rewrite_history.t -> unit
 
-val save_full_conll: string -> Rewrite_history.t -> unit
+(** [save_full_conll base_name rh] saves one conll_file for each normal form defined in [rh].
+    Output files are named according to [base_name] and a secondary index after "__".
+    The number of conll file produced is returned. *)
+val save_full_conll: string -> Rewrite_history.t -> int
 
 val save_det_gr: string -> Rewrite_history.t -> unit
 
@@ -98,6 +101,8 @@ val load_graph: string -> Instance.t
 
 (** [of_conll filename line_list] *)
 val of_conll: string -> (int * string) list -> Instance.t
+
+val of_brown: string -> Instance.t
 
 val xml_graph: Xml.xml -> Instance.t
 

@@ -79,7 +79,7 @@ module Rewrite_history = struct
           File.write (Instance.to_conll t.instance) (sprintf "%s__%d.conll" base !cpt);
           incr cpt
         | l, _ -> List.iter loop l
-    in loop t
+    in loop t; !cpt
 
   (* suppose that all modules are confluent and produced exacly one normal form *)
   let save_det_gr base t =
