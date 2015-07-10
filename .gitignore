@@ -6,9 +6,14 @@
 *.a
 *.cma
 *.cmxa
+
 Makefile
 
 confdefs.h
 config.log
 config.status
-doc/arch.pdf
+doc/*.pdf
+doc/*.log
+doc/*.aux
+
+*.sublime-*
