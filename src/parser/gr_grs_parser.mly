@@ -110,6 +110,11 @@ let localize t = (t,get_loc ())
 %start <Grew_ast.Ast.gr> gr
 %start <Grew_ast.Ast.module_or_include list> included
 %start <Grew_ast.Ast.pattern> pattern
+
+%left SEMIC
+%left PLUS
+%nonassoc STAR
+%nonassoc DISEQUAL
 %%
 
 
@@ -581,14 +586,29 @@ sequences:
 
 sequence:
         (* sequence { ant; p7_to_p7p-mc} *)
-        | doc=option(COMMENT) id_loc=simple_id_with_loc mod_names=delimited(LACC,separated_list_final_opt(SEMIC,simple_id),RACC)
+/*        | doc=option(COMMENT) id_loc=simple_id_with_loc mod_names=delimited(LACC,separated_list_final_opt(SEMIC,simple_id),RACC)
             {
               { Ast.seq_name = fst id_loc;
-                seq_mod = mod_names;
+                seq_mod = mod_names;*/
+
+        |  doc = option(COMMENT) id_loc=simple_id_with_loc mod_names=delimited(LACC,separated_list_final_opt(SEMIC,COMPLEX_ID),RACC)
+            {
+              Ast.Old { Ast.seq_name = fst id_loc;
+                seq_mod = List.map (fun x -> Ast.simple_id_of_ci x) mod_names ;
                 seq_doc = begin match doc with Some d -> d | None -> [] end;
                 seq_loc = snd id_loc;
               }
             }
+        | doc = option(COMMENT) id_loc=simple_id_with_loc EQUAL s=op_seq { Ast.New (id_loc, s) }
+
+op_seq:
+        | m=COMPLEX_ID              { Ast.Ref (Ast.simple_id_of_ci m) }
+        | LPAREN s=op_seq RPAREN    { s }
+        | s=op_seq STAR             { Ast.Star (s) }
+        | s1=op_seq PLUS s2=op_seq  { Ast.Plus [s1; s2] }
+        | s1=op_seq SEMIC s2=op_seq { Ast.List [s1; s2] }
+        | DISEQUAL s=op_seq         { Ast.Diamond s }
+
 
 /*=============================================================================================*/
 /* ISOLATED PATTERN (grep mode)                                                                 */

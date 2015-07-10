@@ -215,12 +215,49 @@ module Ast = struct
     mod_dir: string; (* the directory where the module is defined (for lp file localisation) *)
   }
 
-  type sequence = {
+  type old_sequence = {
     seq_name:string;
     seq_mod:string list;
     seq_doc:string list;
     seq_loc:Loc.t;
   }
+
+  type new_sequence =
+    | Ref of string
+    | List of new_sequence list
+    | Plus of new_sequence list
+    | Star of new_sequence
+    | Diamond of new_sequence
+
+  let rec new_sequence_to_string = function
+  | Ref m -> m
+  | List l -> "[" ^ (String.concat "; " (List.map new_sequence_to_string l)) ^ "]"
+  | Plus l -> "[" ^ (String.concat "+" (List.map new_sequence_to_string l)) ^ "]"
+  | Star s -> "[" ^ (new_sequence_to_string s) ^"]"  ^ "*"
+  | Diamond s -> "◇" ^ "[" ^(new_sequence_to_string s)^"]"
+
+  let rec flatten = function
+  | Ref m -> Ref m
+  | Star s -> Star (flatten s)
+  | Diamond s -> Diamond (flatten s)
+  | List l ->
+    let fl = List.map flatten l in
+    let rec loop = function
+    | [] -> []
+    | (List l) :: tail -> l @ (loop tail)
+    | x :: tail -> x :: (loop tail)
+    in List (loop fl)
+  | Plus l ->
+    let fl = List.map flatten l in
+    let rec loop = function
+    | [] -> []
+    | (Plus l) :: tail -> l @ (loop tail)
+    | x :: tail -> x :: (loop tail)
+    in Plus (loop fl)
+
+  type sequence =
+  | Old of old_sequence
+  | New of ((string * Loc.t) * new_sequence)
 
   (** a GRS: graph rewriting system *)
   type module_or_include =

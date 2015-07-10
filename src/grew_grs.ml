@@ -199,11 +199,17 @@ module Sequence = struct
       ) t.def
 
   let build module_list ast_sequence =
+    match ast_sequence with
+    | Ast.New ((n,_),s) ->
+    printf "----%s----> %s\n%!" n (Ast.new_sequence_to_string s);
+    printf "====%s====> %s\n%!" n (Ast.new_sequence_to_string (Ast.flatten s));
+    {name=n; def=[]; loc=Loc.file "No_file_given"; }
+    | Ast.Old old_seq ->
     let sequence =
       {
-        name = ast_sequence.Ast.seq_name;
-        def = ast_sequence.Ast.seq_mod;
-        loc = ast_sequence.Ast.seq_loc;
+        name = old_seq.Ast.seq_name;
+        def = old_seq.Ast.seq_mod;
+        loc = old_seq.Ast.seq_loc;
       } in
     check module_list sequence; sequence
 end (* module Sequence *)

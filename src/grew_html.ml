@@ -335,7 +335,9 @@ module Html_doc = struct
     wnl "  <div class=\"navbar\">&nbsp;<a href=\"index.html\">Up</a></div>";
     wnl "  <center><h1>List of sequences</h1></center>";
     List.iter
-      (fun seq ->
+      (function
+        | Ast.New _ -> failwith "Wait..."
+        | Ast.Old seq ->
         wnl "<h6>%s</h6>" seq.Ast.seq_name;
         List.iter (fun l -> wnl "<p>%s</p>" (doc_to_html l)) seq.Ast.seq_doc;
 

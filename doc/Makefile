@@ -1,4 +1,7 @@
 all:
+	pdflatex strat
+
+arch:
 	dot -Tpdf arch.dot -o arch.pdf
 
 clean:
