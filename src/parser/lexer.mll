@@ -53,7 +53,7 @@ let label_ident =
   (letter | '_' | '-' | '.' | '*') (letter | digit | '_' | '\'' | '-' | '.' | ':' | '*')*
 
 let general_ident =
-  (letter | '_' | '*') |
+  (letter | '_' ) |
   (letter | '_' | '.' ) (letter | digit | '_' | '\'' | '-' | '.' | '#')* (letter | digit | '_' | '\'' | '.')
 
 let hex = ['0'-'9' 'a'-'f' 'A'-'F']
@@ -115,6 +115,7 @@ and lp_lex target = parse
    Difference are:
    - a label_ident may contain ':' (like in D:suj:obj) and ':' is a token elsewhere
    - a label_ident may contain '-' anywhere (like "--" in Tiger) but '-' is fordiden as the first or last character elsewhere
+   - the string "*" is lexed as ID by [label_parser] and as STAR by [standard]
 *)
 and global = parse
 | ""   {  if !Parser_global.label_flag
@@ -193,7 +194,7 @@ and standard target = parse
 | '@' general_ident as cmd_var     { AROBAS_ID cmd_var }
 | "@#" color as col        { COLOR col }
 
-(* the string "*" is lexed as a ID *)
+| '*'   { STAR }
 | general_ident as id { ID id }
 
 | '{'   { LACC }

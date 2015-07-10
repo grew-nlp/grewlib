@@ -17,6 +17,7 @@ open Grew_types
 module Ast = struct
 
   (* general function for checking that an identifier is of the right kind *)
+  (* allowed is a char list which is a sub set of ['#'; '.'; ':'; '*'] *)
   let check_special name allowed s =
     let sp = Str.full_split (Str.regexp "#\\|\\.\\|:\\|\\*") s in
     try
