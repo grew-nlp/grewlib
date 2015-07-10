@@ -122,7 +122,9 @@ module P_feature = struct
     | _ -> Error.bug "[P_feature.to_string] multiple parameters are not handled"
 
   let build ?pat_vars = function
-    | ({Ast.kind=Ast.Absent; name=name}, loc) -> (name, {cst=Absent;in_param=[];})
+    | ({Ast.kind=Ast.Absent; name=name}, loc) -> 
+      Domain.check_feature_name ~loc name;
+      (name, {cst=Absent;in_param=[];})
     | ({Ast.kind=Ast.Equality unsorted_values; name=name}, loc) ->
       let values = Domain.build ~loc name unsorted_values in (name, {cst=Equal values;in_param=[];})
     | ({Ast.kind=Ast.Disequality unsorted_values; name=name}, loc) ->
