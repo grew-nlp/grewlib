@@ -393,6 +393,10 @@ node_features:
               | ["*"] -> ({Ast.kind = Ast.Disequality []; name},loc)
               | _ -> ({Ast.kind = Ast.Equality values; name }, loc) }
 
+        (*  "cat = *"           *)
+        | name_loc=simple_id_with_loc EQUAL STAR
+            { let (name,loc) = name_loc in ({Ast.kind = Ast.Disequality []; name},loc) }
+
         (*   "cat<>n|v|adj"     *)
         | name_loc=simple_id_with_loc DISEQUAL values=separated_nonempty_list(PIPE,feature_value)
             { let (name,loc) = name_loc in ( {Ast.kind = Ast.Disequality values; name}, loc) }
@@ -416,7 +420,7 @@ pat_edge_or_const:
 
         (* "e: A -[^X|Y]-> B" *)
         | id_loc=simple_id_with_loc DDOT n1=simple_id labels=delimited(LTR_EDGE_LEFT_NEG,separated_nonempty_list(PIPE,pattern_label_ident),LTR_EDGE_RIGHT) n2=simple_id
-            { let (id,loc) = id_loc in Pat_edge ({Ast.edge_id = Some id; src=n1; edge_label_cst=(labels,false); tar=n2}, loc) }
+            { let (id,loc) = id_loc in Pat_edge ({Ast.edge_id = Some id; src=n1; edge_label_cst=(labels,true); tar=n2}, loc) }
 
         (*   "A -> B"           *)
         | n1_loc=simple_id_with_loc EDGE n2=simple_id
