@@ -96,6 +96,7 @@ module Ast : sig
     | Feature_eq of feature_ident * feature_ident
     | Feature_diseq of feature_ident * feature_ident
     | Feature_ineq of ineq * feature_ident * feature_ident
+    | Feature_ineq_cst of ineq * feature_ident * float
   type const = u_const * Loc.t
 
   type basic = {

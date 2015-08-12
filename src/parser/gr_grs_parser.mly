@@ -483,6 +483,26 @@ pat_edge_or_const:
         | feat_id1_loc=feature_ident_with_loc GE feat_id2=feature_ident
             { let (feat_id1,loc)=feat_id1_loc in Pat_const (Ast.Feature_ineq (Ast.Ge, feat_id1, feat_id2), loc) }
 
+        (* "X.feat >= 12.34" *)
+        | feat_id1_loc=feature_ident_with_loc GE num=FLOAT
+        | num=FLOAT LE feat_id1_loc=feature_ident_with_loc 
+            { let (feat_id1,loc)=feat_id1_loc in Pat_const (Ast.Feature_ineq_cst (Ast.Ge, feat_id1, num), loc)  }
+
+        (* "X.feat > 12.34" *)
+        | feat_id1_loc=feature_ident_with_loc GT num=FLOAT
+        | num=FLOAT LT feat_id1_loc=feature_ident_with_loc 
+            { let (feat_id1,loc)=feat_id1_loc in Pat_const (Ast.Feature_ineq_cst (Ast.Gt, feat_id1, num), loc)  }
+
+        (* "X.feat <= 12.34" *)
+        | feat_id1_loc=feature_ident_with_loc LE num=FLOAT
+        | num=FLOAT GE feat_id1_loc=feature_ident_with_loc 
+            { let (feat_id1,loc)=feat_id1_loc in Pat_const (Ast.Feature_ineq_cst (Ast.Le, feat_id1, num), loc)  }
+
+        (* "X.feat < 12.34" *)
+        | feat_id1_loc=feature_ident_with_loc LT num=FLOAT
+        | num=FLOAT GT feat_id1_loc=feature_ident_with_loc 
+            { let (feat_id1,loc)=feat_id1_loc in Pat_const (Ast.Feature_ineq_cst (Ast.Lt, feat_id1, num), loc)  }
+       
 
 /*=============================================================================================*/
 /* COMMANDS DEFINITION                                                                         */

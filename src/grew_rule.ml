@@ -102,6 +102,8 @@ module Rule = struct
     | Feature_diseq of Pid.t * string * Pid.t * string
 
     | Feature_ineq of Ast.ineq * Pid.t * string * Pid.t * string
+    | Feature_ineq_cst of Ast.ineq * Pid.t * string * float
+
     | Filter of Pid.t * P_fs.t (* used when a without impose a fs on a node defined by the match basic *)
 
   let build_pos_constraint ?locals pos_table const =
@@ -118,6 +120,9 @@ module Rule = struct
         Feature_diseq (pid_of_name loc node_name1, feat_name1, pid_of_name loc node_name2, feat_name2)
       | (Ast.Feature_ineq (ineq, (node_name1, feat_name1), (node_name2, feat_name2)), loc) ->
         Feature_ineq (ineq, pid_of_name loc node_name1, feat_name1, pid_of_name loc node_name2, feat_name2)
+      | (Ast.Feature_ineq_cst (ineq, (node_name1, feat_name1), constant), loc) ->
+        Feature_ineq_cst (ineq, pid_of_name loc node_name1, feat_name1, constant)
+
 
   type basic = {
     graph: P_graph.t;
@@ -160,6 +165,9 @@ module Rule = struct
         let (node_name1, feat_name1) = feat_id1
         and (node_name2, feat_name2) = feat_id2 in
         Feature_ineq (ineq, pid_of_name loc node_name1, feat_name1, pid_of_name loc node_name2, feat_name2)
+      | (Ast.Feature_ineq_cst (ineq, feat_id1, constant), loc) ->
+        let (node_name1, feat_name1) = feat_id1 in
+        Feature_ineq_cst (ineq, pid_of_name loc node_name1, feat_name1, constant)
 
   (* It may raise [P_fs.Fail_unif] in case of contradiction on constraints *)
   let build_neg_basic ?pat_vars ?(locals=[||]) pos_table basic_ast =
@@ -481,12 +489,23 @@ module Rule = struct
             | _ -> raise Fail
         end
       | Feature_ineq (ineq, pid1, feat_name1, pid2, feat_name2) ->
-        match (ineq, get_float_feat pid1 feat_name1, get_float_feat pid2 feat_name2) with
+        begin
+          match (ineq, get_float_feat pid1 feat_name1, get_float_feat pid2 feat_name2) with
             | (Ast.Lt, Some fv1, Some fv2) when fv1 < fv2 -> matching
             | (Ast.Gt, Some fv1, Some fv2) when fv1 > fv2 -> matching
             | (Ast.Le, Some fv1, Some fv2) when fv1 <= fv2 -> matching
             | (Ast.Ge, Some fv1, Some fv2) when fv1 >= fv2 -> matching
             | _ -> raise Fail
+          end
+      | Feature_ineq_cst (ineq, pid1, feat_name1, constant) ->
+        begin
+          match (ineq, get_float_feat pid1 feat_name1) with
+            | (Ast.Lt, Some fv1) when fv1 < constant -> matching
+            | (Ast.Gt, Some fv1) when fv1 > constant -> matching
+            | (Ast.Le, Some fv1) when fv1 <= constant -> matching
+            | (Ast.Ge, Some fv1) when fv1 >= constant -> matching
+            | _ -> raise Fail
+          end
 
   (*  ---------------------------------------------------------------------- *)
   (* returns all extension of the partial input matching *)

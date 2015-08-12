@@ -136,6 +136,8 @@ module Html_doc = struct
       bprintf buff "%s <> %s" (Ast.dump_feature_ident feat_id_l) (Ast.dump_feature_ident feat_id_r);
     | Ast.Feature_ineq (ineq, feat_id_l, feat_id_r) ->
       bprintf buff "%s %s %s" (Ast.dump_feature_ident feat_id_l) (Ast.string_of_ineq ineq) (Ast.dump_feature_ident feat_id_r)
+    | Ast.Feature_ineq_cst (ineq, feat_id_l, constant) ->
+      bprintf buff "%s %s %f" (Ast.dump_feature_ident feat_id_l) (Ast.string_of_ineq ineq) constant
     );
     bprintf buff "\n"
 
