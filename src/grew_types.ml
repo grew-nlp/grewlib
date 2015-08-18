@@ -447,6 +447,7 @@ module Lex_par = struct
     if line = "" || line.[0] = '%'
     then None
     else
+      let line = Str.global_replace (Str.regexp "\\\\%") "%" line in
       match Str.split (Str.regexp "##") line with
         | [args] when nb_c = 0 ->
           (match Str.split (Str.regexp "#") args with
