@@ -15,14 +15,16 @@ conf: config/configure.ac
 	cd config && autoconf -o ../configure configure.ac
 	rm -rf config.status config.log autom4te.cache config/autom4te.cache config/ac_lib_checking.m4
 
-purge_makefile:
-	@make -C src purge_makefile
-	@make purge
-	@make -C config purge
-
 clean:
 	@make -C src clean
-	@make cleanup
+	@make -C src/parser clean
+	rm -f config.log confdefs.h config.status
+
+purge: clean
+	rm -f config/Makefile
+	rm -f config/ac_lib_checking.m4
+	rm -f Makefile src/Makefile test/Makefile
+	rm -rf doc
 
 uninstall:
 	$(OCAMLFIND) remove libgrew > /dev/null

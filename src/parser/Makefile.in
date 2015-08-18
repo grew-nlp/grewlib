@@ -25,10 +25,10 @@ lexer.ml: lexer.mll
 	ocamllex lexer.mll
 
 lexer.cmx: gr_grs_parser.cmx lexer.ml ../grew_ast.cmx
-	$(OCAMLOPT) -c $(OPT_FLAGS) -I .. grew_ast.cmx lexer.ml
+	$(OCAMLOPT) -c $(OPT_FLAGS) -I .. $(LOG_DIR) grew_ast.cmx lexer.ml
 
 lexer.cmo: gr_grs_parser.cmo lexer.ml ../grew_ast.cmo
-	$(OCAMLC) -c $(BYTE_FLAGS) -I .. grew_ast.cmo lexer.ml
+	$(OCAMLC) -c $(BYTE_FLAGS) -I ..  $(LOG_DIR) grew_ast.cmo lexer.ml
 
 grew_parser.cmx: gr_grs_parser.cmx lexer.cmx grew_parser.ml ../grew_ast.cmx
 	$(OCAMLOPT) -c $(OPT_FLAGS) -I .. grew_ast.cmx grew_parser.ml

@@ -1,7 +1,5 @@
-VERSION = 0.28
+VERSION = 0.28.1
 
-INSTALL_DIR_LIB = @OCAMLLIB@
-INSTALL_DIR = @prefix@/bin/
 DATA_DIR = @prefix@@datarootdir@/libgrew/
 DOC_DIR = @prefix@@datarootdir@/libgrew-doc/
 
@@ -11,7 +9,6 @@ OCAMLLIB = @OCAMLLIB@
 OCAMLFIND = @OCAMLFIND@
 OCAMLLEX = @OCAMLLEX@
 MENHIR = @MENHIR@
-OCAMLFIND_DIR=`$(OCAMLFIND) printconf destdir`
 
 BYTE_FLAGS = -g -dtypes
 OPT_FLAGS = -g -dtypes
@@ -38,34 +35,24 @@ ANSITERMINAL_DIR = @ANSITERMINAL_INCLUDE@
 ANSITERMINAL_BYTE = $(ANSITERMINAL_DIR) ANSITerminal.cma
 ANSITERMINAL_OPT = $(ANSITERMINAL_DIR) ANSITerminal.cmxa
 
-
-cleanup:
-	rm -rf *.cmo *.cmx *.cmi *.annot *.o *.*~
-
-purge:
-	rm -rf Makefile
-
-
 infos:
 	@echo ""
-	@echo "version              -> " $(VERSION)
+	@echo "VERSION              -> " $(VERSION)
 	@echo ""
 	@echo "prefix               -> " @prefix@
-	@echo "exec install dir     -> " $(INSTALL_DIR)
-	@echo "lib install dir      -> " $(INSTALL_DIR_LIB)
-	@echo "data install dir     -> " $(DATA_DIR)
-	@echo "doc install dir      -> " $(DOC_DIR)
+	@echo "DATA_DIR             -> " $(DATA_DIR)
+	@echo "DOC_DIR              -> " $(DOC_DIR)
 	@echo ""
 	@echo "OCAMLC               -> " $(OCAMLC)
 	@echo "OCAMLOPT             -> " $(OCAMLOPT)
 	@echo "OCAMLLIB             -> " $(OCAMLLIB)
 	@echo "OCAMLFIND            -> " $(OCAMLFIND)
-	@echo "byte compil flags    -> " $(BYTE_FLAGS)
-	@echo "native compil flags  -> " $(OPT_FLAGS)
+	@echo "BYTE_FLAGS           -> " $(BYTE_FLAGS)
+	@echo "OPT_FLAGS            -> " $(OPT_FLAGS)
 	@echo ""
-	@echo "log                  -> " $(LOG_OPT)
-	@echo "dep2pict             -> " $(DEP2PICT_OPT)
-	@echo "ansiterminal         -> " $(ANSITERMINAL_OPT)
+	@echo "LOG_OPT              -> " $(LOG_OPT)
+	@echo "DEP2PICT_OPT         -> " $(DEP2PICT_OPT)
+	@echo "ANSITERMINAL_OPT     -> " $(ANSITERMINAL_OPT)
 	@echo ""
 	@echo "DEBUG                -> " $(DEBUG)
 	@echo "WARNING              -> " $(WARNING)
