@@ -154,6 +154,30 @@ module File = struct
     with End_of_file ->
       close_in in_ch;
       List.rev !rev_lines
+
+  let load file =
+    let ch = open_in file in
+    let buff = Buffer.create 32 in
+    try
+      while true do
+        let next = input_line ch in 
+        Printf.bprintf buff "%s\n" next
+      done; assert false
+    with End_of_file ->
+      close_in ch;
+      Buffer.contents buff
+
+  exception Found of int
+  let get_suffix file_name =
+  let len = String.length file_name in
+    try
+      for i = len-1 downto 0 do
+        if file_name.[i] = '.'
+        then raise (Found i)
+      done;
+      None
+    with
+    | Found i -> Some (String.sub file_name i (len-i))
  end (* module File *)
 
 (* ================================================================================ *)

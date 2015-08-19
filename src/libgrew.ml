@@ -138,22 +138,27 @@ let of_brown brown =
       Instance.from_graph graph
     ) ()
 
+let load_brown file =
+  handle ~name:"load_brown"
+    (fun () ->
+      let brown = File.load file in
+      let graph = G_graph.of_brown brown in
+      Instance.from_graph graph
+    ) ()
+
 let load_graph file =
   handle ~name:"load_graph" ~file
     (fun () ->
-      if Filename.check_suffix file ".gr"
-      then load_gr file
-      else if Filename.check_suffix file ".conll"
-      then load_conll file
-      else
-        begin
+      match File.get_suffix file with
+      | Some ".gr" -> load_gr file
+      | Some ".conll" -> load_conll file
+      | Some ".br" | Some ".melt" -> load_brown file 
+      | _ ->
           Log.fwarning "Unknown file format for input graph '%s', try to guess..." file;
-          try load_gr file with
-              Parsing_err _ ->
-                try load_conll file with
-                    Parsing_err _ ->
-                      Log.fcritical "[Libgrew.load_graph] Cannot guess input file format of file '%s'. Use .gr or .conll file extension" file
-        end
+          let rec loop = function
+          | [] -> Log.fcritical "[Libgrew.load_graph] Cannot guess input file format of file '%s'. Use .gr or .conll file extension" file
+          | load_fct :: tail -> try load_fct file with _ -> loop tail in
+          loop [load_gr; load_conll; load_brown]
     ) ()
 
 let xml_graph xml =

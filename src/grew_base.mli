@@ -65,11 +65,23 @@ module File: sig
   val write: string -> string -> unit
 
   (** [read file_name] read the content of [file_name] line by line.
-     Blanks lines (empty or only with spaces and tabs) are ignored.
-     Lines with '%' as the first char are ignored. *)
+      Blanks lines (empty or only with spaces and tabs) are ignored.
+      Lines with '%' as the first char are ignored. *)
   val read: string -> string list
 
+  (** [read_ln file_name] read the content of [file_name] line by line.
+      Blanks lines (empty or only with spaces and tabs) are ignored.
+      Lines with '%' as the first char are ignored.
+      Each line is returned with its position in the original file. *)
   val read_ln: string -> (int * string) list
+
+  (** [load file_name] load the content of [file_name] as a string. *)
+  val load: string -> string
+
+  (** [get_suffix file_name] returns the suffix in [file_name].
+      "x.y.z" -> Some ".z"
+      "xyz" -> None  *)
+  val get_suffix: string -> string option
 end
 
 (* ================================================================================ *)
