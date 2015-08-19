@@ -196,22 +196,22 @@ gr_item:
 /*  GREW GRAPH REWRITING SYSTEM                                                                */
 /*=============================================================================================*/
 grs_with_include:
-        | f=features_group g=labels m=module_or_include_list s=sequences EOF
+        | f=features_group g=labels m=module_or_include_list s=option(sequences) EOF
             {
              { Ast.domain_wi=f;
                labels_wi=g;
                modules_wi=m;
-               sequences_wi=s;
+               sequences_wi=match s with Some seq -> seq | None -> [];
              }
            }
 
 grs:
-        | f=features_group g=labels m=modules s=sequences EOF
+        | f=features_group g=labels m=modules s=option(sequences) EOF
             {
              { Ast.domain=f;
                labels=g;
                modules=m;
-               sequences=s;
+               sequences=match s with Some seq -> seq | None -> [];
              }
            }
 
