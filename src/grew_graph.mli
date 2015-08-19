@@ -107,7 +107,7 @@ module G_graph: sig
 
   (** input : "Le/DET/le petit/ADJ/petit chat/NC/chat dort/V/dormir ./PONCT/." 
       It supposes that "SUC" is defined in current relations *)
-  val of_brown: string -> t
+  val of_brown: ?sentid: string -> string -> t
 
   val of_xml: Xml.xml -> t
   (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)

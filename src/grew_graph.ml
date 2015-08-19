@@ -373,11 +373,15 @@ module G_graph = struct
 
   (* -------------------------------------------------------------------------------- *)
   (** input : "Le/DET/le petit/ADJ/petit chat/NC/chat dort/V/dormir ./PONCT/." *)
-  let of_brown brown =
+  let of_brown ?sentid brown =
     let units = Str.split (Str.regexp " ") brown in
       let conll_lines = List_.mapi
-      (fun i item -> match Str.split (Str.regexp "/") item with
-        | [phon;pos;lemma] -> 
+      (fun i item -> match Str.full_split (Str.regexp "/[A-Z'+'']+/") item with
+        | [Str.Text phon; Str.Delim pos; Str.Text lemma] ->
+        let pos = String.sub pos 1 ((String.length pos)-2) in
+        let morph = match (i,sentid) with
+        | (0,Some id) -> [("sentid", id)]
+        | _ -> [] in
         {
           Conll.line_num=0;
           num = sprintf "%d" (i+1);
@@ -385,10 +389,10 @@ module G_graph = struct
           lemma;
           pos1 = "_";
           pos2 = pos;
-          morph = [];
+          morph;
           deps = [(sprintf "%d" i, "SUC")]
           }
-        | _ -> failwith "Unexpected MElt output"
+        | _ -> Error.build "[Graph.of_brown] Cannot parse Brown item >>>%s<<< (expected \"phon/POS/lemma\")" item
       ) units in 
     of_conll conll_lines
 
