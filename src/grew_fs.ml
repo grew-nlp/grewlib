@@ -142,7 +142,7 @@ end (* module P_feature *)
 
 (* ================================================================================ *)
 module G_fs = struct
-  (* list are supposed to be striclty ordered wrt compare*)
+  (* list are supposed to be strictly ordered wrt compare *)
   type t = G_feature.t list
 
   let to_raw t = List.map (fun (name, value) -> (name, string_of_value value)) t
