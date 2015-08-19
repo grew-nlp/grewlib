@@ -102,7 +102,7 @@ val load_graph: string -> Instance.t
 (** [of_conll filename line_list] *)
 val of_conll: string -> (int * string) list -> Instance.t
 
-val of_brown: string -> Instance.t
+val of_brown: ?sentid:string -> string -> Instance.t
 
 val xml_graph: Xml.xml -> Instance.t
 
