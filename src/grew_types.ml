@@ -388,22 +388,30 @@ module Conll = struct
         ) (Str.split (Str.regexp "|") morph)
 
   let underscore s = if s = "" then "_" else s
+
+  exception Dash
+  let contain_dash s =
+    try String.iter (function '-' -> raise Dash | _ -> ()) s; false
+    with Dash -> true
+
   let parse_line file_name (line_num, line) =
     match Str.split (Str.regexp "\t") line with
+      | num :: _ when contain_dash num -> None
       | [ num; phon; lemma; pos1; pos2; morph; govs; dep_labs; _; _ ] ->
         begin
           try
             let gov_list = if govs = "_" then [] else Str.split (Str.regexp "|") govs
             and lab_list = if dep_labs = "_" then [] else Str.split (Str.regexp "|") dep_labs in
             let deps = List.combine gov_list lab_list in
-            {line_num = line_num;
-             num = num;
-             phon = underscore phon;
-             lemma = underscore lemma;
-             pos1 = underscore pos1;
-             pos2 = underscore pos2;
-             morph = parse_morph file_name line_num morph;
-             deps = deps;
+            Some {
+              line_num = line_num;
+              num = num;
+              phon = underscore phon;
+              lemma = underscore lemma;
+              pos1 = underscore pos1;
+              pos2 = underscore pos2;
+              morph = parse_morph file_name line_num morph;
+              deps = deps;
             }
           with exc -> Error.build ~loc:(Loc.file_line file_name line_num) "[Conll.load] illegal line, exc=%s\n>>>>>%s<<<<<<" (Printexc.to_string exc) line
         end
@@ -411,9 +419,9 @@ module Conll = struct
 
   let load file_name =
     let lines = File.read_ln file_name in
-    List.map (parse_line file_name) lines
+    List_.opt_map (parse_line file_name) lines
 
-  let parse file_name lines = List.map (parse_line file_name) lines
+  let parse file_name lines = List_.opt_map (parse_line file_name) lines
 
     (* We would prefer to compare the float equivalent of l1.num l2.num but this would break the dicho_find function *)
   let compare l1 l2 = Pervasives.compare ((* float_of_string *) l1.num) ((* float_of_string *) l2.num)

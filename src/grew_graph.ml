@@ -791,7 +791,14 @@ module G_graph = struct
     let nodes = Gid_map.fold
       (fun gid node acc -> (gid,node)::acc)
       graph.map [] in
+
+    (* sort nodes wrt position *)
     let snodes = List.sort (fun (_,n1) (_,n2) -> G_node.position_comp n1 n2) nodes in
+
+    (* renumbering of nodes to have a consecutive sequence of int 1 --> n, in case of node deletion or addition *)
+    let snodes = List_.mapi 
+      (fun i (gid,node) -> (gid, G_node.set_position (float i) node)
+      ) snodes in
 
     let get_num gid =
       let gnode = List.assoc gid snodes in
@@ -836,8 +843,8 @@ module G_graph = struct
             (get_num gid)
             (match G_fs.get_string_atom "phon" fs with Some p -> p | None -> "_e_")
             (match G_fs.get_string_atom "lemma" fs with Some p -> p | None -> "_e_")
-            (match G_fs.get_string_atom "cat" fs with Some p -> p | None -> "X")
-            (match G_fs.get_string_atom "pos" fs with Some p -> p | None -> "X")
+            (match G_fs.get_string_atom "cat" fs with Some p -> p | None -> "_")
+            (match G_fs.get_string_atom "pos" fs with Some p -> p | None -> "_")
             (G_fs.to_conll ~exclude: ["phon"; "lemma"; "cat"; "pos"; "position"] fs)
             (String.concat "|" govs)
             (String.concat "|" labs)
