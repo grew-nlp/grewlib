@@ -241,7 +241,7 @@ feature:
             {
               match feature_values with
                 | ["#"] -> Domain.Num feature_name
-                | _ -> Domain.Closed (feature_name, List.sort Pervasives.compare feature_values)
+                | _ -> Domain.build_closed feature_name feature_values
             }
 
         (* phon:* *)

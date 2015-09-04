@@ -135,6 +135,8 @@ module Domain: sig
 
   (** [sub fn1 fn2] returns [true] iff the domain of [fn1] is a subset if the domain of [fn2]. *)
   val sub: feature_name -> feature_name -> bool
+
+  val build_closed: feature_name -> feature_atom list -> feature_spec
 end (* module Domain *)
 
 (* ================================================================================ *)

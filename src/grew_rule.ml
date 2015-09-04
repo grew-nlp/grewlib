@@ -115,12 +115,22 @@ module Rule = struct
         Cst_in (pid_of_name loc id, Label_cst.build ~loc ?locals label_cst)
 
       | (Ast.Feature_eq ((node_name1, feat_name1), (node_name2, feat_name2)), loc) ->
+        Domain.check_feature_name ~loc feat_name1;
+        Domain.check_feature_name ~loc feat_name2;        
         Feature_eq (pid_of_name loc node_name1, feat_name1, pid_of_name loc node_name2, feat_name2)
+
       | (Ast.Feature_diseq ((node_name1, feat_name1), (node_name2, feat_name2)), loc) ->
+        Domain.check_feature_name ~loc feat_name1;
+        Domain.check_feature_name ~loc feat_name2;        
         Feature_diseq (pid_of_name loc node_name1, feat_name1, pid_of_name loc node_name2, feat_name2)
+
       | (Ast.Feature_ineq (ineq, (node_name1, feat_name1), (node_name2, feat_name2)), loc) ->
+        Domain.check_feature_name ~loc feat_name1;
+        Domain.check_feature_name ~loc feat_name2;        
         Feature_ineq (ineq, pid_of_name loc node_name1, feat_name1, pid_of_name loc node_name2, feat_name2)
+
       | (Ast.Feature_ineq_cst (ineq, (node_name1, feat_name1), constant), loc) ->
+        Domain.check_feature_name ~loc feat_name1;
         Feature_ineq_cst (ineq, pid_of_name loc node_name1, feat_name1, constant)
 
 
@@ -155,18 +165,27 @@ module Rule = struct
       | (Ast.Feature_eq (feat_id1, feat_id2), loc) ->
         let (node_name1, feat_name1) = feat_id1
         and (node_name2, feat_name2) = feat_id2 in
-
+        Domain.check_feature_name ~loc feat_name1;
+        Domain.check_feature_name ~loc feat_name2;        
         Feature_eq (pid_of_name loc node_name1, feat_name1, pid_of_name loc node_name2, feat_name2)
+
       | (Ast.Feature_diseq (feat_id1, feat_id2), loc) ->
         let (node_name1, feat_name1) = feat_id1
         and (node_name2, feat_name2) = feat_id2 in
+        Domain.check_feature_name ~loc feat_name1;
+        Domain.check_feature_name ~loc feat_name2;        
         Feature_diseq (pid_of_name loc node_name1, feat_name1, pid_of_name loc node_name2, feat_name2)
+
       | (Ast.Feature_ineq (ineq, feat_id1, feat_id2), loc) ->
         let (node_name1, feat_name1) = feat_id1
         and (node_name2, feat_name2) = feat_id2 in
+        Domain.check_feature_name ~loc feat_name1;
+        Domain.check_feature_name ~loc feat_name2;        
         Feature_ineq (ineq, pid_of_name loc node_name1, feat_name1, pid_of_name loc node_name2, feat_name2)
+
       | (Ast.Feature_ineq_cst (ineq, feat_id1, constant), loc) ->
         let (node_name1, feat_name1) = feat_id1 in
+        Domain.check_feature_name ~loc feat_name1;
         Feature_ineq_cst (ineq, pid_of_name loc node_name1, feat_name1, constant)
 
   (* It may raise [P_fs.Fail_unif] in case of contradiction on constraints *)

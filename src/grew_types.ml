@@ -321,7 +321,7 @@ module Domain = struct
               | [] -> List.map (fun s -> String s) values
               | l when List.for_all (fun x -> x.[0] = '_') l -> List.map (fun s -> String s) values
               | l -> Error.build ?loc "Unknown feature values '%s' for feature name '%s'"
-          (List_.to_string (fun x->x) ", " l)
+                  (List_.to_string (fun x->x) ", " l)
           name
             )
           | _::t -> loop t in
@@ -350,6 +350,18 @@ module Domain = struct
         | (Num _, Num _) -> true
         | _ -> false
 
+
+  let build_closed feature_name feature_values =
+    let sorted_list = List.sort Pervasives.compare feature_values in
+    let without_duplicate =
+      let rec loop = function
+        | [] -> []
+        | x::y::tail when x=y ->
+          Log.fwarning "In the declaration of the feature name \"%s\", the value \"%s\" appears more than once" feature_name x;
+          loop (y::tail)
+        | x::tail -> x:: (loop tail)
+      in loop sorted_list in
+    Closed (feature_name, without_duplicate)
 
 end (* Domain *)
 
