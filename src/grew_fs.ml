@@ -24,6 +24,15 @@ module G_feature = struct
 
   let compare feat1 feat2 = Pervasives.compare (get_name feat1) (get_name feat2)
 
+  (* another order used for printing purpose only *)
+  let print_order = ["phon"; "cat"; "lemma"; "pos"]
+  let print_cmp (name1,_) (name2,_) =
+    match (List_.index name1 print_order, List_.index name2 print_order) with
+    | (Some i, Some j) -> Pervasives.compare i j
+    | (Some i, None) -> -1
+    | (None, Some j) -> 1
+    | (None, None) -> Pervasives.compare name1 name2    
+
   let build (x : Ast.feature) = match x with
     | ({Ast.kind=Ast.Equality [atom]; name=name},loc) ->
       (name, Domain.build_one ~loc name atom)
@@ -145,10 +154,13 @@ module G_fs = struct
   (* list are supposed to be strictly ordered wrt compare *)
   type t = G_feature.t list
 
+  (* ---------------------------------------------------------------------- *)
   let to_raw t = List.map (fun (name, value) -> (name, string_of_value value)) t
 
+  (* ---------------------------------------------------------------------- *)
   let empty = []
 
+  (* ---------------------------------------------------------------------- *)
   let set_feat ?loc feature_name atom t =
     let new_value = Domain.build_one ?loc feature_name atom in
     let rec loop = function
@@ -158,45 +170,58 @@ module G_fs = struct
     | (fn,a)::t -> (fn,a) :: (loop t)
     in loop t
 
+  (* ---------------------------------------------------------------------- *)
   let del_feat = List_.sort_remove_assoc
 
+  (* ---------------------------------------------------------------------- *)
   let get_atom = List_.sort_assoc
 
+  (* ---------------------------------------------------------------------- *)
   let get_annot_info fs =
     match List.filter (fun (fn,_) -> String.length fn > 1 && String.sub fn 0 2 = "__") fs with
       | [] -> None
       | [(fn,_)] -> Some (String.sub fn 2 ((String.length fn) - 2))
       | _ -> Error.build "[Fs.get_annot_info] More than one annot feature in the same feature structure"
 
+  (* ---------------------------------------------------------------------- *)
   let get_string_atom feat_name t =
     match List_.sort_assoc feat_name t with
       | None -> None
       | Some v -> Some (conll_string_of_value v)
 
+  (* ---------------------------------------------------------------------- *)
   let get_float_feat feat_name t =
     match List_.sort_assoc feat_name t with
       | None -> None
       | Some (Float i) -> Some i
       | Some _ -> Error.build "[Fs.get_float_feat]"
 
+  (* ---------------------------------------------------------------------- *)
   let to_string t = List_.to_string G_feature.to_string "," t
+
+  (* ---------------------------------------------------------------------- *)
   let to_gr t = List_.to_string G_feature.to_gr ", " t
 
+  (* ---------------------------------------------------------------------- *)
   let build ast_fs =
     let unsorted = List.map (fun feat -> G_feature.build feat) ast_fs in
     List.sort G_feature.compare unsorted
 
+  (* ---------------------------------------------------------------------- *)
   let of_conll ?loc line =
-    let unsorted_without_pos =
+    let raw_list0 =
       ("phon", Domain.build_one ?loc "phon" line.Conll.phon)
-      :: ("lemma", Domain.build_one ?loc "lemma" line.Conll.lemma)
       :: ("cat", Domain.build_one ?loc "cat" line.Conll.pos1)
       :: (List.map (fun (f,v) -> (f, Domain.build_one ?loc f v)) line.Conll.morph) in
-    let unsorted = match line.Conll.pos2 with
-      | "" | "_" -> unsorted_without_pos
-      | s -> ("pos", Domain.build_one "pos" s) :: unsorted_without_pos in
-    List.sort G_feature.compare unsorted
+    let raw_list1 = match line.Conll.pos2 with
+      | "" | "_" -> raw_list0
+      | s -> ("pos", Domain.build_one ?loc "pos" s) :: raw_list0 in
+    let raw_list2 = match line.Conll.lemma with
+      | "" | "_" -> raw_list1
+      | s -> ("lemma", Domain.build_one ?loc "lemma" s) :: raw_list1 in
+    List.sort G_feature.compare raw_list2
 
+  (* ---------------------------------------------------------------------- *)
   exception Fail_unif
   let unif fs1 fs2 =
     let rec loop = function
@@ -209,6 +234,7 @@ module G_fs = struct
       | _ -> raise Fail_unif
     in try Some (loop (fs1, fs2)) with Fail_unif -> None
 
+  (* ---------------------------------------------------------------------- *)
   let get_main ?main_feat t =
     let main_list = match main_feat with
     | None -> ["phon"]
@@ -221,6 +247,7 @@ module G_fs = struct
           | None -> loop tail in
     loop main_list
 
+  (* ---------------------------------------------------------------------- *)
   let to_dot ?(decorated_feat=("",[])) ?main_feat t =
     let buff = Buffer.create 32 in
     let () = match (fst decorated_feat) with
@@ -235,6 +262,7 @@ module G_fs = struct
         then bprintf buff "<TR><TD COLSPAN=\"3\" BGCOLOR=\"yellow\"><B>%s</B></TD></TR>\n" (string_of_value atom)
         else bprintf buff "<TR><TD COLSPAN=\"3\"><B>%s</B></TD></TR>\n" (string_of_value atom);
         sub in
+    let next = List.sort G_feature.print_cmp next in
     List.iter
       (fun g_feat ->
         G_feature.buff_dot buff g_feat
@@ -244,14 +272,18 @@ module G_fs = struct
       | "" -> ""
       | s -> sprintf "<TABLE BORDER=\"0\" CELLBORDER=\"0\" CELLSPACING=\"0\">\n%s\n</TABLE>\n" s
 
+  (* ---------------------------------------------------------------------- *)
   let to_word ?main_feat t =
     match get_main ?main_feat t with
       | (None, _) -> "#"
       | (Some (_,atom), _) -> string_of_value atom
 
+  (* ---------------------------------------------------------------------- *)
   let to_dep ?(decorated_feat=("",[])) ?position ?main_feat ?filter t =
-    let (main_opt, sub) = get_main ?main_feat t in
     let (pid_name, feat_list) = decorated_feat in
+
+    let (main_opt, sub) = get_main ?main_feat t in
+    let sub = List.sort G_feature.print_cmp sub in
 
     let main = match main_opt with
       | None -> []
@@ -285,6 +317,7 @@ module G_fs = struct
 
     sprintf " word=\"%s\"; subword=\"%s\"" word subword
 
+  (* ---------------------------------------------------------------------- *)
   let to_conll ?exclude t =
     let reduced_t = match exclude with
       | None -> t
