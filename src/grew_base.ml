@@ -226,7 +226,7 @@ module List_ = struct
     | x::t when x=elt -> t
     | x::t -> x::(rm elt t)
 
-  let pos x l =
+  let index x l =
     let rec loop i = function
     | [] -> None
     | h::t when h=x -> Some i
@@ -257,18 +257,6 @@ module List_ = struct
   let rec flat_map f = function
     | [] -> []
     | x::t -> (f x)@(flat_map f t)
-
-  let iteri fct =
-    let rec loop i = function
-      | [] -> ()
-      | h::t -> (fct i h); (loop (i+1) t) in
-    loop 0
-
-  let mapi fct =
-    let rec loop i = function
-      | [] -> []
-      | h::t -> let head = fct i h in head :: (loop (i+1) t)
-    in loop 0
 
   let opt_mapi fct =
     let rec loop i = function

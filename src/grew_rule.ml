@@ -248,7 +248,7 @@ module Rule = struct
       (fun (_, dep_line) -> bprintf buff "%s\n" dep_line
       ) sorted_nodes;
 
-    List_.iteri
+    List.iteri
       (fun i cst ->
         match cst with
           | Cst_out _ | Cst_in _ -> bprintf buff "  C_%d { word=\"*\"}\n" i
@@ -270,7 +270,7 @@ module Rule = struct
           (P_node.get_next node)
       ) pos_basic.graph;
 
-    List_.iteri
+    List.iteri
       (fun i cst ->
         match cst with
           | Cst_out (pid, label_cst) ->

@@ -375,7 +375,7 @@ module G_graph = struct
   (** input : "Le/DET/le petit/ADJ/petit chat/NC/chat dort/V/dormir ./PONCT/." *)
   let of_brown ?sentid brown =
     let units = Str.split (Str.regexp " ") brown in
-      let conll_lines = List_.mapi
+      let conll_lines = List.mapi
       (fun i item -> match Str.full_split (Str.regexp "/[A-Z'+'']+/") item with
         | [Str.Text phon; Str.Delim pos; Str.Text lemma] ->
         let pos = String.sub pos 1 ((String.length pos)-2) in
@@ -796,7 +796,7 @@ module G_graph = struct
     let snodes = List.sort (fun (_,n1) (_,n2) -> G_node.position_comp n1 n2) nodes in
 
     (* renumbering of nodes to have a consecutive sequence of int 1 --> n, in case of node deletion or addition *)
-    let snodes = List_.mapi 
+    let snodes = List.mapi 
       (fun i (gid,node) -> (gid, G_node.set_position (float i) node)
       ) snodes in
 

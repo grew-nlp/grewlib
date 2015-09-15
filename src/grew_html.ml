@@ -578,7 +578,7 @@ module Html_rh = struct
         wnl "<div width=100%% style=\"overflow-x:auto\"><IMG SRC=\"%s.png\"></div>" local
       end;
 
-    List_.iteri
+    List.iteri
       (fun i (rules_list,file_name) ->
         wnl "<h6>Solution %d</h6>" (i+1);
 

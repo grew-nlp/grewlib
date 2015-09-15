@@ -61,14 +61,14 @@ module Rewrite_history = struct
     let rec loop file_name t =
       match (t.good_nf, t.bad_nf) with
         | [],[] -> File.write (Instance.to_gr t.instance) (file_name^".gr")
-        | l, _ -> List_.iteri (fun i son -> loop (sprintf "%s_%d" file_name i) son) l
+        | l, _ -> List.iteri (fun i son -> loop (sprintf "%s_%d" file_name i) son) l
     in loop base t
 
   let save_conll base t =
     let rec loop file_name t =
       match (t.good_nf, t.bad_nf) with
         | [],[] -> File.write (Instance.to_conll t.instance) (file_name^".conll")
-        | l, _ -> List_.iteri (fun i son -> loop (sprintf "%s_%d" file_name i) son) l
+        | l, _ -> List.iteri (fun i son -> loop (sprintf "%s_%d" file_name i) son) l
     in loop base t
 
   let save_full_conll base t =
@@ -91,7 +91,7 @@ module Rewrite_history = struct
     in loop t
 
   let save_annot out_dir base_name t =
-    List_.mapi
+    List.mapi
       (fun i alts ->
         match alts.good_nf with
       | [alt_1; alt_2] ->

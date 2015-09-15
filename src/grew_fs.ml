@@ -134,7 +134,7 @@ module P_feature = struct
           match pat_vars with
           | None -> Error.bug ~loc "[P_feature.build] param '%s' in an unparametrized rule" var
           | Some l ->
-              match List_.pos var l with
+              match List_.index var l with
               | Some index -> (name, {cst=Different []; in_param = [index]})
               | None -> Error.build ~loc "[P_feature.build] Unknown pattern variable '%s'" var
         end

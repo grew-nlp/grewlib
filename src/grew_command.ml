@@ -185,7 +185,7 @@ module Command  = struct
                 match param with
                   | None -> Error.build ~loc "Unknown command variable '%s'" var
                   | Some (par,cmd) ->
-                    match (List_.pos var par, List_.pos var cmd) with
+                    match (List_.index var par, List_.index var cmd) with
                       | (_,Some index) -> Param_out index
                       | (Some index,_) -> Param_in index
                       | _ -> Error.build ~loc "Unknown command variable '%s'" var

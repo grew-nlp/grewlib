@@ -111,9 +111,9 @@ module List_: sig
 
   val set: int -> 'a -> 'a list -> 'a list
 
-  (** [pos elt list] return [Some index] if [index] is the smallest position in the [list] equals to [elt].
+  (** [index elt list] return [Some index] if [index] is the smallest position in the [list] equals to [elt].
       None is returned if [elt] is not in the [list] *)
-  val pos: 'a -> 'a list -> int option
+  val index: 'a -> 'a list -> int option
 
   val opt_map: ('a -> 'b option) -> 'a list -> 'b list
 
@@ -131,10 +131,6 @@ module List_: sig
   val sort_disjoint: 'a list -> 'a list -> bool
 
   val to_string: ('a -> string) -> string -> 'a list -> string
-
-  val iteri: (int -> 'a -> unit) -> 'a list -> unit
-
-  val mapi: (int -> 'a -> 'b) -> 'a list -> 'b list
 
   val sort_mem: 'a -> 'a list -> bool
 
