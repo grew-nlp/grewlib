@@ -9,6 +9,7 @@
 (**********************************************************************************)
 
 (** {2 Grew's core} *)
+open Libgrew_types
 open Grew_base
 open Grew_graph
 open Grew_rule

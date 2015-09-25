@@ -32,7 +32,7 @@ uninstall:
 uninstall_dev:
 	$(OCAMLFIND) remove libgrew_dev > /dev/null
 
-LIB_DEP = libgrew.cma libgrew.cmxa libgrew.a libgrew.cmi
+LIB_DEP = libgrew_types.cmi libgrew.cmi libgrew.cma libgrew.cmxa libgrew.a
 
 install: uninstall
 	cp META META_

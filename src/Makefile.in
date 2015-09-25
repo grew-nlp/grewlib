@@ -31,22 +31,6 @@ parser_opt:
 parser_byte:
 	@make -C parser byte
 
-# librairie
-
-libgrew.mli : libgrew_types.mli libgrew_.mli
-	rm -rf libgrew.mli
-	touch libgrew.mli
-	echo "(** Grew Library" > libgrew.mli
-	echo "@author paul.masson\@inria.fr" >> libgrew.mli
-	echo "@author bruno.guillaumme\@inria.fr" >> libgrew.mli
-	echo "@version 1.0.0" >> libgrew.mli
-	echo "*)" >> libgrew.mli
-	echo "" >> libgrew.mli
-	cat libgrew_types.mli >> libgrew.mli
-	echo "" >> libgrew.mli
-	echo "" >> libgrew.mli
-	cat libgrew_.mli >> libgrew.mli
-
 libgrew.cma : $(FILES_CMO) parser_byte libgrew.mli libgrew.ml
 ifeq (@DEP2PICT@,no)
 	$(OCAMLC) -c -pp 'camlp4o pa_macro.cmo' $(BYTE_FLAGS) $(FILES_CMO) $(XML_LIGHT_BYTE) str.cma -I parser $(PARSER_CMO) libgrew.mli
@@ -288,7 +272,6 @@ clean:
 	rm -f grew grew.byte
 	rm -f test test.byte
 	rm -f *.nf *.png *.html
-	rm -f libgrew.mli
 
 purge_makefile:
 	@make -C parser purge
