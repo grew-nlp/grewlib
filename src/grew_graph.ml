@@ -841,8 +841,8 @@ module G_graph = struct
           let fs = G_node.get_fs node in
           bprintf buff "%g\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t_\t_\n"
             (get_num gid)
-            (match G_fs.get_string_atom "phon" fs with Some p -> p | None -> "_e_")
-            (match G_fs.get_string_atom "lemma" fs with Some p -> p | None -> "_e_")
+            (match G_fs.get_string_atom "phon" fs with Some p -> p | None -> "_")
+            (match G_fs.get_string_atom "lemma" fs with Some p -> p | None -> "_")
             (match G_fs.get_string_atom "cat" fs with Some p -> p | None -> "_")
             (match G_fs.get_string_atom "pos" fs with Some p -> p | None -> "_")
             (G_fs.to_conll ~exclude: ["phon"; "lemma"; "cat"; "pos"; "position"] fs)
