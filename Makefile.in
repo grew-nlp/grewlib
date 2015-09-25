@@ -1,6 +1,5 @@
 all:
-	@make -C src libgrew.cmxa
-	@make -C src libgrew.cma
+	@make -C src all
 
 LIB_DEP = libgrew_types.cmi libgrew.cmi libgrew.cma libgrew.cmxa libgrew.a
 

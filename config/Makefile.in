@@ -8,6 +8,7 @@ OCAMLOPT = @OCAMLOPT@
 OCAMLLIB = @OCAMLLIB@
 OCAMLFIND = @OCAMLFIND@
 OCAMLLEX = @OCAMLLEX@
+OCAMLDEP = @OCAMLDEP@
 MENHIR = @MENHIR@
 
 BYTE_FLAGS = -g -dtypes
@@ -52,6 +53,8 @@ infos:
 	@echo "OCAMLOPT             -> " $(OCAMLOPT)
 	@echo "OCAMLLIB             -> " $(OCAMLLIB)
 	@echo "OCAMLFIND            -> " $(OCAMLFIND)
+	@echo "OCAMLDEP             -> " $(OCAMLDEP)
+	@echo "MENHIR               -> " $(MENHIR)
 	@echo "BYTE_FLAGS           -> " $(BYTE_FLAGS)
 	@echo "OPT_FLAGS            -> " $(OPT_FLAGS)
 	@echo ""

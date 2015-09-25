@@ -7,6 +7,13 @@
 *.cma
 *.cmxa
 
+# generated ml files
+gr_grs_parser.ml
+gr_grs_parser.mli
+lexer.ml
+
+.depend
+
 Makefile
 
 confdefs.h

@@ -19,10 +19,6 @@ val css_file: string
 
 type loc = Loc.t
 
-
-type instance = Instance.t
-
-
 val line_of_loc: loc -> int
 val string_of_loc: loc -> string
 

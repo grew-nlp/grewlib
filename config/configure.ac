@@ -34,6 +34,12 @@ if test "$config" = yes ; then
     fi
     AC_SUBST(OCAMLLEX)
 
+    AC_PATH_PROG(OCAMLDEP,ocamldep.opt ocamldep,no)
+    if test "$OCAMLDEP" = no ; then
+        AC_MSG_ERROR(Cannot find ocamldep)
+    fi
+    AC_SUBST(OCAMLDEP)
+
 	# Checks for libraries.
 	AC_MSG_CHECKING(for ocaml library path)
 	OCAMLLIB=$($OCAMLC -where)
