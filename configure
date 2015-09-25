@@ -592,8 +592,8 @@ INFO
 MESSAGE
 WARNING
 DEBUG
-DEP2PICT
 DEP2PICT_INCLUDE
+DEP2PICT
 XMLLIGHT_INCLUDE
 LOG_INCLUDE
 ANSITERMINAL_INCLUDE
@@ -2382,8 +2382,9 @@ $as_echo "The $NAME library is missing." >&6; }
 	XMLLIGHT_INCLUDE=$LIB_INCLUDE
 
 
-        # Dep2pict is optionnal
-        MACRO="A"
+
+    # Dep2pict is optionnal
+    MACRO="A"
 	MACRO=$MACRO"C_LIB_CHECKING"
 
 
@@ -2513,16 +2514,15 @@ $as_echo "The $NAME library is missing." >&6; }
 	rm c_check_$STD_FOLDER.cmo >& /dev/null
 	rm c_check_$STD_FOLDER.cmi >& /dev/null
 
-	DEP2PICT_INCLUDE=$LIB_INCLUDE
+    if test "$dep2pict" = no; then
+      	DEP2PICT=no
 
+    else
+       	DEP2PICT=yes
 
-        if test "$dep2pict" = no || test "$DEP2PICT_INCLUDE_INCLUDE" = no ; then
-        	DEP2PICT=no
+		DEP2PICT_INCLUDE=$LIB_INCLUDE
 
-        else
-        	DEP2PICT=yes
-
-        fi
+    fi
 
 fi
 

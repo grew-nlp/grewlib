@@ -1,30 +1,8 @@
-
-
 all:
 	@make -C src libgrew.cmxa
 	@make -C src libgrew.cma
 
-
-include config/Makefile
-
-conf: config/configure.ac
-	cd config && rm -rf ac_lib_checking.*
-	cd config && wget https://gforge.inria.fr/scm/viewvc.php/*checkout*/ac_lib_checking/ac_lib_checking.m4?root=semagramme  --no-check-certificate || true
-	cd config && mv ac_lib_checking.m4?root=semagramme ac_lib_checking.m4 || true
-	cd config && aclocal
-	cd config && autoconf -o ../configure configure.ac
-	rm -rf config.status config.log autom4te.cache config/autom4te.cache config/ac_lib_checking.m4
-
-clean:
-	@make -C src clean
-	@make -C src/parser clean
-	rm -f config.log confdefs.h config.status
-
-purge: clean
-	rm -f config/Makefile
-	rm -f config/ac_lib_checking.m4
-	rm -f Makefile src/Makefile test/Makefile
-	rm -rf doc
+LIB_DEP = libgrew_types.cmi libgrew.cmi libgrew.cma libgrew.cmxa libgrew.a
 
 uninstall:
 	$(OCAMLFIND) remove libgrew > /dev/null
@@ -32,7 +10,6 @@ uninstall:
 uninstall_dev:
 	$(OCAMLFIND) remove libgrew_dev > /dev/null
 
-LIB_DEP = libgrew_types.cmi libgrew.cmi libgrew.cma libgrew.cmxa libgrew.a
 
 install: uninstall
 	cp META META_
@@ -53,8 +30,27 @@ install_dev: uninstall_dev
 	mv META_ META
 	cp data/style.css $(DESTDIR)$(DATA_DIR)/
 
+conf: config/configure.ac
+	cd config && rm -rf ac_lib_checking.*
+	cd config && wget https://gforge.inria.fr/scm/viewvc.php/*checkout*/ac_lib_checking/ac_lib_checking.m4?root=semagramme  --no-check-certificate || true
+	cd config && mv ac_lib_checking.m4?root=semagramme ac_lib_checking.m4 || true
+	cd config && aclocal
+	cd config && autoconf -o ../configure configure.ac
+	rm -rf config.status config.log autom4te.cache config/autom4te.cache config/ac_lib_checking.m4
+
+clean:
+	@make -C src clean
+	@make -C src/parser clean
+	rm -f config.log confdefs.h config.status
+
+purge: clean
+	rm -f config/Makefile
+	rm -f config/ac_lib_checking.m4
+	rm -f Makefile src/Makefile test/Makefile
+	rm -rf doc
 
 .PHONY: doc
-
 doc:
 	@make -C src doc
+
+include config/Makefile

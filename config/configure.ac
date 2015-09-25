@@ -67,15 +67,15 @@ if test "$config" = yes ; then
 	AC_LIB_CHECKING(Xml-light,xml-light,xml-light,xml-light,XmlParser,"",true,true)
 	AC_SUBST(XMLLIGHT_INCLUDE,$LIB_INCLUDE)
 
-        # Dep2pict is optionnal
-        AC_LIB_CHECKING(Dep2pict,dep2pict,dep2pict,dep2pict,Dep2pict,"",false,true)
-	AC_SUBST(DEP2PICT_INCLUDE,$LIB_INCLUDE)
 
-        if test "$dep2pict" = no || test "$DEP2PICT_INCLUDE_INCLUDE" = no ; then
-        	AC_SUBST(DEP2PICT,no)
-        else
-        	AC_SUBST(DEP2PICT,yes)
-        fi
+    # Dep2pict is optionnal
+    AC_LIB_CHECKING(Dep2pict,dep2pict,dep2pict,dep2pict,Dep2pict,"",false,true)
+    if test "$dep2pict" = no; then
+      	AC_SUBST(DEP2PICT,no)
+    else
+       	AC_SUBST(DEP2PICT,yes)
+		AC_SUBST(DEP2PICT_INCLUDE,$LIB_INCLUDE)
+    fi
 
 fi
 

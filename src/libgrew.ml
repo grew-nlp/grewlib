@@ -83,7 +83,7 @@ let build_html_doc ?(corpus=false) dir grs =
     ) ()
 ELSE
 let build_html_doc ?(corpus=false) dir grs =
-  handle ~name:"build_doc [without Dep2pict]" (fun () -> Html_doc.build ~corpus ~dep:false grs_ dir) ()
+  handle ~name:"build_doc [without Dep2pict]" (fun () -> Html_doc.build ~corpus ~dep:false dir grs) ()
 END
 
 let load_grs file =
