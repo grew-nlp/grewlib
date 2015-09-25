@@ -11,6 +11,10 @@
 open Log
 open Printf
 
+IFDEF DEP2PICT THEN
+open Dep2pict
+ENDIF
+
 open Grew_base
 open Grew_types
 
@@ -70,17 +74,17 @@ module Instance = struct
 
   IFDEF DEP2PICT THEN
   let save_dep_png ?filter ?main_feat base t =
-    let (_,_,highlight_position) =
-      Dep2pict.Dep2pict.fromDepStringToPng_with_pos
-        (G_graph.to_dep ?filter ?main_feat t.graph) (base^".png") in
-    highlight_position
+    let dep = G_graph.to_dep ?filter ?main_feat t.graph in
+    let d2p = Dep2pict.from_dep ~dep in
+    let _ = Dep2pict.save_png ~filename: (base^".png") d2p in
+    Dep2pict.highlight_shift ()
 
   let save_dep_svg ?filter ?main_feat base t =
-    let (_,_,highlight_position) =
-      Dep2pict.Dep2pict.fromDepStringToSvgFile_with_pos
-        (G_graph.to_dep ?filter ?main_feat t.graph) (base^".svg") in
-    highlight_position
-
+    let dep = G_graph.to_dep ?filter ?main_feat t.graph in
+    let d2p = Dep2pict.from_dep ~dep in
+    let _ = Dep2pict.save_svg ~filename: (base^".png") d2p in
+    Dep2pict.highlight_shift ()
+ 
   ELSE
   let save_dep_png ?filter ?main_feat base t = None
   let save_dep_svg ?filter ?main_feat base t = None

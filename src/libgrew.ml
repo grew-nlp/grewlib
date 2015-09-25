@@ -13,6 +13,10 @@ open Libgrew_types
 open Printf
 open Log
 
+IFDEF DEP2PICT THEN
+open Dep2pict
+ENDIF
+
 open Grew_fs
 open Grew_base
 open Grew_types
@@ -76,7 +80,8 @@ let build_html_doc ?(corpus=false) dir grs =
       let fct module_ rule_ =
         let dep_code = Rule.to_dep rule_ in
         let dep_png_file = sprintf "%s/%s_%s-patt.png" dir module_ (Rule.get_name rule_) in
-        ignore (Dep2pict.Dep2pict.fromDepStringToPng dep_code dep_png_file) in
+        let d2p = Dep2pict.from_dep ~dep:dep_code in
+        Dep2pict.save_png ~filename:dep_png_file d2p in
       Grs.rule_iter fct grs;
       Grs.filter_iter fct grs
     ) ()
