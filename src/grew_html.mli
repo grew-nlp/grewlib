@@ -11,6 +11,7 @@
 
 open Grew_rule
 open Grew_grs
+open Grew_graph
 
 (* ================================================================================ *)
 module Html_doc : sig
@@ -45,7 +46,7 @@ module Html_rh: sig
     ?header:string ->
     string ->
     string ->
-    Instance.t option ->
+    G_graph.t option ->
     unit
 end (* module Html_rh *)
 

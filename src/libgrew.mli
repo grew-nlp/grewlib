@@ -19,6 +19,8 @@ val css_file: string
 
 type loc = Loc.t
 
+type graph = G_graph.t
+
 val line_of_loc: loc -> int
 val string_of_loc: loc -> string
 
@@ -36,7 +38,7 @@ exception Bug of string * loc option
 
 val set_timeout: float option -> unit
 
-val rewrite: gr:Instance.t -> grs:Grs.t -> seq:string -> Rewrite_history.t
+val rewrite: gr:G_graph.t -> grs:Grs.t -> seq:string -> Rewrite_history.t
 
 val is_empty: Rewrite_history.t -> bool
 
@@ -47,7 +49,7 @@ val num_sol: Rewrite_history.t -> int
 @param grs the graph rewriting system
 @param seq the name of the sequence to apply
 @return a structure {b {i easily}} displayable *)
-val display: gr:Instance.t -> grs:Grs.t -> seq:string -> rew_display
+val display: gr:G_graph.t -> grs:Grs.t -> seq:string -> rew_display
 
 val write_stat: string -> Rewrite_history.t -> unit
 
@@ -68,9 +70,9 @@ val build_html_doc: ?corpus:bool -> string -> Grs.t -> unit
 *)
 val get_sequence_names: Grs.t -> string list
 
-val to_sentence: ?main_feat:string -> Instance.t -> string
+val to_sentence: ?main_feat:string -> G_graph.t -> string
 
-val save_graph_conll: string -> Instance.t -> unit
+val save_graph_conll: string -> G_graph.t -> unit
 
 val save_gr: string -> Rewrite_history.t -> unit
 
@@ -94,21 +96,21 @@ File extension should be '.gr' or '.conll'.
 @raise Parsing_err if libgrew can't parse the file
 @raise File_dont_exists if the file doesn't exists
 *)
-val load_graph: string -> Instance.t
+val load_graph: string -> G_graph.t
 
 (** [of_conll filename line_list] *)
-val of_conll: string -> (int * string) list -> Instance.t
+val of_conll: string -> (int * string) list -> G_graph.t
 
-val of_brown: ?sentid:string -> string -> Instance.t
+val of_brown: ?sentid:string -> string -> G_graph.t
 
-val xml_graph: Xml.xml -> Instance.t
+val xml_graph: Xml.xml -> G_graph.t
 
 (** [raw_graph instance] returns all graph information with a triple of elementary caml types:
     - the meta data
     - the list of node (node is a list of feature (feature is string * string))
     - the list of edge (src, label, tar) where src and tar refers to the position in the node list
 *)
-val raw_graph: Instance.t ->
+val raw_graph: G_graph.t ->
     (string * string) list *
     (string * string) list list *
     (int * string * int) list
@@ -133,7 +135,7 @@ val error_html:
     ?dot: bool ->
     header: string ->
     string ->
-    ?init:Instance.t ->
+    ?init:G_graph.t ->
     string ->
     unit
 
@@ -149,8 +151,6 @@ val make_index:
       unit
 
 val html_sentences: title:string -> string -> (bool * string * int * string) list -> unit
-
-val graph_of_instance: Instance.t -> G_graph.t
 
 val feature_names: unit -> string list option
 

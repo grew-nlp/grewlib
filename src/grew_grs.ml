@@ -276,7 +276,8 @@ module Grs = struct
       )
       module_names
 
-  let rewrite grs sequence instance =
+  let rewrite grs sequence graph =
+    let instance = Instance.from_graph graph in
     Timeout.start ();
     let modules_to_apply = modules_of_sequence grs sequence in
 
@@ -304,7 +305,8 @@ module Grs = struct
         } in
     loop instance modules_to_apply
 
-  let build_rew_display grs sequence instance =
+  let build_rew_display grs sequence graph =
+    let instance = Instance.from_graph graph in
     let modules_to_apply = modules_of_sequence grs sequence in
 
     let rec loop instance module_list =

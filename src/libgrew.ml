@@ -35,6 +35,8 @@ type loc = Loc.t
 let string_of_loc = Loc.to_string
 let line_of_loc = Loc.to_line
 
+type graph = G_graph.t
+
 exception File_dont_exists of string
 
 exception Parsing_err of string * loc option
@@ -95,8 +97,7 @@ let load_grs file =
 let to_sentence ?main_feat gr =
   handle ~name:"to_sentence"
     (fun () ->
-      let graph = gr.Instance.graph in
-      G_graph.to_sentence ?main_feat graph
+      G_graph.to_sentence ?main_feat gr
     ) ()
 
 let get_sequence_names grs =
@@ -112,36 +113,32 @@ let load_gr file =
     handle ~name:"load_gr" ~file
       (fun () ->
         let gr_ast = Grew_parser.gr_of_file file in
-        Instance.from_graph (G_graph.build gr_ast)
+        G_graph.build gr_ast
       ) ()
 
 let load_conll file =
   handle ~name:"load_conll" ~file
     (fun () ->
-      let graph = G_graph.of_conll ~loc:(Loc.file file) (Conll.load file) in
-      Instance.from_graph graph
+      G_graph.of_conll ~loc:(Loc.file file) (Conll.load file)
     ) ()
 
 let of_conll file_name line_list =
   handle ~name:"of_conll"
     (fun () ->
-      let graph = G_graph.of_conll ~loc:(Loc.file file_name) (Conll.parse file_name line_list) in
-      Instance.from_graph graph
+      G_graph.of_conll ~loc:(Loc.file file_name) (Conll.parse file_name line_list)
     ) ()
 
 let of_brown ?sentid brown =
   handle ~name:"of_brown"
     (fun () ->
-      let graph = G_graph.of_brown ?sentid brown in
-      Instance.from_graph graph
+      G_graph.of_brown ?sentid brown
     ) ()
 
 let load_brown file =
   handle ~name:"load_brown"
     (fun () ->
       let brown = File.load file in
-      let graph = G_graph.of_brown brown in
-      Instance.from_graph graph
+      G_graph.of_brown brown
     ) ()
 
 let load_graph file =
@@ -160,10 +157,10 @@ let load_graph file =
     ) ()
 
 let xml_graph xml =
-  handle ~name:"xml_graph" (fun () -> Instance.from_graph (G_graph.of_xml xml)) ()
+  handle ~name:"xml_graph" (fun () -> G_graph.of_xml xml) ()
 
-let raw_graph instance =
-  handle ~name:"raw_graph" (fun () -> G_graph.to_raw instance.Instance.graph) ()
+let raw_graph gr =
+  handle ~name:"raw_graph" (fun () -> G_graph.to_raw gr) ()
 
 let rewrite ~gr ~grs ~seq =
   handle ~name:"rewrite" (fun () -> Grs.rewrite grs seq gr) ()
@@ -187,7 +184,7 @@ let save_index ~dirname ~base_names =
 let save_graph_conll filename graph =
   handle ~name:"save_graph_conll" (fun () ->
     let out_ch = open_out filename in
-    fprintf out_ch "%s" (Instance.to_conll graph);
+    fprintf out_ch "%s" (G_graph.to_conll graph);
     close_out out_ch
   ) ()
 
@@ -267,8 +264,6 @@ let make_index ~title ~grs_file ~html ~grs ~seq ~input_dir ~output_dir ~base_nam
   ) ()
 
 let html_sentences ~title = handle ~name:"html_sentences" (fun () -> Html_sentences.build ~title) ()
-
-let graph_of_instance instance = handle ~name:"graph_of_instance" (fun () -> instance.Instance.graph) ()
 
 let feature_names () =  handle ~name:"feature_names" (fun () -> Domain.feature_names ()) ()
 

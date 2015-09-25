@@ -624,15 +624,15 @@ module Html_rh = struct
 
 
 
-  let error ?main_feat ?(dot=false) ?(init_graph=true) ?header prefix msg inst_opt =
+  let error ?main_feat ?(dot=false) ?(init_graph=true) ?header prefix msg graph_opt =
     (* remove files from previous runs *)
     let _ = Unix.system (sprintf "rm -f %s*.html" prefix) in
     let _ = Unix.system (sprintf "rm -f %s*.dep" prefix) in
     let _ = Unix.system (sprintf "rm -f %s*.png" prefix) in
 
-    (match inst_opt, init_graph with
-      | (Some inst, true) when dot -> Instance.save_dot_png ?main_feat prefix inst
-      | (Some inst, true) -> ignore (Instance.save_dep_png ?main_feat prefix inst)
+    (match graph_opt, init_graph with
+      | (Some graph, true) when dot -> Instance.save_dot_png ?main_feat prefix (Instance.from_graph graph)
+      | (Some graph, true) -> ignore (Instance.save_dep_png ?main_feat prefix (Instance.from_graph graph))
       | _ -> ()
     );
 
