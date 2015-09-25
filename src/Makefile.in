@@ -13,7 +13,7 @@ OCAMLOPTFLAGS= \
 	$(CAIRO_OPT) $(CAMOMILE_OPT) $(XML_LIGHT_OPT) $(ANSITERMINAL_OPT) $(LOG_OPT) $(DEP2PICT_OPT)
 
 TARGET = libgrew_types.cmi libgrew.cmi libgrew.cma libgrew.cmxa
-BASE = grew_base grew_types grew_ast parser_global gr_grs_parser lexer grew_parser grew_fs grew_edge grew_node grew_graph libgrew_types grew_command grew_rule grew_grs grew_html libgrew
+BASE = grew_base grew_types grew_ast grew_parser grew_lexer grew_loader grew_fs grew_edge grew_node grew_graph libgrew_types grew_command grew_rule grew_grs grew_html libgrew
 
 CMO = $(BASE:%=%.cmo)
 CMX = $(BASE:%=%.cmx)
@@ -30,20 +30,20 @@ include ../config/Makefile
 
 # --------------------------------------------------------------------------
 # Specific rules
-SPECIFIC = gr_grs_parser.ml gr_grs_parser.mli lexer.ml
-gr_grs_parser.ml: gr_grs_parser.mly
-	$(MENHIR) --infer --ocamlc "$(OCAMLC) -c -I ." gr_grs_parser.mly
-	@make gr_grs_parser.cmi # force the build NOW
-gr_grs_parser.cmo: gr_grs_parser.ml
+SPECIFIC = grew_parser.ml grew_parser.mli grew_lexer.ml
+grew_parser.ml: grew_parser.mly
+	$(MENHIR) --infer --ocamlc "$(OCAMLC) -c -I ." grew_parser.mly
+	@make grew_parser.cmi # force the build NOW
+grew_parser.cmo: grew_parser.ml
 	$(OCAMLC) $(OCAMLFLAGS) -c $<
-gr_grs_parser.cmx: gr_grs_parser.ml
+grew_parser.cmx: grew_parser.ml
 	$(OCAMLOPT) $(OCAMLOPTFLAGS) -c $<
 
-lexer.ml: lexer.mll
-	$(OCAMLLEX) lexer.mll
-lexer.cmo: lexer.ml
+grew_lexer.ml: grew_lexer.mll
+	$(OCAMLLEX) grew_lexer.mll
+grew_lexer.cmo: grew_lexer.ml
 	$(OCAMLC) $(OCAMLFLAGS) -c $<
-lexer.cmx: lexer.ml
+grew_lexer.cmx: grew_lexer.ml
 	$(OCAMLOPT) $(OCAMLOPTFLAGS) -c $<
 
 # --------------------------------------------------------------------------

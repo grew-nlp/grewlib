@@ -13,7 +13,7 @@
   open Log
   open Grew_base
   open Grew_ast
-  open Gr_grs_parser
+  open Grew_parser
 
   exception Error of string
 
@@ -65,7 +65,7 @@ let color = hex hex hex hex hex hex | hex hex hex
 (* ------------------------------------------------------------------------------- *)
 
 rule comment target = parse
-| '\n' { incr Parser_global.current_line; Lexing.new_line lexbuf; target lexbuf }
+| '\n' { incr Global.current_line; Lexing.new_line lexbuf; target lexbuf }
 | _  { comment target lexbuf }
 
 and comment_multi_doc target = shortest
@@ -73,7 +73,7 @@ and comment_multi_doc target = shortest
   let start = ref 0 in
   try while (Str.search_forward (Str.regexp "\n") comment !start != -1) do
     start := Str.match_end ();
-    incr Parser_global.current_line;
+    incr Global.current_line;
     Lexing.new_line lexbuf;
   done; assert false
   with Not_found ->
@@ -82,7 +82,7 @@ and comment_multi_doc target = shortest
 
 and comment_multi target = parse
 | "*/" { target lexbuf }
-| '\n' { incr Parser_global.current_line; Lexing.new_line lexbuf; comment_multi target lexbuf }
+| '\n' { incr Global.current_line; Lexing.new_line lexbuf; comment_multi target lexbuf }
 | _  { comment_multi target lexbuf }
 
 and string_lex target = parse
@@ -91,7 +91,7 @@ and string_lex target = parse
     then (bprintf buff "\\"; escaped := false; string_lex target lexbuf)
     else (escaped := true; string_lex target lexbuf)
   }
-  | '\n' { incr Parser_global.current_line; Lexing.new_line lexbuf; bprintf buff "\n"; string_lex target lexbuf }
+  | '\n' { incr Global.current_line; Lexing.new_line lexbuf; bprintf buff "\n"; string_lex target lexbuf }
   | '\"' {
     if !escaped
     then (bprintf buff "\""; escaped := false; string_lex target lexbuf)
@@ -106,19 +106,19 @@ and string_lex target = parse
 
 (* a dedicated lexer for lexical parameter: read everything until "#END" *)
 and lp_lex target = parse
-| '\n'                    { incr Parser_global.current_line; Lexing.new_line lexbuf; bprintf buff "\n"; lp_lex target lexbuf }
+| '\n'                    { incr Global.current_line; Lexing.new_line lexbuf; bprintf buff "\n"; lp_lex target lexbuf }
 | _ as c                  { bprintf buff "%c" c; lp_lex target lexbuf }
-| "#END" [' ' '\t']* '\n' { incr Parser_global.current_line; LEX_PAR (Str.split (Str.regexp "\n") (Buffer.contents buff)) }
+| "#END" [' ' '\t']* '\n' { incr Global.current_line; LEX_PAR (Str.split (Str.regexp "\n") (Buffer.contents buff)) }
 
 (* The lexer must be different when label_ident are parsed. The [global] lexer calls either
-   [label_parser] or [standard] depending on the flag [Parser_global.label_flag].
+   [label_parser] or [standard] depending on the flag [Global.label_flag].
    Difference are:
    - a label_ident may contain ':' (like in D:suj:obj) and ':' is a token elsewhere
    - a label_ident may contain '-' anywhere (like "--" in Tiger) but '-' is fordiden as the first or last character elsewhere
    - the string "*" is lexed as ID by [label_parser] and as STAR by [standard]
 *)
 and global = parse
-| ""   {  if !Parser_global.label_flag
+| ""   {  if !Global.label_flag
           then label_parser global lexbuf
           else standard global lexbuf
         }
@@ -128,10 +128,10 @@ and label_parser target = parse
 | [' ' '\t'] { global lexbuf }
 | "/*"       { comment_multi global lexbuf }
 | '%'        { comment global lexbuf }
-| '\n'       { incr Parser_global.current_line; Lexing.new_line lexbuf; global lexbuf}
+| '\n'       { incr Global.current_line; Lexing.new_line lexbuf; global lexbuf}
 
 | '{'   { LACC }
-| '}'   { Parser_global.label_flag := false; RACC }
+| '}'   { Global.label_flag := false; RACC }
 | ','   { COMA }
 | '|'   { PIPE }
 
@@ -141,9 +141,9 @@ and label_parser target = parse
 | label_ident as id { ID id }
 | '"'   { Buffer.clear buff; string_lex global lexbuf }
 
-| "]->" { Parser_global.label_flag := false; LTR_EDGE_RIGHT }
-| "]-"  { Parser_global.label_flag := false; RTL_EDGE_RIGHT }
-| "]=>" { Parser_global.label_flag := false; ARROW_RIGHT }
+| "]->" { Global.label_flag := false; LTR_EDGE_RIGHT }
+| "]-"  { Global.label_flag := false; RTL_EDGE_RIGHT }
+| "]=>" { Global.label_flag := false; ARROW_RIGHT }
 
 | _ as c { raise (Error (sprintf "At line %d: unexpected character '%c'" (lexbuf.Lexing.lex_start_p.Lexing.pos_lnum) c)) }
 
@@ -154,15 +154,15 @@ and standard target = parse
 | "/*"       { comment_multi global lexbuf }
 | '%'        { comment global lexbuf }
 
-| "#BEGIN" [' ' '\t']* '\n' { incr Parser_global.current_line; Buffer.clear buff; lp_lex global lexbuf}
+| "#BEGIN" [' ' '\t']* '\n' { incr Global.current_line; Buffer.clear buff; lp_lex global lexbuf}
 
-| '\n'       { incr Parser_global.current_line; Lexing.new_line lexbuf; global lexbuf}
+| '\n'       { incr Global.current_line; Lexing.new_line lexbuf; global lexbuf}
 
 | "include"     { INCLUDE }
 | "features"    { FEATURES }
 | "feature"     { FEATURE }
 | "file"        { FILE }
-| "labels"      { Parser_global.label_flag := true; LABELS }
+| "labels"      { Global.label_flag := true; LABELS }
 | "suffixes"    { SUFFIXES }
 | "match"       { MATCH }
 | "without"     { WITHOUT }
@@ -219,15 +219,15 @@ and standard target = parse
 
 | '|'   { PIPE }
 | "->"  { EDGE }
-| "-[^" { Parser_global.label_flag := true; LTR_EDGE_LEFT_NEG }
-| "-["  { Parser_global.label_flag := true; LTR_EDGE_LEFT }
+| "-[^" { Global.label_flag := true; LTR_EDGE_LEFT_NEG }
+| "-["  { Global.label_flag := true; LTR_EDGE_LEFT }
 | "]->" { LTR_EDGE_RIGHT }
-| "<-[" { Parser_global.label_flag := true; RTL_EDGE_LEFT }
+| "<-[" { Global.label_flag := true; RTL_EDGE_LEFT }
 | "]-"  { RTL_EDGE_RIGHT }
 
 | "==>" { ARROW }
-| "=["  { Parser_global.label_flag := true; ARROW_LEFT }
-| "=[^" { Parser_global.label_flag := true; ARROW_LEFT_NEG }
+| "=["  { Global.label_flag := true; ARROW_LEFT }
+| "=[^" { Global.label_flag := true; ARROW_LEFT_NEG }
 | "]=>" { ARROW_RIGHT }
 
 | '"'   { Buffer.clear buff; string_lex global lexbuf }

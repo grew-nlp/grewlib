@@ -142,7 +142,6 @@ AC_CONFIG_FILES(\
 config/Makefile \
 Makefile \
 src/Makefile \
-src/parser/Makefile \
 )
 
 AC_PROG_MAKE_SET

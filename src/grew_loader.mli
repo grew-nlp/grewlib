@@ -8,9 +8,18 @@
 (*    Authors: see AUTHORS file                                                   *)
 (**********************************************************************************)
 
-let current_file = ref "Not a file"
-let current_line = ref 0
 
-let init file = current_file := file; current_line := 0
+open Grew_base
+open Grew_ast
 
-let label_flag = ref false
+module Loader: sig
+
+  (* message and location *)
+  exception Error of (string * Loc.t option)
+
+  val grs: string -> Ast.grs
+
+  val gr: string -> Ast.gr
+
+  val pattern: string -> Ast.pattern
+end

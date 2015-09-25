@@ -435,7 +435,7 @@ module Conll = struct
 
   let parse file_name lines = List_.opt_map (parse_line file_name) lines
 
-    (* We would prefer to compare the float equivalent of l1.num l2.num but this would break the dicho_find function *)
+  (* We would prefer to compare the float equivalent of l1.num l2.num but this would break the dicho_find function *)
   let compare l1 l2 = Pervasives.compare ((* float_of_string *) l1.num) ((* float_of_string *) l2.num)
 end (* module Conll *)
 

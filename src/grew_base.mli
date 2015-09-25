@@ -261,3 +261,11 @@ module Timeout: sig
 
   val check: unit -> unit
 end
+
+(* ================================================================================ *)
+module Global: sig
+  val current_file: string ref
+  val current_line: int ref
+  val init: string -> unit
+  val label_flag: bool ref
+end

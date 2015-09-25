@@ -8,9 +8,9 @@
 *.cmxa
 
 # generated ml files
-gr_grs_parser.ml
-gr_grs_parser.mli
-lexer.ml
+grew_parser.ml
+grew_parser.mli
+grew_lexer.ml
 
 .depend
 

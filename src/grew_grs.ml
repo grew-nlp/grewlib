@@ -19,7 +19,7 @@ open Grew_edge
 open Grew_command
 open Grew_graph
 open Grew_rule
-open Grew_parser
+open Grew_loader
 
 (* ================================================================================ *)
 module Rewrite_history = struct
@@ -251,7 +251,7 @@ module Grs = struct
     loop [] t.sequences
 
   let build filename =
-    let ast = Grew_parser.grs_of_file filename in
+    let ast = Loader.grs filename in
     Label.init ast.Ast.labels;
     Domain.init ast.Ast.domain;
     let modules = List.map Modul.build ast.Ast.modules in

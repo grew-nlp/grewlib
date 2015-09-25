@@ -24,7 +24,7 @@ type graph_item =
   | Graph_node of Ast.node
   | Graph_edge of Ast.edge
 
-let get_loc () = Loc.file_line !Parser_global.current_file (!Parser_global.current_line+1)
+let get_loc () = Loc.file_line !Global.current_file (!Global.current_line+1)
 let localize t = (t,get_loc ())
 %}
 

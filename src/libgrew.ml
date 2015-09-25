@@ -21,9 +21,8 @@ open Grew_graph
 open Grew_rule
 open Grew_grs
 
-open Grew_parser
+open Grew_loader
 open Grew_html
-
 
 let css_file = Filename.concat DATA_DIR "style.css"
 
@@ -53,7 +52,7 @@ let handle ?(name="") ?(file="No file defined") fct () =
     | Run (msg, loc_opt) -> raise (Run (msg,loc_opt))
 
     (* Catch new exceptions *)
-    | Grew_parser.Parse_error (msg, loc_opt) -> raise (Parsing_err (msg, loc_opt))
+    | Loader.Error (msg, loc_opt) -> raise (Parsing_err (msg, loc_opt))
     | Error.Build (msg, loc_opt) -> raise (Build (msg, loc_opt))
     | Error.Bug (msg, loc_opt) -> raise (Bug (msg,loc_opt))
     | Error.Run (msg, loc_opt) -> raise (Run (msg,loc_opt))
@@ -112,7 +111,7 @@ let load_gr file =
   else
     handle ~name:"load_gr" ~file
       (fun () ->
-        let gr_ast = Grew_parser.gr_of_file file in
+        let gr_ast = Loader.gr file in
         G_graph.build gr_ast
       ) ()
 
@@ -283,7 +282,7 @@ type pattern = Rule.pattern
 type matching = Rule.matching
 
 let load_pattern file =
-  handle ~name:"load_pattern" (fun () -> Rule.build_pattern (Grew_parser.load_pattern file)) ()
+  handle ~name:"load_pattern" (fun () -> Rule.build_pattern (Loader.pattern file)) ()
 
 let match_in_graph pattern graph = Rule.match_in_graph pattern graph
 

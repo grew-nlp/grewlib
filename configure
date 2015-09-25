@@ -2642,7 +2642,7 @@ TRUNK=`pwd`
 
 echo ""
 
-ac_config_files="$ac_config_files config/Makefile Makefile src/Makefile src/parser/Makefile"
+ac_config_files="$ac_config_files config/Makefile Makefile src/Makefile"
 
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether ${MAKE-make} sets \$(MAKE)" >&5
@@ -3388,7 +3388,6 @@ do
     "config/Makefile") CONFIG_FILES="$CONFIG_FILES config/Makefile" ;;
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
     "src/Makefile") CONFIG_FILES="$CONFIG_FILES src/Makefile" ;;
-    "src/parser/Makefile") CONFIG_FILES="$CONFIG_FILES src/parser/Makefile" ;;
 
   *) as_fn_error $? "invalid argument: \`$ac_config_target'" "$LINENO" 5;;
   esac

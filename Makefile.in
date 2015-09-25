@@ -39,7 +39,6 @@ conf: config/configure.ac
 
 clean:
 	@make -C src clean
-	@make -C src/parser clean
 	rm -f config.log confdefs.h config.status
 
 purge: clean
