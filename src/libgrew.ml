@@ -98,7 +98,7 @@ let build_html_doc ?(corpus=false) dir grs =
   handle ~name:"build_doc [without Dep2pict]" (fun () -> Html_doc.build ~corpus ~dep:false dir grs) ()
 END
 
-let feature_names grs =  handle ~name:"feature_names" (fun () -> Domain.feature_names (Grs.get_domain grs)) ()
+let feature_names grs =  handle ~name:"feature_names" (fun () ->  Feature_domain.feature_names (Grs.get_domain grs)) ()
 
 (* -------------------------------------------------------------------------------- *)
 (** {2 Graph} *)

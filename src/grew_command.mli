@@ -58,12 +58,12 @@ module Command : sig
     | H_ACT_NODE of (Gid.t * string)
 
   val build:
-      Domain.t ->
-      Label.domain ->
+      Feature_domain.t ->
+      Label_domain.t ->
       ?param: (string list * string list) ->
       (Ast.command_node_ident list * string list) ->
       Id.table ->
-      Label.decl array ->
+      Label_domain.decl array ->
       suffix list ->
       Ast.command ->
         t * (Ast.command_node_ident list * string list)

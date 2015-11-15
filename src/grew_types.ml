@@ -115,7 +115,7 @@ module Massoc_gid = Massoc_make (Gid)
 module Massoc_pid = Massoc_make (Pid)
 
 (* ================================================================================ *)
-module Label = struct
+module Label_domain = struct
   (** describe the display style of a label *)
   type line = Solid | Dot | Dash
   type style = {
@@ -126,14 +126,68 @@ module Label = struct
     line: line;
   }
 
-  type domain = string array * style array
-  let empty_domain = ([||],[||])
+  type t = string array * style array
+  let empty = ([||],[||])
 
-(* ============= REMOVE ============
-  (** Global names and display styles are recorded in two aligned arrays *)
-  let full = ref None
-  let styles = ref ([||] : style array)
-   ============= /REMOVE ============ *)
+  (** The [default] style value *)
+  let default = { text="UNSET"; bottom=false; color=None; bgcolor=None; line=Solid }
+
+  (** [decl] is the type for a label declaration: the name and a list of display styles *)
+  type decl = string * string list
+
+  (** Computes the style of a label from its options and maybe its shape (like I:...). *)
+  let parse_option string_label options =
+    let init_style = match Str.bounded_split (Str.regexp ":") string_label 2 with
+      | ["S"; l] -> {default with text=l; color=Some "red"}
+      | ["D"; l] -> {default with text=l; color=Some "blue"; bottom=true}
+      | ["I"; l] -> {default with text=l; color=Some "grey"}
+      | _ -> {default with text=string_label} in
+      List.fold_left
+        (fun acc_style -> function
+            | "@bottom" -> {acc_style with bottom=true}
+            | "@dash" -> {acc_style with line=Dash}
+            | "@dot" -> {acc_style with line=Dot}
+            | s when String.length s > 4 && String.sub s 0 4 = "@bg_" ->
+              let color = String.sub s 4 ((String.length s) - 4) in
+              {acc_style with bgcolor=Some color}
+            | s -> {acc_style with color=Some (String_.rm_first_char s)}
+        ) init_style options
+
+  (* [build decl_list] returns a label_domain *)
+  let build decl_list =
+    let slist = List.sort (fun (x,_) (y,_) -> compare x y) decl_list in
+    let (labels, opts) = List.split slist in
+    let labels_array = Array.of_list labels in
+    (labels_array, 
+      Array.mapi (fun i opt -> parse_option labels_array.(i) opt) (Array.of_list opts)
+    )
+
+  let to_dep ?(deco=false) style =
+    let dep_items =
+      (if style.bottom then ["bottom"] else [])
+      @ (match style.color with Some c -> ["color="^c; "forecolor="^c] | None -> [])
+      @ (match style.bgcolor with Some c -> ["bgcolor="^c] | None -> [])
+      @ (match style.line with
+        | Dot -> ["style=dot"]
+        | Dash -> ["style=dash"]
+        | Solid when deco -> ["bgcolor=yellow"]
+        | Solid -> []) in
+    sprintf "{ label = \"%s\"; %s}" style.text (String.concat "; " dep_items)
+
+  let to_dot ?(deco=false) style =
+    let dot_items =
+      (match style.color with Some c -> let d = dot_color c in ["color="^d; "fontcolor="^d] | None -> [])
+      @ (match style.line with
+        | Dot -> ["style=dotted"]
+        | Dash -> ["style=dashed"]
+        | Solid when deco -> ["style=dotted"]
+        | Solid -> []) in
+    sprintf "[label=\"%s\", %s]" style.text (String.concat ", " dot_items)
+
+end
+
+(* ================================================================================ *)
+module Label = struct
 
   (** Internal representation of labels *)
   type t =
@@ -159,67 +213,18 @@ module Label = struct
     | Global i -> Some i
     | _ -> None
 
-  (** The [default] style value *)
-  let default = { text="UNSET"; bottom=false; color=None; bgcolor=None; line=Solid }
-
   let get_style (_,styles) = function
     | Global i -> styles.(i)
-    | Local i -> Log.warning "Style of locally defined labels is not implemented"; default
-    | Pattern _ -> default
-
-  (** Computes the style of a label from its options and maybe its shape (like I:...). *)
-  let parse_option string_label options =
-    let init_style = match Str.bounded_split (Str.regexp ":") string_label 2 with
-      | ["S"; l] -> {default with text=l; color=Some "red"}
-      | ["D"; l] -> {default with text=l; color=Some "blue"; bottom=true}
-      | ["I"; l] -> {default with text=l; color=Some "grey"}
-      | _ -> {default with text=string_label} in
-      List.fold_left
-        (fun acc_style -> function
-            | "@bottom" -> {acc_style with bottom=true}
-            | "@dash" -> {acc_style with line=Dash}
-            | "@dot" -> {acc_style with line=Dot}
-            | s when String.length s > 4 && String.sub s 0 4 = "@bg_" ->
-              let color = String.sub s 4 ((String.length s) - 4) in
-              {acc_style with bgcolor=Some color}
-            | s -> {acc_style with color=Some (String_.rm_first_char s)}
-        ) init_style options
-
-  (** [decl] is the type for a label declaration: the name and a list of display styles *)
-  type decl = string * string list
-
-  (* [build decl_list] returns a label_domain *)
-  let build decl_list =
-    let slist = List.sort (fun (x,_) (y,_) -> compare x y) decl_list in
-    let (labels, opts) = List.split slist in
-    let labels_array = Array.of_list labels in
-    (labels_array, 
-      Array.mapi (fun i opt -> parse_option labels_array.(i) opt) (Array.of_list opts)
-    )
+    | Local i -> Log.warning "Style of locally defined labels is not implemented"; Label_domain.default
+    | Pattern _ -> Label_domain.default
 
   let to_dep label_domain ?(deco=false) t =
     let style = get_style label_domain t in
-    let dep_items =
-      (if style.bottom then ["bottom"] else [])
-      @ (match style.color with Some c -> ["color="^c; "forecolor="^c] | None -> [])
-      @ (match style.bgcolor with Some c -> ["bgcolor="^c] | None -> [])
-      @ (match style.line with
-        | Dot -> ["style=dot"]
-        | Dash -> ["style=dash"]
-        | Solid when deco -> ["bgcolor=yellow"]
-        | Solid -> []) in
-    sprintf "{ label = \"%s\"; %s}" style.text (String.concat "; " dep_items)
+    Label_domain.to_dep ~deco style
 
   let to_dot label_domain ?(deco=false) t =
     let style = get_style label_domain t in
-    let dot_items =
-      (match style.color with Some c -> let d = dot_color c in ["color="^d; "fontcolor="^d] | None -> [])
-      @ (match style.line with
-        | Dot -> ["style=dotted"]
-        | Dash -> ["style=dashed"]
-        | Solid when deco -> ["style=dotted"]
-        | Solid -> []) in
-    sprintf "[label=\"%s\", %s]" style.text (String.concat ", " dot_items)
+    Label_domain.to_dot ~deco style
 
   let from_string ?loc (table, _) ?(locals=[||]) str =
     if String.contains str '*'
@@ -255,7 +260,7 @@ end (* module Label_cst *)
 
 
 (* ================================================================================ *)
-module Domain = struct
+module Feature_domain = struct
   type feature_spec =
     | Closed of feature_name * feature_atom list (* cat:V,N *)
     | Open of feature_name (* phon, lemma, ... *)
@@ -275,12 +280,12 @@ module Domain = struct
 
   let rec build = function
     | [] -> [Num "position"]
-    | (Num "position") :: tail -> Log.warning "[Domain] declaration of the feature name \"position\" in useless"; build tail
+    | (Num "position") :: tail -> Log.warning "[Feature_domain] declaration of the feature name \"position\" in useless"; build tail
     | (Open "position") :: _
     | (Closed ("position",_)) :: _ ->
-      Error.build "[Domain] The feature named \"position\" is reserved and must be types 'integer', you cannot not redefine it"
+      Error.build "[Feature_domain] The feature named \"position\" is reserved and must be types 'integer', you cannot not redefine it"
     | (Num fn) :: tail | (Open fn) :: tail | Closed (fn,_) :: tail when is_defined fn tail ->
-      Error.build "[Domain] The feature named \"%s\" is defined several times" fn
+      Error.build "[Feature_domain] The feature named \"%s\" is defined several times" fn
     | x :: tail -> x :: (build tail)
 
   let get feature_name domain =
@@ -324,7 +329,7 @@ module Domain = struct
   let build_value ?loc domain name value =
     match build_disj ?loc domain name [value] with
       | [x] -> x
-      | _ -> Error.bug ?loc "[Domain.build_value]"
+      | _ -> Error.bug ?loc "[Feature_domain.build_value]"
 
   let check_feature ?loc domain name value =
     ignore (build_disj ?loc domain name [value])
@@ -351,7 +356,7 @@ module Domain = struct
       in loop sorted_list in
     Closed (feature_name, without_duplicate)
 
-end (* Domain *)
+end (* Feature_domain *)
 
 (* ================================================================================ *)
 module Conll = struct

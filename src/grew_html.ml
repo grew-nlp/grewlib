@@ -402,9 +402,9 @@ module Html_doc = struct
     wnl "  <code class=\"code\">";
     List.iter
       (function
-        | Domain.Closed (feat_name,values) -> wnl "<b>%s</b> : %s<br/>" feat_name (String.concat " | " values)
-        | Domain.Open feat_name -> wnl "    <b>%s</b> : *<br/>" feat_name
-        | Domain.Num feat_name -> wnl "    <b>%s</b> : #<br/>" feat_name
+        | Feature_domain.Closed (feat_name,values) -> wnl "<b>%s</b> : %s<br/>" feat_name (String.concat " | " values)
+        | Feature_domain.Open feat_name -> wnl "    <b>%s</b> : *<br/>" feat_name
+        | Feature_domain.Num feat_name -> wnl "    <b>%s</b> : #<br/>" feat_name
       ) ast.Ast.domain;
     wnl "  </code>";
 

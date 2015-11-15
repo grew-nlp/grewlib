@@ -218,8 +218,8 @@ end (* module Sequence *)
 module Grs = struct
 
   type t = {
-    domain: Domain.t;
-    label_domain: Label.domain;
+    domain: Feature_domain.t;
+    label_domain: Label_domain.t;
     modules: Modul.t list;       (* the ordered list of modules used from rewriting *)
     sequences: Sequence.t list;
     filename: string;
@@ -233,7 +233,7 @@ module Grs = struct
   let get_label_domain t = t.label_domain
   let sequence_names t = List.map (fun s -> s.Sequence.name) t.sequences
 
-  let empty = {domain=Domain.empty; label_domain = Label.empty_domain; modules=[]; sequences=[]; ast=Ast.empty_grs; filename=""; }
+  let empty = {domain=Feature_domain.empty; label_domain = Label_domain.empty; modules=[]; sequences=[]; ast=Ast.empty_grs; filename=""; }
 
   let check t =
     (* check for duplicate modules *)
@@ -254,8 +254,8 @@ module Grs = struct
 
   let build filename =
     let ast = Loader.grs filename in
-    let domain = Domain.build ast.Ast.domain in
-    let label_domain = Label.build ast.Ast.labels in
+    let domain = Feature_domain.build ast.Ast.domain in
+    let label_domain = Label_domain.build ast.Ast.labels in
     let modules = List.map (Modul.build domain label_domain) ast.Ast.modules in
     let grs = {domain; label_domain; sequences = List.map (Sequence.build modules) ast.Ast.sequences; modules; ast; filename} in
     check grs;

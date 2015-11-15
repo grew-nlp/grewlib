@@ -240,13 +240,13 @@ feature:
         | feature_name=feature_name DDOT feature_values=features_values
             {
               match feature_values with
-                | ["#"] -> Domain.Num feature_name
-                | _ -> Domain.build_closed feature_name feature_values
+                | ["#"] -> Feature_domain.Num feature_name
+                | _ -> Feature_domain.build_closed feature_name feature_values
             }
 
         (* phon:* *)
         | feature_name=feature_name DDOT STAR
-            { Domain.Open feature_name }
+            { Feature_domain.Open feature_name }
 
 feature_name:
         | ci=ID { ci }

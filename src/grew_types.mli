@@ -69,30 +69,36 @@ module Massoc_gid : S with type key = Gid.t
 module Massoc_pid : S with type key = Pid.t
 
 (* ================================================================================ *)
-(** The module [Label] defines the type of atomic label edges *)
-module Label : sig
+module Label_domain : sig
+  type t
+  val empty : t
+
   (* [decl] is the type for a label declaration: the name and a list of display options *)
   type decl = string * string list
 
+  val build: decl list -> t
+end
+
+(* ================================================================================ *)
+(** The module [Label] defines the type of atomic label edges *)
+module Label : sig
+
   type t
 
-  type domain
-  val empty_domain: domain
-  val build: decl list -> domain
 
-  val match_: domain -> t -> t -> bool
+  val match_: Label_domain.t -> t -> t -> bool
 
-  val match_list: domain -> t list -> t -> bool
+  val match_list: Label_domain.t -> t list -> t -> bool
 
-  val to_string: domain -> ?locals:decl array -> t -> string
+  val to_string: Label_domain.t -> ?locals:Label_domain.decl array -> t -> string
 
   val to_int: t -> int option
 
-  val to_dep: domain -> ?deco:bool -> t -> string
+  val to_dep: Label_domain.t -> ?deco:bool -> t -> string
 
-  val to_dot: domain -> ?deco:bool -> t -> string
+  val to_dot: Label_domain.t -> ?deco:bool -> t -> string
 
-  val from_string: ?loc:Loc.t -> domain -> ?locals:decl array -> string -> t
+  val from_string: ?loc:Loc.t -> Label_domain.t -> ?locals:Label_domain.decl array -> string -> t
 end (* module Label *)
 
 (* ================================================================================ *)
@@ -102,14 +108,14 @@ module Label_cst : sig
   | Pos of Label.t list
   | Neg of Label.t list
 
-  val to_string: Label.domain -> t -> string
+  val to_string: Label_domain.t -> t -> string
   val all: t
-  val match_: Label.domain -> Label.t -> t -> bool
-  val build: ?loc:Loc.t -> Label.domain -> ?locals:Label.decl array -> (string list * bool) -> t
+  val match_: Label_domain.t -> Label.t -> t -> bool
+  val build: ?loc:Loc.t -> Label_domain.t -> ?locals:Label_domain.decl array -> (string list * bool) -> t
 end (* module Label_cst *)
 
 (* ================================================================================ *)
-module Domain: sig
+module Feature_domain: sig
   type feature_spec =
     | Closed of feature_name * feature_atom list (* cat:V,N *)
     | Open of feature_name (* phon, lemma, ... *)
@@ -140,7 +146,7 @@ module Domain: sig
   val sub:  t -> feature_name -> feature_name -> bool
 
   val build_closed: feature_name -> feature_atom list -> feature_spec
-end (* module Domain *)
+end (* module Feature_domain *)
 
 (* ================================================================================ *)
 module Conll: sig
