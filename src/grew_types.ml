@@ -29,6 +29,8 @@ let conll_string_of_value = function
   | String s -> s
   | Float i -> String_.of_float i
 
+type disjunction = value list
+
 let dot_color string =
   match (string.[0], String.length string) with
   | ('#', 4) -> sprintf "\"#%c%c%c%c%c%c\"" string.[1] string.[1] string.[2] string.[2] string.[3] string.[3]
@@ -259,9 +261,7 @@ module Domain = struct
 
   type t = feature_spec list
 
-  let (current: t option ref) = ref None
-
-  let reset () = current := None
+  let empty = []
 
   let is_defined feature_name domain =
     List.exists (function
@@ -271,6 +271,16 @@ module Domain = struct
       | _ -> false
     ) domain
 
+  let rec build = function
+    | [] -> [Num "position"]
+    | (Num "position") :: tail -> Log.warning "[Domain] declaration of the feature name \"position\" in useless"; build tail
+    | (Open "position") :: _
+    | (Closed ("position",_)) :: _ ->
+      Error.build "[Domain] The feature named \"position\" is reserved and must be types 'integer', you cannot not redefine it"
+    | (Num fn) :: tail | (Open fn) :: tail | Closed (fn,_) :: tail when is_defined fn tail ->
+      Error.build "[Domain] The feature named \"%s\" is defined several times" fn
+    | x :: tail -> x :: (build tail)
+
   let get feature_name domain =
     List.find (function
       | Closed (fn,_) when fn = feature_name -> true
@@ -279,36 +289,18 @@ module Domain = struct
       | _ -> false
     ) domain
 
-  let check_feature_name ?loc name =
-    match !current with
-      | None -> ()
-      | Some dom when is_defined name dom -> ()
-      | _ -> Error.build ?loc "The feature name \"%s\" in not defined in the domain" name
+  let check_feature_name ?loc domain name =
+    if not (is_defined name domain)
+    then Error.build ?loc "The feature name \"%s\" in not defined in the domain" name
 
-  let is_open name =
-      match !current with
-      | None -> true
-      | Some dom -> List.exists (function Open n when n=name -> true | _ -> false) dom
+  let is_open domain name =
+    List.exists (function Open n when n=name -> true | _ -> false) domain
 
-  let rec normalize_domain = function
-    | [] -> [Num "position"]
-    | (Num "position") :: tail -> Log.warning "[Domain] declaration of the feature name \"position\" in useless"; normalize_domain tail
-    | (Open "position") :: _
-    | (Closed ("position",_)) :: _ ->
-      Error.build "[Domain] The feature named \"position\" is reserved and must be types 'integer', you cannot not redefine it"
-    | (Num fn) :: tail |  (Open fn) :: tail |  Closed (fn,_) :: tail when is_defined fn tail ->
-      Error.build "[Domain] The feature named \"%s\" is defined several times" fn
-    | x :: tail -> x :: (normalize_domain tail)
-
-  let init domain =
-    current := Some (normalize_domain domain)
-
-  let build ?loc name unsorted_values =
+  let build_disj ?loc domain name unsorted_values =
     let values = List.sort Pervasives.compare unsorted_values in
-    match (name.[0], !current) with
-      | ('_', _) (* no check on feat_name starting with '_' *)
-      | (_, None) -> List.map (fun s -> String s) values (* no domain defined *)
-      | (_, Some dom) ->
+    match name.[0] with
+      | '_' -> List.map (fun s -> String s) values (* no check on feat_name starting with '_' *)
+      | _ ->
         let rec loop = function
           | [] -> Error.build ?loc "[GRS] Unknown feature name '%s'" name
           | ((Open n)::_) when n = name ->
@@ -325,31 +317,25 @@ module Domain = struct
           name
             )
           | _::t -> loop t in
-        loop dom
+        loop domain
 
-  let build_one ?loc name value =
-    match build ?loc name [value] with
+  let build_value ?loc domain name value =
+    match build_disj ?loc domain name [value] with
       | [x] -> x
-      | _ -> Error.bug ?loc "[Domain.build_one]"
+      | _ -> Error.bug ?loc "[Domain.build_value]"
 
-  let check_feature ?loc name value =
-    ignore (build ?loc name [value])
+  let check_feature ?loc domain name value =
+    ignore (build_disj ?loc domain name [value])
 
-  let feature_names () =
-    match !current with
-      | None -> None
-      | Some dom -> Some (List.map (function Closed (fn, _) | Open fn | Num fn -> fn) dom)
+  let feature_names domain =
+    Some (List.map (function Closed (fn, _) | Open fn | Num fn -> fn) domain)
 
-  let sub name1 name2 =
-    match !current with
-      | None -> true
-      | Some dom ->
-      match (get name1 dom, get name2 dom) with
+  let sub domain name1 name2 =
+    match (get name1 domain, get name2 domain) with
         | (_, Open _) -> true
         | (Closed (_,l1), Closed (_,l2)) -> List_.sort_include l1 l2
         | (Num _, Num _) -> true
         | _ -> false
-
 
   let build_closed feature_name feature_values =
     let sorted_list = List.sort Pervasives.compare feature_values in

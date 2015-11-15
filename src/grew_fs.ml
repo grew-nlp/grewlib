@@ -33,9 +33,9 @@ module G_feature = struct
     | (None, Some j) -> 1
     | (None, None) -> Pervasives.compare name1 name2    
 
-  let build (x : Ast.feature) = match x with
+  let build domain = function
     | ({Ast.kind=Ast.Equality [atom]; name=name},loc) ->
-      (name, Domain.build_one ~loc name atom)
+      (name, Domain.build_value ~loc domain name atom)
     | _ -> Error.build "Illegal feature declaration in Graph (must be '=' and atomic)"
 
   let to_string (feat_name, feat_val) = sprintf "%s=%s" feat_name (string_of_value feat_val)
@@ -130,14 +130,14 @@ module P_feature = struct
 
     | _ -> Error.bug "[P_feature.to_string] multiple parameters are not handled"
 
-  let build ?pat_vars = function
+  let build domain ?pat_vars = function
     | ({Ast.kind=Ast.Absent; name=name}, loc) -> 
-      Domain.check_feature_name ~loc name;
+      Domain.check_feature_name ~loc domain name;
       (name, {cst=Absent;in_param=[];})
     | ({Ast.kind=Ast.Equality unsorted_values; name=name}, loc) ->
-      let values = Domain.build ~loc name unsorted_values in (name, {cst=Equal values;in_param=[];})
+      let values = Domain.build_disj ~loc domain name unsorted_values in (name, {cst=Equal values;in_param=[];})
     | ({Ast.kind=Ast.Disequality unsorted_values; name=name}, loc) ->
-      let values = Domain.build ~loc name unsorted_values in (name, {cst=Different values;in_param=[];})
+      let values = Domain.build_disj ~loc domain name unsorted_values in (name, {cst=Different values;in_param=[];})
     | ({Ast.kind=Ast.Equal_param var; name=name}, loc) ->
         begin
           match pat_vars with
@@ -161,8 +161,8 @@ module G_fs = struct
   let empty = []
 
   (* ---------------------------------------------------------------------- *)
-  let set_feat ?loc feature_name atom t =
-    let new_value = Domain.build_one ?loc feature_name atom in
+  let set_feat ?loc domain feature_name atom t =
+    let new_value = Domain.build_value ?loc domain feature_name atom in
     let rec loop = function
     | [] -> [(feature_name, new_value)]
     | ((fn,_)::_) as t when feature_name < fn -> (feature_name, new_value)::t
@@ -203,22 +203,22 @@ module G_fs = struct
   let to_gr t = List_.to_string G_feature.to_gr ", " t
 
   (* ---------------------------------------------------------------------- *)
-  let build ast_fs =
-    let unsorted = List.map (fun feat -> G_feature.build feat) ast_fs in
+  let build domain ast_fs =
+    let unsorted = List.map (fun feat -> G_feature.build domain feat) ast_fs in
     List.sort G_feature.compare unsorted
 
   (* ---------------------------------------------------------------------- *)
-  let of_conll ?loc line =
+  let of_conll ?loc domain line =
     let raw_list0 =
-      ("phon", Domain.build_one ?loc "phon" line.Conll.phon)
-      :: ("cat", Domain.build_one ?loc "cat" line.Conll.pos1)
-      :: (List.map (fun (f,v) -> (f, Domain.build_one ?loc f v)) line.Conll.morph) in
+      ("phon", Domain.build_value ?loc domain "phon" line.Conll.phon)
+      :: ("cat", Domain.build_value ?loc domain "cat" line.Conll.pos1)
+      :: (List.map (fun (f,v) -> (f, Domain.build_value ?loc domain f v)) line.Conll.morph) in
     let raw_list1 = match line.Conll.pos2 with
       | "" | "_" -> raw_list0
-      | s -> ("pos", Domain.build_one ?loc "pos" s) :: raw_list0 in
+      | s -> ("pos", Domain.build_value ?loc domain "pos" s) :: raw_list0 in
     let raw_list2 = match line.Conll.lemma with
       | "" | "_" -> raw_list1
-      | s -> ("lemma", Domain.build_one ?loc "lemma" s) :: raw_list1 in
+      | s -> ("lemma", Domain.build_value ?loc domain "lemma" s) :: raw_list1 in
     List.sort G_feature.compare raw_list2
 
   (* ---------------------------------------------------------------------- *)
@@ -347,8 +347,8 @@ module P_fs = struct
         | _ -> Error.bug "Position can't be parametrized"
     with Not_found -> true
 
-  let build ?pat_vars ast_fs =
-    let unsorted = List.map (P_feature.build ?pat_vars) ast_fs in
+  let build domain ?pat_vars ast_fs =
+    let unsorted = List.map (P_feature.build domain ?pat_vars) ast_fs in
     List.sort P_feature.compare unsorted
 
   let feat_list t = List.map P_feature.get_name t

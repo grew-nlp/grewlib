@@ -267,14 +267,14 @@ module Ast = struct
     | Includ of (string * Loc.t)
 
   type grs_with_include = {
-    domain_wi: Domain.t;
+    domain_wi: Domain.feature_spec list;
     labels_wi: (string * string list) list;    (* the list of global edge labels *)
     modules_wi: module_or_include list;
     sequences_wi: sequence list;
   }
 
   type grs = {
-    domain: Domain.t;
+    domain: Domain.feature_spec list;
     labels: (string * string list) list;
     modules: modul list;
     sequences: sequence list;

@@ -163,11 +163,11 @@ module Modul = struct
       | r::tail -> loop ((Rule.get_name r) :: already_defined) tail in
     loop [] t.rules
 
-  let build ast_module =
+  let build domain ast_module =
     let locals = Array.of_list ast_module.Ast.local_labels in
     Array.sort compare locals;
     let suffixes = ast_module.Ast.suffixes in
-    let rules_or_filters = List.map (Rule.build ~locals suffixes ast_module.Ast.mod_dir) ast_module.Ast.rules in
+    let rules_or_filters = List.map (Rule.build domain ~locals suffixes ast_module.Ast.mod_dir) ast_module.Ast.rules in
     let (filters, rules) = List.partition Rule.is_filter rules_or_filters in
     let modul =
       {
@@ -218,6 +218,7 @@ end (* module Sequence *)
 module Grs = struct
 
   type t = {
+    domain: Domain.t;
     labels: Label.t list;        (* the list of global edge labels *)
     modules: Modul.t list;       (* the ordered list of modules used from rewriting *)
     sequences: Sequence.t list;
@@ -228,10 +229,11 @@ module Grs = struct
   let get_modules t = t.modules
   let get_ast t = t.ast
   let get_filename t = t.filename
+  let get_domain t = t.domain
 
   let sequence_names t = List.map (fun s -> s.Sequence.name) t.sequences
 
-  let empty = {labels=[]; modules=[]; sequences=[]; ast=Ast.empty_grs; filename=""; }
+  let empty = {domain=Domain.empty; labels=[]; modules=[]; sequences=[]; ast=Ast.empty_grs; filename=""; }
 
   let check t =
     (* check for duplicate modules *)
@@ -252,10 +254,12 @@ module Grs = struct
 
   let build filename =
     let ast = Loader.grs filename in
+    let domain = Domain.build ast.Ast.domain in
+
     Label.init ast.Ast.labels;
-    Domain.init ast.Ast.domain;
-    let modules = List.map Modul.build ast.Ast.modules in
+    let modules = List.map (Modul.build domain) ast.Ast.modules in
     let grs = {
+      domain;
       labels = List.map (fun (l,_) -> Label.from_string l) ast.Ast.labels;
       sequences = List.map (Sequence.build modules) ast.Ast.sequences;
       modules; ast; filename;
@@ -290,6 +294,7 @@ module Grs = struct
         (* printf "Enter module ==> %s\n%!" next.Modul.name; *)
         let (good_set, bad_set) =
           Rule.normalize
+            grs.domain
             next.Modul.name
             ~confluent: next.Modul.confluent
             next.Modul.rules
@@ -316,6 +321,7 @@ module Grs = struct
       | next :: tail ->
         let (good_set, bad_set) =
           Rule.normalize
+            grs.domain
             next.Modul.name
             ~confluent: next.Modul.confluent
             next.Modul.rules

@@ -53,6 +53,7 @@ module P_graph: sig
     }
 
   val build:
+      Domain.t ->
       ?pat_vars: string list ->
       ?locals: Label.decl array ->
       Ast.node list ->
@@ -60,6 +61,7 @@ module P_graph: sig
       (t * Id.table)
 
   val build_extension:
+      Domain.t ->
       ?pat_vars: string list ->
       ?locals: Label.decl array ->
       Id.table ->
@@ -101,15 +103,15 @@ module G_graph: sig
   (* Build functions *)
   (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
 
-  val build: ?locals: Label.decl array -> Ast.gr -> t
+  val build: Domain.t -> ?locals: Label.decl array -> Ast.gr -> t
 
-  val of_conll: ?loc:Loc.t -> Conll.t -> t
+  val of_conll: ?loc:Loc.t -> Domain.t -> Conll.t -> t
 
   (** input : "Le/DET/le petit/ADJ/petit chat/NC/chat dort/V/dormir ./PONCT/." 
       It supposes that "SUC" is defined in current relations *)
-  val of_brown: ?sentid: string -> string -> t
+  val of_brown: Domain.t -> ?sentid: string -> string -> t
 
-  val of_xml: Xml.xml -> t
+  val of_xml: Domain.t -> Xml.xml -> t
   (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
   (* Update functions *)
   (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
@@ -145,12 +147,12 @@ module G_graph: sig
   (** move all incident arcs from/to id_src are moved to incident arcs on node id_tar from graph, with all its incoming and outcoming edges *)
   val shift_edges: Loc.t -> Gid.t -> Gid.t -> Label_cst.t -> t -> t
 
-  (** [update_feat tar_id tar_feat_name concat_items] sets the feature of the node [tar_id]
+  (** [update_feat domain tar_id tar_feat_name concat_items] sets the feature of the node [tar_id]
       with feature name [tar_feat_name] to be the contatenation of values described by the [concat_items].
       It returns both the new graph and the new feature value produced as the second element *)
-  val update_feat: ?loc:Loc.t -> t -> Gid.t -> string -> Concat_item.t list -> (t * string)
+  val update_feat: ?loc:Loc.t -> Domain.t -> t -> Gid.t -> string -> Concat_item.t list -> (t * string)
 
-  val set_feat: ?loc:Loc.t -> t -> Gid.t -> string -> string -> t
+  val set_feat: ?loc:Loc.t -> Domain.t -> t -> Gid.t -> string -> string -> t
 
   (** [del_feat graph node_id feat_name] returns [graph] where the feat [feat_name] of [node_id] is deleted
       If the feature is not present, [graph] is returned. *)

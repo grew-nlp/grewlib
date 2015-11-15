@@ -55,18 +55,18 @@ module G_node = struct
 
   let get_annot_info t = G_fs.get_annot_info t.fs
 
-  let build ?def_position (ast_node, loc) =
-    let fs = G_fs.build ast_node.Ast.fs in
+  let build domain ?def_position (ast_node, loc) =
+    let fs = G_fs.build domain ast_node.Ast.fs in
     let position = match (ast_node.Ast.position, def_position) with
       | (Some position, _) -> position
       | (None, Some position) -> position
       | (None, None) -> Error.bug "Cannot build a node without position" in
     (ast_node.Ast.node_id, { empty with fs; position })
 
-  let of_conll ?loc line =
+  let of_conll ?loc domain line =
     if line = Conll.root
     then { empty with conll_root=true }
-    else { empty with fs = G_fs.of_conll ?loc line; position = float line.Conll.num }
+    else { empty with fs = G_fs.of_conll ?loc domain line; position = float line.Conll.num }
 
   let remove (id_tar : Gid.t) label t = {t with next = Massoc_gid.remove id_tar label t.next}
 
@@ -109,11 +109,11 @@ module P_node = struct
 
   let empty = { fs = P_fs.empty; next = Massoc_pid.empty; name = ""; loc=None   }
 
-  let build ?pat_vars (ast_node, loc) =
+  let build domain ?pat_vars (ast_node, loc) =
     (ast_node.Ast.node_id,
      {
        name = ast_node.Ast.node_id;
-       fs = P_fs.build ?pat_vars ast_node.Ast.fs;
+       fs = P_fs.build domain ?pat_vars ast_node.Ast.fs;
        next = Massoc_pid.empty;
        loc = Some loc;
      } )

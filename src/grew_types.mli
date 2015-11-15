@@ -22,6 +22,8 @@ val string_of_value : value -> string
 
 val conll_string_of_value : value -> string
 
+type disjunction = value list
+
 (* ================================================================================ *)
 (* [Pid] describes identifier used in pattern graphs *)
 module Pid : sig
@@ -111,30 +113,29 @@ module Domain: sig
     | Open of feature_name (* phon, lemma, ... *)
     | Num of feature_name (* position *)
 
-  type t = feature_spec list
-  val normalize_domain: t -> t
+  type t
 
-  val reset: unit -> unit
+  val empty: t
 
-  val init: t -> unit
+  val build: feature_spec list -> t
 
-  val build: ?loc:Loc.t -> feature_name -> feature_atom list -> value list
+  val build_disj: ?loc:Loc.t -> t -> feature_name -> feature_atom list -> value list
 
-  val build_one: ?loc:Loc.t -> feature_name -> feature_atom -> value
+  val build_value: ?loc:Loc.t -> t -> feature_name -> feature_atom -> value
 
-  val feature_names: unit -> string list option
+  val feature_names: t -> string list option
 
-  (** [check_feature_name ~loc feature_name] fails iff a domain is set and [feature_name] is not defined in the current domain. *)
-  val check_feature_name: ?loc:Loc.t -> feature_name -> unit
+  (** [check_feature_name ~loc domain feature_name] fails iff a domain is set and [feature_name] is not defined in the current domain. *)
+  val check_feature_name: ?loc:Loc.t -> t -> feature_name -> unit
 
-  (** [check_feature ~loc feature_name feature_value] fails iff a domain is set and [feature_name,feature_value] is not defined in the current domain. *)
-  val check_feature: ?loc:Loc.t -> feature_name -> feature_atom -> unit
+  (** [check_feature ~loc domain feature_name feature_value] fails iff a domain is set and [feature_name,feature_value] is not defined in the current domain. *)
+  val check_feature: ?loc:Loc.t -> t -> feature_name -> feature_atom -> unit
 
-  (** [is_open feature_name] returns [true] iff no domain is set or if [feature_name] is defined to be open in the current domain. *)
-  val is_open: feature_name -> bool
+  (** [is_open domain feature_name] returns [true] iff no domain is set or if [feature_name] is defined to be open in the current domain. *)
+  val is_open: t -> feature_name -> bool
 
-  (** [sub fn1 fn2] returns [true] iff the domain of [fn1] is a subset if the domain of [fn2]. *)
-  val sub: feature_name -> feature_name -> bool
+  (** [sub domain fn1 fn2] returns [true] iff the domain of [fn1] is a subset if the domain of [fn2]. *)
+  val sub:  t -> feature_name -> feature_name -> bool
 
   val build_closed: feature_name -> feature_atom list -> feature_spec
 end (* module Domain *)

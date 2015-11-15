@@ -110,7 +110,7 @@ module Rule = struct
 
     | Filter of Pid.t * P_fs.t (* used when a without impose a fs on a node defined by the match basic *)
 
-  let build_pos_constraint ?locals pos_table const =
+  let build_pos_constraint domain ?locals pos_table const =
     let pid_of_name loc node_name = Pid.Pos (Id.build ~loc node_name pos_table) in
     match const with
       | (Ast.Cst_out (id,label_cst), loc) ->
@@ -119,22 +119,22 @@ module Rule = struct
         Cst_in (pid_of_name loc id, Label_cst.build ~loc ?locals label_cst)
 
       | (Ast.Feature_eq ((node_name1, feat_name1), (node_name2, feat_name2)), loc) ->
-        Domain.check_feature_name ~loc feat_name1;
-        Domain.check_feature_name ~loc feat_name2;        
+        Domain.check_feature_name domain ~loc feat_name1;
+        Domain.check_feature_name domain ~loc feat_name2;
         Feature_eq (pid_of_name loc node_name1, feat_name1, pid_of_name loc node_name2, feat_name2)
 
       | (Ast.Feature_diseq ((node_name1, feat_name1), (node_name2, feat_name2)), loc) ->
-        Domain.check_feature_name ~loc feat_name1;
-        Domain.check_feature_name ~loc feat_name2;        
+        Domain.check_feature_name domain ~loc feat_name1;
+        Domain.check_feature_name domain ~loc feat_name2;
         Feature_diseq (pid_of_name loc node_name1, feat_name1, pid_of_name loc node_name2, feat_name2)
 
       | (Ast.Feature_ineq (ineq, (node_name1, feat_name1), (node_name2, feat_name2)), loc) ->
-        Domain.check_feature_name ~loc feat_name1;
-        Domain.check_feature_name ~loc feat_name2;        
+        Domain.check_feature_name domain ~loc feat_name1;
+        Domain.check_feature_name domain ~loc feat_name2;
         Feature_ineq (ineq, pid_of_name loc node_name1, feat_name1, pid_of_name loc node_name2, feat_name2)
 
       | (Ast.Feature_ineq_cst (ineq, (node_name1, feat_name1), constant), loc) ->
-        Domain.check_feature_name ~loc feat_name1;
+        Domain.check_feature_name domain ~loc feat_name1;
         Feature_ineq_cst (ineq, pid_of_name loc node_name1, feat_name1, constant)
 
 
@@ -143,19 +143,19 @@ module Rule = struct
     constraints: const list;
   }
 
-  let build_pos_basic ?pat_vars ?(locals=[||]) basic_ast =
+  let build_pos_basic domain ?pat_vars ?(locals=[||]) basic_ast =
     let (graph, pos_table) =
-      P_graph.build ?pat_vars ~locals basic_ast.Ast.pat_nodes basic_ast.Ast.pat_edges in
+      P_graph.build domain ?pat_vars ~locals basic_ast.Ast.pat_nodes basic_ast.Ast.pat_edges in
     (
       {
         graph = graph;
-        constraints = List.map (build_pos_constraint ~locals pos_table) basic_ast.Ast.pat_const
+        constraints = List.map (build_pos_constraint domain ~locals pos_table) basic_ast.Ast.pat_const
       },
       pos_table
     )
 
   (* the neg part *)
-  let build_neg_constraint ?locals pos_table neg_table const =
+  let build_neg_constraint domain ?locals pos_table neg_table const =
     let pid_of_name loc node_name =
       match Id.build_opt node_name pos_table with
         | Some i -> Pid.Pos i
@@ -169,38 +169,38 @@ module Rule = struct
       | (Ast.Feature_eq (feat_id1, feat_id2), loc) ->
         let (node_name1, feat_name1) = feat_id1
         and (node_name2, feat_name2) = feat_id2 in
-        Domain.check_feature_name ~loc feat_name1;
-        Domain.check_feature_name ~loc feat_name2;        
+        Domain.check_feature_name domain ~loc feat_name1;
+        Domain.check_feature_name domain ~loc feat_name2;
         Feature_eq (pid_of_name loc node_name1, feat_name1, pid_of_name loc node_name2, feat_name2)
 
       | (Ast.Feature_diseq (feat_id1, feat_id2), loc) ->
         let (node_name1, feat_name1) = feat_id1
         and (node_name2, feat_name2) = feat_id2 in
-        Domain.check_feature_name ~loc feat_name1;
-        Domain.check_feature_name ~loc feat_name2;        
+        Domain.check_feature_name domain ~loc feat_name1;
+        Domain.check_feature_name domain ~loc feat_name2;
         Feature_diseq (pid_of_name loc node_name1, feat_name1, pid_of_name loc node_name2, feat_name2)
 
       | (Ast.Feature_ineq (ineq, feat_id1, feat_id2), loc) ->
         let (node_name1, feat_name1) = feat_id1
         and (node_name2, feat_name2) = feat_id2 in
-        Domain.check_feature_name ~loc feat_name1;
-        Domain.check_feature_name ~loc feat_name2;        
+        Domain.check_feature_name domain ~loc feat_name1;
+        Domain.check_feature_name domain ~loc feat_name2;
         Feature_ineq (ineq, pid_of_name loc node_name1, feat_name1, pid_of_name loc node_name2, feat_name2)
 
       | (Ast.Feature_ineq_cst (ineq, feat_id1, constant), loc) ->
         let (node_name1, feat_name1) = feat_id1 in
-        Domain.check_feature_name ~loc feat_name1;
+        Domain.check_feature_name domain ~loc feat_name1;
         Feature_ineq_cst (ineq, pid_of_name loc node_name1, feat_name1, constant)
 
   (* It may raise [P_fs.Fail_unif] in case of contradiction on constraints *)
-  let build_neg_basic ?pat_vars ?(locals=[||]) pos_table basic_ast =
+  let build_neg_basic domain ?pat_vars ?(locals=[||]) pos_table basic_ast =
     let (extension, neg_table) =
-      P_graph.build_extension ?pat_vars ~locals pos_table basic_ast.Ast.pat_nodes basic_ast.Ast.pat_edges in
+      P_graph.build_extension domain ?pat_vars ~locals pos_table basic_ast.Ast.pat_nodes basic_ast.Ast.pat_edges in
 
     let filters = Pid_map.fold (fun id node acc -> Filter (id, P_node.get_fs node) :: acc) extension.P_graph.old_map [] in
     {
       graph = extension.P_graph.ext_map;
-      constraints = filters @ List.map (build_neg_constraint ~locals pos_table neg_table) basic_ast.Ast.pat_const ;
+      constraints = filters @ List.map (build_neg_constraint domain ~locals pos_table neg_table) basic_ast.Ast.pat_const ;
     }
 
   let get_edge_ids basic =
@@ -289,7 +289,7 @@ module Rule = struct
     Buffer.contents buff
 
   (* ====================================================================== *)
-  let build_commands ?param ?(locals=[||]) suffixes pos pos_table ast_commands =
+  let build_commands domain ?param ?(locals=[||]) suffixes pos pos_table ast_commands =
     let known_act_ids = List.map (fun x -> (Ast.No_sharp x)) (Array.to_list pos_table) in
     let known_edge_ids = get_edge_ids pos in
 
@@ -298,6 +298,7 @@ module Rule = struct
       | ast_command :: tail ->
           let (command, (new_kai, new_kei)) =
             Command.build
+              domain
               ?param
               (kai,kei)
               pos_table
@@ -321,7 +322,7 @@ module Rule = struct
     parse_pat_vars vars
 
   (* ====================================================================== *)
-  let build ?(locals=[||]) suffixes dir rule_ast =
+  let build domain ?(locals=[||]) suffixes dir rule_ast =
 
     let (param, pat_vars, cmd_vars) =
       match rule_ast.Ast.param with
@@ -344,11 +345,11 @@ module Rule = struct
 
           (full_param, pat_vars, cmd_vars) in
 
-    let (pos, pos_table) = build_pos_basic ~pat_vars ~locals rule_ast.Ast.pos_basic in
+    let (pos, pos_table) = build_pos_basic domain ~pat_vars ~locals rule_ast.Ast.pos_basic in
     let (negs,_) =
       List.fold_left
       (fun (acc,pos) basic_ast ->
-        try ((build_neg_basic ~pat_vars ~locals pos_table basic_ast) :: acc, pos+1)
+        try ((build_neg_basic domain ~pat_vars ~locals pos_table basic_ast) :: acc, pos+1)
         with P_fs.Fail_unif ->
           Log.fwarning "In rule \"%s\" [%s], the wihtout number %d cannot be satisfied, it is skipped"
             rule_ast.Ast.rule_id (Loc.to_string rule_ast.Ast.rule_loc) pos;
@@ -357,15 +358,15 @@ module Rule = struct
     {
       name = rule_ast.Ast.rule_id;
       pattern = (pos, negs);
-      commands = build_commands ~param:(pat_vars,cmd_vars) ~locals suffixes pos pos_table rule_ast.Ast.commands;
+      commands = build_commands domain ~param:(pat_vars,cmd_vars) ~locals suffixes pos pos_table rule_ast.Ast.commands;
       loc = rule_ast.Ast.rule_loc;
       param = param;
       param_names = (pat_vars,cmd_vars)
     }
 
-  let build_pattern pattern_ast =
-    let (pos, pos_table) = build_pos_basic pattern_ast.Ast.pat_pos in
-    let negs = List_.try_map P_fs.Fail_unif (fun basic_ast -> build_neg_basic pos_table basic_ast) pattern_ast.Ast.pat_negs in
+  let build_pattern domain pattern_ast =
+    let (pos, pos_table) = build_pos_basic domain pattern_ast.Ast.pat_pos in
+    let negs = List_.try_map P_fs.Fail_unif (fun basic_ast -> build_neg_basic domain pos_table basic_ast) pattern_ast.Ast.pat_negs in
     (pos, negs)
 
   (* ====================================================================== *)
@@ -633,7 +634,7 @@ module Rule = struct
 
   (*  ---------------------------------------------------------------------- *)
   (** [apply_command instance matching created_nodes command] returns [(new_instance, new_created_nodes)] *)
-  let apply_command (command,loc) instance matching (created_nodes, (activated_nodes:((Pid.t * string) * Gid.t) list)) =
+  let apply_command domain (command,loc) instance matching (created_nodes, (activated_nodes:((Pid.t * string) * Gid.t) list)) =
     let node_find cnode = find ~loc cnode (matching, (created_nodes, activated_nodes)) in
 
     match command with
@@ -719,7 +720,7 @@ module Rule = struct
             ) item_list in
 
         let (new_graph, new_feature_value) =
-          G_graph.update_feat ~loc instance.Instance.graph tar_gid tar_feat_name rule_items in
+          G_graph.update_feat ~loc domain instance.Instance.graph tar_gid tar_feat_name rule_items in
         (
          {instance with
           Instance.graph = new_graph;
@@ -798,7 +799,7 @@ module Rule = struct
   (*  ---------------------------------------------------------------------- *)
   (** [apply_rule instance matching rule] returns a new instance after the application of the rule
       [Command_execution_fail] is raised if some merge unification fails *)
-  let apply_rule instance matching rule =
+  let apply_rule domain instance matching rule =
 
     (* Timeout check *)
     (try Timeout.check () with Timeout.Stop -> Error.run "Time out");
@@ -812,7 +813,7 @@ module Rule = struct
     let (new_instance, created_nodes) =
       List.fold_left
         (fun (instance, created_nodes) command ->
-          apply_command command instance matching created_nodes
+          apply_command domain command instance matching created_nodes
         )
         (instance, ([],[]))
         rule.commands in
@@ -895,21 +896,21 @@ module Rule = struct
 
   (*  ---------------------------------------------------------------------- *)
   (** [one_step instance rules] computes the list of one-step reduct with rules *)
-  let one_step instance rules =
+  let one_step domain instance rules =
     List.fold_left
       (fun acc rule ->
         let matching_list = match_in_graph ?param:rule.param rule.pattern instance.Instance.graph in
 
         List.fold_left
           (fun acc1 matching ->
-            try (apply_rule instance matching rule) :: acc1
+            try (apply_rule domain instance matching rule) :: acc1
             with Command_execution_fail -> acc1
           ) acc matching_list
       ) [] rules
 
   (*  ---------------------------------------------------------------------- *)
   (** [conf_one_step instance rules] computes one Some (one-step reduct) with rules, None if no rule apply *)
-  let rec conf_one_step (instance : Instance.t) = function
+  let rec conf_one_step domain (instance : Instance.t) = function
     | [] -> None
     | rule::rule_tail ->
         let (pos,negs) = rule.pattern in
@@ -931,8 +932,8 @@ module Rule = struct
                     fulfill (pos.graph,neg.graph) instance.Instance.graph new_partial_matching
                   ) negs
               ) matching_list in
-          Some (apply_rule instance first_matching_where_all_witout_are_fulfilled rule)
-        with Not_found -> (* try another rule *) conf_one_step instance rule_tail
+          Some (apply_rule domain instance first_matching_where_all_witout_are_fulfilled rule)
+        with Not_found -> (* try another rule *) conf_one_step domain instance rule_tail
 
 
   (* ---------------------------------------------------------------------- *)
@@ -949,7 +950,7 @@ module Rule = struct
   (** normalize [t] according to the [rules]. [t] is a raw graph
     Info about the commands applied on [t] are kept *)
   (* type: Instance.t -> t list -> Instance_set.t *)
-  let normalize_instance modul_name instance rules =
+  let normalize_instance domain modul_name instance rules =
     let rec loop to_do_set nf_set =
       if to_do_set = Instance_set.empty
       then nf_set
@@ -957,7 +958,7 @@ module Rule = struct
         let (new_to_do_set,new_nf_set) =
           Instance_set.fold
             (fun v (to_do_set_acc,nf_set_acc) ->
-              match one_step v rules with
+              match one_step domain v rules with
                 | [] -> (to_do_set_acc,Instance_set.add (Instance.rev_steps v) nf_set_acc)
                 | step_of_v -> (List.fold_left (fun acc v1 -> Instance_set.add v1 acc) to_do_set_acc step_of_v, nf_set_acc)
             )
@@ -1001,21 +1002,21 @@ module Rule = struct
     loop filters
 
   (* ---------------------------------------------------------------------- *)
-  let rec conf_normalize instance rules =
-    match conf_one_step instance rules with
-    | Some new_instance -> conf_normalize new_instance rules
+  let rec conf_normalize domain instance rules =
+    match conf_one_step domain instance rules with
+    | Some new_instance -> conf_normalize domain new_instance rules
     | None -> Instance.rev_steps instance
 
   (* ---------------------------------------------------------------------- *)
-  let normalize modul_name ?(confluent=false) rules filters instance =
+  let normalize domain modul_name ?(confluent=false) rules filters instance =
     if confluent
     then
-      let output = conf_normalize instance rules in
+      let output = conf_normalize domain instance rules in
       if filter_instance filters output
       then (Instance_set.singleton output, Instance_set.empty)
       else (Instance_set.empty, Instance_set.singleton output)
     else
-      let output_set = normalize_instance modul_name instance rules in
+      let output_set = normalize_instance domain modul_name instance rules in
       let (good_set, bad_set) = Instance_set.partition (filter_instance filters) output_set in
       (good_set, bad_set)
 end (* module Rule *)

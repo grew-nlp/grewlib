@@ -96,14 +96,12 @@ File extension should be '.gr' or '.conll'.
 @raise Parsing_err if libgrew can't parse the file
 @raise File_dont_exists if the file doesn't exists
 *)
-val load_graph: string -> G_graph.t
+val load_graph: Grs.t -> string -> G_graph.t
 
 (** [of_conll filename line_list] *)
-val of_conll: string -> (int * string) list -> G_graph.t
+val of_conll: Grs.t -> string -> (int * string) list -> G_graph.t
 
-val of_brown: ?sentid:string -> string -> G_graph.t
-
-val xml_graph: Xml.xml -> G_graph.t
+val of_brown: Grs.t -> ?sentid:string -> string -> G_graph.t
 
 (** [raw_graph instance] returns all graph information with a triple of elementary caml types:
     - the meta data
@@ -152,7 +150,7 @@ val make_index:
 
 val html_sentences: title:string -> string -> (bool * string * int * string) list -> unit
 
-val feature_names: unit -> string list option
+val feature_names: Grs.t -> string list option
 
 val to_dot_graph : ?main_feat:string -> ?deco:deco -> graph -> string
 val to_dep_graph : ?filter: string list -> ?main_feat:string -> ?deco:deco -> graph -> string
@@ -164,7 +162,7 @@ type pattern
 type matching
 
 (** [load_pattern filename] returns the pattern describer in the fuile *)
-val load_pattern: string -> pattern
+val load_pattern: Grs.t -> string -> pattern
 
 (** [match_in_graph patern graph] returns the list of the possible matching og [pattern] in [graph] *)
 val match_in_graph: pattern -> graph -> matching list

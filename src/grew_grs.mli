@@ -9,6 +9,7 @@
 (**********************************************************************************)
 
 open Grew_base
+open Grew_types
 open Grew_graph
 open Grew_rule
 open Grew_ast
@@ -83,6 +84,8 @@ module Grs: sig
   val get_modules: t -> Modul.t list
 
   val get_ast: t -> Ast.grs
+
+  val get_domain: t -> Domain.t
 
   val get_filename: t -> string
 

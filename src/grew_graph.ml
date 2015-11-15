@@ -47,21 +47,21 @@ module P_graph = struct
       | Some new_node -> Some (Pid_map.add id_src new_node map)
 
   (* -------------------------------------------------------------------------------- *)
-  let build_filter table (ast_node, loc) =
+  let build_filter domain table (ast_node, loc) =
     let pid = Id.build ~loc ast_node.Ast.node_id table in
-    let fs = P_fs.build ast_node.Ast.fs in
+    let fs = P_fs.build domain ast_node.Ast.fs in
     (pid, fs)
 
   (* -------------------------------------------------------------------------------- *)
-  let build ?pat_vars ?(locals=[||]) (full_node_list : Ast.node list) full_edge_list =
+  let build domain ?pat_vars ?(locals=[||]) (full_node_list : Ast.node list) full_edge_list =
 
     (* NB: insert searches for a previous node with the Same name and uses unification rather than constraint *)
     (* NB: insertion of new node at the end of the list: not efficient but graph building is not the hard part. *)
     let rec insert (ast_node, loc) = function
-      | [] -> [P_node.build ?pat_vars (ast_node, loc)]
+      | [] -> [P_node.build domain ?pat_vars (ast_node, loc)]
       | (node_id,fs)::tail when ast_node.Ast.node_id = node_id ->
         begin
-          try (node_id, P_node.unif_fs (P_fs.build ?pat_vars ast_node.Ast.fs) fs) :: tail
+          try (node_id, P_node.unif_fs (P_fs.build domain ?pat_vars ast_node.Ast.fs) fs) :: tail
           with Error.Build (msg,_) -> raise (Error.Build (msg,Some loc))
         end
       | head :: tail -> head :: (insert (ast_node, loc) tail) in
@@ -108,9 +108,9 @@ module P_graph = struct
 
   (* -------------------------------------------------------------------------------- *)
   (* It may raise [P_fs.Fail_unif] in case of contradiction on constraints *)
-  let build_extension ?pat_vars ?(locals=[||]) pos_table full_node_list full_edge_list =
+  let build_extension domain ?pat_vars ?(locals=[||]) pos_table full_node_list full_edge_list =
 
-    let built_nodes = List.map (P_node.build ?pat_vars) full_node_list in
+    let built_nodes = List.map (P_node.build domain ?pat_vars) full_node_list in
 
     let (old_nodes, new_nodes) =
       List.partition
@@ -295,7 +295,7 @@ module G_graph = struct
       | None -> None
 
   (* -------------------------------------------------------------------------------- *)
-  let build ?(locals=[||]) gr_ast =
+  let build domain ?(locals=[||]) gr_ast =
     let full_node_list = gr_ast.Ast.nodes
     and full_edge_list = gr_ast.Ast.edges in
 
@@ -309,7 +309,7 @@ module G_graph = struct
           if List.mem node_id already_bound
           then Error.build "[GRS] [Graph.build] try to build a graph with twice the same node id '%s'" node_id
           else
-            let (new_id,new_node) = G_node.build ~def_position:!next_free_position (ast_node, loc) in
+            let (new_id,new_node) = G_node.build domain ~def_position:!next_free_position (ast_node, loc) in
             next_free_position := 1. +. (max !next_free_position (G_node.get_position new_node));
             let new_tail = loop (node_id :: already_bound) tail in
             (new_id,new_node) :: new_tail in
@@ -343,7 +343,7 @@ module G_graph = struct
 
 
   (* -------------------------------------------------------------------------------- *)
-  let of_conll ?loc (meta, lines, range_lines) =
+  let of_conll ?loc domain (meta, lines, range_lines) =
     let sorted_lines = Conll.root :: (List.sort Conll.compare lines) in
 
     let gtable = (Array.of_list (List.map (fun line -> line.Conll.num) sorted_lines), string_of_int) in
@@ -352,7 +352,7 @@ module G_graph = struct
       List_.foldi_left
         (fun i acc line ->
           let loc = Loc.opt_set_line i loc in
-          Gid_map.add (Gid.Old i) (G_node.of_conll ?loc line) acc)
+          Gid_map.add (Gid.Old i) (G_node.of_conll domain ?loc line) acc)
         Gid_map.empty sorted_lines in
     let map_with_edges =
       List.fold_left
@@ -386,7 +386,7 @@ module G_graph = struct
 
   (* -------------------------------------------------------------------------------- *)
   (** input : "Le/DET/le petit/ADJ/petit chat/NC/chat dort/V/dormir ./PONCT/." *)
-  let of_brown ?sentid brown =
+  let of_brown domain ?sentid brown =
     let units = Str.split (Str.regexp " ") brown in
       let conll_lines = List.mapi
       (fun i item -> match Str.full_split (Str.regexp "/[A-Z'+'']+/") item with
@@ -407,7 +407,7 @@ module G_graph = struct
           }
         | _ -> Error.build "[Graph.of_brown] Cannot parse Brown item >>>%s<<< (expected \"phon/POS/lemma\")" item
       ) units in 
-    of_conll ([], conll_lines, [])
+    of_conll domain ([], conll_lines, [])
 
   (* -------------------------------------------------------------------------------- *)
   let opt_att atts name =
@@ -416,7 +416,7 @@ module G_graph = struct
 
  (* -------------------------------------------------------------------------------- *)
  (** [of_xml d_xml] loads a graph in the xml format: [d_xml] must be a <D> xml element *)
-  let of_xml d_xml =
+  let of_xml domain d_xml =
     match d_xml with
       | Xml.Element ("D", _, t_or_r_list) ->
         let (t_list, r_list) = List.partition (function Xml.Element ("T",_,_) -> true | _ -> false) t_or_r_list in
@@ -429,7 +429,7 @@ module G_graph = struct
                   let other_feats = List.filter (fun (n,_) -> not (List.mem n ["id"; "start"; "end"; "label"])) t_atts in
                   let new_fs =
                     List.fold_left
-                      (fun acc2 (fn,fv) -> G_fs.set_feat fn fv acc2)
+                      (fun acc2 (fn,fv) -> G_fs.set_feat domain fn fv acc2)
                       G_fs.empty
                       (("phon", phon) :: ("cat", (List.assoc "label" t_atts)) :: other_feats) in
                   let new_node = G_node.set_fs new_fs (G_node.set_position (float i) G_node.empty) in
@@ -614,18 +614,18 @@ module G_graph = struct
       | None -> None
 
   (* -------------------------------------------------------------------------------- *)
-  let set_feat ?loc graph node_id feat_name new_value =
+  let set_feat ?loc domain graph node_id feat_name new_value =
     let node = Gid_map.find node_id graph.map in
     let new_node =
       match feat_name with
         | "position" -> G_node.set_position (float_of_string new_value) node
         | _ ->
-          let new_fs = G_fs.set_feat ?loc feat_name new_value (G_node.get_fs node) in
+          let new_fs = G_fs.set_feat ?loc domain feat_name new_value (G_node.get_fs node) in
           (G_node.set_fs new_fs node) in
     { graph with map = Gid_map.add node_id new_node graph.map }
 
   (* -------------------------------------------------------------------------------- *)
-  let update_feat ?loc graph tar_id tar_feat_name item_list =
+  let update_feat ?loc domain graph tar_id tar_feat_name item_list =
     let strings_to_concat =
       List.map
         (function
@@ -638,7 +638,7 @@ module G_graph = struct
           | Concat_item.String s -> s
         ) item_list in
     let new_feature_value = List_.to_string (fun s->s) "" strings_to_concat in
-    (set_feat ?loc graph tar_id tar_feat_name new_feature_value, new_feature_value)
+    (set_feat ?loc domain graph tar_id tar_feat_name new_feature_value, new_feature_value)
 
   (* -------------------------------------------------------------------------------- *)
   let del_feat graph node_id feat_name =

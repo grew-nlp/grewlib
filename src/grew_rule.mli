@@ -73,13 +73,14 @@ module Rule : sig
   (** [to_dep t] returns a string in the [dep] language describing the match basic of the rule *)
   val to_dep: t -> string
 
-  (** [build ?local dir ast_rule] returns the Rule.t value corresponding to [ast_rule].
+  (** [build domain ?local dir ast_rule] returns the Rule.t value corresponding to [ast_rule].
       [dir] is used for localisation of lp files *)
-  val build: ?locals:Label.decl array -> string list -> string -> Ast.rule -> t
+  val build: Domain.t -> ?locals:Label.decl array -> string list -> string -> Ast.rule -> t
 
-  (** [normalize module_name ?confluent rule_list filter_list instance] returns two sets of good normal forms and bad normal forms *)
+  (** [normalize domain module_name ?confluent rule_list filter_list instance] returns two sets of good normal forms and bad normal forms *)
   (* raise Stop if some command fails to apply *)
   val normalize:
+    Domain.t ->
     string -> (* module name *)
     ?confluent:bool ->
     t list -> (* rule list *)
@@ -92,7 +93,7 @@ module Rule : sig
   type matching
   type pattern
 
-  val build_pattern: Ast.pattern -> pattern
+  val build_pattern: Domain.t -> Ast.pattern -> pattern
 
   (** [match_in_graph rule graph] returns the list of matching of the pattern of the rule into the graph *)
   val match_in_graph: ?param:Lex_par.t -> pattern -> G_graph.t -> matching list

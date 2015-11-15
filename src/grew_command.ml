@@ -65,7 +65,7 @@ module Command  = struct
     | H_MERGE_NODE of (Gid.t * Gid.t)
     | H_ACT_NODE of (Gid.t * string)
 
-  let build ?param (kai, kei) table locals suffixes ast_command =
+  let build domain ?param (kai, kei) table locals suffixes ast_command =
     (* kai stands for "known act ident", kei for "known edge ident" *)
 
     let pid_of_act_id loc = function
@@ -169,7 +169,7 @@ module Command  = struct
           if feat_name = "position"
           then Error.build ~loc "Illegal del_feat command: the 'position' feature cannot be deleted";
           check_act_id loc act_id kai;
-          Domain.check_feature_name ~loc feat_name;
+          Domain.check_feature_name ~loc domain feat_name;
           ((DEL_FEAT (pid_of_act_id loc act_id, feat_name), loc), (kai, kei))
 
       | (Ast.Update_feat ((act_id, feat_name), ast_items), loc) ->
@@ -178,7 +178,7 @@ module Command  = struct
             (function
               | Ast.Qfn_item (node_id,feature_name) ->
                 check_node_id loc node_id kai;
-                Domain.check_feature_name ~loc feature_name;
+                Domain.check_feature_name ~loc domain feature_name;
                 Feat (pid_of_node_id loc node_id, feature_name)
               | Ast.String_item s -> String s
               | Ast.Param_item var ->
@@ -192,9 +192,9 @@ module Command  = struct
             ) ast_items in
             (* check for consistency *)
             (match items with
-              | _ when Domain.is_open feat_name -> ()
+              | _ when Domain.is_open domain feat_name -> ()
               | [Param_out _] -> () (* TODO: check that lexical parameters are compatible with the feature domain *)
-              | [String s] -> Domain.check_feature ~loc feat_name s
+              | [String s] -> Domain.check_feature ~loc domain feat_name s
               | [Feat (_,fn)] -> ()
               | _ -> Error.build ~loc "[Update_feat] Only open features can be modified with the concat operator '+' but \"%s\" is not declared as an open feature" feat_name);
           ((UPDATE_FEAT (pid_of_act_id loc act_id, feat_name, items), loc), (kai, kei))

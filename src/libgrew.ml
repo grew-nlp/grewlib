@@ -110,58 +110,55 @@ let get_sequence_names grs =
       Grs.sequence_names grs
     ) ()
 
-let load_gr file =
+let load_gr grs file =
   if not (Sys.file_exists file)
   then raise (File_dont_exists file)
   else
     handle ~name:"load_gr" ~file
       (fun () ->
         let gr_ast = Loader.gr file in
-        G_graph.build gr_ast
+        G_graph.build (Grs.get_domain grs) gr_ast
       ) ()
 
-let load_conll file =
+let load_conll grs file =
   handle ~name:"load_conll" ~file
     (fun () ->
-      G_graph.of_conll ~loc:(Loc.file file) (Conll.load file)
+      G_graph.of_conll ~loc:(Loc.file file) (Grs.get_domain grs) (Conll.load file)
     ) ()
 
-let of_conll file_name line_list =
+let of_conll grs file_name line_list =
   handle ~name:"of_conll"
     (fun () ->
-      G_graph.of_conll ~loc:(Loc.file file_name) (Conll.parse file_name line_list)
+      G_graph.of_conll ~loc:(Loc.file file_name) (Grs.get_domain grs) (Conll.parse file_name line_list)
     ) ()
 
-let of_brown ?sentid brown =
+let of_brown grs ?sentid brown =
   handle ~name:"of_brown"
     (fun () ->
-      G_graph.of_brown ?sentid brown
+      G_graph.of_brown (Grs.get_domain grs) ?sentid brown
     ) ()
 
-let load_brown file =
+let load_brown grs file =
   handle ~name:"load_brown"
     (fun () ->
       let brown = File.load file in
-      G_graph.of_brown brown
+      G_graph.of_brown (Grs.get_domain grs) brown
     ) ()
 
-let load_graph file =
+let load_graph grs file =
   handle ~name:"load_graph" ~file
     (fun () ->
       match File.get_suffix file with
-      | Some ".gr" -> load_gr file
-      | Some ".conll" -> load_conll file
-      | Some ".br" | Some ".melt" -> load_brown file 
+      | Some ".gr" -> load_gr grs file
+      | Some ".conll" -> load_conll grs file
+      | Some ".br" | Some ".melt" -> load_brown grs file 
       | _ ->
           Log.fwarning "Unknown file format for input graph '%s', try to guess..." file;
           let rec loop = function
           | [] -> Log.fcritical "[Libgrew.load_graph] Cannot guess input file format of file '%s'. Use .gr or .conll file extension" file
-          | load_fct :: tail -> try load_fct file with _ -> loop tail in
+          | load_fct :: tail -> try load_fct grs file with _ -> loop tail in
           loop [load_gr; load_conll; load_brown]
     ) ()
-
-let xml_graph xml =
-  handle ~name:"xml_graph" (fun () -> G_graph.of_xml xml) ()
 
 let raw_graph gr =
   handle ~name:"raw_graph" (fun () -> G_graph.to_raw gr) ()
@@ -269,7 +266,7 @@ let make_index ~title ~grs_file ~html ~grs ~seq ~input_dir ~output_dir ~base_nam
 
 let html_sentences ~title = handle ~name:"html_sentences" (fun () -> Html_sentences.build ~title) ()
 
-let feature_names () =  handle ~name:"feature_names" (fun () -> Domain.feature_names ()) ()
+let feature_names grs =  handle ~name:"feature_names" (fun () -> Domain.feature_names (Grs.get_domain grs)) ()
 
 let to_dot_graph ?main_feat ?(deco=G_deco.empty) graph =
   handle ~name:"to_dot_graph" (fun () -> G_graph.to_dot ?main_feat graph ~deco) ()
@@ -286,8 +283,8 @@ let to_conll_graph graph =
 type pattern = Rule.pattern
 type matching = Rule.matching
 
-let load_pattern file =
-  handle ~name:"load_pattern" (fun () -> Rule.build_pattern (Loader.pattern file)) ()
+let load_pattern grs file =
+  handle ~name:"load_pattern" (fun () -> Rule.build_pattern (Grs.get_domain grs) (Loader.pattern file)) ()
 
 let match_in_graph pattern graph = Rule.match_in_graph pattern graph
 

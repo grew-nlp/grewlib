@@ -42,8 +42,8 @@ module G_node: sig
   val rm_out_edges: t -> t
 
   val add_edge: G_edge.t -> Gid.t -> t -> t option
-  val build: ?def_position: float -> Ast.node -> (Id.name * t)
-  val of_conll: ?loc:Loc.t -> Conll.line -> t
+  val build: Domain.t -> ?def_position: float -> Ast.node -> (Id.name * t)
+  val of_conll: ?loc:Loc.t -> Domain.t -> Conll.line -> t
 
   val get_position: t -> float
 
@@ -77,7 +77,7 @@ module P_node: sig
   *)
   val unif_fs: P_fs.t -> t -> t
 
-  val build: ?pat_vars: string list -> Ast.node -> (Id.name * t)
+  val build: Domain.t -> ?pat_vars: string list -> Ast.node -> (Id.name * t)
 
   val add_edge: P_edge.t -> Pid.t -> t -> t option
 
