@@ -1,4 +1,4 @@
-VERSION = 0.30
+VERSION = 0.31
 
 DATA_DIR = @prefix@@datarootdir@/libgrew/
 DOC_DIR = @prefix@@datarootdir@/libgrew-doc/
