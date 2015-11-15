@@ -369,24 +369,35 @@ end (* Domain *)
 module Conll = struct
   type line = {
       line_num: int;
-      num: string;
+      num: int;
       phon: string;
       lemma: string;
       pos1: string;
       pos2: string;
       morph: (string * string) list;
-      deps: (string * string ) list;
+      deps: (int * string ) list;
     }
 
-  let root = { line_num = -1; num="0"; phon="ROOT"; lemma="__"; pos1="_X"; pos2=""; morph=[]; deps=[] }
+  let root = { line_num = -1; num=0; phon="ROOT"; lemma="__"; pos1="_X"; pos2=""; morph=[]; deps=[] }
 
   let line_to_string l =
     let (gov_list, lab_list) = List.split l.deps in
-    sprintf "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s"
+    sprintf "%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s"
       l.num l.phon l.lemma l.pos1 l.pos2
       (match l.morph with [] -> "_" | list -> String.concat "|" (List.map (fun (f,v) -> sprintf "%s=%s" f v) list))
-      (String.concat "|" (gov_list))
-      (String.concat "|" (lab_list))
+      (List_.to_string string_of_int "|" gov_list)
+      (String.concat "|" lab_list)
+
+  type range_line = {
+    first: int;
+    last: int;
+    fusion: string;
+  }
+
+  let range_line_to_string l =
+    sprintf "%d-%d\t%s\t_\t_\t_\t_\t_\t_\t_\t_" l.first l.last l.fusion
+
+  type t = (string * string) list * line list * range_line list
 
   let parse_morph file_name line_num = function
     | "_" -> []
@@ -401,42 +412,48 @@ module Conll = struct
 
   let underscore s = if s = "" then "_" else s
 
-  exception Dash
-  let contain_dash s =
-    try String.iter (function '-' -> raise Dash | _ -> ()) s; false
-    with Dash -> true
-
-  let parse_line file_name (line_num, line) =
-    match Str.split (Str.regexp "\t") line with
-      | num :: _ when contain_dash num -> None
-      | [ num; phon; lemma; pos1; pos2; morph; govs; dep_labs; _; _ ] ->
-        begin
-          try
-            let gov_list = if govs = "_" then [] else Str.split (Str.regexp "|") govs
-            and lab_list = if dep_labs = "_" then [] else Str.split (Str.regexp "|") dep_labs in
-            let deps = List.combine gov_list lab_list in
-            Some {
-              line_num = line_num;
-              num = num;
-              phon = underscore phon;
-              lemma = underscore lemma;
-              pos1 = underscore pos1;
-              pos2 = underscore pos2;
-              morph = parse_morph file_name line_num morph;
-              deps = deps;
-            }
-          with exc -> Error.build ~loc:(Loc.file_line file_name line_num) "[Conll.load] illegal line, exc=%s\n>>>>>%s<<<<<<" (Printexc.to_string exc) line
-        end
-      | l -> Error.build ~loc:(Loc.file_line file_name line_num) "[Conll.load] illegal line, %d fields (10 are expected)\n>>>>>%s<<<<<<" (List.length l) line
+  let parse file_name lines =
+    List.fold_right
+      (fun (line_num, line) (acc_meta, acc_basic, acc_fusion) ->
+        if line.[0] = '#'
+        then
+          begin
+            match Str.bounded_split (Str.regexp "\\(# *\\)\\|\\( *: *\\)") line 2 with
+            | [tag; value] -> ((tag, value) :: acc_meta, acc_basic, acc_fusion)
+            | _ -> (acc_meta, acc_basic, acc_fusion)
+          end
+        else
+          match Str.split (Str.regexp "\t") line with
+            | [ f1; phon; lemma; pos1; pos2; morph; govs; dep_labs; _; _ ] ->
+            begin
+              try
+                match Str.split (Str.regexp "-") f1 with
+                | [f;l] -> (acc_meta, acc_basic, {first=int_of_string f; last=int_of_string l; fusion=phon}:: acc_fusion)
+                | [num] ->
+                  let gov_list = if govs = "_" then [] else List.map int_of_string (Str.split (Str.regexp "|") govs)
+                  and lab_list = if dep_labs = "_" then [] else Str.split (Str.regexp "|") dep_labs in
+                  let deps = List.combine gov_list lab_list in
+                  (acc_meta, {
+                    line_num = line_num;
+                    num = int_of_string num;
+                    phon = underscore phon;
+                    lemma = underscore lemma;
+                    pos1 = underscore pos1;
+                    pos2 = underscore pos2;
+                    morph = parse_morph file_name line_num morph;
+                    deps = deps;
+                  }::acc_basic, acc_fusion)
+                | _ -> Error.build ~loc:(Loc.file_line file_name line_num) "[Conll.load] illegal field one >>>>>%s<<<<<<" f1
+              with exc -> Error.build ~loc:(Loc.file_line file_name line_num) "[Conll.load] illegal line, exc=%s\n>>>>>%s<<<<<<" (Printexc.to_string exc) line
+            end
+            | l -> Error.build ~loc:(Loc.file_line file_name line_num) "[Conll.load] illegal line, %d fields (10 are expected)\n>>>>>%s<<<<<<" (List.length l) line
+      ) lines ([], [], [])
 
   let load file_name =
     let lines = File.read_ln file_name in
-    List_.opt_map (parse_line file_name) lines
+    parse file_name lines
 
-  let parse file_name lines = List_.opt_map (parse_line file_name) lines
-
-  (* We would prefer to compare the float equivalent of l1.num l2.num but this would break the dicho_find function *)
-  let compare l1 l2 = Pervasives.compare ((* float_of_string *) l1.num) ((* float_of_string *) l2.num)
+  let compare l1 l2 = Pervasives.compare l1.num l2.num
 end (* module Conll *)
 
 (* ================================================================================ *)

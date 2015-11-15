@@ -66,7 +66,7 @@ module G_node = struct
   let of_conll ?loc line =
     if line = Conll.root
     then { empty with conll_root=true }
-    else { empty with fs = G_fs.of_conll ?loc line; position = float_of_string line.Conll.num }
+    else { empty with fs = G_fs.of_conll ?loc line; position = float line.Conll.num }
 
   let remove (id_tar : Gid.t) label t = {t with next = Massoc_gid.remove id_tar label t.next}
 

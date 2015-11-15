@@ -559,18 +559,26 @@ end (* module Massoc_make *)
 
 (* ================================================================================ *)
 module Id = struct
-  type name = string
-
   type t = int
 
-  type table = name array
+  type 'a gtable = 'a array * ('a -> string)
 
-  let build ?(loc:Loc.t option) string table =
-    try Array_.dicho_find string table
-    with Not_found -> Error.build ?loc "Identifier '%s' not found" string
+  let gbuild ?(loc:Loc.t option) key (table,conv) =
+    try Array_.dicho_find key table
+    with Not_found -> Error.build ?loc "Identifier '%s' not found" (conv key)
 
-  let build_opt string table =
-    try Some (Array_.dicho_find string table)
+  let gbuild_opt key (table, _) =
+    try Some (Array_.dicho_find key table)
+    with Not_found -> None
+
+  type name = string
+  type table = string array
+  let build ?(loc:Loc.t option) key table =
+    try Array_.dicho_find key table
+    with Not_found -> Error.build ?loc "Identifier '%s' not found" key
+
+  let build_opt key table =
+    try Some (Array_.dicho_find key table)
     with Not_found -> None
 end (* module Id *)
 

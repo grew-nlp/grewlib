@@ -103,7 +103,7 @@ module G_graph: sig
 
   val build: ?locals: Label.decl array -> Ast.gr -> t
 
-  val of_conll: ?loc:Loc.t -> Conll.line list -> t
+  val of_conll: ?loc:Loc.t -> Conll.t -> t
 
   (** input : "Le/DET/le petit/ADJ/petit chat/NC/chat dort/V/dormir ./PONCT/." 
       It supposes that "SUC" is defined in current relations *)

@@ -241,15 +241,23 @@ end
 
 (* ================================================================================ *)
 module Id: sig
-  type name = string
   type t = int
 
-  type table = name array
+  type 'a gtable = 'a array * ('a -> string)
+
+  (* [Stop] is raised if [string] is not in [gtable] *)
+  val gbuild: ?loc:Loc.t -> 'a -> 'a gtable -> t
+
+  val gbuild_opt: 'a -> 'a gtable -> t option
+
+  type name = string
+  type table = string array
 
   (* [Stop] is raised if [string] is not in [table] *)
   val build: ?loc:Loc.t -> name -> table -> t
 
   val build_opt: name -> table -> t option
+
 end
 
 (* ================================================================================ *)

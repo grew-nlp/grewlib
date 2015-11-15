@@ -210,9 +210,10 @@ module G_graph = struct
   type t = {
     meta: (string * string) list; (* meta-informations *)
     map: G_node.t Gid_map.t;      (* node description *)
+    fusion: (Gid.t * (Gid.t * string)) list; (* the list of fusion word considered in UD conll *)
   }
 
-  let empty = {meta=[]; map=Gid_map.empty}
+  let empty = {meta=[]; map=Gid_map.empty; fusion=[]}
 
   (* ---------------------------------------------------------------------- *)
   let rename mapping graph =
@@ -337,13 +338,15 @@ module G_graph = struct
           )
         ) map_without_edges full_edge_list in
 
-    {meta=gr_ast.Ast.meta; map=map}
+    {meta=gr_ast.Ast.meta; map=map; fusion = []}
+
+
 
   (* -------------------------------------------------------------------------------- *)
-  let of_conll ?loc lines =
+  let of_conll ?loc (meta, lines, range_lines) =
     let sorted_lines = Conll.root :: (List.sort Conll.compare lines) in
 
-    let table = Array.of_list (List.map (fun line -> line.Conll.num) sorted_lines) in
+    let gtable = (Array.of_list (List.map (fun line -> line.Conll.num) sorted_lines), string_of_int) in
 
     let map_without_edges =
       List_.foldi_left
@@ -356,10 +359,10 @@ module G_graph = struct
         (fun acc line ->
           (* add line number information in loc *)
           let loc = Loc.opt_set_line line.Conll.line_num loc in
-          let dep_id = Id.build ?loc line.Conll.num table in
+          let dep_id = Id.gbuild ?loc line.Conll.num gtable in
           List.fold_left
             (fun acc2 (gov, dep_lab) ->
-              let gov_id = Id.build ?loc gov table in
+              let gov_id = Id.gbuild ?loc gov gtable in
               let edge = G_edge.make ?loc dep_lab in
               (match map_add_edge acc2 (Gid.Old gov_id) edge (Gid.Old dep_id) with
                 | Some g -> g
@@ -369,7 +372,17 @@ module G_graph = struct
               )
             ) acc line.Conll.deps
         ) map_without_edges lines in
-    {meta=[]; map=map_with_edges}
+
+      let fusion =
+        List.map
+          (fun {Conll.first; last; fusion} ->
+              ( Gid.Old (Id.gbuild ?loc first gtable),
+                (Gid.Old (Id.gbuild ?loc last gtable),
+                fusion)
+              )
+          ) range_lines in
+
+    {meta; map=map_with_edges; fusion}
 
   (* -------------------------------------------------------------------------------- *)
   (** input : "Le/DET/le petit/ADJ/petit chat/NC/chat dort/V/dormir ./PONCT/." *)
@@ -384,17 +397,17 @@ module G_graph = struct
         | _ -> [] in
         {
           Conll.line_num=0;
-          num = sprintf "%d" (i+1);
+          num = i+1;
           phon;
           lemma;
           pos1 = "_";
           pos2 = pos;
           morph;
-          deps = [(sprintf "%d" i, "SUC")]
+          deps = [(i, "SUC")]
           }
         | _ -> Error.build "[Graph.of_brown] Cannot parse Brown item >>>%s<<< (expected \"phon/POS/lemma\")" item
       ) units in 
-    of_conll conll_lines
+    of_conll ([], conll_lines, [])
 
   (* -------------------------------------------------------------------------------- *)
   let opt_att atts name =
@@ -441,7 +454,7 @@ module G_graph = struct
                   new_map
                 | _ -> Log.critical "[G_graph.of_xml] Not a wellformed <R> tag"
             ) nodes_without_edges r_list in
-        {meta=[]; map=final_map}
+        {meta=[]; map=final_map; fusion=[]}
       | _ -> Log.critical "[G_graph.of_xml] Not a <D> tag"
 
   (* -------------------------------------------------------------------------------- *)
@@ -819,8 +832,18 @@ module G_graph = struct
         ) graph.map Gid_map.empty in
 
     let buff = Buffer.create 32 in
+    List.iter (fun (k,v) -> bprintf buff "# %s: %s\n" k v) graph.meta;
     List.iter
       (fun (gid, node) ->
+        begin
+          try
+            let (gid_last,fusion) = List.assoc gid graph.fusion in
+            bprintf buff "%g-%g\t%s\t_\t_\t_\t_\t_\t_\t_\t_\n"
+            (get_num gid) (get_num gid_last) fusion
+          with
+          | Not_found -> ()
+        end;
+
         if not (G_node.is_conll_root node)
         then
           let gov_labs = try Gid_map.find gid govs_labs with Not_found -> [] in
