@@ -390,13 +390,6 @@ module List_ = struct
       | x1::t1, x2::t2 -> loop (t1, t2) in
     loop (l1,l2)
 
-  let foldi_left f init l =
-    fst
-      (List.fold_left
-         (fun (acc,i) elt -> (f i acc elt, i+1))
-         (init,0) l
-      )
-
   let prev_next_iter fct list =
     let int_fct prev next elt = fct ?prev ?next elt in
     let rec loop prev = function
