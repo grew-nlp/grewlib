@@ -405,12 +405,12 @@ module Html_doc = struct
         | Feature_domain.Closed (feat_name,values) -> wnl "<b>%s</b> : %s<br/>" feat_name (String.concat " | " values)
         | Feature_domain.Open feat_name -> wnl "    <b>%s</b> : *<br/>" feat_name
         | Feature_domain.Num feat_name -> wnl "    <b>%s</b> : #<br/>" feat_name
-      ) ast.Ast.domain;
+      ) ast.Ast.feature_domain;
     wnl "  </code>";
 
     wnl "  <h6>Labels</h6>";
     wnl "  <code class=\"code\">";
-    (match ast.Ast.labels with
+    (match ast.Ast.label_domain with
       | [] -> wnl "No labels defined!"
       | (l,c)::t -> w "<font color=\"%s\">%s</font>" (of_opt_color c) l;
         List.iter
@@ -489,7 +489,7 @@ module Html_doc = struct
     let domain = Filename.concat output_dir "domain.html" in
 
     let domain_out_ch = open_out domain in
-    output_string domain_out_ch (domain_text ~corpus ast);
+    output_string domain_out_ch (domain_text ~corpus ast.Ast.domain);
     close_out domain_out_ch;
 
     (** Modules + rules **)

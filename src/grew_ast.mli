@@ -181,17 +181,20 @@ module Ast : sig
     | Modul of modul
     | Includ of (string * Loc.t)
 
+  type domain = {
+      feature_domain: Feature_domain.feature_spec list;
+      label_domain: (string * string list) list;
+    }
+
   type grs_with_include = {
-      domain_wi: Feature_domain.feature_spec list;
-      labels_wi: (string * string list) list;    (* the list of global edge labels *)
+      domain_wi: domain;
       modules_wi: module_or_include list;
       sequences_wi: sequence list;
     }
 
   (* a GRS: graph rewriting system *)
   type grs = {
-      domain: Feature_domain.feature_spec list;
-      labels: (string * string list) list;
+      domain: domain;
       modules: modul list;
       sequences: sequence list;
     }

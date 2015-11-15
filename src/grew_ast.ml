@@ -266,16 +266,21 @@ module Ast = struct
     | Modul of modul
     | Includ of (string * Loc.t)
 
+  type domain = {
+      feature_domain: Feature_domain.feature_spec list;
+      label_domain: (string * string list) list;
+    }
+
+  let empty_domain = { feature_domain=[]; label_domain=[] }
+
   type grs_with_include = {
-    domain_wi: Feature_domain.feature_spec list;
-    labels_wi: (string * string list) list;    (* the list of global edge labels *)
+    domain_wi: domain;
     modules_wi: module_or_include list;
     sequences_wi: sequence list;
   }
 
   type grs = {
-    domain: Feature_domain.feature_spec list;
-    labels: (string * string list) list;
+    domain: domain;
     modules: modul list;
     sequences: sequence list;
   }
@@ -286,6 +291,6 @@ module Ast = struct
     edges: edge list;
   }
 
-  let empty_grs = { domain = []; labels = []; modules = []; sequences= [] }
+  let empty_grs = { domain = empty_domain; modules = []; sequences= [] }
 
 end (* module Ast *)

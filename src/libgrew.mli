@@ -37,6 +37,46 @@ exception Run of string * loc option
 
 exception Bug of string * loc option
 
+(* -------------------------------------------------------------------------------- *)
+(** {2 Domain} *)
+type domain
+
+val load_domain: string -> domain
+
+(* -------------------------------------------------------------------------------- *)
+(** {2 Graph} *)
+
+(** get a graph from a file either in 'gr' or 'conll' format.
+    File extension should be '.gr' or '.conll'.
+    @raise Parsing_err if libgrew can't parse the file
+    @raise File_dont_exists if the file doesn't exists. *)
+val load_graph: domain -> string -> graph
+
+(** [of_conll filename line_list] *)
+val of_conll: domain -> string -> (int * string) list -> graph
+
+val of_brown: domain -> ?sentid:string -> string -> graph
+
+val to_sentence: ?main_feat:string -> graph -> string
+
+(** [raw_graph instance] returns all graph information with a triple of elementary caml types:
+    - the meta data
+    - the list of node (node is a list of feature (feature is string * string))
+    - the list of edge (src, label, tar) where src and tar refers to the position in the node list
+*)
+val raw_graph: domain -> graph ->
+    (string * string) list *
+    (string * string) list list *
+    (int * string * int) list
+
+val to_dot_graph : domain -> ?main_feat:string -> ?deco:deco -> graph -> string
+
+val to_dep_graph : domain -> ?filter: string list -> ?main_feat:string -> ?deco:deco -> graph -> string
+
+val to_gr_graph: domain -> graph -> string
+
+val to_conll_graph: domain -> graph -> string
+
 
 (* -------------------------------------------------------------------------------- *)
 (** {2 Graph Rewriting System} *)
@@ -55,41 +95,7 @@ val get_sequence_names: grs -> string list
     @[corpus] is a flag (default is [false]) for complete html doc with corpus sentence. *)
 val build_html_doc: ?corpus:bool -> string -> grs -> unit
 
-val feature_names: grs -> string list option
-
-(* -------------------------------------------------------------------------------- *)
-(** {2 Graph} *)
-
-(** get a graph from a file either in 'gr' or 'conll' format.
-    File extension should be '.gr' or '.conll'.
-    @raise Parsing_err if libgrew can't parse the file
-    @raise File_dont_exists if the file doesn't exists. *)
-val load_graph: grs -> string -> graph
-
-(** [of_conll filename line_list] *)
-val of_conll: grs -> string -> (int * string) list -> graph
-
-val of_brown: grs -> ?sentid:string -> string -> graph
-
-val to_sentence: ?main_feat:string -> graph -> string
-
-(** [raw_graph instance] returns all graph information with a triple of elementary caml types:
-    - the meta data
-    - the list of node (node is a list of feature (feature is string * string))
-    - the list of edge (src, label, tar) where src and tar refers to the position in the node list
-*)
-val raw_graph: grs -> graph ->
-    (string * string) list *
-    (string * string) list list *
-    (int * string * int) list
-
-val to_dot_graph : grs -> ?main_feat:string -> ?deco:deco -> graph -> string
-
-val to_dep_graph : grs -> ?filter: string list -> ?main_feat:string -> ?deco:deco -> graph -> string
-
-val to_gr_graph: grs -> graph -> string
-
-val to_conll_graph: grs -> graph -> string
+val feature_names: domain -> string list option
 
 (* -------------------------------------------------------------------------------- *)
 (** {2 rew_display: data for the GUI } *)
@@ -114,29 +120,29 @@ val num_sol: rewrite_history -> int
 
 val write_stat: string -> rewrite_history -> unit
 
-val save_gr: grs -> string -> rewrite_history -> unit
+val save_gr: domain -> string -> rewrite_history -> unit
 
-val save_conll: grs -> string -> rewrite_history -> unit
+val save_conll: domain -> string -> rewrite_history -> unit
 
 (** [save_full_conll base_name rh] saves one conll_file for each normal form defined in [rh].
     Output files are named according to [base_name] and a secondary index after "__".
     The number of conll file produced is returned. *)
-val save_full_conll: grs -> string -> rewrite_history -> int
+val save_full_conll: domain -> string -> rewrite_history -> int
 
-val save_det_gr: grs -> string -> rewrite_history -> unit
+val save_det_gr: domain -> string -> rewrite_history -> unit
 
-val save_det_conll: grs -> ?header:string -> string -> rewrite_history -> unit
+val save_det_conll: domain -> ?header:string -> string -> rewrite_history -> unit
 
-val det_dep_string: grs -> rewrite_history -> string option
+val det_dep_string: domain -> rewrite_history -> string option
 
-val conll_dep_string: grs -> ?keep_empty_rh:bool -> rewrite_history -> string option
+val conll_dep_string: domain -> ?keep_empty_rh:bool -> rewrite_history -> string option
 
 val save_index: dirname:string -> base_names: string list -> unit
 
-val write_annot: grs -> title:string -> string -> string -> (string * rewrite_history) list -> unit
+val write_annot: domain -> title:string -> string -> string -> (string * rewrite_history) list -> unit
 
 val write_html:
-    grs ->
+    domain ->
     ?no_init: bool ->
     ?out_gr: bool ->
     ?filter: string list ->
@@ -149,7 +155,7 @@ val write_html:
     unit
 
 val error_html:
-    grs ->
+    domain ->
     ?no_init:bool ->
     ?main_feat:string ->
     ?dot: bool ->
@@ -179,11 +185,11 @@ val html_sentences: title:string -> string -> (bool * string * int * string) lis
 type pattern
 type matching
 
-(** [load_pattern filename] returns the pattern describer in the fuile *)
-val load_pattern: grs -> string -> pattern
+(** [load_pattern filename] returns the pattern described in the file *)
+val load_pattern: domain -> string -> pattern
 
-(** [match_in_graph patern graph] returns the list of the possible matching og [pattern] in [graph] *)
-val match_in_graph: grs -> pattern -> graph -> matching list
+(** [match_in_graph pattern graph] returns the list of the possible matching og [pattern] in [graph] *)
+val match_in_graph: domain -> pattern -> graph -> matching list
 
 (** [match_deco pattern matching] returns the deco to be used in the graphical representation.
     WARNING: the function supposes that [matching] was find with the given [pattern]! *)

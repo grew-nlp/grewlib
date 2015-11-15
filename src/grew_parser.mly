@@ -110,6 +110,7 @@ let localize t = (t,get_loc ())
 %start <Grew_ast.Ast.gr> gr
 %start <Grew_ast.Ast.module_or_include list> included
 %start <Grew_ast.Ast.pattern> pattern
+%start <Grew_ast.Ast.domain> domain
 
 %left SEMIC
 %left PLUS
@@ -193,23 +194,32 @@ gr_item:
             { Graph_edge ({Ast.edge_id = None; src=fst n1_loc; edge_label_cst=([label],false); tar=n2}, snd n1_loc) }
 
 /*=============================================================================================*/
+/*  DOMAIN DEFINITION                                                                          */
+/*=============================================================================================*/
+domain:
+        | f=features_group g=labels
+            {
+              {  Ast.feature_domain = f;
+                 label_domain = g;
+              }
+            }
+
+/*=============================================================================================*/
 /*  GREW GRAPH REWRITING SYSTEM                                                                */
 /*=============================================================================================*/
 grs_with_include:
-        | f=features_group g=labels m=module_or_include_list s=option(sequences) EOF
+        | d=domain m=module_or_include_list s=option(sequences) EOF
             {
-             { Ast.domain_wi=f;
-               labels_wi=g;
+             { Ast.domain_wi=d;
                modules_wi=m;
                sequences_wi=match s with Some seq -> seq | None -> [];
              }
            }
 
 grs:
-        | f=features_group g=labels m=modules s=option(sequences) EOF
+        | d=domain m=modules s=option(sequences) EOF
             {
-             { Ast.domain=f;
-               labels=g;
+             { Ast.domain=d;
                modules=m;
                sequences=match s with Some seq -> seq | None -> [];
              }

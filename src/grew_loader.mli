@@ -17,6 +17,8 @@ module Loader: sig
   (* message and location *)
   exception Error of (string * Loc.t option)
 
+  val domain: string -> Ast.domain
+
   val grs: string -> Ast.grs
 
   val gr: string -> Ast.gr

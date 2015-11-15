@@ -59,6 +59,17 @@ module Loader = struct
     with Sys_error msg-> raise (Error (msg, None))
 
   (* ------------------------------------------------------------------------------------------*)
+  let domain file =
+    try
+      Global.init file;
+      let in_ch = open_in file in
+      let lexbuf = Lexing.from_channel in_ch in
+      let gr = parse_handle file (Grew_parser.domain Grew_lexer.global) lexbuf in
+      close_in in_ch;
+      gr
+    with Sys_error msg-> raise (Error (msg, None))
+
+  (* ------------------------------------------------------------------------------------------*)
   (**
      [parse_string file] where [file] is a file following the grew syntax
      @param file the file to parse
@@ -80,7 +91,6 @@ module Loader = struct
         @ (flatten_modules current_file tail) in
     {
       Ast.domain = grs_with_includes.Ast.domain_wi;
-      Ast.labels = grs_with_includes.Ast.labels_wi;
       Ast.modules = flatten_modules main_file grs_with_includes.Ast.modules_wi;
       Ast.sequences = grs_with_includes.Ast.sequences_wi;
     }
