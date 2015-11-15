@@ -220,7 +220,6 @@ module Grs = struct
   type t = {
     domain: Domain.t;
     label_domain: Label.domain;
-    labels: Label.t list;        (* the list of global edge labels *)
     modules: Modul.t list;       (* the ordered list of modules used from rewriting *)
     sequences: Sequence.t list;
     filename: string;
@@ -234,7 +233,7 @@ module Grs = struct
   let get_label_domain t = t.label_domain
   let sequence_names t = List.map (fun s -> s.Sequence.name) t.sequences
 
-  let empty = {domain=Domain.empty; label_domain = Label.empty_domain; labels=[]; modules=[]; sequences=[]; ast=Ast.empty_grs; filename=""; }
+  let empty = {domain=Domain.empty; label_domain = Label.empty_domain; modules=[]; sequences=[]; ast=Ast.empty_grs; filename=""; }
 
   let check t =
     (* check for duplicate modules *)
@@ -258,14 +257,9 @@ module Grs = struct
     let domain = Domain.build ast.Ast.domain in
     let label_domain = Label.build ast.Ast.labels in
     let modules = List.map (Modul.build domain label_domain) ast.Ast.modules in
-    let grs = {
-      domain;
-      label_domain;
-      labels = List.map (fun (l,_) -> Label.from_string label_domain l) ast.Ast.labels;
-      sequences = List.map (Sequence.build modules) ast.Ast.sequences;
-      modules; ast; filename;
-    } in
-    check grs; grs
+    let grs = {domain; label_domain; sequences = List.map (Sequence.build modules) ast.Ast.sequences; modules; ast; filename} in
+    check grs;
+    grs
 
   let modules_of_sequence grs sequence =
     let module_names =
