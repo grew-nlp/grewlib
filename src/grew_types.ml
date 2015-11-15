@@ -187,79 +187,6 @@ module Label_domain = struct
 end
 
 (* ================================================================================ *)
-module Label = struct
-
-  (** Internal representation of labels *)
-  type t =
-    | Global of int       (* globally defined labels: their names are in the domain *)
-    | Local of int        (* locally defined labels: names array should be provided! UNTESTED *)
-    | Pattern of string
-
-  let match_ (table,_) p_label g_label = match (p_label, g_label) with
-    | (Global p, Global g) when p=g -> true
-    | (Pattern p, Global i) when String_.match_star_re p table.(i) -> true
-    | _ -> false
-
-  let match_list label_domain p_label_list g_label =
-    List.exists (fun p_label -> match_ label_domain p_label g_label) p_label_list
-
-  (** [to_string label_domain t] returns a string for the label *)
-  let to_string (table,_) ?(locals=[||]) = function
-    | Global i -> table.(i)
-    | Local i -> fst locals.(i)
-    | Pattern s -> s
-
-  let to_int = function
-    | Global i -> Some i
-    | _ -> None
-
-  let get_style (_,styles) = function
-    | Global i -> styles.(i)
-    | Local i -> Log.warning "Style of locally defined labels is not implemented"; Label_domain.default
-    | Pattern _ -> Label_domain.default
-
-  let to_dep label_domain ?(deco=false) t =
-    let style = get_style label_domain t in
-    Label_domain.to_dep ~deco style
-
-  let to_dot label_domain ?(deco=false) t =
-    let style = get_style label_domain t in
-    Label_domain.to_dot ~deco style
-
-  let from_string ?loc (table, _) ?(locals=[||]) str =
-    if String.contains str '*'
-    then Pattern str
-    else
-      try Global (Id.build ?loc str table)
-      with Not_found (* TODO (CANNOT BE RAISED) *) ->
-        try Local (Array_.dicho_find_assoc str locals)
-        with Not_found -> Error.build "[Label.from_string] unknown edge label '%s'" str
-end (* module Label *)
-
-(* ================================================================================ *)
-(** The module [Label_cst] defines contraints on label edges *)
-module Label_cst = struct
-  type t =
-  | Pos of Label.t list
-  | Neg of Label.t list
-
-  let to_string label_domain = function
-    | Pos l -> (List_.to_string (Label.to_string label_domain) "|" l)
-    | Neg l -> "^"^(List_.to_string (Label.to_string label_domain) "|" l)
-
-  let all = Neg []
-
-  let match_ label_domain edge = function
-    | Pos labels -> Label.match_list label_domain labels edge
-    | Neg labels -> not (Label.match_list label_domain labels edge)
-
-  let build ?loc label_domain ?locals = function
-  | (edge_labels, true) -> Neg (List.sort compare (List.map (Label.from_string ?loc label_domain ?locals) edge_labels))
-  | (edge_labels, false) -> Pos (List.sort compare (List.map (Label.from_string ?loc label_domain ?locals) edge_labels))
-end (* module Label_cst *)
-
-
-(* ================================================================================ *)
 module Feature_domain = struct
   type feature_spec =
     | Closed of feature_name * feature_atom list (* cat:V,N *)
@@ -288,6 +215,9 @@ module Feature_domain = struct
       Error.build "[Feature_domain] The feature named \"%s\" is defined several times" fn
     | x :: tail -> x :: (build tail)
 
+  let feature_names domain =
+    Some (List.map (function Closed (fn, _) | Open fn | Num fn -> fn) domain)
+
   let get feature_name domain =
     List.find (function
       | Closed (fn,_) when fn = feature_name -> true
@@ -296,13 +226,17 @@ module Feature_domain = struct
       | _ -> false
     ) domain
 
-  let check_feature_name ?loc domain name =
-    if not (is_defined name domain)
-    then Error.build ?loc "The feature name \"%s\" in not defined in the domain" name
+  let sub domain name1 name2 =
+    match (get name1 domain, get name2 domain) with
+        | (_, Open _) -> true
+        | (Closed (_,l1), Closed (_,l2)) -> List_.sort_include l1 l2
+        | (Num _, Num _) -> true
+        | _ -> false
 
   let is_open domain name =
     List.exists (function Open n when n=name -> true | _ -> false) domain
 
+  (* This function is defined here because it is used by check_feature *)
   let build_disj ?loc domain name unsorted_values =
     let values = List.sort Pervasives.compare unsorted_values in
     match name.[0] with
@@ -326,24 +260,6 @@ module Feature_domain = struct
           | _::t -> loop t in
         loop domain
 
-  let build_value ?loc domain name value =
-    match build_disj ?loc domain name [value] with
-      | [x] -> x
-      | _ -> Error.bug ?loc "[Feature_domain.build_value]"
-
-  let check_feature ?loc domain name value =
-    ignore (build_disj ?loc domain name [value])
-
-  let feature_names domain =
-    Some (List.map (function Closed (fn, _) | Open fn | Num fn -> fn) domain)
-
-  let sub domain name1 name2 =
-    match (get name1 domain, get name2 domain) with
-        | (_, Open _) -> true
-        | (Closed (_,l1), Closed (_,l2)) -> List_.sort_include l1 l2
-        | (Num _, Num _) -> true
-        | _ -> false
-
   let build_closed feature_name feature_values =
     let sorted_list = List.sort Pervasives.compare feature_values in
     let without_duplicate =
@@ -356,7 +272,113 @@ module Feature_domain = struct
       in loop sorted_list in
     Closed (feature_name, without_duplicate)
 
+  let check_feature ?loc domain name value =
+    ignore (build_disj ?loc domain name [value])
 end (* Feature_domain *)
+
+
+(* ================================================================================ *)
+module Domain = struct
+  type t = Label_domain.t * Feature_domain.t
+
+  let build ld fd = (ld, fd)
+
+  let empty = (Label_domain.empty, Feature_domain.empty)
+
+  let feature_names (_, feature_domain) = Feature_domain.feature_names feature_domain
+
+  let is_open_feature (_, feature_domain) name = Feature_domain.is_open feature_domain name
+
+  let check_feature ?loc (_, feature_domain) name value = Feature_domain.check_feature ?loc feature_domain name value 
+
+  let check_feature_name ?loc (_, feature_domain) name =
+    if not (Feature_domain.is_defined name feature_domain)
+    then Error.build ?loc "The feature name \"%s\" in not defined in the domain" name
+end
+
+(* ================================================================================ *)
+module Label = struct
+  (** Internal representation of labels *)
+  type t =
+    | Global of int       (* globally defined labels: their names are in the domain *)
+    | Local of int        (* locally defined labels: names array should be provided! UNTESTED *)
+    | Pattern of string
+
+  let match_ ((table,_),_) p_label g_label = match (p_label, g_label) with
+    | (Global p, Global g) when p=g -> true
+    | (Pattern p, Global i) when String_.match_star_re p table.(i) -> true
+    | _ -> false
+
+  let match_list domain p_label_list g_label =
+    List.exists (fun p_label -> match_ domain p_label g_label) p_label_list
+
+  (** [to_string label_domain t] returns a string for the label *)
+  let to_string ((table,_),_) ?(locals=[||]) = function
+    | Global i -> table.(i)
+    | Local i -> fst locals.(i)
+    | Pattern s -> s
+
+  let to_int = function
+    | Global i -> Some i
+    | _ -> None
+
+  let get_style (_,styles) = function
+    | Global i -> styles.(i)
+    | Local i -> Log.warning "Style of locally defined labels is not implemented"; Label_domain.default
+    | Pattern _ -> Label_domain.default
+
+  let to_dep (label_domain,_) ?(deco=false) t =
+    let style = get_style label_domain t in
+    Label_domain.to_dep ~deco style
+
+  let to_dot (label_domain,_) ?(deco=false) t =
+    let style = get_style label_domain t in
+    Label_domain.to_dot ~deco style
+
+  let from_string ?loc ((table,_),_) ?(locals=[||]) str =
+    if String.contains str '*'
+    then Pattern str
+    else
+      try Global (Id.build ?loc str table)
+      with Not_found (* TODO (CANNOT BE RAISED) *) ->
+        try Local (Array_.dicho_find_assoc str locals)
+        with Not_found -> Error.build "[Label.from_string] unknown edge label '%s'" str
+end (* module Label *)
+
+
+(* ================================================================================ *)
+module Feature_value = struct
+  let build_disj ?loc (_, feature_domain) name unsorted_values = Feature_domain.build_disj ?loc feature_domain name unsorted_values
+
+  let build_value ?loc domain name value =
+    match build_disj ?loc domain name [value] with
+      | [x] -> x
+      | _ -> Error.bug ?loc "[Feature_value.build_value]"
+end (* module Feature_value *)
+
+
+
+(* ================================================================================ *)
+(** The module [Label_cst] defines contraints on label edges *)
+module Label_cst = struct
+  type t =
+  | Pos of Label.t list
+  | Neg of Label.t list
+
+  let to_string domain = function
+    | Pos l -> (List_.to_string (Label.to_string domain) "|" l)
+    | Neg l -> "^"^(List_.to_string (Label.to_string domain) "|" l)
+
+  let all = Neg []
+
+  let match_ domain edge = function
+    | Pos labels -> Label.match_list domain labels edge
+    | Neg labels -> not (Label.match_list domain labels edge)
+
+  let build ?loc domain ?locals = function
+  | (edge_labels, true) -> Neg (List.sort compare (List.map (Label.from_string ?loc domain ?locals) edge_labels))
+  | (edge_labels, false) -> Pos (List.sort compare (List.map (Label.from_string ?loc domain ?locals) edge_labels))
+end (* module Label_cst *)
 
 (* ================================================================================ *)
 module Conll = struct

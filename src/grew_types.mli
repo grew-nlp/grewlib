@@ -80,41 +80,6 @@ module Label_domain : sig
 end
 
 (* ================================================================================ *)
-(** The module [Label] defines the type of atomic label edges *)
-module Label : sig
-
-  type t
-
-
-  val match_: Label_domain.t -> t -> t -> bool
-
-  val match_list: Label_domain.t -> t list -> t -> bool
-
-  val to_string: Label_domain.t -> ?locals:Label_domain.decl array -> t -> string
-
-  val to_int: t -> int option
-
-  val to_dep: Label_domain.t -> ?deco:bool -> t -> string
-
-  val to_dot: Label_domain.t -> ?deco:bool -> t -> string
-
-  val from_string: ?loc:Loc.t -> Label_domain.t -> ?locals:Label_domain.decl array -> string -> t
-end (* module Label *)
-
-(* ================================================================================ *)
-(** The module [Label_cst] defines contraints on label edges *)
-module Label_cst : sig
-  type t =
-  | Pos of Label.t list
-  | Neg of Label.t list
-
-  val to_string: Label_domain.t -> t -> string
-  val all: t
-  val match_: Label_domain.t -> Label.t -> t -> bool
-  val build: ?loc:Loc.t -> Label_domain.t -> ?locals:Label_domain.decl array -> (string list * bool) -> t
-end (* module Label_cst *)
-
-(* ================================================================================ *)
 module Feature_domain: sig
   type feature_spec =
     | Closed of feature_name * feature_atom list (* cat:V,N *)
@@ -127,25 +92,71 @@ module Feature_domain: sig
 
   val build: feature_spec list -> t
 
-  val build_disj: ?loc:Loc.t -> t -> feature_name -> feature_atom list -> value list
-
-  val build_value: ?loc:Loc.t -> t -> feature_name -> feature_atom -> value
-
-  val feature_names: t -> string list option
-
-  (** [check_feature_name ~loc domain eature_name] fails iff a domain is set and [feature_name] is not defined in the current domain. *)
-  val check_feature_name: ?loc:Loc.t -> t -> feature_name -> unit
-
-  (** [check_feature ~loc domain feature_name feature_value] fails iff a domain is set and [feature_name,feature_value] is not defined in the current domain. *)
-  val check_feature: ?loc:Loc.t -> t -> feature_name -> feature_atom -> unit
-
-  (** [is_open domain feature_name] returns [true] iff no domain is set or if [feature_name] is defined to be open in the current domain. *)
-  val is_open: t -> feature_name -> bool
-
   (** [sub domain fn1 fn2] returns [true] iff the domain of [fn1] is a subset if the domain of [fn2]. *)
   val sub:  t -> feature_name -> feature_name -> bool
 
   val build_closed: feature_name -> feature_atom list -> feature_spec
+
+end (* module Feature_domain *)
+
+(* ================================================================================ *)
+module Domain : sig
+  type t
+
+  val build: Label_domain.t -> Feature_domain.t -> t
+
+  val empty: t
+
+  val feature_names: t -> string list option
+
+  (** [is_open_feature domain feature_name] returns [true] iff no domain is set or if [feature_name] is defined to be open in the current domain. *)
+  val is_open_feature: t -> feature_name -> bool
+
+  (** [check_feature ~loc domain feature_name feature_value] fails iff a domain is set and [feature_name,feature_value] is not defined in the current domain. *)
+  val check_feature: ?loc:Loc.t -> t -> feature_name -> feature_atom -> unit
+
+  (** [check_feature_name ~loc domain feature_name] fails iff a domain is set and [feature_name] is not defined in the current domain. *)
+  val check_feature_name: ?loc:Loc.t -> t -> feature_name -> unit
+end
+
+(* ================================================================================ *)
+(** The module [Label] defines the type of atomic label edges *)
+module Label : sig
+  type t
+
+  val match_: Domain.t -> t -> t -> bool
+
+  val match_list: Domain.t -> t list -> t -> bool
+
+  val to_string: Domain.t -> ?locals:Label_domain.decl array -> t -> string
+
+  val to_int: t -> int option
+
+  val to_dep: Domain.t -> ?deco:bool -> t -> string
+
+  val to_dot: Domain.t -> ?deco:bool -> t -> string
+
+  val from_string: ?loc:Loc.t -> Domain.t -> ?locals:Label_domain.decl array -> string -> t
+end (* module Label *)
+
+(* ================================================================================ *)
+(** The module [Label_cst] defines contraints on label edges *)
+module Label_cst : sig
+  type t =
+  | Pos of Label.t list
+  | Neg of Label.t list
+
+  val to_string: Domain.t -> t -> string
+  val all: t
+  val match_: Domain.t -> Label.t -> t -> bool
+  val build: ?loc:Loc.t -> Domain.t -> ?locals:Label_domain.decl array -> (string list * bool) -> t
+end (* module Label_cst *)
+
+(* ================================================================================ *)
+module Feature_value: sig
+  val build_disj: ?loc:Loc.t -> Domain.t -> feature_name -> feature_atom list -> value list
+
+  val build_value: ?loc:Loc.t -> Domain.t -> feature_name -> feature_atom -> value
 end (* module Feature_domain *)
 
 (* ================================================================================ *)

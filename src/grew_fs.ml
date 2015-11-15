@@ -35,7 +35,7 @@ module G_feature = struct
 
   let build domain = function
     | ({Ast.kind=Ast.Equality [atom]; name=name},loc) ->
-      (name, Feature_domain.build_value ~loc domain name atom)
+      (name, Feature_value.build_value ~loc domain name atom)
     | _ -> Error.build "Illegal feature declaration in Graph (must be '=' and atomic)"
 
   let to_string (feat_name, feat_val) = sprintf "%s=%s" feat_name (string_of_value feat_val)
@@ -132,12 +132,12 @@ module P_feature = struct
 
   let build domain ?pat_vars = function
     | ({Ast.kind=Ast.Absent; name=name}, loc) -> 
-      Feature_domain.check_feature_name ~loc domain name;
+      Domain.check_feature_name ~loc domain name;
       (name, {cst=Absent;in_param=[];})
     | ({Ast.kind=Ast.Equality unsorted_values; name=name}, loc) ->
-      let values = Feature_domain.build_disj ~loc domain name unsorted_values in (name, {cst=Equal values;in_param=[];})
+      let values = Feature_value.build_disj ~loc domain name unsorted_values in (name, {cst=Equal values;in_param=[];})
     | ({Ast.kind=Ast.Disequality unsorted_values; name=name}, loc) ->
-      let values = Feature_domain.build_disj ~loc domain name unsorted_values in (name, {cst=Different values;in_param=[];})
+      let values = Feature_value.build_disj ~loc domain name unsorted_values in (name, {cst=Different values;in_param=[];})
     | ({Ast.kind=Ast.Equal_param var; name=name}, loc) ->
         begin
           match pat_vars with
@@ -162,7 +162,7 @@ module G_fs = struct
 
   (* ---------------------------------------------------------------------- *)
   let set_feat ?loc domain feature_name atom t =
-    let new_value = Feature_domain.build_value ?loc domain feature_name atom in
+    let new_value = Feature_value.build_value ?loc domain feature_name atom in
     let rec loop = function
     | [] -> [(feature_name, new_value)]
     | ((fn,_)::_) as t when feature_name < fn -> (feature_name, new_value)::t
@@ -210,15 +210,15 @@ module G_fs = struct
   (* ---------------------------------------------------------------------- *)
   let of_conll ?loc domain line =
     let raw_list0 =
-      ("phon", Feature_domain.build_value ?loc domain "phon" line.Conll.phon)
-      :: ("cat", Feature_domain.build_value ?loc domain "cat" line.Conll.pos1)
-      :: (List.map (fun (f,v) -> (f, Feature_domain.build_value ?loc domain f v)) line.Conll.morph) in
+      ("phon", Feature_value.build_value ?loc domain "phon" line.Conll.phon)
+      :: ("cat", Feature_value.build_value ?loc domain "cat" line.Conll.pos1)
+      :: (List.map (fun (f,v) -> (f, Feature_value.build_value ?loc domain f v)) line.Conll.morph) in
     let raw_list1 = match line.Conll.pos2 with
       | "" | "_" -> raw_list0
-      | s -> ("pos", Feature_domain.build_value ?loc domain "pos" s) :: raw_list0 in
+      | s -> ("pos", Feature_value.build_value ?loc domain "pos" s) :: raw_list0 in
     let raw_list2 = match line.Conll.lemma with
       | "" | "_" -> raw_list1
-      | s -> ("lemma", Feature_domain.build_value ?loc domain "lemma" s) :: raw_list1 in
+      | s -> ("lemma", Feature_value.build_value ?loc domain "lemma" s) :: raw_list1 in
     List.sort G_feature.compare raw_list2
 
   (* ---------------------------------------------------------------------- *)

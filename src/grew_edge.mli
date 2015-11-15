@@ -18,14 +18,14 @@ open Grew_ast
 module G_edge: sig
   type t = Label.t
 
-  val to_string: Label_domain.t -> ?locals:Label_domain.decl array -> t -> string
+  val to_string: Domain.t -> ?locals:Label_domain.decl array -> t -> string
 
-  val make: ?loc:Loc.t -> Label_domain.t -> ?locals:Label_domain.decl array -> string -> t
+  val make: ?loc:Loc.t -> Domain.t -> ?locals:Label_domain.decl array -> string -> t
 
-  val build: Label_domain.t -> ?locals:Label_domain.decl array -> Ast.edge -> t
+  val build: Domain.t -> ?locals:Label_domain.decl array -> Ast.edge -> t
 
-  val to_dot: Label_domain.t -> ?deco:bool -> t -> string
-  val to_dep: Label_domain.t -> ?deco:bool -> t -> string
+  val to_dot: Domain.t -> ?deco:bool -> t -> string
+  val to_dep: Domain.t -> ?deco:bool -> t -> string
 end (* module G_edge *)
 
 (* ================================================================================ *)
@@ -38,16 +38,16 @@ module P_edge: sig
 
   val get_id: t -> string option
 
-  val to_string: Label_domain.t -> t -> string
+  val to_string: Domain.t -> t -> string
 
-  val build: Label_domain.t -> ?locals:Label_domain.decl array -> Ast.edge -> t
+  val build: Domain.t -> ?locals:Label_domain.decl array -> Ast.edge -> t
 
   type edge_matcher =
     | Fail
     | Ok of Label.t
     | Binds of string * Label.t list
 
-  val match_: Label_domain.t -> t -> G_edge.t -> edge_matcher
+  val match_: Domain.t -> t -> G_edge.t -> edge_matcher
 
-  val match_list: Label_domain.t -> t -> G_edge.t list -> edge_matcher
+  val match_list: Domain.t -> t -> G_edge.t list -> edge_matcher
 end (* module P_edge *)

@@ -163,11 +163,11 @@ module Modul = struct
       | r::tail -> loop ((Rule.get_name r) :: already_defined) tail in
     loop [] t.rules
 
-  let build domain label_domain ast_module =
+  let build domain ast_module =
     let locals = Array.of_list ast_module.Ast.local_labels in
     Array.sort compare locals;
     let suffixes = ast_module.Ast.suffixes in
-    let rules_or_filters = List.map (Rule.build domain label_domain ~locals suffixes ast_module.Ast.mod_dir) ast_module.Ast.rules in
+    let rules_or_filters = List.map (Rule.build domain ~locals suffixes ast_module.Ast.mod_dir) ast_module.Ast.rules in
     let (filters, rules) = List.partition Rule.is_filter rules_or_filters in
     let modul =
       {
@@ -218,8 +218,7 @@ end (* module Sequence *)
 module Grs = struct
 
   type t = {
-    domain: Feature_domain.t;
-    label_domain: Label_domain.t;
+    domain: Domain.t;
     modules: Modul.t list;       (* the ordered list of modules used from rewriting *)
     sequences: Sequence.t list;
     filename: string;
@@ -230,10 +229,9 @@ module Grs = struct
   let get_ast t = t.ast
   let get_filename t = t.filename
   let get_domain t = t.domain
-  let get_label_domain t = t.label_domain
   let sequence_names t = List.map (fun s -> s.Sequence.name) t.sequences
 
-  let empty = {domain=Feature_domain.empty; label_domain = Label_domain.empty; modules=[]; sequences=[]; ast=Ast.empty_grs; filename=""; }
+  let empty = {domain=Domain.empty; modules=[]; sequences=[]; ast=Ast.empty_grs; filename=""; }
 
   let check t =
     (* check for duplicate modules *)
@@ -254,10 +252,11 @@ module Grs = struct
 
   let build filename =
     let ast = Loader.grs filename in
-    let domain = Feature_domain.build ast.Ast.domain in
-    let label_domain = Label_domain.build ast.Ast.labels in
-    let modules = List.map (Modul.build domain label_domain) ast.Ast.modules in
-    let grs = {domain; label_domain; sequences = List.map (Sequence.build modules) ast.Ast.sequences; modules; ast; filename} in
+    let domain = Domain.build 
+      (Label_domain.build ast.Ast.labels) 
+      (Feature_domain.build ast.Ast.domain) in
+    let modules = List.map (Modul.build domain) ast.Ast.modules in
+    let grs = {domain; sequences = List.map (Sequence.build modules) ast.Ast.sequences; modules; ast; filename} in
     check grs;
     grs
 
@@ -290,7 +289,6 @@ module Grs = struct
         let (good_set, bad_set) =
           Rule.normalize
             grs.domain
-            grs.label_domain
             next.Modul.name
             ~confluent: next.Modul.confluent
             next.Modul.rules
@@ -318,7 +316,6 @@ module Grs = struct
         let (good_set, bad_set) =
           Rule.normalize
             grs.domain
-            grs.label_domain
             next.Modul.name
             ~confluent: next.Modul.confluent
             next.Modul.rules

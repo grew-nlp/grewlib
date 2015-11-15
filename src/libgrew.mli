@@ -59,7 +59,6 @@ val feature_names: grs -> string list option
 
 (* -------------------------------------------------------------------------------- *)
 (** {2 Graph} *)
-type graph
 
 (** get a graph from a file either in 'gr' or 'conll' format.
     File extension should be '.gr' or '.conll'.

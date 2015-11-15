@@ -32,7 +32,7 @@ module Rewrite_history: sig
       - returns a list of couples (rules, file)
   *)
   val save_nfs:
-    Label_domain.t ->
+    Domain.t ->
     ?filter: string list ->
     ?main_feat: string ->
     dot: bool ->
@@ -41,26 +41,26 @@ module Rewrite_history: sig
     ((string * string list) list * string) list
 
   (** [save_annot out_dir base_name t] writes a set of svg_file for an annotation folder. *)
-  val save_annot: Label_domain.t -> string -> string -> t -> (string * int * (string*float) * (string*float) * (float option * float option)) list
+  val save_annot: Domain.t -> string -> string -> t -> (string * int * (string*float) * (string*float) * (float option * float option)) list
 
   (** [save_gr base_name t] saves one gr_file for each normal form defined in [t].
       Output files are named according to [base_name] and the Gorn adress in the rewriting tree. *)
-  val save_gr: Label_domain.t -> string -> t -> unit
-  val save_conll: Label_domain.t -> string -> t -> unit
+  val save_gr: Domain.t -> string -> t -> unit
+  val save_conll: Domain.t -> string -> t -> unit
 
   (** [save_full_conll base_name t] saves one conll_file for each normal form defined in [t].
       Output files are named according to [base_name] and a secondary index after "__".
       The number of conll file produced is returned. *)
-  val save_full_conll: Label_domain.t -> string -> t -> int
+  val save_full_conll: Domain.t -> string -> t -> int
 
   (** [save_det_gr base_name t] supposes that the current GRS is deterministic.
       It writes exactly one output file named [base_name].gr with the unique normal form. *)
-  val save_det_gr: Label_domain.t ->string -> t -> unit
-  val save_det_conll: Label_domain.t -> ?header:string -> string -> t -> unit
+  val save_det_gr: Domain.t ->string -> t -> unit
+  val save_det_conll: Domain.t -> ?header:string -> string -> t -> unit
 
-  val det_dep_string: Label_domain.t -> t -> string option
+  val det_dep_string: Domain.t -> t -> string option
 
-  val conll_dep_string: Label_domain.t -> ?keep_empty_rh:bool -> t -> string option
+  val conll_dep_string: Domain.t -> ?keep_empty_rh:bool -> t -> string option
 end (* module Rewrite_history *)
 
 (* ================================================================================ *)
@@ -86,8 +86,7 @@ module Grs: sig
 
   val get_ast: t -> Ast.grs
 
-  val get_domain: t -> Feature_domain.t
-  val get_label_domain: t -> Label_domain.t
+  val get_domain: t -> Domain.t
 
   val get_filename: t -> string
 

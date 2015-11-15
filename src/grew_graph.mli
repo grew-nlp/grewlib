@@ -53,8 +53,7 @@ module P_graph: sig
     }
 
   val build:
-      Feature_domain.t ->
-      Label_domain.t ->
+      Domain.t ->
       ?pat_vars: string list ->
       ?locals: Label_domain.decl array ->
       Ast.node list ->
@@ -62,8 +61,7 @@ module P_graph: sig
       (t * Id.table)
 
   val build_extension:
-      Feature_domain.t ->
-      Label_domain.t ->
+      Domain.t ->
       ?pat_vars: string list ->
       ?locals: Label_domain.decl array ->
       Id.table ->
@@ -94,7 +92,7 @@ module G_graph: sig
   val max_binding: t -> int
 
   (** [edge_out label_domain t id label_cst] returns true iff there is an out-edge from the node [id] with a label compatible with [label_cst] *)
-  val edge_out: Label_domain.t -> t -> Gid.t -> Label_cst.t -> bool
+  val edge_out: Domain.t -> t -> Gid.t -> Label_cst.t -> bool
 
   (** [get_annot_info graph] searches for exactly one node with an annot-feature (with name starting with "__").
       It returns the annot-feature name without the prefix "__" together with the position.
@@ -105,15 +103,15 @@ module G_graph: sig
   (* Build functions *)
   (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
 
-  val build: Feature_domain.t -> Label_domain.t -> ?locals: Label_domain.decl array -> Ast.gr -> t
+  val build: Domain.t -> ?locals: Label_domain.decl array -> Ast.gr -> t
 
-  val of_conll: ?loc:Loc.t -> Feature_domain.t -> Label_domain.t -> Conll.t -> t
+  val of_conll: ?loc:Loc.t -> Domain.t -> Conll.t -> t
 
   (** input : "Le/DET/le petit/ADJ/petit chat/NC/chat dort/V/dormir ./PONCT/." 
       It supposes that "SUC" is defined in current relations *)
-  val of_brown: Feature_domain.t -> Label_domain.t -> ?sentid: string -> string -> t
+  val of_brown: Domain.t -> ?sentid: string -> string -> t
 
-  val of_xml: Feature_domain.t -> Label_domain.t -> Xml.xml -> t
+  val of_xml: Domain.t -> Xml.xml -> t
   (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
   (* Update functions *)
   (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
@@ -129,32 +127,32 @@ module G_graph: sig
 
   (** [del_edge ?edge_ident loc graph id_src label id_tar] removes the edge (id_src -[label]-> id_tar) from graph.
      Log.critical if the edge is not in graph *)
-  val del_edge: Label_domain.t -> ?edge_ident: string -> Loc.t -> t -> Gid.t -> G_edge.t -> Gid.t -> t
+  val del_edge: Domain.t -> ?edge_ident: string -> Loc.t -> t -> Gid.t -> G_edge.t -> Gid.t -> t
 
   (** [del_node graph id] remove node [id] from [graph], with all its incoming and outcoming edges.
       [graph] is unchanged if the node is not in it. *)
   val del_node: t -> Gid.t -> t
 
-  val add_neighbour: Loc.t -> Label_domain.t -> t -> Gid.t -> G_edge.t -> (Gid.t * t)
+  val add_neighbour: Loc.t -> Domain.t -> t -> Gid.t -> G_edge.t -> (Gid.t * t)
   val activate: Loc.t -> Gid.t -> string -> t -> (Gid.t * t)
 
-  val merge_node: Loc.t -> Label_domain.t -> t -> Gid.t -> Gid.t -> t option
+  val merge_node: Loc.t -> Domain.t -> t -> Gid.t -> Gid.t -> t option
 
   (** move all in arcs to id_src are moved to in arcs on node id_tar from graph, with all its incoming edges *)
-  val shift_in: Loc.t -> Label_domain.t -> Gid.t -> Gid.t -> Label_cst.t -> t -> t
+  val shift_in: Loc.t -> Domain.t -> Gid.t -> Gid.t -> Label_cst.t -> t -> t
 
   (** move all out-edges from id_src are moved to out-edges out off node id_tar *)
-  val shift_out: Loc.t -> Label_domain.t -> Gid.t -> Gid.t -> Label_cst.t -> t -> t
+  val shift_out: Loc.t -> Domain.t -> Gid.t -> Gid.t -> Label_cst.t -> t -> t
 
   (** move all incident arcs from/to id_src are moved to incident arcs on node id_tar from graph, with all its incoming and outcoming edges *)
-  val shift_edges: Loc.t -> Label_domain.t -> Gid.t -> Gid.t -> Label_cst.t -> t -> t
+  val shift_edges: Loc.t -> Domain.t -> Gid.t -> Gid.t -> Label_cst.t -> t -> t
 
   (** [update_feat domain tar_id tar_feat_name concat_items] sets the feature of the node [tar_id]
       with feature name [tar_feat_name] to be the contatenation of values described by the [concat_items].
       It returns both the new graph and the new feature value produced as the second element *)
-  val update_feat: ?loc:Loc.t -> Feature_domain.t -> t -> Gid.t -> string -> Concat_item.t list -> (t * string)
+  val update_feat: ?loc:Loc.t -> Domain.t -> t -> Gid.t -> string -> Concat_item.t list -> (t * string)
 
-  val set_feat: ?loc:Loc.t -> Feature_domain.t -> t -> Gid.t -> string -> string -> t
+  val set_feat: ?loc:Loc.t -> Domain.t -> t -> Gid.t -> string -> string -> t
 
   (** [del_feat graph node_id feat_name] returns [graph] where the feat [feat_name] of [node_id] is deleted
       If the feature is not present, [graph] is returned. *)
@@ -163,13 +161,13 @@ module G_graph: sig
   (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
   (* Output functions *)
   (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
-  val to_gr: Label_domain.t -> t -> string
-  val to_dot: Label_domain.t -> ?main_feat:string -> ?deco:G_deco.t -> t -> string
+  val to_gr: Domain.t -> t -> string
+  val to_dot: Domain.t -> ?main_feat:string -> ?deco:G_deco.t -> t -> string
   val to_sentence: ?main_feat:string -> t -> string
-  val to_dep: Label_domain.t -> ?filter : string list -> ?main_feat:string -> ?deco:G_deco.t -> t -> string
-  val to_conll: Label_domain.t -> t -> string
+  val to_dep: Domain.t -> ?filter : string list -> ?main_feat:string -> ?deco:G_deco.t -> t -> string
+  val to_conll: Domain.t -> t -> string
 
-  val to_raw: Label_domain.t -> t ->
+  val to_raw: Domain.t -> t ->
     (string * string) list *
     (string * string) list list *
     (int * string * int) list
