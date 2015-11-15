@@ -4,6 +4,7 @@ digraph grew {
   grew_base
   grew_types [label="grew_types|Pid(_map\|_set)\nGid(_map)\nMassoc[_gid\|_pid]\nLabel\nDomain\nConll\nLex_par\nConcat_item"]
   grew_ast [label="grew_ast|Ast"]
+  grew_loader [label="grew_loader|Loader"]
   grew_fs [label="grew_fs|G_fs\nP_fs"]
   grew_edge [label="grew_edge|G_edge\nP_edge"]
   grew_node [label="grew_node|G_node\nP_node"]
@@ -25,6 +26,7 @@ grew_graph -> grew_command
 libgrew_types -> grew_graph
 grew_rule -> libgrew_types
 grew_grs -> grew_rule
+grew_grs -> grew_loader -> grew_lexer -> grew_parser -> grew_ast
 grew_html -> grew_grs
 libgrew -> grew_html
 
