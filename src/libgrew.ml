@@ -20,28 +20,21 @@ ENDIF
 open Grew_fs
 open Grew_base
 open Grew_types
-
 open Grew_graph
 open Grew_rule
 open Grew_grs
-
 open Grew_loader
 open Grew_html
 
-let css_file = Filename.concat DATA_DIR "style.css"
-
-let empty_grs = Grs.empty
-
-let set_timeout t = Timeout.timeout := t
-
+(* -------------------------------------------------------------------------------- *)
+(** {2 Location} *)
 type loc = Loc.t
 let string_of_loc = Loc.to_string
 let line_of_loc = Loc.to_line
 
-type graph = G_graph.t
-
+(* -------------------------------------------------------------------------------- *)
+(** {2 Exceptions} *)
 exception File_dont_exists of string
-
 exception Parsing_err of string * loc option
 exception Build of string * loc option
 exception Run of string * loc option
@@ -63,12 +56,27 @@ let handle ?(name="") ?(file="No file defined") fct () =
 
     | exc -> raise (Bug (sprintf "[Libgrew.%s] UNCATCHED EXCEPTION: %s" name (Printexc.to_string exc), None))
 
-let is_empty rh =
-  handle ~name:"is_empty" (fun () -> Rewrite_history.is_empty rh) ()
 
-let num_sol rh =
-  handle ~name:"num_sol" (fun () -> Rewrite_history.num_sol rh) ()
 
+(* -------------------------------------------------------------------------------- *)
+(** {2 Graph Rewriting System} *)
+type grs = Grs.t
+
+let empty_grs = Grs.empty
+
+let load_grs file =
+  handle ~name:"load_grs" ~file
+    (fun () ->
+      if not (Sys.file_exists file)
+      then raise (File_dont_exists file)
+      else Grs.build file
+    ) ()
+
+let get_sequence_names grs =
+  handle ~name:"get_sequence_names"
+    (fun () ->
+      Grs.sequence_names grs
+    ) ()
 
 IFDEF DEP2PICT THEN
 let build_html_doc ?(corpus=false) dir grs =
@@ -90,25 +98,11 @@ let build_html_doc ?(corpus=false) dir grs =
   handle ~name:"build_doc [without Dep2pict]" (fun () -> Html_doc.build ~corpus ~dep:false dir grs) ()
 END
 
-let load_grs file =
-  handle ~name:"load_grs" ~file
-    (fun () ->
-      if not (Sys.file_exists file)
-      then raise (File_dont_exists file)
-      else Grs.build file
-    ) ()
+let feature_names grs =  handle ~name:"feature_names" (fun () -> Domain.feature_names (Grs.get_domain grs)) ()
 
-let to_sentence ?main_feat gr =
-  handle ~name:"to_sentence"
-    (fun () ->
-      G_graph.to_sentence ?main_feat gr
-    ) ()
-
-let get_sequence_names grs =
-  handle ~name:"get_sequence_names"
-    (fun () ->
-      Grs.sequence_names grs
-    ) ()
+(* -------------------------------------------------------------------------------- *)
+(** {2 Graph} *)
+type graph = G_graph.t
 
 let load_gr grs file =
   if not (Sys.file_exists file)
@@ -124,18 +118,6 @@ let load_conll grs file =
   handle ~name:"load_conll" ~file
     (fun () ->
       G_graph.of_conll ~loc:(Loc.file file) (Grs.get_domain grs) (Grs.get_label_domain grs) (Conll.load file)
-    ) ()
-
-let of_conll grs file_name line_list =
-  handle ~name:"of_conll"
-    (fun () ->
-      G_graph.of_conll ~loc:(Loc.file file_name) (Grs.get_domain grs) (Grs.get_label_domain grs) (Conll.parse file_name line_list)
-    ) ()
-
-let of_brown grs ?sentid brown =
-  handle ~name:"of_brown"
-    (fun () ->
-      G_graph.of_brown (Grs.get_domain grs) (Grs.get_label_domain grs) ?sentid brown
     ) ()
 
 let load_brown grs file =
@@ -160,14 +142,72 @@ let load_graph grs file =
           loop [load_gr; load_conll; load_brown]
     ) ()
 
+let of_conll grs file_name line_list =
+  handle ~name:"of_conll"
+    (fun () ->
+      G_graph.of_conll ~loc:(Loc.file file_name) (Grs.get_domain grs) (Grs.get_label_domain grs) (Conll.parse file_name line_list)
+    ) ()
+
+let of_brown grs ?sentid brown =
+  handle ~name:"of_brown"
+    (fun () ->
+      G_graph.of_brown (Grs.get_domain grs) (Grs.get_label_domain grs) ?sentid brown
+    ) ()
+
+let to_dot_graph grs ?main_feat ?(deco=G_deco.empty) graph =
+  handle ~name:"to_dot_graph" (fun () -> G_graph.to_dot (Grs.get_label_domain grs) ?main_feat graph ~deco) ()
+
+let to_dep_graph grs ?filter ?main_feat ?(deco=G_deco.empty) graph =
+  handle ~name:"to_dep_graph" (fun () -> G_graph.to_dep (Grs.get_label_domain grs) ?filter ?main_feat ~deco graph) ()
+
+let to_gr_graph grs graph =
+  handle ~name:"to_gr_graph" (fun () -> G_graph.to_gr (Grs.get_label_domain grs) graph) ()
+
+let to_conll_graph grs graph =
+  handle ~name:"to_conll_graph" (fun () -> G_graph.to_conll (Grs.get_label_domain grs) graph) ()
+
+let to_sentence ?main_feat gr =
+  handle ~name:"to_sentence"
+    (fun () ->
+      G_graph.to_sentence ?main_feat gr
+    ) ()
+
+let save_graph_conll grs filename graph =
+  handle ~name:"save_graph_conll" (fun () ->
+    let out_ch = open_out filename in
+    fprintf out_ch "%s" (G_graph.to_conll (Grs.get_label_domain grs) graph);
+    close_out out_ch
+  ) ()
+
 let raw_graph grs gr =
   handle ~name:"raw_graph" (fun () -> G_graph.to_raw (Grs.get_label_domain grs) gr) ()
+
+(* -------------------------------------------------------------------------------- *)
+(** {2 rew_display: data for the GUI } *)
+let display ~gr ~grs ~seq =
+  handle ~name:"display" (fun () -> Grs.build_rew_display grs seq gr) ()
+
+(* -------------------------------------------------------------------------------- *)
+(** {2 Rewrite} *)
+type rewrite_history = Rewrite_history.t
+
+let set_timeout t = Timeout.timeout := t
 
 let rewrite ~gr ~grs ~seq =
   handle ~name:"rewrite" (fun () -> Grs.rewrite grs seq gr) ()
 
-let display ~gr ~grs ~seq =
-  handle ~name:"display" (fun () -> Grs.build_rew_display grs seq gr) ()
+let is_empty rh =
+  handle ~name:"is_empty" (fun () -> Rewrite_history.is_empty rh) ()
+
+let num_sol rh =
+  handle ~name:"num_sol" (fun () -> Rewrite_history.num_sol rh) ()
+
+
+
+
+
+
+
 
 let write_stat filename rew_hist =
   handle ~name:"write_stat" (fun () -> Gr_stat.save filename (Gr_stat.from_rew_history rew_hist)) ()
@@ -182,12 +222,6 @@ let save_index ~dirname ~base_names =
     close_out out_ch
   ) ()
 
-let save_graph_conll grs filename graph =
-  handle ~name:"save_graph_conll" (fun () ->
-    let out_ch = open_out filename in
-    fprintf out_ch "%s" (G_graph.to_conll (Grs.get_label_domain grs) graph);
-    close_out out_ch
-  ) ()
 
 let save_gr grs base rew_hist =
   handle ~name:"save_gr" (fun () -> Rewrite_history.save_gr (Grs.get_label_domain grs) base rew_hist) ()
@@ -268,19 +302,10 @@ let make_index ~title ~grs_file ~html ~grs ~seq ~input_dir ~output_dir ~base_nam
 
 let html_sentences ~title = handle ~name:"html_sentences" (fun () -> Html_sentences.build ~title) ()
 
-let feature_names grs =  handle ~name:"feature_names" (fun () -> Domain.feature_names (Grs.get_domain grs)) ()
 
-let to_dot_graph grs ?main_feat ?(deco=G_deco.empty) graph =
-  handle ~name:"to_dot_graph" (fun () -> G_graph.to_dot (Grs.get_label_domain grs) ?main_feat graph ~deco) ()
 
-let to_dep_graph grs ?filter ?main_feat ?(deco=G_deco.empty) graph =
-  handle ~name:"to_dep_graph" (fun () -> G_graph.to_dep (Grs.get_label_domain grs) ?filter ?main_feat ~deco graph) ()
-
-let to_gr_graph grs graph =
-  handle ~name:"to_gr_graph" (fun () -> G_graph.to_gr (Grs.get_label_domain grs) graph) ()
-
-let to_conll_graph grs graph =
-  handle ~name:"to_conll_graph" (fun () -> G_graph.to_conll (Grs.get_label_domain grs) graph) ()
+(* -------------------------------------------------------------------------------- *)
+(** {2 Patterns} *)
 
 type pattern = Rule.pattern
 type matching = Rule.matching

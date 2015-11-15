@@ -16,15 +16,15 @@ open Grew_graph
 open Grew_rule
 open Grew_grs
 
-val css_file: string
 
-type loc = Loc.t
-
-type graph = G_graph.t
-
+(* -------------------------------------------------------------------------------- *)
+(** {2 Location} *)
+type loc
 val line_of_loc: loc -> int
 val string_of_loc: loc -> string
 
+(* -------------------------------------------------------------------------------- *)
+(** {2 Exceptions} *)
 exception File_dont_exists of string
 
 exception Parsing_err of string * loc option
@@ -37,88 +37,107 @@ exception Run of string * loc option
 
 exception Bug of string * loc option
 
-val set_timeout: float option -> unit
 
-val rewrite: gr:G_graph.t -> grs:Grs.t -> seq:string -> Rewrite_history.t
+(* -------------------------------------------------------------------------------- *)
+(** {2 Graph Rewriting System} *)
+type grs
+val empty_grs: grs
 
-val is_empty: Rewrite_history.t -> bool
+(** [load_grs filename] loads a graph rewriting system from [filename]
+    @raise Parsing_err if libgrew can't parse the file
+    @raise File_dont_exists if the file doesn't exists *)
+val load_grs: string -> grs
 
-val num_sol: Rewrite_history.t -> int
+(** [get_sequence_names grs] returns the list of sequence names defined in a GRS *)
+val get_sequence_names: grs -> string list
 
-(** display a gr with a grs in a rew_display
-@param gr the grapth to rewrite
-@param grs the graph rewriting system
-@param seq the name of the sequence to apply
-@return a structure {b {i easily}} displayable *)
-val display: gr:G_graph.t -> grs:Grs.t -> seq:string -> rew_display
+(** [build_html_doc ?corpus directory grs]
+    @[corpus] is a flag (default is [false]) for complete html doc with corpus sentence. *)
+val build_html_doc: ?corpus:bool -> string -> grs -> unit
 
-val write_stat: string -> Rewrite_history.t -> unit
+val feature_names: grs -> string list option
 
-val empty_grs: Grs.t
-
-(** get a graph rewriting system from a file
-@return a graph rewriting system
-@raise Parsing_err if libgrew can't parse the file
-@raise File_dont_exists if the file doesn't exists
-*)
-val load_grs: string -> Grs.t
-
-(** [build_html_doc directory grs ] *)
-val build_html_doc: ?corpus:bool -> string -> Grs.t -> unit
-
-(** give the list of sequence names defined in a GRS
-@return a string list
-*)
-val get_sequence_names: Grs.t -> string list
-
-val to_sentence: ?main_feat:string -> G_graph.t -> string
-
-val save_graph_conll: Grs.t -> string -> G_graph.t -> unit
-
-val save_gr: Grs.t -> string -> Rewrite_history.t -> unit
-
-val save_conll: Grs.t -> string -> Rewrite_history.t -> unit
-
-(** [save_full_conll base_name rh] saves one conll_file for each normal form defined in [rh].
-    Output files are named according to [base_name] and a secondary index after "__".
-    The number of conll file produced is returned. *)
-val save_full_conll: Grs.t -> string -> Rewrite_history.t -> int
-
-val save_det_gr: Grs.t -> string -> Rewrite_history.t -> unit
-
-val save_det_conll: Grs.t -> ?header:string -> string -> Rewrite_history.t -> unit
-
-val det_dep_string: Grs.t -> Rewrite_history.t -> string option
-
-val conll_dep_string: Grs.t -> ?keep_empty_rh:bool -> Rewrite_history.t -> string option
+(* -------------------------------------------------------------------------------- *)
+(** {2 Graph} *)
+type graph
 
 (** get a graph from a file either in 'gr' or 'conll' format.
     File extension should be '.gr' or '.conll'.
     @raise Parsing_err if libgrew can't parse the file
     @raise File_dont_exists if the file doesn't exists. *)
-val load_graph: Grs.t -> string -> G_graph.t
+val load_graph: grs -> string -> graph
 
 (** [of_conll filename line_list] *)
-val of_conll: Grs.t -> string -> (int * string) list -> G_graph.t
+val of_conll: grs -> string -> (int * string) list -> graph
 
-val of_brown: Grs.t -> ?sentid:string -> string -> G_graph.t
+val of_brown: grs -> ?sentid:string -> string -> graph
+
+val to_sentence: ?main_feat:string -> graph -> string
 
 (** [raw_graph instance] returns all graph information with a triple of elementary caml types:
     - the meta data
     - the list of node (node is a list of feature (feature is string * string))
     - the list of edge (src, label, tar) where src and tar refers to the position in the node list
 *)
-val raw_graph: Grs.t -> G_graph.t ->
+val raw_graph: grs -> graph ->
     (string * string) list *
     (string * string) list list *
     (int * string * int) list
 
+val to_dot_graph : grs -> ?main_feat:string -> ?deco:deco -> graph -> string
+
+val to_dep_graph : grs -> ?filter: string list -> ?main_feat:string -> ?deco:deco -> graph -> string
+
+val to_gr_graph: grs -> graph -> string
+
+val to_conll_graph: grs -> graph -> string
+
+(* -------------------------------------------------------------------------------- *)
+(** {2 rew_display: data for the GUI } *)
+(** [display gr grs seq] builds the [rew_display] given by
+    the rewriting of graph [gr] with the sequence [seq] of [grs].
+    @param gr the grapth to rewrite
+    @param grs the graph rewriting system
+    @param seq the name of the sequence to apply *)
+val display: gr:graph -> grs:grs -> seq:string -> rew_display
+
+(* -------------------------------------------------------------------------------- *)
+(** {2 Rewrite history} *)
+type rewrite_history
+
+val set_timeout: float option -> unit
+
+val rewrite: gr:graph -> grs:grs -> seq:string -> rewrite_history
+
+val is_empty: rewrite_history -> bool
+
+val num_sol: rewrite_history -> int
+
+val write_stat: string -> rewrite_history -> unit
+
+val save_gr: grs -> string -> rewrite_history -> unit
+
+val save_conll: grs -> string -> rewrite_history -> unit
+
+(** [save_full_conll base_name rh] saves one conll_file for each normal form defined in [rh].
+    Output files are named according to [base_name] and a secondary index after "__".
+    The number of conll file produced is returned. *)
+val save_full_conll: grs -> string -> rewrite_history -> int
+
+val save_det_gr: grs -> string -> rewrite_history -> unit
+
+val save_det_conll: grs -> ?header:string -> string -> rewrite_history -> unit
+
+val det_dep_string: grs -> rewrite_history -> string option
+
+val conll_dep_string: grs -> ?keep_empty_rh:bool -> rewrite_history -> string option
+
 val save_index: dirname:string -> base_names: string list -> unit
 
-val write_annot: Grs.t -> title:string -> string -> string -> (string * Rewrite_history.t) list -> unit
+val write_annot: grs -> title:string -> string -> string -> (string * rewrite_history) list -> unit
 
 val write_html:
-    Grs.t ->
+    grs ->
     ?no_init: bool ->
     ?out_gr: bool ->
     ?filter: string list ->
@@ -126,16 +145,18 @@ val write_html:
     ?dot: bool ->
     header: string ->
     ?graph_file: string ->
-    Rewrite_history.t -> string -> unit
+    rewrite_history ->
+    string -> 
+    unit
 
 val error_html:
-    Grs.t ->
+    grs ->
     ?no_init:bool ->
     ?main_feat:string ->
     ?dot: bool ->
     header: string ->
     string ->
-    ?init:G_graph.t ->
+    ?init:graph ->
     string ->
     unit
 
@@ -143,7 +164,7 @@ val make_index:
     title: string ->
     grs_file: string ->
     html: bool ->
-    grs: Grs.t ->
+    grs: grs ->
     seq: string ->
     input_dir: string ->
     output_dir: string ->
@@ -152,22 +173,18 @@ val make_index:
 
 val html_sentences: title:string -> string -> (bool * string * int * string) list -> unit
 
-val feature_names: Grs.t -> string list option
-
-val to_dot_graph : Grs.t -> ?main_feat:string -> ?deco:deco -> graph -> string
-val to_dep_graph : Grs.t -> ?filter: string list -> ?main_feat:string -> ?deco:deco -> graph -> string
-val to_gr_graph: Grs.t -> graph -> string
-val to_conll_graph: Grs.t -> graph -> string
+(* -------------------------------------------------------------------------------- *)
+(** {2 Patterns} *)
 
 (* type and function added for the grep mode of grew *)
 type pattern
 type matching
 
 (** [load_pattern filename] returns the pattern describer in the fuile *)
-val load_pattern: Grs.t -> string -> pattern
+val load_pattern: grs -> string -> pattern
 
 (** [match_in_graph patern graph] returns the list of the possible matching og [pattern] in [graph] *)
-val match_in_graph: Grs.t -> pattern -> graph -> matching list
+val match_in_graph: grs -> pattern -> graph -> matching list
 
 (** [match_deco pattern matching] returns the deco to be used in the graphical representation.
     WARNING: the function supposes that [matching] was find with the given [pattern]! *)
