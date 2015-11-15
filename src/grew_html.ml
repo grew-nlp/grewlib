@@ -525,7 +525,7 @@ end (* module Html_doc *)
 
 (* ================================================================================ *)
 module Html_rh = struct
-  let build ?filter ?main_feat ?(dot=false) ?(init_graph=true) ?(out_gr=false) ?header ?graph_file prefix t =
+  let build label_domain ?filter ?main_feat ?(dot=false) ?(init_graph=true) ?(out_gr=false) ?header ?graph_file prefix t =
 
     (* remove files from previous runs *)
     let _ = Unix.system (sprintf "rm -f %s*.html" prefix) in
@@ -534,10 +534,10 @@ module Html_rh = struct
 
     (
       if init_graph
-      then ignore (Instance.save_dep_png ?filter ?main_feat prefix t.Rewrite_history.instance)
+      then ignore (Instance.save_dep_png label_domain ?filter ?main_feat prefix t.Rewrite_history.instance)
     );
 
-    let nf_files = Rewrite_history.save_nfs ?filter ?main_feat ~dot prefix t in
+    let nf_files = Rewrite_history.save_nfs label_domain ?filter ?main_feat ~dot prefix t in
 
     let l = List.length nf_files in
 
@@ -624,15 +624,15 @@ module Html_rh = struct
 
 
 
-  let error ?main_feat ?(dot=false) ?(init_graph=true) ?header prefix msg graph_opt =
+  let error label_domain ?main_feat ?(dot=false) ?(init_graph=true) ?header prefix msg graph_opt =
     (* remove files from previous runs *)
     let _ = Unix.system (sprintf "rm -f %s*.html" prefix) in
     let _ = Unix.system (sprintf "rm -f %s*.dep" prefix) in
     let _ = Unix.system (sprintf "rm -f %s*.png" prefix) in
 
     (match graph_opt, init_graph with
-      | (Some graph, true) when dot -> Instance.save_dot_png ?main_feat prefix (Instance.from_graph graph)
-      | (Some graph, true) -> ignore (Instance.save_dep_png ?main_feat prefix (Instance.from_graph graph))
+      | (Some graph, true) when dot -> Instance.save_dot_png label_domain ?main_feat prefix (Instance.from_graph graph)
+      | (Some graph, true) -> ignore (Instance.save_dep_png label_domain ?main_feat prefix (Instance.from_graph graph))
       | _ -> ()
     );
 
@@ -1040,13 +1040,13 @@ module Html_annot = struct
     sprintf "<script type=\"text/JavaScript\" src=\"%s\"></script>" (Filename.concat static_dir "annot.js")
   ]
 
-  let build ~title static_dir annot_dir bn_rh_list =
+  let build label_domain ~title static_dir annot_dir bn_rh_list =
     let alt_list = List_.flat_map
       (fun (base_name, rew_hist) ->
         List.mapi
           (fun i alt ->
             (sprintf "%s_%d" base_name i, alt)
-          ) (Rewrite_history.save_annot annot_dir base_name rew_hist)
+          ) (Rewrite_history.save_annot label_domain annot_dir base_name rew_hist)
       ) bn_rh_list in
 
     let db_buff = Buffer.create 32 in

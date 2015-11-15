@@ -8,7 +8,7 @@
 (*    Authors: see AUTHORS file                                                   *)
 (**********************************************************************************)
 
-
+open Grew_types
 open Grew_rule
 open Grew_grs
 open Grew_graph
@@ -28,6 +28,7 @@ end (* module Html_sentences *)
 module Html_rh: sig
 
   val build:
+    Label.domain ->
     ?filter: string list ->
     ?main_feat: string ->
     ?dot: bool ->
@@ -40,6 +41,7 @@ module Html_rh: sig
     unit
 
   val error:
+    Label.domain ->
     ?main_feat: string ->
     ?dot: bool ->
     ?init_graph:bool ->
@@ -79,5 +81,5 @@ end (* module Corpus_stat *)
 
 (* ================================================================================ *)
 module Html_annot: sig
-  val build: title:string -> string -> string -> (string * Rewrite_history.t) list -> unit
+  val build: Label.domain -> title:string -> string -> string -> (string * Rewrite_history.t) list -> unit
 end (* module Html_annot *)

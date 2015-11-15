@@ -126,30 +126,34 @@ module Label = struct
     line: line;
   }
 
+  type domain = string array * style array
+  let empty_domain = ([||],[||])
+
+(* ============= REMOVE ============
   (** Global names and display styles are recorded in two aligned arrays *)
   let full = ref None
   let styles = ref ([||] : style array)
+   ============= /REMOVE ============ *)
 
   (** Internal representation of labels *)
   type t =
-    | Global of int       (* globally defined labels: their names are in the [full] array *)
+    | Global of int       (* globally defined labels: their names are in the domain *)
     | Local of int        (* locally defined labels: names array should be provided! UNTESTED *)
     | Pattern of string
 
-  let match_ p_label g_label = match (p_label, g_label, !full) with
-    | (Global p, Global g, _) when p=g -> true
-    | (Pattern p, Global i, Some table) when String_.match_star_re p table.(i) -> true
+  let match_ (table,_) p_label g_label = match (p_label, g_label) with
+    | (Global p, Global g) when p=g -> true
+    | (Pattern p, Global i) when String_.match_star_re p table.(i) -> true
     | _ -> false
 
-  let match_list p_label_list g_label = List.exists (fun p_label -> match_ p_label g_label) p_label_list
+  let match_list label_domain p_label_list g_label =
+    List.exists (fun p_label -> match_ label_domain p_label g_label) p_label_list
 
-  (** [to_string t] returns a string for the label *)
-  let to_string ?(locals=[||]) t =
-    match (!full, t) with
-      | (Some table, Global i) -> table.(i)
-      | (Some _, Local i) -> fst locals.(i)
-      | (_, Pattern s) -> s
-      | _ -> Error.bug "[Label.to_string] labels were not properly initialized"
+  (** [to_string label_domain t] returns a string for the label *)
+  let to_string (table,_) ?(locals=[||]) = function
+    | Global i -> table.(i)
+    | Local i -> fst locals.(i)
+    | Pattern s -> s
 
   let to_int = function
     | Global i -> Some i
@@ -158,8 +162,8 @@ module Label = struct
   (** The [default] style value *)
   let default = { text="UNSET"; bottom=false; color=None; bgcolor=None; line=Solid }
 
-  let get_style = function
-    | Global i -> !styles.(i)
+  let get_style (_,styles) = function
+    | Global i -> styles.(i)
     | Local i -> Log.warning "Style of locally defined labels is not implemented"; default
     | Pattern _ -> default
 
@@ -184,16 +188,17 @@ module Label = struct
   (** [decl] is the type for a label declaration: the name and a list of display styles *)
   type decl = string * string list
 
-  (* [init decl_list] updates global arrays [full] and [styles] *)
-  let init decl_list =
+  (* [build decl_list] returns a label_domain *)
+  let build decl_list =
     let slist = List.sort (fun (x,_) (y,_) -> compare x y) decl_list in
     let (labels, opts) = List.split slist in
     let labels_array = Array.of_list labels in
-    full := Some labels_array;
-    styles := Array.mapi (fun i opt -> parse_option labels_array.(i) opt) (Array.of_list opts)
+    (labels_array, 
+      Array.mapi (fun i opt -> parse_option labels_array.(i) opt) (Array.of_list opts)
+    )
 
-  let to_dep ?(deco=false) t =
-    let style = get_style t in
+  let to_dep label_domain ?(deco=false) t =
+    let style = get_style label_domain t in
     let dep_items =
       (if style.bottom then ["bottom"] else [])
       @ (match style.color with Some c -> ["color="^c; "forecolor="^c] | None -> [])
@@ -205,8 +210,8 @@ module Label = struct
         | Solid -> []) in
     sprintf "{ label = \"%s\"; %s}" style.text (String.concat "; " dep_items)
 
-  let to_dot ?(deco=false) t =
-    let style = get_style t in
+  let to_dot label_domain ?(deco=false) t =
+    let style = get_style label_domain t in
     let dot_items =
       (match style.color with Some c -> let d = dot_color c in ["color="^d; "fontcolor="^d] | None -> [])
       @ (match style.line with
@@ -216,17 +221,14 @@ module Label = struct
         | Solid -> []) in
     sprintf "[label=\"%s\", %s]" style.text (String.concat ", " dot_items)
 
-  let from_string ?loc ?(locals=[||]) string =
-    if String.contains string '*'
-    then Pattern string
+  let from_string ?loc (table, _) ?(locals=[||]) str =
+    if String.contains str '*'
+    then Pattern str
     else
-      match !full with
-        | None -> Error.bug "[Label.from_string] labels were not properly initialized"
-        | Some table ->
-          try Global (Id.build ?loc string table)
-          with Not_found (* TODO (CANNOT BE RAISED) *) ->
-            try Local (Array_.dicho_find_assoc string locals)
-            with Not_found -> Error.build "[Label.from_string] unknown edge label '%s'" string
+      try Global (Id.build ?loc str table)
+      with Not_found (* TODO (CANNOT BE RAISED) *) ->
+        try Local (Array_.dicho_find_assoc str locals)
+        with Not_found -> Error.build "[Label.from_string] unknown edge label '%s'" str
 end (* module Label *)
 
 (* ================================================================================ *)
@@ -236,19 +238,19 @@ module Label_cst = struct
   | Pos of Label.t list
   | Neg of Label.t list
 
-  let to_string = function
-    | Pos l -> (List_.to_string Label.to_string "|" l)
-    | Neg l -> "^"^(List_.to_string Label.to_string "|" l)
+  let to_string label_domain = function
+    | Pos l -> (List_.to_string (Label.to_string label_domain) "|" l)
+    | Neg l -> "^"^(List_.to_string (Label.to_string label_domain) "|" l)
 
   let all = Neg []
 
-  let match_ edge = function
-    | Pos labels -> Label.match_list labels edge
-    | Neg labels -> not (Label.match_list labels edge)
+  let match_ label_domain edge = function
+    | Pos labels -> Label.match_list label_domain labels edge
+    | Neg labels -> not (Label.match_list label_domain labels edge)
 
-  let build ?loc ?locals = function
-  | (edge_labels, true) -> Neg (List.sort compare (List.map (Label.from_string ?loc ?locals) edge_labels))
-  | (edge_labels, false) -> Pos (List.sort compare (List.map (Label.from_string ?loc ?locals) edge_labels))
+  let build ?loc label_domain ?locals = function
+  | (edge_labels, true) -> Neg (List.sort compare (List.map (Label.from_string ?loc label_domain ?locals) edge_labels))
+  | (edge_labels, false) -> Pos (List.sort compare (List.map (Label.from_string ?loc label_domain ?locals) edge_labels))
 end (* module Label_cst *)
 
 

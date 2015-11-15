@@ -18,14 +18,14 @@ open Grew_ast
 module G_edge: sig
   type t = Label.t
 
-  val to_string: ?locals:Label.decl array -> t -> string
+  val to_string: Label.domain -> ?locals:Label.decl array -> t -> string
 
-  val make: ?loc:Loc.t -> ?locals:Label.decl array -> string -> t
+  val make: ?loc:Loc.t -> Label.domain -> ?locals:Label.decl array -> string -> t
 
-  val build: ?locals:Label.decl array -> Ast.edge -> t
+  val build: Label.domain -> ?locals:Label.decl array -> Ast.edge -> t
 
-  val to_dot: ?deco:bool -> t -> string
-  val to_dep: ?deco:bool -> t -> string
+  val to_dot: Label.domain -> ?deco:bool -> t -> string
+  val to_dep: Label.domain -> ?deco:bool -> t -> string
 end (* module G_edge *)
 
 (* ================================================================================ *)
@@ -38,16 +38,16 @@ module P_edge: sig
 
   val get_id: t -> string option
 
-  val to_string: t -> string
+  val to_string: Label.domain -> t -> string
 
-  val build: ?locals:Label.decl array -> Ast.edge -> t
+  val build: Label.domain -> ?locals:Label.decl array -> Ast.edge -> t
 
   type edge_matcher =
     | Fail
     | Ok of Label.t
     | Binds of string * Label.t list
 
-  val match_: t -> G_edge.t -> edge_matcher
+  val match_: Label.domain -> t -> G_edge.t -> edge_matcher
 
-  val match_list: t -> G_edge.t list -> edge_matcher
+  val match_list: Label.domain -> t -> G_edge.t list -> edge_matcher
 end (* module P_edge *)

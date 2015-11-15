@@ -20,7 +20,7 @@ module G_node: sig
 
   val empty: t
 
-  val to_string: t -> string
+  val to_string: Label.domain -> t -> string
   val to_gr: t -> string
 
   val get_fs: t -> G_fs.t

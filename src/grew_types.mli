@@ -76,21 +76,23 @@ module Label : sig
 
   type t
 
-  val match_: t -> t -> bool
+  type domain
+  val empty_domain: domain
+  val build: decl list -> domain
 
-  val match_list: t list -> t -> bool
+  val match_: domain -> t -> t -> bool
 
-  val init: decl list -> unit
+  val match_list: domain -> t list -> t -> bool
 
-  val to_string: ?locals:decl array -> t -> string
+  val to_string: domain -> ?locals:decl array -> t -> string
 
   val to_int: t -> int option
 
-  val to_dep: ?deco:bool -> t -> string
+  val to_dep: domain -> ?deco:bool -> t -> string
 
-  val to_dot: ?deco:bool -> t -> string
+  val to_dot: domain -> ?deco:bool -> t -> string
 
-  val from_string: ?loc:Loc.t -> ?locals:decl array -> string -> t
+  val from_string: ?loc:Loc.t -> domain -> ?locals:decl array -> string -> t
 end (* module Label *)
 
 (* ================================================================================ *)
@@ -100,10 +102,10 @@ module Label_cst : sig
   | Pos of Label.t list
   | Neg of Label.t list
 
-  val to_string: t -> string
+  val to_string: Label.domain -> t -> string
   val all: t
-  val match_: Label.t -> t -> bool
-  val build: ?loc:Loc.t -> ?locals:Label.decl array -> (string list * bool) -> t
+  val match_: Label.domain -> Label.t -> t -> bool
+  val build: ?loc:Loc.t -> Label.domain -> ?locals:Label.decl array -> (string list * bool) -> t
 end (* module Label_cst *)
 
 (* ================================================================================ *)
@@ -125,7 +127,7 @@ module Domain: sig
 
   val feature_names: t -> string list option
 
-  (** [check_feature_name ~loc domain feature_name] fails iff a domain is set and [feature_name] is not defined in the current domain. *)
+  (** [check_feature_name ~loc domain eature_name] fails iff a domain is set and [feature_name] is not defined in the current domain. *)
   val check_feature_name: ?loc:Loc.t -> t -> feature_name -> unit
 
   (** [check_feature ~loc domain feature_name feature_value] fails iff a domain is set and [feature_name,feature_value] is not defined in the current domain. *)

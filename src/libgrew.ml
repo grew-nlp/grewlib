@@ -78,7 +78,7 @@ let build_html_doc ?(corpus=false) dir grs =
 
       (* draw pattern graphs for all rules and all filters *)
       let fct module_ rule_ =
-        let dep_code = Rule.to_dep rule_ in
+        let dep_code = Rule.to_dep (Grs.get_label_domain grs) rule_ in
         let dep_png_file = sprintf "%s/%s_%s-patt.png" dir module_ (Rule.get_name rule_) in
         let d2p = Dep2pict.from_dep ~dep:dep_code in
         Dep2pict.save_png ~filename:dep_png_file d2p in
@@ -117,32 +117,32 @@ let load_gr grs file =
     handle ~name:"load_gr" ~file
       (fun () ->
         let gr_ast = Loader.gr file in
-        G_graph.build (Grs.get_domain grs) gr_ast
+        G_graph.build (Grs.get_domain grs) (Grs.get_label_domain grs) gr_ast
       ) ()
 
 let load_conll grs file =
   handle ~name:"load_conll" ~file
     (fun () ->
-      G_graph.of_conll ~loc:(Loc.file file) (Grs.get_domain grs) (Conll.load file)
+      G_graph.of_conll ~loc:(Loc.file file) (Grs.get_domain grs) (Grs.get_label_domain grs) (Conll.load file)
     ) ()
 
 let of_conll grs file_name line_list =
   handle ~name:"of_conll"
     (fun () ->
-      G_graph.of_conll ~loc:(Loc.file file_name) (Grs.get_domain grs) (Conll.parse file_name line_list)
+      G_graph.of_conll ~loc:(Loc.file file_name) (Grs.get_domain grs) (Grs.get_label_domain grs) (Conll.parse file_name line_list)
     ) ()
 
 let of_brown grs ?sentid brown =
   handle ~name:"of_brown"
     (fun () ->
-      G_graph.of_brown (Grs.get_domain grs) ?sentid brown
+      G_graph.of_brown (Grs.get_domain grs) (Grs.get_label_domain grs) ?sentid brown
     ) ()
 
 let load_brown grs file =
   handle ~name:"load_brown"
     (fun () ->
       let brown = File.load file in
-      G_graph.of_brown (Grs.get_domain grs) brown
+      G_graph.of_brown (Grs.get_domain grs) (Grs.get_label_domain grs) brown
     ) ()
 
 let load_graph grs file =
@@ -160,8 +160,8 @@ let load_graph grs file =
           loop [load_gr; load_conll; load_brown]
     ) ()
 
-let raw_graph gr =
-  handle ~name:"raw_graph" (fun () -> G_graph.to_raw gr) ()
+let raw_graph grs gr =
+  handle ~name:"raw_graph" (fun () -> G_graph.to_raw (Grs.get_label_domain grs) gr) ()
 
 let rewrite ~gr ~grs ~seq =
   handle ~name:"rewrite" (fun () -> Grs.rewrite grs seq gr) ()
@@ -172,8 +172,8 @@ let display ~gr ~grs ~seq =
 let write_stat filename rew_hist =
   handle ~name:"write_stat" (fun () -> Gr_stat.save filename (Gr_stat.from_rew_history rew_hist)) ()
 
-let write_annot ~title static_dir annot_dir base_name_rew_hist_list =
-  handle ~name:"write_annot" (fun () -> Html_annot.build ~title static_dir annot_dir base_name_rew_hist_list) ()
+let write_annot grs ~title static_dir annot_dir base_name_rew_hist_list =
+  handle ~name:"write_annot" (fun () -> Html_annot.build (Grs.get_label_domain grs) ~title static_dir annot_dir base_name_rew_hist_list) ()
 
 let save_index ~dirname ~base_names =
   handle ~name:"save_index" (fun () ->
@@ -182,35 +182,35 @@ let save_index ~dirname ~base_names =
     close_out out_ch
   ) ()
 
-let save_graph_conll filename graph =
+let save_graph_conll grs filename graph =
   handle ~name:"save_graph_conll" (fun () ->
     let out_ch = open_out filename in
-    fprintf out_ch "%s" (G_graph.to_conll graph);
+    fprintf out_ch "%s" (G_graph.to_conll (Grs.get_label_domain grs) graph);
     close_out out_ch
   ) ()
 
-let save_gr base rew_hist =
-  handle ~name:"save_gr" (fun () -> Rewrite_history.save_gr base rew_hist) ()
+let save_gr grs base rew_hist =
+  handle ~name:"save_gr" (fun () -> Rewrite_history.save_gr (Grs.get_label_domain grs) base rew_hist) ()
 
-let save_conll base rew_hist =
-  handle ~name:"save_conll" (fun () -> Rewrite_history.save_conll base rew_hist) ()
+let save_conll grs base rew_hist =
+  handle ~name:"save_conll" (fun () -> Rewrite_history.save_conll (Grs.get_label_domain grs) base rew_hist) ()
 
-let save_full_conll base rew_hist =
-  handle ~name:"save_full_conll" (fun () -> Rewrite_history.save_full_conll base rew_hist) ()
+let save_full_conll grs base rew_hist =
+  handle ~name:"save_full_conll" (fun () -> Rewrite_history.save_full_conll (Grs.get_label_domain grs) base rew_hist) ()
 
-let save_det_gr base rew_hist =
-  handle ~name:"save_det_gr" (fun () -> Rewrite_history.save_det_gr base rew_hist) ()
+let save_det_gr grs base rew_hist =
+  handle ~name:"save_det_gr" (fun () -> Rewrite_history.save_det_gr (Grs.get_label_domain grs) base rew_hist) ()
 
-let save_det_conll ?header base rew_hist =
-  handle ~name:"save_deeeet_conll" (fun () -> Rewrite_history.save_det_conll ?header base rew_hist) ()
+let save_det_conll grs ?header base rew_hist =
+  handle ~name:"save_deeeet_conll" (fun () -> Rewrite_history.save_det_conll (Grs.get_label_domain grs) ?header base rew_hist) ()
 
-let det_dep_string rew_hist =
-  handle ~name:"det_dep_string" (fun () -> Rewrite_history.det_dep_string rew_hist) ()
+let det_dep_string grs rew_hist =
+  handle ~name:"det_dep_string" (fun () -> Rewrite_history.det_dep_string (Grs.get_label_domain grs) rew_hist) ()
 
-let conll_dep_string ?keep_empty_rh rew_hist =
-  handle ~name:"conll_dep_string" (fun () -> Rewrite_history.conll_dep_string ?keep_empty_rh rew_hist) ()
+let conll_dep_string grs ?keep_empty_rh rew_hist =
+  handle ~name:"conll_dep_string" (fun () -> Rewrite_history.conll_dep_string (Grs.get_label_domain grs) ?keep_empty_rh rew_hist) ()
 
-let write_html
+let write_html grs
     ?(no_init=false)
     ?(out_gr=false)
     ?filter
@@ -223,6 +223,7 @@ let write_html
   handle ~name:"write_html" (fun () ->
     ignore (
       Html_rh.build
+        (Grs.get_label_domain grs)
         ?filter
         ?main_feat
         ?dot
@@ -234,7 +235,7 @@ let write_html
     )
   ) ()
 
-let error_html
+let error_html grs
     ?(no_init=false)
     ?main_feat
     ?dot
@@ -245,6 +246,7 @@ let error_html
   handle ~name:"error_html" (fun () ->
     ignore (
       Html_rh.error
+        (Grs.get_label_domain grs)
         ?main_feat
         ?dot
         ~init_graph: (not no_init)
@@ -268,24 +270,24 @@ let html_sentences ~title = handle ~name:"html_sentences" (fun () -> Html_senten
 
 let feature_names grs =  handle ~name:"feature_names" (fun () -> Domain.feature_names (Grs.get_domain grs)) ()
 
-let to_dot_graph ?main_feat ?(deco=G_deco.empty) graph =
-  handle ~name:"to_dot_graph" (fun () -> G_graph.to_dot ?main_feat graph ~deco) ()
+let to_dot_graph grs ?main_feat ?(deco=G_deco.empty) graph =
+  handle ~name:"to_dot_graph" (fun () -> G_graph.to_dot (Grs.get_label_domain grs) ?main_feat graph ~deco) ()
 
-let to_dep_graph ?filter ?main_feat ?(deco=G_deco.empty) graph =
-  handle ~name:"to_dep_graph" (fun () -> G_graph.to_dep ?filter ?main_feat ~deco graph) ()
+let to_dep_graph grs ?filter ?main_feat ?(deco=G_deco.empty) graph =
+  handle ~name:"to_dep_graph" (fun () -> G_graph.to_dep (Grs.get_label_domain grs) ?filter ?main_feat ~deco graph) ()
 
-let to_gr_graph graph =
-  handle ~name:"to_gr_graph" (fun () -> G_graph.to_gr graph) ()
+let to_gr_graph grs graph =
+  handle ~name:"to_gr_graph" (fun () -> G_graph.to_gr (Grs.get_label_domain grs) graph) ()
 
-let to_conll_graph graph =
-  handle ~name:"to_conll_graph" (fun () -> G_graph.to_conll graph) ()
+let to_conll_graph grs graph =
+  handle ~name:"to_conll_graph" (fun () -> G_graph.to_conll (Grs.get_label_domain grs) graph) ()
 
 type pattern = Rule.pattern
 type matching = Rule.matching
 
 let load_pattern grs file =
-  handle ~name:"load_pattern" (fun () -> Rule.build_pattern (Grs.get_domain grs) (Loader.pattern file)) ()
+  handle ~name:"load_pattern" (fun () -> Rule.build_pattern (Grs.get_domain grs) (Grs.get_label_domain grs) (Loader.pattern file)) ()
 
-let match_in_graph pattern graph = Rule.match_in_graph pattern graph
+let match_in_graph grs pattern graph = Rule.match_in_graph (Grs.get_label_domain grs) pattern graph
 
 let match_deco pattern matching = Rule.match_deco pattern matching

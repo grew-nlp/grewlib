@@ -38,11 +38,11 @@ module Rewrite_history = struct
     | { good_nf = [] } -> 0 (* dead branch *)
     | { good_nf = l} -> List.fold_left (fun acc t -> acc + (num_sol t)) 0 l
 
-  let save_nfs ?filter ?main_feat ~dot base_name t =
+  let save_nfs label_domain ?filter ?main_feat ~dot base_name t =
     let rec loop file_name rules t =
       match (t.good_nf, t.bad_nf) with
-        | [],[] when dot -> Instance.save_dot_png ?filter ?main_feat file_name t.instance; [rules, file_name]
-        | [],[] -> ignore (Instance.save_dep_png ?filter ?main_feat file_name t.instance); [rules, file_name]
+        | [],[] when dot -> Instance.save_dot_png label_domain ?filter ?main_feat file_name t.instance; [rules, file_name]
+        | [],[] -> ignore (Instance.save_dep_png label_domain ?filter ?main_feat file_name t.instance); [rules, file_name]
         | [],_ -> []
         | l, _ ->
           List_.foldi_left
@@ -57,78 +57,78 @@ module Rewrite_history = struct
             [] l
     in loop base_name [] t
 
-  let save_gr base t =
+  let save_gr label_domain base t =
     let rec loop file_name t =
       match (t.good_nf, t.bad_nf) with
-        | [],[] -> File.write (Instance.to_gr t.instance) (file_name^".gr")
+        | [],[] -> File.write (Instance.to_gr label_domain t.instance) (file_name^".gr")
         | l, _ -> List.iteri (fun i son -> loop (sprintf "%s_%d" file_name i) son) l
     in loop base t
 
-  let save_conll base t =
+  let save_conll label_domain base t =
     let rec loop file_name t =
       match (t.good_nf, t.bad_nf) with
-        | [],[] -> File.write (Instance.to_conll t.instance) (file_name^".conll")
+        | [],[] -> File.write (Instance.to_conll label_domain t.instance) (file_name^".conll")
         | l, _ -> List.iteri (fun i son -> loop (sprintf "%s_%d" file_name i) son) l
     in loop base t
 
-  let save_full_conll base t =
+  let save_full_conll label_domain base t =
     let cpt = ref 0 in
     let rec loop t =
       match (t.good_nf, t.bad_nf) with
         | [],[] -> 
-          File.write (Instance.to_conll t.instance) (sprintf "%s__%d.conll" base !cpt);
+          File.write (Instance.to_conll label_domain t.instance) (sprintf "%s__%d.conll" base !cpt);
           incr cpt
         | l, _ -> List.iter loop l
     in loop t; !cpt
 
   (* suppose that all modules are confluent and produced exacly one normal form *)
-  let save_det_gr base t =
+  let save_det_gr label_domain base t =
     let rec loop t =
       match (t.good_nf, t.bad_nf) with
-        | [],[] -> File.write (Instance.to_gr t.instance) (base^".gr")
+        | [],[] -> File.write (Instance.to_gr label_domain t.instance) (base^".gr")
         | [one], [] -> loop one
         | _ -> Error.run "[save_det_gr] Not a single rewriting"
     in loop t
 
-  let save_annot out_dir base_name t =
+  let save_annot label_domain out_dir base_name t =
     List.mapi
       (fun i alts ->
         match alts.good_nf with
       | [alt_1; alt_2] ->
         let a = sprintf "%s_%d_A" base_name i in
         let b = sprintf "%s_%d_B" base_name i in
-        let hpa = Instance.save_dep_svg (Filename.concat out_dir a) alt_1.instance in
-        let hpb = Instance.save_dep_svg (Filename.concat out_dir b) alt_2.instance in
+        let hpa = Instance.save_dep_svg label_domain (Filename.concat out_dir a) alt_1.instance in
+        let hpb = Instance.save_dep_svg label_domain (Filename.concat out_dir b) alt_2.instance in
         let (afn,apos) = G_graph.get_annot_info alt_1.instance.Instance.graph
         and (bfn,bpos) = G_graph.get_annot_info alt_2.instance.Instance.graph in
         (base_name,i,(afn,apos),(bfn,bpos),(hpa,hpb))
       | _ -> Error.run "Not two alternatives in an annotation rewriting in %s" base_name
       ) t.good_nf
 
-  let save_det_conll ?header base t =
+  let save_det_conll label_domain ?header base t =
     let rec loop t =
       match (t.good_nf, t.bad_nf) with
         | ([],[]) ->
           let output =
             match header with
-              | Some h -> sprintf "%% %s\n%s" h (Instance.to_conll t.instance)
-              | None -> Instance.to_conll t.instance in
+              | Some h -> sprintf "%% %s\n%s" h (Instance.to_conll label_domain t.instance)
+              | None -> Instance.to_conll label_domain t.instance in
           File.write output (base^".conll")
         | ([one], []) -> loop one
         | _ -> Error.run "[save_det_conll] Not a single rewriting"
     in loop t
 
-  let det_dep_string t =
+  let det_dep_string label_domain t =
     let rec loop t =
       match (t.good_nf, t.bad_nf) with
         | [],[] ->
           let graph = t.instance.Instance.graph in
-          Some (G_graph.to_dep graph)
+          Some (G_graph.to_dep label_domain graph)
         | [one], [] -> loop one
         | _ -> None
     in loop t
 
-  let conll_dep_string ?(keep_empty_rh=false) t =
+  let conll_dep_string label_domain ?(keep_empty_rh=false) t =
     if (not keep_empty_rh) && is_empty t
     then None
     else
@@ -136,7 +136,7 @@ module Rewrite_history = struct
         match (t.good_nf, t.bad_nf) with
           | [],[] ->
             let graph = t.instance.Instance.graph in
-            Some (G_graph.to_conll graph)
+            Some (G_graph.to_conll label_domain graph)
           | [one], [] -> loop one
           | _ -> None
       in loop t
@@ -163,11 +163,11 @@ module Modul = struct
       | r::tail -> loop ((Rule.get_name r) :: already_defined) tail in
     loop [] t.rules
 
-  let build domain ast_module =
+  let build domain label_domain ast_module =
     let locals = Array.of_list ast_module.Ast.local_labels in
     Array.sort compare locals;
     let suffixes = ast_module.Ast.suffixes in
-    let rules_or_filters = List.map (Rule.build domain ~locals suffixes ast_module.Ast.mod_dir) ast_module.Ast.rules in
+    let rules_or_filters = List.map (Rule.build domain label_domain ~locals suffixes ast_module.Ast.mod_dir) ast_module.Ast.rules in
     let (filters, rules) = List.partition Rule.is_filter rules_or_filters in
     let modul =
       {
@@ -219,6 +219,7 @@ module Grs = struct
 
   type t = {
     domain: Domain.t;
+    label_domain: Label.domain;
     labels: Label.t list;        (* the list of global edge labels *)
     modules: Modul.t list;       (* the ordered list of modules used from rewriting *)
     sequences: Sequence.t list;
@@ -230,10 +231,10 @@ module Grs = struct
   let get_ast t = t.ast
   let get_filename t = t.filename
   let get_domain t = t.domain
-
+  let get_label_domain t = t.label_domain
   let sequence_names t = List.map (fun s -> s.Sequence.name) t.sequences
 
-  let empty = {domain=Domain.empty; labels=[]; modules=[]; sequences=[]; ast=Ast.empty_grs; filename=""; }
+  let empty = {domain=Domain.empty; label_domain = Label.empty_domain; labels=[]; modules=[]; sequences=[]; ast=Ast.empty_grs; filename=""; }
 
   let check t =
     (* check for duplicate modules *)
@@ -255,12 +256,12 @@ module Grs = struct
   let build filename =
     let ast = Loader.grs filename in
     let domain = Domain.build ast.Ast.domain in
-
-    Label.init ast.Ast.labels;
-    let modules = List.map (Modul.build domain) ast.Ast.modules in
+    let label_domain = Label.build ast.Ast.labels in
+    let modules = List.map (Modul.build domain label_domain) ast.Ast.modules in
     let grs = {
       domain;
-      labels = List.map (fun (l,_) -> Label.from_string l) ast.Ast.labels;
+      label_domain;
+      labels = List.map (fun (l,_) -> Label.from_string label_domain l) ast.Ast.labels;
       sequences = List.map (Sequence.build modules) ast.Ast.sequences;
       modules; ast; filename;
     } in
@@ -295,6 +296,7 @@ module Grs = struct
         let (good_set, bad_set) =
           Rule.normalize
             grs.domain
+            grs.label_domain
             next.Modul.name
             ~confluent: next.Modul.confluent
             next.Modul.rules
@@ -322,6 +324,7 @@ module Grs = struct
         let (good_set, bad_set) =
           Rule.normalize
             grs.domain
+            grs.label_domain
             next.Modul.name
             ~confluent: next.Modul.confluent
             next.Modul.rules

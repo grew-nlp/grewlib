@@ -59,6 +59,7 @@ module Command : sig
 
   val build:
       Domain.t ->
+      Label.domain ->
       ?param: (string list * string list) ->
       (Ast.command_node_ident list * string list) ->
       Id.table ->

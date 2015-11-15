@@ -39,10 +39,10 @@ module G_node = struct
 
   let is_conll_root t = t.conll_root
 
-  let to_string t =
+  let to_string label_domain t =
     Printf.sprintf "  fs=[%s]\n  next=%s\n"
       (G_fs.to_string t.fs)
-      (Massoc_gid.to_string G_edge.to_string t.next)
+      (Massoc_gid.to_string (G_edge.to_string label_domain) t.next)
 
   let to_gr t = if t.position < 0.
     then sprintf "[%s] " (G_fs.to_gr t.fs)
