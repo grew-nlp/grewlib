@@ -65,8 +65,9 @@ let color = hex hex hex hex hex hex | hex hex hex
 (* ------------------------------------------------------------------------------- *)
 
 rule comment target = parse
-| '\n' { incr Global.current_line; Lexing.new_line lexbuf; target lexbuf }
-| _  { comment target lexbuf }
+| '\n'  { incr Global.current_line; Lexing.new_line lexbuf; target lexbuf }
+| eof   { EOF }
+| _     { comment target lexbuf }
 
 and comment_multi_doc target = shortest
 | (_* as comment)"--%" {
