@@ -279,6 +279,10 @@ module G_fs = struct
       | (Some (_,atom), _) -> string_of_value atom
 
   (* ---------------------------------------------------------------------- *)
+  let escape_sharp s =
+    Str.global_replace (Str.regexp "#") "__SHARP__" s
+
+  (* ---------------------------------------------------------------------- *)
   let to_dep ?(decorated_feat=("",[])) ?position ?main_feat ?filter t =
     let (pid_name, feat_list) = decorated_feat in
 
@@ -288,9 +292,10 @@ module G_fs = struct
     let main = match main_opt with
       | None -> []
       | Some (feat_name, atom) ->
+        let esc_atom = escape_sharp (string_of_value atom) in
         [ if List.mem feat_name (snd decorated_feat)
-          then sprintf "%s:B:yellow" (string_of_value atom)
-          else string_of_value atom] in
+          then sprintf "%s:B:yellow" esc_atom
+          else esc_atom] in
 
     let word_list = match pid_name with
       | "" -> main
@@ -306,12 +311,13 @@ module G_fs = struct
 
     let lines = List.fold_left
       (fun acc (feat_name, atom) ->
+        let esc_atom = escape_sharp (G_feature.to_string (feat_name, atom)) in
         if List.mem feat_name (snd decorated_feat)
-        then (sprintf "%s:B:yellow" (G_feature.to_string (feat_name, atom))) :: acc
+        then (sprintf "%s:B:yellow" esc_atom) :: acc
         else
           match filter with
             | Some filt_list when not (List.mem feat_name filt_list) -> acc
-            | _ -> (G_feature.to_string (feat_name, atom)) :: acc
+            | _ -> esc_atom :: acc
       ) last sub in
     let subword = String.concat "#" (List.rev lines) in
 
