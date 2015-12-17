@@ -37,6 +37,7 @@ exception Bug of string * Loc.t option
 (* ==================================================================================================== *)
 module Domain : sig
   type t
+  val empty: t
   val load: string -> t
   val feature_names: t -> string list option
 end

@@ -52,6 +52,8 @@ let handle ?(name="") ?(file="No file defined") fct () =
 module Domain = struct
   type t = Grew_types.Domain.t
 
+  let empty = Grew_types.Domain.empty
+
   let load filename =
     let ast = Grew_loader.Loader.domain filename in
     Grew_grs.Grs.domain_build ast
