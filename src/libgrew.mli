@@ -110,6 +110,8 @@ module Graph : sig
 
   (** [search_pattern pattern graph] returns the list of the possible matching of [pattern] in [graph] *)
   val search_pattern: Domain.t -> Pattern.t -> t -> Matching.t list
+
+  val node_matching: Pattern.t -> t -> Matching.t -> (string * int) list
 end
 
 (* ==================================================================================================== *)

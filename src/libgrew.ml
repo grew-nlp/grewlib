@@ -171,6 +171,8 @@ type t = Grew_graph.G_graph.t
 
   let search_pattern domain pattern graph = Grew_rule.Rule.match_in_graph domain pattern graph
 
+  let node_matching pattern graph matching  = Grew_rule.Rule.node_matching pattern graph matching
+
 end
 
 (* ==================================================================================================== *)

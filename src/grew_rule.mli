@@ -95,6 +95,9 @@ module Rule : sig
 
   val build_pattern: Domain.t -> Ast.pattern -> pattern
 
+  (** [node_matching pattern graph matching] return a assoc list (pid_name, gid.position) *)
+  val node_matching: pattern -> G_graph.t -> matching -> (string * int) list
+
   (** [match_in_graph rule graph] returns the list of matching of the pattern of the rule into the graph *)
   val match_in_graph: Domain.t -> ?param:Lex_par.t -> pattern -> G_graph.t -> matching list
 

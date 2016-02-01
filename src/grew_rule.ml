@@ -378,6 +378,14 @@ module Rule = struct
       m_param: Lex_par.t option;
     }
 
+  let node_matching pattern graph { n_match } =
+    Pid_map.fold
+      (fun pid gid acc ->
+        let pnode = P_graph.find pid (fst pattern).graph in
+        let gnode = G_graph.find gid graph in
+        (P_node.get_name pnode, int_of_float (G_node.get_position gnode)) :: acc
+      ) n_match []
+
   let empty_matching param = { n_match = Pid_map.empty; e_match = []; a_match = []; m_param = param;}
 
   let e_comp (e1,_) (e2,_) = compare e1 e2
