@@ -36,6 +36,7 @@ module Ast : sig
   (* feature_ident: V.cat *)
   type feature_ident = Id.name * feature_name
   val parse_feature_ident: string -> feature_ident
+  val parse_ineq_ident: string -> feature_ident
   val dump_feature_ident: feature_ident -> string
 
   (* -------------------------------------------------------------------------------- *)

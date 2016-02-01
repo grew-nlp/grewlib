@@ -55,13 +55,20 @@ module Ast = struct
   (* ---------------------------------------------------------------------- *)
   (* feature_ident: V.cat *)
   type feature_ident = Id.name * feature_name
+  let dump_feature_ident (name, feat_name) = sprintf "%s.%s" name feat_name
+
   let parse_feature_ident s =
     check_special "feature ident" ["."] s;
     match Str.full_split (Str.regexp "\\.") s with
     | [Str.Text base; Str.Delim "."; Str.Text fn] -> (base, fn)
     | _ -> Error.build "The identifier '%s' must be a feature identifier (with exactly one '.' symbol, like \"V.cat\" for instance)" s
-  let dump_feature_ident (name, feat_name) = sprintf "%s.%s" name feat_name
 
+  let parse_ineq_ident s =
+    check_special "feature ident" ["."] s;
+    match Str.full_split (Str.regexp "\\.") s with
+    | [Str.Text base; ] -> (base, "position")
+    | [Str.Text base; Str.Delim "."; Str.Text fn] -> (base, fn)
+    | _ -> Error.build "The identifier '%s' must be a feature identifier (with exactly one '.' symbol, like \"V.cat\" for instance)" s
 
   (* ---------------------------------------------------------------------- *)
   (* command_node_id: V, V#alpha *)
