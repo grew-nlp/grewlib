@@ -159,7 +159,7 @@ and standard target = parse
 
 | '\n'       { incr Global.current_line; Lexing.new_line lexbuf; global lexbuf}
 
-| "include"     { INCLUDE }
+| "include"     { INCL }
 | "features"    { FEATURES }
 | "feature"     { FEATURE }
 | "file"        { FILE }

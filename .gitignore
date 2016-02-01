@@ -1,26 +1,3 @@
-*.cmo
-*.cmi
-*.o
-*.cmx
-*.annot
-*.a
-*.cma
-*.cmxa
-
-# generated ml files
-grew_parser.ml
-grew_parser.mli
-grew_lexer.ml
-
-.depend
-
-Makefile
-
-confdefs.h
-config.log
-config.status
-doc/*.pdf
-doc/*.log
-doc/*.aux
+_build
 
 *.sublime-*

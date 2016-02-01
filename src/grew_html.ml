@@ -429,7 +429,7 @@ module Html_doc = struct
     let ast = Grs.get_ast grs in
     ignore(Sys.command ("rm -rf "^output_dir));
     ignore(Sys.command ("mkdir "^output_dir));
-    ignore(Sys.command ("cp "^DATA_DIR^"/style.css "^output_dir));
+    (* ignore(Sys.command ("cp "^DATA_DIR^"/style.css "^output_dir)); *)
 
     (** index.html **)
     let index = Filename.concat output_dir "index.html" in
@@ -915,7 +915,7 @@ module Corpus_stat = struct
     let ratio nb = (float nb) /. (float t.num) *. 100. in
 
    (* put the css file the [output_dir] *)
-    ignore(Sys.command("cp "^(Filename.concat DATA_DIR "style.css")^" "^(Filename.concat output_dir "style.css")));
+    (* ignore(Sys.command("cp "^(Filename.concat DATA_DIR "style.css")^" "^(Filename.concat output_dir "style.css"))); *)
 
     let buff = Buffer.create 32 in
     let wnl fmt = Printf.ksprintf (fun x -> Printf.bprintf buff "%s\n" x) fmt in

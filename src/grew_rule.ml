@@ -86,8 +86,8 @@ module Instance = struct
     Dep2pict.highlight_shift ()
  
   ELSE
-  let save_dep_png ?filter ?main_feat base t = None
-  let save_dep_svg ?filter ?main_feat base t = None
+  let save_dep_png _ ?filter ?main_feat base t = None
+  let save_dep_svg _ ?filter ?main_feat base t = None
   ENDIF
 end (* module Instance *)
 

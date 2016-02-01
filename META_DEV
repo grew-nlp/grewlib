@@ -1,6 +1,5 @@
-name = "libgrew@DEV@"
+name = "libgrew_dev"
 description = "Libgrew"
-version = "@VERSION@"
 requires = ""
 archive(byte) = "libgrew.cma"
 archive(native) = "libgrew.cmxa"

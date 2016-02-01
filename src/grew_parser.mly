@@ -62,7 +62,7 @@ let localize t = (t,get_loc ())
 %token ARROW_LEFT_NEG              /* =[^ */
 %token ARROW_RIGHT                 /* ]=> */
 
-%token INCLUDE                     /* include */
+%token INCL                     /* include */
 %token FEATURES                    /* features */
 %token FEATURE                     /* feature */
 %token FILE                        /* file */
@@ -230,7 +230,7 @@ module_or_include_list:
 
 module_or_include:
         | m=grew_module             { Ast.Modul m }
-        | INCLUDE sub=subfile SEMIC { Ast.Includ sub }
+        | INCL sub=subfile SEMIC { Ast.Includ sub }
 
 subfile:
         | f=STRING  { localize f }
