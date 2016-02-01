@@ -869,8 +869,8 @@ module G_graph = struct
             (match G_fs.get_string_atom "cat" fs with Some p -> p | None -> "_")
             (match G_fs.get_string_atom "pos" fs with Some p -> p | None -> "_")
             (G_fs.to_conll ~exclude: ["phon"; "lemma"; "cat"; "pos"; "position"] fs)
-            (String.concat "|" govs)
-            (String.concat "|" labs)
+            (match govs with [] -> "_" | _ -> String.concat "|" govs)
+            (match labs with [] -> "_" | _ -> String.concat "|" labs)
       )
       snodes;
     Buffer.contents buff
