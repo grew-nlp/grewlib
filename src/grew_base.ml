@@ -596,11 +596,11 @@ end (* module Timeout *)
 (* ================================================================================ *)
 module Global = struct
   let current_file = ref "Not a file"
-  let current_line = ref 0
+  let current_line = ref 1
   let label_flag = ref false
 
   let init file =
     current_file := file;
-    current_line := 0;
+    current_line := 1;
     label_flag := false;
 end

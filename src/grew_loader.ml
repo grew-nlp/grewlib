@@ -21,19 +21,19 @@ module Loader = struct
   let parse_handle file fct lexbuf =
     try fct lexbuf with
       | Grew_lexer.Error msg ->
-        let cp = lexbuf.Lexing.lex_curr_p.Lexing.pos_lnum in
+        let cp = !Global.current_line in
         raise (Error ("Lexing error:"^msg, Some (Loc.file_line file cp)))
       | Grew_parser.Error ->
-        let cp = lexbuf.Lexing.lex_curr_p.Lexing.pos_lnum in
+        let cp = !Global.current_line in
         raise (Error ("Syntax error:"^(Lexing.lexeme lexbuf), Some (Loc.file_line file cp)))
       | Failure msg ->
-        let cp = lexbuf.Lexing.lex_curr_p.Lexing.pos_lnum in
+        let cp = !Global.current_line in
         raise (Error ("Failure:"^msg, Some (Loc.file_line file cp)))
       | Error.Build (msg,_) ->
-        let cp = lexbuf.Lexing.lex_curr_p.Lexing.pos_lnum in
+        let cp = !Global.current_line in
         raise (Error ("Syntax error:"^msg, Some (Loc.file_line file cp)))
       | err ->
-        let cp = lexbuf.Lexing.lex_curr_p.Lexing.pos_lnum in
+        let cp = !Global.current_line in
         raise (Error ("Unexpected error:"^(Printexc.to_string err), Some (Loc.file_line file cp)))
 
   (* ------------------------------------------------------------------------------------------*)

@@ -146,7 +146,7 @@ and label_parser target = parse
 | "]-"  { Global.label_flag := false; RTL_EDGE_RIGHT }
 | "]=>" { Global.label_flag := false; ARROW_RIGHT }
 
-| _ as c { raise (Error (sprintf "At line %d: unexpected character '%c'" (lexbuf.Lexing.lex_start_p.Lexing.pos_lnum) c)) }
+| _ as c { raise (Error (sprintf "unexpected character '%c'" c)) }
 
 and standard target = parse
 | [' ' '\t'] { global lexbuf }
@@ -234,4 +234,4 @@ and standard target = parse
 | '"'   { Buffer.clear buff; string_lex global lexbuf }
 
 | eof   { EOF }
-| _ as c { raise (Error (sprintf "At line %d: unexpected character '%c'" (lexbuf.Lexing.lex_start_p.Lexing.pos_lnum) c)) }
+| _ as c { raise (Error (sprintf "unexpected character '%c'" c)) }
