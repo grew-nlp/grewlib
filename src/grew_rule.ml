@@ -333,10 +333,12 @@ module Rule = struct
           let nb_pv = List.length pat_vars in
           let nb_cv = List.length cmd_vars in
 
+          (* first: load lexical parameters given in the same file at the end of the rule definition *)
           let local_param = match rule_ast.Ast.lex_par with
           | None -> None
           | Some lines -> Some (Lex_par.from_lines ~loc:rule_ast.Ast.rule_loc nb_pv nb_cv lines) in
 
+          (* second: load lexical parameters given in external files *)
           let full_param = List.fold_left
             (fun acc file ->
               match acc with
@@ -345,6 +347,11 @@ module Rule = struct
             ) local_param files in
 
           (full_param, pat_vars, cmd_vars) in
+
+    (match (param, pat_vars) with
+      | (None, _::_) -> Error.build ~loc:rule_ast.Ast.rule_loc "Missing lexical parameters in rule \"%s\"" rule_ast.Ast.rule_id
+      | _ -> ()
+    );
 
     let (pos, pos_table) = build_pos_basic domain ~pat_vars ~locals rule_ast.Ast.pos_basic in
     let (negs,_) =

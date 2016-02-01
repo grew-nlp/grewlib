@@ -328,13 +328,13 @@ rule:
                 rule_loc = snd id_loc;
               }
             }
-        | doc=option(COMMENT) LEX_RULE id_loc=simple_id_with_loc param=option(param) LACC p=pos_item n=list(neg_item) cmds=commands RACC lex_par=option(lex_par)
+        | doc=option(COMMENT) LEX_RULE id_loc=simple_id_with_loc param=param LACC p=pos_item n=list(neg_item) cmds=commands RACC lex_par=option(lex_par)
             {
               { Ast.rule_id = fst id_loc;
                 pos_basic = p;
                 neg_basics = n;
                 commands = cmds;
-                param = param;
+                param = Some param;
                 lex_par = lex_par;
                 rule_doc = begin match doc with Some d -> d | None -> [] end;
                 rule_loc = snd id_loc;
