@@ -5,5 +5,5 @@ build: [
   ["make"]
   ["make" "install"]
 ]
-depends: ["ANSITerminal" "libcaml-log" "menhir" "libcaml-dep2pict"]
+depends: ["ANSITerminal" "xml-light" "libcaml-log" "menhir" "libcaml-dep2pict"]
 
