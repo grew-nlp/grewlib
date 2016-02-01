@@ -1,4 +1,37 @@
-Version 0.24 (11/24/14)
+Version 0.32 (2016/02/01)
+  * extend syntax:
+    - syntactic sugar: "A < B" is interpreted as "A.position < B.position"
+    - complete pattern with implicit nodes
+    - add new constraint with regexp
+  * move to ocamlbuild
+  * add "node_matching" function for the new "grep" mode
+
+Version 0.31 (2015/11/15)
+  * take ranges into account in conlls (UD)
+  * Code reorganisation
+
+Version 0.30 (2015/09/25)
+  * Internal changes (adapt to new version of libcaml-dep2pict)
+
+Version 0.29 (2015/08/28)
+  * renumbering of conll output
+  * ignore UDT lines with "i-j" number in UDT Conll
+
+Version 0.28 (2015/08/12)
+  * Add inequality constraints between numerical features and constants
+
+Version 0.27
+  * add syntax for inequality on features
+
+Version 0.26 (2015/04/23)
+  * The shift command can be parametrized by edge constraints
+  * Negative edge constraint are available in out-edge (N -[^mod]-> *) and in-edge (* -[^mod]-> N) constraints
+
+Version 0.25 (2015/04/08)
+  * add support for the [-full] mode
+  * handling of "*" in pattern edge labels
+
+Version 0.24 (2014/11/24)
   * Changes in the interface:
     - the "loc" type is abstract and exported (changes the libgrew interface)
   * New features:
@@ -13,5 +46,5 @@ Version 0.24 (11/24/14)
     - code reorganization
     - add activate mechanism (untested)
 
-Version 0.23 (2014-06-05)
+Version 0.23 (2014-06-05) and ealier
   Please refer to SVN logs
