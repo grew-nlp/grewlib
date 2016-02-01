@@ -176,10 +176,10 @@ module Html_doc = struct
         );
 
         (* the match part *)
-        buff_html_pos_basic buff rule.Ast.pos_basic;
+        buff_html_pos_basic buff rule.Ast.pattern.Ast.pat_pos;
 
         (* the without parts *)
-        List.iter (buff_html_neg_basic buff) rule.Ast.neg_basics;
+        List.iter (buff_html_neg_basic buff) rule.Ast.pattern.Ast.pat_negs;
 
         (*  the commands part *)
         (match rule.Ast.commands with

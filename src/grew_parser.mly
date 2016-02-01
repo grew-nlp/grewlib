@@ -325,8 +325,7 @@ rule:
         | doc=option(COMMENT) RULE id_loc=simple_id_with_loc LACC p=pos_item n=list(neg_item) cmds=commands RACC
             {
               { Ast.rule_id = fst id_loc;
-                pos_basic = p;
-                neg_basics = n;
+                pattern = Ast.complete_pattern { Ast.pat_pos = p; Ast.pat_negs = n };
                 commands = cmds;
                 param = None;
                 lex_par = None;
@@ -337,8 +336,7 @@ rule:
         | doc=option(COMMENT) LEX_RULE id_loc=simple_id_with_loc param=param LACC p=pos_item n=list(neg_item) cmds=commands RACC lex_par=option(lex_par)
             {
               { Ast.rule_id = fst id_loc;
-                pos_basic = p;
-                neg_basics = n;
+                pattern = Ast.complete_pattern { Ast.pat_pos = p; Ast.pat_negs = n };
                 commands = cmds;
                 param = Some param;
                 lex_par = lex_par;
@@ -349,8 +347,7 @@ rule:
         | doc=option(COMMENT) FILTER id_loc=simple_id_with_loc LACC p=pos_item n=list(neg_item) RACC
             {
               { Ast.rule_id = fst id_loc;
-                pos_basic = p;
-                neg_basics = n;
+                pattern = Ast.complete_pattern { Ast.pat_pos = p; Ast.pat_negs = n };
                 commands = [];
                 param = None;
                 lex_par = None;
@@ -657,5 +654,5 @@ op_seq:
 /* ISOLATED PATTERN (grep mode)                                                                 */
 /*=============================================================================================*/
 pattern:
-        | p=pos_item n=list(neg_item) EOF { {Ast.pat_pos=p; pat_negs=n} }
+        | p=pos_item n=list(neg_item) EOF { Ast.complete_pattern {Ast.pat_pos=p; pat_negs=n} }
 %%

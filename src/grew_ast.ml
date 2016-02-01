@@ -168,6 +168,41 @@ module Ast = struct
     pat_negs: basic list;
   }
 
+  let add_implicit_node loc aux name pat_nodes =
+    if (List.exists (fun ({node_id},_) -> node_id=name) pat_nodes)
+    || (List.exists (fun ({node_id},_) -> node_id=name) aux)
+    then pat_nodes
+    else ({node_id=name; position=None; fs=[]}, loc) :: pat_nodes
+
+  let complete_basic aux {pat_nodes; pat_edges; pat_const} =
+    let pat_nodes_2 = List.fold_left
+    (fun acc ({src; tar}, loc) ->
+      acc
+      |> (add_implicit_node loc aux src)
+      |> (add_implicit_node loc aux tar)
+    ) pat_nodes pat_edges in
+
+    let pat_nodes_3 = List.fold_left
+    (fun acc (u_const, loc) -> match u_const with
+      | Feature_eq ((name1,_), (name2,_))
+      | Feature_diseq ((name1,_), (name2,_))
+      | Feature_ineq (_, (name1,_), (name2,_)) ->
+        acc
+        |> (add_implicit_node loc aux name1)
+        |> (add_implicit_node loc aux name2)
+      | Feature_ineq_cst (_, (name1,_), _) ->
+        add_implicit_node loc aux name1 acc
+      | _ -> acc
+    ) pat_nodes_2 pat_const in
+
+    {pat_nodes=pat_nodes_3; pat_edges; pat_const}
+
+  let complete_pattern pattern =
+    let new_pat_pos = complete_basic [] pattern.pat_pos in
+    let aux = new_pat_pos.pat_nodes in
+    let new_pat_negs = List.map (complete_basic aux) pattern.pat_negs in
+    { pat_pos = new_pat_pos; pat_negs = new_pat_negs;}
+
   type graph = {
     nodes: (Id.name * node) list;
     edge: edge list;
@@ -204,11 +239,10 @@ module Ast = struct
   *)
   type rule = {
     rule_id:Id.name;
-    pos_basic: basic;
-    neg_basics: basic list;
+    pattern: pattern;
     commands: command list;
-    param: (string list * string list) option;
-    lex_par: string list option;
+    param: (string list * string list) option; (* (files, vars) *)
+    lex_par: string list option; (* lexical parameters in the file *)
     rule_doc:string list;
     rule_loc: Loc.t;
   }

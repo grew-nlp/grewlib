@@ -111,6 +111,8 @@ module Ast : sig
       pat_negs: basic list;
     }
 
+  val complete_pattern : pattern -> pattern
+
   type concat_item =
     | Qfn_item of feature_ident
     | String_item of string
@@ -137,8 +139,7 @@ module Ast : sig
 
   type rule = {
       rule_id:Id.name;
-      pos_basic: basic;
-      neg_basics: basic list;
+      pattern: pattern;
       commands: command list;
       param: (string list * string list) option; (* (files, vars) *)
       lex_par: string list option; (* lexical parameters in the file *)

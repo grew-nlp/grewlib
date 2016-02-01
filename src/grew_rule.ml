@@ -353,7 +353,7 @@ module Rule = struct
       | _ -> ()
     );
 
-    let (pos, pos_table) = build_pos_basic domain ~pat_vars ~locals rule_ast.Ast.pos_basic in
+    let (pos, pos_table) = build_pos_basic domain ~pat_vars ~locals rule_ast.Ast.pattern.Ast.pat_pos in
     let (negs,_) =
       List.fold_left
       (fun (acc,pos) basic_ast ->
@@ -362,7 +362,7 @@ module Rule = struct
           Log.fwarning "In rule \"%s\" [%s], the wihtout number %d cannot be satisfied, it is skipped"
             rule_ast.Ast.rule_id (Loc.to_string rule_ast.Ast.rule_loc) pos;
           (acc, pos+1)
-      ) ([],1) rule_ast.Ast.neg_basics in
+      ) ([],1) rule_ast.Ast.pattern.Ast.pat_negs in
     {
       name = rule_ast.Ast.rule_id;
       pattern = (pos, negs);
