@@ -40,6 +40,7 @@ let localize t = (t,get_loc ())
 %token SHARP                       /* # */
 %token PLUS                        /* + */
 %token EQUAL                       /* = */
+%token REGEXP                      /* == */
 %token DISEQUAL                    /* <> */
 %token BANG                        /* ! */
 %token STAR                        /* * */
@@ -62,7 +63,7 @@ let localize t = (t,get_loc ())
 %token ARROW_LEFT_NEG              /* =[^ */
 %token ARROW_RIGHT                 /* ]=> */
 
-%token INCL                     /* include */
+%token INCL                        /* include */
 %token FEATURES                    /* features */
 %token FEATURE                     /* feature */
 %token FILE                        /* file */
@@ -479,6 +480,10 @@ pat_edge_or_const:
         (* "X.cat <> Y.cat" *)
         | feat_id1_loc=feature_ident_with_loc DISEQUAL feat_id2=feature_ident
             { let (feat_id1,loc)=feat_id1_loc in Pat_const (Ast.Feature_diseq (feat_id1, feat_id2), loc) }
+
+        (* "X.cat == "regexp" " *)
+        | feat_id_loc=feature_ident_with_loc REGEXP regexp=STRING
+            { let (feat_id,loc)=feat_id_loc in Pat_const (Ast.Feature_re (feat_id, regexp), loc) }
 
         (* "X.position < Y.position" *)
         | feat_id1_loc=ineq_ident_with_loc LT feat_id2=ineq_ident

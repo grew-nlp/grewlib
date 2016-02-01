@@ -210,6 +210,7 @@ and standard target = parse
 | '+'   { PLUS }
 | '#'   { SHARP }
 | '='   { EQUAL }
+| "=="  { REGEXP }
 | "!"   { BANG }
 | "<>"  { DISEQUAL }
 

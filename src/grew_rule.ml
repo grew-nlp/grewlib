@@ -105,6 +105,8 @@ module Rule = struct
     | Feature_eq of Pid.t * string * Pid.t * string
     | Feature_diseq of Pid.t * string * Pid.t * string
 
+    | Feature_re of Pid.t * string * string
+
     | Feature_ineq of Ast.ineq * Pid.t * string * Pid.t * string
     | Feature_ineq_cst of Ast.ineq * Pid.t * string * float
 
@@ -137,6 +139,9 @@ module Rule = struct
         Domain.check_feature_name domain ~loc feat_name1;
         Feature_ineq_cst (ineq, pid_of_name loc node_name1, feat_name1, constant)
 
+      | (Ast.Feature_re ((node_name, feat_name), regexp), loc) ->
+        Domain.check_feature_name domain ~loc feat_name;
+        Feature_re (pid_of_name loc node_name, feat_name, regexp)
 
   type basic = {
     graph: P_graph.t;
@@ -191,6 +196,11 @@ module Rule = struct
         let (node_name1, feat_name1) = feat_id1 in
         Domain.check_feature_name domain ~loc feat_name1;
         Feature_ineq_cst (ineq, pid_of_name loc node_name1, feat_name1, constant)
+
+      | (Ast.Feature_re (feat_id, regexp), loc) ->
+        let (node_name, feat_name) = feat_id in
+        Domain.check_feature_name domain ~loc feat_name;
+        Feature_re (pid_of_name loc node_name, feat_name, regexp)
 
   (* It may raise [P_fs.Fail_unif] in case of contradiction on constraints *)
   let build_neg_basic domain ?pat_vars ?(locals=[||]) pos_table basic_ast =
@@ -546,6 +556,19 @@ module Rule = struct
             | (Ast.Ge, Some fv1) when fv1 >= constant -> matching
             | _ -> raise Fail
           end
+      | Feature_re (pid, feat_name, regexp) ->
+        begin
+          match get_string_feat pid feat_name with
+          | None -> raise Fail
+          | Some string_feat ->
+            let re = Str.regexp regexp in
+            if Str.string_match re string_feat 0
+            then
+              if Str.matched_string string_feat = string_feat
+              then matching
+              else raise Fail
+            else raise Fail
+        end
 
   (*  ---------------------------------------------------------------------- *)
   (* returns all extension of the partial input matching *)
