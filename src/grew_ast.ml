@@ -191,8 +191,10 @@ module Ast = struct
         acc
         |> (add_implicit_node loc aux name1)
         |> (add_implicit_node loc aux name2)
-      | Feature_ineq_cst (_, (name1,_), _) ->
-        add_implicit_node loc aux name1 acc
+      | Feature_ineq_cst (_, (name,_), _)
+      | Feature_re ((name,_), _) ->
+        acc
+        |> (add_implicit_node loc aux name)
       | _ -> acc
     ) pat_nodes_2 pat_const in
 
