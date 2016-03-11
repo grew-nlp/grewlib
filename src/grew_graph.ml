@@ -408,7 +408,7 @@ module G_graph = struct
           }
         | _ -> Error.build "[Graph.of_brown] Cannot parse Brown item >>>%s<<< (expected \"phon/POS/lemma\")" item
       ) units in 
-    of_conll domain { Conll.meta=[]; lines=conll_lines; multiwords=[] }
+    of_conll domain { Conll.file=None; meta=[]; lines=conll_lines; multiwords=[] }
 
   (* -------------------------------------------------------------------------------- *)
   let opt_att atts name =
