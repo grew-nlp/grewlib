@@ -67,7 +67,7 @@ module Rewrite_history = struct
   let save_conll label_domain base t =
     let rec loop file_name t =
       match (t.good_nf, t.bad_nf) with
-        | [],[] -> File.write (Instance.to_conll label_domain t.instance) (file_name^".conll")
+        | [],[] -> File.write (Instance.to_conll_string label_domain t.instance) (file_name^".conll")
         | l, _ -> List.iteri (fun i son -> loop (sprintf "%s_%d" file_name i) son) l
     in loop base t
 
@@ -76,7 +76,7 @@ module Rewrite_history = struct
     let rec loop t =
       match (t.good_nf, t.bad_nf) with
         | [],[] -> 
-          File.write (Instance.to_conll label_domain t.instance) (sprintf "%s__%d.conll" base !cpt);
+          File.write (Instance.to_conll_string label_domain t.instance) (sprintf "%s__%d.conll" base !cpt);
           incr cpt
         | l, _ -> List.iter loop l
     in loop t; !cpt
@@ -111,8 +111,8 @@ module Rewrite_history = struct
         | ([],[]) ->
           let output =
             match header with
-              | Some h -> sprintf "%% %s\n%s" h (Instance.to_conll label_domain t.instance)
-              | None -> Instance.to_conll label_domain t.instance in
+              | Some h -> sprintf "%% %s\n%s" h (Instance.to_conll_string label_domain t.instance)
+              | None -> Instance.to_conll_string label_domain t.instance in
           File.write output (base^".conll")
         | ([one], []) -> loop one
         | _ -> Error.run "[save_det_conll] Not a single rewriting"
@@ -136,7 +136,7 @@ module Rewrite_history = struct
         match (t.good_nf, t.bad_nf) with
           | [],[] ->
             let graph = t.instance.Instance.graph in
-            Some (G_graph.to_conll label_domain graph)
+            Some (G_graph.to_conll_string label_domain graph)
           | [one], [] -> loop one
           | _ -> None
       in loop t

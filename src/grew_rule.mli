@@ -42,8 +42,8 @@ module Instance : sig
   (** [to_gr t] returns a string which contains the "gr" code of the current graph *)
   val to_gr: Domain.t -> t -> string
 
-  (** [to_conll t] returns a string which contains the "conll" code of the current graph *)
-  val to_conll: Domain.t -> t -> string
+  (** [to_conll_string t] returns a string which contains the "conll" code of the current graph *)
+  val to_conll_string: Domain.t -> t -> string
 
   (** [save_dep_png base t] writes a file "base.png" with the dep representation of [t].
       NB: if the Dep2pict is not available, nothing is done *)

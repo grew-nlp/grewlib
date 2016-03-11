@@ -10,6 +10,7 @@
 
 open Printf
 open Log
+open Conll
 
 open Grew_base
 open Grew_types
@@ -210,10 +211,10 @@ module G_fs = struct
   (* ---------------------------------------------------------------------- *)
   let of_conll ?loc domain line =
     let raw_list0 =
-      ("phon", Feature_value.build_value ?loc domain "phon" line.Conll.phon)
-      :: ("cat", Feature_value.build_value ?loc domain "cat" line.Conll.pos1)
-      :: (List.map (fun (f,v) -> (f, Feature_value.build_value ?loc domain f v)) line.Conll.morph) in
-    let raw_list1 = match line.Conll.pos2 with
+      ("phon", Feature_value.build_value ?loc domain "phon" line.Conll.form)
+      :: ("cat", Feature_value.build_value ?loc domain "cat" line.Conll.upos)
+      :: (List.map (fun (f,v) -> (f, Feature_value.build_value ?loc domain f v)) line.Conll.feats) in
+    let raw_list1 = match line.Conll.xpos with
       | "" | "_" -> raw_list0
       | s -> ("pos", Feature_value.build_value ?loc domain "pos" s) :: raw_list0 in
     let raw_list2 = match line.Conll.lemma with

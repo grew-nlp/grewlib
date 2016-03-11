@@ -8,6 +8,8 @@
 (*    Authors: see AUTHORS file                                                   *)
 (**********************************************************************************)
 
+open Conll
+
 open Grew_base
 open Grew_types
 
@@ -165,10 +167,10 @@ module G_graph: sig
   val to_dot: Domain.t -> ?main_feat:string -> ?deco:G_deco.t -> t -> string
   val to_sentence: ?main_feat:string -> t -> string
   val to_dep: Domain.t -> ?filter : string list -> ?main_feat:string -> ?deco:G_deco.t -> t -> string
-  val to_conll: Domain.t -> t -> string
+  val to_conll_string: Domain.t -> t -> string
 
   val to_raw: Domain.t -> t ->
-    (string * string) list *
+    string list *
     (string * string) list list *
     (int * string * int) list
 end (* module G_graph *)

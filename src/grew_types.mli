@@ -159,39 +159,6 @@ module Feature_value: sig
   val build_value: ?loc:Loc.t -> Domain.t -> feature_name -> feature_atom -> value
 end (* module Feature_domain *)
 
-(* ================================================================================ *)
-module Conll: sig
-  type line = {
-      line_num: int;
-      num: int;
-      phon: string;
-      lemma: string;
-      pos1: string;
-      pos2: string;
-      morph: (string * string) list;
-      deps: (int * string ) list;
-    }
-
-  val root: line
-
-  val line_to_string: line -> string
-
-  type range_line = {
-    first: int;
-    last: int;
-    fusion: string;
-  }
-
-  val range_line_to_string: range_line -> string
-
-  type t = (string * string) list * line list * range_line list
-
-  val load: string -> t
-
-  val parse: string -> (int * string) list -> t
-
-  val compare: line -> line -> int
-end (* module Conll *)
 
 (* ================================================================================ *)
 (** module for rules that are lexically parametrized *)

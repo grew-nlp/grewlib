@@ -20,7 +20,7 @@ type pat_item =
   | Pat_const of Ast.const
 
 type graph_item =
-  | Graph_meta of (string * string)
+  | Graph_meta of string
   | Graph_node of Ast.node
   | Graph_edge of Ast.edge
 
@@ -188,7 +188,7 @@ gr:
 gr_item:
         (* sentence = "Jean dort." *)
         | id=simple_id EQUAL value=feature_value
-            { Graph_meta (id, value) }
+            { Graph_meta (id ^ " = " ^ value) }
 
         (* B (1) [phon="pense", lemma="penser", cat=v, mood=ind ] *)
         (* B [phon="pense", lemma="penser", cat=v, mood=ind ] *)

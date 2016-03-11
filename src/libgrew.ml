@@ -10,6 +10,7 @@
 
 open Printf
 open Log
+open Conll
 
 (* ==================================================================================================== *)
 (** {2 Location} *)
@@ -107,7 +108,7 @@ type t = Grew_graph.G_graph.t
   let load_conll domain file =
     handle ~name:"Graph.load_conll" ~file
       (fun () ->
-        Grew_graph.G_graph.of_conll ~loc:(Grew_base.Loc.file file) domain (Grew_types.Conll.load file)
+        Grew_graph.G_graph.of_conll ~loc:(Grew_base.Loc.file file) domain (Conll.load file)
       ) ()
 
   let load_brown domain file =
@@ -132,11 +133,8 @@ type t = Grew_graph.G_graph.t
             loop [load_gr; load_conll; load_brown]
       ) ()
 
-  let of_conll domain file_name line_list =
-    handle ~name:"Graph.of_conll"
-      (fun () ->
-        Grew_graph.G_graph.of_conll ~loc:(Grew_base.Loc.file file_name) domain (Grew_types.Conll.parse file_name line_list)
-      ) ()
+  let of_conll domain conll =
+    handle ~name:"Graph.xxx_of_conll" (fun () -> Grew_graph.G_graph.of_conll domain conll) ()
 
   let of_brown domain ?sentid brown =
     handle ~name:"Graph.of_brown" (fun () -> Grew_graph.G_graph.of_brown domain ?sentid brown) ()
@@ -150,8 +148,8 @@ type t = Grew_graph.G_graph.t
   let to_gr domain graph =
     handle ~name:"Graph.to_gr" (fun () -> Grew_graph.G_graph.to_gr domain graph) ()
 
-  let to_conll domain graph =
-    handle ~name:"Graph.to_conll" (fun () -> Grew_graph.G_graph.to_conll domain graph) ()
+  let to_conll_string domain graph =
+    handle ~name:"Graph.to_conll_string" (fun () -> Grew_graph.G_graph.to_conll_string domain graph) ()
 
   let to_sentence ?main_feat gr =
     handle ~name:"Graph.to_sentence"
@@ -162,7 +160,7 @@ type t = Grew_graph.G_graph.t
   let save_conll domain filename graph =
     handle ~name:"Graph.save_conll" (fun () ->
       let out_ch = open_out filename in
-      fprintf out_ch "%s" (Grew_graph.G_graph.to_conll domain graph);
+      fprintf out_ch "%s" (Grew_graph.G_graph.to_conll_string domain graph);
       close_out out_ch
     ) ()
 
@@ -250,7 +248,7 @@ module Rewrite = struct
   let save_index ~dirname ~base_names =
     handle ~name:"Rewrite.save_index" (fun () ->
       let out_ch = open_out (Filename.concat dirname "index") in
-      List.iter (fun f -> fprintf out_ch "%s\n" f) base_names;
+      Array.iter (fun f -> fprintf out_ch "%s\n" f) base_names;
       close_out out_ch
     ) ()
 
@@ -293,7 +291,7 @@ module Rewrite = struct
     handle ~name:"Rewrite.make_index" (fun () ->
       let init = Grew_html.Corpus_stat.empty grs seq in
       let corpus_stat =
-        List.fold_left
+        Array.fold_left
           (fun acc base_name ->
             Grew_html.Corpus_stat.add_gr_stat base_name (Grew_html.Gr_stat.load (Filename.concat output_dir (base_name^".stat"))) acc
           ) init base_names in

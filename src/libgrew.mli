@@ -8,6 +8,8 @@
 (*    Authors: see AUTHORS file                                                   *)
 (**********************************************************************************)
 
+open Conll
+
 (* ==================================================================================================== *)
 (** {2 Location} *)
 (* ==================================================================================================== *)
@@ -83,8 +85,7 @@ module Graph : sig
       @raise File_dont_exists if the file doesn't exists. *)
   val load: Domain.t -> string -> t
 
-  (** [of_conll filename line_list] *)
-  val of_conll: Domain.t -> string -> (int * string) list -> t
+  val of_conll: Domain.t -> Conll.t -> t
 
   val of_brown: Domain.t -> ?sentid:string -> string -> t
 
@@ -96,7 +97,7 @@ module Graph : sig
       - the list of edge (src, label, tar) where src and tar refers to the position in the node list
   *)
   val raw: Domain.t -> t ->
-      (string * string) list *
+      string list *
       (string * string) list list *
       (int * string * int) list
 
@@ -106,7 +107,7 @@ module Graph : sig
 
   val to_gr: Domain.t -> t -> string
 
-  val to_conll: Domain.t -> t -> string
+  val to_conll_string: Domain.t -> t -> string
 
   (** [search_pattern pattern graph] returns the list of the possible matching of [pattern] in [graph] *)
   val search_pattern: Domain.t -> Pattern.t -> t -> Matching.t list
@@ -179,7 +180,7 @@ module Rewrite: sig
 
   val conll_dep_string: Domain.t -> ?keep_empty_rh:bool -> history -> string option
 
-  val save_index: dirname:string -> base_names: string list -> unit
+  val save_index: dirname:string -> base_names: string array -> unit
 
   val write_annot: Domain.t -> title:string -> string -> string -> (string * history) list -> unit
 
@@ -187,7 +188,7 @@ module Rewrite: sig
 
   val error_html: Domain.t -> ?no_init:bool -> ?main_feat:string -> ?dot: bool -> header: string -> string -> ?init:Graph.t -> string -> unit
 
-  val make_index: title: string -> grs_file: string -> html: bool -> grs: Grs.t -> seq: string -> input_dir: string -> output_dir: string -> base_names: string list -> unit
+  val make_index: title: string -> grs_file: string -> html: bool -> grs: Grs.t -> seq: string -> input_dir: string -> output_dir: string -> base_names: string array -> unit
 
   val html_sentences: title:string -> string -> (bool * string * int * string) list -> unit
 end

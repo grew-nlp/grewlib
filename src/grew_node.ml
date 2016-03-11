@@ -9,6 +9,7 @@
 (**********************************************************************************)
 
 open Printf
+open Conll
 
 open Grew_base
 open Grew_types
@@ -66,7 +67,7 @@ module G_node = struct
   let of_conll ?loc domain line =
     if line = Conll.root
     then { empty with conll_root=true }
-    else { empty with fs = G_fs.of_conll ?loc domain line; position = float line.Conll.num }
+    else { empty with fs = G_fs.of_conll ?loc domain line; position = float line.Conll.id }
 
   let remove (id_tar : Gid.t) label t = {t with next = Massoc_gid.remove id_tar label t.next}
 

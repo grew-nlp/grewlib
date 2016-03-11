@@ -10,6 +10,7 @@
 
 open Printf
 open Log
+open Conll
 
 open Grew_base
 open Grew_ast
@@ -208,7 +209,7 @@ end (* module G_deco *)
 (* ================================================================================ *)
 module G_graph = struct
   type t = {
-    meta: (string * string) list; (* meta-informations *)
+    meta: string list; (* meta-informations *)
     map: G_node.t Gid_map.t;      (* node description *)
     fusion: (Gid.t * (Gid.t * string)) list; (* the list of fusion word considered in UD conll *)
   }
@@ -343,10 +344,10 @@ module G_graph = struct
 
 
   (* -------------------------------------------------------------------------------- *)
-  let of_conll ?loc domain (meta, lines, range_lines) =
-    let sorted_lines = Conll.root :: (List.sort Conll.compare lines) in
+  let of_conll ?loc domain conll =
+    let sorted_lines = Conll.root :: (List.sort Conll.compare conll.Conll.lines) in
 
-    let gtable = (Array.of_list (List.map (fun line -> line.Conll.num) sorted_lines), string_of_int) in
+    let gtable = (Array.of_list (List.map (fun line -> line.Conll.id) sorted_lines), string_of_int) in
 
     let map_without_edges =
       List_.foldi_left
@@ -359,7 +360,7 @@ module G_graph = struct
         (fun acc line ->
           (* add line number information in loc *)
           let loc = Loc.opt_set_line line.Conll.line_num loc in
-          let dep_id = Id.gbuild ?loc line.Conll.num gtable in
+          let dep_id = Id.gbuild ?loc line.Conll.id gtable in
           List.fold_left
             (fun acc2 (gov, dep_lab) ->
               let gov_id = Id.gbuild ?loc gov gtable in
@@ -371,7 +372,7 @@ module G_graph = struct
                   (match loc with Some l -> Loc.to_string l | None -> "")
               )
             ) acc line.Conll.deps
-        ) map_without_edges lines in
+        ) map_without_edges conll.Conll.lines in
 
       let fusion =
         List.map
@@ -380,9 +381,9 @@ module G_graph = struct
                 (Gid.Old (Id.gbuild ?loc last gtable),
                 fusion)
               )
-          ) range_lines in
+          ) conll.Conll.multiwords in
 
-    {meta; map=map_with_edges; fusion}
+    {meta = conll.Conll.meta; map=map_with_edges; fusion}
 
   (* -------------------------------------------------------------------------------- *)
   (** input : "Le/DET/le petit/ADJ/petit chat/NC/chat dort/V/dormir ./PONCT/." *)
@@ -390,24 +391,24 @@ module G_graph = struct
     let units = Str.split (Str.regexp " ") brown in
       let conll_lines = List.mapi
       (fun i item -> match Str.full_split (Str.regexp "/[A-Z'+'']+/") item with
-        | [Str.Text phon; Str.Delim pos; Str.Text lemma] ->
+        | [Str.Text form; Str.Delim pos; Str.Text lemma] ->
         let pos = String.sub pos 1 ((String.length pos)-2) in
-        let morph = match (i,sentid) with
+        let feats = match (i,sentid) with
         | (0,Some id) -> [("sentid", id)]
         | _ -> [] in
         {
           Conll.line_num=0;
-          num = i+1;
-          phon;
+          id = i+1;
+          form;
           lemma;
-          pos1 = "_";
-          pos2 = pos;
-          morph;
+          upos = "_";
+          xpos = pos;
+          feats;
           deps = [(i, "SUC")]
           }
         | _ -> Error.build "[Graph.of_brown] Cannot parse Brown item >>>%s<<< (expected \"phon/POS/lemma\")" item
       ) units in 
-    of_conll domain ([], conll_lines, [])
+    of_conll domain { Conll.meta=[]; lines=conll_lines; multiwords=[] }
 
   (* -------------------------------------------------------------------------------- *)
   let opt_att atts name =
@@ -654,8 +655,8 @@ module G_graph = struct
 
     (* meta data *)
     List.iter
-      (fun (name, value) ->
-        bprintf buff "  %s = \"%s\";\n" name value
+      (fun (s) ->
+        bprintf buff "  %s;\n" s
       ) graph.meta;
 
     (* nodes *)
@@ -800,7 +801,7 @@ module G_graph = struct
     (graph.meta, List.map snd raw_nodes, !edge_list)
 
   (* -------------------------------------------------------------------------------- *)
-  let to_conll domain graph =
+  let to_conll_string domain graph =
     let nodes = Gid_map.fold
       (fun gid node acc -> (gid,node)::acc)
       graph.map [] in
@@ -832,7 +833,7 @@ module G_graph = struct
         ) graph.map Gid_map.empty in
 
     let buff = Buffer.create 32 in
-    List.iter (fun (k,v) -> bprintf buff "# %s: %s\n" k v) graph.meta;
+    List.iter (fun v -> bprintf buff "# %s\n" v) graph.meta;
     List.iter
       (fun (gid, node) ->
         begin

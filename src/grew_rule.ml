@@ -67,7 +67,7 @@ module Instance = struct
 
   let to_gr domain t = G_graph.to_gr domain t.graph
 
-  let to_conll domain t = G_graph.to_conll domain t.graph
+  let to_conll_string domain t = G_graph.to_conll_string domain t.graph
 
   let save_dot_png domain ?filter ?main_feat base t =
     ignore (Dot.to_png_file (G_graph.to_dot domain ?main_feat t.graph) (base^".png"))

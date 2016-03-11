@@ -330,7 +330,7 @@ module Ast = struct
   }
 
   type gr = {
-    meta: (string * string) list;
+    meta: string list;
     nodes: node list;
     edges: edge list;
   }
