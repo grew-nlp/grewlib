@@ -107,7 +107,7 @@ module G_graph: sig
 
   val build: Domain.t -> ?locals: Label_domain.decl array -> Ast.gr -> t
 
-  val of_conll: ?loc:Loc.t -> Domain.t -> Conll.t -> t
+  val of_conll: Domain.t -> Conll.t -> t
 
   (** input : "Le/DET/le petit/ADJ/petit chat/NC/chat dort/V/dormir ./PONCT/." 
       It supposes that "SUC" is defined in current relations *)

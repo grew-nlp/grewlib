@@ -22,6 +22,9 @@ module Loc = struct
   type t = string * int
 
   let file_line f l = (f,l)
+  let file_opt_line fo l = match fo with
+  | Some f -> file_line f l
+  | None -> file_line "No_file" l
 
   let file f = (f, -1)
 

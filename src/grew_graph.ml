@@ -344,7 +344,8 @@ module G_graph = struct
 
 
   (* -------------------------------------------------------------------------------- *)
-  let of_conll ?loc domain conll =
+  let of_conll domain conll =
+
     let sorted_lines = Conll.root :: (List.sort Conll.compare conll.Conll.lines) in
 
     let gtable = (Array.of_list (List.map (fun line -> line.Conll.id) sorted_lines), string_of_int) in
@@ -352,33 +353,33 @@ module G_graph = struct
     let map_without_edges =
       List_.foldi_left
         (fun i acc line ->
-          let loc = Loc.opt_set_line i loc in
-          Gid_map.add (Gid.Old i) (G_node.of_conll domain ?loc line) acc)
+          let loc = Loc.file_opt_line conll.Conll.file line.Conll.line_num in
+          Gid_map.add (Gid.Old i) (G_node.of_conll domain ~loc line) acc)
         Gid_map.empty sorted_lines in
     let map_with_edges =
       List.fold_left
         (fun acc line ->
-          (* add line number information in loc *)
-          let loc = Loc.opt_set_line line.Conll.line_num loc in
-          let dep_id = Id.gbuild ?loc line.Conll.id gtable in
+          let loc = Loc.file_opt_line conll.Conll.file line.Conll.line_num in
+          let dep_id = Id.gbuild ~loc line.Conll.id gtable in
           List.fold_left
             (fun acc2 (gov, dep_lab) ->
-              let gov_id = Id.gbuild ?loc gov gtable in
-              let edge = G_edge.make domain ?loc dep_lab in
+              let gov_id = Id.gbuild ~loc gov gtable in
+              let edge = G_edge.make domain ~loc dep_lab in
               (match map_add_edge acc2 (Gid.Old gov_id) edge (Gid.Old dep_id) with
                 | Some g -> g
                 | None -> Error.build "[GRS] [Graph.of_conll] try to build a graph with twice the same edge %s %s"
                   (G_edge.to_string domain edge)
-                  (match loc with Some l -> Loc.to_string l | None -> "")
+                  (Loc.to_string loc)
               )
             ) acc line.Conll.deps
         ) map_without_edges conll.Conll.lines in
 
       let fusion =
         List.map
-          (fun {Conll.first; last; fusion} ->
-              ( Gid.Old (Id.gbuild ?loc first gtable),
-                (Gid.Old (Id.gbuild ?loc last gtable),
+          (fun {Conll.first; last; fusion; mw_line_num} ->
+              let loc = Loc.file_opt_line conll.Conll.file mw_line_num in
+              ( Gid.Old (Id.gbuild ~loc first gtable),
+                (Gid.Old (Id.gbuild ~loc last gtable),
                 fusion)
               )
           ) conll.Conll.multiwords in
@@ -833,7 +834,7 @@ module G_graph = struct
         ) graph.map Gid_map.empty in
 
     let buff = Buffer.create 32 in
-    List.iter (fun v -> bprintf buff "# %s\n" v) graph.meta;
+    List.iter (fun v -> bprintf buff "%s\n" v) graph.meta;
     List.iter
       (fun (gid, node) ->
         begin

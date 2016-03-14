@@ -108,7 +108,7 @@ type t = Grew_graph.G_graph.t
   let load_conll domain file =
     handle ~name:"Graph.load_conll" ~file
       (fun () ->
-        Grew_graph.G_graph.of_conll ~loc:(Grew_base.Loc.file file) domain (Conll.load file)
+        Grew_graph.G_graph.of_conll domain (Conll.load file)
       ) ()
 
   let load_brown domain file =
