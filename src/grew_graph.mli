@@ -92,9 +92,6 @@ module G_graph: sig
 
   val get_highest: t -> int
 
-    (** TODO REMOVE  ??? *)
-  val max_binding: t -> int
-
   (** [edge_out label_domain t id label_cst] returns true iff there is an out-edge from the node [id] with a label compatible with [label_cst] *)
   val edge_out: Domain.t -> t -> Gid.t -> Label_cst.t -> bool
 

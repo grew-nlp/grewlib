@@ -32,16 +32,11 @@ module Instance = struct
     history: Command.h list;
     rules: string list;
     big_step: Libgrew_types.big_step option;
-    highest_index: int;
   }
 
-  let empty = {graph = G_graph.empty; rules=[]; history=[]; big_step=None; highest_index=0; }
+  let empty = {graph = G_graph.empty; rules=[]; history=[]; big_step=None; }
 
-  let from_graph graph =
-    {empty with
-      graph = graph;
-      highest_index = (G_graph.max_binding graph) + 1;
-    }
+  let from_graph graph = {empty with graph }
 
   let rev_steps t =
     { t with big_step = match t.big_step with
