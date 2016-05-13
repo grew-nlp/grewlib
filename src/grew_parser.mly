@@ -24,6 +24,10 @@ type graph_item =
   | Graph_node of Ast.node
   | Graph_edge of Ast.edge
 
+type ineq_item =
+  | Ineq_sofi of Ast.simple_or_feature_ident
+  | Ineq_float of float
+
 let get_loc () = Loc.file_line !Global.current_file !Global.current_line
 let localize t = (t,get_loc ())
 %}
@@ -48,6 +52,8 @@ let localize t = (t,get_loc ())
 %token GT                          /* > */
 %token LE                          /* <= or ≤ */
 %token GE                          /* >= or ≥ */
+%token LPREC                       /* << */
+%token LSUCC                       /* >> */
 
 %token PIPE                        /* | */
 
@@ -157,12 +163,6 @@ feature_ident :
 feature_ident_with_loc :
         | id=ID      { localize (Ast.parse_feature_ident id) }
 
-ineq_ident :
-        | id=ID       { Ast.parse_ineq_ident id }
-
-ineq_ident_with_loc :
-        | id=ID      { localize (Ast.parse_ineq_ident id) }
-
 command_feature_ident_with_loc :
         | id=ID      { localize (Ast.parse_command_feature_ident id) }
 
@@ -170,6 +170,14 @@ feature_value:
         | v=ID        { v }
         | v=STRING    { v }
         | v=FLOAT     { Printf.sprintf "%g" v }
+
+ineq_value:
+        | v=ID    { Ineq_sofi (Ast.parse_simple_or_feature_ident v) }
+        | v=FLOAT { Ineq_float v }
+
+ineq_value_with_loc:
+        | v=ID    { localize (Ineq_sofi (Ast.parse_simple_or_feature_ident v)) }
+        | v=FLOAT { localize (Ineq_float v) }
 
 /*=============================================================================================*/
 /*  GREW GRAPH                                                                                 */
@@ -479,42 +487,61 @@ pat_edge_or_const:
         | feat_id_loc=feature_ident_with_loc REGEXP regexp=STRING
             { let (feat_id,loc)=feat_id_loc in Pat_const (Ast.Feature_re (feat_id, regexp), loc) }
 
-        (* "X.position < Y.position" *)
-        | feat_id1_loc=ineq_ident_with_loc LT feat_id2=ineq_ident
-            { let (feat_id1,loc)=feat_id1_loc in Pat_const (Ast.Feature_ineq (Ast.Lt, feat_id1, feat_id2), loc) }
+        | id1_loc=ineq_value_with_loc LT id2=ineq_value
+            { let (id1,loc)=id1_loc in
+              match (id1, id2) with
+              (* "X.feat < Y.feat" *)
+              | (Ineq_sofi (n1, Some f1), Ineq_sofi (n2, Some f2)) -> Pat_const (Ast.Feature_ineq (Ast.Lt, (n1,f1), (n2,f2)), loc)
+              (* "X.feat < 12.34" *)
+              | (Ineq_sofi (n1, Some f1), Ineq_float num) -> Pat_const (Ast.Feature_ineq_cst (Ast.Lt, (n1,f1), num), loc)
+              (* "12.34 < Y.feat" *)
+              | (Ineq_float num, Ineq_sofi (n1, Some f1)) -> Pat_const (Ast.Feature_ineq_cst (Ast.Gt, (n1,f1), num), loc)
+              (* "X < Y" *)
+              | (Ineq_sofi (n1, None), Ineq_sofi (n2, None)) -> Pat_const (Ast.Prec (n1,n2), loc)
+              | (Ineq_float _, Ineq_float _) -> Error.build "the '<' symbol can be used with 2 constants"
+              | _ -> Error.build "the '<' symbol can be used with 2 nodes or with 2 features but not in a mix inequality"
+            }
 
-        (* "X.position > Y.position" *)
-        | feat_id1_loc=ineq_ident_with_loc GT feat_id2=ineq_ident
-            { let (feat_id1,loc)=feat_id1_loc in Pat_const (Ast.Feature_ineq (Ast.Gt, feat_id1, feat_id2), loc) }
+        | id1_loc=ineq_value_with_loc GT id2=ineq_value
+            { let (id1,loc)=id1_loc in
+              match (id1, id2) with
+              (* "X.feat > Y.feat" *)
+              | (Ineq_sofi (n1, Some f1), Ineq_sofi (n2, Some f2)) -> Pat_const (Ast.Feature_ineq (Ast.Gt, (n1,f1), (n2,f2)), loc)
+              (* "X.feat > 12.34" *)
+              | (Ineq_sofi (n1, Some f1), Ineq_float num) -> Pat_const (Ast.Feature_ineq_cst (Ast.Gt, (n1,f1), num), loc)
+              (* "12.34 > Y.feat" *)
+              | (Ineq_float num, Ineq_sofi (n1, Some f1)) -> Pat_const (Ast.Feature_ineq_cst (Ast.Lt, (n1,f1), num), loc)
+              (* "X > Y" *)
+              | (Ineq_sofi (n1, None), Ineq_sofi (n2, None)) -> Pat_const (Ast.Prec (n2,n1), loc)
+              | (Ineq_float _, Ineq_float _) -> Error.build "the '>' symbol can be used with 2 constants"
+              | _ -> Error.build "the '>' symbol can be used with 2 nodes or with 2 features but not in a mix inequality"
+            }
 
         (* "X.position <= Y.position" *)
-        | feat_id1_loc=ineq_ident_with_loc LE feat_id2=ineq_ident
+        | feat_id1_loc=feature_ident_with_loc LE feat_id2=feature_ident
             { let (feat_id1,loc)=feat_id1_loc in Pat_const (Ast.Feature_ineq (Ast.Le, feat_id1, feat_id2), loc) }
 
         (* "X.position >= Y.position" *)
-        | feat_id1_loc=ineq_ident_with_loc GE feat_id2=ineq_ident
+        | feat_id1_loc=feature_ident_with_loc GE feat_id2=feature_ident
             { let (feat_id1,loc)=feat_id1_loc in Pat_const (Ast.Feature_ineq (Ast.Ge, feat_id1, feat_id2), loc) }
 
         (* "X.feat >= 12.34" *)
-        | feat_id1_loc=ineq_ident_with_loc GE num=FLOAT
-        | num=FLOAT LE feat_id1_loc=ineq_ident_with_loc
+        | feat_id1_loc=feature_ident_with_loc GE num=FLOAT
+        | num=FLOAT LE feat_id1_loc=feature_ident_with_loc
             { let (feat_id1,loc)=feat_id1_loc in Pat_const (Ast.Feature_ineq_cst (Ast.Ge, feat_id1, num), loc)  }
 
-        (* "X.feat > 12.34" *)
-        | feat_id1_loc=ineq_ident_with_loc GT num=FLOAT
-        | num=FLOAT LT feat_id1_loc=ineq_ident_with_loc
-            { let (feat_id1,loc)=feat_id1_loc in Pat_const (Ast.Feature_ineq_cst (Ast.Gt, feat_id1, num), loc)  }
-
         (* "X.feat <= 12.34" *)
-        | feat_id1_loc=ineq_ident_with_loc LE num=FLOAT
-        | num=FLOAT GE feat_id1_loc=ineq_ident_with_loc
+        | feat_id1_loc=feature_ident_with_loc LE num=FLOAT
+        | num=FLOAT GE feat_id1_loc=feature_ident_with_loc
             { let (feat_id1,loc)=feat_id1_loc in Pat_const (Ast.Feature_ineq_cst (Ast.Le, feat_id1, num), loc)  }
 
-        (* "X.feat < 12.34" *)
-        | feat_id1_loc=ineq_ident_with_loc LT num=FLOAT
-        | num=FLOAT GT feat_id1_loc=ineq_ident_with_loc
-            { let (feat_id1,loc)=feat_id1_loc in Pat_const (Ast.Feature_ineq_cst (Ast.Lt, feat_id1, num), loc)  }
-       
+        (*   "A << B"           *)
+        | n1_loc=simple_id_with_loc LPREC n2=simple_id
+            { let (n1,loc) = n1_loc in Pat_const (Ast.Lprec (n1,n2), loc) }
+
+        (*   "A >> B"           *)
+        | n1_loc=simple_id_with_loc LSUCC n2=simple_id
+            { let (n1,loc) = n1_loc in Pat_const (Ast.Lprec (n2,n1), loc) }
 
 /*=============================================================================================*/
 /* COMMANDS DEFINITION                                                                         */

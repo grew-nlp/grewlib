@@ -63,12 +63,17 @@ module Ast = struct
     | [Str.Text base; Str.Delim "."; Str.Text fn] -> (base, fn)
     | _ -> Error.build "The identifier '%s' must be a feature identifier (with exactly one '.' symbol, like \"V.cat\" for instance)" s
 
-  let parse_ineq_ident s =
+  (* ---------------------------------------------------------------------- *)
+  (* simple_or_feature_ident: union of simple_ident and feature_ident *)
+  (* Note: used for parsing of "X < Y" and "X.feat < Y.feat" without conflicts *)
+  type simple_or_feature_ident = Id.name * feature_name option
+
+  let parse_simple_or_feature_ident s =
     check_special "feature ident" ["."] s;
     match Str.full_split (Str.regexp "\\.") s with
-    | [Str.Text base; ] -> (base, "position")
-    | [Str.Text base; Str.Delim "."; Str.Text fn] -> (base, fn)
-    | _ -> Error.build "The identifier '%s' must be a feature identifier (with exactly one '.' symbol, like \"V.cat\" for instance)" s
+    | [Str.Text base; ] -> (base, None)
+    | [Str.Text base; Str.Delim "."; Str.Text fn] -> (base, Some fn)
+    | _ -> Error.build "The identifier '%s' must be a feature identifier (with at most one '.' symbol, like \"V\" or \"V.cat\" for instance)" s
 
   (* ---------------------------------------------------------------------- *)
   (* command_node_id: V, V#alpha *)
@@ -156,6 +161,8 @@ module Ast = struct
     | Feature_ineq of ineq * feature_ident * feature_ident
     | Feature_ineq_cst of ineq * feature_ident * float
     | Feature_re of feature_ident * string
+    | Prec of Id.name * Id.name
+    | Lprec of Id.name * Id.name
   type const = u_const * Loc.t
 
   type basic = {
@@ -187,7 +194,8 @@ module Ast = struct
     (fun acc (u_const, loc) -> match u_const with
       | Feature_eq ((name1,_), (name2,_))
       | Feature_diseq ((name1,_), (name2,_))
-      | Feature_ineq (_, (name1,_), (name2,_)) ->
+      | Feature_ineq (_, (name1,_), (name2,_))
+      | Prec (name1, name2) ->
         acc
         |> (add_implicit_node loc aux name1)
         |> (add_implicit_node loc aux name2)

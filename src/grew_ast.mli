@@ -14,7 +14,7 @@ open Grew_types
 module Ast : sig
 
   (* ---------------------------------------------------------------------- *)
-  (* simple_ident: V.cat *)
+  (* simple_ident: cat or V *)
   type simple_ident = Id.name
   val parse_simple_ident: string -> simple_ident
   val is_simple_ident: string -> bool
@@ -36,10 +36,15 @@ module Ast : sig
   (* feature_ident: V.cat *)
   type feature_ident = Id.name * feature_name
   val parse_feature_ident: string -> feature_ident
-  val parse_ineq_ident: string -> feature_ident
   val dump_feature_ident: feature_ident -> string
 
-  (* -------------------------------------------------------------------------------- *)
+  (* ---------------------------------------------------------------------- *)
+  (* simple_or_feature_ident: union of simple_ident and feature_ident *)
+  (* Note: used for parsing of "X < Y" and "X.feat < Y.feat" without conflicts *)
+  type simple_or_feature_ident = Id.name * feature_name option
+  val parse_simple_or_feature_ident: string -> simple_or_feature_ident
+
+  (* ---------------------------------------------------------------------- *)
   (* command_node_ident: V, V#alpha, V.cat, V#alpha.cat, p_obj.loc *)
   type command_node_ident =
     | No_sharp of string
@@ -99,6 +104,8 @@ module Ast : sig
     | Feature_ineq of ineq * feature_ident * feature_ident
     | Feature_ineq_cst of ineq * feature_ident * float
     | Feature_re of feature_ident * string
+    | Prec of Id.name * Id.name
+    | Lprec of Id.name * Id.name
 
   type const = u_const * Loc.t
 

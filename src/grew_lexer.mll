@@ -215,6 +215,8 @@ and standard target = parse
 | "!"   { BANG }
 | "<>"  { DISEQUAL }
 
+| "<<"       { LPREC }
+| ">>"       { LSUCC }
 | "<"        { LT }
 | ">"        { GT }
 | "<=" | "≤" { LE }

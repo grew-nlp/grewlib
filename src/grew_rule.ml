@@ -112,6 +112,9 @@ module Rule = struct
 
     | Filter of Pid.t * P_fs.t (* used when a without impose a fs on a node defined by the match basic *)
 
+    | Prec of Pid.t * Pid.t
+    | Lprec of Pid.t * Pid.t
+
   let build_pos_constraint domain ?locals pos_table const =
     let pid_of_name loc node_name = Pid.Pos (Id.build ~loc node_name pos_table) in
     match const with
@@ -142,6 +145,12 @@ module Rule = struct
       | (Ast.Feature_re ((node_name, feat_name), regexp), loc) ->
         Domain.check_feature_name domain ~loc feat_name;
         Feature_re (pid_of_name loc node_name, feat_name, regexp)
+
+      | (Ast.Prec (id1, id2), loc) ->
+        Prec (pid_of_name loc id1, pid_of_name loc id2)
+
+      | (Ast.Lprec (id1, id2), loc) ->
+        Lprec (pid_of_name loc id1, pid_of_name loc id2)
 
   type basic = {
     graph: P_graph.t;
@@ -201,6 +210,12 @@ module Rule = struct
         let (node_name, feat_name) = feat_id in
         Domain.check_feature_name domain ~loc feat_name;
         Feature_re (pid_of_name loc node_name, feat_name, regexp)
+
+      | (Ast.Prec (id1, id2), loc) ->
+        Prec (pid_of_name loc id1, pid_of_name loc id2)
+
+      | (Ast.Lprec (id1, id2), loc) ->
+        Lprec (pid_of_name loc id1, pid_of_name loc id2)
 
   (* It may raise [P_fs.Fail_unif] in case of contradiction on constraints *)
   let build_neg_basic domain ?pat_vars ?(locals=[||]) pos_table basic_ast =
@@ -569,6 +584,14 @@ module Rule = struct
               else raise Fail
             else raise Fail
         end
+      | Prec (pid1, pid2) ->
+          let gid1 = Pid_map.find pid1 matching.n_match in
+          let gid2 = Pid_map.find pid2 matching.n_match in
+          failwith "TODO"
+      | Lprec (pid1, pid2) ->
+          let gid1 = Pid_map.find pid1 matching.n_match in
+          let gid2 = Pid_map.find pid2 matching.n_match in
+          failwith "TODO"
 
   (*  ---------------------------------------------------------------------- *)
   (* returns all extension of the partial input matching *)
