@@ -63,6 +63,7 @@ let localize t = (t,get_loc ())
 %token ARROW_LEFT_NEG              /* =[^ */
 %token ARROW_RIGHT                 /* ]=> */
 
+%token DOMAIN                      /* domain */
 %token INCL                        /* include */
 %token FEATURES                    /* features */
 %token FEATURE                     /* feature */
@@ -105,8 +106,7 @@ let localize t = (t,get_loc ())
 
 %token EOF                         /* end of file */
 
-%start <Grew_ast.Ast.grs_with_include> grs_with_include
-%start <Grew_ast.Ast.grs> grs
+%start <Grew_ast.Ast.grs_wi> grs_wi
 %start <Grew_ast.Ast.gr> gr
 %start <Grew_ast.Ast.module_or_include list> included
 %start <Grew_ast.Ast.pattern> pattern
@@ -213,21 +213,19 @@ domain:
 /*=============================================================================================*/
 /*  GREW GRAPH REWRITING SYSTEM                                                                */
 /*=============================================================================================*/
-grs_with_include:
+grs_wi:
         | d=domain m=module_or_include_list s=option(sequences) EOF
             {
-             { Ast.domain_wi=d;
+             { Ast.domain_wi=Ast.Dom d;
                modules_wi=m;
                sequences_wi=match s with Some seq -> seq | None -> [];
              }
            }
-
-grs:
-        | d=domain m=modules s=option(sequences) EOF
+        | DOMAIN file=STRING m=module_or_include_list s=option(sequences) EOF
             {
-             { Ast.domain=d;
-               modules=m;
-               sequences=match s with Some seq -> seq | None -> [];
+             { Ast.domain_wi=Ast.Dom_file file;
+               modules_wi=m;
+               sequences_wi=match s with Some seq -> seq | None -> [];
              }
            }
 
@@ -291,9 +289,6 @@ display:
 /*=============================================================================================*/
 included:
         | x=list(module_or_include) EOF { x }
-
-modules:
-        | x=list(grew_module) { x }
 
 grew_module:
         | doc=option(COMMENT) MODULE conf=boption(CONFLUENT) id_loc=simple_id_with_loc LACC l=option(labels) suff=option(suffixes) r=rules RACC

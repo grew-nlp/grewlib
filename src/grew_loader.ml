@@ -37,12 +37,12 @@ module Loader = struct
         raise (Error ("Unexpected error:"^(Printexc.to_string err), Some (Loc.file_line file cp)))
 
   (* ------------------------------------------------------------------------------------------*)
-  let parse_file_to_grs_with_includes file =
+  let parse_file_to_grs_wi file =
     try
       Global.init file;
       let in_ch = open_in file in
       let lexbuf = Lexing.from_channel in_ch in
-      let grs = parse_handle file (Grew_parser.grs_with_include Grew_lexer.global) lexbuf in
+      let grs = parse_handle file (Grew_parser.grs_wi Grew_lexer.global) lexbuf in
       close_in in_ch;
       grs
     with Sys_error msg -> raise (Error (msg, None))
@@ -76,7 +76,10 @@ module Loader = struct
      @return a syntactic tree of the parsed file
   *)
   let grs main_file =
-    let grs_with_includes = parse_file_to_grs_with_includes main_file in
+    let grs_wi = parse_file_to_grs_wi main_file in
+    let domain = match grs_wi.Ast.domain_wi with
+      | Ast.Dom d -> d
+      | Ast.Dom_file file -> domain file in
     let rec flatten_modules current_file = function
       | [] -> []
       | Ast.Modul m :: tail ->
@@ -90,9 +93,9 @@ module Loader = struct
         (flatten_modules sub_file (parse_file_to_module_list loc sub_file))
         @ (flatten_modules current_file tail) in
     {
-      Ast.domain = grs_with_includes.Ast.domain_wi;
-      Ast.modules = flatten_modules main_file grs_with_includes.Ast.modules_wi;
-      Ast.sequences = grs_with_includes.Ast.sequences_wi;
+      Ast.domain = domain;
+      Ast.modules = flatten_modules main_file grs_wi.Ast.modules_wi;
+      Ast.sequences = grs_wi.Ast.sequences_wi;
     }
 
   (* ------------------------------------------------------------------------------------------*)

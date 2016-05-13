@@ -190,8 +190,10 @@ module Ast : sig
       label_domain: (string * string list) list;
     }
 
-  type grs_with_include = {
-      domain_wi: domain;
+  type domain_wi = Dom of domain | Dom_file of string
+
+  type grs_wi = {
+      domain_wi: domain_wi;
       modules_wi: module_or_include list;
       sequences_wi: sequence list;
     }
