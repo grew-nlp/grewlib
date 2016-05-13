@@ -64,15 +64,12 @@ module P_edge = struct
     | Binds of string * Label.t list
 
   let match_ label_domain pattern_edge graph_label =
-    if Label.is_succ graph_label
-    then Fail
-    else
-      match pattern_edge with
-      | {id = Some i; u_label = Label_cst.Pos l} when Label.match_list label_domain l graph_label -> Binds (i, [graph_label])
-      | {id = None; u_label = Label_cst.Pos l} when Label.match_list label_domain l graph_label -> Ok graph_label
-      | {id = Some i; u_label = Label_cst.Neg l} when not (Label.match_list label_domain l graph_label) -> Binds (i, [graph_label])
-      | {id = None; u_label = Label_cst.Neg l} when not (Label.match_list label_domain l graph_label) -> Ok graph_label
-      | _ -> Fail
+    match pattern_edge with
+    | {id = Some i; u_label = Label_cst.Pos l} when Label.match_list label_domain l graph_label -> Binds (i, [graph_label])
+    | {id = None; u_label = Label_cst.Pos l} when Label.match_list label_domain l graph_label -> Ok graph_label
+    | {id = Some i; u_label = Label_cst.Neg l} when not (Label.match_list label_domain l graph_label) -> Binds (i, [graph_label])
+    | {id = None; u_label = Label_cst.Neg l} when not (Label.match_list label_domain l graph_label) -> Ok graph_label
+    | _ -> Fail
 
   let match_list label_domain pattern_edge graph_edge_list =
     match pattern_edge with

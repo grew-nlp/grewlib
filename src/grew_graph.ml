@@ -349,19 +349,17 @@ module G_graph = struct
 
     let gtable = (Array.of_list (List.map (fun line -> line.Conll.id) sorted_lines), string_of_int) in
 
-    let (map_without_edges,_) =
-      List_.foldi_left
-        (fun i (acc, prev_opt) line ->
-          let loc = Loc.file_opt_line conll.Conll.file line.Conll.line_num in
-          let with_new_node = Gid_map.add (Gid.Old i) (G_node.of_conll domain ~loc line) acc in
-          match prev_opt with
-            | None -> (with_new_node, Some (Gid.Old i))
-            | Some prev_id ->
-              match map_add_edge with_new_node prev_id Label.succ (Gid.Old i) with
-              | Some m -> (m, Some (Gid.Old i))
-              | None -> Error.bug "[GRS] [Graph.of_conll] fail to add __SUCC__"
-        )
-        (Gid_map.empty, None) sorted_lines in
+    let rec loop index prec = function
+      | [] -> Gid_map.empty
+      | [last] ->
+        let loc = Loc.file_opt_line conll.Conll.file last.Conll.line_num in
+        Gid_map.add (Gid.Old index) (G_node.of_conll domain ~loc ?prec last) Gid_map.empty
+      | line::tail ->
+        let loc = Loc.file_opt_line conll.Conll.file line.Conll.line_num in
+        Gid_map.add (Gid.Old index) (G_node.of_conll domain ~loc ?prec ~succ:(Gid.Old (index+1)) line)
+          (loop (index+1) (Some (Gid.Old index)) tail) in
+
+    let map_without_edges = loop 0 None sorted_lines in
 
     let map_with_edges =
       List.fold_left
@@ -730,6 +728,21 @@ module G_graph = struct
 
     (* edges *)
     bprintf buff "[EDGES] { \n";
+
+    List.iter
+      (fun (id, node) ->
+        begin
+          match G_node.get_prec node with
+          | None -> ()
+          | Some p -> bprintf buff "N_%s -> N_%s { label=\"__PREC__\"; bottom; style=dot}\n" (Gid.to_string id) (Gid.to_string p)
+        end;
+        begin
+          match G_node.get_succ node with
+          | None -> ()
+          | Some s -> bprintf buff "N_%s -> N_%s { label=\"__SUCC__\"; bottom; style=dot}\n" (Gid.to_string id) (Gid.to_string s)
+        end
+      ) snodes;
+
     Gid_map.iter
       (fun gid elt ->
         Massoc_gid.iter

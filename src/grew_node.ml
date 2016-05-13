@@ -23,6 +23,8 @@ module G_node = struct
   type t = {
       fs: G_fs.t;
       next: G_edge.t Massoc_gid.t;
+      succ: Gid.t option;
+      prec: Gid.t option;
       position: float;
       conll_root: bool;
     }
@@ -36,7 +38,10 @@ module G_node = struct
   let get_position t = t.position
   let set_position position t = { t with position }
 
-  let empty = { fs = G_fs.empty; next = Massoc_gid.empty; position = -1.; conll_root=false }
+  let get_prec t = t.prec
+  let get_succ t = t.succ
+
+  let empty = { fs = G_fs.empty; next = Massoc_gid.empty; succ = None; prec = None; position = -1.; conll_root=false }
 
   let is_conll_root t = t.conll_root
 
@@ -64,10 +69,10 @@ module G_node = struct
       | (None, None) -> Error.bug "Cannot build a node without position" in
     (ast_node.Ast.node_id, { empty with fs; position })
 
-  let of_conll ?loc domain line =
+  let of_conll ?loc ?prec ?succ domain line =
     if line = Conll.root
     then { empty with conll_root=true }
-    else { empty with fs = G_fs.of_conll ?loc domain line; position = float line.Conll.id }
+    else { empty with fs = G_fs.of_conll ?loc domain line; position = float line.Conll.id; prec; succ }
 
   let remove (id_tar : Gid.t) label t = {t with next = Massoc_gid.remove id_tar label t.next}
 

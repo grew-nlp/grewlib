@@ -121,10 +121,6 @@ end
 module Label : sig
   type t
 
-  val succ: t (* built-in label for succ relation *)
-
-  val is_succ: t -> bool
-
   (** [match_ dom p_label g_label] returns [true] iff [g_label]
       is a global label matching either constant p_label or patten p_label *)
   val match_: Domain.t -> t -> t -> bool
