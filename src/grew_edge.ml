@@ -64,12 +64,15 @@ module P_edge = struct
     | Binds of string * Label.t list
 
   let match_ label_domain pattern_edge graph_label =
-    match pattern_edge with
-    | {id = Some i; u_label = Label_cst.Pos l} when Label.match_list label_domain l graph_label -> Binds (i, [graph_label])
-    | {id = None; u_label = Label_cst.Pos l} when Label.match_list label_domain l graph_label -> Ok graph_label
-    | {id = Some i; u_label = Label_cst.Neg l} when not (Label.match_list label_domain l graph_label) -> Binds (i, [graph_label])
-    | {id = None; u_label = Label_cst.Neg l} when not (Label.match_list label_domain l graph_label) -> Ok graph_label
-    | _ -> Fail
+    if Label.is_succ graph_label
+    then Fail
+    else
+      match pattern_edge with
+      | {id = Some i; u_label = Label_cst.Pos l} when Label.match_list label_domain l graph_label -> Binds (i, [graph_label])
+      | {id = None; u_label = Label_cst.Pos l} when Label.match_list label_domain l graph_label -> Ok graph_label
+      | {id = Some i; u_label = Label_cst.Neg l} when not (Label.match_list label_domain l graph_label) -> Binds (i, [graph_label])
+      | {id = None; u_label = Label_cst.Neg l} when not (Label.match_list label_domain l graph_label) -> Ok graph_label
+      | _ -> Fail
 
   let match_list label_domain pattern_edge graph_edge_list =
     match pattern_edge with
@@ -78,12 +81,14 @@ module P_edge = struct
     | {id = None; u_label = Label_cst.Neg l} when List.exists (fun label -> not (Label.match_list label_domain l label)) graph_edge_list ->
         Ok (List.hd graph_edge_list)
     | {id = Some i; u_label = Label_cst.Pos l} ->
-	(match List.filter (fun label -> Label.match_list label_domain l label) graph_edge_list with
-	| [] -> Fail
-	| list -> Binds (i, list))
+      ( match List.filter (fun label -> Label.match_list label_domain l label) graph_edge_list with
+        | [] -> Fail
+        | list -> Binds (i, list)
+      )
     | {id = Some i; u_label = Label_cst.Neg l} ->
-	(match List.filter (fun label -> not (Label.match_list label_domain l label)) graph_edge_list with
-	| [] -> Fail
-	| list -> Binds (i, list))
+      ( match List.filter (fun label -> not (Label.match_list label_domain l label)) graph_edge_list with
+        | [] -> Fail
+        | list -> Binds (i, list)
+      )
     | _ -> Fail
 end (* module P_edge *)

@@ -303,6 +303,11 @@ module Label = struct
     | Global of int       (* globally defined labels: their names are in the domain *)
     | Local of int        (* locally defined labels: names array should be provided! UNTESTED *)
     | Pattern of string
+    | Succ
+
+  let succ = Succ
+
+  let is_succ = function Succ -> true | _ -> false
 
   let match_ ((table,_),_) p_label g_label = match (p_label, g_label) with
     | (Global p, Global g) when p=g -> true
@@ -317,6 +322,7 @@ module Label = struct
     | Global i -> table.(i)
     | Local i -> fst locals.(i)
     | Pattern s -> s
+    | Succ -> "__SUCC__"
 
   let to_int = function
     | Global i -> Some i
@@ -326,6 +332,7 @@ module Label = struct
     | Global i -> styles.(i)
     | Local i -> Log.warning "Style of locally defined labels is not implemented"; Label_domain.default
     | Pattern _ -> Label_domain.default
+    | Succ -> { Label_domain.default with Label_domain.text = "__SUCC__"; color= Some "red"; bottom=true; line=Label_domain.Dot }
 
   let to_dep (label_domain,_) ?(deco=false) t =
     let style = get_style label_domain t in

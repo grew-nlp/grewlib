@@ -587,11 +587,18 @@ module Rule = struct
       | Prec (pid1, pid2) ->
           let gid1 = Pid_map.find pid1 matching.n_match in
           let gid2 = Pid_map.find pid2 matching.n_match in
-          failwith "TODO"
+
+          let gnode1 = G_graph.find gid1 graph in
+          let edges_1_to_2 = Massoc_gid.assoc gid2 (G_node.get_next gnode1) in
+          if List.exists (fun l -> Label.is_succ l) edges_1_to_2
+          then matching
+          else  raise Fail
       | Lprec (pid1, pid2) ->
-          let gid1 = Pid_map.find pid1 matching.n_match in
-          let gid2 = Pid_map.find pid2 matching.n_match in
-          failwith "TODO"
+          let gnode1 = G_graph.find (Pid_map.find pid1 matching.n_match) graph in
+          let gnode2 = G_graph.find (Pid_map.find pid2 matching.n_match) graph in
+          if G_node.get_position gnode1 < G_node.get_position gnode2
+          then matching
+          else raise Fail
 
   (*  ---------------------------------------------------------------------- *)
   (* returns all extension of the partial input matching *)

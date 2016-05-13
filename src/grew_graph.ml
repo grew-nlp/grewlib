@@ -350,12 +350,20 @@ module G_graph = struct
 
     let gtable = (Array.of_list (List.map (fun line -> line.Conll.id) sorted_lines), string_of_int) in
 
-    let map_without_edges =
+    let (map_without_edges,_) =
       List_.foldi_left
-        (fun i acc line ->
+        (fun i (acc, prev_opt) line ->
           let loc = Loc.file_opt_line conll.Conll.file line.Conll.line_num in
-          Gid_map.add (Gid.Old i) (G_node.of_conll domain ~loc line) acc)
-        Gid_map.empty sorted_lines in
+          let with_new_node = Gid_map.add (Gid.Old i) (G_node.of_conll domain ~loc line) acc in
+          match prev_opt with
+            | None -> (with_new_node, Some (Gid.Old i))
+            | Some prev_id ->
+              match map_add_edge with_new_node prev_id Label.succ (Gid.Old i) with
+              | Some m -> (m, Some (Gid.Old i))
+              | None -> Error.bug "[GRS] [Graph.of_conll] fail to add __SUCC__"
+        )
+        (Gid_map.empty, None) sorted_lines in
+
     let map_with_edges =
       List.fold_left
         (fun acc line ->
