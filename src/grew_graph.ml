@@ -228,18 +228,6 @@ module G_graph = struct
           ) graph.map Gid_map.empty
     }
 
-  (* ---------------------------------------------------------------------- *)
-  (* [normalize g] changes all graphs keys to Old _ (used when entering a new module) *)
-  let normalize t =
-    let (_, mapping) =
-      Gid_map.fold
-        (fun key value (max_binding, mapping) ->
-          match key with
-          | Gid.Old n -> (n, mapping)
-          | Gid.New _ -> (max_binding, mapping)
-        ) t.map (0, []) in
-        rename mapping t
-
   let get_highest g = g.highest_index
 
   let find node_id graph = Gid_map.find node_id graph.map
@@ -250,11 +238,6 @@ module G_graph = struct
 
   let fold_gid fct t init =
     Gid_map.fold (fun gid _ acc -> fct gid acc) t.map init
-
-  let max_binding t =
-    match Gid_map.max_binding t.map with
-      | (Gid.Old i,_) -> i
-      | _ -> Error.bug "[G_graph.max_binding]"
 
   (* is there an edge e out of node i ? *)
   let edge_out domain graph node_id label_cst =
@@ -302,11 +285,11 @@ module G_graph = struct
         if List.mem node_id already_bound
         then Error.build ~loc "[GRS] [Graph.build] try to build a graph with twice the same node id '%s'" node_id
         else
-          let (new_tail, table) = loop (node_id :: already_bound) (index+1) (Some (Gid.Old index)) tail in
-          let succ = if tail = [] then None else Some (Gid.Old (index+1)) in
+          let (new_tail, table) = loop (node_id :: already_bound) (index+1) (Some index) tail in
+          let succ = if tail = [] then None else Some (index+1) in
           let (_,new_node) = G_node.build domain ?prec ?succ index (ast_node, loc) in
             (
-              Gid_map.add (Gid.Old index) new_node new_tail,
+              Gid_map.add index new_node new_tail,
               (node_id,index)::table
             ) in
 
@@ -318,7 +301,7 @@ module G_graph = struct
           let i1 = List.assoc ast_edge.Ast.src table in
           let i2 = List.assoc ast_edge.Ast.tar table in
           let edge = G_edge.build domain ~locals (ast_edge, loc) in
-          (match map_add_edge acc (Gid.Old i1) edge (Gid.Old i2) with
+          (match map_add_edge acc i1 edge i2 with
             | Some g -> g
             | None -> Error.build "[GRS] [Graph.build] try to build a graph with twice the same edge %s %s"
               (G_edge.to_string domain edge)
@@ -341,11 +324,11 @@ module G_graph = struct
       | [] -> Gid_map.empty
       | [last] ->
         let loc = Loc.file_opt_line conll.Conll.file last.Conll.line_num in
-        Gid_map.add (Gid.Old index) (G_node.of_conll domain ~loc ?prec last) Gid_map.empty
+        Gid_map.add index (G_node.of_conll domain ~loc ?prec last) Gid_map.empty
       | line::tail ->
         let loc = Loc.file_opt_line conll.Conll.file line.Conll.line_num in
-        Gid_map.add (Gid.Old index) (G_node.of_conll domain ~loc ?prec ~succ:(Gid.Old (index+1)) line)
-          (loop (index+1) (Some (Gid.Old index)) tail) in
+        Gid_map.add index (G_node.of_conll domain ~loc ?prec ~succ:(index+1) line)
+          (loop (index+1) (Some index) tail) in
 
     let map_without_edges = loop 0 None sorted_lines in
 
@@ -358,7 +341,7 @@ module G_graph = struct
             (fun acc2 (gov, dep_lab) ->
               let gov_id = Id.gbuild ~loc gov gtable in
               let edge = G_edge.make domain ~loc dep_lab in
-              (match map_add_edge acc2 (Gid.Old gov_id) edge (Gid.Old dep_id) with
+              (match map_add_edge acc2 gov_id edge dep_id with
                 | Some g -> g
                 | None -> Error.build "[GRS] [Graph.of_conll] try to build a graph with twice the same edge %s %s"
                   (G_edge.to_string domain edge)
@@ -371,9 +354,12 @@ module G_graph = struct
         List.map
           (fun {Conll.first; last; fusion; mw_line_num} ->
               let loc = Loc.file_opt_line conll.Conll.file mw_line_num in
-              ( Gid.Old (Id.gbuild ~loc first gtable),
-                (Gid.Old (Id.gbuild ~loc last gtable),
-                fusion)
+              (
+                Id.gbuild ~loc first gtable,
+                (
+                  Id.gbuild ~loc last gtable,
+                  fusion
+                )
               )
           ) conll.Conll.multiwords in
 
@@ -436,25 +422,7 @@ module G_graph = struct
     }
 
   (* -------------------------------------------------------------------------------- *)
-  let add_neighbour loc domain graph node_id label =
-    let index = match node_id with
-      | Gid.Old id ->
-        (match Label.to_int label with
-          | Some label_int -> Gid.New (id, label_int)
-          | None -> Error.run ~loc "[Graph.add_neighbour] try to add neighbour with a local label"
-        )
-      | Gid.New _ -> Error.run ~loc "[Graph.add_neighbour] try to add neighbour node to a neighbour node" in
-
-    if Gid_map.mem index graph.map
-    then Error.run ~loc "[Graph.add_neighbour] try to build twice the \"same\" neighbour node (with label '%s')" (Label.to_string domain label);
-
-    let node = Gid_map.find node_id graph.map in
-    (* put the new node on the right of its "parent" *)
-    let new_map = Gid_map.add index (G_node.build_neighbour node) graph.map in
-
-    match map_add_edge new_map node_id label index with
-      | Some g -> (index, {graph with map = g})
-      | None -> Log.bug "[Graph.add_neighbour] add_edge must not fail"; exit 1
+  let add_neighbour loc domain graph node_id label = failwith "no more add_neighbour"
 
   (* -------------------------------------------------------------------------------- *)
   let insert domain id1 id2 graph =
@@ -463,37 +431,34 @@ module G_graph = struct
     let pos1 = G_node.get_position node1 in
     let pos2 = G_node.get_position node2 in
     let new_pos= (pos1 +. pos2) /. 2. in
-    let new_index = graph.highest_index + 1 in
-    let new_gid = Gid.Old new_index in
+    let new_gid = graph.highest_index + 1 in
     let map = graph.map
       |> (Gid_map.add new_gid (G_node.fresh domain ~prec:id1 ~succ:id2 new_pos))
       |> (Gid_map.add id1 (G_node.set_succ new_gid node1))
       |> (Gid_map.add id2 (G_node.set_prec new_gid node2)) in
-    (new_gid, { graph with map; highest_index = new_index })
+    (new_gid, { graph with map; highest_index = new_gid })
 
   (* -------------------------------------------------------------------------------- *)
   let append domain id graph =
     let node = Gid_map.find id graph.map in
     let pos = G_node.get_position node in
     let new_pos= pos +. 1. in
-    let new_index = graph.highest_index + 1 in
-    let new_gid = Gid.Old new_index in
+    let new_gid = graph.highest_index + 1 in
     let map = graph.map
       |> (Gid_map.add new_gid (G_node.fresh domain ~prec:id new_pos))
       |> (Gid_map.add id (G_node.set_succ new_gid node)) in
-    (new_gid, { graph with map; highest_index = new_index })
+    (new_gid, { graph with map; highest_index = new_gid })
 
   (* -------------------------------------------------------------------------------- *)
   let prepend domain id graph =
     let node = Gid_map.find id graph.map in
     let pos = G_node.get_position node in
     let new_pos= pos -. 1. in
-    let new_index = graph.highest_index + 1 in
-    let new_gid = Gid.Old new_index in
+    let new_gid = graph.highest_index + 1 in
     let map = graph.map
       |> (Gid_map.add new_gid (G_node.fresh domain ~succ:id new_pos))
       |> (Gid_map.add id (G_node.set_prec new_gid node)) in
-    (new_gid, { graph with map; highest_index = new_index })
+    (new_gid, { graph with map; highest_index = new_gid })
 
   (* -------------------------------------------------------------------------------- *)
   let add_after loc domain node_id graph =

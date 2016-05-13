@@ -282,12 +282,10 @@ module Grs = struct
     let modules_to_apply = modules_of_sequence grs sequence in
 
     let rec loop instance module_list =
-      let instance = {instance with Instance.graph = G_graph.normalize instance.Instance.graph} in
       match module_list with
       | [] -> (* no more modules to apply *)
         {Rewrite_history.instance = instance; module_name = ""; good_nf = []; bad_nf = []; }
       | next::tail ->
-        (* printf "Enter module ==> %s\n%!" next.Modul.name; *)
         let (good_set, bad_set) =
           Rule.normalize
             grs.domain
@@ -295,7 +293,7 @@ module Grs = struct
             ~confluent: next.Modul.confluent
             next.Modul.rules
             next.Modul.filters
-            instance in
+            (Instance.refresh instance) in
         let good_list = Instance_set.elements good_set
         and bad_list = Instance_set.elements bad_set in
         {
@@ -311,7 +309,6 @@ module Grs = struct
     let modules_to_apply = modules_of_sequence grs sequence in
 
     let rec loop instance module_list =
-      let instance = {instance with Instance.graph = G_graph.normalize instance.Instance.graph} in
       match module_list with
       | [] -> Libgrew_types.Leaf instance.Instance.graph
       | next :: tail ->
@@ -322,7 +319,7 @@ module Grs = struct
             ~confluent: next.Modul.confluent
             next.Modul.rules
             next.Modul.filters
-            instance in
+            (Instance.refresh instance) in
         let inst_list = Instance_set.elements good_set
               (* and bad_list = Instance_set.elements bad_set *) in
 

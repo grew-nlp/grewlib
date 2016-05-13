@@ -44,6 +44,8 @@ module Instance = struct
       | Some bs -> Some {bs with Libgrew_types.small_step = List.rev bs.Libgrew_types.small_step }
     }
 
+  let refresh t = { empty with graph=t.graph }
+
   (* comparison is done on the list of commands *)
   (* only graph rewritten from the same init graph can be "compared" *)
   let compare t1 t2 = Pervasives.compare t1.history t2.history
@@ -806,7 +808,7 @@ module Rule = struct
         )
 
     | Command.NEW_NODE (created_name) ->
-        let base_gid =  Gid.Old (G_graph.get_highest instance.Instance.graph) in
+        let base_gid = G_graph.get_highest instance.Instance.graph in
         let (new_gid,new_graph) = G_graph.add_after loc domain base_gid instance.Instance.graph in
         (
          {instance with

@@ -325,7 +325,7 @@ rule:
             {
               { Ast.rule_id = fst id_loc;
                 pattern = Ast.complete_pattern { Ast.pat_pos = p; Ast.pat_negs = n };
-                commands = cmds;
+                commands = Ast.replace_new_neighbour cmds;
                 param = Some param;
                 lex_par = lex_par;
                 rule_doc = begin match doc with Some d -> d | None -> [] end;

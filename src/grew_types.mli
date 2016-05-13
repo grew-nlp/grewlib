@@ -46,9 +46,7 @@ module Pid_set : Set.S with type elt = Pid.t
 (* ================================================================================ *)
 (* [Gid] describes identifier used in full graphs *)
 module Gid : sig
-  type t =
-    | Old of int
-    | New of (int * int) (* identifier for "created nodes" *)
+  type t = int
 
   val compare: t -> t -> int
 

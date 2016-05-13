@@ -88,8 +88,6 @@ module G_graph: sig
 
   val fold_gid: (Gid.t -> 'a -> 'a) -> t -> 'a -> 'a
 
-  val normalize: t -> t
-
   val get_highest: t -> int
 
   (** [edge_out label_domain t id label_cst] returns true iff there is an out-edge from the node [id] with a label compatible with [label_cst] *)

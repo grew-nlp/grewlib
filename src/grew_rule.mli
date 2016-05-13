@@ -33,6 +33,10 @@ module Instance : sig
       is in the head of the list and the reverse is needed for display. *)
   val rev_steps: t -> t
 
+  (** [refresh t] returns a fresh representation of the graph.
+      Graphs are refreshed after each module. *)
+  val refresh: t -> t
+
   (** [to_gr t] returns a string which contains the "gr" code of the current graph *)
   val to_gr: Domain.t -> t -> string
 

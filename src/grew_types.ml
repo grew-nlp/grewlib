@@ -79,21 +79,11 @@ module Pid_set = Set.Make (Pid)
 
 (* ================================================================================ *)
 module Gid = struct
-  type t =
-    | Old of int
-    | New of (int * int) (* identifier for "created nodes" *)
+  type t = int
 
-  (* a compare function which ensures that new nodes are at the "end" of the graph *)
-  let compare t1 t2 = match (t1,t2) with
-    | Old o1, Old o2 -> Pervasives.compare o1 o2
+  let compare = Pervasives.compare
 
-    | Old _ , New _ -> -1
-    | New _, Old _ -> 1
-    | New n1, New n2 -> Pervasives.compare n1 n2
-
-  let to_string = function
-    | Old i -> sprintf "%d" i
-    | New (i,j) -> sprintf"%d__%d" i j
+  let to_string i = sprintf "%d" i
 end (* module Gid *)
 
 (* ================================================================================ *)
