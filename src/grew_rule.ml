@@ -44,20 +44,6 @@ module Instance = struct
       | Some bs -> Some {bs with Libgrew_types.small_step = List.rev bs.Libgrew_types.small_step }
     }
 
-  let flatten t = t (* TODO remove *)
-(*
-  let flatten t =
-    (* [mapping] is list of couple (node_id, node_id) used to flatten the graph *)
-    let (mapping, new_free) = List.fold_left
-      (fun (acc_map, next_free) node_id ->
-        (
-          (node_id, Gid.Old next_free) :: acc_map,
-          next_free + 1
-        )
-      ) ([], t.highest_index) t.actiiivated_node in
-    { empty with graph = G_graph.rename mapping t.graph; highest_index = new_free }
-*)
-
   (* comparison is done on the list of commands *)
   (* only graph rewritten from the same init graph can be "compared" *)
   let compare t1 t2 = Pervasives.compare t1.history t2.history
