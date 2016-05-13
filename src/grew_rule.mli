@@ -24,7 +24,7 @@ module Instance : sig
     history: Command.h list;
     rules: string list;
     big_step: Libgrew_types.big_step option;
-    free_index: int;
+    highest_index: int;
   }
 
   (** [from_graph graph] return a fresh instance based on the input [graph]. *)

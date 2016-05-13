@@ -123,11 +123,21 @@ module Ast : sig
 
     | Merge_node of (Id.name * Id.name)
     | New_neighbour of (Id.name * Id.name * edge_label)
+
+    | New_node of Id.name
+    | New_before of (Id.name * Id.name)
+    | New_after of (Id.name * Id.name)
+
     | Del_node of Id.name
 
     | Del_feat of feature_ident
     | Update_feat of feature_ident * concat_item list
+  val string_of_u_command:  u_command -> string
   type command = u_command * Loc.t
+
+
+
+  val replace_new_neighbour: command list -> command list
 
   type rule = {
       rule_id:Id.name;

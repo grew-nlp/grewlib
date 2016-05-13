@@ -31,6 +31,9 @@ module G_node: sig
   val get_succ: t -> Gid.t option
   val get_prec: t -> Gid.t option
 
+  val set_prec: Gid.t -> t -> t
+  val set_succ: Gid.t -> t -> t
+
   val set_fs: G_fs.t -> t -> t
   val set_position: float -> t -> t
   val set_next: G_edge.t Massoc_gid.t -> t -> t
@@ -47,8 +50,9 @@ module G_node: sig
   val rm_out_edges: t -> t
 
   val add_edge: G_edge.t -> Gid.t -> t -> t option
-  val build: Domain.t -> ?def_position: float -> Ast.node -> (Id.name * t)
+  val build: Domain.t -> ?prec:Gid.t -> ?succ:Gid.t -> int -> Ast.node -> (Id.name * t)
   val of_conll: ?loc:Loc.t -> ?prec:Gid.t -> ?succ:Gid.t -> Domain.t -> Conll.line -> t
+  val fresh: Domain.t -> ?prec:Gid.t -> ?succ:Gid.t -> float -> t
 
   val get_position: t -> float
 

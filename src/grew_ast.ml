@@ -188,6 +188,11 @@ module Ast = struct
     | String_item of string
     | Param_item of string
 
+  let string_of_concat_item = function
+    | Qfn_item id -> sprintf "%s" (dump_feature_ident id)
+    | String_item s -> sprintf "\"%s\"" s
+    | Param_item var -> sprintf "%s" var
+
   type u_command =
     | Del_edge_expl of (Id.name * Id.name * edge_label)
     | Del_edge_name of string
@@ -200,11 +205,60 @@ module Ast = struct
 
     | Merge_node of (Id.name * Id.name)
     | New_neighbour of (Id.name * Id.name * edge_label)
+    | New_node of Id.name
+    | New_before of (Id.name * Id.name)
+    | New_after of (Id.name * Id.name)
+
     | Del_node of Id.name
 
     | Del_feat of feature_ident
     | Update_feat of feature_ident * concat_item list
   type command = u_command * Loc.t
+
+  let string_of_u_command u_command = match u_command with
+    | Del_edge_expl (n1,n2,label) ->
+      sprintf "del_edge %s -[%s]-> %s" n1 label n2
+    | Del_edge_name name -> sprintf "del_edge %s" name
+    | Add_edge (n1,n2,label) ->
+      sprintf "add_edge %s -[%s]-> %s" n1 label n2
+
+    | Shift_in (n1,n2,([],true)) ->
+      sprintf "shift_in %s ==> %s" n1 n2
+    | Shift_in (n1,n2,(labels,false)) ->
+      sprintf "shift_in %s =[%s]=> %s" n1 n2 (List_.to_string (fun x->x) "|" labels)
+    | Shift_in (n1,n2,(labels,true)) ->
+      sprintf "shift_in %s =[^%s]=> %s" n1 n2 (List_.to_string (fun x->x) "|" labels)
+
+    | Shift_out (n1,n2,([],true)) ->
+      sprintf "shift_out %s ==> %s" n1 n2
+    | Shift_out (n1,n2,(labels,false)) ->
+      sprintf "shift_out %s =[%s]=> %s" n1 n2 (List_.to_string (fun x->x) "|" labels)
+    | Shift_out (n1,n2,(labels,true)) ->
+      sprintf "shift_out %s =[^%s]=> %s" n1 n2 (List_.to_string (fun x->x) "|" labels)
+
+    | Shift_edge (n1,n2,([],true)) ->
+      sprintf "shift %s ==> %s" n1 n2
+    | Shift_edge (n1,n2,(labels,false)) ->
+      sprintf "shift %s =[%s]=> %s" n1 n2 (List_.to_string (fun x->x) "|" labels)
+    | Shift_edge (n1,n2,(labels,true)) ->
+      sprintf "shift %s =[^%s]=> %s" n1 n2 (List_.to_string (fun x->x) "|" labels)
+
+    | Merge_node (n1,n2) -> sprintf "merge %s ==> %s" n1 n2
+    | New_neighbour (n1,n2,label) -> sprintf "add_node %s: <-[%s]- %s" n1 label n2
+    | New_node (n) -> sprintf "add_node %s" n
+    | New_before (n1,n2) -> sprintf "add_node %s :< %s" n1 n2
+    | New_after (n1,n2) -> sprintf "add_node %s :> %s" n1 n2
+    | Del_node act_id -> sprintf "del_node %s" act_id
+    | Update_feat ((act_id, feat_name),item_list) ->
+      sprintf "%s.%s = %s" act_id feat_name (List_.to_string string_of_concat_item " + " item_list)
+    | Del_feat (act_id, feat_name) ->
+      sprintf "del_feat %s.%s" act_id feat_name
+
+  let rec replace_new_neighbour = function
+  | [] -> []
+  | (New_neighbour (new_name, old_name, edge),loc) :: tail ->
+    (New_after (new_name, old_name),loc) :: (Add_edge (old_name, new_name, edge),loc) :: (replace_new_neighbour tail)
+  | head :: tail -> head :: (replace_new_neighbour tail)
 
   (* the [rule] type is used for 3 kinds of module items:
      - rule     { param=None; ... }

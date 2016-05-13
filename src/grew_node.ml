@@ -41,6 +41,9 @@ module G_node = struct
   let get_prec t = t.prec
   let get_succ t = t.succ
 
+  let set_succ id t = { t with succ = Some id }
+  let set_prec id t = { t with prec = Some id }
+
   let empty = { fs = G_fs.empty; next = Massoc_gid.empty; succ = None; prec = None; position = -1.; conll_root=false }
 
   let is_conll_root t = t.conll_root
@@ -61,18 +64,16 @@ module G_node = struct
 
   let get_annot_info t = G_fs.get_annot_info t.fs
 
-  let build domain ?def_position (ast_node, loc) =
+  let build domain ?prec ?succ position (ast_node, loc) =
     let fs = G_fs.build domain ast_node.Ast.fs in
-    let position = match (ast_node.Ast.position, def_position) with
-      | (Some position, _) -> position
-      | (None, Some position) -> position
-      | (None, None) -> Error.bug "Cannot build a node without position" in
-    (ast_node.Ast.node_id, { empty with fs; position })
+    (ast_node.Ast.node_id, { empty with fs; position = float_of_int position; prec; succ })
 
   let of_conll ?loc ?prec ?succ domain line =
     if line = Conll.root
     then { empty with conll_root=true }
     else { empty with fs = G_fs.of_conll ?loc domain line; position = float line.Conll.id; prec; succ }
+
+  let fresh domain ?prec ?succ position = { empty with position; prec; succ }
 
   let remove (id_tar : Gid.t) label t = {t with next = Massoc_gid.remove id_tar label t.next}
 

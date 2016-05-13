@@ -206,6 +206,10 @@ and standard target = parse
 
 | "<<"       { LPREC }
 | ">>"       { LSUCC }
+
+| ":<"         { BEFORE }
+| ":>"         { AFTER }
+
 | "<"        { LT }
 | ">"        { GT }
 | "<=" | "≤" { LE }

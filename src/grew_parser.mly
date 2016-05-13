@@ -55,6 +55,9 @@ let localize t = (t,get_loc ())
 %token LPREC                       /* << */
 %token LSUCC                       /* >> */
 
+%token BEFORE                      /* :< */
+%token AFTER                       /* :> */
+
 %token PIPE                        /* | */
 
 %token EDGE                        /* -> */
@@ -311,7 +314,7 @@ rule:
             {
               { Ast.rule_id = fst id_loc;
                 pattern = Ast.complete_pattern { Ast.pat_pos = p; Ast.pat_negs = n };
-                commands = cmds;
+                commands = Ast.replace_new_neighbour cmds;
                 param = None;
                 lex_par = None;
                 rule_doc = begin match doc with Some d -> d | None -> [] end;
@@ -384,7 +387,6 @@ pat_node:
 
 node_features:
         (*  "cat = n|v|adj"     *)
-        (*  "cat = *"           *)
         | name_loc=simple_id_with_loc EQUAL values=separated_nonempty_list(PIPE,feature_value)
             { let (name,loc) = name_loc in
               match values with
@@ -393,6 +395,10 @@ node_features:
 
         (*  "cat = *"           *)
         | name_loc=simple_id_with_loc EQUAL STAR
+            { let (name,loc) = name_loc in ({Ast.kind = Ast.Disequality []; name},loc) }
+
+        (*  "cat"           *)
+        | name_loc=simple_id_with_loc
             { let (name,loc) = name_loc in ({Ast.kind = Ast.Disequality []; name},loc) }
 
         (*   "cat<>n|v|adj"     *)
@@ -603,6 +609,18 @@ command:
         (* add_node n: <-[x]- m *)
         | ADD_NODE new_ci_loc=simple_id_with_loc DDOT label=delimited(RTL_EDGE_LEFT,label_ident,RTL_EDGE_RIGHT) anc_ci=simple_id
             { let (new_ci,loc) = new_ci_loc in (Ast.New_neighbour (new_ci, anc_ci,label), loc) }
+
+        (* add_node n *)
+        | ADD_NODE new_ci_loc=simple_id_with_loc
+            { let (new_ci,loc) = new_ci_loc in (Ast.New_node new_ci, loc) }
+
+        (* add_node n :< m *)
+        | ADD_NODE new_ci_loc=simple_id_with_loc BEFORE old_ci=simple_id
+            { let (new_ci,loc) = new_ci_loc in (Ast.New_before (new_ci,old_ci), loc) }
+
+        (* add_node n :> m *)
+        | ADD_NODE new_ci_loc=simple_id_with_loc AFTER old_ci=simple_id
+            { let (new_ci,loc) = new_ci_loc in (Ast.New_after (new_ci,old_ci), loc) }
 
         (* del_feat m.cat *)
         | DEL_FEAT com_fead_id_loc= feature_ident_with_loc

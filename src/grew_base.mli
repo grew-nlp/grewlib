@@ -277,4 +277,6 @@ module Global: sig
   val current_line: int ref
   val init: string -> unit
   val label_flag: bool ref
+
+  val debug: bool ref
 end

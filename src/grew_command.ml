@@ -40,6 +40,11 @@ module Command  = struct
     | DEL_FEAT of (command_node * string)
     | UPDATE_FEAT of (command_node * string * item list)
     | NEW_NEIGHBOUR of (string * G_edge.t * Pid.t) (* TODO: remove *)
+
+    | NEW_NODE of string
+    | NEW_BEFORE of (string * command_node)
+    | NEW_AFTER of (string * command_node)
+
     | SHIFT_EDGE of (command_node * command_node * Label_cst.t)
     | SHIFT_IN of (command_node * command_node * Label_cst.t)
     | SHIFT_OUT of (command_node * command_node * Label_cst.t)
@@ -56,10 +61,16 @@ module Command  = struct
     | H_DEL_FEAT of (Gid.t * string)
     | H_UPDATE_FEAT of (Gid.t * string * string)
     | H_NEW_NEIGHBOUR of (string * G_edge.t * Gid.t) (* TODO: remove *)
+
+    | H_NEW_NODE of string
+    | H_NEW_BEFORE of (string * Gid.t)
+    | H_NEW_AFTER of (string * Gid.t)
+
     | H_SHIFT_EDGE of (Gid.t * Gid.t)
     | H_SHIFT_IN of (Gid.t * Gid.t)
     | H_SHIFT_OUT of (Gid.t * Gid.t)
     | H_MERGE_NODE of (Gid.t * Gid.t)
+
 
   let build domain label_domain ?param (kai, kei) table locals ast_command =
     (* kai stands for "known act ident", kei for "known edge ident" *)
@@ -139,6 +150,23 @@ module Command  = struct
 	             ancestor
 	             (Loc.to_string loc)
 	        end
+
+      | (Ast.New_node new_id, loc) ->
+          if List.mem new_id kai
+          then Error.build ~loc "Node identifier \"%s\" is already used" new_id;
+          (((NEW_NODE new_id), loc),(new_id::kai, kei))
+
+      | (Ast.New_before (new_id, old_id), loc) ->
+          check_node_id loc old_id kai;
+          if List.mem new_id kai
+          then Error.build ~loc "Node identifier \"%s\" is already used" new_id;
+          ((NEW_BEFORE (new_id,pid_of_act_id loc old_id), loc),(new_id::kai, kei))
+
+      | (Ast.New_after (new_id, old_id), loc) ->
+          check_node_id loc old_id kai;
+          if List.mem new_id kai
+          then Error.build ~loc "Node identifier \"%s\" is already used" new_id;
+          ((NEW_AFTER (new_id,pid_of_act_id loc old_id), loc),(new_id::kai, kei))
 
       | (Ast.Del_node act_n, loc) ->
           check_node_id loc act_n kai;

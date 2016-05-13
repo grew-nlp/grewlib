@@ -306,8 +306,8 @@ module G_fs = struct
       | [] -> "_"
       | l ->  String.concat "#" l in
 
-    let last = match (filter, position) with
-      | (Some l, Some f) when List.mem "position" l && f > 0. -> [G_feature.to_string ("position", Float f)]
+    let last = match (!Global.debug, position) with
+      | (true, Some f) -> [(G_feature.to_string ("position", Float f))^":B:lightblue"]
       | _ -> [] in
 
     let lines = List.fold_left

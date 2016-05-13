@@ -601,6 +601,7 @@ module Global = struct
   let current_file = ref "Not a file"
   let current_line = ref 1
   let label_flag = ref false
+  let debug = ref false
 
   let init file =
     current_file := file;

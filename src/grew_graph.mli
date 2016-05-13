@@ -90,7 +90,9 @@ module G_graph: sig
 
   val normalize: t -> t
 
-  (** raise ??? *)
+  val get_highest: t -> int
+
+    (** TODO REMOVE  ??? *)
   val max_binding: t -> int
 
   (** [edge_out label_domain t id label_cst] returns true iff there is an out-edge from the node [id] with a label compatible with [label_cst] *)
@@ -136,6 +138,9 @@ module G_graph: sig
   val del_node: t -> Gid.t -> t
 
   val add_neighbour: Loc.t -> Domain.t -> t -> Gid.t -> G_edge.t -> (Gid.t * t)
+
+  val add_before: Loc.t -> Domain.t -> Gid.t -> t -> (Gid.t * t)
+  val add_after: Loc.t -> Domain.t -> Gid.t -> t -> (Gid.t * t)
 
   val merge_node: Loc.t -> Domain.t -> t -> Gid.t -> Gid.t -> t option
 

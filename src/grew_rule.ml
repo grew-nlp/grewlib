@@ -32,15 +32,15 @@ module Instance = struct
     history: Command.h list;
     rules: string list;
     big_step: Libgrew_types.big_step option;
-    free_index: int;
+    highest_index: int;
   }
 
-  let empty = {graph = G_graph.empty; rules=[]; history=[]; big_step=None; free_index=0; }
+  let empty = {graph = G_graph.empty; rules=[]; history=[]; big_step=None; highest_index=0; }
 
   let from_graph graph =
     {empty with
       graph = graph;
-      free_index = (G_graph.max_binding graph) + 1;
+      highest_index = (G_graph.max_binding graph) + 1;
     }
 
   let rev_steps t =
@@ -59,8 +59,8 @@ module Instance = struct
           (node_id, Gid.Old next_free) :: acc_map,
           next_free + 1
         )
-      ) ([], t.free_index) t.actiiivated_node in
-    { empty with graph = G_graph.rename mapping t.graph; free_index = new_free }
+      ) ([], t.highest_index) t.actiiivated_node in
+    { empty with graph = G_graph.rename mapping t.graph; highest_index = new_free }
 *)
 
   (* comparison is done on the list of commands *)
@@ -809,6 +809,39 @@ module Rule = struct
          {instance with
           Instance.graph = new_graph;
           history = List_.sort_insert (Command.H_NEW_NEIGHBOUR (created_name,edge,new_gid)) instance.Instance.history;
+        },
+         (created_name,new_gid) :: created_nodes
+        )
+
+    | Command.NEW_AFTER (created_name,base_cn) ->
+        let base_gid = node_find base_cn in
+        let (new_gid,new_graph) = G_graph.add_after loc domain base_gid instance.Instance.graph in
+        (
+         {instance with
+          Instance.graph = new_graph;
+          history = List_.sort_insert (Command.H_NEW_AFTER (created_name,new_gid)) instance.Instance.history;
+        },
+         (created_name,new_gid) :: created_nodes
+        )
+
+    | Command.NEW_NODE (created_name) ->
+        let base_gid =  Gid.Old (G_graph.get_highest instance.Instance.graph) in
+        let (new_gid,new_graph) = G_graph.add_after loc domain base_gid instance.Instance.graph in
+        (
+         {instance with
+          Instance.graph = new_graph;
+          history = List_.sort_insert (Command.H_NEW_AFTER (created_name,new_gid)) instance.Instance.history;
+        },
+         (created_name,new_gid) :: created_nodes
+        )
+
+    | Command.NEW_BEFORE (created_name,base_cn) ->
+        let base_gid = node_find base_cn in
+        let (new_gid,new_graph) = G_graph.add_before loc domain base_gid instance.Instance.graph in
+        (
+         {instance with
+          Instance.graph = new_graph;
+          history = List_.sort_insert (Command.H_NEW_BEFORE (created_name,new_gid)) instance.Instance.history;
         },
          (created_name,new_gid) :: created_nodes
         )
