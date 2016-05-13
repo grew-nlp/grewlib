@@ -3,24 +3,28 @@
 \usepackage{fullpage}
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
-\usepackage{amsmath}
+\usepackage{amsthm}
 \usepackage{url}
 \usepackage{graphicx}
 \usepackage{bussproofs}
 
 \newtheorem{definition}{Definition}
+\newtheorem{lemma}{Lemma}
+
+\newcommand{\ie}{{\it i.e.\ }}
 
 \title{Strategies for Grew}
 
-\author{Bruno Guillaume}
+%\author{Bruno Guillaume}
+\date{}
 
 \begin{document}
 \maketitle
 
-\section{Notations} % (fold)
+\section{Notations}
 \label{sec:not}
 
-When the graph $G$ rewrite to $G'$ with some rule $R$, we write $G \Longrightarrow_R G'$.
+When the graph $G$ rewrites to $G'$ with some rule $R$, we write $G \Longrightarrow_R G'$.
 When a matching exists for pattern $P$ in the graph $G$, we write $P \hookrightarrow G$; if it is not the case, we write $P \not\hookrightarrow G$
 
 \begin{definition}
@@ -30,18 +34,18 @@ A {\em filter} is a set of patterns.
 
 Given a module $M$ and a graph $G$, we define the set of graphs $M(G) = \{ G' \mid G \Longrightarrow_R G', R \in M\}$.
 
-Given a filter $F$ and a set $E$ of graphs, we define $F(E) = \{ G \in E \mid \forall P \in F, P \not\hookrightarrow G \}$
+Given a filter $F$ and a set $E$ of graphs, we define $F(E) = \{ G \in E \mid \forall P \in F, P \not\hookrightarrow G \}$.
 % section not (end)
 
-\section{Strategies} % (fold)
+\section{Strategies}
 \label{sec:strat}
 
 Given a set $\cal{M}$ of modules and a set $\cal{F}$ of filters, strategies are defined by the following grammar:
 \[
-	S = M \mid S;S \mid S+S \mid \diamond S \mid S^* \mid F[S]
+	S = M \mid S;S \mid S+S \mid S^\diamond \mid S^? \mid S^* \mid F[S]
 \]
 
-Applying a strategy $S$ on the graph $G$ is an non-determintic process.
+Applying a strategy $S$ on the graph $G$ is a non-deterministic process.
 Hence, we define a relation $G \longrightarrow_S G'$ with the following rules:
 
 \begin{prooftree}
@@ -49,56 +53,94 @@ Hence, we define a relation $G \longrightarrow_S G'$ with the following rules:
 \LeftLabel{(Module)}
 \UnaryInfC{$G \longrightarrow_M M(G)$}
 \end{prooftree}
-%
+
+
 \begin{prooftree}
 \AxiomC{$G \longrightarrow_{S_1} \{G_1, \ldots, G_k\}$}
 \AxiomC{$\forall i \in[1,k], G_i \longrightarrow_{S_2} E_i$}
 \LeftLabel{(Sequence)}
 \BinaryInfC{$G \longrightarrow_{S_1;S_2} \bigcup_{1\leq i \leq k}{E_i}$}
 \end{prooftree}
-%
+
+
 \begin{prooftree}
 \AxiomC{$G \longrightarrow_{S_1} E_1$}
 \AxiomC{$G \longrightarrow_{S_2} E_2$}
 \LeftLabel{(Union)}
 \BinaryInfC{$G \longrightarrow_{S_1 + S_2} E_1 \cup E_2 $}
 \end{prooftree}
-%
-\begin{prooftree}
+
+
+\begin{center}
 \AxiomC{$G \longrightarrow_S \emptyset $}
 \LeftLabel{(Iter$_\emptyset$)}
 \UnaryInfC{$G \longrightarrow_{S^*} \{G\}$}
-\end{prooftree}
+\DisplayProof
 %
-\begin{prooftree}
+\qquad
+%
 \AxiomC{$G \longrightarrow_{S} \{G_1, \ldots, G_k\}$}
 \AxiomC{$\forall i \in[1,k], G_i \longrightarrow_{S^*} E_i$}
 \LeftLabel{(Iter)}
 \BinaryInfC{$G \longrightarrow_{S^*} \bigcup_{1\leq i \leq k}{E_i}$}
-\end{prooftree}
+\DisplayProof
+\end{center}
+
+
+\begin{center}
+\AxiomC{$G \longrightarrow_S \emptyset $}
+\LeftLabel{(One$_\emptyset$)}
+\UnaryInfC{$G \longrightarrow_{S^?} \{G\}$}
+\DisplayProof
 %
-\begin{prooftree}
+\qquad
+%
+\AxiomC{$G \longrightarrow_{S} \{G_1, \ldots, G_k\}$}
+\LeftLabel{(One)}
+\UnaryInfC{$G \longrightarrow_{S^?} \{G_i\}$}
+\DisplayProof
+\end{center}
+
+
+\begin{center}
 \AxiomC{$G \longrightarrow_S \emptyset $}
 \LeftLabel{(Diamond$_\emptyset$)}
-\UnaryInfC{$G \longrightarrow_{\diamond S} \emptyset$}
-\end{prooftree}
+\UnaryInfC{$G \longrightarrow_{S^\diamond} \emptyset$}
+\DisplayProof
 %
-\begin{prooftree}
+\qquad
+%
 \AxiomC{$G \longrightarrow_{S} \{G_1, \ldots, G_k\}$}
 \LeftLabel{(Diamond)}
-\UnaryInfC{$G \longrightarrow_{\diamond S} \{G_i\}$}
-\end{prooftree}
-%
-\begin{prooftree}
+\UnaryInfC{$G \longrightarrow_{S^\diamond} \{G_i\}$}
+\DisplayProof
+\end{center}
+
+
+\begin{center}
 \AxiomC{$G \longrightarrow_{S} E$}
 \LeftLabel{(Filter)}
 \UnaryInfC{$G \longrightarrow_{F[S]} F(E)$}
-\end{prooftree}
+\DisplayProof
+\end{center}
+
+A strategy is called \emph{filter-free} if it contains no filter, \ie if it is defined by the following grammar:
+\[
+	S = M \mid S;S \mid S+S \mid S^\diamond \mid S^? \mid S^*
+\]
 
 
 
+\begin{lemma}
+If $S$ is a filter-free strategy, then $(S^\diamond)^* \equiv (S^*)^\diamond$.
+In particular, for any module $M$, $(M^\diamond)^* \equiv (M^*)^\diamond$.
+\end{lemma}
 
-% section strat (end)
+\begin{proof}
+	TODO
+\end{proof}
+
+We use the notation $S^! = (S^*)^\diamond$ as a shortcut.
 \end{document}
 
 
