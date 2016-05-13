@@ -81,8 +81,13 @@ module Instance_set = Set.Make (Instance)
 
 (* ================================================================================ *)
 module Rule = struct
+
   (* the rewriting depth is bounded to stop rewriting when the system is not terminating *)
-  let max_depth = ref 500
+  let max_depth_det = ref 100
+  let max_depth_non_det = ref 2000
+
+  let set_max_depth_det value = max_depth_det := value
+  let set_max_depth_non_det value = max_depth_non_det := value
 
   type const =
     | Cst_out of Pid.t * Label_cst.t
@@ -860,15 +865,16 @@ module Rule = struct
   (*  ---------------------------------------------------------------------- *)
   (** [apply_rule instance matching rule] returns a new instance after the application of the rule
       [Command_execution_fail] is raised if some merge unification fails *)
-  let apply_rule domain instance matching rule =
+  let apply_rule domain modul_name max_depth instance matching rule =
 
     (* Timeout check *)
     (try Timeout.check () with Timeout.Stop -> Error.run "Time out");
 
     (* limit the rewriting depth to avoid looping rewriting *)
     begin
-      if List.length instance.Instance.rules >= !max_depth
-      then Error.run "Bound reached (when applying rule %s)" rule.name
+      if List.length instance.Instance.rules >= max_depth
+      then Error.run "[Module %s] max depth %d reached, last rules applied: …, %s, %s"
+        modul_name max_depth (List_.rev_to_string (fun x->x) ", " (List_.cut 4 instance.Instance.rules)) rule.name
     end;
 
     let (new_instance, created_nodes) =
@@ -957,22 +963,22 @@ module Rule = struct
     List.map fst filtered_matching_list
 
   (*  ---------------------------------------------------------------------- *)
-  (** [one_step instance rules] computes the list of one-step reduct with rules *)
-  let one_step domain instance rules =
+  (** [one_step domain modul_name instance rules] computes the list of one-step reduct with rules *)
+  let one_step domain modul_name instance rules =
     List.fold_left
       (fun acc rule ->
         let matching_list = match_in_graph domain ?param:rule.param rule.pattern instance.Instance.graph in
 
         List.fold_left
           (fun acc1 matching ->
-            try (apply_rule domain instance matching rule) :: acc1
+            try (apply_rule domain modul_name !max_depth_non_det instance matching rule) :: acc1
             with Command_execution_fail -> acc1
           ) acc matching_list
       ) [] rules
 
   (*  ---------------------------------------------------------------------- *)
-  (** [conf_one_step instance rules] computes one Some (one-step reduct) with rules, None if no rule apply *)
-  let rec conf_one_step domain (instance : Instance.t) = function
+  (** [conf_one_step domain modul_name instance rules] computes one Some (one-step reduct) with rules, None if no rule apply *)
+  let rec conf_one_step domain modul_name (instance : Instance.t) = function
     | [] -> None
     | rule::rule_tail ->
         let (pos,negs) = rule.pattern in
@@ -995,8 +1001,8 @@ module Rule = struct
                     fulfill domain (pos.graph,neg.graph) instance.Instance.graph new_partial_matching
                   ) negs
               ) matching_list in
-          Some (apply_rule domain instance first_matching_where_all_witout_are_fulfilled rule)
-        with Not_found -> (* try another rule *) conf_one_step domain instance rule_tail
+          Some (apply_rule domain modul_name !max_depth_det instance first_matching_where_all_witout_are_fulfilled rule)
+        with Not_found -> (* try another rule *) conf_one_step domain modul_name instance rule_tail
 
 
   (* ---------------------------------------------------------------------- *)
@@ -1021,7 +1027,7 @@ module Rule = struct
         let (new_to_do_set,new_nf_set) =
           Instance_set.fold
             (fun v (to_do_set_acc,nf_set_acc) ->
-              match one_step domain v rules with
+              match one_step domain modul_name v rules with
                 | [] -> (to_do_set_acc,Instance_set.add (Instance.rev_steps v) nf_set_acc)
                 | step_of_v -> (List.fold_left (fun acc v1 -> Instance_set.add v1 acc) to_do_set_acc step_of_v, nf_set_acc)
             )
@@ -1066,16 +1072,16 @@ module Rule = struct
     loop filters
 
   (* ---------------------------------------------------------------------- *)
-  let rec conf_normalize domain instance rules =
-    match conf_one_step domain instance rules with
-    | Some new_instance -> conf_normalize domain new_instance rules
+  let rec conf_normalize domain modul_name instance rules =
+    match conf_one_step domain modul_name instance rules with
+    | Some new_instance -> conf_normalize domain modul_name new_instance rules
     | None -> Instance.rev_steps instance
 
   (* ---------------------------------------------------------------------- *)
   let normalize domain modul_name ?(confluent=false) rules filters instance =
     if confluent
     then
-      let output = conf_normalize domain instance rules in
+      let output = conf_normalize domain modul_name instance rules in
       if filter_instance domain filters output
       then (Instance_set.singleton output, Instance_set.empty)
       else (Instance_set.empty, Instance_set.singleton output)

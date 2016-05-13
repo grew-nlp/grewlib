@@ -228,6 +228,9 @@ module Rewrite = struct
   type display = Libgrew_types.rew_display
   type history = Grew_grs.Rewrite_history.t
 
+  let set_max_depth_det value = Grew_rule.Rule.set_max_depth_det value
+  let set_max_depth_non_det value = Grew_rule.Rule.set_max_depth_non_det value
+
   let display ~gr ~grs ~seq =
     handle ~name:"Rewrite.display" (fun () -> Grew_grs.Grs.build_rew_display grs seq gr) ()
 

@@ -148,6 +148,9 @@ module Rewrite: sig
   type display = Libgrew_types.rew_display
   type history
 
+  val set_max_depth_det: int -> unit
+  val set_max_depth_non_det: int -> unit
+
   (** [display gr grs seq] builds the [display] (datatype used by the GUI) given by
       the rewriting of graph [gr] with the sequence [seq] of [grs].
       @param gr the grapth to rewrite

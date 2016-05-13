@@ -111,6 +111,10 @@ module List_: sig
 
   val set: int -> 'a -> 'a list -> 'a list
 
+  (** [cut size list] returns a list with the [size] first elements of [list].
+      If [list] contains less than [size] elements, the input list is returned *)
+  val cut: int -> 'a list -> 'a list
+
   (** [index elt list] return [Some index] if [index] is the smallest position in the [list] equals to [elt].
       None is returned if [elt] is not in the [list] *)
   val index: 'a -> 'a list -> int option
@@ -131,6 +135,7 @@ module List_: sig
   val sort_disjoint: 'a list -> 'a list -> bool
 
   val to_string: ('a -> string) -> string -> 'a list -> string
+  val rev_to_string: ('a -> string) -> string -> 'a list -> string
 
   val sort_mem: 'a -> 'a list -> bool
 

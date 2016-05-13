@@ -189,6 +189,11 @@ end (* module Array_ *)
 
 (* ================================================================================ *)
 module List_ = struct
+  let rec cut size = function
+    | [] -> []
+    | _ when size=0 -> []
+    | x::t -> x:: (cut (size-1) t)
+
   let rec set position elt = function
     | [] -> failwith "List_.set"
     | _::t when position = 0 -> elt::t
@@ -255,6 +260,10 @@ module List_ = struct
   let to_string string_of_item sep = function
     | [] -> ""
     | h::t -> List.fold_left (fun acc elt -> acc ^ sep ^ (string_of_item elt)) (string_of_item h) t
+
+  let rev_to_string string_of_item sep = function
+    | [] -> ""
+    | h::t -> List.fold_left (fun acc elt -> (string_of_item elt) ^ sep ^ acc) (string_of_item h) t
 
   let rec sort_insert elt = function
     | [] -> [elt]

@@ -59,6 +59,12 @@ module Instance_set : Set.S with type elt = Instance.t
 module Rule : sig
   type t
 
+  (** [set_max_depth_det value] set the maximum rewriting depth in deterministic application of a module. *)
+  val set_max_depth_det: int -> unit
+
+  (** [set_max_depth_non_det value] set the maximum rewriting depth in non-deterministic application of a module. *)
+  val set_max_depth_non_det: int -> unit
+
   (** [get_name t] returns the name of the rule [t]. *)
   val get_name: t -> string
 
