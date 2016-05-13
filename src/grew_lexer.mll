@@ -77,23 +77,23 @@ and comment_multi target = parse
 | '\n' { incr Global.current_line; Lexing.new_line lexbuf; comment_multi target lexbuf }
 | _  { comment_multi target lexbuf }
 
-and string_lex target = parse
+and string_lex re target = parse
   | '\\' {
     if !escaped
-    then (bprintf buff "\\"; escaped := false; string_lex target lexbuf)
-    else (escaped := true; string_lex target lexbuf)
+    then (bprintf buff "\\"; escaped := false; string_lex re target lexbuf)
+    else (escaped := true; string_lex re target lexbuf)
   }
-  | '\n' { incr Global.current_line; Lexing.new_line lexbuf; bprintf buff "\n"; string_lex target lexbuf }
+  | '\n' { incr Global.current_line; Lexing.new_line lexbuf; bprintf buff "\n"; string_lex re target lexbuf }
   | '\"' {
     if !escaped
-    then (bprintf buff "\""; escaped := false; string_lex target lexbuf)
-    else (STRING(Buffer.contents buff) )
+    then (bprintf buff "\""; escaped := false; string_lex re target lexbuf)
+    else (if re then REGEXP (Buffer.contents buff) else STRING (Buffer.contents buff))
   }
   | _ as c {
     if !escaped then bprintf buff "\\";
     escaped := false;
     bprintf buff "%c" c;
-    string_lex target lexbuf
+    string_lex re target lexbuf
   }
 
 (* a dedicated lexer for lexical parameter: read everything until "#END" *)
@@ -131,7 +131,8 @@ and label_parser target = parse
 | "@#" color as col        { COLOR col }
 
 | label_ident as id { ID id }
-| '"'   { Buffer.clear buff; string_lex global lexbuf }
+| '"'      { Buffer.clear buff; string_lex false global lexbuf }
+| "re\""   { Buffer.clear buff; string_lex true global lexbuf }
 
 | "]->" { Global.label_flag := false; LTR_EDGE_RIGHT }
 | "]-"  { Global.label_flag := false; RTL_EDGE_RIGHT }
@@ -200,7 +201,6 @@ and standard target = parse
 | '+'   { PLUS }
 | '#'   { SHARP }
 | '='   { EQUAL }
-| "=="  { REGEXP }
 | "!"   { BANG }
 | "<>"  { DISEQUAL }
 
@@ -228,7 +228,8 @@ and standard target = parse
 | "=[^" { Global.label_flag := true; ARROW_LEFT_NEG }
 | "]=>" { ARROW_RIGHT }
 
-| '"'   { Buffer.clear buff; string_lex global lexbuf }
+| '"'      { Buffer.clear buff; string_lex false global lexbuf }
+| "re\""   { Buffer.clear buff; string_lex true global lexbuf }
 
 | eof   { EOF }
 | _ as c { raise (Error (sprintf "unexpected character '%c'" c)) }

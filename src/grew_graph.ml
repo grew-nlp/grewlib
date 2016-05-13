@@ -88,7 +88,7 @@ module P_graph = struct
         (fun acc (ast_edge, loc) ->
           let i1 = Id.build ~loc ast_edge.Ast.src pos_table in
           let i2 = Id.build ~loc ast_edge.Ast.tar pos_table in
-          let edge = P_edge.build domain ~locals (ast_edge, loc) in
+          let edge = P_edge.build domain (ast_edge, loc) in
           (match map_add_edge acc (Pid.Pos i1) edge (Pid.Pos i2) with
             | Some g -> g
             | None -> Error.build "[GRS] [Graph.build] try to build a graph with twice the same edge %s %s"
@@ -155,7 +155,7 @@ module P_graph = struct
             match Id.build_opt tar pos_table with
               | Some i -> Pid.Pos i
               | None -> Pid.Neg (Id.build ~loc tar new_table) in
-          let edge = P_edge.build domain ~locals (ast_edge, loc) in
+          let edge = P_edge.build domain (ast_edge, loc) in
           match map_add_edge acc i1 edge i2 with
             | Some map -> map
             | None -> Log.fbug "[GRS] [Graph.build_extension] add_edge cannot fail in pattern extension"; exit 2
@@ -242,7 +242,7 @@ module G_graph = struct
   (* is there an edge e out of node i ? *)
   let edge_out domain graph node_id label_cst =
     let node = Gid_map.find node_id graph.map in
-    Massoc_gid.exists (fun _ e -> Label_cst.match_ domain e label_cst) (G_node.get_next node)
+    Massoc_gid.exists (fun _ e -> Label_cst.match_ domain label_cst e) (G_node.get_next node)
 
   let get_annot_info graph =
     let annot_info =
@@ -300,7 +300,7 @@ module G_graph = struct
         (fun acc (ast_edge, loc) ->
           let i1 = List.assoc ast_edge.Ast.src table in
           let i2 = List.assoc ast_edge.Ast.tar table in
-          let edge = G_edge.build domain ~locals (ast_edge, loc) in
+          let edge = G_edge.build domain (ast_edge, loc) in
           (match map_add_edge acc i1 edge i2 with
             | Some g -> g
             | None -> Error.build "[GRS] [Graph.build] try to build a graph with twice the same edge %s %s"
@@ -487,14 +487,14 @@ module G_graph = struct
     let src_tar_edges = Massoc_gid.assoc tar_gid src_next in
     let _ =
       try
-        let loop_edge = List.find (fun edge -> Label_cst.match_ domain edge label_cst) src_tar_edges in
+        let loop_edge = List.find (fun edge -> Label_cst.match_ domain label_cst edge) src_tar_edges in
         Error.run ~loc "The shfit_out command tries to build a loop (with label %s)" (Label.to_string domain loop_edge)
       with Not_found -> () in
 
     let (new_src_next,new_tar_next) =
     Massoc_gid.fold
       (fun (acc_src_next,acc_tar_next) next_gid edge ->
-        if Label_cst.match_ domain edge label_cst
+        if Label_cst.match_ domain label_cst edge
         then
           match Massoc_gid.add next_gid edge acc_tar_next with
           | Some new_acc_tar_next -> (Massoc_gid.remove next_gid edge acc_src_next, new_acc_tar_next)
@@ -519,7 +519,7 @@ module G_graph = struct
     let tar_src_edges = Massoc_gid.assoc src_gid tar_next in
     let _ =
       try
-        let loop_edge = List.find (fun edge -> Label_cst.match_ domain edge label_cst) tar_src_edges in
+        let loop_edge = List.find (fun edge -> Label_cst.match_ domain label_cst edge) tar_src_edges in
         Error.run ~loc "The [shift_in] command tries to build a loop (with label \"%s\")" (Label.to_string domain loop_edge)
       with Not_found -> () in
 
@@ -534,7 +534,7 @@ module G_graph = struct
               let (new_node_src_edges, new_node_tar_edges) =
               List.fold_left
               (fun (acc_node_src_edges,acc_node_tar_edges) edge ->
-                if Label_cst.match_ domain edge label_cst
+                if Label_cst.match_ domain label_cst edge
                 then
                   match List_.usort_insert edge acc_node_tar_edges with
                   | None -> Error.run ~loc "The [shift_in] command tries to build a duplicate edge (with label \"%s\")" (Label.to_string domain edge)

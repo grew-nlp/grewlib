@@ -119,17 +119,10 @@ end
 module Label : sig
   type t
 
-  (** [match_ dom p_label g_label] returns [true] iff [g_label]
-      is a global label matching either constant p_label or patten p_label *)
-  val match_: Domain.t -> t -> t -> bool
+  (** [match_list p_label_list g_label] returns [true] iff [g_label] match at least one of the p_label of [p_label_list] *)
+  val match_list: t list -> t -> bool
 
-  (** [match_list dom list g_label] returns [true] iff [g_label]
-      is a global label matching at least one of the p_label of [list] *)
-  val match_list: Domain.t -> t list -> t -> bool
-
-  val to_string: Domain.t -> ?locals:Label_domain.decl array -> t -> string
-
-  val to_int: t -> int option
+  val to_string: Domain.t -> t -> string
 
   val to_dep: Domain.t -> ?deco:bool -> t -> string
 
@@ -137,19 +130,6 @@ module Label : sig
 
   val from_string: ?loc:Loc.t -> Domain.t -> ?locals:Label_domain.decl array -> string -> t
 end (* module Label *)
-
-(* ================================================================================ *)
-(** The module [Label_cst] defines contraints on label edges *)
-module Label_cst : sig
-  type t =
-  | Pos of Label.t list
-  | Neg of Label.t list
-
-  val to_string: Domain.t -> t -> string
-  val all: t
-  val match_: Domain.t -> Label.t -> t -> bool
-  val build: ?loc:Loc.t -> Domain.t -> ?locals:Label_domain.decl array -> (string list * bool) -> t
-end (* module Label_cst *)
 
 (* ================================================================================ *)
 module Feature_value: sig

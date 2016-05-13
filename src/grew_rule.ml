@@ -100,13 +100,13 @@ module Rule = struct
     | Prec of Pid.t * Pid.t
     | Lprec of Pid.t * Pid.t
 
-  let build_pos_constraint domain ?locals pos_table const =
+  let build_pos_constraint domain pos_table const =
     let pid_of_name loc node_name = Pid.Pos (Id.build ~loc node_name pos_table) in
     match const with
       | (Ast.Cst_out (id,label_cst), loc) ->
-        Cst_out (pid_of_name loc id, Label_cst.build ~loc domain ?locals label_cst)
+        Cst_out (pid_of_name loc id, Label_cst.build ~loc domain label_cst)
       | (Ast.Cst_in (id,label_cst), loc) ->
-        Cst_in (pid_of_name loc id, Label_cst.build ~loc domain ?locals label_cst)
+        Cst_in (pid_of_name loc id, Label_cst.build ~loc domain label_cst)
 
       | (Ast.Feature_eq ((node_name1, feat_name1), (node_name2, feat_name2)), loc) ->
         Domain.check_feature_name domain ~loc feat_name1;
@@ -144,26 +144,26 @@ module Rule = struct
 
   let build_pos_basic domain ?pat_vars ?(locals=[||]) basic_ast =
     let (graph, pos_table) =
-      P_graph.build domain ?pat_vars ~locals basic_ast.Ast.pat_nodes basic_ast.Ast.pat_edges in
+      P_graph.build domain ?pat_vars basic_ast.Ast.pat_nodes basic_ast.Ast.pat_edges in
     (
       {
         graph = graph;
-        constraints = List.map (build_pos_constraint domain ~locals pos_table) basic_ast.Ast.pat_const
+        constraints = List.map (build_pos_constraint domain pos_table) basic_ast.Ast.pat_const
       },
       pos_table
     )
 
   (* the neg part *)
-  let build_neg_constraint domain ?locals pos_table neg_table const =
+  let build_neg_constraint domain pos_table neg_table const =
     let pid_of_name loc node_name =
       match Id.build_opt node_name pos_table with
         | Some i -> Pid.Pos i
         | None -> Pid.Neg (Id.build ~loc node_name neg_table) in
     match const with
       | (Ast.Cst_out (id,label_cst), loc) ->
-        Cst_out (pid_of_name loc id, Label_cst.build ~loc domain ?locals label_cst)
+        Cst_out (pid_of_name loc id, Label_cst.build ~loc domain label_cst)
       | (Ast.Cst_in (id,label_cst), loc) ->
-        Cst_in (pid_of_name loc id, Label_cst.build ~loc domain ?locals label_cst)
+        Cst_in (pid_of_name loc id, Label_cst.build ~loc domain label_cst)
 
       | (Ast.Feature_eq (feat_id1, feat_id2), loc) ->
         let (node_name1, feat_name1) = feat_id1
@@ -205,12 +205,12 @@ module Rule = struct
   (* It may raise [P_fs.Fail_unif] in case of contradiction on constraints *)
   let build_neg_basic domain ?pat_vars ?(locals=[||]) pos_table basic_ast =
     let (extension, neg_table) =
-      P_graph.build_extension domain ?pat_vars ~locals pos_table basic_ast.Ast.pat_nodes basic_ast.Ast.pat_edges in
+      P_graph.build_extension domain ?pat_vars pos_table basic_ast.Ast.pat_nodes basic_ast.Ast.pat_edges in
 
     let filters = Pid_map.fold (fun id node acc -> Filter (id, P_node.get_fs node) :: acc) extension.P_graph.old_map [] in
     {
       graph = extension.P_graph.ext_map;
-      constraints = filters @ List.map (build_neg_constraint domain ~locals pos_table neg_table) basic_ast.Ast.pat_const ;
+      constraints = filters @ List.map (build_neg_constraint domain pos_table neg_table) basic_ast.Ast.pat_const ;
     }
 
   let get_edge_ids basic =
@@ -362,11 +362,11 @@ module Rule = struct
       | _ -> ()
     );
 
-    let (pos, pos_table) = build_pos_basic domain ~pat_vars ~locals rule_ast.Ast.pattern.Ast.pat_pos in
+    let (pos, pos_table) = build_pos_basic domain ~pat_vars rule_ast.Ast.pattern.Ast.pat_pos in
     let (negs,_) =
       List.fold_left
       (fun (acc,pos) basic_ast ->
-        try ((build_neg_basic domain ~pat_vars ~locals pos_table basic_ast) :: acc, pos+1)
+        try ((build_neg_basic domain ~pat_vars pos_table basic_ast) :: acc, pos+1)
         with P_fs.Fail_unif ->
           Log.fwarning "In rule \"%s\" [%s], the wihtout number %d cannot be satisfied, it is skipped"
             rule_ast.Ast.rule_id (Loc.to_string rule_ast.Ast.rule_loc) pos;
@@ -375,7 +375,7 @@ module Rule = struct
     {
       name = rule_ast.Ast.rule_id;
       pattern = (pos, negs);
-      commands = build_commands domain ~param:(pat_vars,cmd_vars) ~locals pos pos_table rule_ast.Ast.commands;
+      commands = build_commands domain ~param:(pat_vars,cmd_vars) pos pos_table rule_ast.Ast.commands;
       loc = rule_ast.Ast.rule_loc;
       param = param;
       param_names = (pat_vars,cmd_vars)
@@ -507,7 +507,7 @@ module Rule = struct
         let gid = Pid_map.find pid matching.n_match in
         if G_graph.node_exists
           (fun node ->
-            List.exists (fun e -> Label_cst.match_ domain e label_cst) (Massoc_gid.assoc gid (G_node.get_next node))
+            List.exists (fun e -> Label_cst.match_ domain label_cst e) (Massoc_gid.assoc gid (G_node.get_next node))
           ) graph
         then matching
         else raise Fail
@@ -556,12 +556,7 @@ module Rule = struct
           | None -> raise Fail
           | Some string_feat ->
             let re = Str.regexp regexp in
-            if Str.string_match re string_feat 0
-            then
-              if Str.matched_string string_feat = string_feat
-              then matching
-              else raise Fail
-            else raise Fail
+            if String_.re_match re string_feat then matching else raise Fail
         end
       | Prec (pid1, pid2) ->
           let gid1 = Pid_map.find pid1 matching.n_match in

@@ -95,8 +95,8 @@ module Command  = struct
       | (Ast.Del_edge_expl (act_i, act_j, lab), loc) ->
           check_node_id loc act_i kai;
           check_node_id loc act_j kai;
-	        let edge = G_edge.make ~loc label_domain ~locals lab in
-	        ((DEL_EDGE_EXPL (pid_of_act_id loc act_i, pid_of_act_id loc act_j, edge), loc), (kai, kei))
+          let edge = G_edge.make ~loc label_domain lab in
+          ((DEL_EDGE_EXPL (pid_of_act_id loc act_i, pid_of_act_id loc act_j, edge), loc), (kai, kei))
 
       | (Ast.Del_edge_name id, loc) ->
           check_edge loc id kei;
@@ -105,37 +105,37 @@ module Command  = struct
       | (Ast.Add_edge (act_i, act_j, lab), loc) ->
           check_node_id loc act_i kai;
           check_node_id loc act_j kai;
-	        let edge = G_edge.make ~loc label_domain ~locals lab in
-        	((ADD_EDGE (pid_of_act_id loc act_i, pid_of_act_id loc act_j, edge), loc), (kai, kei))
+          let edge = G_edge.make ~loc label_domain lab in
+          ((ADD_EDGE (pid_of_act_id loc act_i, pid_of_act_id loc act_j, edge), loc), (kai, kei))
 
       | (Ast.Shift_edge (act_i, act_j, label_cst), loc) ->
           check_node_id loc act_i kai;
           check_node_id loc act_j kai;
-	        ((SHIFT_EDGE (pid_of_act_id loc act_i, pid_of_act_id loc act_j, Label_cst.build ~loc label_domain ~locals label_cst), loc), (kai, kei))
+          ((SHIFT_EDGE (pid_of_act_id loc act_i, pid_of_act_id loc act_j, Label_cst.build ~loc label_domain label_cst), loc), (kai, kei))
 
       | (Ast.Shift_in (act_i, act_j, label_cst), loc) ->
           check_node_id loc act_i kai;
           check_node_id loc act_j kai;
-	        ((SHIFT_IN (pid_of_act_id loc act_i, pid_of_act_id loc act_j, Label_cst.build label_domain ~loc ~locals label_cst), loc), (kai, kei))
+          ((SHIFT_IN (pid_of_act_id loc act_i, pid_of_act_id loc act_j, Label_cst.build label_domain ~loc label_cst), loc), (kai, kei))
 
       | (Ast.Shift_out (act_i, act_j, label_cst), loc) ->
           check_node_id loc act_i kai;
           check_node_id loc act_j kai;
-	        ((SHIFT_OUT (pid_of_act_id loc act_i, pid_of_act_id loc act_j, Label_cst.build label_domain ~loc ~locals label_cst), loc), (kai, kei))
+          ((SHIFT_OUT (pid_of_act_id loc act_i, pid_of_act_id loc act_j, Label_cst.build label_domain ~loc label_cst), loc), (kai, kei))
 
       | (Ast.Merge_node (act_i, act_j), loc) ->
           check_node_id loc act_i kai;
           check_node_id loc act_j kai;
-	        ((MERGE_NODE (pid_of_act_id loc act_i, pid_of_act_id loc act_j), loc), (List_.rm act_i kai, kei))
+          ((MERGE_NODE (pid_of_act_id loc act_i, pid_of_act_id loc act_j), loc), (List_.rm act_i kai, kei))
 
       | (Ast.New_neighbour (new_id, ancestor, label), loc) ->
           check_node_id loc ancestor kai;
           if List.mem new_id kai
           then Error.build ~loc "Node identifier \"%s\" is already used" new_id;
 
-          let edge = G_edge.make ~loc label_domain ~locals label in
-	        begin
-	          try
+          let edge = G_edge.make ~loc label_domain label in
+          begin
+            try
             (
               (NEW_NEIGHBOUR
                  (new_id,
@@ -144,12 +144,12 @@ module Command  = struct
                  ), loc),
               (new_id::kai, kei)
             )
-	          with not_found ->
-	            Log.fcritical "[GRS] tries to build a command New_neighbour (%s) on node %s which is not in the pattern %s"
-	             (G_edge.to_string label_domain edge)
-	             ancestor
-	             (Loc.to_string loc)
-	        end
+            with Not_found ->
+              Log.fcritical "[GRS] tries to build a command New_neighbour (%s) on node %s which is not in the pattern %s"
+               (G_edge.to_string label_domain edge)
+               ancestor
+               (Loc.to_string loc)
+          end
 
       | (Ast.New_node new_id, loc) ->
           if List.mem new_id kai

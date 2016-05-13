@@ -98,8 +98,10 @@ module Ast = struct
 
   type edge_label = string
 
-  (* (list of edge_label separated by '|', bool true iff it is a negative constraint) *)
-  type edge_label_cst = edge_label list * bool
+  type edge_label_cst =
+    | Pos_list of edge_label list (*  X|Y|Z    *)
+    | Neg_list of edge_label list (*  ^X|Y|Z   *)
+    | Regexp of string            (*  re"a.*"  *)
 
   type u_edge = {
     edge_id: Id.name option;
@@ -222,26 +224,33 @@ module Ast = struct
     | Add_edge (n1,n2,label) ->
       sprintf "add_edge %s -[%s]-> %s" n1 label n2
 
-    | Shift_in (n1,n2,([],true)) ->
+    | Shift_in (n1,n2,Neg_list []) ->
       sprintf "shift_in %s ==> %s" n1 n2
-    | Shift_in (n1,n2,(labels,false)) ->
+    | Shift_in (n1,n2,Pos_list labels) ->
       sprintf "shift_in %s =[%s]=> %s" n1 n2 (List_.to_string (fun x->x) "|" labels)
-    | Shift_in (n1,n2,(labels,true)) ->
+    | Shift_in (n1,n2,Neg_list labels) ->
       sprintf "shift_in %s =[^%s]=> %s" n1 n2 (List_.to_string (fun x->x) "|" labels)
+    | Shift_in (n1,n2,Regexp re) ->
+      sprintf "shift_in %s =[re\"%s\"]=> %s" n1 re n2
 
-    | Shift_out (n1,n2,([],true)) ->
+    | Shift_out (n1,n2,Neg_list []) ->
       sprintf "shift_out %s ==> %s" n1 n2
-    | Shift_out (n1,n2,(labels,false)) ->
+    | Shift_out (n1,n2,Pos_list labels) ->
       sprintf "shift_out %s =[%s]=> %s" n1 n2 (List_.to_string (fun x->x) "|" labels)
-    | Shift_out (n1,n2,(labels,true)) ->
+    | Shift_out (n1,n2,Neg_list labels) ->
       sprintf "shift_out %s =[^%s]=> %s" n1 n2 (List_.to_string (fun x->x) "|" labels)
+    | Shift_out (n1,n2,Regexp re) ->
+      sprintf "shift_out %s =[re\"%s\"]=> %s" n1 re n2
 
-    | Shift_edge (n1,n2,([],true)) ->
+
+    | Shift_edge (n1,n2,Neg_list []) ->
       sprintf "shift %s ==> %s" n1 n2
-    | Shift_edge (n1,n2,(labels,false)) ->
+    | Shift_edge (n1,n2,Pos_list labels) ->
       sprintf "shift %s =[%s]=> %s" n1 n2 (List_.to_string (fun x->x) "|" labels)
-    | Shift_edge (n1,n2,(labels,true)) ->
+    | Shift_edge (n1,n2,Neg_list labels) ->
       sprintf "shift %s =[^%s]=> %s" n1 n2 (List_.to_string (fun x->x) "|" labels)
+    | Shift_edge (n1,n2,Regexp re) ->
+      sprintf "shift %s =[re\"%s\"]=> %s" n1 re n2
 
     | Merge_node (n1,n2) -> sprintf "merge %s ==> %s" n1 n2
     | New_neighbour (n1,n2,label) -> sprintf "add_node %s: <-[%s]- %s" n1 label n2

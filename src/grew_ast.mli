@@ -66,8 +66,10 @@ module Ast : sig
 
   type edge_label = string (* p_obj.agt:suj *)
 
-  (* (list of edge_label separated by '|', bool true iff it is a negative constraint) *)
-  type edge_label_cst = edge_label list * bool
+  type edge_label_cst =
+    | Pos_list of edge_label list (*  X|Y|Z    *)
+    | Neg_list of edge_label list (*  ^X|Y|Z   *)
+    | Regexp of string            (*  re"a.*"  *)
 
   type u_edge = {
       edge_id: Id.name option;

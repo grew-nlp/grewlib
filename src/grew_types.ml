@@ -280,33 +280,13 @@ end
 (* ================================================================================ *)
 module Label = struct
   (** Internal representation of labels *)
-  type t =
-    | Global of int       (* globally defined labels: their names are in the domain *)
-    | Local of int        (* locally defined labels: names array should be provided! UNTESTED *)
-    | Pattern of string
+  type t = int
 
-  let match_ ((table,_),_) p_label g_label = match (p_label, g_label) with
-    | (Global p, Global g) when p=g -> true
-    | (Pattern p, Global i) when String_.match_star_re p table.(i) -> true
-    | _ -> false
+  let match_list p_label_list g_label = List.exists (fun p_label -> p_label = g_label) p_label_list
 
-  let match_list domain p_label_list g_label =
-    List.exists (fun p_label -> match_ domain p_label g_label) p_label_list
+  let to_string ((table,_),_) i = table.(i)
 
-  (** [to_string label_domain t] returns a string for the label *)
-  let to_string ((table,_),_) ?(locals=[||]) = function
-    | Global i -> table.(i)
-    | Local i -> fst locals.(i)
-    | Pattern s -> s
-
-  let to_int = function
-    | Global i -> Some i
-    | _ -> None
-
-  let get_style (_,styles) = function
-    | Global i -> styles.(i)
-    | Local i -> Log.warning "Style of locally defined labels is not implemented"; Label_domain.default
-    | Pattern _ -> Label_domain.default
+  let get_style (_,styles) i = styles.(i)
 
   let to_dep (label_domain,_) ?(deco=false) t =
     let style = get_style label_domain t in
@@ -317,13 +297,8 @@ module Label = struct
     Label_domain.to_dot ~deco style
 
   let from_string ?loc ((table,_),_) ?(locals=[||]) str =
-    if String.contains str '*'
-    then Pattern str
-    else
-      try Global (Id.build ?loc str table)
-      with Not_found (* TODO (CANNOT BE RAISED) *) ->
-        try Local (Array_.dicho_find_assoc str locals)
-        with Not_found -> Error.build "[Label.from_string] unknown edge label '%s'" str
+    try Id.build ?loc str table
+    with Not_found -> Error.build "[Label.from_string] unknown edge label '%s'" str
 end (* module Label *)
 
 
@@ -336,30 +311,6 @@ module Feature_value = struct
       | [x] -> x
       | _ -> Error.bug ?loc "[Feature_value.build_value]"
 end (* module Feature_value *)
-
-
-
-(* ================================================================================ *)
-(** The module [Label_cst] defines contraints on label edges *)
-module Label_cst = struct
-  type t =
-  | Pos of Label.t list
-  | Neg of Label.t list
-
-  let to_string domain = function
-    | Pos l -> (List_.to_string (Label.to_string domain) "|" l)
-    | Neg l -> "^"^(List_.to_string (Label.to_string domain) "|" l)
-
-  let all = Neg []
-
-  let match_ domain edge = function
-    | Pos labels -> Label.match_list domain labels edge
-    | Neg labels -> not (Label.match_list domain labels edge)
-
-  let build ?loc domain ?locals = function
-  | (edge_labels, true) -> Neg (List.sort compare (List.map (Label.from_string ?loc domain ?locals) edge_labels))
-  | (edge_labels, false) -> Pos (List.sort compare (List.map (Label.from_string ?loc domain ?locals) edge_labels))
-end (* module Label_cst *)
 
 (* ================================================================================ *)
 (* This module defines a type for lexical parameter (i.e. one line in a lexical file) *)

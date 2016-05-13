@@ -16,18 +16,45 @@ open Grew_types
 open Grew_ast
 
 (* ================================================================================ *)
+(** The module [Label_cst] defines contraints on label edges *)
+module Label_cst = struct
+  type t =
+  | Pos of Label.t list
+  | Neg of Label.t list
+  | Regexp of (Str.regexp * string)
+
+  let to_string label_domain = function
+    | Pos l -> (List_.to_string (Label.to_string label_domain) "|" l)
+    | Neg l -> "^"^(List_.to_string (Label.to_string label_domain) "|" l)
+    | Regexp (_,re) -> "re\""^re^"\""
+
+  let all = Neg []
+
+  let match_ label_domain cst g_label = match cst with
+    | Pos labels -> Label.match_list labels g_label
+    | Neg labels -> not (Label.match_list labels g_label)
+    | Regexp (re,_) -> String_.re_match re (Label.to_string label_domain g_label)
+
+  let build ?loc label_domain = function
+    | Ast.Neg_list p_labels -> Neg (List.sort compare (List.map (Label.from_string ?loc label_domain) p_labels))
+    | Ast.Pos_list p_labels -> Pos (List.sort compare (List.map (Label.from_string ?loc label_domain) p_labels))
+    | Ast.Regexp re -> Regexp (Str.regexp re, re)
+end (* module Label_cst *)
+
+(* ================================================================================ *)
 module G_edge = struct
   type t = Label.t
 
-  let to_string label_domain ?(locals=[||]) t = Label.to_string label_domain ~locals t
+  let to_string label_domain t = Label.to_string label_domain t
 
-  let make ?loc label_domain ?(locals=[||]) string = Label.from_string ?loc label_domain ~locals string
+  let make ?loc label_domain string = Label.from_string ?loc label_domain string
 
-  let build label_domain ?locals (ast_edge, loc) =
+  let build label_domain (ast_edge, loc) =
     match ast_edge.Ast.edge_label_cst with
-    | ([one], false) -> Label.from_string ~loc label_domain ?locals one
-    | (_, true) -> Error.build "Negative edge spec are forbidden in graphs%s" (Loc.to_string loc)
-    | (_, false) -> Error.build "Only atomic edge valus are allowed in graphs%s" (Loc.to_string loc)
+    | Ast.Pos_list [one] -> Label.from_string ~loc label_domain one
+    | Ast.Neg_list _ -> Error.build "Negative edge spec are forbidden in graphs%s" (Loc.to_string loc)
+    | Ast.Pos_list _ -> Error.build "Only atomic edge values are allowed in graphs%s" (Loc.to_string loc)
+    | Ast.Regexp _ -> Error.build "Regexp are not allowed in graphs%s" (Loc.to_string loc)
 
   let to_dep label_domain ?(deco=false) t = Label.to_dep label_domain ~deco t
   let to_dot label_domain ?(deco=false) t = Label.to_dot label_domain ~deco t
@@ -40,52 +67,43 @@ end (* module G_edge *)
 (* ================================================================================ *)
 module P_edge = struct
   type t = {
-      id: string option; (* an identifier for naming under_label in patterns *)
-      u_label: Label_cst.t;
-    }
+    id: string option; (* an identifier for naming under_label in patterns *)
+    label_cst: Label_cst.t;
+  }
 
-  let all = {id=None; u_label= Label_cst.all }
+  let all = {id=None; label_cst=Label_cst.all }
 
   let get_id t = t.id
 
-  let build label_domain ?locals (ast_edge, loc) =
+  let build label_domain (ast_edge, loc) =
     { id = ast_edge.Ast.edge_id;
-      u_label = Label_cst.build ~loc label_domain ?locals ast_edge.Ast.edge_label_cst
+      label_cst = Label_cst.build ~loc label_domain ast_edge.Ast.edge_label_cst
     }
 
   let to_string label_domain t =
     match t.id with
-    | None -> Label_cst.to_string label_domain t.u_label
-    | Some i -> sprintf "%s:%s" i (Label_cst.to_string label_domain t.u_label)
+    | None -> Label_cst.to_string label_domain t.label_cst
+    | Some i -> sprintf "%s:%s" i (Label_cst.to_string label_domain t.label_cst)
 
   type edge_matcher =
     | Fail
     | Ok of Label.t
     | Binds of string * Label.t list
 
-  let match_ label_domain pattern_edge graph_label =
-    match pattern_edge with
-    | {id = Some i; u_label = Label_cst.Pos l} when Label.match_list label_domain l graph_label -> Binds (i, [graph_label])
-    | {id = None; u_label = Label_cst.Pos l} when Label.match_list label_domain l graph_label -> Ok graph_label
-    | {id = Some i; u_label = Label_cst.Neg l} when not (Label.match_list label_domain l graph_label) -> Binds (i, [graph_label])
-    | {id = None; u_label = Label_cst.Neg l} when not (Label.match_list label_domain l graph_label) -> Ok graph_label
+  let match_ label_domain p_edge g_edge =
+    match p_edge with
+    | {id = None; label_cst } when Label_cst.match_ label_domain label_cst g_edge -> Ok g_edge
+    | {id = Some i; label_cst } when Label_cst.match_ label_domain label_cst g_edge -> Binds (i, [g_edge])
     | _ -> Fail
 
-  let match_list label_domain pattern_edge graph_edge_list =
-    match pattern_edge with
-    | {id = None; u_label = Label_cst.Pos l} when List.exists (fun label -> Label.match_list label_domain l label) graph_edge_list ->
-        Ok (List.hd graph_edge_list)
-    | {id = None; u_label = Label_cst.Neg l} when List.exists (fun label -> not (Label.match_list label_domain l label)) graph_edge_list ->
-        Ok (List.hd graph_edge_list)
-    | {id = Some i; u_label = Label_cst.Pos l} ->
-      ( match List.filter (fun label -> Label.match_list label_domain l label) graph_edge_list with
+  let match_list label_domain p_edge g_edge_list =
+    match p_edge with
+    | {id = None; label_cst} when List.exists (fun g_edge -> Label_cst.match_ label_domain label_cst g_edge) g_edge_list ->
+        Ok (List.hd g_edge_list)
+    | {id = None} -> Fail
+    | {id = Some i; label_cst } ->
+      ( match List.filter (fun g_edge -> Label_cst.match_ label_domain label_cst g_edge) g_edge_list with
         | [] -> Fail
         | list -> Binds (i, list)
       )
-    | {id = Some i; u_label = Label_cst.Neg l} ->
-      ( match List.filter (fun label -> not (Label.match_list label_domain l label)) graph_edge_list with
-        | [] -> Fail
-        | list -> Binds (i, list)
-      )
-    | _ -> Fail
 end (* module P_edge *)

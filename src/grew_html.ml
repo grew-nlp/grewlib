@@ -74,25 +74,30 @@ module Html_doc = struct
     bprintf buff "      ";
     bprintf buff "%s" (match u_edge.Ast.edge_id with Some n -> n^": " | None -> "");
     match u_edge.Ast.edge_label_cst with
-    | (l,true) -> bprintf buff "%s -[^%s]-> %s;\n" u_edge.Ast.src (List_.to_string (fun x->x) "|" l) u_edge.Ast.tar
-    | (l,false) -> bprintf buff "%s -[%s]-> %s;\n" u_edge.Ast.src (List_.to_string (fun x->x) "|" l) u_edge.Ast.tar
+    | Ast.Pos_list l -> bprintf buff "%s -[%s]-> %s;\n" u_edge.Ast.src (List_.to_string (fun x->x) "|" l) u_edge.Ast.tar
+    | Ast.Neg_list l -> bprintf buff "%s -[^%s]-> %s;\n" u_edge.Ast.src (List_.to_string (fun x->x) "|" l) u_edge.Ast.tar
+    | Ast.Regexp re -> bprintf buff "%s -[re\"%s\"]-> %s;\n" u_edge.Ast.src re u_edge.Ast.tar
 
   let buff_html_const buff (u_const,_) =
     bprintf buff "      ";
     (match u_const with
-    | Ast.Cst_out (ident, ([],false)) ->
+    | Ast.Cst_out (ident, Ast.Neg_list []) ->
       bprintf buff "%s -> *" ident
-    | Ast.Cst_out (ident, (labels,false)) ->
+    | Ast.Cst_out (ident, Ast.Pos_list labels) ->
       bprintf buff "%s -[%s]-> *" ident (List_.to_string (fun x->x) "|" labels)
-    | Ast.Cst_out (ident, (labels,true)) ->
+    | Ast.Cst_out (ident, Ast.Neg_list labels) ->
       bprintf buff "%s -[^%s]-> *" ident (List_.to_string (fun x->x) "|" labels)
+    | Ast.Cst_out (ident, Ast.Regexp re) ->
+      bprintf buff "%s -[re\"%s\"]-> *" ident re
 
-    | Ast.Cst_in (ident, ([],false)) ->
+    | Ast.Cst_in (ident, Ast.Neg_list []) ->
       bprintf buff "* -> %s" ident
-    | Ast.Cst_in (ident, (labels,false)) ->
+    | Ast.Cst_in (ident, Ast.Pos_list labels) ->
       bprintf buff "* -[%s]-> %s" (List_.to_string (fun x->x) "|" labels) ident
-    | Ast.Cst_in (ident, (labels,true)) ->
+    | Ast.Cst_in (ident, Ast.Neg_list labels) ->
       bprintf buff "* -[^%s]-> %s" (List_.to_string (fun x->x) "|" labels) ident
+    | Ast.Cst_in (ident, Ast.Regexp re) ->
+      bprintf buff "* -[re\"%s\"]-> %s" re ident
 
     | Ast.Feature_eq (feat_id_l, feat_id_r) ->
       bprintf buff "%s = %s" (Ast.dump_feature_ident feat_id_l) (Ast.dump_feature_ident feat_id_r);

@@ -44,7 +44,6 @@ let localize t = (t,get_loc ())
 %token SHARP                       /* # */
 %token PLUS                        /* + */
 %token EQUAL                       /* = */
-%token REGEXP                      /* == */
 %token DISEQUAL                    /* <> */
 %token BANG                        /* ! */
 %token STAR                        /* * */
@@ -107,6 +106,7 @@ let localize t = (t,get_loc ())
 /* %token <Grew_ast.Ast.complex_id>   COMPLEX_ID*/
 
 %token <string>           STRING
+%token <string>           REGEXP
 %token <float>            FLOAT
 %token <string list>      COMMENT
 %token <string list>      LEX_PAR
@@ -197,7 +197,7 @@ gr_item:
 
         (* A -[x]-> B *)
         | n1_loc=simple_id_with_loc label=delimited(LTR_EDGE_LEFT,label_ident,LTR_EDGE_RIGHT) n2=simple_id
-            { Graph_edge ({Ast.edge_id = None; src=fst n1_loc; edge_label_cst=([label],false); tar=n2}, snd n1_loc) }
+            { Graph_edge ({Ast.edge_id = None; src=fst n1_loc; edge_label_cst=Ast.Pos_list [label]; tar=n2}, snd n1_loc) }
 
 /*=============================================================================================*/
 /*  DOMAIN DEFINITION                                                                          */
@@ -416,52 +416,60 @@ node_features:
 pat_edge_or_const:
         (*   "e: A -> B"           *)
         | id_loc=simple_id_with_loc DDOT n1=simple_id EDGE n2=simple_id
-            { let (id,loc) = id_loc in Pat_edge ({Ast.edge_id = Some id; src=n1; edge_label_cst=([],true); tar=n2}, loc) }
+            { let (id,loc) = id_loc in Pat_edge ({Ast.edge_id = Some id; src=n1; edge_label_cst=(Ast.Neg_list []); tar=n2}, loc) }
 
         (* "e: A -[X|Y]-> B" *)
         | id_loc=simple_id_with_loc DDOT n1=simple_id labels=delimited(LTR_EDGE_LEFT,separated_nonempty_list(PIPE,pattern_label_ident),LTR_EDGE_RIGHT) n2=simple_id
-            { let (id,loc) = id_loc in Pat_edge ({Ast.edge_id = Some id; src=n1; edge_label_cst=(labels,false); tar=n2}, loc) }
+            { let (id,loc) = id_loc in Pat_edge ({Ast.edge_id = Some id; src=n1; edge_label_cst=(Ast.Pos_list labels); tar=n2}, loc) }
 
         (* "e: A -[^X|Y]-> B" *)
         | id_loc=simple_id_with_loc DDOT n1=simple_id labels=delimited(LTR_EDGE_LEFT_NEG,separated_nonempty_list(PIPE,pattern_label_ident),LTR_EDGE_RIGHT) n2=simple_id
-            { let (id,loc) = id_loc in Pat_edge ({Ast.edge_id = Some id; src=n1; edge_label_cst=(labels,true); tar=n2}, loc) }
+            { let (id,loc) = id_loc in Pat_edge ({Ast.edge_id = Some id; src=n1; edge_label_cst=(Ast.Neg_list labels); tar=n2}, loc) }
+
+        (* "e: A -[re"regexp"]-> B" *)
+        | id_loc=simple_id_with_loc DDOT n1=simple_id LTR_EDGE_LEFT re=REGEXP LTR_EDGE_RIGHT n2=simple_id
+            { let (id,loc) = id_loc in Pat_edge ({Ast.edge_id = Some id; src=n1; edge_label_cst=Ast.Regexp re; tar=n2}, loc) }
 
         (*   "A -> B"           *)
         | n1_loc=simple_id_with_loc EDGE n2=simple_id
-            { let (n1,loc) = n1_loc in Pat_edge ({Ast.edge_id = None; src=n1; edge_label_cst=([],true); tar=n2}, loc) }
+            { let (n1,loc) = n1_loc in Pat_edge ({Ast.edge_id = None; src=n1; edge_label_cst=Ast.Neg_list []; tar=n2}, loc) }
 
         (*   "A -> *"           *)
         | n1_loc=simple_id_with_loc EDGE STAR
-            { let (n1,loc) = n1_loc in Pat_const (Ast.Cst_out (n1,([],true)), loc) }
+            { let (n1,loc) = n1_loc in Pat_const (Ast.Cst_out (n1,Ast.Neg_list []), loc) }
 
         (*   "* -> B"           *)
         | STAR EDGE n2_loc=simple_id_with_loc
-            { let (n2,loc) = n2_loc in Pat_const (Ast.Cst_in (n2,([],true)), loc) }
+            { let (n2,loc) = n2_loc in Pat_const (Ast.Cst_in (n2,Ast.Neg_list []), loc) }
 
         (*   "A -[X|Y]-> B"   *)
         | n1_loc=simple_id_with_loc labels=delimited(LTR_EDGE_LEFT,separated_nonempty_list(PIPE,pattern_label_ident),LTR_EDGE_RIGHT) n2=simple_id
-            { let (n1,loc) = n1_loc in Pat_edge ({Ast.edge_id = None; src=n1; edge_label_cst=(labels,false); tar=n2}, loc) }
+            { let (n1,loc) = n1_loc in Pat_edge ({Ast.edge_id = None; src=n1; edge_label_cst=Ast.Pos_list labels; tar=n2}, loc) }
 
         (*   "A -[X|Y]-> *"   *)
         | n1_loc=simple_id_with_loc labels=delimited(LTR_EDGE_LEFT,separated_nonempty_list(PIPE,pattern_label_ident),LTR_EDGE_RIGHT) STAR
-            { let (n1,loc) = n1_loc in Pat_const (Ast.Cst_out (n1,(labels,false)), loc) }
+            { let (n1,loc) = n1_loc in Pat_const (Ast.Cst_out (n1,Ast.Pos_list labels), loc) }
 
         (*   "* -[X|Y]-> B"   *)
         | STAR labels=delimited(LTR_EDGE_LEFT,separated_nonempty_list(PIPE,pattern_label_ident),LTR_EDGE_RIGHT) n2_loc=simple_id_with_loc
-            { let (n2,loc) = n2_loc in Pat_const (Ast.Cst_in (n2,(labels,false)), loc) }
+            { let (n2,loc) = n2_loc in Pat_const (Ast.Cst_in (n2,Ast.Pos_list labels), loc) }
 
 
         (* "A -[^X|Y]-> B" *)
         | n1_loc=simple_id_with_loc labels=delimited(LTR_EDGE_LEFT_NEG,separated_nonempty_list(PIPE,pattern_label_ident),LTR_EDGE_RIGHT) n2=simple_id
-            { let (n1,loc) = n1_loc in Pat_edge ({Ast.edge_id = None; src=n1; edge_label_cst=(labels,true); tar=n2}, loc) }
+            { let (n1,loc) = n1_loc in Pat_edge ({Ast.edge_id = None; src=n1; edge_label_cst=Ast.Neg_list labels; tar=n2}, loc) }
+
+        (* "A -[re"regexp"]-> B" *)
+        | n1_loc=simple_id_with_loc LTR_EDGE_LEFT re=REGEXP LTR_EDGE_RIGHT n2=simple_id
+            { let (n1,loc) = n1_loc in Pat_edge ({Ast.edge_id = None; src=n1; edge_label_cst=Ast.Regexp re; tar=n2}, loc) }
 
         (* "A -[^X|Y]-> *" *)
         | n1_loc=simple_id_with_loc labels=delimited(LTR_EDGE_LEFT_NEG,separated_nonempty_list(PIPE,pattern_label_ident),LTR_EDGE_RIGHT) STAR
-            { let (n1,loc) = n1_loc in Pat_const (Ast.Cst_out (n1,(labels,true)), loc) }
+            { let (n1,loc) = n1_loc in Pat_const (Ast.Cst_out (n1,Ast.Neg_list labels), loc) }
 
         (* "* -[^X|Y]-> B" *)
         | STAR labels=delimited(LTR_EDGE_LEFT_NEG,separated_nonempty_list(PIPE,pattern_label_ident),LTR_EDGE_RIGHT) n2_loc=simple_id_with_loc
-            { let (n2,loc) = n2_loc in Pat_const (Ast.Cst_in (n2,(labels,true)), loc) }
+            { let (n2,loc) = n2_loc in Pat_const (Ast.Cst_in (n2,Ast.Neg_list labels), loc) }
 
         (* "X.cat = Y.cat" *)
         | feat_id1_loc=feature_ident_with_loc EQUAL feat_id2=feature_ident
@@ -471,8 +479,8 @@ pat_edge_or_const:
         | feat_id1_loc=feature_ident_with_loc DISEQUAL feat_id2=feature_ident
             { let (feat_id1,loc)=feat_id1_loc in Pat_const (Ast.Feature_diseq (feat_id1, feat_id2), loc) }
 
-        (* "X.cat == "regexp" " *)
-        | feat_id_loc=feature_ident_with_loc REGEXP regexp=STRING
+        (* "X.cat = re"regexp" " *)
+        | feat_id_loc=feature_ident_with_loc EQUAL regexp=REGEXP
             { let (feat_id,loc)=feat_id_loc in Pat_const (Ast.Feature_re (feat_id, regexp), loc) }
 
         | id1_loc=ineq_value_with_loc LT id2=ineq_value
@@ -552,51 +560,51 @@ command:
 
         (* "shift_in m ==> n" *)
         | SHIFT_IN src_loc=simple_id_with_loc ARROW tar=simple_id
-            { let (src,loc) = src_loc in (Ast.Shift_in (src, tar, ([], true)), loc) }
+            { let (src,loc) = src_loc in (Ast.Shift_in (src, tar, Ast.Neg_list []), loc) }
 
         (* "shift_in m =[x*|y]=> n" *)
         | SHIFT_IN src_loc=simple_id_with_loc
           labels=delimited(ARROW_LEFT,separated_nonempty_list(PIPE,pattern_label_ident),ARROW_RIGHT)
           tar=simple_id
-            { let (src,loc) = src_loc in (Ast.Shift_in (src, tar, (labels, false)), loc) }
+            { let (src,loc) = src_loc in (Ast.Shift_in (src, tar, Ast.Pos_list labels), loc) }
 
         (* "shift_in m =[^x*|y]=> n" *)
         | SHIFT_IN src_loc=simple_id_with_loc
           labels=delimited(ARROW_LEFT_NEG,separated_nonempty_list(PIPE,pattern_label_ident),ARROW_RIGHT)
           tar=simple_id
-            { let (src,loc) = src_loc in (Ast.Shift_in (src, tar, (labels, true)), loc) }
+            { let (src,loc) = src_loc in (Ast.Shift_in (src, tar, Ast.Neg_list labels), loc) }
 
         (* "shift_out m ==> n" *)
         | SHIFT_OUT src_loc=simple_id_with_loc ARROW tar=simple_id
-            { let (src,loc) = src_loc in (Ast.Shift_out (src, tar, ([], true)), loc) }
+            { let (src,loc) = src_loc in (Ast.Shift_out (src, tar, Ast.Neg_list []), loc) }
 
         (* "shift_out m =[x*|y]=> n" *)
         | SHIFT_OUT src_loc=simple_id_with_loc
           labels=delimited(ARROW_LEFT,separated_nonempty_list(PIPE,pattern_label_ident),ARROW_RIGHT)
           tar=simple_id
-            { let (src,loc) = src_loc in (Ast.Shift_out (src, tar, (labels, false)), loc) }
+            { let (src,loc) = src_loc in (Ast.Shift_out (src, tar, Ast.Pos_list labels), loc) }
 
         (* "shift_out m =[^x*|y]=> n" *)
         | SHIFT_OUT src_loc=simple_id_with_loc
           labels=delimited(ARROW_LEFT_NEG,separated_nonempty_list(PIPE,pattern_label_ident),ARROW_RIGHT)
           tar=simple_id
-            { let (src,loc) = src_loc in (Ast.Shift_out (src, tar, (labels, true)), loc) }
+            { let (src,loc) = src_loc in (Ast.Shift_out (src, tar, Ast.Neg_list labels), loc) }
 
         (* "shift m ==> n" *)
         | SHIFT src_loc=simple_id_with_loc ARROW tar=simple_id
-            { let (src,loc) = src_loc in (Ast.Shift_edge (src, tar, ([], true)), loc) }
+            { let (src,loc) = src_loc in (Ast.Shift_edge (src, tar, Ast.Neg_list []), loc) }
 
         (* "shift m =[x*|y]=> n" *)
         | SHIFT src_loc=simple_id_with_loc
           labels=delimited(ARROW_LEFT,separated_nonempty_list(PIPE,pattern_label_ident),ARROW_RIGHT)
           tar=simple_id
-            { let (src,loc) = src_loc in (Ast.Shift_edge (src, tar, (labels, false)), loc) }
+            { let (src,loc) = src_loc in (Ast.Shift_edge (src, tar, Ast.Pos_list labels), loc) }
 
         (* "shift m =[^x*|y]=> n" *)
         | SHIFT src_loc=simple_id_with_loc
           labels=delimited(ARROW_LEFT_NEG,separated_nonempty_list(PIPE,pattern_label_ident),ARROW_RIGHT)
           tar=simple_id
-            { let (src,loc) = src_loc in (Ast.Shift_edge (src, tar, (labels, true)), loc) }
+            { let (src,loc) = src_loc in (Ast.Shift_edge (src, tar, Ast.Neg_list labels), loc) }
 
         (* merge m ==> n *)
         | MERGE src_loc=simple_id_with_loc ARROW tar=simple_id

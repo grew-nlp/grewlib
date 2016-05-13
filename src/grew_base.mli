@@ -23,6 +23,8 @@ module String_: sig
   (* [to_float]: robust conversion of float to string whatever is the locale *)
   val of_float: float -> string
 
+  val re_match: Str.regexp -> string -> bool
+
   (* [rm_first_char s] returns the string [s] without the first charater if s is not empty.
      If s in empty, the empty string is returned  *)
   val rm_first_char: string -> string
@@ -30,9 +32,6 @@ module String_: sig
   (* [rm_peripheral_white s] returns the string [s] without any white space ot tab
     at the beginning or at the end of the string. *)
   val rm_peripheral_white: string -> string
-
-  (** [match_star_re star_re string] returns true iff the string match the [star_re]  *)
-  val match_star_re: string -> string -> bool
 end
 
 
