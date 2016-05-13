@@ -22,7 +22,7 @@ end
 (* ==================================================================================================== *)
 (** {2 Exceptions} *)
 (* ==================================================================================================== *)
-exception File_dont_exists of string
+exception File_not_found of string
 
 exception Parsing_err of string * Loc.t option
 
@@ -82,7 +82,7 @@ module Graph : sig
   (** get a graph from a file either in 'gr' or 'conll' format.
       File extension should be '.gr' or '.conll'.
       @raise Parsing_err if libgrew can't parse the file
-      @raise File_dont_exists if the file doesn't exists. *)
+      @raise File_not_found if the file doesn't exists. *)
   val load: Domain.t -> string -> t
 
   val of_conll: Domain.t -> Conll.t -> t
@@ -125,7 +125,7 @@ module Grs: sig
 
   (** [load filename] loads a graph rewriting system from [filename]
       @raise Parsing_err if libgrew can't parse the file
-      @raise File_dont_exists if the file doesn't exists *)
+      @raise File_not_found if the file doesn't exists *)
   val load: string -> t
 
   (** [get_sequence_names t] returns the list of sequence names defined in a GRS *)

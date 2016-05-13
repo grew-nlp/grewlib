@@ -24,7 +24,7 @@ end
 (* ==================================================================================================== *)
 (** {2 Exceptions} *)
 (* ==================================================================================================== *)
-exception File_dont_exists of string
+exception File_not_found of string
 exception Parsing_err of string * Loc.t option
 exception Build of string * Loc.t option
 exception Run of string * Loc.t option
@@ -37,6 +37,7 @@ let handle ?(name="") ?(file="No file defined") fct () =
     | Build (msg,loc_opt) -> raise (Build (msg,loc_opt))
     | Bug (msg, loc_opt) -> raise (Bug (msg,loc_opt))
     | Run (msg, loc_opt) -> raise (Run (msg,loc_opt))
+    | File_not_found file -> raise (File_not_found file)
 
     (* Catch new exceptions *)
     | Grew_loader.Loader.Error (msg, loc_opt) -> raise (Parsing_err (msg, loc_opt))
@@ -97,7 +98,7 @@ type t = Grew_graph.G_graph.t
 
   let load_gr domain file =
     if not (Sys.file_exists file)
-    then raise (File_dont_exists file)
+    then raise (File_not_found file)
     else
       handle ~name:"Graph.load_gr" ~file
         (fun () ->
@@ -185,7 +186,7 @@ module Grs = struct
     handle ~name:"Grs.load" ~file
       (fun () ->
         if not (Sys.file_exists file)
-        then raise (File_dont_exists file)
+        then raise (File_not_found file)
         else Grew_grs.Grs.build file
       ) ()
 
