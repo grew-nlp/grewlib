@@ -236,7 +236,6 @@ module G_graph = struct
           match key with
           | Gid.Old n -> (n, mapping)
           | Gid.New _ -> (max_binding, mapping)
-          | Gid.Act (n,suffix) -> (max_binding+1, (key, (Gid.Old (max_binding+1)))::mapping)
         ) t.map (0, []) in
         rename mapping t
 
@@ -490,19 +489,6 @@ module G_graph = struct
     }
 
   (* -------------------------------------------------------------------------------- *)
-  let activate loc node_id suffix graph =
-    let index = match node_id with
-      | Gid.Old id -> Gid.Act (id, suffix)
-      | _ -> Error.run ~loc "[Graph.activate] is possible only from a \"ground\" node" in
-
-    if Gid_map.mem index graph.map
-    then Error.run ~loc "[Graph.activate] try to activate twice the \"same\" node (with suffix '%s')" suffix;
-
-    let node = Gid_map.find node_id graph.map in
-    let new_map = Gid_map.add index (G_node.build_new node) graph.map in
-    (index, {graph with map = new_map})
-
-  (* -------------------------------------------------------------------------------- *)
   let add_neighbour loc domain graph node_id label =
     let index = match node_id with
       | Gid.Old id ->
@@ -510,7 +496,7 @@ module G_graph = struct
           | Some label_int -> Gid.New (id, label_int)
           | None -> Error.run ~loc "[Graph.add_neighbour] try to add neighbour with a local label"
         )
-      | Gid.New _ | Gid.Act _ -> Error.run ~loc "[Graph.add_neighbour] try to add neighbour node to a neighbour node" in
+      | Gid.New _ -> Error.run ~loc "[Graph.add_neighbour] try to add neighbour node to a neighbour node" in
 
     if Gid_map.mem index graph.map
     then Error.run ~loc "[Graph.add_neighbour] try to build twice the \"same\" neighbour node (with label '%s')" (Label.to_string domain label);

@@ -51,40 +51,39 @@ module Html_doc = struct
     if li_html then bprintf buff "<li>";
     (match u_command with
     | Ast.Del_edge_expl (n1,n2,label) ->
-      bprintf buff "del_edge %s -[%s]-> %s" (Ast.dump_command_node_ident n1) label (Ast.dump_command_node_ident n2)
+      bprintf buff "del_edge %s -[%s]-> %s" n1 label n2
     | Ast.Del_edge_name name -> bprintf buff "del_edge %s" name
     | Ast.Add_edge (n1,n2,label) ->
-      bprintf buff "add_edge %s -[%s]-> %s" (Ast.dump_command_node_ident n1) label (Ast.dump_command_node_ident n2)
+      bprintf buff "add_edge %s -[%s]-> %s" n1 label n2
 
     | Ast.Shift_in (n1,n2,([],true)) ->
-      bprintf buff "shift_in %s ==> %s" (Ast.dump_command_node_ident n1) (Ast.dump_command_node_ident n2)
+      bprintf buff "shift_in %s ==> %s" n1 n2
     | Ast.Shift_in (n1,n2,(labels,false)) ->
-      bprintf buff "shift_in %s =[%s]=> %s" (Ast.dump_command_node_ident n1) (Ast.dump_command_node_ident n2) (List_.to_string (fun x->x) "|" labels)
+      bprintf buff "shift_in %s =[%s]=> %s" n1 n2 (List_.to_string (fun x->x) "|" labels)
     | Ast.Shift_in (n1,n2,(labels,true)) ->
-      bprintf buff "shift_in %s =[^%s]=> %s" (Ast.dump_command_node_ident n1) (Ast.dump_command_node_ident n2) (List_.to_string (fun x->x) "|" labels)
+      bprintf buff "shift_in %s =[^%s]=> %s" n1 n2 (List_.to_string (fun x->x) "|" labels)
 
     | Ast.Shift_out (n1,n2,([],true)) ->
-      bprintf buff "shift_out %s ==> %s" (Ast.dump_command_node_ident n1) (Ast.dump_command_node_ident n2)
+      bprintf buff "shift_out %s ==> %s" n1 n2
     | Ast.Shift_out (n1,n2,(labels,false)) ->
-      bprintf buff "shift_out %s =[%s]=> %s" (Ast.dump_command_node_ident n1) (Ast.dump_command_node_ident n2) (List_.to_string (fun x->x) "|" labels)
+      bprintf buff "shift_out %s =[%s]=> %s" n1 n2 (List_.to_string (fun x->x) "|" labels)
     | Ast.Shift_out (n1,n2,(labels,true)) ->
-      bprintf buff "shift_out %s =[^%s]=> %s" (Ast.dump_command_node_ident n1) (Ast.dump_command_node_ident n2) (List_.to_string (fun x->x) "|" labels)
+      bprintf buff "shift_out %s =[^%s]=> %s" n1 n2 (List_.to_string (fun x->x) "|" labels)
 
     | Ast.Shift_edge (n1,n2,([],true)) ->
-      bprintf buff "shift %s ==> %s" (Ast.dump_command_node_ident n1) (Ast.dump_command_node_ident n2)
+      bprintf buff "shift %s ==> %s" n1 n2
     | Ast.Shift_edge (n1,n2,(labels,false)) ->
-      bprintf buff "shift %s =[%s]=> %s" (Ast.dump_command_node_ident n1) (Ast.dump_command_node_ident n2) (List_.to_string (fun x->x) "|" labels)
+      bprintf buff "shift %s =[%s]=> %s" n1 n2 (List_.to_string (fun x->x) "|" labels)
     | Ast.Shift_edge (n1,n2,(labels,true)) ->
-      bprintf buff "shift %s =[^%s]=> %s" (Ast.dump_command_node_ident n1) (Ast.dump_command_node_ident n2) (List_.to_string (fun x->x) "|" labels)
+      bprintf buff "shift %s =[^%s]=> %s" n1 n2 (List_.to_string (fun x->x) "|" labels)
 
-    | Ast.Merge_node (n1,n2) -> bprintf buff "merge %s ==> %s" (Ast.dump_command_node_ident n1) (Ast.dump_command_node_ident n2)
-    | Ast.New_neighbour (n1,n2,label) -> bprintf buff "add_node %s: <-[%s]- %s" n1 label (Ast.dump_command_node_ident n2)
-    | Ast.Activate act_id -> bprintf buff "activate %s" (Ast.dump_command_node_ident act_id)
-    | Ast.Del_node act_id -> bprintf buff "del_node %s" (Ast.dump_command_node_ident act_id)
+    | Ast.Merge_node (n1,n2) -> bprintf buff "merge %s ==> %s" n1 n2
+    | Ast.New_neighbour (n1,n2,label) -> bprintf buff "add_node %s: <-[%s]- %s" n1 label n2
+    | Ast.Del_node act_id -> bprintf buff "del_node %s" act_id
     | Ast.Update_feat ((act_id, feat_name),item_list) ->
-      bprintf buff "%s.%s = %s" (Ast.dump_command_node_ident act_id) feat_name (List_.to_string string_of_concat_item " + " item_list)
+      bprintf buff "%s.%s = %s" act_id feat_name (List_.to_string string_of_concat_item " + " item_list)
     | Ast.Del_feat (act_id, feat_name) ->
-      bprintf buff "del_feat %s.%s" (Ast.dump_command_node_ident act_id) feat_name
+      bprintf buff "del_feat %s.%s" act_id feat_name
     );
     if li_html then bprintf buff "</li>\n" else bprintf buff ";\n"
 

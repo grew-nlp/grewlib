@@ -75,8 +75,6 @@ let localize t = (t,get_loc ())
 %token FEATURE                     /* feature */
 %token FILE                        /* file */
 %token LABELS                      /* labels */
-%token SUFFIXES                    /* suffixes */
-%token ACTIVATE                    /* activate */
 %token MATCH                       /* match */
 %token WITHOUT                     /* without */
 %token COMMANDS                    /* commands */
@@ -151,20 +149,11 @@ simple_id:
 simple_id_with_loc:
         | id=ID       { localize (Ast.parse_simple_ident id) }
 
-command_node_ident :
-        | id=ID       { Ast.parse_command_node_ident id }
-
-command_node_ident_with_loc :
-        | id=ID       { localize (Ast.parse_command_node_ident id) }
-
 feature_ident :
         | id=ID       { Ast.parse_feature_ident id }
 
 feature_ident_with_loc :
         | id=ID      { localize (Ast.parse_feature_ident id) }
-
-command_feature_ident_with_loc :
-        | id=ID      { localize (Ast.parse_command_feature_ident id) }
 
 feature_value:
         | v=ID        { v }
@@ -299,11 +288,10 @@ included:
         | x=list(module_or_include) EOF { x }
 
 grew_module:
-        | doc=option(COMMENT) MODULE conf=boption(CONFLUENT) id_loc=simple_id_with_loc LACC l=option(labels) suff=option(suffixes) r=rules RACC
+        | doc=option(COMMENT) MODULE conf=boption(CONFLUENT) id_loc=simple_id_with_loc LACC l=option(labels) r=rules RACC
            {
             { Ast.module_id = fst id_loc;
               local_labels = (match l with None -> [] | Some x -> x);
-              suffixes = (match suff with None -> [] | Some x -> x);
               rules = r;
               confluent = conf;
               module_doc = (match doc with Some d -> d | None -> []);
@@ -311,12 +299,6 @@ grew_module:
               mod_dir = "";
             }
           }
-
-suffixes:
-        (* "suffixes {a, b, c}" *)
-        | SUFFIXES x=delimited(LACC,separated_nonempty_list_final_opt(COMA,simple_id),RACC)
-            { x }
-
 
 /*=============================================================================================*/
 /* RULES DEFINITION                                                                            */
@@ -555,85 +537,79 @@ command:
             { let (n,loc) = n_loc in (Ast.Del_edge_name n, loc) }
 
         (* del_edge m -[x]-> n *)
-        | DEL_EDGE src_loc=command_node_ident_with_loc label=delimited(LTR_EDGE_LEFT,label_ident,LTR_EDGE_RIGHT) tar=command_node_ident
+        | DEL_EDGE src_loc=simple_id_with_loc label=delimited(LTR_EDGE_LEFT,label_ident,LTR_EDGE_RIGHT) tar=simple_id
             { let (src,loc) = src_loc in (Ast.Del_edge_expl (src, tar, label), loc) }
 
         (* add_edge m -[x]-> n *)
-        | ADD_EDGE src_loc=command_node_ident_with_loc label=delimited(LTR_EDGE_LEFT,label_ident,LTR_EDGE_RIGHT) tar=command_node_ident
+        | ADD_EDGE src_loc=simple_id_with_loc label=delimited(LTR_EDGE_LEFT,label_ident,LTR_EDGE_RIGHT) tar=simple_id
             { let (src,loc) = src_loc in (Ast.Add_edge (src, tar, label), loc) }
 
         (* "shift_in m ==> n" *)
-        | SHIFT_IN src_loc=command_node_ident_with_loc ARROW tar=command_node_ident
+        | SHIFT_IN src_loc=simple_id_with_loc ARROW tar=simple_id
             { let (src,loc) = src_loc in (Ast.Shift_in (src, tar, ([], true)), loc) }
 
         (* "shift_in m =[x*|y]=> n" *)
-        | SHIFT_IN src_loc=command_node_ident_with_loc 
+        | SHIFT_IN src_loc=simple_id_with_loc
           labels=delimited(ARROW_LEFT,separated_nonempty_list(PIPE,pattern_label_ident),ARROW_RIGHT)
-          tar=command_node_ident
+          tar=simple_id
             { let (src,loc) = src_loc in (Ast.Shift_in (src, tar, (labels, false)), loc) }
 
         (* "shift_in m =[^x*|y]=> n" *)
-        | SHIFT_IN src_loc=command_node_ident_with_loc 
+        | SHIFT_IN src_loc=simple_id_with_loc
           labels=delimited(ARROW_LEFT_NEG,separated_nonempty_list(PIPE,pattern_label_ident),ARROW_RIGHT)
-          tar=command_node_ident
+          tar=simple_id
             { let (src,loc) = src_loc in (Ast.Shift_in (src, tar, (labels, true)), loc) }
 
-
         (* "shift_out m ==> n" *)
-        | SHIFT_OUT src_loc=command_node_ident_with_loc ARROW tar=command_node_ident
+        | SHIFT_OUT src_loc=simple_id_with_loc ARROW tar=simple_id
             { let (src,loc) = src_loc in (Ast.Shift_out (src, tar, ([], true)), loc) }
 
         (* "shift_out m =[x*|y]=> n" *)
-        | SHIFT_OUT src_loc=command_node_ident_with_loc 
+        | SHIFT_OUT src_loc=simple_id_with_loc
           labels=delimited(ARROW_LEFT,separated_nonempty_list(PIPE,pattern_label_ident),ARROW_RIGHT)
-          tar=command_node_ident
+          tar=simple_id
             { let (src,loc) = src_loc in (Ast.Shift_out (src, tar, (labels, false)), loc) }
 
         (* "shift_out m =[^x*|y]=> n" *)
-        | SHIFT_OUT src_loc=command_node_ident_with_loc 
+        | SHIFT_OUT src_loc=simple_id_with_loc
           labels=delimited(ARROW_LEFT_NEG,separated_nonempty_list(PIPE,pattern_label_ident),ARROW_RIGHT)
-          tar=command_node_ident
+          tar=simple_id
             { let (src,loc) = src_loc in (Ast.Shift_out (src, tar, (labels, true)), loc) }
 
-
         (* "shift m ==> n" *)
-        | SHIFT src_loc=command_node_ident_with_loc ARROW tar=command_node_ident
+        | SHIFT src_loc=simple_id_with_loc ARROW tar=simple_id
             { let (src,loc) = src_loc in (Ast.Shift_edge (src, tar, ([], true)), loc) }
 
         (* "shift m =[x*|y]=> n" *)
-        | SHIFT src_loc=command_node_ident_with_loc 
+        | SHIFT src_loc=simple_id_with_loc
           labels=delimited(ARROW_LEFT,separated_nonempty_list(PIPE,pattern_label_ident),ARROW_RIGHT)
-          tar=command_node_ident
+          tar=simple_id
             { let (src,loc) = src_loc in (Ast.Shift_edge (src, tar, (labels, false)), loc) }
 
         (* "shift m =[^x*|y]=> n" *)
-        | SHIFT src_loc=command_node_ident_with_loc 
+        | SHIFT src_loc=simple_id_with_loc
           labels=delimited(ARROW_LEFT_NEG,separated_nonempty_list(PIPE,pattern_label_ident),ARROW_RIGHT)
-          tar=command_node_ident
+          tar=simple_id
             { let (src,loc) = src_loc in (Ast.Shift_edge (src, tar, (labels, true)), loc) }
 
         (* merge m ==> n *)
-        | MERGE src_loc=command_node_ident_with_loc ARROW tar=command_node_ident
+        | MERGE src_loc=simple_id_with_loc ARROW tar=simple_id
             { let (src,loc) = src_loc in (Ast.Merge_node (src, tar), loc) }
 
         (* del_node n *)
-        | DEL_NODE ci_loc=command_node_ident_with_loc
+        | DEL_NODE ci_loc=simple_id_with_loc
             { let (ci,loc) = ci_loc in (Ast.Del_node (ci), loc) }
 
         (* add_node n: <-[x]- m *)
-        | ADD_NODE new_ci_loc=simple_id_with_loc DDOT label=delimited(RTL_EDGE_LEFT,label_ident,RTL_EDGE_RIGHT) anc_ci=command_node_ident
+        | ADD_NODE new_ci_loc=simple_id_with_loc DDOT label=delimited(RTL_EDGE_LEFT,label_ident,RTL_EDGE_RIGHT) anc_ci=simple_id
             { let (new_ci,loc) = new_ci_loc in (Ast.New_neighbour (new_ci, anc_ci,label), loc) }
 
-        (* activate n#a *)
-        | ACTIVATE ci_loc= command_node_ident_with_loc
-            { let (ci,loc) = ci_loc in (Ast.Activate ci, loc) }
-
         (* del_feat m.cat *)
-        | DEL_FEAT com_fead_id_loc= command_feature_ident_with_loc
+        | DEL_FEAT com_fead_id_loc= feature_ident_with_loc
             { let (com_fead_id,loc) = com_fead_id_loc in (Ast.Del_feat com_fead_id, loc) }
 
         (* m.cat = n.x + "_" + nn.y *)
-        | com_fead_id_loc= command_feature_ident_with_loc EQUAL items=separated_nonempty_list (PLUS, concat_item)
+        | com_fead_id_loc= feature_ident_with_loc EQUAL items=separated_nonempty_list (PLUS, concat_item)
             { let (com_fead_id,loc) = com_fead_id_loc in (Ast.Update_feat (com_fead_id, items), loc) }
 
 concat_item:

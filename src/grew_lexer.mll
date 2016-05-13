@@ -19,14 +19,6 @@
 
   let escaped = ref false
 
-  (* a general notion of "ident" is needed to cover all usages:
-     with or without '#', with several '.' (separator for feature names and usual symbol for labels...) *)
-  let parse_complex_ident string =
-    match Str.split (Str.regexp "#") string with
-      | [x] -> Ast.No_sharp x
-      | [x;y] -> Ast.Sharp (x,y)
-      | _ -> Error.build "\"%s\" is not a valid ident (more than one '#')" string
-
   let split_comment com =
     let raw = Str.split (Str.regexp "\n") com in
     List.filter (fun l -> not (Str.string_match (Str.regexp "[ \t]*$") l 0)) raw
@@ -45,16 +37,15 @@ let letter = ['a'-'z' 'A'-'Z']
   for basic ident construction and
    - dot '.'
    - colon ':'
-   - sharp '#'
    - star '*'
-  The first characted cannot be a digit, a sharp or a colon (to avoid confusion).
+  The first characted cannot be a digit, or a colon (to avoid confusion).
  *)
 let label_ident =
   (letter | '_' | '-' | '.' | '*') (letter | digit | '_' | '\'' | '-' | '.' | ':' | '*')*
 
 let general_ident =
   (letter | '_' ) |
-  (letter | '_' | '.' ) (letter | digit | '_' | '\'' | '-' | '.' | '#')* (letter | digit | '_' | '\'' | '.')
+  (letter | '_' | '.' ) (letter | digit | '_' | '\'' | '-' | '.')* (letter | digit | '_' | '\'' | '.')
 
 let hex = ['0'-'9' 'a'-'f' 'A'-'F']
 let color = hex hex hex hex hex hex | hex hex hex
@@ -165,7 +156,6 @@ and standard target = parse
 | "feature"     { FEATURE }
 | "file"        { FILE }
 | "labels"      { Global.label_flag := true; LABELS }
-| "suffixes"    { SUFFIXES }
 | "match"       { MATCH }
 | "without"     { WITHOUT }
 | "commands"    { COMMANDS }
@@ -179,7 +169,6 @@ and standard target = parse
 | "del_node"    { DEL_NODE }
 | "add_node"    { ADD_NODE }
 | "del_feat"    { DEL_FEAT }
-| "activate"    { ACTIVATE }
 
 | "module"      { MODULE }
 | "confluent"   { CONFLUENT }

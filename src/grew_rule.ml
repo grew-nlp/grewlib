@@ -33,10 +33,9 @@ module Instance = struct
     rules: string list;
     big_step: Libgrew_types.big_step option;
     free_index: int;
-    activated_node: Gid.t list;
   }
 
-  let empty = {graph = G_graph.empty; rules=[]; history=[]; big_step=None; free_index=0; activated_node=[];}
+  let empty = {graph = G_graph.empty; rules=[]; history=[]; big_step=None; free_index=0; }
 
   let from_graph graph =
     {empty with
@@ -50,6 +49,8 @@ module Instance = struct
       | Some bs -> Some {bs with Libgrew_types.small_step = List.rev bs.Libgrew_types.small_step }
     }
 
+  let flatten t = t (* TODO remove *)
+(*
   let flatten t =
     (* [mapping] is list of couple (node_id, node_id) used to flatten the graph *)
     let (mapping, new_free) = List.fold_left
@@ -58,8 +59,9 @@ module Instance = struct
           (node_id, Gid.Old next_free) :: acc_map,
           next_free + 1
         )
-      ) ([], t.free_index) t.activated_node in
+      ) ([], t.free_index) t.actiiivated_node in
     { empty with graph = G_graph.rename mapping t.graph; free_index = new_free }
+*)
 
   (* comparison is done on the list of commands *)
   (* only graph rewritten from the same init graph can be "compared" *)
@@ -314,8 +316,8 @@ module Rule = struct
     Buffer.contents buff
 
   (* ====================================================================== *)
-  let build_commands domain ?param ?(locals=[||]) suffixes pos pos_table ast_commands =
-    let known_act_ids = List.map (fun x -> (Ast.No_sharp x)) (Array.to_list pos_table) in
+  let build_commands domain ?param ?(locals=[||]) pos pos_table ast_commands =
+    let known_act_ids = Array.to_list pos_table in
     let known_edge_ids = get_edge_ids pos in
 
     let rec loop (kai,kei) = function
@@ -329,7 +331,6 @@ module Rule = struct
               (kai,kei)
               pos_table
               locals
-              suffixes
               ast_command in
           command :: (loop (new_kai,new_kei) tail) in
     loop (known_act_ids, known_edge_ids) ast_commands
@@ -348,7 +349,7 @@ module Rule = struct
     parse_pat_vars vars
 
   (* ====================================================================== *)
-  let build domain ?(locals=[||]) suffixes dir rule_ast =
+  let build domain ?(locals=[||]) dir rule_ast =
 
     let (param, pat_vars, cmd_vars) =
       match rule_ast.Ast.param with
@@ -391,7 +392,7 @@ module Rule = struct
     {
       name = rule_ast.Ast.rule_id;
       pattern = (pos, negs);
-      commands = build_commands domain ~param:(pat_vars,cmd_vars) ~locals suffixes pos pos_table rule_ast.Ast.commands;
+      commands = build_commands domain ~param:(pat_vars,cmd_vars) ~locals pos pos_table rule_ast.Ast.commands;
       loc = rule_ast.Ast.rule_loc;
       param = param;
       param_names = (pat_vars,cmd_vars)
@@ -439,7 +440,7 @@ module Rule = struct
       G_deco.edges = List.fold_left (fun acc (_,edge) -> edge::acc) matching.a_match matching.e_match;
     }
 
-  let find cnode ?loc (matching, (created_nodes,activated_nodes)) =
+  let find cnode ?loc (matching, created_nodes) =
     match cnode with
     | Command.Pat pid ->
         (try Pid_map.find pid matching.n_match
@@ -447,11 +448,6 @@ module Rule = struct
     | Command.New name ->
         (try List.assoc name created_nodes
         with Not_found -> Error.run ?loc "Identifier '%s' not found" name)
-    | Command.Act (pid, new_name) ->
-        (try List.assoc (pid, new_name) activated_nodes
-        with Not_found -> Error.run ?loc "Activated identifier with suffix '%s' not found" new_name)
-
-
 
   let down_deco (matching,created_nodes) commands =
     let feat_to_highlight = List.fold_left
@@ -703,8 +699,8 @@ module Rule = struct
 
   (*  ---------------------------------------------------------------------- *)
   (** [apply_command instance matching created_nodes command] returns [(new_instance, new_created_nodes)] *)
-  let apply_command domain (command,loc) instance matching (created_nodes, (activated_nodes:((Pid.t * string) * Gid.t) list)) =
-    let node_find cnode = find ~loc cnode (matching, (created_nodes, activated_nodes)) in
+  let apply_command domain (command,loc) instance matching created_nodes =
+    let node_find cnode = find ~loc cnode (matching, created_nodes) in
 
     match command with
     | Command.ADD_EDGE (src_cn,tar_cn,edge) ->
@@ -718,7 +714,7 @@ module Rule = struct
                 Instance.graph = new_graph;
                 history = List_.sort_insert (Command.H_ADD_EDGE (src_gid,tar_gid,edge)) instance.Instance.history
               },
-               (created_nodes, activated_nodes)
+               created_nodes
               )
           | None ->
               Error.run "ADD_EDGE: the edge '%s' already exists %s" (G_edge.to_string domain edge) (Loc.to_string loc)
@@ -732,7 +728,7 @@ module Rule = struct
           Instance.graph = G_graph.del_edge domain loc instance.Instance.graph src_gid edge tar_gid;
            history = List_.sort_insert (Command.H_DEL_EDGE_EXPL (src_gid,tar_gid,edge)) instance.Instance.history
         },
-         (created_nodes, activated_nodes)
+         created_nodes
         )
 
     | Command.DEL_EDGE_NAME edge_ident ->
@@ -744,7 +740,7 @@ module Rule = struct
           Instance.graph = G_graph.del_edge domain ~edge_ident loc instance.Instance.graph src_gid edge tar_gid;
           history = List_.sort_insert (Command.H_DEL_EDGE_EXPL (src_gid,tar_gid,edge)) instance.Instance.history
         },
-         (created_nodes, activated_nodes)
+         created_nodes
         )
 
     | Command.DEL_NODE node_cn ->
@@ -754,7 +750,7 @@ module Rule = struct
           Instance.graph = G_graph.del_node instance.Instance.graph node_gid;
           history = List_.sort_insert (Command.H_DEL_NODE node_gid) instance.Instance.history
         },
-         (created_nodes, activated_nodes)
+         created_nodes
         )
 
     | Command.MERGE_NODE (src_cn, tar_cn) ->
@@ -767,7 +763,7 @@ module Rule = struct
               Instance.graph = new_graph;
               history = List_.sort_insert (Command.H_MERGE_NODE (src_gid,tar_gid)) instance.Instance.history
             },
-             (created_nodes, activated_nodes)
+             created_nodes
             )
         | None -> raise Command_execution_fail
         )
@@ -795,7 +791,7 @@ module Rule = struct
           Instance.graph = new_graph;
           history = List_.sort_insert (Command.H_UPDATE_FEAT (tar_gid,tar_feat_name,new_feature_value)) instance.Instance.history
         },
-         (created_nodes, activated_nodes)
+         created_nodes
         )
 
     | Command.DEL_FEAT (tar_cn,feat_name) ->
@@ -805,7 +801,7 @@ module Rule = struct
           Instance.graph = G_graph.del_feat instance.Instance.graph tar_gid feat_name;
           history = List_.sort_insert (Command.H_DEL_FEAT (tar_gid,feat_name)) instance.Instance.history
         },
-         (created_nodes, activated_nodes)
+         created_nodes
         )
 
     | Command.NEW_NEIGHBOUR (created_name,edge,base_pid) ->
@@ -815,22 +811,9 @@ module Rule = struct
          {instance with
           Instance.graph = new_graph;
           history = List_.sort_insert (Command.H_NEW_NEIGHBOUR (created_name,edge,new_gid)) instance.Instance.history;
-          activated_node = new_gid :: instance.Instance.activated_node;
         },
-         ((created_name,new_gid) :: created_nodes, activated_nodes)
+         (created_name,new_gid) :: created_nodes
         )
-
-    | Command.ACT_NODE (Command.Act (pid, new_name)) ->
-        let node_gid = node_find (Command.Pat(pid)) in
-        let (new_gid, new_graph) = G_graph.activate loc node_gid new_name instance.Instance.graph in
-        (
-         {instance with
-          Instance.graph = new_graph;
-          history = List_.sort_insert (Command.H_ACT_NODE (node_gid,new_name)) instance.Instance.history
-        },
-         (created_nodes, ((pid, new_name), new_gid) :: activated_nodes)
-        )
-    | Command.ACT_NODE _ -> Error.bug "Try to activate a node without suffix" (Loc.to_string loc)
 
     | Command.SHIFT_IN (src_cn,tar_cn,label_cst) ->
         let src_gid = node_find src_cn in
@@ -840,7 +823,7 @@ module Rule = struct
           Instance.graph = G_graph.shift_in loc domain src_gid tar_gid label_cst instance.Instance.graph;
           history = List_.sort_insert (Command.H_SHIFT_IN (src_gid,tar_gid)) instance.Instance.history
         },
-         (created_nodes, activated_nodes)
+         created_nodes
         )
 
     | Command.SHIFT_OUT (src_cn,tar_cn,label_cst) ->
@@ -851,7 +834,7 @@ module Rule = struct
           Instance.graph = G_graph.shift_out loc domain src_gid tar_gid label_cst instance.Instance.graph;
           history = List_.sort_insert (Command.H_SHIFT_OUT (src_gid,tar_gid)) instance.Instance.history
         },
-         (created_nodes, activated_nodes)
+         created_nodes
         )
 
     | Command.SHIFT_EDGE (src_cn,tar_cn,label_cst) ->
@@ -862,7 +845,7 @@ module Rule = struct
             Instance.graph = G_graph.shift_edges loc domain src_gid tar_gid label_cst instance.Instance.graph;
             history = List_.sort_insert (Command.H_SHIFT_EDGE (src_gid,tar_gid)) instance.Instance.history
           },
-          (created_nodes, activated_nodes)
+          created_nodes
         )
 
   (*  ---------------------------------------------------------------------- *)
@@ -884,7 +867,7 @@ module Rule = struct
         (fun (instance, created_nodes) command ->
           apply_command domain command instance matching created_nodes
         )
-        (instance, ([],[]))
+        (instance, [])
         rule.commands in
 
     let rule_app = {

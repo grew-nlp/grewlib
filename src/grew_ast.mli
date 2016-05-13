@@ -45,22 +45,6 @@ module Ast : sig
   val parse_simple_or_feature_ident: string -> simple_or_feature_ident
 
   (* ---------------------------------------------------------------------- *)
-  (* command_node_ident: V, V#alpha, V.cat, V#alpha.cat, p_obj.loc *)
-  type command_node_ident =
-    | No_sharp of string
-    | Sharp of string * string
-  val parse_command_node_ident: string -> command_node_ident
-  val dump_command_node_ident: command_node_ident -> string
-
-  val base_command_node_ident: command_node_ident -> string
-
-  (* ---------------------------------------------------------------------- *)
-  (* command_feature_ident: V.cat, V#alpha.cat *)
-  type command_feature_ident = command_node_ident * feature_name
-  val parse_command_feature_ident: string -> command_feature_ident
-  val dump_command_feature_ident: command_feature_ident -> string
-
-  (* ---------------------------------------------------------------------- *)
   type feature_kind =
     | Equality of feature_value list
     | Disequality of feature_value list
@@ -128,22 +112,21 @@ module Ast : sig
     | Param_item of string
 
   type u_command =
-    | Del_edge_expl of (command_node_ident * command_node_ident * edge_label)
+    | Del_edge_expl of (Id.name * Id.name * edge_label)
     | Del_edge_name of string
-    | Add_edge of (command_node_ident * command_node_ident * edge_label)
+    | Add_edge of (Id.name * Id.name * edge_label)
 
     (* 4 args: source, target, labels, flag true iff negative cst *)
-    | Shift_in of (command_node_ident * command_node_ident * edge_label_cst)
-    | Shift_out of (command_node_ident * command_node_ident * edge_label_cst)
-    | Shift_edge of (command_node_ident * command_node_ident * edge_label_cst)
+    | Shift_in of (Id.name * Id.name * edge_label_cst)
+    | Shift_out of (Id.name * Id.name * edge_label_cst)
+    | Shift_edge of (Id.name * Id.name * edge_label_cst)
 
-    | Merge_node of (command_node_ident * command_node_ident)
-    | New_neighbour of (Id.name * command_node_ident * edge_label)
-    | Del_node of command_node_ident
-    | Activate of command_node_ident
+    | Merge_node of (Id.name * Id.name)
+    | New_neighbour of (Id.name * Id.name * edge_label)
+    | Del_node of Id.name
 
-    | Del_feat of command_feature_ident
-    | Update_feat of command_feature_ident * concat_item list
+    | Del_feat of feature_ident
+    | Update_feat of feature_ident * concat_item list
   type command = u_command * Loc.t
 
   type rule = {
@@ -159,7 +142,6 @@ module Ast : sig
   type modul = {
       module_id:Id.name;
       local_labels: (string * string list) list;
-      suffixes: string list;
       rules: rule list;
       confluent: bool;
       module_doc:string list;

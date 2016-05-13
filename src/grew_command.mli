@@ -19,7 +19,6 @@ module Command : sig
   type command_node =       (* a command node is either: *)
     | Pat of Pid.t          (* a node identified in the pattern *)
     | New of string         (* a node introduced by a new_neighbour *)
-    | Act of Pid.t * string (* a node introduced by a activate *)
 
   type item =
     | Feat of (command_node * string)
@@ -39,8 +38,6 @@ module Command : sig
     | SHIFT_IN of (command_node * command_node * Label_cst.t)
     | SHIFT_OUT of (command_node * command_node * Label_cst.t)
     | MERGE_NODE of (command_node * command_node)
-    | ACT_NODE of command_node
-
 
   type t = (p * Loc.t)
   type h =
@@ -55,16 +52,14 @@ module Command : sig
     | H_SHIFT_IN of (Gid.t * Gid.t)
     | H_SHIFT_OUT of (Gid.t * Gid.t)
     | H_MERGE_NODE of (Gid.t * Gid.t)
-    | H_ACT_NODE of (Gid.t * string)
 
   val build:
       Domain.t ->
       Domain.t ->
       ?param: (string list * string list) ->
-      (Ast.command_node_ident list * string list) ->
+      (Id.name list * string list) ->
       Id.table ->
       Label_domain.decl array ->
-      suffix list ->
       Ast.command ->
-        t * (Ast.command_node_ident list * string list)
+        t * (Id.name list * string list)
 end (* module Command *)

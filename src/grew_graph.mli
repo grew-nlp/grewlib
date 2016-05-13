@@ -136,7 +136,6 @@ module G_graph: sig
   val del_node: t -> Gid.t -> t
 
   val add_neighbour: Loc.t -> Domain.t -> t -> Gid.t -> G_edge.t -> (Gid.t * t)
-  val activate: Loc.t -> Gid.t -> string -> t -> (Gid.t * t)
 
   val merge_node: Loc.t -> Domain.t -> t -> Gid.t -> Gid.t -> t option
 

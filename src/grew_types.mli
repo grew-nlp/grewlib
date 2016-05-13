@@ -13,8 +13,6 @@ open Grew_base
 type feature_name = string (* cat, num, ... *)
 type feature_atom = string (* V, N, inf, ... *)
 type feature_value = string (* V, 4, "free text", ... *)
-type suffix = string
-
 
 type value = String of string | Float of float
 
@@ -51,7 +49,6 @@ module Gid : sig
   type t =
     | Old of int
     | New of (int * int) (* identifier for "created nodes" *)
-    | Act of (int * string)  (* identifier for "activated nodes" *)
 
   val compare: t -> t -> int
 

@@ -68,7 +68,6 @@ module Modul: sig
   type t = {
     name: string;
     local_labels: (string * string list) array;
-    suffixes: string list;
     rules: Rule.t list;
     filters: Rule.t list;
     confluent: bool;

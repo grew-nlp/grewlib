@@ -147,7 +147,6 @@ module Modul = struct
   type t = {
     name: string;
     local_labels: (string * string list) array;
-    suffixes: string list;
     rules: Rule.t list;
     filters: Rule.t list;
     confluent: bool;
@@ -166,14 +165,12 @@ module Modul = struct
   let build domain ast_module =
     let locals = Array.of_list ast_module.Ast.local_labels in
     Array.sort compare locals;
-    let suffixes = ast_module.Ast.suffixes in
-    let rules_or_filters = List.map (Rule.build domain ~locals suffixes ast_module.Ast.mod_dir) ast_module.Ast.rules in
+    let rules_or_filters = List.map (Rule.build domain ~locals ast_module.Ast.mod_dir) ast_module.Ast.rules in
     let (filters, rules) = List.partition Rule.is_filter rules_or_filters in
     let modul =
       {
         name = ast_module.Ast.module_id;
         local_labels = locals;
-        suffixes;
         rules;
         filters;
         confluent = ast_module.Ast.confluent;

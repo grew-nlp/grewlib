@@ -25,7 +25,6 @@ module Instance : sig
     rules: string list;
     big_step: Libgrew_types.big_step option;
     free_index: int;
-    activated_node: Gid.t list;
   }
 
   (** [from_graph graph] return a fresh instance based on the input [graph]. *)
@@ -75,7 +74,7 @@ module Rule : sig
 
   (** [build domain ?local dir ast_rule] returns the Rule.t value corresponding to [ast_rule].
       [dir] is used for localisation of lp files *)
-  val build: Domain.t -> ?locals:Label_domain.decl array -> string list -> string -> Ast.rule -> t
+  val build: Domain.t -> ?locals:Label_domain.decl array -> string -> Ast.rule -> t
 
   (** [normalize domain module_name ?confluent rule_list filter_list instance] returns two sets of good normal forms and bad normal forms *)
   (* raise Stop if some command fails to apply *)

@@ -82,7 +82,6 @@ module Gid = struct
   type t =
     | Old of int
     | New of (int * int) (* identifier for "created nodes" *)
-    | Act of (int * string)  (* identifier for "activated nodes" *)
 
   (* a compare function which ensures that new nodes are at the "end" of the graph *)
   let compare t1 t2 = match (t1,t2) with
@@ -92,17 +91,9 @@ module Gid = struct
     | New _, Old _ -> 1
     | New n1, New n2 -> Pervasives.compare n1 n2
 
-    | Old _ , Act _ -> -1
-    | Act _, Old _ -> 1
-    | Act n1, Act n2 -> Pervasives.compare n1 n2
-
-    | Act _ , New _ -> -1
-    | New _, Act _ -> 1
-
   let to_string = function
     | Old i -> sprintf "%d" i
     | New (i,j) -> sprintf"%d__%d" i j
-    | Act (i,n) -> sprintf"%d____%s" i n
 end (* module Gid *)
 
 (* ================================================================================ *)
