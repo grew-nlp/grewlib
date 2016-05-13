@@ -183,7 +183,7 @@ and standard target = parse
 | "module"      { MODULE }
 | "confluent"   { CONFLUENT }
 | "rule"        { RULE }
-| "lex_rule"    { LEX_RULE }
+| "lex_rule"    { Log.fwarning "[file %s, line %d]\"lex_rule\" is deprecated, please use \"rule\" instead" ! Global.current_file !Global.current_line; RULE }
 | "filter"      { FILTER }
 | "sequences"   { SEQUENCES }
 

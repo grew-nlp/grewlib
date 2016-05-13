@@ -76,7 +76,6 @@ let localize t = (t,get_loc ())
 %token MODULE                      /* module */
 %token CONFLUENT                   /* confluent */
 %token RULE                        /* rule */
-%token LEX_RULE                    /* lex_rule */
 %token FILTER                      /* filter */
 %token SEQUENCES                   /* sequences */
 %token GRAPH                       /* graph */
@@ -334,7 +333,7 @@ rule:
                 rule_loc = snd id_loc;
               }
             }
-        | doc=option(COMMENT) LEX_RULE id_loc=simple_id_with_loc param=param LACC p=pos_item n=list(neg_item) cmds=commands RACC lex_par=option(lex_par)
+        | doc=option(COMMENT) RULE id_loc=simple_id_with_loc param=param LACC p=pos_item n=list(neg_item) cmds=commands RACC lex_par=option(lex_par)
             {
               { Ast.rule_id = fst id_loc;
                 pattern = Ast.complete_pattern { Ast.pat_pos = p; Ast.pat_negs = n };
