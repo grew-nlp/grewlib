@@ -263,19 +263,21 @@ module Grs = struct
     check grs;
     grs
 
+  (* compute the list of modules to apply for a requested sentence *)
   let modules_of_sequence grs sequence =
-    let module_names =
+    try
+      let seq = List.find (fun s -> s.Sequence.name = sequence) grs.sequences in
+      List.map (fun name -> List.find (fun m -> m.Modul.name=name) grs.modules) seq.Sequence.def
+    with Not_found ->
       try
-        let seq = List.find (fun s -> s.Sequence.name = sequence) grs.sequences in
-        seq.Sequence.def
-      with Not_found -> [sequence] in (* a module name can be used as a singleton sequence *)
-
-    List.map
-      (fun name ->
-        try List.find (fun m -> m.Modul.name=name) grs.modules
-        with Not_found -> Log.fcritical "No sequence or module named '%s'" name
-      )
-      module_names
+        let modul = List.find (fun m -> m.Modul.name=sequence) grs.modules in
+        Log.fwarning "\"%s\" is a module but not a senquence, only this module is used" sequence; [modul]
+      with Not_found ->
+        match grs.sequences with
+        | head::_ ->
+          Log.fwarning "No sequence and no module named \"%s\", the first sequence \"%s\" is used" sequence head.Sequence.name;
+          List.map (fun name -> List.find (fun m -> m.Modul.name=name) grs.modules) head.Sequence.def
+        | _ -> Error.run "No sequence defined and no module named \"%s\", cannot go on" sequence
 
   let rewrite grs sequence graph =
     let instance = Instance.from_graph graph in
