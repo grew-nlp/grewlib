@@ -83,8 +83,8 @@ module Instance_set = Set.Make (Instance)
 module Rule = struct
 
   (* the rewriting depth is bounded to stop rewriting when the system is not terminating *)
-  let max_depth_det = ref 100
-  let max_depth_non_det = ref 2000
+  let max_depth_det = ref 2000
+  let max_depth_non_det = ref 100
 
   let set_max_depth_det value = max_depth_det := value
   let set_max_depth_non_det value = max_depth_non_det := value
