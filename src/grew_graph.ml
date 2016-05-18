@@ -412,7 +412,6 @@ module G_graph = struct
 
   (* -------------------------------------------------------------------------------- *)
   let del_node graph node_id =
-    let node = Gid_map.find node_id graph.map in
     let map_wo_node =
       Gid_map.fold
         (fun id value acc ->
@@ -420,6 +419,7 @@ module G_graph = struct
           then acc
           else Gid_map.add id (G_node.remove_key node_id value) acc
         ) graph.map Gid_map.empty in
+    let node = Gid_map.find node_id map_wo_node in
     let new_map =
       match (G_node.get_prec node, G_node.get_succ node) with
       | (Some id_prec, Some id_succ) ->

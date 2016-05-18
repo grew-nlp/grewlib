@@ -654,7 +654,7 @@ module Rule = struct
       (*   if pid >= 0  *)
       (*   then try P_graph.find pid positive with Not_found -> failwith "POS" *)
       (*   else try P_graph.find pid neg with Not_found -> failwith "NEG" in *)
-      let g_node = try G_graph.find gid graph with Not_found -> failwith "INS" in
+      let g_node = try G_graph.find gid graph with Not_found -> Error.bug "[extend_matching_from] cannot find gid in graph" in
 
       try
         let new_param = P_node.match_ ?param: partial.sub.m_param p_node g_node in
@@ -666,7 +666,7 @@ module Rule = struct
 
         let new_partial =
           { partial with
-            unmatched_nodes = (try List_.rm pid partial.unmatched_nodes with Not_found -> failwith "List_.rm");
+            unmatched_nodes = (try List_.rm pid partial.unmatched_nodes with Not_found -> Error.bug "[extend_matching_from] cannot find pid in unmatched_nodes");
             unmatched_edges = new_unmatched_edges;
             already_matched_gids = gid :: partial.already_matched_gids;
             sub = {partial.sub with n_match = Pid_map.add pid gid partial.sub.n_match; m_param = new_param};

@@ -449,7 +449,7 @@ module Massoc_make (Ord: OrderedType) = struct
     try M.find key t
     with Not_found -> []
 
-  let to_string _ _ = failwith "Not implemted"
+  let to_string _ _ = failwith "Not implemented"
 
   let iter fct t =
     M.iter
