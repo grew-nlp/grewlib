@@ -1,3 +1,6 @@
+Version 0.34.3 (2016/05/18)
+  Bug fix introduced in previous version
+
 Version 0.34.2 (2016/05/18)
   Bug fix in node ordering in case of del_node
 
