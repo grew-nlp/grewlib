@@ -44,6 +44,9 @@ module G_node = struct
   let set_succ id t = { t with succ = Some id }
   let set_prec id t = { t with prec = Some id }
 
+  let remove_succ t = { t with succ = None }
+  let remove_prec t = { t with prec = None }
+
   let empty = { fs = G_fs.empty; next = Massoc_gid.empty; succ = None; prec = None; position = -1.; conll_root=false }
 
   let is_conll_root t = t.conll_root
@@ -70,7 +73,7 @@ module G_node = struct
 
   let of_conll ?loc ?prec ?succ domain line =
     if line = Conll.root
-    then { empty with conll_root=true }
+    then { empty with conll_root=true; succ}
     else { empty with fs = G_fs.of_conll ?loc domain line; position = float line.Conll.id; prec; succ }
 
   let fresh domain ?prec ?succ position = { empty with position; prec; succ }

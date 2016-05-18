@@ -1,3 +1,9 @@
+Version 0.34.2 (2016/05/18)
+  Bug fix in node ordering in case of del_node
+
+Version 0.34.1 (2016/05/14)
+  Bug fix in default values for depth bounds
+
 Version 0.34 (2016/05/10)
   NB: changes prefixed with "==>" belows breaks existing code!
   NB: changes prefixed with "-->" belows makes existing code deprecated

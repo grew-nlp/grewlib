@@ -34,6 +34,9 @@ module G_node: sig
   val set_prec: Gid.t -> t -> t
   val set_succ: Gid.t -> t -> t
 
+  val remove_prec: t -> t
+  val remove_succ: t -> t
+
   val set_fs: G_fs.t -> t -> t
   val set_position: float -> t -> t
   val set_next: G_edge.t Massoc_gid.t -> t -> t
