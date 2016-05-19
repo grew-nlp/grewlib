@@ -419,26 +419,26 @@ module G_graph = struct
           then acc
           else Gid_map.add id (G_node.remove_key node_id value) acc
         ) graph.map Gid_map.empty in
-    let node = Gid_map.find node_id map_wo_node in
+    let node = Gid_map.find node_id graph.map in
     let new_map =
       match (G_node.get_prec node, G_node.get_succ node) with
       | (Some id_prec, Some id_succ) ->
         begin
-          let prec = Gid_map.find id_prec graph.map
-          and succ = Gid_map.find id_succ graph.map in
+          let prec = Gid_map.find id_prec map_wo_node
+          and succ = Gid_map.find id_succ map_wo_node in
           map_wo_node
           |> (Gid_map.add id_prec (G_node.set_succ id_succ prec))
           |> (Gid_map.add id_succ (G_node.set_prec id_prec succ))
         end
       | (Some id_prec, None) ->
         begin
-          let prec = Gid_map.find id_prec graph.map in
+          let prec = Gid_map.find id_prec map_wo_node in
           map_wo_node
           |> (Gid_map.add id_prec (G_node.remove_succ prec))
         end
       | (None, Some id_succ) ->
         begin
-          let succ = Gid_map.find id_succ graph.map in
+          let succ = Gid_map.find id_succ map_wo_node in
           map_wo_node
           |> (Gid_map.add id_succ (G_node.remove_prec succ))
         end
