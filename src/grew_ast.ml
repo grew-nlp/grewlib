@@ -161,7 +161,8 @@ module Ast = struct
       | Feature_eq ((name1,_), (name2,_))
       | Feature_diseq ((name1,_), (name2,_))
       | Feature_ineq (_, (name1,_), (name2,_))
-      | Prec (name1, name2) ->
+      | Prec (name1, name2)
+      | Lprec (name1, name2) ->
         acc
         |> (add_implicit_node loc aux name1)
         |> (add_implicit_node loc aux name2)
