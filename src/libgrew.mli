@@ -150,6 +150,7 @@ module Rewrite: sig
 
   val set_max_depth_det: int -> unit
   val set_max_depth_non_det: int -> unit
+  val set_debug_loop: unit -> unit
 
   (** [display gr grs seq] builds the [display] (datatype used by the GUI) given by
       the rewriting of graph [gr] with the sequence [seq] of [grs].

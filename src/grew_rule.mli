@@ -65,6 +65,10 @@ module Rule : sig
   (** [set_max_depth_non_det value] set the maximum rewriting depth in non-deterministic application of a module. *)
   val set_max_depth_non_det: int -> unit
 
+  (** [set_debug_loop ()] turns the debug mode on for loop: when the bound is reached, the graph is considered as a normal form.
+      This is a kind of hack to be able to explore loops in GUI. *)
+  val set_debug_loop: unit -> unit
+
   (** [get_name t] returns the name of the rule [t]. *)
   val get_name: t -> string
 

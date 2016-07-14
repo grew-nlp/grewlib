@@ -85,9 +85,11 @@ module Rule = struct
   (* the rewriting depth is bounded to stop rewriting when the system is not terminating *)
   let max_depth_det = ref 2000
   let max_depth_non_det = ref 100
+  let debug_loop = ref false
 
   let set_max_depth_det value = max_depth_det := value
   let set_max_depth_non_det value = max_depth_non_det := value
+  let set_debug_loop () = debug_loop := true
 
   type const =
     | Cst_out of Pid.t * Label_cst.t
@@ -876,17 +878,10 @@ module Rule = struct
   (*  ---------------------------------------------------------------------- *)
   (** [apply_rule instance matching rule] returns a new instance after the application of the rule
       [Command_execution_fail] is raised if some merge unification fails *)
-  let apply_rule domain modul_name max_depth instance matching rule =
+  let apply_rule domain modul_name instance matching rule =
 
     (* Timeout check *)
     (try Timeout.check () with Timeout.Stop -> Error.run "Time out");
-
-    (* limit the rewriting depth to avoid looping rewriting *)
-    begin
-      if List.length instance.Instance.rules >= max_depth
-      then Error.run "[Module %s] max depth %d reached, last rules applied: …, %s, %s"
-        modul_name max_depth (List_.rev_to_string (fun x->x) ", " (List_.cut 4 instance.Instance.rules)) rule.name
-    end;
 
     let (new_instance, created_nodes) =
       List.fold_left
@@ -976,24 +971,41 @@ module Rule = struct
   (*  ---------------------------------------------------------------------- *)
   (** [one_step domain modul_name instance rules] computes the list of one-step reduct with rules *)
   let one_step domain modul_name instance rules =
-    List.fold_left
-      (fun acc rule ->
-        let matching_list = match_in_graph domain ?param:rule.param rule.pattern instance.Instance.graph in
 
-        List.fold_left
-          (fun acc1 matching ->
-            try (apply_rule domain modul_name !max_depth_non_det instance matching rule) :: acc1
-            with Command_execution_fail -> acc1
-          ) acc matching_list
-      ) [] rules
+    (* limit the rewriting depth to avoid looping rewriting *)
+    if List.length instance.Instance.rules >= !max_depth_non_det
+    then
+      if !debug_loop
+      then []
+      else Error.run "[Module %s] max depth %d reached, last rules applied: …, %s"
+           modul_name !max_depth_non_det (List_.rev_to_string (fun x->x) ", " (List_.cut 5 instance.Instance.rules))
+    else
+      List.fold_left
+        (fun acc rule ->
+          let matching_list = match_in_graph domain ?param:rule.param rule.pattern instance.Instance.graph in
+          List.fold_left
+            (fun acc1 matching ->
+              try (apply_rule domain modul_name instance matching rule) :: acc1
+              with Command_execution_fail -> acc1
+            ) acc matching_list
+        ) [] rules
 
   (*  ---------------------------------------------------------------------- *)
   (** [conf_one_step domain modul_name instance rules] computes one Some (one-step reduct) with rules, None if no rule apply *)
-  let rec conf_one_step domain modul_name (instance : Instance.t) = function
-    | [] -> None
-    | rule::rule_tail ->
-        let (pos,negs) = rule.pattern in
+  let rec conf_one_step domain modul_name (instance : Instance.t) rules =
 
+    (* limit the rewriting depth to avoid looping rewriting *)
+    if List.length instance.Instance.rules >= !max_depth_det
+    then
+      if !debug_loop
+      then None
+      else Error.run "[Module %s] max depth %d reached, last rules applied: …, %s"
+           modul_name !max_depth_det (List_.rev_to_string (fun x->x) ", " (List_.cut 5 instance.Instance.rules))
+    else
+    match rules with
+      | [] -> None
+      | rule::rule_tail ->
+        let (pos,negs) = rule.pattern in
         (* get the list of partial matching for positive part of the pattern *)
         let matching_list =
           extend_matching
@@ -1001,7 +1013,6 @@ module Rule = struct
             (pos.graph,P_graph.empty)
             instance.Instance.graph
             (init rule.param pos) in
-
         try
           let (first_matching_where_all_witout_are_fulfilled,_) =
             List.find
@@ -1012,9 +1023,8 @@ module Rule = struct
                     fulfill domain (pos.graph,neg.graph) instance.Instance.graph new_partial_matching
                   ) negs
               ) matching_list in
-          Some (apply_rule domain modul_name !max_depth_det instance first_matching_where_all_witout_are_fulfilled rule)
+          Some (apply_rule domain modul_name instance first_matching_where_all_witout_are_fulfilled rule)
         with Not_found -> (* try another rule *) conf_one_step domain modul_name instance rule_tail
-
 
   (* ---------------------------------------------------------------------- *)
   (** filter nfs being equal *)
