@@ -1,3 +1,10 @@
+Version 0.35 (2016/07/14)
+  * add the debug_loop flag (when a loop is suspected graph is considered as a normal form, such that it is possible to see it in the GUI)
+  * new functions in libgrew.mli for Grewpy:
+    - Graph.of_gr
+    - Rewrite.get_graphs
+  * improve error reporting
+
 Version 0.34.4 (2016/05/19)
   Bug fix again… introduced in previous version
 
