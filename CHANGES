@@ -26,7 +26,7 @@ Version 0.34 (2016/05/10)
   --> add_neighbour is now deprecated and new syntax is introduced for nodes creation:
       add_node X        Create a new node named X wihtout position constraint
       add_node X :> Y   Create a new node named X immediatly after Y
-      add_node X :> Y   Create a new node named X immediatly before Y
+      add_node X :< Y   Create a new node named X immediatly before Y
   * improve search for a sequence:
       1) search for the sequence with the requested name
       2) search for the module with the requested name
