@@ -13,10 +13,6 @@ open Grew_base
 open Grew_ast
 
 module Loader: sig
-
-  (* message and location *)
-  exception Error of (string * Loc.t option)
-
   val domain: string -> Ast.domain
 
   val grs: string -> Ast.grs
@@ -24,4 +20,8 @@ module Loader: sig
   val gr: string -> Ast.gr
 
   val pattern: string -> Ast.pattern
+end
+
+module Parser : sig
+  val gr: string -> Ast.gr
 end

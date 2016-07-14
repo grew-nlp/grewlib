@@ -23,6 +23,8 @@ module Rewrite_history: sig
       bad_nf: Instance.t list;
     }
 
+  val get_graphs: t -> G_graph.t list
+
   val is_empty: t -> bool
 
   val num_sol: t -> int

@@ -40,17 +40,22 @@ end (* module Loc *)
 module Error = struct
 
   exception Build of (string * Loc.t option)
-  exception Run of (string * Loc.t option)
-  exception Bug of (string * Loc.t option)
-
   let build_ ?loc message = raise (Build (message, loc))
   let build ?loc = Printf.ksprintf (build_ ?loc)
 
+  exception Run of (string * Loc.t option)
   let run_ ?loc message = raise (Run (message, loc))
   let run ?loc = Printf.ksprintf (run_ ?loc)
 
+  exception Bug of (string * Loc.t option)
   let bug_ ?loc message = raise (Bug (message, loc))
   let bug ?loc = Printf.ksprintf (bug_ ?loc)
+
+  exception Parse of (string * Loc.t option)
+  let parse_ ?loc message = raise (Parse (message, loc))
+  let parse ?loc = Printf.ksprintf (parse_ ?loc)
+
+
 end (* module Error *)
 
 (* ================================================================================ *)

@@ -311,8 +311,6 @@ module G_graph = struct
 
     {meta=gr_ast.Ast.meta; map=map; fusion = []; highest_index = (List.length full_node_list) -1}
 
-
-
   (* -------------------------------------------------------------------------------- *)
   let of_conll domain conll =
 

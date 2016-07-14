@@ -87,6 +87,8 @@ module Graph : sig
       @raise File_not_found if the file doesn't exists. *)
   val load: Domain.t -> string -> t
 
+  val of_gr: Domain.t -> string -> t
+
   val of_conll: Domain.t -> Conll.t -> t
 
   val of_brown: Domain.t -> ?sentid:string -> string -> t
@@ -162,6 +164,8 @@ module Rewrite: sig
   val set_timeout: float option -> unit
 
   val rewrite: gr:Graph.t -> grs:Grs.t -> seq:string -> history
+
+  val get_graphs: history -> Graph.t list
 
   val is_empty: history -> bool
 

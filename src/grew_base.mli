@@ -236,12 +236,16 @@ module Massoc_make (Ord : OrderedType) : S with type key = Ord.t
 (* ================================================================================ *)
 module Error: sig
   exception Build of (string * Loc.t option)
-  exception Run of (string * Loc.t option)
-  exception Bug of (string * Loc.t option)
-
   val build: ?loc: Loc.t -> ('a, unit, string, 'b) format4 -> 'a
+
+  exception Run of (string * Loc.t option)
   val run: ?loc: Loc.t -> ('a, unit, string, 'b) format4 -> 'a
+
+  exception Bug of (string * Loc.t option)
   val bug: ?loc: Loc.t -> ('a, unit, string, 'b) format4 -> 'a
+
+  exception Parse of (string * Loc.t option)
+  val parse: ?loc: Loc.t -> ('a, unit, string, 'b) format4 -> 'a
 end
 
 (* ================================================================================ *)

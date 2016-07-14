@@ -42,7 +42,7 @@ let handle ?(name="") ?(file="No file defined") fct () =
     | File_not_found file -> raise (File_not_found file)
 
     (* Catch new exceptions *)
-    | Grew_loader.Loader.Error (msg, loc_opt) -> raise (Parsing_err (msg, loc_opt))
+    | Grew_base.Error.Parse (msg, loc_opt) -> raise (Parsing_err (msg, loc_opt))
     | Grew_base.Error.Build (msg, loc_opt) -> raise (Build (msg, loc_opt))
     | Grew_base.Error.Bug (msg, loc_opt) -> raise (Bug (msg,loc_opt))
     | Grew_base.Error.Run (msg, loc_opt) -> raise (Run (msg,loc_opt))
@@ -136,8 +136,11 @@ type t = Grew_graph.G_graph.t
             loop [load_gr; load_conll; load_brown]
       ) ()
 
+  let of_gr domain gr_string =
+    handle ~name:"Graph.of_gr" (fun () -> Grew_graph.G_graph.build domain (Grew_loader.Parser.gr gr_string)) ()
+
   let of_conll domain conll =
-    handle ~name:"Graph.xxx_of_conll" (fun () -> Grew_graph.G_graph.of_conll domain conll) ()
+    handle ~name:"Graph.of_conll" (fun () -> Grew_graph.G_graph.of_conll domain conll) ()
 
   let of_brown domain ?sentid brown =
     handle ~name:"Graph.of_brown" (fun () -> Grew_graph.G_graph.of_brown domain ?sentid brown) ()
@@ -240,6 +243,9 @@ module Rewrite = struct
 
   let rewrite ~gr ~grs ~seq =
     handle ~name:"Rewrite.rewrite" (fun () -> Grew_grs.Grs.rewrite grs seq gr) ()
+
+  let get_graphs rh =
+    handle ~name:"Rewrite.get_graphs" (fun () -> Grew_grs.Rewrite_history.get_graphs rh) ()
 
   let is_empty rh =
     handle ~name:"Rewrite.is_empty" (fun () -> Grew_grs.Rewrite_history.is_empty rh) ()

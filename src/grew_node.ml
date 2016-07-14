@@ -56,9 +56,7 @@ module G_node = struct
       (G_fs.to_string t.fs)
       (Massoc_gid.to_string (G_edge.to_string label_domain) t.next)
 
-  let to_gr t = if t.position < 0.
-    then sprintf "[%s] " (G_fs.to_gr t.fs)
-    else sprintf "(%g) [%s] " t.position (G_fs.to_gr t.fs)
+  let to_gr t = sprintf "[%s] " (G_fs.to_gr t.fs)
 
   let add_edge g_edge gid_tar t =
     match Massoc_gid.add gid_tar g_edge t.next with

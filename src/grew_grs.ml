@@ -30,6 +30,11 @@ module Rewrite_history = struct
     bad_nf: Instance.t list;
   }
 
+  let rec get_graphs = function
+    | { good_nf = []; bad_nf = []; instance } -> [instance.Instance.graph]
+    | { good_nf = [] } -> []
+    | { good_nf = l} -> List_.flat_map get_graphs l
+
   let rec is_empty t =
     (t.instance.Instance.rules = []) && List.for_all is_empty t.good_nf
 
