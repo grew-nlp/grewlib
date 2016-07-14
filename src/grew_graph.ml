@@ -386,7 +386,7 @@ module G_graph = struct
           feats;
           deps = [(i, "SUC")]
           }
-        | _ -> Error.build "[Graph.of_brown] Cannot parse Brown item >>>%s<<< (expected \"phon/POS/lemma\")" item
+        | _ -> Error.build "[Graph.of_brown] Cannot parse Brown item >>>%s<<< (expected \"phon/POS/lemma\") in >>>%s<<<" item brown
       ) units in 
     of_conll domain { Conll.file=None; meta=[]; lines=conll_lines; multiwords=[] }
 
