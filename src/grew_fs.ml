@@ -90,6 +90,7 @@ module P_feature = struct
 
   exception Fail_unif
 
+  (** raise [P_feature.Fail_unif] *)
   let unif_value v1 v2 = match (v1, v2) with
     | ({cst=Absent;in_param=[]},{cst=Absent;in_param=[]}) -> v1
     | ({cst=Absent;in_param=[]},_)

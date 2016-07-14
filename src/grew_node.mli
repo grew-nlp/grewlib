@@ -84,9 +84,8 @@ module P_node: sig
   val get_next: t -> P_edge.t Massoc_pid.t
 
   (** [unif_fs fs t] replaces the feature structure of the node
-      by the unification of [node.fs] ] and [fs].
-      It raises (Error.Build msg) exception in case of Failure.
-  *)
+      by the unification of [t.fs] and [fs].
+      It raises [P_fs.Fail_unif] exception in case of Failure. *)
   val unif_fs: P_fs.t -> t -> t
 
   val build: Domain.t -> ?pat_vars: string list -> Ast.node -> (Id.name * t)

@@ -363,11 +363,16 @@ module Rule = struct
           (full_param, pat_vars, cmd_vars) in
 
     (match (param, pat_vars) with
-      | (None, _::_) -> Error.build ~loc:rule_ast.Ast.rule_loc "Missing lexical parameters in rule \"%s\"" rule_ast.Ast.rule_id
+      | (None, _::_) -> Error.build ~loc:rule_ast.Ast.rule_loc "[Rule.build] Missing lexical parameters in rule \"%s\"" rule_ast.Ast.rule_id
       | _ -> ()
     );
 
-    let (pos, pos_table) = build_pos_basic domain ~pat_vars rule_ast.Ast.pattern.Ast.pat_pos in
+    let (pos, pos_table) =
+      try build_pos_basic domain ~pat_vars rule_ast.Ast.pattern.Ast.pat_pos
+      with P_fs.Fail_unif ->
+        Error.build ~loc:rule_ast.Ast.rule_loc
+          "[Rule.build] in rule \"%s\": feature structures declared in the \"match\" clause are inconsistent"
+          rule_ast.Ast.rule_id in
     let (negs,_) =
       List.fold_left
       (fun (acc,pos) basic_ast ->
@@ -387,8 +392,14 @@ module Rule = struct
     }
 
   let build_pattern domain pattern_ast =
-    let (pos, pos_table) = build_pos_basic domain pattern_ast.Ast.pat_pos in
-    let negs = List_.try_map P_fs.Fail_unif (fun basic_ast -> build_neg_basic domain pos_table basic_ast) pattern_ast.Ast.pat_negs in
+    let (pos, pos_table) =
+      try build_pos_basic domain pattern_ast.Ast.pat_pos
+      with P_fs.Fail_unif -> Error.build "feature structures declared in the \"match\" clause are inconsistent " in
+    let negs =
+      List_.try_map
+        P_fs.Fail_unif (* Skip the without parts that are incompatible with the match part *)
+        (fun basic_ast -> build_neg_basic domain pos_table basic_ast)
+        pattern_ast.Ast.pat_negs in
     (pos, negs)
 
   (* ====================================================================== *)

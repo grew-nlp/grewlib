@@ -54,6 +54,7 @@ module P_graph: sig
       old_map: P_node.t Pid_map.t; (* a partial map for new constraints on old nodes "Old [...]" *)
     }
 
+  (** It raises [P_fs.Fail_unif] exception in case of inconsistent feature structures. *)
   val build:
       Domain.t ->
       ?pat_vars: string list ->
@@ -62,6 +63,7 @@ module P_graph: sig
       Ast.edge list ->
       (t * Id.table)
 
+  (** It raises [P_fs.Fail_unif] exception in case of inconsistent feature structures. *)
   val build_extension:
       Domain.t ->
       ?pat_vars: string list ->

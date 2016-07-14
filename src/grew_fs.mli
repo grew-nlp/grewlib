@@ -87,8 +87,9 @@ module P_fs: sig
   val check_position: ?param:Lex_par.t -> float -> t -> bool
 
   exception Fail_unif
+
   (** [unif fs1 fs2] returns the unification of the two feature structures.
-      It raises [Fail_unif] exception in case of Failure.
-  *)
+      It raises [Fail_unif] exception in case of Failure. *)
   val unif: t -> t -> t
+
 end (* module P_fs *)
