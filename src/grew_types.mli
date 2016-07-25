@@ -124,6 +124,8 @@ module Label : sig
 
   val to_string: Domain.t -> t -> string
 
+  val is_void: Domain.t -> t -> bool
+
   val to_dep: Domain.t -> ?deco:bool -> t -> string
 
   val to_dot: Domain.t -> ?deco:bool -> t -> string

@@ -56,6 +56,7 @@ module G_edge = struct
     | Ast.Pos_list _ -> Error.build "Only atomic edge values are allowed in graphs%s" (Loc.to_string loc)
     | Ast.Regexp _ -> Error.build "Regexp are not allowed in graphs%s" (Loc.to_string loc)
 
+  let is_void label_domain t = Label.is_void label_domain t
   let to_dep label_domain ?(deco=false) t = Label.to_dep label_domain ~deco t
   let to_dot label_domain ?(deco=false) t = Label.to_dot label_domain ~deco t
 

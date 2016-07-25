@@ -39,6 +39,7 @@ module G_edge: sig
 
   val build: Domain.t -> Ast.edge -> t
 
+  val is_void: Domain.t -> t -> bool
   val to_dot: Domain.t -> ?deco:bool -> t -> string
   val to_dep: Domain.t -> ?deco:bool -> t -> string
 end (* module G_edge *)

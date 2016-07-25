@@ -288,6 +288,10 @@ module Label = struct
 
   let get_style (_,styles) i = styles.(i)
 
+  let is_void (label_domain,_) t =
+    let style = get_style label_domain t in
+    style.Label_domain.text = "void"
+
   let to_dep (label_domain,_) ?(deco=false) t =
     let style = get_style label_domain t in
     Label_domain.to_dep ~deco style

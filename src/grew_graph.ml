@@ -733,8 +733,10 @@ module G_graph = struct
       (fun gid elt ->
         Massoc_gid.iter
           (fun tar g_edge ->
-            let deco = List.mem (gid,g_edge,tar) deco.G_deco.edges in
-            bprintf buff "N_%s -> N_%s %s\n" (Gid.to_string gid) (Gid.to_string tar) (G_edge.to_dep domain ~deco g_edge)
+            if not (G_edge.is_void domain g_edge)
+            then
+              let deco = List.mem (gid,g_edge,tar) deco.G_deco.edges in
+              bprintf buff "N_%s -> N_%s %s\n" (Gid.to_string gid) (Gid.to_string tar) (G_edge.to_dep domain ~deco g_edge)
           ) (G_node.get_next elt)
       ) graph.map;
 
