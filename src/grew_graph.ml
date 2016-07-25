@@ -372,18 +372,9 @@ module G_graph = struct
         | [Str.Text form; Str.Delim pos; Str.Text lemma] ->
         let pos = String.sub pos 1 ((String.length pos)-2) in
         let feats = match (i,sentid) with
-        | (0,Some id) -> [("sentid", id)]
-        | _ -> [] in
-        {
-          Conll.line_num=0;
-          id = i+1;
-          form;
-          lemma;
-          upos = "_";
-          xpos = pos;
-          feats;
-          deps = [(i, "SUC")]
-          }
+          | (0,Some id) -> [("sentid", id)]
+          | _ -> [] in
+        Conll.build_line ~id:(i+1) ~form ~lemma ~xpos:pos ~feats ~deps:([(i, "SUC")]) ()
         | _ -> Error.build "[Graph.of_brown] Cannot parse Brown item >>>%s<<< (expected \"phon/POS/lemma\") in >>>%s<<<" item brown
       ) units in 
     of_conll domain { Conll.file=None; meta=[]; lines=conll_lines; multiwords=[] }
