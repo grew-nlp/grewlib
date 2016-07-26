@@ -16,6 +16,8 @@ open Grew_base
 open Grew_types
 open Grew_ast
 
+  let decode_feat_name s = Str.global_replace (Str.regexp "__\\([0-9a-z]+\\)$") "[\\1]" s
+
 (* ================================================================================ *)
 module G_feature = struct
 
@@ -53,7 +55,7 @@ module G_feature = struct
     let string_val = string_of_value feat_val in
     match Str.split (Str.regexp ":C:") string_val with
       | [] -> Error.bug "[G_feature.to_dot] feature value '%s'" string_val
-      | fv::_ -> bprintf buff "<TR><TD ALIGN=\"right\">%s</TD><TD>=</TD><TD ALIGN=\"left\">%s</TD></TR>\n" feat_name fv
+      | fv::_ -> bprintf buff "<TR><TD ALIGN=\"right\">%s</TD><TD>=</TD><TD ALIGN=\"left\">%s</TD></TR>\n" (decode_feat_name feat_name) fv
 end (* module G_feature *)
 
 (* ================================================================================ *)
@@ -313,7 +315,7 @@ module G_fs = struct
 
     let lines = List.fold_left
       (fun acc (feat_name, atom) ->
-        let esc_atom = escape_sharp (G_feature.to_string (feat_name, atom)) in
+        let esc_atom = escape_sharp (G_feature.to_string (decode_feat_name feat_name, atom)) in
         if List.mem feat_name (snd decorated_feat)
         then (sprintf "%s:B:yellow" esc_atom) :: acc
         else
@@ -334,7 +336,7 @@ module G_fs = struct
       | [] -> "_"
       | _ -> String.concat "|"
         (List.map
-           (function (fn, String "true") -> fn | (fn, fv) -> fn^"="^(string_of_value fv))
+           (function (fn, String "true") -> fn | (fn, fv) -> (decode_feat_name fn)^"="^(string_of_value fv))
            reduced_t
         )
 end (* module G_fs *)
