@@ -53,6 +53,12 @@ module Ast = struct
   let dump_pattern_label_ident name = name
 
   (* ---------------------------------------------------------------------- *)
+  (* node_ident: W0.5 *)
+  type node_ident = string
+  let parse_node_ident s = check_special "node ident" ["."] s; s
+  let dump_node_ident name = name
+
+  (* ---------------------------------------------------------------------- *)
   (* feature_ident: V.cat *)
   type feature_ident = Id.name * feature_name
   let dump_feature_ident (name, feat_name) = sprintf "%s.%s" name feat_name

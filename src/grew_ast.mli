@@ -33,6 +33,12 @@ module Ast : sig
   val dump_pattern_label_ident: pattern_label_ident -> string
 
   (* ---------------------------------------------------------------------- *)
+  (* node_ident: W0.5 *)
+  type node_ident = string
+  val parse_node_ident: string -> node_ident
+  val dump_node_ident: node_ident -> string
+
+  (* ---------------------------------------------------------------------- *)
   (* feature_ident: V.cat *)
   type feature_ident = Id.name * feature_name
   val parse_feature_ident: string -> feature_ident

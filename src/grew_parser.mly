@@ -152,6 +152,12 @@ simple_id:
 simple_id_with_loc:
         | id=ID       { localize (Ast.parse_simple_ident id) }
 
+node_id:
+        | id=ID       { Ast.parse_node_ident id }
+
+node_id_with_loc:
+        | id=ID       { localize (Ast.parse_node_ident id) }
+
 feature_ident :
         | id=ID       { Ast.parse_feature_ident id }
 
@@ -191,12 +197,12 @@ gr_item:
 
         (* B (1) [phon="pense", lemma="penser", cat=v, mood=ind ] *)
         (* B [phon="pense", lemma="penser", cat=v, mood=ind ] *)
-        | id_loc=simple_id_with_loc position=option(delimited(LPAREN, FLOAT ,RPAREN)) feats=delimited(LBRACKET,separated_list_final_opt(COMA,node_features),RBRACKET)
+        | id_loc=node_id_with_loc position=option(delimited(LPAREN, FLOAT ,RPAREN)) feats=delimited(LBRACKET,separated_list_final_opt(COMA,node_features),RBRACKET)
             { let (id,loc) = id_loc in
               Graph_node ({Ast.node_id = id; position=position; fs=feats}, loc) }
 
         (* A -[x]-> B *)
-        | n1_loc=simple_id_with_loc label=delimited(LTR_EDGE_LEFT,label_ident,LTR_EDGE_RIGHT) n2=simple_id
+        | n1_loc=node_id_with_loc label=delimited(LTR_EDGE_LEFT,label_ident,LTR_EDGE_RIGHT) n2=node_id
             { Graph_edge ({Ast.edge_id = None; src=fst n1_loc; edge_label_cst=Ast.Pos_list [label]; tar=n2}, snd n1_loc) }
 
 /*=============================================================================================*/
