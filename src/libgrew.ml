@@ -60,9 +60,11 @@ module Domain = struct
 
   let load filename =
     let ast = Grew_loader.Loader.domain filename in
-    Grew_grs.Grs.domain_build ast
+    match Grew_grs.Grs.domain_build ast with
+    | Some dom -> dom
+    | None -> raise (Bug ("[Domain.load] empty domain", None))
 
-  let feature_names domain =  handle ~name:"feature_names" (fun () ->  Grew_types.Domain.feature_names domain) ()
+  let feature_names domain =  handle ~name:"feature_names" (fun () -> Grew_types.Domain.feature_names domain) ()
 end
 
 (* ==================================================================================================== *)
@@ -71,8 +73,8 @@ end
 module Pattern = struct
   type t = Grew_rule.Rule.pattern
 
-  let load domain file =
-  handle ~name:"Pattern.load" (fun () -> Grew_rule.Rule.build_pattern domain (Grew_loader.Loader.pattern file)) ()
+  let load ?domain file =
+  handle ~name:"Pattern.load" (fun () -> Grew_rule.Rule.build_pattern ?domain (Grew_loader.Loader.pattern file)) ()
 end
 
 (* ==================================================================================================== *)
@@ -98,64 +100,64 @@ module Graph = struct
 
 type t = Grew_graph.G_graph.t
 
-  let load_gr domain file =
+  let load_gr ?domain file =
     if not (Sys.file_exists file)
     then raise (File_not_found file)
     else
       handle ~name:"Graph.load_gr" ~file
         (fun () ->
           let gr_ast = Grew_loader.Loader.gr file in
-          Grew_graph.G_graph.build domain gr_ast
+          Grew_graph.G_graph.build ?domain gr_ast
         ) ()
 
-  let load_conll domain file =
+  let load_conll ?domain file =
     handle ~name:"Graph.load_conll" ~file
       (fun () ->
-        Grew_graph.G_graph.of_conll domain (Conll.load file)
+        Grew_graph.G_graph.of_conll ?domain (Conll.load file)
       ) ()
 
-  let load_brown domain file =
+  let load_brown ?domain file =
     handle ~name:"Graph.load_brown"
       (fun () ->
         let brown = Grew_base.File.load file in
-        Grew_graph.G_graph.of_brown domain brown
+        Grew_graph.G_graph.of_brown ?domain brown
       ) ()
 
-  let load domain file =
+  let load ?domain file =
     handle ~name:"Graph.load_graph" ~file
       (fun () ->
         match Grew_base.File.get_suffix file with
-        | Some ".gr" -> load_gr domain file
-        | Some ".conll" -> load_conll domain file
-        | Some ".br" | Some ".melt" -> load_brown domain file
+        | Some ".gr" -> load_gr ?domain file
+        | Some ".conll" -> load_conll ?domain file
+        | Some ".br" | Some ".melt" -> load_brown ?domain file
         | _ ->
             Log.fwarning "Unknown file format for input graph '%s', try to guess..." file;
             let rec loop = function
             | [] -> Log.fcritical "[Libgrew.load_graph] Cannot guess input file format of file '%s'. Use .gr or .conll file extension" file
-            | load_fct :: tail -> try load_fct domain file with _ -> loop tail in
+            | load_fct :: tail -> try load_fct ?domain file with _ -> loop tail in
             loop [load_gr; load_conll; load_brown]
       ) ()
 
-  let of_gr domain ?(grewpy=false) gr_string =
-    handle ~name:"Graph.of_gr" (fun () -> Grew_graph.G_graph.build domain ~grewpy (Grew_loader.Parser.gr gr_string)) ()
+  let of_gr ?domain ?(grewpy=false) gr_string =
+    handle ~name:"Graph.of_gr" (fun () -> Grew_graph.G_graph.build ?domain ~grewpy (Grew_loader.Parser.gr gr_string)) ()
 
-  let of_conll domain conll =
-    handle ~name:"Graph.of_conll" (fun () -> Grew_graph.G_graph.of_conll domain conll) ()
+  let of_conll ?domain conll =
+    handle ~name:"Graph.of_conll" (fun () -> Grew_graph.G_graph.of_conll ?domain conll) ()
 
-  let of_brown domain ?sentid brown =
-    handle ~name:"Graph.of_brown" (fun () -> Grew_graph.G_graph.of_brown domain ?sentid brown) ()
+  let of_brown ?domain ?sentid brown =
+    handle ~name:"Graph.of_brown" (fun () -> Grew_graph.G_graph.of_brown ?domain ?sentid brown) ()
 
-  let to_dot domain ?main_feat ?(deco=Grew_graph.G_deco.empty) graph =
-    handle ~name:"Graph.to_dot" (fun () -> Grew_graph.G_graph.to_dot domain ?main_feat graph ~deco) ()
+  let to_dot ?domain ?main_feat ?(deco=Grew_graph.G_deco.empty) graph =
+    handle ~name:"Graph.to_dot" (fun () -> Grew_graph.G_graph.to_dot ?domain ?main_feat graph ~deco) ()
 
-  let to_dep domain ?filter ?main_feat ?(deco=Grew_graph.G_deco.empty) graph =
-    handle ~name:"Graph.to_dep" (fun () -> Grew_graph.G_graph.to_dep domain ?filter ?main_feat ~deco graph) ()
+  let to_dep ?domain ?filter ?main_feat ?(deco=Grew_graph.G_deco.empty) graph =
+    handle ~name:"Graph.to_dep" (fun () -> Grew_graph.G_graph.to_dep ?domain ?filter ?main_feat ~deco graph) ()
 
-  let to_gr domain graph =
-    handle ~name:"Graph.to_gr" (fun () -> Grew_graph.G_graph.to_gr domain graph) ()
+  let to_gr ?domain graph =
+    handle ~name:"Graph.to_gr" (fun () -> Grew_graph.G_graph.to_gr ?domain graph) ()
 
-  let to_conll_string domain graph =
-    handle ~name:"Graph.to_conll_string" (fun () -> Grew_graph.G_graph.to_conll_string domain graph) ()
+  let to_conll_string ?domain graph =
+    handle ~name:"Graph.to_conll_string" (fun () -> Grew_graph.G_graph.to_conll_string ?domain graph) ()
 
   let to_sentence ?main_feat gr =
     handle ~name:"Graph.to_sentence"
@@ -163,17 +165,17 @@ type t = Grew_graph.G_graph.t
         Grew_graph.G_graph.to_sentence ?main_feat gr
       ) ()
 
-  let save_conll domain filename graph =
+  let save_conll ?domain filename graph =
     handle ~name:"Graph.save_conll" (fun () ->
       let out_ch = open_out filename in
-      fprintf out_ch "%s" (Grew_graph.G_graph.to_conll_string domain graph);
+      fprintf out_ch "%s" (Grew_graph.G_graph.to_conll_string ?domain graph);
       close_out out_ch
     ) ()
 
-  let raw domain gr =
-    handle ~name:"Graph.raw" (fun () -> Grew_graph.G_graph.to_raw domain gr) ()
+  let raw ?domain gr =
+    handle ~name:"Graph.raw" (fun () -> Grew_graph.G_graph.to_raw ?domain gr) ()
 
-  let search_pattern domain pattern graph = Grew_rule.Rule.match_in_graph domain pattern graph
+  let search_pattern ?domain pattern graph = Grew_rule.Rule.match_in_graph ?domain pattern graph
 
   let node_matching pattern graph matching  = Grew_rule.Rule.node_matching pattern graph matching
 
@@ -209,7 +211,7 @@ module Grs = struct
 
         (* draw pattern graphs for all rules and all filters *)
         let fct module_ rule_ =
-          let dep_code = Grew_rule.Rule.to_dep (Grew_grs.Grs.get_domain grs) rule_ in
+          let dep_code = Grew_rule.Rule.to_dep ?domain:(Grew_grs.Grs.get_domain grs) rule_ in
           let dep_png_file = sprintf "%s/%s_%s-patt.png" dir module_ (Grew_rule.Rule.get_name rule_) in
           let d2p = Dep2pict.Dep2pict.from_dep ~dep:dep_code in
           Dep2pict.Dep2pict.save_png ~filename:dep_png_file d2p in
@@ -256,8 +258,8 @@ module Rewrite = struct
   let write_stat filename rew_hist =
     handle ~name:"Rewrite.write_stat" (fun () -> Grew_html.Gr_stat.save filename (Grew_html.Gr_stat.from_rew_history rew_hist)) ()
 
-  let write_annot domain ~title static_dir annot_dir base_name_rew_hist_list =
-    handle ~name:"Rewrite.write_annot" (fun () -> Grew_html.Html_annot.build domain ~title static_dir annot_dir base_name_rew_hist_list) ()
+  let write_annot ?domain ~title static_dir annot_dir base_name_rew_hist_list =
+    handle ~name:"Rewrite.write_annot" (fun () -> Grew_html.Html_annot.build ?domain ~title static_dir annot_dir base_name_rew_hist_list) ()
 
   let save_index ~dirname ~base_names =
     handle ~name:"Rewrite.save_index" (fun () ->
@@ -266,38 +268,38 @@ module Rewrite = struct
       close_out out_ch
     ) ()
 
-  let save_gr domain base rew_hist =
-    handle ~name:"Rewrite.save_gr" (fun () -> Grew_grs.Rewrite_history.save_gr domain base rew_hist) ()
+  let save_gr ?domain base rew_hist =
+    handle ~name:"Rewrite.save_gr" (fun () -> Grew_grs.Rewrite_history.save_gr ?domain base rew_hist) ()
 
-  let save_conll domain base rew_hist =
-    handle ~name:"Rewrite.save_conll" (fun () -> Grew_grs.Rewrite_history.save_conll domain base rew_hist) ()
+  let save_conll ?domain base rew_hist =
+    handle ~name:"Rewrite.save_conll" (fun () -> Grew_grs.Rewrite_history.save_conll ?domain base rew_hist) ()
 
-  let save_full_conll domain base rew_hist =
-    handle ~name:"Rewrite.save_full_conll" (fun () -> Grew_grs.Rewrite_history.save_full_conll domain base rew_hist) ()
+  let save_full_conll ?domain base rew_hist =
+    handle ~name:"Rewrite.save_full_conll" (fun () -> Grew_grs.Rewrite_history.save_full_conll ?domain base rew_hist) ()
 
-  let save_det_gr domain base rew_hist =
-    handle ~name:"Rewrite.save_det_gr" (fun () -> Grew_grs.Rewrite_history.save_det_gr domain base rew_hist) ()
+  let save_det_gr ?domain base rew_hist =
+    handle ~name:"Rewrite.save_det_gr" (fun () -> Grew_grs.Rewrite_history.save_det_gr ?domain base rew_hist) ()
 
-  let save_det_conll domain ?header base rew_hist =
-    handle ~name:"Rewrite.save_det_conll" (fun () -> Grew_grs.Rewrite_history.save_det_conll domain ?header base rew_hist) ()
+  let save_det_conll ?domain ?header base rew_hist =
+    handle ~name:"Rewrite.save_det_conll" (fun () -> Grew_grs.Rewrite_history.save_det_conll ?domain ?header base rew_hist) ()
 
-  let det_dep_string domain rew_hist =
-    handle ~name:"Rewrite.det_dep_string" (fun () -> Grew_grs.Rewrite_history.det_dep_string domain rew_hist) ()
+  let det_dep_string ?domain rew_hist =
+    handle ~name:"Rewrite.det_dep_string" (fun () -> Grew_grs.Rewrite_history.det_dep_string ?domain rew_hist) ()
 
-  let conll_dep_string domain ?keep_empty_rh rew_hist =
-    handle ~name:"Rewrite.conll_dep_string" (fun () -> Grew_grs.Rewrite_history.conll_dep_string domain ?keep_empty_rh rew_hist) ()
+  let conll_dep_string ?domain ?keep_empty_rh rew_hist =
+    handle ~name:"Rewrite.conll_dep_string" (fun () -> Grew_grs.Rewrite_history.conll_dep_string ?domain ?keep_empty_rh rew_hist) ()
 
-  let write_html domain ?(no_init=false) ?(out_gr=false) ?filter ?main_feat ?dot ~header ?graph_file rew_hist output_base =
+  let write_html ?domain ?(no_init=false) ?(out_gr=false) ?filter ?main_feat ?dot ~header ?graph_file rew_hist output_base =
     handle ~name:"Rewrite.write_html" (fun () ->
       ignore (
-        Grew_html.Html_rh.build domain ?filter ?main_feat ?dot ~out_gr ~init_graph: (not no_init) ~header ?graph_file output_base rew_hist
+        Grew_html.Html_rh.build ?domain ?filter ?main_feat ?dot ~out_gr ~init_graph: (not no_init) ~header ?graph_file output_base rew_hist
       )
     ) ()
 
-  let error_html domain ?(no_init=false) ?main_feat ?dot ~header msg ?init output_base =
+  let error_html ?domain ?(no_init=false) ?main_feat ?dot ~header msg ?init output_base =
     handle ~name:"Rewrite.error_html" (fun () ->
       ignore (
-        Grew_html.Html_rh.error domain ?main_feat ?dot ~init_graph: (not no_init) ~header output_base msg init
+        Grew_html.Html_rh.error ?domain ?main_feat ?dot ~init_graph: (not no_init) ~header output_base msg init
       )
     ) ()
 

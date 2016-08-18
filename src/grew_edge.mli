@@ -21,10 +21,10 @@ module Label_cst : sig
   | Neg of Label.t list
   | Regexp of (Str.regexp * string)
 
-  val to_string: Domain.t -> t -> string
+  val to_string: ?domain:Domain.t -> t -> string
   val all: t
-  val match_: Domain.t -> t -> Label.t -> bool
-  val build: ?loc:Loc.t -> Domain.t -> Ast.edge_label_cst -> t
+  val match_: ?domain:Domain.t -> t -> Label.t -> bool
+  val build: ?loc:Loc.t -> ?domain:Domain.t -> Ast.edge_label_cst -> t
 end (* module Label_cst *)
 
 
@@ -33,15 +33,15 @@ end (* module Label_cst *)
 module G_edge: sig
   type t = Label.t
 
-  val to_string: Domain.t -> t -> string
+  val to_string: ?domain:Domain.t -> t -> string
 
-  val make: ?loc:Loc.t -> Domain.t -> string -> t
+  val make: ?loc:Loc.t -> ?domain:Domain.t -> string -> t
 
-  val build: Domain.t -> Ast.edge -> t
+  val build: ?domain:Domain.t -> Ast.edge -> t
 
-  val is_void: Domain.t -> t -> bool
-  val to_dot: Domain.t -> ?deco:bool -> t -> string
-  val to_dep: Domain.t -> ?deco:bool -> t -> string
+  val is_void: ?domain:Domain.t -> t -> bool
+  val to_dot: ?domain:Domain.t -> ?deco:bool -> t -> string
+  val to_dep: ?domain:Domain.t -> ?deco:bool -> t -> string
 end (* module G_edge *)
 
 (* ================================================================================ *)
@@ -54,16 +54,16 @@ module P_edge: sig
 
   val get_id: t -> string option
 
-  val to_string: Domain.t -> t -> string
+  val to_string: ?domain:Domain.t -> t -> string
 
-  val build: Domain.t -> Ast.edge -> t
+  val build: ?domain:Domain.t -> Ast.edge -> t
 
   type edge_matcher =
     | Fail
     | Ok of Label.t
     | Binds of string * Label.t list
 
-  val match_: Domain.t -> t -> G_edge.t -> edge_matcher
+  val match_: ?domain:Domain.t -> t -> G_edge.t -> edge_matcher
 
-  val match_list: Domain.t -> t -> G_edge.t list -> edge_matcher
+  val match_list: ?domain:Domain.t -> t -> G_edge.t list -> edge_matcher
 end (* module P_edge *)

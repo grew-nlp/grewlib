@@ -64,8 +64,7 @@ module Command : sig
     | H_MERGE_NODE of (Gid.t * Gid.t)
 
   val build:
-      Domain.t ->
-      Domain.t ->
+      ?domain: Domain.t ->
       ?param: (string list * string list) ->
       (Id.name list * string list) ->
       Id.table ->

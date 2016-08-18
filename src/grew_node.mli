@@ -22,7 +22,7 @@ module G_node: sig
 
   val empty: t
 
-  val to_string: Domain.t -> t -> string
+  val to_string: ?domain:Domain.t -> t -> string
   val to_gr: t -> string
 
   val get_fs: t -> G_fs.t
@@ -53,9 +53,9 @@ module G_node: sig
   val rm_out_edges: t -> t
 
   val add_edge: G_edge.t -> Gid.t -> t -> t option
-  val build: Domain.t -> ?prec:Gid.t -> ?succ:Gid.t -> int -> Ast.node -> (Id.name * t)
-  val of_conll: ?loc:Loc.t -> ?prec:Gid.t -> ?succ:Gid.t -> Domain.t -> Conll.line -> t
-  val fresh: Domain.t -> ?prec:Gid.t -> ?succ:Gid.t -> float -> t
+  val build: ?domain:Domain.t -> ?prec:Gid.t -> ?succ:Gid.t -> int -> Ast.node -> (Id.name * t)
+  val of_conll: ?loc:Loc.t -> ?prec:Gid.t -> ?succ:Gid.t -> ?domain:Domain.t -> Conll.line -> t
+  val fresh: ?domain:Domain.t -> ?prec:Gid.t -> ?succ:Gid.t -> float -> t
 
   val get_position: t -> float
 
@@ -88,7 +88,7 @@ module P_node: sig
       It raises [P_fs.Fail_unif] exception in case of Failure. *)
   val unif_fs: P_fs.t -> t -> t
 
-  val build: Domain.t -> ?pat_vars: string list -> Ast.node -> (Id.name * t)
+  val build: ?domain:Domain.t -> ?pat_vars: string list -> Ast.node -> (Id.name * t)
 
   val add_edge: P_edge.t -> Pid.t -> t -> t option
 

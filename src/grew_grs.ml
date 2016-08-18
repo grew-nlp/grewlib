@@ -43,11 +43,11 @@ module Rewrite_history = struct
     | { good_nf = [] } -> 0 (* dead branch *)
     | { good_nf = l} -> List.fold_left (fun acc t -> acc + (num_sol t)) 0 l
 
-  let save_nfs label_domain ?filter ?main_feat ~dot base_name t =
+  let save_nfs ?domain ?filter ?main_feat ~dot base_name t =
     let rec loop file_name rules t =
       match (t.good_nf, t.bad_nf) with
-        | [],[] when dot -> Instance.save_dot_png label_domain ?filter ?main_feat file_name t.instance; [rules, file_name]
-        | [],[] -> ignore (Instance.save_dep_png label_domain ?filter ?main_feat file_name t.instance); [rules, file_name]
+        | [],[] when dot -> Instance.save_dot_png ?domain ?filter ?main_feat file_name t.instance; [rules, file_name]
+        | [],[] -> ignore (Instance.save_dep_png ?domain ?filter ?main_feat file_name t.instance); [rules, file_name]
         | [],_ -> []
         | l, _ ->
           List_.foldi_left
@@ -62,78 +62,78 @@ module Rewrite_history = struct
             [] l
     in loop base_name [] t
 
-  let save_gr label_domain base t =
+  let save_gr ?domain base t =
     let rec loop file_name t =
       match (t.good_nf, t.bad_nf) with
-        | [],[] -> File.write (Instance.to_gr label_domain t.instance) (file_name^".gr")
+        | [],[] -> File.write (Instance.to_gr ?domain t.instance) (file_name^".gr")
         | l, _ -> List.iteri (fun i son -> loop (sprintf "%s_%d" file_name i) son) l
     in loop base t
 
-  let save_conll label_domain base t =
+  let save_conll ?domain base t =
     let rec loop file_name t =
       match (t.good_nf, t.bad_nf) with
-        | [],[] -> File.write (Instance.to_conll_string label_domain t.instance) (file_name^".conll")
+        | [],[] -> File.write (Instance.to_conll_string ?domain t.instance) (file_name^".conll")
         | l, _ -> List.iteri (fun i son -> loop (sprintf "%s_%d" file_name i) son) l
     in loop base t
 
-  let save_full_conll label_domain base t =
+  let save_full_conll ?domain base t =
     let cpt = ref 0 in
     let rec loop t =
       match (t.good_nf, t.bad_nf) with
         | [],[] -> 
-          File.write (Instance.to_conll_string label_domain t.instance) (sprintf "%s__%d.conll" base !cpt);
+          File.write (Instance.to_conll_string ?domain t.instance) (sprintf "%s__%d.conll" base !cpt);
           incr cpt
         | l, _ -> List.iter loop l
     in loop t; !cpt
 
   (* suppose that all modules are confluent and produced exacly one normal form *)
-  let save_det_gr label_domain base t =
+  let save_det_gr ?domain base t =
     let rec loop t =
       match (t.good_nf, t.bad_nf) with
-        | [],[] -> File.write (Instance.to_gr label_domain t.instance) (base^".gr")
+        | [],[] -> File.write (Instance.to_gr ?domain t.instance) (base^".gr")
         | [one], [] -> loop one
         | _ -> Error.run "[save_det_gr] Not a single rewriting"
     in loop t
 
-  let save_annot label_domain out_dir base_name t =
+  let save_annot ?domain out_dir base_name t =
     List.mapi
       (fun i alts ->
         match alts.good_nf with
       | [alt_1; alt_2] ->
         let a = sprintf "%s_%d_A" base_name i in
         let b = sprintf "%s_%d_B" base_name i in
-        let hpa = Instance.save_dep_svg label_domain (Filename.concat out_dir a) alt_1.instance in
-        let hpb = Instance.save_dep_svg label_domain (Filename.concat out_dir b) alt_2.instance in
+        let hpa = Instance.save_dep_svg ?domain (Filename.concat out_dir a) alt_1.instance in
+        let hpb = Instance.save_dep_svg ?domain (Filename.concat out_dir b) alt_2.instance in
         let (afn,apos) = G_graph.get_annot_info alt_1.instance.Instance.graph
         and (bfn,bpos) = G_graph.get_annot_info alt_2.instance.Instance.graph in
         (base_name,i,(afn,apos),(bfn,bpos),(hpa,hpb))
       | _ -> Error.run "Not two alternatives in an annotation rewriting in %s" base_name
       ) t.good_nf
 
-  let save_det_conll label_domain ?header base t =
+  let save_det_conll ?domain ?header base t =
     let rec loop t =
       match (t.good_nf, t.bad_nf) with
         | ([],[]) ->
           let output =
             match header with
-              | Some h -> sprintf "%% %s\n%s" h (Instance.to_conll_string label_domain t.instance)
-              | None -> Instance.to_conll_string label_domain t.instance in
+              | Some h -> sprintf "%% %s\n%s" h (Instance.to_conll_string ?domain t.instance)
+              | None -> Instance.to_conll_string ?domain t.instance in
           File.write output (base^".conll")
         | ([one], []) -> loop one
         | _ -> Error.run "[save_det_conll] Not a single rewriting"
     in loop t
 
-  let det_dep_string label_domain t =
+  let det_dep_string ?domain t =
     let rec loop t =
       match (t.good_nf, t.bad_nf) with
         | [],[] ->
           let graph = t.instance.Instance.graph in
-          Some (G_graph.to_dep label_domain graph)
+          Some (G_graph.to_dep ?domain graph)
         | [one], [] -> loop one
         | _ -> None
     in loop t
 
-  let conll_dep_string label_domain ?(keep_empty_rh=false) t =
+  let conll_dep_string ?domain ?(keep_empty_rh=false) t =
     if (not keep_empty_rh) && is_empty t
     then None
     else
@@ -141,7 +141,7 @@ module Rewrite_history = struct
         match (t.good_nf, t.bad_nf) with
           | [],[] ->
             let graph = t.instance.Instance.graph in
-            Some (G_graph.to_conll_string label_domain graph)
+            Some (G_graph.to_conll_string ?domain graph)
           | [one], [] -> loop one
           | _ -> None
       in loop t
@@ -167,10 +167,10 @@ module Modul = struct
       | r::tail -> loop ((Rule.get_name r) :: already_defined) tail in
     loop [] t.rules
 
-  let build domain ast_module =
+  let build ?domain ast_module =
     let locals = Array.of_list ast_module.Ast.local_labels in
     Array.sort compare locals;
-    let rules_or_filters = List.map (Rule.build domain ~locals ast_module.Ast.mod_dir) ast_module.Ast.rules in
+    let rules_or_filters = List.map (Rule.build ?domain ~locals ast_module.Ast.mod_dir) ast_module.Ast.rules in
     let (filters, rules) = List.partition Rule.is_filter rules_or_filters in
     let modul =
       {
@@ -220,7 +220,7 @@ end (* module Sequence *)
 module Grs = struct
 
   type t = {
-    domain: Domain.t;
+    domain: Domain.t option;
     modules: Modul.t list;       (* the ordered list of modules used from rewriting *)
     sequences: Sequence.t list;
     filename: string;
@@ -233,7 +233,7 @@ module Grs = struct
   let get_domain t = t.domain
   let sequence_names t = List.map (fun s -> s.Sequence.name) t.sequences
 
-  let empty = {domain=Domain.empty; modules=[]; sequences=[]; ast=Ast.empty_grs; filename=""; }
+  let empty = {domain=None; modules=[]; sequences=[]; ast=Ast.empty_grs; filename=""; }
 
   let check t =
     (* check for duplicate modules *)
@@ -252,15 +252,18 @@ module Grs = struct
       | s::tail -> loop (s.Sequence.name :: already_defined) tail in
     loop [] t.sequences
 
-  let domain_build ast_domain =
-    Domain.build
+  let domain_build= function
+  | {Ast.label_domain=[]; feature_domain=[]} -> None
+  | ast_domain -> Some (
+      Domain.build
       (Label_domain.build ast_domain.Ast.label_domain)
       (Feature_domain.build ast_domain.Ast.feature_domain)
+    )
 
   let build filename =
     let ast = Loader.grs filename in
     let domain = domain_build ast.Ast.domain in
-    let modules = List.map (Modul.build domain) ast.Ast.modules in
+    let modules = List.map (Modul.build ?domain) ast.Ast.modules in
     let grs = {domain; sequences = List.map (Sequence.build modules) ast.Ast.sequences; modules; ast; filename} in
     check grs;
     grs
@@ -293,7 +296,7 @@ module Grs = struct
       | next::tail ->
         let (good_set, bad_set) =
           Rule.normalize
-            grs.domain
+            ?domain: grs.domain
             next.Modul.name
             ~confluent: next.Modul.confluent
             next.Modul.rules
@@ -319,7 +322,7 @@ module Grs = struct
       | next :: tail ->
         let (good_set, bad_set) =
           Rule.normalize
-            grs.domain
+            ?domain: grs.domain
             next.Modul.name
             ~confluent: next.Modul.confluent
             next.Modul.rules

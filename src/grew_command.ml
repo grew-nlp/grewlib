@@ -72,7 +72,7 @@ module Command  = struct
     | H_MERGE_NODE of (Gid.t * Gid.t)
 
 
-  let build domain label_domain ?param (kai, kei) table locals ast_command =
+  let build ?domain ?param (kai, kei) table locals ast_command =
     (* kai stands for "known act ident", kei for "known edge ident" *)
 
     let pid_of_act_id loc node_name =
@@ -95,7 +95,7 @@ module Command  = struct
       | (Ast.Del_edge_expl (act_i, act_j, lab), loc) ->
           check_node_id loc act_i kai;
           check_node_id loc act_j kai;
-          let edge = G_edge.make ~loc label_domain lab in
+          let edge = G_edge.make ~loc ?domain lab in
           ((DEL_EDGE_EXPL (pid_of_act_id loc act_i, pid_of_act_id loc act_j, edge), loc), (kai, kei))
 
       | (Ast.Del_edge_name id, loc) ->
@@ -105,23 +105,23 @@ module Command  = struct
       | (Ast.Add_edge (act_i, act_j, lab), loc) ->
           check_node_id loc act_i kai;
           check_node_id loc act_j kai;
-          let edge = G_edge.make ~loc label_domain lab in
+          let edge = G_edge.make ~loc ?domain lab in
           ((ADD_EDGE (pid_of_act_id loc act_i, pid_of_act_id loc act_j, edge), loc), (kai, kei))
 
       | (Ast.Shift_edge (act_i, act_j, label_cst), loc) ->
           check_node_id loc act_i kai;
           check_node_id loc act_j kai;
-          ((SHIFT_EDGE (pid_of_act_id loc act_i, pid_of_act_id loc act_j, Label_cst.build ~loc label_domain label_cst), loc), (kai, kei))
+          ((SHIFT_EDGE (pid_of_act_id loc act_i, pid_of_act_id loc act_j, Label_cst.build ~loc ?domain label_cst), loc), (kai, kei))
 
       | (Ast.Shift_in (act_i, act_j, label_cst), loc) ->
           check_node_id loc act_i kai;
           check_node_id loc act_j kai;
-          ((SHIFT_IN (pid_of_act_id loc act_i, pid_of_act_id loc act_j, Label_cst.build label_domain ~loc label_cst), loc), (kai, kei))
+          ((SHIFT_IN (pid_of_act_id loc act_i, pid_of_act_id loc act_j, Label_cst.build ?domain ~loc label_cst), loc), (kai, kei))
 
       | (Ast.Shift_out (act_i, act_j, label_cst), loc) ->
           check_node_id loc act_i kai;
           check_node_id loc act_j kai;
-          ((SHIFT_OUT (pid_of_act_id loc act_i, pid_of_act_id loc act_j, Label_cst.build label_domain ~loc label_cst), loc), (kai, kei))
+          ((SHIFT_OUT (pid_of_act_id loc act_i, pid_of_act_id loc act_j, Label_cst.build ?domain ~loc label_cst), loc), (kai, kei))
 
       | (Ast.Merge_node (act_i, act_j), loc) ->
           check_node_id loc act_i kai;
@@ -133,7 +133,7 @@ module Command  = struct
           if List.mem new_id kai
           then Error.build ~loc "Node identifier \"%s\" is already used" new_id;
 
-          let edge = G_edge.make ~loc label_domain label in
+          let edge = G_edge.make ~loc ?domain label in
           begin
             try
             (
@@ -146,7 +146,7 @@ module Command  = struct
             )
             with Not_found ->
               Log.fcritical "[GRS] tries to build a command New_neighbour (%s) on node %s which is not in the pattern %s"
-               (G_edge.to_string label_domain edge)
+               (G_edge.to_string ?domain edge)
                ancestor
                (Loc.to_string loc)
           end
@@ -176,7 +176,7 @@ module Command  = struct
           if feat_name = "position"
           then Error.build ~loc "Illegal del_feat command: the 'position' feature cannot be deleted";
           check_node_id loc act_id kai;
-          Domain.check_feature_name ~loc domain feat_name;
+          Domain.check_feature_name ~loc ?domain feat_name;
           ((DEL_FEAT (pid_of_act_id loc act_id, feat_name), loc), (kai, kei))
 
       | (Ast.Update_feat ((act_id, feat_name), ast_items), loc) ->
@@ -185,7 +185,7 @@ module Command  = struct
             (function
               | Ast.Qfn_item (node_id,feature_name) ->
                 check_node_id loc node_id kai;
-                Domain.check_feature_name ~loc domain feature_name;
+                Domain.check_feature_name ~loc ?domain feature_name;
                 Feat (pid_of_node_id loc node_id, feature_name)
               | Ast.String_item s -> String s
               | Ast.Param_item var ->
@@ -199,9 +199,9 @@ module Command  = struct
             ) ast_items in
             (* check for consistency *)
             (match items with
-              | _ when Domain.is_open_feature domain feat_name -> ()
+              | _ when Domain.is_open_feature ?domain feat_name -> ()
               | [Param_out _] -> () (* TODO: check that lexical parameters are compatible with the feature domain *)
-              | [String s] -> Domain.check_feature ~loc domain feat_name s
+              | [String s] -> Domain.check_feature ~loc ?domain feat_name s
               | [Feat (_,fn)] -> ()
               | _ -> Error.build ~loc "[Update_feat] Only open features can be modified with the concat operator '+' but \"%s\" is not declared as an open feature" feat_name);
           ((UPDATE_FEAT (pid_of_act_id loc act_id, feat_name, items), loc), (kai, kei))

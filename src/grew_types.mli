@@ -102,16 +102,16 @@ module Domain : sig
 
   val empty: t
 
-  val feature_names: t -> string list option
+  val feature_names: t -> string list
 
   (** [is_open_feature domain feature_name] returns [true] iff no domain is set or if [feature_name] is defined to be open in the current domain. *)
-  val is_open_feature: t -> feature_name -> bool
+  val is_open_feature: ?domain: t -> feature_name -> bool
 
   (** [check_feature ~loc domain feature_name feature_value] fails iff a domain is set and [feature_name,feature_value] is not defined in the current domain. *)
-  val check_feature: ?loc:Loc.t -> t -> feature_name -> feature_atom -> unit
+  val check_feature: ?loc:Loc.t -> ?domain: t -> feature_name -> feature_atom -> unit
 
   (** [check_feature_name ~loc domain feature_name] fails iff a domain is set and [feature_name] is not defined in the current domain. *)
-  val check_feature_name: ?loc:Loc.t -> t -> feature_name -> unit
+  val check_feature_name: ?loc:Loc.t -> ?domain:t -> feature_name -> unit
 end
 
 (* ================================================================================ *)
@@ -122,22 +122,22 @@ module Label : sig
   (** [match_list p_label_list g_label] returns [true] iff [g_label] match at least one of the p_label of [p_label_list] *)
   val match_list: t list -> t -> bool
 
-  val to_string: Domain.t -> t -> string
+  val to_string: ?domain:Domain.t -> t -> string
 
-  val is_void: Domain.t -> t -> bool
+  val is_void: ?domain: Domain.t -> t -> bool
 
-  val to_dep: Domain.t -> ?deco:bool -> t -> string
+  val to_dep: ?domain: Domain.t -> ?deco:bool -> t -> string
 
-  val to_dot: Domain.t -> ?deco:bool -> t -> string
+  val to_dot: ?domain: Domain.t -> ?deco:bool -> t -> string
 
-  val from_string: ?loc:Loc.t -> Domain.t -> ?locals:Label_domain.decl array -> string -> t
+  val from_string: ?loc:Loc.t -> ?domain: Domain.t -> ?locals:Label_domain.decl array -> string -> t
 end (* module Label *)
 
 (* ================================================================================ *)
 module Feature_value: sig
-  val build_disj: ?loc:Loc.t -> Domain.t -> feature_name -> feature_atom list -> value list
+  val build_disj: ?loc:Loc.t -> ?domain: Domain.t -> feature_name -> feature_atom list -> value list
 
-  val build_value: ?loc:Loc.t -> Domain.t -> feature_name -> feature_atom -> value
+  val build_value: ?loc:Loc.t -> ?domain: Domain.t -> feature_name -> feature_atom -> value
 end (* module Feature_domain *)
 
 

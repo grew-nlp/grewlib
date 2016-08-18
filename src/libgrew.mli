@@ -43,7 +43,7 @@ module Domain : sig
   type t
   val empty: t
   val load: string -> t
-  val feature_names: t -> string list option
+  val feature_names: t -> string list
 end
 
 (* ==================================================================================================== *)
@@ -53,7 +53,7 @@ module Pattern : sig
   type t
 
   (** [load_pattern domain filename] returns the pattern described in the file *)
-  val load: Domain.t -> string -> t 
+  val load: ?domain:Domain.t -> string -> t
 end
 
 (* ==================================================================================================== *)
@@ -85,13 +85,13 @@ module Graph : sig
       File extension should be '.gr' or '.conll'.
       @raise Parsing_err if libgrew can't parse the file
       @raise File_not_found if the file doesn't exists. *)
-  val load: Domain.t -> string -> t
+  val load: ?domain:Domain.t -> string -> t
 
-  val of_gr: Domain.t -> ?grewpy:bool -> string -> t
+  val of_gr: ?domain:Domain.t -> ?grewpy:bool -> string -> t
 
-  val of_conll: Domain.t -> Conll.t -> t
+  val of_conll: ?domain:Domain.t -> Conll.t -> t
 
-  val of_brown: Domain.t -> ?sentid:string -> string -> t
+  val of_brown: ?domain:Domain.t -> ?sentid:string -> string -> t
 
   val to_sentence: ?main_feat:string -> t -> string
 
@@ -100,21 +100,21 @@ module Graph : sig
       - the list of node (node is a list of feature (feature is string * string))
       - the list of edge (src, label, tar) where src and tar refers to the position in the node list
   *)
-  val raw: Domain.t -> t ->
+  val raw: ?domain:Domain.t -> t ->
       string list *
       (string * string) list list *
       (int * string * int) list
 
-  val to_dot : Domain.t -> ?main_feat:string -> ?deco:Deco.t -> t -> string
+  val to_dot : ?domain:Domain.t -> ?main_feat:string -> ?deco:Deco.t -> t -> string
 
-  val to_dep : Domain.t -> ?filter: string list -> ?main_feat:string -> ?deco:Deco.t -> t -> string
+  val to_dep : ?domain:Domain.t -> ?filter: string list -> ?main_feat:string -> ?deco:Deco.t -> t -> string
 
-  val to_gr: Domain.t -> t -> string
+  val to_gr: ?domain:Domain.t -> t -> string
 
-  val to_conll_string: Domain.t -> t -> string
+  val to_conll_string: ?domain:Domain.t -> t -> string
 
   (** [search_pattern pattern graph] returns the list of the possible matching of [pattern] in [graph] *)
-  val search_pattern: Domain.t -> Pattern.t -> t -> Matching.t list
+  val search_pattern: ?domain:Domain.t -> Pattern.t -> t -> Matching.t list
 
   val node_matching: Pattern.t -> t -> Matching.t -> (string * int) list
 end
@@ -139,7 +139,7 @@ module Grs: sig
       @[corpus] is a flag (default is [false]) for complete html doc with corpus sentence. *)
   val build_html_doc: ?corpus:bool -> string -> t -> unit
 
-  val get_domain: t -> Domain.t
+  val get_domain: t -> Domain.t option
 end
 
 (* ==================================================================================================== *)
@@ -173,30 +173,30 @@ module Rewrite: sig
 
   val write_stat: string -> history -> unit
 
-  val save_gr: Domain.t -> string -> history -> unit
+  val save_gr: ?domain:Domain.t -> string -> history -> unit
 
-  val save_conll: Domain.t -> string -> history -> unit
+  val save_conll: ?domain:Domain.t -> string -> history -> unit
 
   (** [save_full_conll base_name rh] saves one conll_file for each normal form defined in [rh].
       Output files are named according to [base_name] and a secondary index after "__".
       The number of conll file produced is returned. *)
-  val save_full_conll: Domain.t -> string -> history -> int
+  val save_full_conll: ?domain:Domain.t -> string -> history -> int
 
-  val save_det_gr: Domain.t -> string -> history -> unit
+  val save_det_gr: ?domain:Domain.t -> string -> history -> unit
 
-  val save_det_conll: Domain.t -> ?header:string -> string -> history -> unit
+  val save_det_conll: ?domain:Domain.t -> ?header:string -> string -> history -> unit
 
-  val det_dep_string: Domain.t -> history -> string option
+  val det_dep_string: ?domain:Domain.t -> history -> string option
 
-  val conll_dep_string: Domain.t -> ?keep_empty_rh:bool -> history -> string option
+  val conll_dep_string: ?domain:Domain.t -> ?keep_empty_rh:bool -> history -> string option
 
   val save_index: dirname:string -> base_names: string array -> unit
 
-  val write_annot: Domain.t -> title:string -> string -> string -> (string * history) list -> unit
+  val write_annot: ?domain:Domain.t -> title:string -> string -> string -> (string * history) list -> unit
 
-  val write_html: Domain.t -> ?no_init: bool -> ?out_gr: bool -> ?filter: string list -> ?main_feat: string -> ?dot: bool -> header: string -> ?graph_file: string -> history -> string ->  unit
+  val write_html: ?domain:Domain.t -> ?no_init: bool -> ?out_gr: bool -> ?filter: string list -> ?main_feat: string -> ?dot: bool -> header: string -> ?graph_file: string -> history -> string ->  unit
 
-  val error_html: Domain.t -> ?no_init:bool -> ?main_feat:string -> ?dot: bool -> header: string -> string -> ?init:Graph.t -> string -> unit
+  val error_html: ?domain:Domain.t -> ?no_init:bool -> ?main_feat:string -> ?dot: bool -> header: string -> string -> ?init:Graph.t -> string -> unit
 
   val make_index: title: string -> grs_file: string -> html: bool -> grs: Grs.t -> seq: string -> input_dir: string -> output_dir: string -> base_names: string array -> unit
 

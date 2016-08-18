@@ -178,13 +178,13 @@ module Feature_domain = struct
 
   let empty = []
 
-  let is_defined feature_name domain =
+  let is_defined feature_name feature_domain =
     List.exists (function
       | Closed (fn,_) when fn = feature_name -> true
       | Open fn when fn = feature_name -> true
       | Num fn when fn = feature_name -> true
       | _ -> false
-    ) domain
+    ) feature_domain
 
   let rec build = function
     | [] -> [Num "position"]
@@ -196,33 +196,34 @@ module Feature_domain = struct
       Error.build "[Feature_domain] The feature named \"%s\" is defined several times" fn
     | x :: tail -> x :: (build tail)
 
-  let feature_names domain =
-    Some (List.map (function Closed (fn, _) | Open fn | Num fn -> fn) domain)
+  let feature_names feature_domain =
+    List.map (function Closed (fn, _) | Open fn | Num fn -> fn) feature_domain
 
-  let get feature_name domain =
+  let get feature_name feature_domain =
     List.find (function
       | Closed (fn,_) when fn = feature_name -> true
       | Open fn when fn = feature_name -> true
       | Num fn when fn = feature_name -> true
       | _ -> false
-    ) domain
+    ) feature_domain
 
-  let sub domain name1 name2 =
-    match (get name1 domain, get name2 domain) with
+  let sub feature_domain name1 name2 =
+    match (get name1 feature_domain, get name2 feature_domain) with
         | (_, Open _) -> true
         | (Closed (_,l1), Closed (_,l2)) -> List_.sort_include l1 l2
         | (Num _, Num _) -> true
         | _ -> false
 
-  let is_open domain name =
-    List.exists (function Open n when n=name -> true | _ -> false) domain
+  let is_open feature_domain name =
+    List.exists (function Open n when n=name -> true | _ -> false) feature_domain
 
   (* This function is defined here because it is used by check_feature *)
-  let build_disj ?loc domain name unsorted_values =
+  let build_disj ?loc ?feature_domain name unsorted_values =
     let values = List.sort Pervasives.compare unsorted_values in
-    match name.[0] with
-      | '_' -> List.map (fun s -> String s) values (* no check on feat_name starting with '_' *)
-      | _ ->
+    match (feature_domain, name.[0]) with
+      | (None, _)
+      | (Some _, '_') -> List.map (fun s -> String s) values (* no check on feat_name starting with '_' *)
+      | (Some dom, _) ->
         let rec loop = function
           | [] -> Error.build ?loc "[GRS] Unknown feature name '%s'" name
           | ((Open n)::_) when n = name ->
@@ -239,7 +240,7 @@ module Feature_domain = struct
           name
             )
           | _::t -> loop t in
-        loop domain
+        loop dom
 
   let build_closed feature_name feature_values =
     let sorted_list = List.sort Pervasives.compare feature_values in
@@ -253,8 +254,8 @@ module Feature_domain = struct
       in loop sorted_list in
     Closed (feature_name, without_duplicate)
 
-  let check_feature ?loc domain name value =
-    ignore (build_disj ?loc domain name [value])
+  let check_feature ?loc ?feature_domain name value =
+    ignore (build_disj ?loc ?feature_domain name [value])
 end (* Feature_domain *)
 
 
@@ -268,13 +269,19 @@ module Domain = struct
 
   let feature_names (_, feature_domain) = Feature_domain.feature_names feature_domain
 
-  let is_open_feature (_, feature_domain) name = Feature_domain.is_open feature_domain name
+  let is_open_feature ?domain name = match domain with
+  | Some (_, feature_domain) -> Feature_domain.is_open feature_domain name
+  | None -> true
 
-  let check_feature ?loc (_, feature_domain) name value = Feature_domain.check_feature ?loc feature_domain name value 
+  let check_feature ?loc ?domain name value = match domain with
+  | Some (_, feature_domain) -> Feature_domain.check_feature ?loc ~feature_domain name value
+  | None -> ()
 
-  let check_feature_name ?loc (_, feature_domain) name =
-    if not (Feature_domain.is_defined name feature_domain)
-    then Error.build ?loc "The feature name \"%s\" in not defined in the domain" name
+  let check_feature_name ?loc ?domain name = match domain with
+  | None -> ()
+  | Some (_, feature_domain) ->
+      if not (Feature_domain.is_defined name feature_domain)
+      then Error.build ?loc "The feature name \"%s\" in not defined in the domain" name
 end
 
 (* ================================================================================ *)
@@ -282,36 +289,61 @@ module Label = struct
   (** Internal representation of labels *)
   type t = int
 
+  (* a array for no label not defined in a domain (no more than 100 labels!) *)
+  let no_domain = Array.make 100 ""
+  let no_domain_size = ref 0
+
   let match_list p_label_list g_label = List.exists (fun p_label -> p_label = g_label) p_label_list
 
-  let to_string ((table,_),_) i = table.(i)
+  let to_string ?domain i =
+    match domain with 
+    | Some ((table,_),_) -> table.(i)
+    | None when i < !no_domain_size -> no_domain.(i)
+    | _ -> Log.bug "Inconsistency in [Label.to_string]"; exit 1
 
-  let get_style (_,styles) i = styles.(i)
+  let get_style ?domain i = match domain with
+    | Some ((_,styles),_) -> styles.(i)
+    | _ -> { Label_domain.default with Label_domain.text = no_domain.(i) }
 
-  let is_void (label_domain,_) t =
-    let style = get_style label_domain t in
+  let is_void ?domain t =
+    let style = get_style ?domain t in
     style.Label_domain.text = "void"
 
-  let to_dep (label_domain,_) ?(deco=false) t =
-    let style = get_style label_domain t in
+  let to_dep ?domain ?(deco=false) t =
+    let style = get_style ?domain t in
     Label_domain.to_dep ~deco style
 
-  let to_dot (label_domain,_) ?(deco=false) t =
-    let style = get_style label_domain t in
+  let to_dot ?domain ?(deco=false) t =
+    let style = get_style ?domain t in
     Label_domain.to_dot ~deco style
 
-  let from_string ?loc ((table,_),_) ?(locals=[||]) str =
-    try Id.build ?loc str table
-    with Not_found -> Error.build "[Label.from_string] unknown edge label '%s'" str
+  let from_string ?loc ?domain ?(locals=[||]) str = match domain with
+    | Some ((table,_),_) ->
+      begin
+        try Id.build ?loc str table
+        with Not_found -> Error.build "[Label.from_string] unknown edge label '%s'" str
+      end
+    | None ->
+      let rec loop = function
+        | 100 -> Log.bug "[Label.from_string] you cannot use more than 100 diff label without domain"; exit 1
+        | i when i >= !no_domain_size ->
+          no_domain.(i) <- str;
+          incr no_domain_size;
+          i
+        | i when no_domain.(i) = str -> i
+        | i -> loop (i+1) in
+      loop 0
 end (* module Label *)
 
 
 (* ================================================================================ *)
 module Feature_value = struct
-  let build_disj ?loc (_, feature_domain) name unsorted_values = Feature_domain.build_disj ?loc feature_domain name unsorted_values
+  let build_disj ?loc ?domain name unsorted_values = match domain with
+  | Some (_, feature_domain) -> Feature_domain.build_disj ?loc ~feature_domain name unsorted_values
+  | None -> Feature_domain.build_disj ?loc name unsorted_values
 
-  let build_value ?loc domain name value =
-    match build_disj ?loc domain name [value] with
+  let build_value ?loc ?domain name value =
+    match build_disj ?loc ?domain name [value] with
       | [x] -> x
       | _ -> Error.bug ?loc "[Feature_value.build_value]"
 end (* module Feature_value *)

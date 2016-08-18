@@ -23,7 +23,7 @@ module G_fs: sig
 
   (** [set_feat domain feature_name atom t] adds the feature ([feature_name],[atom]) in [t].
       If [t] already contains a feature named [feature_name], the old value is erased by the new one. *)
-  val set_feat: ?loc:Loc.t -> Domain.t -> feature_name -> string -> t ->  t
+  val set_feat: ?loc:Loc.t -> ?domain:Domain.t -> feature_name -> string -> t ->  t
 
   (** [del_feat feature_name t] remove the feature with name [feature_name] in [t].
       If [t] does not contain such a feature, [t] is returned unchanged. *)
@@ -48,9 +48,9 @@ module G_fs: sig
 
   val to_string: t -> string
 
-  val build: Domain.t -> Ast.feature list -> t
+  val build: ?domain:Domain.t -> Ast.feature list -> t
 
-  val of_conll: ?loc:Loc.t -> Domain.t -> Conll.line -> t
+  val of_conll: ?loc:Loc.t -> ?domain:Domain.t -> Conll.line -> t
 
   (** [unif t1 t2] returns [Some t] if [t] is the unification of two graph feature structures
       [None] is returned if the two feature structures cannot be unified. *)
@@ -64,7 +64,7 @@ module P_fs: sig
 
   val empty: t
 
-  val build: Domain.t -> ?pat_vars: string list -> Ast.feature list -> t
+  val build: ?domain:Domain.t -> ?pat_vars: string list -> Ast.feature list -> t
 
   val to_string: t -> string
 

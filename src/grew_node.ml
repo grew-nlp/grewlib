@@ -51,10 +51,10 @@ module G_node = struct
 
   let is_conll_root t = t.conll_root
 
-  let to_string label_domain t =
+  let to_string ?domain t =
     Printf.sprintf "  fs=[%s]\n  next=%s\n"
       (G_fs.to_string t.fs)
-      (Massoc_gid.to_string (G_edge.to_string label_domain) t.next)
+      (Massoc_gid.to_string (G_edge.to_string ?domain) t.next)
 
   let to_gr t = sprintf "[%s] " (G_fs.to_gr t.fs)
 
@@ -65,16 +65,16 @@ module G_node = struct
 
   let get_annot_info t = G_fs.get_annot_info t.fs
 
-  let build domain ?prec ?succ position (ast_node, loc) =
-    let fs = G_fs.build domain ast_node.Ast.fs in
+  let build ?domain ?prec ?succ position (ast_node, loc) =
+    let fs = G_fs.build ?domain ast_node.Ast.fs in
     (ast_node.Ast.node_id, { empty with fs; position = float_of_int position; prec; succ })
 
-  let of_conll ?loc ?prec ?succ domain line =
+  let of_conll ?loc ?prec ?succ ?domain line =
     if line = Conll.root
     then { empty with conll_root=true; succ}
-    else { empty with fs = G_fs.of_conll ?loc domain line; position = float line.Conll.id; prec; succ }
+    else { empty with fs = G_fs.of_conll ?loc ?domain line; position = float line.Conll.id; prec; succ }
 
-  let fresh domain ?prec ?succ position = { empty with position; prec; succ }
+  let fresh ?domain ?prec ?succ position = { empty with position; prec; succ }
 
   let remove (id_tar : Gid.t) label t = {t with next = Massoc_gid.remove id_tar label t.next}
 
@@ -117,11 +117,11 @@ module P_node = struct
 
   let empty = { fs = P_fs.empty; next = Massoc_pid.empty; name = ""; loc=None   }
 
-  let build domain ?pat_vars (ast_node, loc) =
+  let build ?domain ?pat_vars (ast_node, loc) =
     (ast_node.Ast.node_id,
      {
        name = ast_node.Ast.node_id;
-       fs = P_fs.build domain ?pat_vars ast_node.Ast.fs;
+       fs = P_fs.build ?domain ?pat_vars ast_node.Ast.fs;
        next = Massoc_pid.empty;
        loc = Some loc;
      } )
