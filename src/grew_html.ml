@@ -342,7 +342,7 @@ module Html_doc = struct
     wnl "  <table width=100%%>";
     List.iter
       (fun initial ->
-        match List.filter (fun mod_ -> Char.uppercase mod_.Ast.module_id.[0] = initial) ast.Ast.modules  with
+        match List.filter (fun mod_ -> Char.uppercase_ascii mod_.Ast.module_id.[0] = initial) ast.Ast.modules  with
           | [] -> ()
           | l ->
             wnl "<tr><td colspan=2 ><h6>%s</h6></td></tr>" (Char.escaped initial);
