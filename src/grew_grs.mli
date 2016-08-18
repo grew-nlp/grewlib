@@ -93,7 +93,7 @@ module Grs: sig
 
   val sequence_names: t -> string list
 
-  val domain_build: Ast.domain -> Domain.t option
+  val domain_build: Ast.domain -> Domain.t
 
   (** [build filename] returns the GRS defined in the file [filename] *)
   val build: string -> t

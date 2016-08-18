@@ -66,8 +66,9 @@ module Loader = struct
   let grs main_file =
     let grs_wi = parse_file_to_grs_wi main_file in
     let domain = match grs_wi.Ast.domain_wi with
-      | Ast.Dom d -> d
-      | Ast.Dom_file file -> domain file in
+      | None -> None
+      | Some (Ast.Dom d) -> Some d
+      | Some (Ast.Dom_file file) -> Some (domain file) in
     let rec flatten_modules current_file = function
       | [] -> []
       | Ast.Modul m :: tail ->

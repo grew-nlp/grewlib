@@ -464,7 +464,11 @@ module Html_doc = struct
     let domain = Filename.concat output_dir "domain.html" in
 
     let domain_out_ch = open_out domain in
-    output_string domain_out_ch (domain_text ~corpus ast.Ast.domain);
+    begin
+      match ast.Ast.domain with
+      | Some dom -> output_string domain_out_ch (domain_text ~corpus dom)
+      | None -> output_string domain_out_ch "No domain defined"
+    end;
     close_out domain_out_ch;
 
     (** Modules + rules **)

@@ -56,13 +56,9 @@ let handle ?(name="") ?(file="No file defined") fct () =
 module Domain = struct
   type t = Grew_types.Domain.t
 
-  let empty = Grew_types.Domain.empty
-
   let load filename =
     let ast = Grew_loader.Loader.domain filename in
-    match Grew_grs.Grs.domain_build ast with
-    | Some dom -> dom
-    | None -> raise (Bug ("[Domain.load] empty domain", None))
+    Grew_grs.Grs.domain_build ast
 
   let feature_names domain =  handle ~name:"feature_names" (fun () -> Grew_types.Domain.feature_names domain) ()
 end

@@ -220,16 +220,16 @@ domain:
 /*  GREW GRAPH REWRITING SYSTEM                                                                */
 /*=============================================================================================*/
 grs_wi:
-        | d=domain m=module_or_include_list s=option(sequences) EOF
+        | d=option(domain) m=module_or_include_list s=option(sequences) EOF
             {
-             { Ast.domain_wi=Ast.Dom d;
+             { Ast.domain_wi=(match d with Some dom -> Some (Ast.Dom dom) | None -> None);
                modules_wi=m;
                sequences_wi=match s with Some seq -> seq | None -> [];
              }
            }
         | DOMAIN file=STRING m=module_or_include_list s=option(sequences) EOF
             {
-             { Ast.domain_wi=Ast.Dom_file file;
+             { Ast.domain_wi= Some (Ast.Dom_file file);
                modules_wi=m;
                sequences_wi=match s with Some seq -> seq | None -> [];
              }

@@ -202,14 +202,14 @@ module Ast : sig
   type domain_wi = Dom of domain | Dom_file of string
 
   type grs_wi = {
-      domain_wi: domain_wi;
+      domain_wi: domain_wi option;
       modules_wi: module_or_include list;
       sequences_wi: sequence list;
     }
 
   (* a GRS: graph rewriting system *)
   type grs = {
-      domain: domain;
+      domain: domain option;
       modules: modul list;
       sequences: sequence list;
     }

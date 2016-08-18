@@ -362,13 +362,13 @@ module Ast = struct
   type domain_wi = Dom of domain | Dom_file of string
 
   type grs_wi = {
-    domain_wi: domain_wi;
+    domain_wi: domain_wi option;
     modules_wi: module_or_include list;
     sequences_wi: sequence list;
   }
 
   type grs = {
-    domain: domain;
+    domain: domain option;
     modules: modul list;
     sequences: sequence list;
   }
@@ -379,6 +379,6 @@ module Ast = struct
     edges: edge list;
   }
 
-  let empty_grs = { domain = empty_domain; modules = []; sequences= [] }
+  let empty_grs = { domain = None; modules = []; sequences= [] }
 
 end (* module Ast *)

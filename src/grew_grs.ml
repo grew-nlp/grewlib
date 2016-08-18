@@ -252,17 +252,14 @@ module Grs = struct
       | s::tail -> loop (s.Sequence.name :: already_defined) tail in
     loop [] t.sequences
 
-  let domain_build= function
-  | {Ast.label_domain=[]; feature_domain=[]} -> None
-  | ast_domain -> Some (
-      Domain.build
+  let domain_build ast_domain =
+    Domain.build
       (Label_domain.build ast_domain.Ast.label_domain)
       (Feature_domain.build ast_domain.Ast.feature_domain)
-    )
 
   let build filename =
     let ast = Loader.grs filename in
-    let domain = domain_build ast.Ast.domain in
+    let domain = match ast.Ast.domain with None -> None | Some ast_dom -> Some (domain_build ast_dom) in
     let modules = List.map (Modul.build ?domain) ast.Ast.modules in
     let grs = {domain; sequences = List.map (Sequence.build modules) ast.Ast.sequences; modules; ast; filename} in
     check grs;

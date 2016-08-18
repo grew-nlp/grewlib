@@ -66,8 +66,7 @@ module Massoc_pid : S with type key = Pid.t
 (* ================================================================================ *)
 module Label_domain : sig
   type t
-  val empty : t
-
+  
   (* [decl] is the type for a label declaration: the name and a list of display options *)
   type decl = string * string list
 
@@ -83,8 +82,6 @@ module Feature_domain: sig
 
   type t
 
-  val empty: t
-
   val build: feature_spec list -> t
 
   (** [sub domain fn1 fn2] returns [true] iff the domain of [fn1] is a subset if the domain of [fn2]. *)
@@ -99,8 +96,6 @@ module Domain : sig
   type t
 
   val build: Label_domain.t -> Feature_domain.t -> t
-
-  val empty: t
 
   val feature_names: t -> string list
 

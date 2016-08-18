@@ -108,7 +108,6 @@ module Label_domain = struct
   }
 
   type t = string array * style array
-  let empty = ([||],[||])
 
   (** The [default] style value *)
   let default = { text="UNSET"; bottom=false; color=None; bgcolor=None; line=Solid }
@@ -175,8 +174,6 @@ module Feature_domain = struct
     | Num of feature_name (* position *)
 
   type t = feature_spec list
-
-  let empty = []
 
   let is_defined feature_name feature_domain =
     List.exists (function
@@ -264,8 +261,6 @@ module Domain = struct
   type t = Label_domain.t * Feature_domain.t
 
   let build ld fd = (ld, fd)
-
-  let empty = (Label_domain.empty, Feature_domain.empty)
 
   let feature_names (_, feature_domain) = Feature_domain.feature_names feature_domain
 
