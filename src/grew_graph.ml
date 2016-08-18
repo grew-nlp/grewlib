@@ -273,9 +273,13 @@ module G_graph = struct
       | None -> None
 
   (* -------------------------------------------------------------------------------- *)
-  let build domain ?(locals=[||]) gr_ast =
-    let full_node_list = gr_ast.Ast.nodes
+  let build domain ?(grewpy=false) ?(locals=[||]) gr_ast =
+    let full_node_list =
+      if grewpy
+      then List.sort (Ast.grewpy_compare) gr_ast.Ast.nodes
+      else gr_ast.Ast.nodes
     and full_edge_list = gr_ast.Ast.edges in
+
 
     let rec loop already_bound index prec = function
       | [] -> (Gid_map.empty,[])

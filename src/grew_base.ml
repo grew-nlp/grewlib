@@ -560,6 +560,20 @@ module Id = struct
   let build_opt key table =
     try Some (Array_.dicho_find key table)
     with Not_found -> None
+
+  let get_float name =
+    try
+      let len = String.length name in
+      let index = Str.search_forward (Str.regexp "[0-9]") name 0 in
+      let sub = String.sub name index (len-index) in
+      try Some (float_of_string sub) with _ -> None
+    with Not_found -> None
+
+  let grewpy_compare name1 name2 =
+    match (get_float name1, get_float name2) with
+    | Some f1, Some f2 -> Pervasives.compare f1 f2
+    | _ -> Pervasives.compare name1 name2
+
 end (* module Id *)
 
 (* ================================================================================ *)

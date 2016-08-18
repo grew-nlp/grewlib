@@ -136,8 +136,8 @@ type t = Grew_graph.G_graph.t
             loop [load_gr; load_conll; load_brown]
       ) ()
 
-  let of_gr domain gr_string =
-    handle ~name:"Graph.of_gr" (fun () -> Grew_graph.G_graph.build domain (Grew_loader.Parser.gr gr_string)) ()
+  let of_gr domain ?(grewpy=false) gr_string =
+    handle ~name:"Graph.of_gr" (fun () -> Grew_graph.G_graph.build domain ~grewpy (Grew_loader.Parser.gr gr_string)) ()
 
   let of_conll domain conll =
     handle ~name:"Graph.of_conll" (fun () -> Grew_graph.G_graph.of_conll domain conll) ()

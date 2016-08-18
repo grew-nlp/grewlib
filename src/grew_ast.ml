@@ -102,6 +102,8 @@ module Ast = struct
   }
   type node = u_node * Loc.t
 
+  let grewpy_compare (n1,_) (n2,_) = Id.grewpy_compare n1.node_id n2.node_id
+
   type edge_label = string
 
   type edge_label_cst =

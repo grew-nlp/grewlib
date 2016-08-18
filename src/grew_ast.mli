@@ -70,6 +70,8 @@ module Ast : sig
     }
   type node = u_node * Loc.t
 
+  val grewpy_compare: node -> node -> int
+
   type edge_label = string (* p_obj.agt:suj *)
 
   type edge_label_cst =

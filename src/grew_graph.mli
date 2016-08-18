@@ -104,7 +104,7 @@ module G_graph: sig
   (* Build functions *)
   (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
 
-  val build: Domain.t -> ?locals: Label_domain.decl array -> Ast.gr -> t
+  val build: Domain.t -> ?grewpy: bool -> ?locals: Label_domain.decl array -> Ast.gr -> t
 
   val of_conll: Domain.t -> Conll.t -> t
 

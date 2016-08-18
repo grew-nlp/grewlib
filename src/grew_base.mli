@@ -267,6 +267,7 @@ module Id: sig
 
   val build_opt: name -> table -> t option
 
+  val grewpy_compare: name -> name -> int
 end
 
 (* ================================================================================ *)
