@@ -97,6 +97,12 @@ module Rule = struct
     | Feature_eq of Pid.t * string * Pid.t * string
     | Feature_diseq of Pid.t * string * Pid.t * string
 
+    | Feature_cst of Pid.t * string * string
+    | Feature_diff_cst of Pid.t * string * string
+
+    | Feature_float of Pid.t * string * float
+    | Feature_diff_float of Pid.t * string * float
+
     | Feature_re of Pid.t * string * string
 
     | Feature_ineq of Ast.ineq * Pid.t * string * Pid.t * string
@@ -137,6 +143,20 @@ module Rule = struct
       | (Ast.Feature_re ((node_name, feat_name), regexp), loc) ->
         Domain.check_feature_name ?domain ~loc feat_name;
         Feature_re (pid_of_name loc node_name, feat_name, regexp)
+
+      | (Ast.Feature_cst ((node_name, feat_name), string), loc) ->
+        Domain.check_feature_name ?domain ~loc feat_name;
+        Feature_cst (pid_of_name loc node_name, feat_name, string)
+      | (Ast.Feature_diff_cst ((node_name, feat_name), string), loc) ->
+        Domain.check_feature_name ?domain ~loc feat_name;
+        Feature_diff_cst (pid_of_name loc node_name, feat_name, string)
+
+      | (Ast.Feature_float ((node_name, feat_name), float), loc) ->
+        Domain.check_feature_name ?domain ~loc feat_name;
+        Feature_float (pid_of_name loc node_name, feat_name, float)
+      | (Ast.Feature_diff_float ((node_name, feat_name), float), loc) ->
+        Domain.check_feature_name ?domain ~loc feat_name;
+        Feature_diff_float (pid_of_name loc node_name, feat_name, float)
 
       | (Ast.Prec (id1, id2), loc) ->
         Prec (pid_of_name loc id1, pid_of_name loc id2)
@@ -202,6 +222,21 @@ module Rule = struct
         let (node_name, feat_name) = feat_id in
         Domain.check_feature_name ?domain ~loc feat_name;
         Feature_re (pid_of_name loc node_name, feat_name, regexp)
+
+      | (Ast.Feature_cst ((node_name, feat_name), string), loc) ->
+        Domain.check_feature_name ?domain ~loc feat_name;
+        Feature_cst (pid_of_name loc node_name, feat_name, string)
+      | (Ast.Feature_diff_cst ((node_name, feat_name), string), loc) ->
+        Domain.check_feature_name ?domain ~loc feat_name;
+        Feature_diff_cst (pid_of_name loc node_name, feat_name, string)
+
+      | (Ast.Feature_float ((node_name, feat_name), float), loc) ->
+        Domain.check_feature_name ?domain ~loc feat_name;
+        Feature_float (pid_of_name loc node_name, feat_name, float)
+      | (Ast.Feature_diff_float ((node_name, feat_name), float), loc) ->
+        Domain.check_feature_name ?domain ~loc feat_name;
+        Feature_diff_float (pid_of_name loc node_name, feat_name, float)
+
 
       | (Ast.Prec (id1, id2), loc) ->
         Prec (pid_of_name loc id1, pid_of_name loc id2)
@@ -541,6 +576,30 @@ module Rule = struct
         begin
           match (get_string_feat pid1 feat_name1, get_string_feat pid2 feat_name2) with
             | Some fv1, Some fv2 when fv1 = fv2 -> matching
+            | _ -> raise Fail
+        end
+      | Feature_cst (pid1, feat_name1, value) ->
+        begin
+          match get_string_feat pid1 feat_name1 with
+            | Some fv1 when fv1 = value -> matching
+            | _ -> raise Fail
+        end
+      | Feature_diff_cst (pid1, feat_name1, value) ->
+        begin
+          match get_string_feat pid1 feat_name1 with
+            | Some fv1 when fv1 <> value -> matching
+            | _ -> raise Fail
+        end
+      | Feature_float (pid1, feat_name1, float) ->
+        begin
+          match get_float_feat pid1 feat_name1 with
+            | Some fv1 when fv1 = float -> matching
+            | _ -> raise Fail
+        end
+      | Feature_diff_float (pid1, feat_name1, float) ->
+        begin
+          match get_float_feat pid1 feat_name1 with
+            | Some fv1 when fv1 <> float -> matching
             | _ -> raise Fail
         end
       | Feature_diseq (pid1, feat_name1, pid2, feat_name2) ->

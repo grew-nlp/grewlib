@@ -134,7 +134,13 @@ module Ast = struct
     | Feature_diseq of feature_ident * feature_ident
     | Feature_ineq of ineq * feature_ident * feature_ident
     | Feature_ineq_cst of ineq * feature_ident * float
+    | Feature_float of feature_ident * float
+    | Feature_diff_float of feature_ident * float
+
     | Feature_re of feature_ident * string
+    | Feature_cst of feature_ident * string
+    | Feature_diff_cst of feature_ident * string
+
     | Prec of Id.name * Id.name
     | Lprec of Id.name * Id.name
   type const = u_const * Loc.t
@@ -175,6 +181,10 @@ module Ast = struct
         |> (add_implicit_node loc aux name1)
         |> (add_implicit_node loc aux name2)
       | Feature_ineq_cst (_, (name,_), _)
+      | Feature_cst ((name,_), _)
+      | Feature_diff_cst ((name,_), _)
+      | Feature_float ((name,_), _)
+      | Feature_diff_float ((name,_), _)
       | Feature_re ((name,_), _) ->
         acc
         |> (add_implicit_node loc aux name)

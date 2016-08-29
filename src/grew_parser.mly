@@ -477,13 +477,40 @@ pat_edge_or_const:
         | STAR labels=delimited(LTR_EDGE_LEFT_NEG,separated_nonempty_list(PIPE,pattern_label_ident),LTR_EDGE_RIGHT) n2_loc=simple_id_with_loc
             { let (n2,loc) = n2_loc in Pat_const (Ast.Cst_in (n2,Ast.Neg_list labels), loc) }
 
-        (* "X.cat = Y.cat" *)
-        | feat_id1_loc=feature_ident_with_loc EQUAL feat_id2=feature_ident
-            { let (feat_id1,loc)=feat_id1_loc in Pat_const (Ast.Feature_eq (feat_id1, feat_id2), loc) }
+        (* X.cat = Y.cat *)
+        (* X.cat = value *)
+        | feat_id1_loc=feature_ident_with_loc EQUAL rhs=ID
+            { let (feat_id1,loc)=feat_id1_loc in
+              match Ast.parse_simple_or_feature_ident rhs with
+              | (node_id, Some feat_name) -> Pat_const (Ast.Feature_eq (feat_id1, (node_id,feat_name)), loc)
+              | (value, None) -> Pat_const (Ast.Feature_cst (feat_id1, value), loc)
+            }
 
-        (* "X.cat <> Y.cat" *)
-        | feat_id1_loc=feature_ident_with_loc DISEQUAL feat_id2=feature_ident
-            { let (feat_id1,loc)=feat_id1_loc in Pat_const (Ast.Feature_diseq (feat_id1, feat_id2), loc) }
+        (* X.cat = "value" *)
+        | feat_id1_loc=feature_ident_with_loc EQUAL rhs=STRING
+            { let (feat_id1,loc)=feat_id1_loc in Pat_const (Ast.Feature_cst (feat_id1, rhs), loc) }
+
+        (* X.cat = 12.34 *)
+        | feat_id1_loc=feature_ident_with_loc EQUAL rhs=FLOAT
+            { let (feat_id1,loc)=feat_id1_loc in Pat_const (Ast.Feature_float (feat_id1, rhs), loc) }
+
+        (* X.cat <> Y.cat *)
+        (* X.cat <> value *)
+        | feat_id1_loc=feature_ident_with_loc DISEQUAL rhs=ID
+            { let (feat_id1,loc)=feat_id1_loc in
+              match Ast.parse_simple_or_feature_ident rhs with
+              | (node_id, Some feat_name) -> Pat_const (Ast.Feature_diseq (feat_id1, (node_id,feat_name)), loc)
+              | (value, None) -> Pat_const (Ast.Feature_diff_cst (feat_id1, value), loc)
+            }
+
+        (* X.cat <> "value" *)
+        | feat_id1_loc=feature_ident_with_loc DISEQUAL rhs=STRING
+            { let (feat_id1,loc)=feat_id1_loc in Pat_const (Ast.Feature_diff_cst (feat_id1, rhs), loc) }
+
+        (* X.cat <> 12.34 *)
+        | feat_id1_loc=feature_ident_with_loc DISEQUAL rhs=FLOAT
+            { let (feat_id1,loc)=feat_id1_loc in Pat_const (Ast.Feature_diff_float (feat_id1, rhs), loc) }
+
 
         (* "X.cat = re"regexp" " *)
         | feat_id_loc=feature_ident_with_loc EQUAL regexp=REGEXP

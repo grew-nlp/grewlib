@@ -97,10 +97,15 @@ module Ast : sig
     | Feature_diseq of feature_ident * feature_ident
     | Feature_ineq of ineq * feature_ident * feature_ident
     | Feature_ineq_cst of ineq * feature_ident * float
+    | Feature_float of feature_ident * float
+    | Feature_diff_float of feature_ident * float
+
     | Feature_re of feature_ident * string
+    | Feature_cst of feature_ident * string
+    | Feature_diff_cst of feature_ident * string
+
     | Prec of Id.name * Id.name
     | Lprec of Id.name * Id.name
-
   type const = u_const * Loc.t
 
   type basic = {

@@ -107,6 +107,17 @@ module Html_doc = struct
       bprintf buff "%s %s %s" (Ast.dump_feature_ident feat_id_l) (Ast.string_of_ineq ineq) (Ast.dump_feature_ident feat_id_r)
     | Ast.Feature_ineq_cst (ineq, feat_id_l, constant) ->
       bprintf buff "%s %s %f" (Ast.dump_feature_ident feat_id_l) (Ast.string_of_ineq ineq) constant
+
+    | Ast.Feature_cst (feat_id_l, value) ->
+      bprintf buff "%s = \"%s\"" (Ast.dump_feature_ident feat_id_l) value;
+    | Ast.Feature_diff_cst (feat_id_l, value) ->
+      bprintf buff "%s ≠ \"%s\"" (Ast.dump_feature_ident feat_id_l) value;
+
+    | Ast.Feature_float (feat_id_l, value) ->
+      bprintf buff "%s = %g" (Ast.dump_feature_ident feat_id_l) value;
+    | Ast.Feature_diff_float (feat_id_l, value) ->
+      bprintf buff "%s ≠ %g" (Ast.dump_feature_ident feat_id_l) value;
+
     | Ast.Feature_re (feat_id, regexp) ->
       bprintf buff "%s == \"%s\"" (Ast.dump_feature_ident feat_id) regexp
     | Ast.Prec (id1, id2) ->
