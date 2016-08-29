@@ -18,6 +18,8 @@ let parse_handle file fct lexbuf =
   try fct lexbuf with
     | Grew_lexer.Error msg -> Error.parse ~loc:(get_loc ()) "Lexing error: %s" msg
     | Grew_parser.Error -> Error.parse ~loc:(get_loc ()) "Syntax error: %s" (Lexing.lexeme lexbuf)
+    | Error.Build (msg, None) -> Error.parse ~loc:(get_loc ()) "Syntax error: %s" msg
+    | Error.Build (msg, Some loc) -> Error.parse ~loc "Syntax error: %s" msg
     | Failure msg -> Error.parse ~loc:(get_loc ()) "Failure: %s" msg
     | err -> Error.bug ~loc:(get_loc ()) "Unexpected error: %s" (Printexc.to_string err)
 
