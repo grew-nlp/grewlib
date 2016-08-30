@@ -199,7 +199,6 @@ module Grs = struct
         Grew_grs.Grs.sequence_names grs
       ) ()
 
-  IFDEF DEP2PICT THEN
   let build_html_doc ?(corpus=false) dir grs =
     handle ~name:"Grs.build_doc [with Dep2pict]"
       (fun () ->
@@ -214,10 +213,6 @@ module Grs = struct
         Grew_grs.Grs.rule_iter fct grs;
         Grew_grs.Grs.filter_iter fct grs
       ) ()
-  ELSE
-  let build_html_doc ?(corpus=false) dir grs =
-    handle ~name:"Grs.build_doc [without Dep2pict]" (fun () -> Grew_html.Html_doc.build ~corpus ~dep:false dir grs) ()
-  END
 
   let get_domain grs = Grew_grs.Grs.get_domain grs
 end

@@ -1,1 +1,1 @@
-true:	package(xml-light conll dep2pict camomile, cairo2, log)
+true:	package(conll dep2pict camomile, cairo2, log)

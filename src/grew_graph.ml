@@ -389,10 +389,6 @@ module G_graph = struct
     with Not_found -> None
 
   (* -------------------------------------------------------------------------------- *)
-  (** [of_xml d_xml] loads a graph in the xml format: [d_xml] must be a <D> xml element *)
-  let of_xml ?domain d_xml = failwith "of_xml not available"
-
-  (* -------------------------------------------------------------------------------- *)
   let del_edge ?domain ?edge_ident loc graph id_src label id_tar =
     let node_src =
       try Gid_map.find id_src graph.map

@@ -112,7 +112,6 @@ module G_graph: sig
       It supposes that "SUC" is defined in current relations *)
   val of_brown: ?domain:Domain.t -> ?sentid: string -> string -> t
 
-  val of_xml: ?domain:Domain.t -> Xml.xml -> t
   (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
   (* Update functions *)
   (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)

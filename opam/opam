@@ -12,8 +12,8 @@ remove: [
 ]
 depends: [
   "ANSITerminal"
-  "xml-light"
   "libcaml-log"
+  "cppo"
   "cairo2"
   "menhir"
   "camomile"
