@@ -59,8 +59,8 @@ module Rewrite_history = struct
                 son in
               nfs @ acc
             )
-            [] l
-    in loop base_name [] t
+            [] l in
+    loop base_name [] t
 
   let save_gr ?domain base t =
     let rec loop file_name t =

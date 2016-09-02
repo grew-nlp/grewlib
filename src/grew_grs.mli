@@ -81,7 +81,7 @@ end (* module Modul *)
 module Grs: sig
   type t
 
-  val empty:t
+  val empty: t
 
   val get_modules: t -> Modul.t list
 
@@ -100,7 +100,7 @@ module Grs: sig
 
   val rewrite: t -> string -> G_graph.t -> Rewrite_history.t
 
-  (* only externeal strucutre is returned, each edge contains a "dummy" big_step *)
+  (* only external structure is returned, each edge contains a "dummy" big_step *)
   val build_rew_display: t -> string -> G_graph.t -> Libgrew_types.rew_display
 
   val rule_iter: (string -> Rule.t -> unit) -> t -> unit

@@ -198,14 +198,3 @@ module Rewrite: sig
 
   val html_sentences: title:string -> string -> (bool * string * int * string) list -> unit
 end
-
-(* (* type and function added for grew-web *)
-type pattern
-type matching
-
-(** [load_pattern file] returns the pattern described in the given [file] *)
-val load_pattern: string -> pattern
-
-(** [match_in_graph pattern graph] returns the list of the possible matching of [pattern] in [graph] *)
-val match_in_graph: pattern -> Graph.t -> matching list
- *)
