@@ -1,3 +1,16 @@
+Version 0.37.0 (2016/09/02)
+  * add support for constitency trees
+  * add definition of strategies (not completly implemented…)
+
+Version 0.36.2 (2016/08/30)
+  * Remove dependencies amongst xml-light and camlp4
+
+Version 0.36.1 (2016/08/29)
+  * Fix bug #15 [http://talc2.loria.fr:8888/bruno/grew/issues/15]
+
+Version 0.36 (2016/08/18)
+  * Make domains optional
+
 Version 0.35 (2016/07/14)
   * add the debug_loop flag (when a loop is suspected graph is considered as a normal form, such that it is possible to see it in the GUI)
   * new functions in libgrew.mli for Grewpy:
