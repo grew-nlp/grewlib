@@ -329,7 +329,7 @@ module Grs = struct
 
     and loop (instance : Instance.t) def =
       printf "%s===> loop  def=%s\n%!"
-        (String.make (2 * !indent) ' ')
+        (String.make (2 * (max 0 !indent)) ' ')
         (Strategy.to_string def);
       incr indent;
 
@@ -346,7 +346,7 @@ module Grs = struct
               try List.find (fun m -> m.Modul.name=name) grs.modules
               with Not_found -> Log.fcritical "No [strategy or] module named '%s'" name in
             begin
-              printf "%s one_step (module=%s)...%!" (String.make (2 * !indent) ' ') modul.Modul.name;
+              printf "%s one_step (module=%s)...%!" (String.make (2 * (max 0 !indent)) ' ') modul.Modul.name;
               let domain = get_domain grs in
               match Rule.one_step ?domain modul.Modul.name instance modul.Modul.rules with
               | [] -> printf "0\n%!"; let res = Libgrew_types.Empty in decr indent; res
