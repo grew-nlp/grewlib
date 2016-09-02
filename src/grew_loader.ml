@@ -86,7 +86,7 @@ module Loader = struct
     {
       Ast.domain = domain;
       Ast.modules = flatten_modules main_file grs_wi.Ast.modules_wi;
-      Ast.sequences = grs_wi.Ast.sequences_wi;
+      Ast.strategies = grs_wi.Ast.strategies_wi;
     }
 
   (* ------------------------------------------------------------------------------------------*)

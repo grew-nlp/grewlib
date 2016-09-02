@@ -785,24 +785,6 @@ module G_graph = struct
       | _::t -> loop (n+1) t
     in loop 0
 
-  let to_raw ?domain graph =
-    let nodes = Gid_map.fold (fun id elt acc -> (id,elt)::acc) graph.map [] in
-    let snodes = List.sort (fun (_,n1) (_,n2) -> G_node.position_comp n1 n2) nodes in
-    let raw_nodes = List.map (fun (gid,node) -> (gid, G_fs.to_raw (G_node.get_fs node))) snodes in
-
-    let get_num gid = list_num (fun (x,_) -> x=gid) raw_nodes in
-    let edge_list = ref [] in
-    Gid_map.iter
-      (fun src_gid node ->
-        Massoc_gid.iter
-          (fun tar_gid edge ->
-            edge_list := (get_num src_gid, G_edge.to_string ?domain edge, get_num tar_gid) :: !edge_list
-          )
-          (G_node.get_next node)
-      )
-      graph.map;
-    (graph.meta, List.map snd raw_nodes, !edge_list)
-
   (* -------------------------------------------------------------------------------- *)
   let to_conll_string ?domain graph =
     let nodes = Gid_map.fold

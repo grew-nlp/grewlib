@@ -168,9 +168,4 @@ module G_graph: sig
   val to_sentence: ?main_feat:string -> t -> string
   val to_dep: ?domain:Domain.t -> ?filter : string list -> ?main_feat:string -> ?deco:G_deco.t -> t -> string
   val to_conll_string: ?domain:Domain.t -> t -> string
-
-  val to_raw: ?domain:Domain.t -> t ->
-    string list *
-    (string * string) list list *
-    (int * string * int) list
 end (* module G_graph *)

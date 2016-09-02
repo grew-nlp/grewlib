@@ -106,5 +106,5 @@ module Grs: sig
   val rule_iter: (string -> Rule.t -> unit) -> t -> unit
   val filter_iter: (string -> Rule.t -> unit) -> t -> unit
 
-  val modules_of_sequence: t -> string -> Modul.t list
+(*  val modules_of_sequence: t -> string -> Modul.t list*)
 end (* module Grs *)

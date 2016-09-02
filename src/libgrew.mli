@@ -94,16 +94,6 @@ module Graph : sig
 
   val to_sentence: ?main_feat:string -> t -> string
 
-  (** [raw_graph instance] returns all graph information with a triple of elementary caml types:
-      - the meta data
-      - the list of node (node is a list of feature (feature is string * string))
-      - the list of edge (src, label, tar) where src and tar refers to the position in the node list
-  *)
-  val raw: ?domain:Domain.t -> t ->
-      string list *
-      (string * string) list list *
-      (int * string * int) list
-
   val to_dot : ?domain:Domain.t -> ?main_feat:string -> ?deco:Deco.t -> t -> string
 
   val to_dep : ?domain:Domain.t -> ?filter: string list -> ?main_feat:string -> ?deco:Deco.t -> t -> string
@@ -183,6 +173,8 @@ module Rewrite: sig
 
   val save_det_gr: ?domain:Domain.t -> string -> history -> unit
 
+  val save_index: dirname:string -> base_names: string list -> unit
+
   val save_det_conll: ?domain:Domain.t -> ?header:string -> string -> history -> unit
 
   val det_dep_string: ?domain:Domain.t -> history -> string option
@@ -202,4 +194,13 @@ module Rewrite: sig
   val html_sentences: title:string -> string -> (bool * string * int * string) list -> unit
 end
 
+(* (* type and function added for grew-web *)
+type pattern
+type matching
 
+(** [load_pattern file] returns the pattern described in the given [file] *)
+val load_pattern: string -> pattern
+
+(** [match_in_graph pattern graph] returns the list of the possible matching of [pattern] in [graph] *)
+val match_in_graph: pattern -> Graph.t -> matching list
+ *)

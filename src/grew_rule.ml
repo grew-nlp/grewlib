@@ -1104,6 +1104,7 @@ module Rule = struct
             )
             to_do_set (Instance_set.empty,nf_set) in
         loop new_to_do_set new_nf_set in
+
     let nfs = loop (Instance_set.singleton instance) Instance_set.empty in
     let reduced_nfs = filter_equal_nfs nfs in
 

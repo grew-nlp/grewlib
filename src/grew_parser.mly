@@ -224,14 +224,14 @@ grs_wi:
             {
              { Ast.domain_wi=(match d with Some dom -> Some (Ast.Dom dom) | None -> None);
                modules_wi=m;
-               sequences_wi=match s with Some seq -> seq | None -> [];
+               strategies_wi=match s with Some seq -> seq | None -> [];
              }
            }
         | DOMAIN file=STRING m=module_or_include_list s=option(sequences) EOF
             {
              { Ast.domain_wi= Some (Ast.Dom_file file);
                modules_wi=m;
-               sequences_wi=match s with Some seq -> seq | None -> [];
+               strategies_wi=match s with Some seq -> seq | None -> [];
              }
            }
 
@@ -459,7 +459,6 @@ pat_edge_or_const:
         (*   "* -[X|Y]-> B"   *)
         | STAR labels=delimited(LTR_EDGE_LEFT,separated_nonempty_list(PIPE,pattern_label_ident),LTR_EDGE_RIGHT) n2_loc=simple_id_with_loc
             { let (n2,loc) = n2_loc in Pat_const (Ast.Cst_in (n2,Ast.Pos_list labels), loc) }
-
 
         (* "A -[^X|Y]-> B" *)
         | n1_loc=simple_id_with_loc labels=delimited(LTR_EDGE_LEFT_NEG,separated_nonempty_list(PIPE,pattern_label_ident),LTR_EDGE_RIGHT) n2=simple_id
@@ -693,26 +692,35 @@ sequence:
                 seq_mod = mod_names;*/
 
         | doc = option(COMMENT) id_loc=simple_id_with_loc mod_names=delimited(LACC,separated_list_final_opt(SEMIC,simple_id),RACC)
-            {
-              Ast.Old { Ast.seq_name = fst id_loc;
-                seq_mod = mod_names ;
-                seq_doc = begin match doc with Some d -> d | None -> [] end;
-                seq_loc = snd id_loc;
+            { let (name,loc) = id_loc in
+              {
+                Strategy.name;
+                def = Strategy.Seq (List.map (fun m -> Strategy.Ref m) mod_names);
+                doc = begin match doc with Some d -> d | None -> [] end;
+                loc;
               }
             }
-        | doc = option(COMMENT) id_loc=simple_id_with_loc EQUAL s=op_seq { Ast.New (id_loc, s) }
+        | doc = option(COMMENT) id_loc=simple_id_with_loc EQUAL def=op_seq
+            { let (name,loc) = id_loc in
+              {
+                Strategy.name;
+                def;
+                doc = begin match doc with Some d -> d | None -> [] end;
+                loc;
+              }
+            }
 
 op_seq:
-        | m=simple_id               { Ast.Ref m }
+        | m=simple_id               { Strategy.Ref m }
         | LPAREN s=op_seq RPAREN    { s }
-        | s=op_seq STAR             { Ast.Star (s) }
-        | s1=op_seq PLUS s2=op_seq  { Ast.Plus [s1; s2] }
-        | s1=op_seq SEMIC s2=op_seq { Ast.List [s1; s2] }
-        | DISEQUAL s=op_seq         { Ast.Diamond s }
+        | s=op_seq STAR             { Strategy.Star (s) }
+        | s1=op_seq PLUS s2=op_seq  { Strategy.Plus [s1; s2] }
+        | s1=op_seq SEMIC s2=op_seq { Strategy.Seq [s1; s2] }
+        | DISEQUAL s=op_seq         { Strategy.Diamond s }
 
 
 /*=============================================================================================*/
-/* ISOLATED PATTERN (grep mode)                                                                 */
+/* ISOLATED PATTERN (grep mode)                                                                */
 /*=============================================================================================*/
 pattern:
         | p=pos_item n=list(neg_item) EOF { Ast.complete_pattern {Ast.pat_pos=p; pat_negs=n} }

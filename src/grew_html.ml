@@ -323,17 +323,14 @@ module Html_doc = struct
     wnl "  <div class=\"navbar\">&nbsp;<a href=\"index.html\">Up</a></div>";
     wnl "  <center><h1>List of sequences</h1></center>";
     List.iter
-      (function
-        | Ast.New _ -> failwith "Wait..."
-        | Ast.Old seq ->
-        wnl "<h6>%s</h6>" seq.Ast.seq_name;
-        List.iter (fun l -> wnl "<p>%s</p>" (doc_to_html l)) seq.Ast.seq_doc;
-
+      (fun ast_seq ->
+        wnl "<h6>%s</h6>" ast_seq.Strategy.name;
+        List.iter (fun l -> wnl "<p>%s</p>" (doc_to_html l)) ast_seq.Strategy.doc;
         wnl "<div class=\"code\">";
-        wnl "%s" (String.concat " ⇨ " (List.map (fun x -> sprintf "<a href=\"%s.html\">%s</a>" x x) seq.Ast.seq_mod));
+        wnl "%s" (Strategy.to_string ast_seq.Strategy.def);
         wnl "</div>";
 
-      ) ast.Ast.sequences;
+      ) ast.Ast.strategies;
     wnl "  </body>";
     wnl "</html>";
     Buffer.contents buff
@@ -824,7 +821,7 @@ module Corpus_stat = struct
 
   let empty ~grs ~seq =
     (* let modules = try List.assoc seq grs.Grs.sequences with Not_found -> [seq] in *)
-    let modules = Grs.modules_of_sequence grs seq in
+    let modules = [] (* Grs.modules_of_sequence grs seq *) in
     let map = List.fold_left
       (fun acc modul ->
         if List.exists (fun m -> modul.Modul.name = m.Modul.name) modules

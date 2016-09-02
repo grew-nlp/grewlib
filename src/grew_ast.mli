@@ -174,26 +174,10 @@ module Ast : sig
       mod_dir: string; (* the directory where the module is defined (for lp file localisation) *)
     }
 
-  type old_sequence = {
-    seq_name:string;
-    seq_mod:string list;
-    seq_doc:string list;
-    seq_loc:Loc.t;
-  }
 
-  type new_sequence =
-    | Ref of string
-    | List of new_sequence list
-    | Plus of new_sequence list
-    | Star of new_sequence
-    | Diamond of new_sequence
 
-  val new_sequence_to_string : new_sequence -> string
-  val flatten : new_sequence -> new_sequence
 
-  type sequence =
-  | Old of old_sequence
-  | New of ((string * Loc.t) * new_sequence)
+
 
   type module_or_include =
     | Modul of modul
@@ -209,14 +193,14 @@ module Ast : sig
   type grs_wi = {
       domain_wi: domain_wi option;
       modules_wi: module_or_include list;
-      sequences_wi: sequence list;
+      strategies_wi: Strategy.t list;
     }
 
   (* a GRS: graph rewriting system *)
   type grs = {
       domain: domain option;
       modules: modul list;
-      sequences: sequence list;
+      strategies: Strategy.t list;
     }
 
   type gr = {

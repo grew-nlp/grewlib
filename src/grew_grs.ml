@@ -185,44 +185,12 @@ module Modul = struct
 end (* module Modul *)
 
 (* ================================================================================ *)
-module Sequence = struct
-  type t = {
-    name: string;
-    def: string list;
-    loc: Loc.t;
-  }
-
-  let check module_list t =
-    List.iter
-      (fun module_name ->
-        if not (List.exists (fun modul -> modul.Modul.name = module_name) module_list)
-        then Error.build ~loc:t.loc "sequence \"%s\" refers to the unknown module \"%s\"."
-          t.name module_name
-      ) t.def
-
-  let build module_list ast_sequence =
-    match ast_sequence with
-    | Ast.New ((n,_),s) ->
-    printf "----%s----> %s\n%!" n (Ast.new_sequence_to_string s);
-    printf "====%s====> %s\n%!" n (Ast.new_sequence_to_string (Ast.flatten s));
-    {name=n; def=[]; loc=Loc.file "No_file_given"; }
-    | Ast.Old old_seq ->
-    let sequence =
-      {
-        name = old_seq.Ast.seq_name;
-        def = old_seq.Ast.seq_mod;
-        loc = old_seq.Ast.seq_loc;
-      } in
-    check module_list sequence; sequence
-end (* module Sequence *)
-
-(* ================================================================================ *)
 module Grs = struct
 
   type t = {
     domain: Domain.t option;
     modules: Modul.t list;       (* the ordered list of modules used from rewriting *)
-    sequences: Sequence.t list;
+    strategies: Strategy.t list;
     filename: string;
     ast: Ast.grs;
   }
@@ -230,10 +198,12 @@ module Grs = struct
   let get_modules t = t.modules
   let get_ast t = t.ast
   let get_filename t = t.filename
-  let get_domain t = t.domain
-  let sequence_names t = List.map (fun s -> s.Sequence.name) t.sequences
 
-  let empty = {domain=None; modules=[]; sequences=[]; ast=Ast.empty_grs; filename=""; }
+  let get_domain t = t.domain
+
+  let sequence_names t = List.map (fun s -> s.Strategy.name) t.strategies
+
+  let empty = {domain=None; modules=[]; strategies=[]; ast=Ast.empty_grs; filename=""; }
 
   let check t =
     (* check for duplicate modules *)
@@ -244,13 +214,13 @@ module Grs = struct
       | m::tail -> loop (m.Modul.name :: already_defined) tail in
     loop [] t.modules;
 
-    (* check for duplicate sequences *)
+    (* check for duplicate strategies *)
     let rec loop already_defined = function
       | [] -> ()
-      | s::_ when List.mem s.Sequence.name already_defined ->
-        Error.build ~loc:s.Sequence.loc "Sequence '%s' is defined twice" s.Sequence.name
-      | s::tail -> loop (s.Sequence.name :: already_defined) tail in
-    loop [] t.sequences
+      | s::_ when List.mem s.Strategy.name already_defined ->
+        Error.build ~loc:s.Strategy.loc "Sequence '%s' is defined twice" s.Strategy.name
+      | s::tail -> loop (s.Strategy.name :: already_defined) tail in
+    loop [] t.strategies
 
   let domain_build ast_domain =
     Domain.build
@@ -261,30 +231,16 @@ module Grs = struct
     let ast = Loader.grs filename in
     let domain = match ast.Ast.domain with None -> None | Some ast_dom -> Some (domain_build ast_dom) in
     let modules = List.map (Modul.build ?domain) ast.Ast.modules in
-    let grs = {domain; sequences = List.map (Sequence.build modules) ast.Ast.sequences; modules; ast; filename} in
+    let grs = {domain; strategies = ast.Ast.strategies; modules; ast; filename} in
     check grs;
     grs
 
   (* compute the list of modules to apply for a requested sentence *)
-  let modules_of_sequence grs sequence =
-    try
-      let seq = List.find (fun s -> s.Sequence.name = sequence) grs.sequences in
-      List.map (fun name -> List.find (fun m -> m.Modul.name=name) grs.modules) seq.Sequence.def
-    with Not_found ->
-      try
-        let modul = List.find (fun m -> m.Modul.name=sequence) grs.modules in
-        Log.fwarning "\"%s\" is a module but not a senquence, only this module is used" sequence; [modul]
-      with Not_found ->
-        match grs.sequences with
-        | head::_ ->
-          Log.fwarning "No sequence and no module named \"%s\", the first sequence \"%s\" is used" sequence head.Sequence.name;
-          List.map (fun name -> List.find (fun m -> m.Modul.name=name) grs.modules) head.Sequence.def
-        | _ -> Error.run "No sequence defined and no module named \"%s\", cannot go on" sequence
 
   let rewrite grs sequence graph =
     let instance = Instance.from_graph graph in
     Timeout.start ();
-    let modules_to_apply = modules_of_sequence grs sequence in
+    let modules_to_apply = [] (* modules_of_sequence grs sequence *) in
 
     let rec loop instance module_list =
       match module_list with
@@ -309,10 +265,32 @@ module Grs = struct
         } in
     loop instance modules_to_apply
 
-  let build_rew_display grs sequence graph =
-    let instance = Instance.from_graph graph in
-    let modules_to_apply = modules_of_sequence grs sequence in
+  (* construction of the rew_display *)
+  let rec diamond = function
+    | Libgrew_types.Node (_, _, []) -> Log.bug "Empty node"; exit 12
+    | Libgrew_types.Node (graph, name, (bs,rd)::_) -> Libgrew_types.Node (graph, "◇" ^ name, [(bs, diamond rd)])
+    | x -> x
 
+  let rec clean = function
+    | Libgrew_types.Empty -> Libgrew_types.Empty
+    | Libgrew_types.Leaf graph -> Libgrew_types.Leaf graph
+    | Libgrew_types.Local_normal_form (graph, name, Libgrew_types.Empty) -> Libgrew_types.Empty
+    | Libgrew_types.Local_normal_form (graph, name, rd) -> Libgrew_types.Local_normal_form (graph, name, clean rd)
+    | Libgrew_types.Node (graph, name, bs_rd_list) ->
+        match
+          List.fold_left (fun acc (bs,rd) ->
+            match clean rd with
+              | Libgrew_types.Empty -> acc
+              | crd -> (bs, crd) :: acc
+          ) [] bs_rd_list
+        with
+        | [] -> Libgrew_types.Empty
+        | new_bs_rd_list -> Libgrew_types.Node (graph, name, new_bs_rd_list)
+
+  let build_rew_display grs strategy graph =
+    let instance = Instance.from_graph graph in
+
+(* =============
     let rec loop instance module_list =
       match module_list with
       | [] -> Libgrew_types.Leaf instance.Instance.graph
@@ -338,11 +316,101 @@ module Grs = struct
               List.map
                 (fun inst ->
                   match inst.Instance.big_step with
+=======  *)
+    let indent = ref 10 in
+
+    let strat = List.find (fun s -> s.Strategy.name = strategy) grs.strategies in
+
+    let rec apply_leaf strat = function
+      | Libgrew_types.Empty -> Libgrew_types.Empty
+      | Libgrew_types.Leaf graph -> loop (Instance.from_graph graph) strat
+      | Libgrew_types.Local_normal_form (graph, name, rd) -> Libgrew_types.Local_normal_form (graph, name, apply_leaf strat rd)
+      | Libgrew_types.Node (graph, name, bs_rd_list) -> Libgrew_types.Node (graph, name, List.map (fun (bs,rd) -> (bs, apply_leaf strat rd)) bs_rd_list)
+
+    and loop (instance : Instance.t) def =
+      printf "%s===> loop  def=%s\n%!"
+        (String.make (2 * !indent) ' ')
+        (Strategy.to_string def);
+      incr indent;
+
+      match def with
+
+      (* ========> reference to a module or to another strategy <========= *)
+      | Strategy.Ref name ->
+        begin
+          try
+            let strat = List.find (fun s -> s.Strategy.name = name) grs.strategies in
+            loop instance strat.Strategy.def
+          with Not_found ->
+            let modul =
+              try List.find (fun m -> m.Modul.name=name) grs.modules
+              with Not_found -> Log.fcritical "No [strategy or] module named '%s'" name in
+            begin
+              printf "%s one_step (module=%s)...%!" (String.make (2 * !indent) ' ') modul.Modul.name;
+              let domain = get_domain grs in
+              match Rule.one_step ?domain modul.Modul.name instance modul.Modul.rules with
+              | [] -> printf "0\n%!"; let res = Libgrew_types.Empty in decr indent; res
+              | instance_list -> printf "%d\n%!" (List.length instance_list);
+                Libgrew_types.Node
+                (instance.Instance.graph,
+                  name,
+                  List.map
+                    (fun inst -> match inst.Instance.big_step with
                     | None -> Error.bug "Cannot have no big_steps and more than one reducts at the same time"
-                    | Some bs -> (bs, loop inst tail)
-                ) inst_list
-            )
-    in loop instance modules_to_apply
+                    | Some bs -> let res = (bs, Libgrew_types.Leaf inst.Instance.graph) in decr indent; res
+                    ) instance_list
+                )
+            end
+        end
+
+      (* ========> Strat defined as a sequence of sub-strategies <========= *)
+      | Strategy.Seq [] -> Log.bug "[Grs.build_rew_display] Empty sequence!"; exit 2
+      | Strategy.Seq [one] -> let res = loop instance one in decr indent; res
+      | Strategy.Seq (head_strat :: tail_strat) ->
+        let one_step = loop instance head_strat in decr indent;
+        apply_leaf (Strategy.Seq tail_strat) one_step
+
+      | Strategy.Diamond strat -> diamond (loop instance strat)
+
+      (* ========> Strat defined as a sequence of sub-strategies <========= *)
+      | Strategy.Plus [] -> Log.bug "[Grs.build_rew_display] Empty union!"; exit 2
+      | Strategy.Plus strat_list ->
+        let rd_list = List.map (fun strat -> loop instance strat) strat_list in
+        let (opt_lnf, opt_node_info) =
+          List.fold_left (fun (acc_lnf, acc_node) rd ->
+            match (rd, acc_lnf, acc_node) with
+            | (Libgrew_types.Empty, acc_lnf, acc_node) -> (acc_lnf, acc_node)
+
+            | (Libgrew_types.Leaf graph, None ,_) -> (Some (graph,"0"), acc_node)
+            | (Libgrew_types.Leaf _,Some (graph,names) ,_) -> (Some (graph,"0+"^names), acc_node)
+
+            | (Libgrew_types.Local_normal_form (graph,name,_), None, _) -> (Some (graph,name), acc_node)
+            | (Libgrew_types.Local_normal_form (_,name,_), Some (graph,names), _) -> (Some (graph,name^"+"^names), acc_node)
+
+            | (Libgrew_types.Node (graph,name,bs_rd_list), _, None) -> (acc_lnf, Some (graph,name,bs_rd_list))
+            | (Libgrew_types.Node (_,name,bs_rd_list), _, Some (graph,acc_names,acc_bs_rd_list)) ->
+                (acc_lnf, Some (graph, name^"+"^acc_names,bs_rd_list @ acc_bs_rd_list))
+          ) (None,None) rd_list in
+        begin
+          match (opt_lnf, opt_node_info) with
+            | (None, None) -> Libgrew_types.Empty
+            | (Some (graph,lnf_name), None) -> Libgrew_types.Local_normal_form (graph, lnf_name, Libgrew_types.Leaf graph)
+            | (None, Some (a,b,c)) -> Libgrew_types.Node (a,b,c)
+            | (Some (_,lnf_name), Some (graph,acc_name,acc_bs_rd_list)) ->
+                let bs = {Libgrew_types.first={Libgrew_types.rule_name="dummy";up=G_deco.empty;down=G_deco.empty}; small_step=[]} in
+                Libgrew_types.Node (graph,acc_name,(bs, Libgrew_types.Leaf graph) :: acc_bs_rd_list)
+        end
+
+      | Strategy.Star strat ->
+        begin
+          match clean (loop instance strat) with
+          | Libgrew_types.Empty -> Libgrew_types.Leaf instance.Instance.graph
+          | Libgrew_types.Local_normal_form _ -> Log.bug "dont know if 'Local_normal_form' in star should happen or not ???"; exit 1
+          | rd -> apply_leaf (Strategy.Star strat) rd
+        end
+      in
+
+    loop instance (strat.Strategy.def)
 
   let rule_iter fct grs =
     List.iter
