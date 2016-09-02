@@ -63,6 +63,8 @@ module Ast : sig
   }
   type feature = u_feature * Loc.t
 
+  val default_fs: ?loc:Loc.t -> string -> feature list
+
   type u_node = {
       node_id: Id.name;
       position: float option;
@@ -203,6 +205,8 @@ module Ast : sig
     nodes: node list;
     edges: edge list;
   }
+
+  val complete_graph: gr -> gr
 
   val empty_grs: grs
 

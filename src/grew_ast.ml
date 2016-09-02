@@ -95,6 +95,11 @@ module Ast = struct
   }
   type feature = u_feature * Loc.t
 
+  let default_fs ?loc lab =
+    match loc with
+    | None -> [({name="label"; kind=Equality [lab]}, Loc.empty)]
+    | Some l -> [({name="label"; kind=Equality [lab]}, l)]
+
   type u_node = {
     node_id: Id.name;
     position: float option;
@@ -198,11 +203,6 @@ module Ast = struct
     let aux = new_pat_pos.pat_nodes in
     let new_pat_negs = List.map (complete_basic aux) pattern.pat_negs in
     { pat_pos = new_pat_pos; pat_negs = new_pat_negs;}
-
-  type graph = {
-    nodes: (Id.name * node) list;
-    edge: edge list;
-  }
 
   type concat_item =
     | Qfn_item of feature_ident
@@ -344,6 +344,23 @@ module Ast = struct
     nodes: node list;
     edges: edge list;
   }
+
+  let complete id nodes =
+    let rec loop n = match n with
+    | [] -> [{node_id=id; position=None; fs=default_fs id},Loc.empty]
+    | ({ node_id = head_id },_)::_ when head_id = id -> n
+    | head::tail -> head :: (loop tail)
+  in loop nodes
+
+  let complete_graph gr =
+    let new_nodes =
+      List.fold_left
+        (fun acc (edge,_) ->
+          acc
+          |> (complete edge.src)
+          |> (complete edge.tar)
+        ) gr.nodes gr.edges in
+    { gr with nodes = new_nodes }
 
   let empty_grs = { domain = None; modules = []; strategies= [] }
 
