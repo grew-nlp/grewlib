@@ -47,6 +47,8 @@ let handle ?(name="") ?(file="No file defined") fct () =
     | Grew_base.Error.Bug (msg, loc_opt) -> raise (Bug (msg,loc_opt))
     | Grew_base.Error.Run (msg, loc_opt) -> raise (Run (msg,loc_opt))
 
+    | Conll.Error msg -> raise (Parsing_err (msg,None))
+
     | exc -> raise (Bug (sprintf "[Libgrew.%s] UNCAUGHT EXCEPTION: %s" name (Printexc.to_string exc), None))
 
 
