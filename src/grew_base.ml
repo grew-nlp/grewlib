@@ -546,7 +546,7 @@ module Id = struct
 
   let gbuild ?(loc:Loc.t option) key (table,conv) =
     try Array_.dicho_find key table
-    with Not_found -> Error.build ?loc "Identifier '%s' not found" (conv key)
+    with Not_found -> Error.build ?loc "[Id.gbuild] Identifier '%s' not found" (conv key)
 
   let gbuild_opt key (table, _) =
     try Some (Array_.dicho_find key table)
@@ -556,7 +556,7 @@ module Id = struct
   type table = string array
   let build ?(loc:Loc.t option) key table =
     try Array_.dicho_find key table
-    with Not_found -> Error.build ?loc "Identifier '%s' not found" key
+    with Not_found -> Error.build ?loc "[Id.build] Identifier '%s' not found" key
 
   let build_opt key table =
     try Some (Array_.dicho_find key table)

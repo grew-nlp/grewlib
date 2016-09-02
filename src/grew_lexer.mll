@@ -241,6 +241,5 @@ and const = parse
   | '\n'              { incr Global.current_line; const lexbuf}
   | '('               { printf ">>>LPAREN<<<\n%!"; LPAREN }
   | ')'               { printf ">>>RPAREN<<<\n%!"; RPAREN }
-  | "SENT"            { printf ">>>SENT<<<\n%!"; SENT }
   | [^'(' ')' ' ']+ as id { printf "ID=>>>%s<<<\n%!" id; ID id }
 
