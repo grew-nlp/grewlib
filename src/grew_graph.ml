@@ -384,9 +384,9 @@ module G_graph = struct
     of_conll ?domain { Conll.file=None; meta=[]; lines=conll_lines; multiwords=[] }
 
   (* -------------------------------------------------------------------------------- *)
-  let of_const domain const =
+  let of_const ?domain const =
     let gr = Constituent.to_gr const in
-    build domain gr
+    build ?domain gr
 
   (* -------------------------------------------------------------------------------- *)
   let opt_att atts name =
