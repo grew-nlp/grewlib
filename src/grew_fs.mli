@@ -51,6 +51,9 @@ module G_fs: sig
 
   val of_conll: ?loc:Loc.t -> ?domain:Domain.t -> Conll.line -> t
 
+  val pst_leaf: ?loc:Loc.t -> ?domain:Domain.t -> string -> t
+  val pst_node: ?loc:Loc.t -> ?domain:Domain.t -> string -> t
+
   (** [unif t1 t2] returns [Some t] if [t] is the unification of two graph feature structures
       [None] is returned if the two feature structures cannot be unified. *)
   val unif: t -> t -> t option

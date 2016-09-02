@@ -119,14 +119,14 @@ type t = Grew_graph.G_graph.t
         Grew_graph.G_graph.of_brown ?domain brown
       ) ()
 
-  let load_const ?domain file =
+  let load_pst ?domain file =
     if not (Sys.file_exists file)
     then raise (File_not_found file)
     else
-      handle ~name:"load_const" ~file
+      handle ~name:"load_pst" ~file
         (fun () ->
-          let const_ast = Grew_loader.Loader.constituent file in
-          Grew_graph.G_graph.of_const ?domain const_ast
+          let const_ast = Grew_loader.Loader.phrase_structure_tree file in
+          Grew_graph.G_graph.of_pst ?domain const_ast
         ) ()
 
   let load ?domain file =
@@ -136,13 +136,13 @@ type t = Grew_graph.G_graph.t
         | Some ".gr" -> load_gr ?domain file
         | Some ".conll" -> load_conll ?domain file
         | Some ".br" | Some ".melt" -> load_brown ?domain file
-        | Some ".cst" -> load_const ?domain file
+        | Some ".cst" -> load_pst ?domain file
         | _ ->
             Log.fwarning "Unknown file format for input graph '%s', try to guess..." file;
             let rec loop = function
             | [] -> Log.fcritical "[Libgrew.load_graph] Cannot guess input file format of file '%s'. Use .gr or .conll file extension" file
             | load_fct :: tail -> try load_fct ?domain file with _ -> loop tail in
-            loop [load_gr; load_conll; load_brown; load_const]
+            loop [load_gr; load_conll; load_brown; load_pst]
       ) ()
 
   let of_gr ?domain ?(grewpy=false) gr_string =
@@ -151,11 +151,19 @@ type t = Grew_graph.G_graph.t
   let of_conll ?domain conll =
     handle ~name:"Graph.of_conll" (fun () -> Grew_graph.G_graph.of_conll ?domain conll) ()
 
-  let of_const ?domain const =
-    handle ~name:"of_const"
+  let of_pst ?domain pst_string =
+    handle ~name:"of_pst"
       (fun () ->
-        let const_ast = Grew_loader.Parser.constituent const in
-        (Grew_graph.G_graph.of_const ?domain const_ast)
+        let pst_ast = Grew_loader.Parser.phrase_structure_tree pst_string in
+        (Grew_graph.G_graph.of_pst ?domain pst_ast)
+      ) ()
+
+  let sentence_of_pst ?domain pst_string =
+    handle ~name:"of_pst"
+      (fun () ->
+        let pst_ast = Grew_loader.Parser.phrase_structure_tree pst_string in
+        let word_list = Grew_ast.Ast.word_list pst_ast in
+        Sentence.fr_clean_spaces (String.concat " " word_list)
       ) ()
 
   let of_brown ?domain ?sentid brown =

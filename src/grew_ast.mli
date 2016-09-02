@@ -174,11 +174,6 @@ module Ast : sig
       mod_dir: string; (* the directory where the module is defined (for lp file localisation) *)
     }
 
-
-
-
-
-
   type module_or_include =
     | Modul of modul
     | Includ of (string * Loc.t)
@@ -210,13 +205,11 @@ module Ast : sig
   }
 
   val empty_grs: grs
+
+  (* phrase structure tree *)
+  type pst =
+  | Leaf of (Loc.t * string) (* phon *)
+  | T of (Loc.t * string * pst list)
+
+  val word_list: pst -> string list
 end (* module Ast *)
-
-module Constituent : sig
-  type t =
-  | Leaf of (string * string) (* cat, phon *)
-  | T of (string * t list)
-
-  val to_gr: t -> Ast.gr
-end
-

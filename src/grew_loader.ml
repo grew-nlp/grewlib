@@ -113,15 +113,15 @@ module Loader = struct
     with Sys_error msg -> Error.parse ~loc:(Loc.file file) "[Grew_loader.pattern] %s" msg
 
   (* ------------------------------------------------------------------------------------------*)
-  let constituent file =
+  let phrase_structure_tree file =
     try
       Global.init file;
       let in_ch = open_in file in
       let lexbuf = Lexing.from_channel in_ch in
-      let graph = parse_handle file (Grew_parser.constituent Grew_lexer.const) lexbuf in
+      let graph = parse_handle file (Grew_parser.phrase_structure_tree Grew_lexer.const) lexbuf in
       close_in in_ch;
       graph
-    with Sys_error msg -> Error.parse ~loc:(Loc.file file) "[Grew_loader.constituent] %s" msg
+    with Sys_error msg -> Error.parse ~loc:(Loc.file file) "[Grew_loader.phrase_structure_tree] %s" msg
 
 end (* module Loader *)
 
@@ -137,12 +137,12 @@ module Parser = struct
     with Sys_error msg -> Error.parse "[Grew_parser.gr] %s" msg
 
   (* ------------------------------------------------------------------------------------------*)
-  let constituent s =
+  let phrase_structure_tree s =
     try
       Global.init "Not a file";
       let lexbuf = Lexing.from_string s in
-      let graph = parse_handle "Not a file" (Grew_parser.constituent Grew_lexer.const) lexbuf in
+      let graph = parse_handle "Not a file" (Grew_parser.phrase_structure_tree Grew_lexer.const) lexbuf in
       graph
-    with Sys_error msg -> Error.parse "[Grew_parser.constituent] %s" msg
+    with Sys_error msg -> Error.parse "[Grew_parser.phrase_structure_tree] %s" msg
 
 end

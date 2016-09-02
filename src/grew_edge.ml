@@ -49,6 +49,10 @@ module G_edge = struct
 
   let make ?loc ?domain string = Label.from_string ?loc ?domain string
 
+  let sub = make "__SUB__"
+  let succ = make "__SUCC__"
+  let prec = make "__PREC__"
+
   let build ?domain (ast_edge, loc) =
     match ast_edge.Ast.edge_label_cst with
     | Ast.Pos_list [one] -> Label.from_string ~loc ?domain one

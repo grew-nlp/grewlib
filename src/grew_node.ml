@@ -74,6 +74,11 @@ module G_node = struct
     then { empty with conll_root=true; succ}
     else { empty with fs = G_fs.of_conll ?loc ?domain line; position = float line.Conll.id; prec; succ }
 
+  let pst_leaf ?loc ?domain phon position =
+    { empty with fs = G_fs.pst_leaf ?loc ?domain phon; position = float position }
+  let pst_node ?loc ?domain cat position =
+    { empty with fs = G_fs.pst_node ?loc ?domain cat; position = float position }
+
   let fresh ?domain ?prec ?succ position = { empty with position; prec; succ }
 
   let remove (id_tar : Gid.t) label t = {t with next = Massoc_gid.remove id_tar label t.next}

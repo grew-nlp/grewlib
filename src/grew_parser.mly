@@ -101,8 +101,6 @@ let localize t = (t,get_loc ())
 %token <string> AROBAS_ID          /* @id */
 %token <string> COLOR              /* @#89abCD */
 
-%token SENT                        /* SENT */
-
 %token <string> ID   /* the general notion of id */
 
 /* %token <Grew_ast.Ast.complex_id>   COMPLEX_ID*/
@@ -123,7 +121,7 @@ let localize t = (t,get_loc ())
 
 /* parsing of the string representation of the constituent representation of Sequoia */
 /* EX: "( (SENT (NP (NC Amélioration) (PP (P de) (NP (DET la) (NC sécurité))))))"    */
-%start <Grew_ast.Constituent.t> constituent
+%start <Grew_ast.Ast.pst> phrase_structure_tree
 
 %left SEMIC
 %left PLUS
@@ -734,11 +732,11 @@ pattern:
 /*=============================================================================================*/
 /* Constituent tree (à la Sequoia)                                                             */
 /*=============================================================================================*/
-constituent:
-        | LPAREN t=const_tree RPAREN  { t }
+phrase_structure_tree:
+        | LPAREN t=pst RPAREN  { t }
 
-const_tree:
-        | LPAREN pos=ID ff=ID RPAREN  { Grew_ast.Constituent.Leaf (pos,ff) }
-        | LPAREN cat=ID list=nonempty_list (const_tree) RPAREN { Grew_ast.Constituent.T (cat, list) }
+pst:
+        | LPAREN pos=ID ff=ID RPAREN  { Grew_ast.Ast.T (get_loc(), pos, [Grew_ast.Ast.Leaf (get_loc(), ff)])  }
+        | LPAREN cat=ID daugthers=nonempty_list (pst) RPAREN { Grew_ast.Ast.T (get_loc(), cat, daugthers) }
 
 %%

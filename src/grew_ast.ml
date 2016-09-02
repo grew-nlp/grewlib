@@ -347,33 +347,12 @@ module Ast = struct
 
   let empty_grs = { domain = None; modules = []; strategies= [] }
 
+  (* phrase structure tree *)
+  type pst =
+  | Leaf of (Loc.t * string) (* phon *)
+  | T of (Loc.t * string * pst list)
+
+  let rec word_list = function
+    | Leaf (_, p) -> [p]
+    | T (_,_,l) -> List.flatten (List.map word_list l)
 end (* module Ast *)
-
-(* ================================================================================ *)
-module Constituent = struct
-  type t =
-  | Leaf of (string * string) (* cat, phon *)
-  | T of (string * t list)
-
-  let to_gr t =
-    let rec loop gorn nodes edges = function
-    | Leaf (cat,phon) ->
-      let fs = [{Ast.name="cat"; kind= Ast.Equality [cat]}, (Loc.empty); {Ast.name="phon"; kind= Ast.Equality [phon]}, (Loc.empty)] in
-      let node = ({Ast.node_id = gorn; position = None; fs}, Loc.empty) in
-      (gorn, node :: nodes, edges)
-
-    | T (cat, daugthers) ->
-      let (nodes',edges') = List_.foldi_left
-        (fun i (acc_nodes, acc_edges) daugther ->
-          let (id, new_acc_nodes, new_acc_edges) = loop (gorn^(string_of_int i)) acc_nodes acc_edges daugther in
-          let new_edge = ({Ast.edge_id= None; src = gorn; edge_label_cst= Ast.Pos_list ["_"]; tar= id}, Loc.empty) in
-          (new_acc_nodes, new_edge :: new_acc_edges)
-        ) (nodes, edges) daugthers in
-      let fs = [{Ast.name="cat"; kind= Ast.Equality [cat]}, (Loc.empty)] in
-      let new_nodes = ({Ast.node_id = gorn; position = None; fs}, Loc.empty) :: nodes' in
-      (gorn, new_nodes, edges') in
-
-    let (_,nodes,edges) = loop "N" [] [] t in
-    {Ast.nodes; edges; meta=[]}
-end (* module Constituent *)
-

@@ -21,11 +21,11 @@ module Loader: sig
 
   val pattern: string -> Ast.pattern
 
-  val constituent: string -> Constituent.t
+  val phrase_structure_tree: string -> Ast.pst
 end
 
 module Parser : sig
   val gr: string -> Ast.gr
 
-  val constituent: string -> Constituent.t
+  val phrase_structure_tree: string -> Ast.pst
 end

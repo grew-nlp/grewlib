@@ -162,9 +162,7 @@ module Label_domain = struct
         | Dash -> ["style=dashed"]
         | Solid when deco -> ["style=dotted"]
         | Solid -> []) in
-    match style.text with
-    | "_" -> sprintf "[arrowhead=none, %s]" (String.concat ", " dot_items)
-    | _ -> sprintf "[label=\"%s\", %s]" style.text (String.concat ", " dot_items)
+      sprintf "[label=\"%s\", %s]" style.text (String.concat ", " dot_items)
 
 end
 

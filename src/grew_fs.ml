@@ -222,6 +222,11 @@ module G_fs = struct
       | s -> ("lemma", Feature_value.build_value ?loc ?domain "lemma" s) :: raw_list1 in
     List.sort G_feature.compare raw_list2
 
+
+  (* ---------------------------------------------------------------------- *)
+  let pst_leaf ?loc ?domain phon = [("phon", Feature_value.build_value ?loc ?domain "phon" phon)]
+  let pst_node ?loc ?domain cat = [("cat", Feature_value.build_value ?loc ?domain "cat" cat)]
+
   (* ---------------------------------------------------------------------- *)
   exception Fail_unif
   let unif fs1 fs2 =
@@ -238,8 +243,8 @@ module G_fs = struct
   (* ---------------------------------------------------------------------- *)
   let get_main ?main_feat t =
     let main_list = match main_feat with
-    | None -> ["phon";"label"]
-    | Some string -> Str.split (Str.regexp "\\( *; *\\)\\|#") string in
+    | None -> ["phon";"label"; "cat"]
+    | Some string -> (Str.split (Str.regexp "\\( *; *\\)\\|#") string) @ ["phon";"label"; "cat"] in
     let rec loop = function
       | [] -> (None, t)
       | feat_name :: tail ->

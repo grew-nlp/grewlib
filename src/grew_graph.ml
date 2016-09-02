@@ -212,7 +212,7 @@ module G_graph = struct
     meta: string list;                       (* meta-informations *)
     map: G_node.t Gid_map.t;                 (* node description *)
     fusion: (Gid.t * (Gid.t * string)) list; (* the list of fusion word considered in UD conll *)
-    highest_index: int;                      (* the next free interger index *)
+    highest_index: int;                      (* the next free integer index *)
   }
 
   let empty = {meta=[]; map=Gid_map.empty; fusion=[]; highest_index=0; }
@@ -258,7 +258,7 @@ module G_graph = struct
       | None -> Error.build "[G_node.get_annot_info] No nodes with annot info"
 
   (* -------------------------------------------------------------------------------- *)
-  let map_add_edge map id_src label id_tar =
+  let map_add_edge_opt map id_src label id_tar =
     let node_src =
       (* Not found can be raised when adding an edge from pos to neg *)
       try Gid_map.find id_src map with Not_found -> G_node.empty in
@@ -267,8 +267,15 @@ module G_graph = struct
       | Some new_node -> Some (Gid_map.add id_src new_node map)
 
   (* -------------------------------------------------------------------------------- *)
+  let map_add_edge map id_src label id_tar =
+    let node_src = Gid_map.find id_src map in
+    match G_node.add_edge label id_tar node_src with
+      | Some new_node -> Gid_map.add id_src new_node map
+      | None -> Log.fbug "[Graph.map_add_edge] duplicate"; exit 2
+
+  (* -------------------------------------------------------------------------------- *)
   let add_edge graph id_src label id_tar =
-    match map_add_edge graph.map id_src label id_tar with
+    match map_add_edge_opt graph.map id_src label id_tar with
       | Some new_map -> Some {graph with map = new_map }
       | None -> None
 
@@ -305,7 +312,7 @@ module G_graph = struct
           let i1 = List.assoc ast_edge.Ast.src table in
           let i2 = List.assoc ast_edge.Ast.tar table in
           let edge = G_edge.build ?domain (ast_edge, loc) in
-          (match map_add_edge acc i1 edge i2 with
+          (match map_add_edge_opt acc i1 edge i2 with
             | Some g -> g
             | None -> Error.build "[GRS] [Graph.build] try to build a graph with twice the same edge %s %s"
               (G_edge.to_string ?domain edge)
@@ -343,7 +350,7 @@ module G_graph = struct
             (fun acc2 (gov, dep_lab) ->
               let gov_id = Id.gbuild ~loc gov gtable in
               let edge = G_edge.make ?domain ~loc dep_lab in
-              (match map_add_edge acc2 gov_id edge dep_id with
+              (match map_add_edge_opt acc2 gov_id edge dep_id with
                 | Some g -> g
                 | None -> Error.build "[GRS] [Graph.of_conll] try to build a graph with twice the same edge %s %s"
                   (G_edge.to_string ?domain edge)
@@ -384,14 +391,43 @@ module G_graph = struct
     of_conll ?domain { Conll.file=None; meta=[]; lines=conll_lines; multiwords=[] }
 
   (* -------------------------------------------------------------------------------- *)
-  let of_const ?domain const =
-    let gr = Constituent.to_gr const in
-    build ?domain gr
+  let of_pst ?domain pst =
+    let cpt = ref 0 in
+    let get_pos () = incr cpt; !cpt - 1 in
 
-  (* -------------------------------------------------------------------------------- *)
-  let opt_att atts name =
-    try Some (List.assoc name atts)
-    with Not_found -> None
+    let leaf_list = ref [] in
+
+    let rec loop nodes = function
+    | Ast.Leaf (loc, phon) ->
+      let fresh_id = get_pos () in
+      let node = G_node.pst_leaf ~loc ?domain phon fresh_id in
+      leaf_list := fresh_id :: ! leaf_list;
+      (fresh_id, Gid_map.add fresh_id node nodes)
+
+    | Ast.T (loc, cat, daughters) ->
+      let fresh_id = get_pos () in
+      let new_node = G_node.pst_node ~loc ?domain cat fresh_id in
+      let with_mother = Gid_map.add fresh_id new_node nodes in
+      let new_nodes = List.fold_left
+        (fun map daughter ->
+          let (daughter_id, new_map) = loop map daughter in
+          map_add_edge new_map fresh_id G_edge.sub daughter_id
+        ) with_mother daughters in
+      (fresh_id, new_nodes) in
+
+    let (_,map) = loop Gid_map.empty pst in
+
+    let rec prec_loop map = function
+    | [] | [_] -> map
+    | n1 :: n2 :: tail ->
+      let new_map = prec_loop map (n2 :: tail) in
+      let with_prec = map_add_edge new_map n1 G_edge.prec n2 in
+      let with_both = map_add_edge with_prec n2 G_edge.succ n1 in
+      with_both in
+
+    let map_with_prec = prec_loop map !leaf_list in
+
+    {meta=[]; map=map_with_prec; fusion = []; highest_index = !cpt}
 
   (* -------------------------------------------------------------------------------- *)
   let del_edge ?domain ?edge_ident loc graph id_src label id_tar =
@@ -754,7 +790,7 @@ module G_graph = struct
 
     bprintf buff "digraph G {\n";
     (* bprintf buff "  rankdir=LR;\n"; *)
-    bprintf buff "  node [shape=Mrecord];\n";
+    bprintf buff "  node [shape=none];\n";
 
     (* nodes *)
     Gid_map.iter
@@ -775,7 +811,17 @@ module G_graph = struct
         Massoc_gid.iter
           (fun tar g_edge ->
             let deco = List.mem (id,g_edge,tar) deco.G_deco.edges in
-            bprintf buff "  N_%s -> N_%s%s\n" (Gid.to_string id) (Gid.to_string tar) (G_edge.to_dot ?domain ~deco g_edge)
+            match !Global.debug with
+            | true when g_edge = G_edge.succ ->
+              bprintf buff "  N_%s -> N_%s [label=\"SUCC\", style=dotted, fontcolor=lightblue, color=lightblue]; {rank=same; N_%s; N_%s };\n"
+                (Gid.to_string id) (Gid.to_string tar) (Gid.to_string id) (Gid.to_string tar)
+            | false when g_edge = G_edge.succ ->
+              bprintf buff "  N_%s -> N_%s [style=invis]; {rank=same; N_%s; N_%s };\n"
+                (Gid.to_string id) (Gid.to_string tar) (Gid.to_string id) (Gid.to_string tar)
+            | _ when g_edge = G_edge.prec -> ()
+            | _ when g_edge = G_edge.sub ->
+              bprintf buff "  N_%s -> N_%s [dir=none];\n" (Gid.to_string id) (Gid.to_string tar)
+            | _ -> bprintf buff "  N_%s -> N_%s%s;\n" (Gid.to_string id) (Gid.to_string tar) (G_edge.to_dot ?domain ~deco g_edge)
           ) (G_node.get_next node)
       ) graph.map;
 
