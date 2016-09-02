@@ -34,7 +34,7 @@ exception Bug of string * Loc.t option
 
 let handle ?(name="") ?(file="No file defined") fct () =
   try fct () with
-    (* Raise again already catched exceptions *)
+    (* Raise again already caught exceptions *)
     | Parsing_err (msg,loc_opt) -> raise (Parsing_err (msg,loc_opt))
     | Build (msg,loc_opt) -> raise (Build (msg,loc_opt))
     | Bug (msg, loc_opt) -> raise (Bug (msg,loc_opt))
@@ -47,7 +47,7 @@ let handle ?(name="") ?(file="No file defined") fct () =
     | Grew_base.Error.Bug (msg, loc_opt) -> raise (Bug (msg,loc_opt))
     | Grew_base.Error.Run (msg, loc_opt) -> raise (Run (msg,loc_opt))
 
-    | exc -> raise (Bug (sprintf "[Libgrew.%s] UNCATCHED EXCEPTION: %s" name (Printexc.to_string exc), None))
+    | exc -> raise (Bug (sprintf "[Libgrew.%s] UNCAUGHT EXCEPTION: %s" name (Printexc.to_string exc), None))
 
 
 (* ==================================================================================================== *)
