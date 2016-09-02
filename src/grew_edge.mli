@@ -38,8 +38,6 @@ module G_edge: sig
   val make: ?loc:Loc.t -> ?domain:Domain.t -> string -> t
 
   val sub: t
-  val succ: t
-  val prec: t
 
   val build: ?domain:Domain.t -> Ast.edge -> t
 

@@ -421,13 +421,16 @@ module G_graph = struct
     | [] | [_] -> map
     | n1 :: n2 :: tail ->
       let new_map = prec_loop map (n2 :: tail) in
-      let with_prec = map_add_edge new_map n1 G_edge.prec n2 in
-      let with_both = map_add_edge with_prec n2 G_edge.succ n1 in
-      with_both in
 
-    let map_with_prec = prec_loop map !leaf_list in
+      printf "n1=%s n2=%s\n%!" (Gid.to_string n1) (Gid.to_string n2);
 
-    {meta=[]; map=map_with_prec; fusion = []; highest_index = !cpt}
+      let node1 = Gid_map.find n1 new_map
+      and node2 = Gid_map.find n2 new_map in
+      new_map
+      |> (Gid_map.add n1 (G_node.set_succ n2 node1))
+      |> (Gid_map.add n2 (G_node.set_prec n1 node2)) in
+
+    {meta=[]; map=prec_loop map (List.rev !leaf_list); fusion = []; highest_index = !cpt}
 
   (* -------------------------------------------------------------------------------- *)
   let del_edge ?domain ?edge_ident loc graph id_src label id_tar =
@@ -811,18 +814,24 @@ module G_graph = struct
         Massoc_gid.iter
           (fun tar g_edge ->
             let deco = List.mem (id,g_edge,tar) deco.G_deco.edges in
-            match !Global.debug with
-            | true when g_edge = G_edge.succ ->
-              bprintf buff "  N_%s -> N_%s [label=\"SUCC\", style=dotted, fontcolor=lightblue, color=lightblue]; {rank=same; N_%s; N_%s };\n"
-                (Gid.to_string id) (Gid.to_string tar) (Gid.to_string id) (Gid.to_string tar)
-            | false when g_edge = G_edge.succ ->
-              bprintf buff "  N_%s -> N_%s [style=invis]; {rank=same; N_%s; N_%s };\n"
-                (Gid.to_string id) (Gid.to_string tar) (Gid.to_string id) (Gid.to_string tar)
-            | _ when g_edge = G_edge.prec -> ()
-            | _ when g_edge = G_edge.sub ->
-              bprintf buff "  N_%s -> N_%s [dir=none];\n" (Gid.to_string id) (Gid.to_string tar)
-            | _ -> bprintf buff "  N_%s -> N_%s%s;\n" (Gid.to_string id) (Gid.to_string tar) (G_edge.to_dot ?domain ~deco g_edge)
+            if g_edge = G_edge.sub
+            then bprintf buff "  N_%s -> N_%s [dir=none];\n" (Gid.to_string id) (Gid.to_string tar)
+            else bprintf buff "  N_%s -> N_%s%s;\n" (Gid.to_string id) (Gid.to_string tar) (G_edge.to_dot ?domain ~deco g_edge)
           ) (G_node.get_next node)
+      ) graph.map;
+
+    Gid_map.iter
+      (fun id node ->
+        begin
+          match G_node.get_succ node with
+          | None -> ()
+          | Some s when !Global.debug ->
+              bprintf buff "  N_%s -> N_%s [label=\"SUCC\", style=dotted, fontcolor=lightblue, color=lightblue]; {rank=same; N_%s; N_%s };\n"
+                (Gid.to_string id) (Gid.to_string s) (Gid.to_string id) (Gid.to_string s)
+          | Some s ->
+              bprintf buff "  N_%s -> N_%s [style=invis]; {rank=same; N_%s; N_%s };\n"
+                (Gid.to_string id) (Gid.to_string s) (Gid.to_string id) (Gid.to_string s)
+        end
       ) graph.map;
 
     bprintf buff "}\n";
