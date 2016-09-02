@@ -211,3 +211,12 @@ module Ast : sig
 
   val empty_grs: grs
 end (* module Ast *)
+
+module Constituent : sig
+  type t =
+  | Leaf of (string * string) (* cat, phon *)
+  | T of (string * t list)
+
+  val to_gr: t -> Ast.gr
+end
+

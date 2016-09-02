@@ -21,6 +21,7 @@ module Int_map = Map.Make (struct type t = int let compare = Pervasives.compare 
 module Loc = struct
   type t = string * int
 
+  let empty = ("Not a file", -1)
   let file_line f l = (f,l)
   let file_opt_line fo l = match fo with
   | Some f -> file_line f l

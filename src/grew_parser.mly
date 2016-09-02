@@ -101,6 +101,8 @@ let localize t = (t,get_loc ())
 %token <string> AROBAS_ID          /* @id */
 %token <string> COLOR              /* @#89abCD */
 
+%token SENT                        /* SENT */
+
 %token <string> ID   /* the general notion of id */
 
 /* %token <Grew_ast.Ast.complex_id>   COMPLEX_ID*/
@@ -118,6 +120,10 @@ let localize t = (t,get_loc ())
 %start <Grew_ast.Ast.module_or_include list> included
 %start <Grew_ast.Ast.pattern> pattern
 %start <Grew_ast.Ast.domain> domain
+
+/* parsing of the string representation of the constituent representation of Sequoia */
+/* EX: "( (SENT (NP (NC Amélioration) (PP (P de) (NP (DET la) (NC sécurité))))))"    */
+%start <Grew_ast.Constituent.t> constituent
 
 %left SEMIC
 %left PLUS
@@ -724,4 +730,15 @@ op_seq:
 /*=============================================================================================*/
 pattern:
         | p=pos_item n=list(neg_item) EOF { Ast.complete_pattern {Ast.pat_pos=p; pat_negs=n} }
+
+/*=============================================================================================*/
+/* Constituent tree (à la Sequoia)                                                             */
+/*=============================================================================================*/
+constituent:
+        | LPAREN t=const_tree RPAREN  { t }
+
+const_tree:
+        | LPAREN pos=ID ff=ID RPAREN  { Grew_ast.Constituent.Leaf (pos,ff) }
+        | LPAREN cat=ID list=nonempty_list (const_tree) RPAREN { Grew_ast.Constituent.T (cat, list) }
+
 %%

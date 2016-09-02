@@ -119,6 +119,16 @@ type t = Grew_graph.G_graph.t
         Grew_graph.G_graph.of_brown ?domain brown
       ) ()
 
+  let load_const ?domain file =
+    if not (Sys.file_exists file)
+    then raise (File_not_found file)
+    else
+      handle ~name:"load_const" ~file
+        (fun () ->
+          let const_ast = Grew_loader.Loader.constituent file in
+          Grew_graph.G_graph.of_const ?domain const_ast
+        ) ()
+
   let load ?domain file =
     handle ~name:"Graph.load_graph" ~file
       (fun () ->
@@ -126,12 +136,13 @@ type t = Grew_graph.G_graph.t
         | Some ".gr" -> load_gr ?domain file
         | Some ".conll" -> load_conll ?domain file
         | Some ".br" | Some ".melt" -> load_brown ?domain file
+        | Some ".cst" -> load_const ?domain file
         | _ ->
             Log.fwarning "Unknown file format for input graph '%s', try to guess..." file;
             let rec loop = function
             | [] -> Log.fcritical "[Libgrew.load_graph] Cannot guess input file format of file '%s'. Use .gr or .conll file extension" file
             | load_fct :: tail -> try load_fct ?domain file with _ -> loop tail in
-            loop [load_gr; load_conll; load_brown]
+            loop [load_gr; load_conll; load_brown; load_const]
       ) ()
 
   let of_gr ?domain ?(grewpy=false) gr_string =
@@ -139,6 +150,13 @@ type t = Grew_graph.G_graph.t
 
   let of_conll ?domain conll =
     handle ~name:"Graph.of_conll" (fun () -> Grew_graph.G_graph.of_conll ?domain conll) ()
+
+  let of_const ?domain const =
+    handle ~name:"of_const"
+      (fun () ->
+        let const_ast = Grew_loader.Parser.constituent const in
+        (Grew_graph.G_graph.of_const ?domain const_ast)
+      ) ()
 
   let of_brown ?domain ?sentid brown =
     handle ~name:"Graph.of_brown" (fun () -> Grew_graph.G_graph.of_brown ?domain ?sentid brown) ()

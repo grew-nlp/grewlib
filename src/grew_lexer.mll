@@ -233,3 +233,14 @@ and standard target = parse
 
 | eof   { EOF }
 | _ as c { raise (Error (sprintf "unexpected character '%c'" c)) }
+
+| _ as c { raise (Error (sprintf "At line %d: unexpected character '%c'" (lexbuf.Lexing.lex_start_p.Lexing.pos_lnum) c)) }
+
+and const = parse
+  | [' ' '\t']        { const lexbuf }
+  | '\n'              { incr Global.current_line; const lexbuf}
+  | '('               { printf ">>>LPAREN<<<\n%!"; LPAREN }
+  | ')'               { printf ">>>RPAREN<<<\n%!"; RPAREN }
+  | "SENT"            { printf ">>>SENT<<<\n%!"; SENT }
+  | [^'(' ')' ' ']+ as id { printf "ID=>>>%s<<<\n%!" id; ID id }
+

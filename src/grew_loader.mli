@@ -20,8 +20,12 @@ module Loader: sig
   val gr: string -> Ast.gr
 
   val pattern: string -> Ast.pattern
+
+  val constituent: string -> Constituent.t
 end
 
 module Parser : sig
   val gr: string -> Ast.gr
+
+  val constituent: string -> Constituent.t
 end
