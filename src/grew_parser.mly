@@ -694,11 +694,12 @@ sequence:
             { let (name,loc) = id_loc in
               {
                 Strategy.name;
-                def = Strategy.Seq (List.map (fun m -> Strategy.Ref m) mod_names);
+                def = Strategy.Sequence mod_names;
                 doc = begin match doc with Some d -> d | None -> [] end;
                 loc;
               }
             }
+        /*   strat = <>(M1+M2)*   */
         | doc = option(COMMENT) id_loc=simple_id_with_loc EQUAL def=op_seq
             { let (name,loc) = id_loc in
               {

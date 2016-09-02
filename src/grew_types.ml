@@ -451,6 +451,7 @@ module Strategy = struct
     | Plus of def list  (* /!\ The list must not be empty *)
     | Star of def
     | Diamond of def
+    | Sequence of string list (* compatibility mode with old code *)
 
   type t = {
     name:string;
@@ -465,9 +466,11 @@ module Strategy = struct
   | Plus l -> "[" ^ (String.concat "+" (List.map to_string l)) ^ "]"
   | Star s -> "[" ^ (to_string s) ^"]"  ^ "*"
   | Diamond s -> "◇" ^ "[" ^(to_string s)^"]"
+  | Sequence names -> "{" ^ (String.concat ";" names) ^ "}"
 
   (* invariant: Seq list and Plus list are not empty in the input and so not empty in the output *)
   let rec flatten = function
+  | Sequence l -> Sequence l
   | Ref m -> Ref m
   | Star s -> Star (flatten s)
   | Diamond s -> Diamond (flatten s)

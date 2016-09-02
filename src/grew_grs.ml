@@ -235,18 +235,17 @@ module Grs = struct
     check grs;
     grs
 
-  (* compute the list of modules to apply for a requested sentence *)
+  (* ---------------------------------------------------------------------------------------------------- *)
+  let rewrite grs strategy_name graph =
+    let strategy = List.find (fun s -> s.Strategy.name = strategy_name) grs.strategies in
 
-  let rewrite grs sequence graph =
-    let instance = Instance.from_graph graph in
-    Timeout.start ();
-    let modules_to_apply = [] (* modules_of_sequence grs sequence *) in
-
-    let rec loop instance module_list =
+    let rec old_loop instance module_list =
       match module_list with
-      | [] -> (* no more modules to apply *)
-        {Rewrite_history.instance = instance; module_name = ""; good_nf = []; bad_nf = []; }
-      | next::tail ->
+      | [] -> {Rewrite_history.instance = instance; module_name = ""; good_nf = []; bad_nf = []; }
+      | module_name :: tail ->
+         let next =
+           try List.find (fun m -> m.Modul.name=module_name) grs.modules
+           with Not_found -> Log.fcritical "No module named '%s'" module_name in
         let (good_set, bad_set) =
           Rule.normalize
             ?domain: grs.domain
@@ -260,17 +259,27 @@ module Grs = struct
         {
           Rewrite_history.instance = instance;
           module_name = next.Modul.name;
-          good_nf = List.map (fun i -> loop i tail) good_list;
+          good_nf = List.map (fun i -> old_loop i tail) good_list;
           bad_nf = bad_list;
         } in
-    loop instance modules_to_apply
 
+    let loop instance def =
+      match def with
+
+      | Strategy.Sequence module_list -> old_loop instance module_list
+      | _ -> failwith "Not yet implemented" in
+
+    loop (Instance.from_graph graph) (strategy.Strategy.def)
+
+
+  (* ---------------------------------------------------------------------------------------------------- *)
   (* construction of the rew_display *)
   let rec diamond = function
     | Libgrew_types.Node (_, _, []) -> Log.bug "Empty node"; exit 12
     | Libgrew_types.Node (graph, name, (bs,rd)::_) -> Libgrew_types.Node (graph, "◇" ^ name, [(bs, diamond rd)])
     | x -> x
 
+  (* ---------------------------------------------------------------------------------------------------- *)
   let rec clean = function
     | Libgrew_types.Empty -> Libgrew_types.Empty
     | Libgrew_types.Leaf graph -> Libgrew_types.Leaf graph
@@ -287,14 +296,19 @@ module Grs = struct
         | [] -> Libgrew_types.Empty
         | new_bs_rd_list -> Libgrew_types.Node (graph, name, new_bs_rd_list)
 
-  let build_rew_display grs strategy graph =
-    let instance = Instance.from_graph graph in
 
-(* =============
-    let rec loop instance module_list =
+  (* ---------------------------------------------------------------------------------------------------- *)
+  let build_rew_display grs strategy_name graph =
+    let strategy = List.find (fun s -> s.Strategy.name = strategy_name) grs.strategies in
+
+    let instance = Instance.from_graph graph in
+    let rec old_loop instance module_list =
       match module_list with
       | [] -> Libgrew_types.Leaf instance.Instance.graph
-      | next :: tail ->
+      | next_name :: tail ->
+         let next =
+           try List.find (fun m -> m.Modul.name=next_name) grs.modules
+           with Not_found -> Log.fcritical "No module named '%s'" next_name in
         let (good_set, bad_set) =
           Rule.normalize
             ?domain: grs.domain
@@ -308,7 +322,7 @@ module Grs = struct
 
         match inst_list with
           | [{Instance.big_step = None}] ->
-            Libgrew_types.Local_normal_form (instance.Instance.graph, next.Modul.name, loop instance tail)
+            Libgrew_types.Local_normal_form (instance.Instance.graph, next.Modul.name, old_loop instance tail)
           | _ -> Libgrew_types.Node
             (
               instance.Instance.graph,
@@ -316,31 +330,35 @@ module Grs = struct
               List.map
                 (fun inst ->
                   match inst.Instance.big_step with
-=======  *)
+                    | None -> Error.bug "Cannot have no big_steps and more than one reducts at the same time"
+                    | Some bs -> (bs, old_loop inst tail)
+                ) inst_list
+            ) in 
+
     let indent = ref 10 in
 
-    let strat = List.find (fun s -> s.Strategy.name = strategy) grs.strategies in
-
-    let rec apply_leaf strat = function
+    let rec apply_leaf strat_def = function
       | Libgrew_types.Empty -> Libgrew_types.Empty
-      | Libgrew_types.Leaf graph -> loop (Instance.from_graph graph) strat
-      | Libgrew_types.Local_normal_form (graph, name, rd) -> Libgrew_types.Local_normal_form (graph, name, apply_leaf strat rd)
-      | Libgrew_types.Node (graph, name, bs_rd_list) -> Libgrew_types.Node (graph, name, List.map (fun (bs,rd) -> (bs, apply_leaf strat rd)) bs_rd_list)
+      | Libgrew_types.Leaf graph -> loop (Instance.from_graph graph) strat_def
+      | Libgrew_types.Local_normal_form (graph, name, rd) -> Libgrew_types.Local_normal_form (graph, name, apply_leaf strat_def rd)
+      | Libgrew_types.Node (graph, name, bs_rd_list) -> Libgrew_types.Node (graph, name, List.map (fun (bs,rd) -> (bs, apply_leaf strat_def rd)) bs_rd_list)
 
-    and loop (instance : Instance.t) def =
-      printf "%s===> loop  def=%s\n%!"
+    and loop instance strat_def =
+      printf "%s===> loop  strat_def=%s\n%!"
         (String.make (2 * (max 0 !indent)) ' ')
-        (Strategy.to_string def);
+        (Strategy.to_string strat_def);
       incr indent;
 
-      match def with
+      match strat_def with
+
+      | Strategy.Sequence module_list -> old_loop instance module_list
 
       (* ========> reference to a module or to another strategy <========= *)
       | Strategy.Ref name ->
         begin
           try
-            let strat = List.find (fun s -> s.Strategy.name = name) grs.strategies in
-            loop instance strat.Strategy.def
+            let strategy = List.find (fun s -> s.Strategy.name = name) grs.strategies in
+            loop instance strategy.Strategy.def
           with Not_found ->
             let modul =
               try List.find (fun m -> m.Modul.name=name) grs.modules
@@ -410,14 +428,16 @@ module Grs = struct
         end
       in
 
-    loop instance (strat.Strategy.def)
+    loop instance (strategy.Strategy.def)
 
+  (* ---------------------------------------------------------------------------------------------------- *)
   let rule_iter fct grs =
     List.iter
       (fun modul ->
         List.iter (fun rule -> fct modul.Modul.name rule) modul.Modul.rules
       ) grs.modules
 
+  (* ---------------------------------------------------------------------------------------------------- *)
   let filter_iter fct grs =
     List.iter
       (fun modul ->

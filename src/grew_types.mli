@@ -188,6 +188,8 @@ module Strategy : sig
     | Star of def       (* a strategy to apply iteratively *)
     | Diamond of def    (* pick one normal form a the given strategy *)
   (* /!\ The list must not be empty in the Seq or Plus constructor *)
+    | Sequence of string list (* compatibility mode with old code *)
+
 
   (* string dump of a strat *)
   val to_string : def -> string
