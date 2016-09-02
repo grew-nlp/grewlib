@@ -175,6 +175,8 @@ module Rewrite: sig
 
   val save_index: dirname:string -> base_names: string list -> unit
 
+  val save_index: dirname:string -> base_names: string list -> unit
+
   val save_det_conll: ?domain:Domain.t -> ?header:string -> string -> history -> unit
 
   val det_dep_string: ?domain:Domain.t -> history -> string option
