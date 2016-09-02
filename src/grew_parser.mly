@@ -196,20 +196,21 @@ gr:
             }
 
 gr_item:
-        (* sentence = "Jean dort." *)
+        /*  sentence = "Jean dort."   */
         | id=simple_id EQUAL value=feature_value
             { Graph_meta (id ^ " = " ^ value) }
 
-        (* B (1) [phon="pense", lemma="penser", cat=v, mood=ind ] *)
-        (* B [phon="pense", lemma="penser", cat=v, mood=ind ] *)
+        /*  B (1) [phon="pense", lemma="penser", cat=v, mood=ind ]   */
+        /*  B [phon="pense", lemma="penser", cat=v, mood=ind ]   */
         | id_loc=node_id_with_loc position=option(delimited(LPAREN, FLOAT ,RPAREN)) feats=delimited(LBRACKET,separated_list_final_opt(COMA,node_features),RBRACKET)
             { let (id,loc) = id_loc in
               Graph_node ({Ast.node_id = id; position=position; fs=feats}, loc) }
+        /*   A   */
         | id_loc=node_id_with_loc
             { let (id,loc) = id_loc in
               Graph_node ({Ast.node_id = id; position=None; fs=Ast.default_fs ~loc id}, loc) }
 
-        (* A -[x]-> B *)
+        /*   A -[x]-> B   */
         | n1_loc=node_id_with_loc label=delimited(LTR_EDGE_LEFT,label_ident,LTR_EDGE_RIGHT) n2=node_id
             { Graph_edge ({Ast.edge_id = None; src=fst n1_loc; edge_label_cst=Ast.Pos_list [label]; tar=n2}, snd n1_loc) }
 
@@ -263,8 +264,8 @@ features:
         | LACC x=separated_nonempty_list_final_opt(SEMIC,feature) RACC { x }
 
 feature:
-        (* pos=# *)
-        (* m: ind,inf,part,subj,imp *)
+        /*   pos=#   */
+        /*   m: ind,inf,part,subj,imp   */
         | feature_name=feature_name DDOT feature_values=features_values
             {
               match feature_values with
@@ -272,7 +273,7 @@ feature:
                 | _ -> Feature_domain.build_closed feature_name feature_values
             }
 
-        (* phon:* *)
+        /*   phon:*   */
         | feature_name=feature_name DDOT STAR
             { Feature_domain.Open feature_name }
 
@@ -287,7 +288,7 @@ features_values:
 /* GLOBAL LABELS DEFINITION                                                                    */
 /*=============================================================================================*/
 labels:
-        (* labels { OBJ, SUBJ, DE_OBJ, ANT } *)
+        /*   labels { OBJ, SUBJ, DE_OBJ, ANT }   */
         | LABELS x=delimited(LACC,separated_nonempty_list_final_opt(COMA,label),RACC) { x }
 
 label:
@@ -391,101 +392,68 @@ pn_item:
 /* MATCH DEFINITION                                                                            */
 /*=============================================================================================*/
 pat_item:
-        | n=pat_node           { Pat_node n }
-        | ec=pat_edge_or_const { ec }
-
-pat_node:
-        (* "R [cat=V, lemma=$lemma]" *)
+        /*   R [cat=V, lemma=$lemma]   */
         | id_loc=simple_id_with_loc feats=delimited(LBRACKET,separated_list_final_opt(COMA,node_features),RBRACKET)
-            { ({Ast.node_id = fst id_loc; position=None; fs= feats}, snd id_loc) }
+            { Pat_node ({Ast.node_id = fst id_loc; position=None; fs= feats}, snd id_loc) }
 
-node_features:
-        (*  "cat = n|v|adj"     *)
-        | name_loc=simple_id_with_loc EQUAL values=separated_nonempty_list(PIPE,feature_value)
-            { let (name,loc) = name_loc in
-              match values with
-              | ["*"] -> ({Ast.kind = Ast.Disequality []; name},loc)
-              | _ -> ({Ast.kind = Ast.Equality values; name }, loc) }
-
-        (*  "cat = *" *)
-        | name_loc=simple_id_with_loc EQUAL STAR
-            { let (name,loc) = name_loc in ({Ast.kind = Ast.Disequality []; name},loc) }
-
-        (*  "cat" *)
-        | name_loc=simple_id_with_loc
-            { let (name,loc) = name_loc in ({Ast.kind = Ast.Disequality []; name},loc) }
-
-        (*   "cat<>n|v|adj" *)
-        | name_loc=simple_id_with_loc DISEQUAL values=separated_nonempty_list(PIPE,feature_value)
-            { let (name,loc) = name_loc in ( {Ast.kind = Ast.Disequality values; name}, loc) }
-
-        (*   "lemma=$lem" *)
-        | name_loc=simple_id_with_loc EQUAL p=DOLLAR_ID
-            { let (name,loc) = name_loc in ( {Ast.kind = Ast.Equal_param p; name }, loc) }
-
-        (*   "!lemma" *)
-        | BANG name_loc=simple_id_with_loc
-            { let (name,loc) = name_loc in ({Ast.kind = Ast.Absent; name}, loc) }
-
-pat_edge_or_const:
-        (*   "e: A -> B" *)
+        /*   e: A -> B   */
         | id_loc=simple_id_with_loc DDOT n1=simple_id EDGE n2=simple_id
             { let (id,loc) = id_loc in Pat_edge ({Ast.edge_id = Some id; src=n1; edge_label_cst=(Ast.Neg_list []); tar=n2}, loc) }
 
-        (* "e: A -[X|Y]-> B" *)
+        /*   e: A -[X|Y]-> B   */
         | id_loc=simple_id_with_loc DDOT n1=simple_id labels=delimited(LTR_EDGE_LEFT,separated_nonempty_list(PIPE,pattern_label_ident),LTR_EDGE_RIGHT) n2=simple_id
             { let (id,loc) = id_loc in Pat_edge ({Ast.edge_id = Some id; src=n1; edge_label_cst=(Ast.Pos_list labels); tar=n2}, loc) }
 
-        (* "e: A -[^X|Y]-> B" *)
+        /*   e: A -[^X|Y]-> B   */
         | id_loc=simple_id_with_loc DDOT n1=simple_id labels=delimited(LTR_EDGE_LEFT_NEG,separated_nonempty_list(PIPE,pattern_label_ident),LTR_EDGE_RIGHT) n2=simple_id
             { let (id,loc) = id_loc in Pat_edge ({Ast.edge_id = Some id; src=n1; edge_label_cst=(Ast.Neg_list labels); tar=n2}, loc) }
 
-        (* "e: A -[re"regexp"]-> B" *)
+        /*   e: A -[re"regexp"]-> B   */
         | id_loc=simple_id_with_loc DDOT n1=simple_id LTR_EDGE_LEFT re=REGEXP LTR_EDGE_RIGHT n2=simple_id
             { let (id,loc) = id_loc in Pat_edge ({Ast.edge_id = Some id; src=n1; edge_label_cst=Ast.Regexp re; tar=n2}, loc) }
 
-        (* "A -> B" *)
+        /*   A -> B   */
         | n1_loc=simple_id_with_loc EDGE n2=simple_id
             { let (n1,loc) = n1_loc in Pat_edge ({Ast.edge_id = None; src=n1; edge_label_cst=Ast.Neg_list []; tar=n2}, loc) }
 
-        (* "A -> *" *)
+        /*   A -> *   */
         | n1_loc=simple_id_with_loc EDGE STAR
             { let (n1,loc) = n1_loc in Pat_const (Ast.Cst_out (n1,Ast.Neg_list []), loc) }
 
-        (* "* -> B" *)
+        /*   * -> B   */
         | STAR EDGE n2_loc=simple_id_with_loc
             { let (n2,loc) = n2_loc in Pat_const (Ast.Cst_in (n2,Ast.Neg_list []), loc) }
 
-        (* "A -[X|Y]-> B"   *)
+        /*   A -[X|Y]-> B   */
         | n1_loc=simple_id_with_loc labels=delimited(LTR_EDGE_LEFT,separated_nonempty_list(PIPE,pattern_label_ident),LTR_EDGE_RIGHT) n2=simple_id
             { let (n1,loc) = n1_loc in Pat_edge ({Ast.edge_id = None; src=n1; edge_label_cst=Ast.Pos_list labels; tar=n2}, loc) }
 
-        (* "A -[X|Y]-> *"   *)
+        /*   A -[X|Y]-> *   */
         | n1_loc=simple_id_with_loc labels=delimited(LTR_EDGE_LEFT,separated_nonempty_list(PIPE,pattern_label_ident),LTR_EDGE_RIGHT) STAR
             { let (n1,loc) = n1_loc in Pat_const (Ast.Cst_out (n1,Ast.Pos_list labels), loc) }
 
-        (* "* -[X|Y]-> B"   *)
+        /*   * -[X|Y]-> B   */
         | STAR labels=delimited(LTR_EDGE_LEFT,separated_nonempty_list(PIPE,pattern_label_ident),LTR_EDGE_RIGHT) n2_loc=simple_id_with_loc
             { let (n2,loc) = n2_loc in Pat_const (Ast.Cst_in (n2,Ast.Pos_list labels), loc) }
 
-        (* "A -[^X|Y]-> B" *)
+        /*   A -[^X|Y]-> B   */
         | n1_loc=simple_id_with_loc labels=delimited(LTR_EDGE_LEFT_NEG,separated_nonempty_list(PIPE,pattern_label_ident),LTR_EDGE_RIGHT) n2=simple_id
             { let (n1,loc) = n1_loc in Pat_edge ({Ast.edge_id = None; src=n1; edge_label_cst=Ast.Neg_list labels; tar=n2}, loc) }
 
-        (* "A -[re"regexp"]-> B" *)
+        /*   A -[re"regexp"]-> B   */
         | n1_loc=simple_id_with_loc LTR_EDGE_LEFT re=REGEXP LTR_EDGE_RIGHT n2=simple_id
             { let (n1,loc) = n1_loc in Pat_edge ({Ast.edge_id = None; src=n1; edge_label_cst=Ast.Regexp re; tar=n2}, loc) }
 
-        (* "A -[^X|Y]-> *" *)
+        /*   A -[^X|Y]-> *   */
         | n1_loc=simple_id_with_loc labels=delimited(LTR_EDGE_LEFT_NEG,separated_nonempty_list(PIPE,pattern_label_ident),LTR_EDGE_RIGHT) STAR
             { let (n1,loc) = n1_loc in Pat_const (Ast.Cst_out (n1,Ast.Neg_list labels), loc) }
 
-        (* "* -[^X|Y]-> B" *)
+        /*   * -[^X|Y]-> B   */
         | STAR labels=delimited(LTR_EDGE_LEFT_NEG,separated_nonempty_list(PIPE,pattern_label_ident),LTR_EDGE_RIGHT) n2_loc=simple_id_with_loc
             { let (n2,loc) = n2_loc in Pat_const (Ast.Cst_in (n2,Ast.Neg_list labels), loc) }
 
-        (* X.cat = Y.cat *)
-        (* X.cat = value *)
+        /*   X.cat = Y.cat   */
+        /*   X.cat = value   */
         | feat_id1_loc=feature_ident_with_loc EQUAL rhs=ID
             { let (feat_id1,loc)=feat_id1_loc in
               match Ast.parse_simple_or_feature_ident rhs with
@@ -493,16 +461,16 @@ pat_edge_or_const:
               | (value, None) -> Pat_const (Ast.Feature_cst (feat_id1, value), loc)
             }
 
-        (* X.cat = "value" *)
+        /*   X.cat = "value"   */
         | feat_id1_loc=feature_ident_with_loc EQUAL rhs=STRING
             { let (feat_id1,loc)=feat_id1_loc in Pat_const (Ast.Feature_cst (feat_id1, rhs), loc) }
 
-        (* X.cat = 12.34 *)
+        /*   X.cat = 12.34   */
         | feat_id1_loc=feature_ident_with_loc EQUAL rhs=FLOAT
             { let (feat_id1,loc)=feat_id1_loc in Pat_const (Ast.Feature_float (feat_id1, rhs), loc) }
 
-        (* X.cat <> Y.cat *)
-        (* X.cat <> value *)
+        /*   X.cat <> Y.cat   */
+        /*   X.cat <> value   */
         | feat_id1_loc=feature_ident_with_loc DISEQUAL rhs=ID
             { let (feat_id1,loc)=feat_id1_loc in
               match Ast.parse_simple_or_feature_ident rhs with
@@ -510,29 +478,29 @@ pat_edge_or_const:
               | (value, None) -> Pat_const (Ast.Feature_diff_cst (feat_id1, value), loc)
             }
 
-        (* X.cat <> "value" *)
+        /*   X.cat <> "value"   */
         | feat_id1_loc=feature_ident_with_loc DISEQUAL rhs=STRING
             { let (feat_id1,loc)=feat_id1_loc in Pat_const (Ast.Feature_diff_cst (feat_id1, rhs), loc) }
 
-        (* X.cat <> 12.34 *)
+        /*   X.cat <> 12.34   */
         | feat_id1_loc=feature_ident_with_loc DISEQUAL rhs=FLOAT
             { let (feat_id1,loc)=feat_id1_loc in Pat_const (Ast.Feature_diff_float (feat_id1, rhs), loc) }
 
 
-        (* "X.cat = re"regexp" " *)
+        /*   X.cat = re"regexp"   */
         | feat_id_loc=feature_ident_with_loc EQUAL regexp=REGEXP
             { let (feat_id,loc)=feat_id_loc in Pat_const (Ast.Feature_re (feat_id, regexp), loc) }
 
         | id1_loc=ineq_value_with_loc LT id2=ineq_value
             { let (id1,loc)=id1_loc in
               match (id1, id2) with
-              (* "X.feat < Y.feat" *)
+              (*   X.feat < Y.feat   *)
               | (Ineq_sofi (n1, Some f1), Ineq_sofi (n2, Some f2)) -> Pat_const (Ast.Feature_ineq (Ast.Lt, (n1,f1), (n2,f2)), loc)
-              (* "X.feat < 12.34" *)
+              (*   X.feat < 12.34   *)
               | (Ineq_sofi (n1, Some f1), Ineq_float num) -> Pat_const (Ast.Feature_ineq_cst (Ast.Lt, (n1,f1), num), loc)
-              (* "12.34 < Y.feat" *)
+              (*   12.34 < Y.feat   *)
               | (Ineq_float num, Ineq_sofi (n1, Some f1)) -> Pat_const (Ast.Feature_ineq_cst (Ast.Gt, (n1,f1), num), loc)
-              (* "X < Y" *)
+              (*   X < Y   *)
               | (Ineq_sofi (n1, None), Ineq_sofi (n2, None)) -> Pat_const (Ast.Prec (n1,n2), loc)
               | (Ineq_float _, Ineq_float _) -> Error.build "the '<' symbol can be used with 2 constants"
               | _ -> Error.build "the '<' symbol can be used with 2 nodes or with 2 features but not in a mix inequality"
@@ -541,43 +509,71 @@ pat_edge_or_const:
         | id1_loc=ineq_value_with_loc GT id2=ineq_value
             { let (id1,loc)=id1_loc in
               match (id1, id2) with
-              (* "X.feat > Y.feat" *)
+              (*   X.feat > Y.feat   *)
               | (Ineq_sofi (n1, Some f1), Ineq_sofi (n2, Some f2)) -> Pat_const (Ast.Feature_ineq (Ast.Gt, (n1,f1), (n2,f2)), loc)
-              (* "X.feat > 12.34" *)
+              (*   X.feat > 12.34   *)
               | (Ineq_sofi (n1, Some f1), Ineq_float num) -> Pat_const (Ast.Feature_ineq_cst (Ast.Gt, (n1,f1), num), loc)
-              (* "12.34 > Y.feat" *)
+              (*   12.34 > Y.feat   *)
               | (Ineq_float num, Ineq_sofi (n1, Some f1)) -> Pat_const (Ast.Feature_ineq_cst (Ast.Lt, (n1,f1), num), loc)
-              (* "X > Y" *)
+              (*   X > Y   *)
               | (Ineq_sofi (n1, None), Ineq_sofi (n2, None)) -> Pat_const (Ast.Prec (n2,n1), loc)
               | (Ineq_float _, Ineq_float _) -> Error.build "the '>' symbol can be used with 2 constants"
               | _ -> Error.build "the '>' symbol can be used with 2 nodes or with 2 features but not in a mix inequality"
             }
 
-        (* "X.position <= Y.position" *)
+        /*   X.position <= Y.position   */
         | feat_id1_loc=feature_ident_with_loc LE feat_id2=feature_ident
             { let (feat_id1,loc)=feat_id1_loc in Pat_const (Ast.Feature_ineq (Ast.Le, feat_id1, feat_id2), loc) }
 
-        (* "X.position >= Y.position" *)
+        /*   X.position >= Y.position   */
         | feat_id1_loc=feature_ident_with_loc GE feat_id2=feature_ident
             { let (feat_id1,loc)=feat_id1_loc in Pat_const (Ast.Feature_ineq (Ast.Ge, feat_id1, feat_id2), loc) }
 
-        (* "X.feat >= 12.34" *)
+        /*   X.feat >= 12.34   */
         | feat_id1_loc=feature_ident_with_loc GE num=FLOAT
         | num=FLOAT LE feat_id1_loc=feature_ident_with_loc
             { let (feat_id1,loc)=feat_id1_loc in Pat_const (Ast.Feature_ineq_cst (Ast.Ge, feat_id1, num), loc)  }
 
-        (* "X.feat <= 12.34" *)
+        /*   X.feat <= 12.34   */
         | feat_id1_loc=feature_ident_with_loc LE num=FLOAT
         | num=FLOAT GE feat_id1_loc=feature_ident_with_loc
             { let (feat_id1,loc)=feat_id1_loc in Pat_const (Ast.Feature_ineq_cst (Ast.Le, feat_id1, num), loc)  }
 
-        (* "A << B"           *)
+        /*   A << B   */
         | n1_loc=simple_id_with_loc LPREC n2=simple_id
             { let (n1,loc) = n1_loc in Pat_const (Ast.Lprec (n1,n2), loc) }
 
-        (* "A >> B"           *)
+        /*   A >> B   */
         | n1_loc=simple_id_with_loc LSUCC n2=simple_id
             { let (n1,loc) = n1_loc in Pat_const (Ast.Lprec (n2,n1), loc) }
+
+node_features:
+        /*   cat = n|v|adj   */
+        | name_loc=simple_id_with_loc EQUAL values=separated_nonempty_list(PIPE,feature_value)
+            { let (name,loc) = name_loc in
+              match values with
+              | ["*"] -> ({Ast.kind = Ast.Disequality []; name},loc)
+              | _ -> ({Ast.kind = Ast.Equality values; name }, loc) }
+
+        /*   cat = *   */
+        | name_loc=simple_id_with_loc EQUAL STAR
+            { let (name,loc) = name_loc in ({Ast.kind = Ast.Disequality []; name},loc) }
+
+        /*   cat   */
+        | name_loc=simple_id_with_loc
+            { let (name,loc) = name_loc in ({Ast.kind = Ast.Disequality []; name},loc) }
+
+        /*    cat<>n|v|adj   */
+        | name_loc=simple_id_with_loc DISEQUAL values=separated_nonempty_list(PIPE,feature_value)
+            { let (name,loc) = name_loc in ( {Ast.kind = Ast.Disequality values; name}, loc) }
+
+        /*    lemma=$lem   */
+        | name_loc=simple_id_with_loc EQUAL p=DOLLAR_ID
+            { let (name,loc) = name_loc in ( {Ast.kind = Ast.Equal_param p; name }, loc) }
+
+        /*   !lemma   */
+        | BANG name_loc=simple_id_with_loc
+            { let (name,loc) = name_loc in ({Ast.kind = Ast.Absent; name}, loc) }
 
 /*=============================================================================================*/
 /* COMMANDS DEFINITION                                                                         */
@@ -586,95 +582,95 @@ commands:
         | COMMANDS x=delimited(LACC,separated_nonempty_list_final_opt(SEMIC,command),RACC) { x }
 
 command:
-        (* del_edge e *)
+        /*   del_edge e   */
         | DEL_EDGE n_loc=simple_id_with_loc
             { let (n,loc) = n_loc in (Ast.Del_edge_name n, loc) }
 
-        (* del_edge m -[x]-> n *)
+        /*   del_edge m -[x]-> n   */
         | DEL_EDGE src_loc=simple_id_with_loc label=delimited(LTR_EDGE_LEFT,label_ident,LTR_EDGE_RIGHT) tar=simple_id
             { let (src,loc) = src_loc in (Ast.Del_edge_expl (src, tar, label), loc) }
 
-        (* add_edge m -[x]-> n *)
+        /*   add_edge m -[x]-> n   */
         | ADD_EDGE src_loc=simple_id_with_loc label=delimited(LTR_EDGE_LEFT,label_ident,LTR_EDGE_RIGHT) tar=simple_id
             { let (src,loc) = src_loc in (Ast.Add_edge (src, tar, label), loc) }
 
-        (* "shift_in m ==> n" *)
+        /*   "shift_in m ==> n"   */
         | SHIFT_IN src_loc=simple_id_with_loc ARROW tar=simple_id
             { let (src,loc) = src_loc in (Ast.Shift_in (src, tar, Ast.Neg_list []), loc) }
 
-        (* "shift_in m =[x*|y]=> n" *)
+        /*   "shift_in m =[x*|y]=> n"   */
         | SHIFT_IN src_loc=simple_id_with_loc
           labels=delimited(ARROW_LEFT,separated_nonempty_list(PIPE,pattern_label_ident),ARROW_RIGHT)
           tar=simple_id
             { let (src,loc) = src_loc in (Ast.Shift_in (src, tar, Ast.Pos_list labels), loc) }
 
-        (* "shift_in m =[^x*|y]=> n" *)
+        /*   "shift_in m =[^x*|y]=> n"   */
         | SHIFT_IN src_loc=simple_id_with_loc
           labels=delimited(ARROW_LEFT_NEG,separated_nonempty_list(PIPE,pattern_label_ident),ARROW_RIGHT)
           tar=simple_id
             { let (src,loc) = src_loc in (Ast.Shift_in (src, tar, Ast.Neg_list labels), loc) }
 
-        (* "shift_out m ==> n" *)
+        /*   "shift_out m ==> n"   */
         | SHIFT_OUT src_loc=simple_id_with_loc ARROW tar=simple_id
             { let (src,loc) = src_loc in (Ast.Shift_out (src, tar, Ast.Neg_list []), loc) }
 
-        (* "shift_out m =[x*|y]=> n" *)
+        /*   "shift_out m =[x*|y]=> n"   */
         | SHIFT_OUT src_loc=simple_id_with_loc
           labels=delimited(ARROW_LEFT,separated_nonempty_list(PIPE,pattern_label_ident),ARROW_RIGHT)
           tar=simple_id
             { let (src,loc) = src_loc in (Ast.Shift_out (src, tar, Ast.Pos_list labels), loc) }
 
-        (* "shift_out m =[^x*|y]=> n" *)
+        /*   "shift_out m =[^x*|y]=> n"   */
         | SHIFT_OUT src_loc=simple_id_with_loc
           labels=delimited(ARROW_LEFT_NEG,separated_nonempty_list(PIPE,pattern_label_ident),ARROW_RIGHT)
           tar=simple_id
             { let (src,loc) = src_loc in (Ast.Shift_out (src, tar, Ast.Neg_list labels), loc) }
 
-        (* "shift m ==> n" *)
+        /*   "shift m ==> n"   */
         | SHIFT src_loc=simple_id_with_loc ARROW tar=simple_id
             { let (src,loc) = src_loc in (Ast.Shift_edge (src, tar, Ast.Neg_list []), loc) }
 
-        (* "shift m =[x*|y]=> n" *)
+        /*   "shift m =[x*|y]=> n"   */
         | SHIFT src_loc=simple_id_with_loc
           labels=delimited(ARROW_LEFT,separated_nonempty_list(PIPE,pattern_label_ident),ARROW_RIGHT)
           tar=simple_id
             { let (src,loc) = src_loc in (Ast.Shift_edge (src, tar, Ast.Pos_list labels), loc) }
 
-        (* "shift m =[^x*|y]=> n" *)
+        /*   "shift m =[^x*|y]=> n"   */
         | SHIFT src_loc=simple_id_with_loc
           labels=delimited(ARROW_LEFT_NEG,separated_nonempty_list(PIPE,pattern_label_ident),ARROW_RIGHT)
           tar=simple_id
             { let (src,loc) = src_loc in (Ast.Shift_edge (src, tar, Ast.Neg_list labels), loc) }
 
-        (* merge m ==> n *)
+        /*   merge m ==> n   */
         | MERGE src_loc=simple_id_with_loc ARROW tar=simple_id
             { let (src,loc) = src_loc in (Ast.Merge_node (src, tar), loc) }
 
-        (* del_node n *)
+        /*   del_node n   */
         | DEL_NODE ci_loc=simple_id_with_loc
             { let (ci,loc) = ci_loc in (Ast.Del_node (ci), loc) }
 
-        (* add_node n: <-[x]- m *)
+        /*   add_node n: <-[x]- m   */
         | ADD_NODE new_ci_loc=simple_id_with_loc DDOT label=delimited(RTL_EDGE_LEFT,label_ident,RTL_EDGE_RIGHT) anc_ci=simple_id
             { let (new_ci,loc) = new_ci_loc in (Ast.New_neighbour (new_ci, anc_ci,label), loc) }
 
-        (* add_node n *)
+        /*   add_node n   */
         | ADD_NODE new_ci_loc=simple_id_with_loc
             { let (new_ci,loc) = new_ci_loc in (Ast.New_node new_ci, loc) }
 
-        (* add_node n :< m *)
+        /*   add_node n :< m   */
         | ADD_NODE new_ci_loc=simple_id_with_loc BEFORE old_ci=simple_id
             { let (new_ci,loc) = new_ci_loc in (Ast.New_before (new_ci,old_ci), loc) }
 
-        (* add_node n :> m *)
+        /*   add_node n :> m   */
         | ADD_NODE new_ci_loc=simple_id_with_loc AFTER old_ci=simple_id
             { let (new_ci,loc) = new_ci_loc in (Ast.New_after (new_ci,old_ci), loc) }
 
-        (* del_feat m.cat *)
+        /*   del_feat m.cat   */
         | DEL_FEAT com_fead_id_loc= feature_ident_with_loc
             { let (com_fead_id,loc) = com_fead_id_loc in (Ast.Del_feat com_fead_id, loc) }
 
-        (* m.cat = n.x + "_" + nn.y *)
+        /*   m.cat = n.x + "_" + nn.y   */
         | com_fead_id_loc= feature_ident_with_loc EQUAL items=separated_nonempty_list (PLUS, concat_item)
             { let (com_fead_id,loc) = com_fead_id_loc in (Ast.Update_feat (com_fead_id, items), loc) }
 
@@ -693,12 +689,7 @@ sequences:
         | SEQUENCES seq=delimited(LACC,list(sequence),RACC) { seq }
 
 sequence:
-        (* sequence { ant; p7_to_p7p-mc} *)
-/*        | doc=option(COMMENT) id_loc=simple_id_with_loc mod_names=delimited(LACC,separated_list_final_opt(SEMIC,simple_id),RACC)
-            {
-              { Ast.seq_name = fst id_loc;
-                seq_mod = mod_names;*/
-
+        /*   sequence { ant; p7_to_p7p-mc}   */
         | doc = option(COMMENT) id_loc=simple_id_with_loc mod_names=delimited(LACC,separated_list_final_opt(SEMIC,simple_id),RACC)
             { let (name,loc) = id_loc in
               {
