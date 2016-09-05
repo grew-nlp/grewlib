@@ -422,8 +422,6 @@ module G_graph = struct
     | n1 :: n2 :: tail ->
       let new_map = prec_loop map (n2 :: tail) in
 
-      printf "n1=%s n2=%s\n%!" (Gid.to_string n1) (Gid.to_string n2);
-
       let node1 = Gid_map.find n1 new_map
       and node2 = Gid_map.find n2 new_map in
       new_map
