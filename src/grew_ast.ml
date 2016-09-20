@@ -190,10 +190,11 @@ module Ast = struct
       | Feature_diff_cst ((name,_), _)
       | Feature_float ((name,_), _)
       | Feature_diff_float ((name,_), _)
-      | Feature_re ((name,_), _) ->
+      | Feature_re ((name,_), _)
+      | Cst_in (name,_)
+      | Cst_out (name, _) ->
         acc
         |> (add_implicit_node loc aux name)
-      | _ -> acc
     ) pat_nodes_2 pat_const in
 
     {pat_nodes=pat_nodes_3; pat_edges; pat_const}

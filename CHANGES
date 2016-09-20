@@ -1,3 +1,6 @@
+Version 0.38.1 (2016/09/20)
+  * Fix syntax error with pattern "match { X -> * }"
+
 Version 0.38.0 (2016/09/20)
   * add code for interaction with python
   * add function get_version
