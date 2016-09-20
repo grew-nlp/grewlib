@@ -1,3 +1,7 @@
+Version 0.38.0 (2016/09/20)
+  * add code for interaction with python
+  * add function get_version
+
 Version 0.37.0 (2016/09/02)
   * add support for constitency trees
   * add definition of strategies (not completly implemented…)
