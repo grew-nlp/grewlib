@@ -9,7 +9,7 @@ let get_version () =
 let () =
   dispatch begin function
   | After_rules ->
-    let version = get_version () in
+    let version = "\""^(get_version ())^"\"" in
     let pp_src = S[A"-pp"; A("cppo -D 'VERSION "^version^"'")] in
     flag ["ocaml"; "ocamldep"] & pp_src;
     flag ["ocaml"; "compile"] & pp_src; 

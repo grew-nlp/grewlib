@@ -13,6 +13,7 @@ open Log
 open Conll
 
 let libgrew_debug_mode () = Grew_base.Global.debug := true
+let get_version () = VERSION
 
 (* ==================================================================================================== *)
 (** {2 Location} *)
