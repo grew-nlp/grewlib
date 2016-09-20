@@ -103,6 +103,9 @@ module Rule : sig
   type matching
   type pattern
 
+
+  val to_python: pattern -> G_graph.t -> matching -> string
+
   val build_pattern: ?domain:Domain.t -> Ast.pattern -> pattern
 
   (** [node_matching pattern graph matching] return a assoc list (pid_name, gid.position) *)

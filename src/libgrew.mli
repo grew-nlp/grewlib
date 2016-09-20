@@ -53,6 +53,9 @@ module Pattern : sig
 
   (** [load_pattern domain filename] returns the pattern described in the file *)
   val load: ?domain:Domain.t -> string -> t
+
+  (** [load_pattern domain description] returns the pattern described in the [descriprion] string *)
+  val parse: ?domain:Domain.t -> string -> t
 end
 
 (* ==================================================================================================== *)
@@ -60,6 +63,8 @@ end
 (* ==================================================================================================== *)
 module Matching: sig
   type t
+
+  val to_python: Pattern.t -> Grew_graph.G_graph.t -> t -> string
 end
 
 (* ==================================================================================================== *)

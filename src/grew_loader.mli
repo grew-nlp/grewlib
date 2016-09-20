@@ -28,4 +28,6 @@ module Parser : sig
   val gr: string -> Ast.gr
 
   val phrase_structure_tree: string -> Ast.pst
+
+  val pattern: string -> Ast.pattern
 end

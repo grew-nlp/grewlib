@@ -41,6 +41,8 @@ module G_node: sig
   val set_position: float -> t -> t
   val set_next: G_edge.t Massoc_gid.t -> t -> t
 
+  val get_name: Gid.t -> t -> string
+
   val is_conll_root: t -> bool
 
   val remove: Gid.t -> G_edge.t -> t -> t
@@ -53,7 +55,7 @@ module G_node: sig
   val rm_out_edges: t -> t
 
   val add_edge: G_edge.t -> Gid.t -> t -> t option
-  val build: ?domain:Domain.t -> ?prec:Gid.t -> ?succ:Gid.t -> int -> Ast.node -> (Id.name * t)
+  val build: ?domain:Domain.t -> ?prec:Gid.t -> ?succ:Gid.t -> int -> Ast.node -> t
   val of_conll: ?loc:Loc.t -> ?prec:Gid.t -> ?succ:Gid.t -> ?domain:Domain.t -> Conll.line -> t
   val pst_leaf: ?loc:Loc.t -> ?domain:Domain.t -> string -> int -> t
   val pst_node: ?loc:Loc.t -> ?domain:Domain.t -> string -> int -> t

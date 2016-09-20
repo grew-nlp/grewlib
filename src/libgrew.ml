@@ -73,6 +73,9 @@ module Pattern = struct
 
   let load ?domain file =
   handle ~name:"Pattern.load" (fun () -> Grew_rule.Rule.build_pattern ?domain (Grew_loader.Loader.pattern file)) ()
+
+  let parse ?domain desc =
+  handle ~name:"Pattern.load" (fun () -> Grew_rule.Rule.build_pattern ?domain (Grew_loader.Parser.pattern desc)) ()
 end
 
 (* ==================================================================================================== *)
@@ -80,6 +83,8 @@ end
 (* ==================================================================================================== *)
 module Matching = struct
   type t = Grew_rule.Rule.matching
+
+  let to_python pattern graph t = Grew_rule.Rule.to_python pattern graph t
 end
 
 (* ==================================================================================================== *)

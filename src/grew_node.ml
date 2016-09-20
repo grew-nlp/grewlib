@@ -21,6 +21,7 @@ open Grew_fs
 (* ================================================================================ *)
 module G_node = struct
   type t = {
+      name: Id.name option;
       fs: G_fs.t;
       next: G_edge.t Massoc_gid.t;
       succ: Gid.t option;
@@ -47,7 +48,11 @@ module G_node = struct
   let remove_succ t = { t with succ = None }
   let remove_prec t = { t with prec = None }
 
-  let empty = { fs = G_fs.empty; next = Massoc_gid.empty; succ = None; prec = None; position = -1.; conll_root=false }
+  let get_name gid t = match t.name with
+    | Some n -> n
+    | None -> sprintf "_%s_" (Gid.to_string gid) 
+
+  let empty = { name=None; fs = G_fs.empty; next = Massoc_gid.empty; succ = None; prec = None; position = -1.; conll_root=false }
 
   let is_conll_root t = t.conll_root
 
@@ -67,7 +72,7 @@ module G_node = struct
 
   let build ?domain ?prec ?succ position (ast_node, loc) =
     let fs = G_fs.build ?domain ast_node.Ast.fs in
-    (ast_node.Ast.node_id, { empty with fs; position = float_of_int position; prec; succ })
+    { empty with name=Some ast_node.Ast.node_id; fs; position = float_of_int position; prec; succ }
 
   let of_conll ?loc ?prec ?succ ?domain line =
     if line = Conll.root

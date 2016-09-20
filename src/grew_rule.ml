@@ -438,6 +438,28 @@ module Rule = struct
       m_param: Lex_par.t option;
     }
 
+  let to_python pattern graph m =
+
+    let node_name gid =
+      let gnode = G_graph.find gid graph in
+      G_node.get_name gid gnode in
+    let buff = Buffer.create 32 in
+    bprintf buff "%s" "{ ";
+
+    Pid_map.iter
+      (fun pid gid ->
+        let pnode = P_graph.find pid (fst pattern).graph in
+        bprintf buff "\"%s\":\"%s\", " (P_node.get_name pnode) (node_name gid)
+      ) m.n_match;
+
+    List.iter
+      (fun (id, (src,lab,tar)) ->
+        bprintf buff "\"%s\":\"%s/%s:%s/%s\", " id (node_name src) id (Label.to_string lab) (node_name tar)
+      ) m.e_match;
+
+    bprintf buff "%s" "}";
+    Buffer.contents buff
+
   let node_matching pattern graph { n_match } =
     Pid_map.fold
       (fun pid gid acc ->

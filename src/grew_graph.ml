@@ -298,7 +298,7 @@ module G_graph = struct
         else
           let (new_tail, table) = loop (node_id :: already_bound) (index+1) (Some index) tail in
           let succ = if tail = [] then None else Some (index+1) in
-          let (_,new_node) = G_node.build ?domain ?prec ?succ index (ast_node, loc) in
+          let new_node = G_node.build ?domain ?prec ?succ index (ast_node, loc) in
             (
               Gid_map.add index new_node new_tail,
               (node_id,index)::table
