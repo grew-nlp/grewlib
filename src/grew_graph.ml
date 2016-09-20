@@ -228,6 +228,45 @@ module G_graph = struct
           ) graph.map Gid_map.empty
     }
 
+  exception Not_a_tree
+  type tree = T of (Gid.t * tree list)
+
+  let rec tree_to_string = function
+  | T (gid, daughters) ->
+    sprintf "%s [%s]"
+      (Gid.to_string gid)
+      ((String.concat) ";" (List.map tree_to_string daughters))
+
+  let graph_to_tree (g : t) : tree =
+    let rec build_sub_tree map forest gid =
+      if List.mem_assoc gid forest
+      then (map, forest)
+      else
+        let (new_map, daugthers, new_forest) = Massoc_gid.fold
+          (fun (acc_map, sub_trees, acc_forest) gid2 edge ->
+            if edge = G_edge.sub
+            then
+              (* ensure that gid2 is in forest *)
+              let (new_acc_map, new_acc_forest) = build_sub_tree acc_map acc_forest gid2 in
+              let sub = List.assoc gid2 new_acc_forest in
+              ( new_acc_map,
+                sub::sub_trees,
+                List.remove_assoc gid2 new_acc_forest
+              )
+            else (acc_map, sub_trees, acc_forest)
+        ) (map,[],forest) (G_node.get_next (Gid_map.find gid map)) in
+      (Gid_map.remove gid new_map, (gid, T (gid, List.rev daugthers))::new_forest) in
+
+    let rec loop (unused_map, forest) =
+      match (Gid_map.is_empty unused_map, forest) with
+      | (true, [(_,tree)]) -> tree
+      | (true, _) -> raise Not_a_tree
+      | _ ->
+        (* pick one unused node *)
+        let (gid,_) = Gid_map.choose unused_map in
+        loop (build_sub_tree unused_map forest gid) in
+    loop (g.map, [])
+
   let get_highest g = g.highest_index
 
   let find node_id graph = Gid_map.find node_id graph.map
