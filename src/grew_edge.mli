@@ -54,7 +54,7 @@ module P_edge: sig
   (* [all] is the joker pattern edge *)
   val all: t
 
-  val get_id: t -> string option
+  val get_id: t -> string
 
   val to_string: ?domain:Domain.t -> t -> string
 
@@ -62,7 +62,6 @@ module P_edge: sig
 
   type edge_matcher =
     | Fail
-    | Ok of Label.t
     | Binds of string * Label.t list
 
   val match_: ?domain:Domain.t -> t -> G_edge.t -> edge_matcher

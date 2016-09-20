@@ -251,7 +251,7 @@ module Rule = struct
     Pid_map.fold
       (fun _ node acc ->
         Massoc_pid.fold
-          (fun acc2 _ edge -> match P_edge.get_id edge with None -> acc2 | Some id -> id::acc2)
+          (fun acc2 _ edge -> (P_edge.get_id edge)::acc2)
           acc (P_node.get_next node)
       ) basic.graph []
 
@@ -434,7 +434,6 @@ module Rule = struct
   type matching = {
       n_match: Gid.t Pid_map.t;                     (* partial fct: pattern nodes |--> graph nodes *)
       e_match: (string*(Gid.t*Label.t*Gid.t)) list; (* edge matching: edge ident  |--> (src,label,tar) *)
-      a_match: (Gid.t*Label.t*Gid.t) list;          (* anonymous edge matched *)
       m_param: Lex_par.t option;
     }
 
@@ -468,7 +467,7 @@ module Rule = struct
         (P_node.get_name pnode, int_of_float (G_node.get_position gnode)) :: acc
       ) n_match []
 
-  let empty_matching param = { n_match = Pid_map.empty; e_match = []; a_match = []; m_param = param;}
+  let empty_matching param = { n_match = Pid_map.empty; e_match = []; m_param = param;}
 
   let e_comp (e1,_) (e2,_) = compare e1 e2
 
@@ -477,8 +476,6 @@ module Rule = struct
     | Some new_e_match -> { matching with e_match = new_e_match }
     | None -> Error.bug "The edge identifier '%s' is binded twice in the same pattern" (fst edge_id)
 
-  let a_match_add edge matching = {matching with a_match = edge::matching.a_match }
-
   let match_deco pattern matching =
     { G_deco.nodes =
         Pid_map.fold
@@ -486,7 +483,7 @@ module Rule = struct
             let pnode = P_graph.find pid (fst pattern).graph in
             (gid, (P_node.get_name pnode, P_fs.feat_list (P_node.get_fs pnode))) ::acc
           ) matching.n_match [];
-      G_deco.edges = List.fold_left (fun acc (_,edge) -> edge::acc) matching.a_match matching.e_match;
+      G_deco.edges = List.fold_left (fun acc (_,edge) -> edge::acc) [] matching.e_match;
     }
 
   let find cnode ?loc (matching, created_nodes) =
@@ -689,8 +686,6 @@ module Rule = struct
               match P_edge.match_list ?domain p_edge g_edges with
               | P_edge.Fail -> (* no good edge in graph for this pattern edge -> stop here *)
                   []
-              | P_edge.Ok label -> (* at least an edge in the graph fits the p_edge "constraint" -> go on *)
-                  [ {partial with unmatched_edges = tail_ue; sub = a_match_add (src_gid,label,tar_gid) partial.sub} ]
               | P_edge.Binds (id,labels) -> (* n edges in the graph match the identified p_edge -> make copies of the [k] matchings (and returns n*k matchings) *)
                   List.map
                     (fun label ->
@@ -706,8 +701,6 @@ module Rule = struct
                   match P_edge.match_ ?domain p_edge g_edge with
                   | P_edge.Fail -> (* g_edge does not fit, no new candidate *)
                       acc
-                  | P_edge.Ok label -> (* g_edge fits with the same matching *)
-                      (gid_next, a_match_add (src_gid, label, gid_next) partial.sub) :: acc
                   | P_edge.Binds (id,[label]) -> (* g_edge fits with an extended matching *)
                       (gid_next, e_match_add (id, (src_gid, label, gid_next)) partial.sub) :: acc
                   | _ -> Error.bug "P_edge.match_ must return exactly one label"

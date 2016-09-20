@@ -70,43 +70,41 @@ end (* module G_edge *)
 (* ================================================================================ *)
 module P_edge = struct
   type t = {
-    id: string option; (* an identifier for naming under_label in patterns *)
+    id: string; (* an identifier for naming under_label in patterns *)
     label_cst: Label_cst.t;
   }
 
-  let all = {id=None; label_cst=Label_cst.all }
+  let cpt = ref 0
+  let fresh_name () = incr cpt; sprintf "__e_%d__" !cpt
+
+  let all = {id=fresh_name (); label_cst=Label_cst.all }
 
   let get_id t = t.id
 
   let build ?domain (ast_edge, loc) =
-    { id = ast_edge.Ast.edge_id;
+    { id = (match ast_edge.Ast.edge_id with Some s -> s | None -> fresh_name ());
       label_cst = Label_cst.build ~loc ?domain ast_edge.Ast.edge_label_cst
     }
 
   let to_string ?domain t =
-    match t.id with
-    | None -> Label_cst.to_string ?domain t.label_cst
-    | Some i -> sprintf "%s:%s" i (Label_cst.to_string ?domain t.label_cst)
+    if String.length t.id > 1 && t.id.[0] = '_' && t.id.[1] = '_'
+    then Label_cst.to_string ?domain t.label_cst
+    else sprintf "%s:%s" t.id (Label_cst.to_string ?domain t.label_cst)
 
   type edge_matcher =
     | Fail
-    | Ok of Label.t
     | Binds of string * Label.t list
 
   let match_ ?domain p_edge g_edge =
     match p_edge with
-    | {id = None; label_cst } when Label_cst.match_ ?domain label_cst g_edge -> Ok g_edge
-    | {id = Some i; label_cst } when Label_cst.match_ ?domain label_cst g_edge -> Binds (i, [g_edge])
+    | {id; label_cst } when Label_cst.match_ ?domain label_cst g_edge -> Binds (id, [g_edge])
     | _ -> Fail
 
   let match_list ?domain p_edge g_edge_list =
     match p_edge with
-    | {id = None; label_cst} when List.exists (fun g_edge -> Label_cst.match_ ?domain label_cst g_edge) g_edge_list ->
-        Ok (List.hd g_edge_list)
-    | {id = None} -> Fail
-    | {id = Some i; label_cst } ->
+      | {id; label_cst } ->
       ( match List.filter (fun g_edge -> Label_cst.match_ ?domain label_cst g_edge) g_edge_list with
         | [] -> Fail
-        | list -> Binds (i, list)
+        | list -> Binds (id, list)
       )
 end (* module P_edge *)
