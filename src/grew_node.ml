@@ -28,6 +28,7 @@ module G_node = struct
       prec: Gid.t option;
       position: float;
       conll_root: bool;
+      efs: (string * string) list;
     }
 
   let get_fs t = t.fs
@@ -52,7 +53,7 @@ module G_node = struct
     | Some n -> n
     | None -> sprintf "_%s_" (Gid.to_string gid) 
 
-  let empty = { name=None; fs = G_fs.empty; next = Massoc_gid.empty; succ = None; prec = None; position = -1.; conll_root=false }
+  let empty = { name=None; fs = G_fs.empty; next = Massoc_gid.empty; succ = None; prec = None; position = -1.; conll_root=false; efs=[] }
 
   let is_conll_root t = t.conll_root
 
@@ -68,6 +69,10 @@ module G_node = struct
     | Some l -> Some {t with next = l}
     | None -> None
 
+  let string_efs n = match n.efs with
+    | [] -> "_"
+    | list -> String.concat "|" (List.map (fun (f,v) -> sprintf "%s=%s" f v) list)
+
   let get_annot_info t = G_fs.get_annot_info t.fs
 
   let build ?domain ?prec ?succ position (ast_node, loc) =
@@ -77,7 +82,7 @@ module G_node = struct
   let of_conll ?loc ?prec ?succ ?domain line =
     if line = Conll.root
     then { empty with conll_root=true; succ}
-    else { empty with fs = G_fs.of_conll ?loc ?domain line; position = float line.Conll.id; prec; succ }
+    else { empty with fs = G_fs.of_conll ?loc ?domain line; position = float line.Conll.id; prec; succ; efs=line.Conll.efs }
 
   let pst_leaf ?loc ?domain phon position =
     { empty with fs = G_fs.pst_leaf ?loc ?domain phon; position = float position }

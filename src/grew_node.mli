@@ -43,6 +43,7 @@ module G_node: sig
 
   val get_name: Gid.t -> t -> string
 
+  val string_efs: t -> string
   val is_conll_root: t -> bool
 
   val remove: Gid.t -> G_edge.t -> t -> t

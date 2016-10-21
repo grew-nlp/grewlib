@@ -945,7 +945,7 @@ module G_graph = struct
               ) gov_labs in
           let (govs,labs) = List.split sorted_gov_labs in
           let fs = G_node.get_fs node in
-          bprintf buff "%g\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t_\t_\n"
+          bprintf buff "%g\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t_\t%s\n"
             (get_num gid)
             (match G_fs.get_string_atom "phon" fs with Some p -> p | None -> "_")
             (match G_fs.get_string_atom "lemma" fs with Some p -> p | None -> "_")
@@ -954,6 +954,7 @@ module G_graph = struct
             (G_fs.to_conll ~exclude: ["phon"; "lemma"; "cat"; "pos"; "position"] fs)
             (match govs with [] -> "_" | _ -> String.concat "|" govs)
             (match labs with [] -> "_" | _ -> String.concat "|" labs)
+            (G_node.string_efs node)
       )
       snodes;
     Buffer.contents buff
