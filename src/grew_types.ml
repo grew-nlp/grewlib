@@ -298,7 +298,7 @@ module Label = struct
 
   let get_style ?domain i = match domain with
     | Some ((_,styles),_) -> styles.(i)
-    | _ -> { Label_domain.default with Label_domain.text = no_domain.(i) }
+    | None -> Label_domain.parse_option no_domain.(i) []
 
   let is_void ?domain t =
     let style = get_style ?domain t in
