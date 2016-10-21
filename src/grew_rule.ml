@@ -453,7 +453,7 @@ module Rule = struct
 
     List.iter
       (fun (id, (src,lab,tar)) ->
-        bprintf buff "\"%s\":\"%s/%s:%s/%s\", " id (node_name src) id (Label.to_string lab) (node_name tar)
+        bprintf buff "\"%s\":\"%s/%s/%s\", " id (node_name src) (Label.to_string lab) (node_name tar)
       ) m.e_match;
 
     bprintf buff "%s" "}";
