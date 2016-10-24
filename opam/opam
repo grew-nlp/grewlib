@@ -13,6 +13,7 @@ remove: [
 depends: [
   "ANSITerminal"
   "libcaml-log"
+  "libcaml-conll"
   "cppo"
   "cairo2"
   "menhir"
