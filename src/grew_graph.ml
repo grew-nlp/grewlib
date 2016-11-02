@@ -703,6 +703,9 @@ module G_graph = struct
 
   (* -------------------------------------------------------------------------------- *)
   let to_gr ?domain graph =
+
+    let gr_id id = G_node.get_name id (Gid_map.find id graph.map) in
+
     let buff = Buffer.create 32 in
 
     bprintf buff "graph {\n";
@@ -722,9 +725,10 @@ module G_graph = struct
       ) graph.map [] in
 
     let sorted_nodes = List.sort (fun (_,n1) (_,n2) -> G_node.position_comp n1 n2) nodes in
+
     List.iter
       (fun (id,node) ->
-        bprintf buff "  N_%s %s;\n" (Gid.to_string id) (G_node.to_gr node)
+        bprintf buff "  %s %s;\n" (gr_id id) (G_node.to_gr node)
       ) sorted_nodes;
 
     (* edges *)
@@ -732,7 +736,7 @@ module G_graph = struct
       (fun (id,node) ->
         Massoc_gid.iter
           (fun tar edge ->
-            bprintf buff "  N_%s -[%s]-> N_%s;\n" (Gid.to_string id) (G_edge.to_string ?domain edge) (Gid.to_string tar)
+            bprintf buff "  %s -[%s]-> %s;\n" (gr_id id) (G_edge.to_string ?domain edge) (gr_id tar)
           ) (G_node.get_next node)
       ) sorted_nodes;
 
