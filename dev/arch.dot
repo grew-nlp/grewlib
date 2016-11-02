@@ -1,17 +1,17 @@
 digraph grew {
   node [shape=Mrecord];
   rankdir = LR;
-  grew_base
-  grew_types [label="grew_types|Pid(_map\|_set)\nGid(_map)\nMassoc[_gid\|_pid]\nLabel\nDomain\nConll\nLex_par\nConcat_item"]
+  grew_base [label="grew_base|String_map\nString_set\nInt_map\nInt_set\nString_\nDot\nLoc\nFile\nArray_\nList_\nMassoc_make()\nError\nId\nTimeout\nGlobal"]
+  grew_types [label="grew_types|Pid(_map\|_set)\nGid(_map)\nMassoc[_gid\|_pid]\nLabel_domain\nFeature_domain\nDomain\nLabel\nFeature_value\nLex_par\nConcat_item\nStrategy"]
   grew_ast [label="grew_ast|Ast"]
-  grew_loader [label="grew_loader|Loader"]
-  grew_fs [label="grew_fs|G_fs\nP_fs"]
-  grew_edge [label="grew_edge|G_edge\nP_edge"]
+  grew_loader [label="grew_loader|Loader\nParser"]
+  grew_fs [label="grew_fs|G_feature\nP_feature\nG_fs\nP_fs"]
+  grew_edge [label="grew_edge|Label_cst\nG_edge\nP_edge"]
   grew_node [label="grew_node|G_node\nP_node"]
   grew_command [label="grew_command|Command"]
   grew_graph [label="grew_graph|P_deco\nP_graph\nG_deco\nG_graph"]
   grew_rule [label="grew_rule|Instance(_set)\nRule"]
-  grew_grs [label="grew_grs|Rewrite_history\nModul\nSequence\nGrs"]
+  grew_grs [label="grew_grs|Rewrite_history\nModul\nGrs"]
   grew_html [label="grew_html|Html_doc\nHtml_rh\nHtml_sentences\nHtml_annot\nGr_stat\nCorpus_stat"]
 
 grew_ast -> grew_types -> grew_base
