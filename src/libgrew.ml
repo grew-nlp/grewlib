@@ -268,6 +268,9 @@ module Rewrite = struct
   let rewrite ~gr ~grs ~seq =
     handle ~name:"Rewrite.rewrite" (fun () -> Grew_grs.Grs.rewrite grs seq gr) ()
 
+  let simple_rewrite ~gr ~grs ~strat =
+    handle ~name:"Rewrite.simple_rewrite" (fun () -> Grew_grs.Grs.simple_rewrite grs strat gr) ()
+
   let get_graphs rh =
     handle ~name:"Rewrite.get_graphs" (fun () -> Grew_grs.Rewrite_history.get_graphs rh) ()
 

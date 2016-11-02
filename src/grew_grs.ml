@@ -271,6 +271,111 @@ module Grs = struct
 
     loop (Instance.from_graph graph) (strategy.Strategy.def)
 
+  (* [new_style grs module_list] return an equivalent strategy expressed with Seq, Diamond and Star *)
+  let new_style grs module_list =
+    Strategy.Seq
+      (List.map
+        (fun module_name ->
+           let modul =
+           try List.find (fun m -> m.Modul.name=module_name) grs.modules
+           with Not_found -> Log.fcritical "No module named '%s'" module_name in
+           if modul.Modul.confluent
+           then Strategy.Diamond (Strategy.Star (Strategy.Ref module_name))
+           else Strategy.Star (Strategy.Ref module_name)
+        ) module_list
+      )
+
+  (* [one_rewrite grs strat inst] tries to rewrite deterministically [inst] with [strat] defined in [grs] *)
+  let one_rewrite grs strat inst =
+    let rec loop inst = function
+    (* name can refer to another strategy def or to a module *)
+    | Strategy.Ref name ->
+      begin
+        try
+          let sub_strat = List.find (fun s -> s.Strategy.name = name) grs.strategies in
+          loop inst sub_strat.Strategy.def
+        with Not_found ->
+          let modul =
+            try List.find (fun m -> m.Modul.name=name) grs.modules
+            with Not_found -> Log.fcritical "No module or strategy named '%s'" name in
+          Rule.conf_one_step ?domain: grs.domain name inst modul.Modul.rules
+      end
+    (* Union of strategies *)
+    | Strategy.Plus [] -> None (* the list can be empty in a recursive call! *)
+    | Strategy.Plus (head::tail) ->
+      begin
+        match loop inst head with
+        | Some new_inst -> Some new_inst
+        | None -> loop inst (Strategy.Plus tail)
+      end
+    (* Sequence of strategies *)
+    | Strategy.Seq [] -> Log.fcritical "Empty sequence in strategy definition"
+    | Strategy.Seq [one] -> loop inst one
+    | Strategy.Seq (head::tail) ->
+      begin
+        match loop inst head with
+        | Some new_inst -> loop new_inst (Strategy.Seq tail)
+        | None -> None
+      end
+    (* Interation of a strategy *)
+    | Strategy.Star sub_strat ->
+      begin
+        match loop inst sub_strat with
+        | None -> Some inst
+        | Some new_inst -> loop new_inst (Strategy.Star sub_strat)
+      end
+    (* Diamond *)
+    | Strategy.Diamond sub_strat -> loop inst sub_strat
+    (* Old style seq definition *)
+    | Strategy.Sequence module_list -> loop inst (new_style grs module_list) in
+    loop inst strat
+
+
+  let simple_rewrite grs strat_desc graph =
+    let rec loop inst = function
+    (* name can refer to another strategy def or to a module *)
+    | Strategy.Ref name ->
+      begin
+        try
+          let sub_strat = List.find (fun s -> s.Strategy.name = name) grs.strategies in
+          loop inst sub_strat.Strategy.def
+        with Not_found ->
+          let modul =
+            try List.find (fun m -> m.Modul.name=name) grs.modules
+            with Not_found -> Log.fcritical "No module or strategy named '%s'" name in
+          Rule.one_step ?domain: grs.domain name inst modul.Modul.rules
+      end
+    (* Union of strategies *)
+    | Strategy.Plus strat_list -> List_.flat_map (loop inst) strat_list
+    (* Sequence of strategies *)
+    | Strategy.Seq [] -> Log.fcritical "Empty sequence in strategy definition"
+    | Strategy.Seq [one] -> loop inst one
+    | Strategy.Seq (head::tail) ->
+      let after_first_mod = loop inst head in
+      List_.flat_map (fun new_inst -> loop new_inst (Strategy.Seq tail)) after_first_mod
+    (* Interation of a strategy *)
+    | Strategy.Star sub_strat ->
+      begin
+        match loop inst sub_strat with
+        | [] -> [inst]
+        | l -> List_.flat_map (fun new_inst -> loop new_inst (Strategy.Star sub_strat)) l
+      end
+    (* Diamond *)
+    | Strategy.Diamond sub_strat ->
+      begin
+        match one_rewrite grs sub_strat inst with
+        | Some new_inst -> [new_inst]
+        | None -> []
+      end
+    (* Old style seq definition *)
+    | Strategy.Sequence module_list -> loop inst (new_style grs module_list) in
+    List.map
+      (fun inst -> inst.Instance.graph)
+      (loop (Instance.from_graph graph) (Parser.strategy strat_desc))
+
+
+
+
 
   (* ---------------------------------------------------------------------------------------------------- *)
   (* construction of the rew_display *)

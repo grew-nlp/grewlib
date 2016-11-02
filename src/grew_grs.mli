@@ -100,6 +100,9 @@ module Grs: sig
 
   val rewrite: t -> string -> G_graph.t -> Rewrite_history.t
 
+  val simple_rewrite: t -> string -> G_graph.t -> G_graph.t list
+
+
   (* only external structure is returned, each edge contains a "dummy" big_step *)
   val build_rew_display: t -> string -> G_graph.t -> Libgrew_types.rew_display
 

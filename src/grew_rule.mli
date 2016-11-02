@@ -97,6 +97,7 @@ module Rule : sig
       Instance_set.t * Instance_set.t
 
   val one_step: ?domain: Domain.t -> string -> Instance.t -> t list -> Instance.t list
+  val conf_one_step: ?domain: Domain.t -> string -> Instance.t -> t list -> Instance.t option
 
   (** the type matching encodes the graph morphism from a pattern to a graph *)
   (* NB: it was made public for the grep mode *)

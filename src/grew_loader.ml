@@ -154,4 +154,14 @@ module Parser = struct
       pattern
     with Sys_error msg -> Error.parse "[Grew_loader.Parser.pattern] %s" msg
 
+  (* ------------------------------------------------------------------------------------------*)
+  let strategy desc =
+    try
+      Global.init "Not a file";
+      let lexbuf = Lexing.from_string desc in
+      let strategy = parse_handle "Not a file" (Grew_parser.strategy Grew_lexer.global) lexbuf in
+      strategy
+    with Sys_error msg -> Error.parse "[Grew_loader.Parser.strategy] %s" msg
+
+
 end

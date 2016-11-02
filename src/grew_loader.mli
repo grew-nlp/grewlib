@@ -10,6 +10,7 @@
 
 
 open Grew_base
+open Grew_types
 open Grew_ast
 
 module Loader: sig
@@ -30,4 +31,6 @@ module Parser : sig
   val phrase_structure_tree: string -> Ast.pst
 
   val pattern: string -> Ast.pattern
+
+  val strategy: string -> Strategy.def
 end

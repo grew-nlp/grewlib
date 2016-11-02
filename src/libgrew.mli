@@ -162,7 +162,7 @@ module Rewrite: sig
 
   val rewrite: gr:Graph.t -> grs:Grs.t -> seq:string -> history
 
-  val get_graphs: history -> Graph.t list
+  val simple_rewrite: gr:Graph.t -> grs:Grs.t -> strat:string -> Graph.t list
 
   val is_empty: history -> bool
 

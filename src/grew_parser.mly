@@ -118,6 +118,7 @@ let localize t = (t,get_loc ())
 %start <Grew_ast.Ast.module_or_include list> included
 %start <Grew_ast.Ast.pattern> pattern
 %start <Grew_ast.Ast.domain> domain
+%start <Grew_types.Strategy.def> strategy
 
 /* parsing of the string representation of the constituent representation of Sequoia */
 /* EX: "( (SENT (NP (NC Amélioration) (PP (P de) (NP (DET la) (NC sécurité))))))"    */
@@ -689,7 +690,7 @@ sequences:
         | SEQUENCES seq=delimited(LACC,list(sequence),RACC) { seq }
 
 sequence:
-        /*   sequence { ant; p7_to_p7p-mc}   */
+        /*   seq_name { ant; p7_to_p7p-mc}   */
         | doc = option(COMMENT) id_loc=simple_id_with_loc mod_names=delimited(LACC,separated_list_final_opt(SEMIC,simple_id),RACC)
             { let (name,loc) = id_loc in
               {
@@ -700,7 +701,7 @@ sequence:
               }
             }
         /*   strat = <>(M1+M2)*   */
-        | doc = option(COMMENT) id_loc=simple_id_with_loc EQUAL def=op_seq
+        | doc = option(COMMENT) id_loc=simple_id_with_loc EQUAL def=strat_def
             { let (name,loc) = id_loc in
               {
                 Strategy.name;
@@ -710,14 +711,15 @@ sequence:
               }
             }
 
-op_seq:
-        | m=simple_id               { Strategy.Ref m }
-        | LPAREN s=op_seq RPAREN    { s }
-        | s=op_seq STAR             { Strategy.Star (s) }
-        | s1=op_seq PLUS s2=op_seq  { Strategy.Plus [s1; s2] }
-        | s1=op_seq SEMIC s2=op_seq { Strategy.Seq [s1; s2] }
-        | DISEQUAL s=op_seq         { Strategy.Diamond s }
+strat_def:
+        | m=simple_id                     { Strategy.Ref m }
+        | LPAREN s=strat_def RPAREN       { s }
+        | s=strat_def STAR                { Strategy.Star (s) }
+        | s1=strat_def PLUS s2=strat_def  { Strategy.Plus [s1; s2] }
+        | s1=strat_def SEMIC s2=strat_def { Strategy.Seq [s1; s2] }
+        | DISEQUAL s=strat_def            { Strategy.Diamond s }
 
+strategy: s = strat_def EOF { s }
 
 /*=============================================================================================*/
 /* ISOLATED PATTERN (grep mode)                                                                */

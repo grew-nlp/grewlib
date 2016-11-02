@@ -34,7 +34,7 @@ module Instance = struct
 
   let empty = {graph = G_graph.empty; rules=[]; history=[]; big_step=None; }
 
-  let from_graph graph = {empty with graph }
+  let from_graph graph = {empty with graph}
 
   let rev_steps t =
     { t with big_step = match t.big_step with
