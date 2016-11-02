@@ -10,8 +10,28 @@
 
 open Grew_base
 open Grew_types
-
 open Grew_ast
+open Grew_domain
+
+(* ================================================================================ *)
+(** The module [Label] defines the type of atomic label edges *)
+module Label : sig
+  type t
+
+  (** [match_list p_label_list g_label] returns [true] iff [g_label] match at least one of the p_label of [p_label_list] *)
+  val match_list: t list -> t -> bool
+
+  val to_string: ?domain:Domain.t -> t -> string
+
+  val is_void: ?domain: Domain.t -> t -> bool
+
+  val to_dep: ?domain: Domain.t -> ?deco:bool -> t -> string
+
+  val to_dot: ?domain: Domain.t -> ?deco:bool -> t -> string
+
+  val from_string: ?loc:Loc.t -> ?domain: Domain.t -> ?locals:Label_domain.decl array -> string -> t
+end (* module Label *)
+
 
 (* ================================================================================ *)
 (** The module [Label_cst] defines contraints on label edges *)

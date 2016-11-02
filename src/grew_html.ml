@@ -14,6 +14,7 @@ open Log
 open Grew_base
 open Grew_types
 open Grew_ast
+open Grew_domain
 open Grew_graph
 open Grew_rule
 open Grew_grs
@@ -385,9 +386,9 @@ module Html_doc = struct
     wnl "  <code class=\"code\">";
     List.iter
       (function
-        | Feature_domain.Closed (feat_name,values) -> wnl "<b>%s</b> : %s<br/>" feat_name (String.concat " | " values)
-        | Feature_domain.Open feat_name -> wnl "    <b>%s</b> : *<br/>" feat_name
-        | Feature_domain.Num feat_name -> wnl "    <b>%s</b> : #<br/>" feat_name
+        | Ast.Closed (feat_name,values) -> wnl "<b>%s</b> : %s<br/>" feat_name (String.concat " | " values)
+        | Ast.Open feat_name -> wnl "    <b>%s</b> : *<br/>" feat_name
+        | Ast.Num feat_name -> wnl "    <b>%s</b> : #<br/>" feat_name
       ) ast.Ast.feature_domain;
     wnl "  </code>";
 

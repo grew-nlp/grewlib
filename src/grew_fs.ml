@@ -15,8 +15,20 @@ open Conll
 open Grew_base
 open Grew_types
 open Grew_ast
+open Grew_domain
 
   let decode_feat_name s = Str.global_replace (Str.regexp "__\\([0-9a-z]+\\)$") "[\\1]" s
+
+(* ================================================================================ *)
+module Feature_value = struct
+  let build_disj ?loc ?domain name unsorted_values =
+    Domain.build_disj ?loc ?domain name unsorted_values
+
+  let build_value ?loc ?domain name value =
+    match build_disj ?loc ?domain name [value] with
+      | [x] -> x
+      | _ -> Error.bug ?loc "[Feature_value.build_value]"
+end (* module Feature_value *)
 
 (* ================================================================================ *)
 module G_feature = struct

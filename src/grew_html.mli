@@ -9,6 +9,7 @@
 (**********************************************************************************)
 
 open Grew_types
+open Grew_domain
 open Grew_rule
 open Grew_grs
 open Grew_graph

@@ -57,13 +57,13 @@ let handle ?(name="") ?(file="No file defined") fct () =
 (** {2 Domain} *)
 (* ==================================================================================================== *)
 module Domain = struct
-  type t = Grew_types.Domain.t
+  type t = Grew_domain.Domain.t
 
   let load filename =
     let ast = Grew_loader.Loader.domain filename in
     Grew_grs.Grs.domain_build ast
 
-  let feature_names domain =  handle ~name:"feature_names" (fun () -> Grew_types.Domain.feature_names domain) ()
+  let feature_names domain =  handle ~name:"feature_names" (fun () -> Grew_domain.Domain.feature_names domain) ()
 end
 
 (* ==================================================================================================== *)
@@ -270,9 +270,6 @@ module Rewrite = struct
 
   let simple_rewrite ~gr ~grs ~strat =
     handle ~name:"Rewrite.simple_rewrite" (fun () -> Grew_grs.Grs.simple_rewrite grs strat gr) ()
-
-  let get_graphs rh =
-    handle ~name:"Rewrite.get_graphs" (fun () -> Grew_grs.Rewrite_history.get_graphs rh) ()
 
   let is_empty rh =
     handle ~name:"Rewrite.is_empty" (fun () -> Grew_grs.Rewrite_history.is_empty rh) ()

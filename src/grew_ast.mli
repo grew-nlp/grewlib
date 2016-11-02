@@ -180,8 +180,15 @@ module Ast : sig
     | Modul of modul
     | Includ of (string * Loc.t)
 
+  type feature_spec =
+    | Closed of feature_name * feature_atom list (* cat:V,N *)
+    | Open of feature_name (* phon, lemma, ... *)
+    | Num of feature_name (* position *)
+
+  val build_closed: feature_name -> feature_atom list -> feature_spec
+
   type domain = {
-      feature_domain: Feature_domain.feature_spec list;
+      feature_domain: feature_spec list;
       label_domain: (string * string list) list;
     }
 

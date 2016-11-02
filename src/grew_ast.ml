@@ -364,10 +364,27 @@ module Ast = struct
     | Modul of modul
     | Includ of (string * Loc.t)
 
+  type feature_spec =
+    | Closed of feature_name * feature_atom list (* cat:V,N *)
+    | Open of feature_name (* phon, lemma, ... *)
+    | Num of feature_name (* position *)
+
+  let build_closed feature_name feature_values =
+    let sorted_list = List.sort Pervasives.compare feature_values in
+    let without_duplicate =
+      let rec loop = function
+        | [] -> []
+        | x::y::tail when x=y ->
+          Log.fwarning "In the declaration of the feature name \"%s\", the value \"%s\" appears more than once" feature_name x;
+          loop (y::tail)
+        | x::tail -> x:: (loop tail)
+      in loop sorted_list in
+    Closed (feature_name, without_duplicate)
+
   type domain = {
-      feature_domain: Feature_domain.feature_spec list;
-      label_domain: (string * string list) list;
-    }
+    feature_domain: feature_spec list;
+    label_domain: (string * string list) list;
+  }
 
   type domain_wi = Dom of domain | Dom_file of string
 

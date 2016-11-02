@@ -13,6 +13,15 @@ open Conll
 open Grew_base
 open Grew_types
 open Grew_ast
+open Grew_domain
+
+(* ================================================================================ *)
+module Feature_value: sig
+  val build_disj: ?loc:Loc.t -> ?domain: Domain.t -> feature_name -> feature_atom list -> value list
+
+  val build_value: ?loc:Loc.t -> ?domain: Domain.t -> feature_name -> feature_atom -> value
+end (* module Feature_domain *)
+
 
 (* ================================================================================ *)
 (* module [G_fs] defines the feature structures that are used in graphs *)

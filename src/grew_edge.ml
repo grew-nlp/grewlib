@@ -14,6 +14,55 @@ open Printf
 open Grew_base
 open Grew_types
 open Grew_ast
+open Grew_domain
+
+(* ================================================================================ *)
+module Label = struct
+  (** Internal representation of labels *)
+  type t = int
+
+  (* a array for no label not defined in a domain (no more than 100 labels!) *)
+  let no_domain = Array.make 100 ""
+  let no_domain_size = ref 0
+
+  let match_list p_label_list g_label = List.exists (fun p_label -> p_label = g_label) p_label_list
+
+  let to_string ?domain i =
+    match Domain.get_label_name ?domain i with
+    | Some s -> s
+    | None when i < !no_domain_size -> no_domain.(i)
+    | _ -> Log.bug "Inconsistency in [Label.to_string]"; exit 1
+
+  let get_style ?domain i =
+    match Domain.get_label_style ?domain i with
+    | Some s -> s
+    | None -> Label_domain.parse_option no_domain.(i) []
+
+  let is_void ?domain t = Label_domain.is_void (get_style ?domain t)
+
+  let to_dep ?domain ?(deco=false) t =
+    let style = get_style ?domain t in
+    Label_domain.to_dep ~deco style
+
+  let to_dot ?domain ?(deco=false) t =
+    let style = get_style ?domain t in
+    Label_domain.to_dot ~deco style
+
+  let from_string ?loc ?domain ?(locals=[||]) str =
+    match Domain.edge_id_from_string ?loc ?domain str with
+    | Some id -> id
+    | None ->
+      let rec loop = function
+        | 100 -> Log.bug "[Label.from_string] you cannot use more than 100 diff label without domain"; exit 1
+        | i when i >= !no_domain_size ->
+          no_domain.(i) <- str;
+          incr no_domain_size;
+          i
+        | i when no_domain.(i) = str -> i
+        | i -> loop (i+1) in
+      loop 0
+end (* module Label *)
+
 
 (* ================================================================================ *)
 (** The module [Label_cst] defines contraints on label edges *)
