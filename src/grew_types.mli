@@ -177,33 +177,3 @@ module Concat_item : sig
   | String of string
 end (* module Concat_item *)
 
-(* ================================================================================ *)
-module Strategy : sig
-
-  (* recursive definition of strategies *)
-  type def =
-    | Ref of string     (* reference to a module name or to another strategy *)
-    | Seq of def list   (* a sequence of strategies to apply one after the other *)
-    | Plus of def list  (* a set of strategies to apply in parallel *)
-    | Star of def       (* a strategy to apply iteratively *)
-    | Diamond of def    (* pick one normal form a the given strategy *)
-  (* /!\ The list must not be empty in the Seq or Plus constructor *)
-    | Sequence of string list (* compatibility mode with old code *)
-
-
-  (* string dump of a strat *)
-  val to_string : def -> string
-
-  (* build an equivalent strategies where embedded Seq in Seq (resp Plus in Plus) are flattened *)
-  val flatten : def -> def
-
-  (* a strategy is given by its descrition in the grs file and the 4 fields: *)
-  type t = {
-    name:string;     (* a unique name of the stratgy *)
-    def:def;         (* the definition itself *)
-    doc:string list; (* lines of docs (if any in the GRS file) *)
-    loc:Loc.t;       (* the location of the [name] of the strategy *)
-  }
-
-end (* module Strategy *)
-

@@ -187,33 +187,50 @@ module Ast : sig
 
   type domain_wi = Dom of domain | Dom_file of string
 
+  type strat_def = (* /!\ The list must not be empty in the Seq or Plus constructor *)
+    | Ref of string            (* reference to a module name or to another strategy *)
+    | Seq of strat_def list    (* a sequence of strategies to apply one after the other *)
+    | Plus of strat_def list   (* a set of strategies to apply in parallel *)
+    | Star of strat_def        (* a strategy to apply iteratively *)
+    | Diamond of strat_def     (* pick one normal form a the given strategy *)
+    | Sequence of string list  (* compatibility mode with old code *)
+
+  val strat_def_to_string: strat_def -> string
+
+  val strat_def_flatten: strat_def -> strat_def
+
+  (* a strategy is given by its descrition in the grs file and the 4 fields: *)
+  type strategy = {
+    strat_name:string;       (* a unique name of the stratgy *)
+    strat_def:strat_def;     (* the definition itself *)
+    strat_doc:string list;   (* lines of docs (if any in the GRS file) *)
+    strat_loc:Loc.t;         (* the location of the [name] of the strategy *)
+  }
+
   type grs_wi = {
       domain_wi: domain_wi option;
       modules_wi: module_or_include list;
-      strategies_wi: Strategy.t list;
+      strategies_wi: strategy list;
     }
 
   (* a GRS: graph rewriting system *)
   type grs = {
       domain: domain option;
       modules: modul list;
-      strategies: Strategy.t list;
+      strategies: strategy list;
     }
+  val empty_grs: grs
 
   type gr = {
     meta: string list;
     nodes: node list;
     edges: edge list;
   }
-
   val complete_graph: gr -> gr
-
-  val empty_grs: grs
 
   (* phrase structure tree *)
   type pst =
   | Leaf of (Loc.t * string) (* phon *)
   | T of (Loc.t * string * pst list)
-
   val word_list: pst -> string list
 end (* module Ast *)

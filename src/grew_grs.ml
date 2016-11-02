@@ -190,7 +190,7 @@ module Grs = struct
   type t = {
     domain: Domain.t option;
     modules: Modul.t list;       (* the ordered list of modules used from rewriting *)
-    strategies: Strategy.t list;
+    strategies: Ast.strategy list;
     filename: string;
     ast: Ast.grs;
   }
@@ -201,7 +201,7 @@ module Grs = struct
 
   let get_domain t = t.domain
 
-  let sequence_names t = List.map (fun s -> s.Strategy.name) t.strategies
+  let sequence_names t = List.map (fun s -> s.Ast.strat_name) t.strategies
 
   let empty = {domain=None; modules=[]; strategies=[]; ast=Ast.empty_grs; filename=""; }
 
@@ -217,9 +217,9 @@ module Grs = struct
     (* check for duplicate strategies *)
     let rec loop already_defined = function
       | [] -> ()
-      | s::_ when List.mem s.Strategy.name already_defined ->
-        Error.build ~loc:s.Strategy.loc "Sequence '%s' is defined twice" s.Strategy.name
-      | s::tail -> loop (s.Strategy.name :: already_defined) tail in
+      | s::_ when List.mem s.Ast.strat_name already_defined ->
+        Error.build ~loc:s.Ast.strat_loc "Sequence '%s' is defined twice" s.Ast.strat_name
+      | s::tail -> loop (s.Ast.strat_name :: already_defined) tail in
     loop [] t.strategies
 
   let domain_build ast_domain =
@@ -237,7 +237,7 @@ module Grs = struct
 
   (* ---------------------------------------------------------------------------------------------------- *)
   let rewrite grs strategy_name graph =
-    let strategy = List.find (fun s -> s.Strategy.name = strategy_name) grs.strategies in
+    let strategy = List.find (fun s -> s.Ast.strat_name = strategy_name) grs.strategies in
 
     let rec old_loop instance module_list =
       match module_list with
@@ -266,22 +266,22 @@ module Grs = struct
     let loop instance def =
       match def with
 
-      | Strategy.Sequence module_list -> old_loop instance module_list
+      | Ast.Sequence module_list -> old_loop instance module_list
       | _ -> failwith "Not yet implemented" in
 
-    loop (Instance.from_graph graph) (strategy.Strategy.def)
+    loop (Instance.from_graph graph) (strategy.Ast.strat_def)
 
   (* [new_style grs module_list] return an equivalent strategy expressed with Seq, Diamond and Star *)
   let new_style grs module_list =
-    Strategy.Seq
+    Ast.Seq
       (List.map
         (fun module_name ->
            let modul =
            try List.find (fun m -> m.Modul.name=module_name) grs.modules
            with Not_found -> Log.fcritical "No module named '%s'" module_name in
            if modul.Modul.confluent
-           then Strategy.Diamond (Strategy.Star (Strategy.Ref module_name))
-           else Strategy.Star (Strategy.Ref module_name)
+           then Ast.Diamond (Ast.Star (Ast.Ref module_name))
+           else Ast.Star (Ast.Ref module_name)
         ) module_list
       )
 
@@ -289,11 +289,11 @@ module Grs = struct
   let one_rewrite grs strat inst =
     let rec loop inst = function
     (* name can refer to another strategy def or to a module *)
-    | Strategy.Ref name ->
+    | Ast.Ref name ->
       begin
         try
-          let sub_strat = List.find (fun s -> s.Strategy.name = name) grs.strategies in
-          loop inst sub_strat.Strategy.def
+          let sub_strat = List.find (fun s -> s.Ast.strat_name = name) grs.strategies in
+          loop inst sub_strat.Ast.strat_def
         with Not_found ->
           let modul =
             try List.find (fun m -> m.Modul.name=name) grs.modules
@@ -301,44 +301,44 @@ module Grs = struct
           Rule.conf_one_step ?domain: grs.domain name inst modul.Modul.rules
       end
     (* Union of strategies *)
-    | Strategy.Plus [] -> None (* the list can be empty in a recursive call! *)
-    | Strategy.Plus (head::tail) ->
+    | Ast.Plus [] -> None (* the list can be empty in a recursive call! *)
+    | Ast.Plus (head::tail) ->
       begin
         match loop inst head with
         | Some new_inst -> Some new_inst
-        | None -> loop inst (Strategy.Plus tail)
+        | None -> loop inst (Ast.Plus tail)
       end
     (* Sequence of strategies *)
-    | Strategy.Seq [] -> Log.fcritical "Empty sequence in strategy definition"
-    | Strategy.Seq [one] -> loop inst one
-    | Strategy.Seq (head::tail) ->
+    | Ast.Seq [] -> Log.fcritical "Empty sequence in strategy definition"
+    | Ast.Seq [one] -> loop inst one
+    | Ast.Seq (head::tail) ->
       begin
         match loop inst head with
-        | Some new_inst -> loop new_inst (Strategy.Seq tail)
+        | Some new_inst -> loop new_inst (Ast.Seq tail)
         | None -> None
       end
     (* Interation of a strategy *)
-    | Strategy.Star sub_strat ->
+    | Ast.Star sub_strat ->
       begin
         match loop inst sub_strat with
         | None -> Some inst
-        | Some new_inst -> loop new_inst (Strategy.Star sub_strat)
+        | Some new_inst -> loop new_inst (Ast.Star sub_strat)
       end
     (* Diamond *)
-    | Strategy.Diamond sub_strat -> loop inst sub_strat
+    | Ast.Diamond sub_strat -> loop inst sub_strat
     (* Old style seq definition *)
-    | Strategy.Sequence module_list -> loop inst (new_style grs module_list) in
+    | Ast.Sequence module_list -> loop inst (new_style grs module_list) in
     loop inst strat
 
 
   let simple_rewrite grs strat_desc graph =
     let rec loop inst = function
     (* name can refer to another strategy def or to a module *)
-    | Strategy.Ref name ->
+    | Ast.Ref name ->
       begin
         try
-          let sub_strat = List.find (fun s -> s.Strategy.name = name) grs.strategies in
-          loop inst sub_strat.Strategy.def
+          let sub_strat = List.find (fun s -> s.Ast.strat_name = name) grs.strategies in
+          loop inst sub_strat.Ast.strat_def
         with Not_found ->
           let modul =
             try List.find (fun m -> m.Modul.name=name) grs.modules
@@ -346,32 +346,32 @@ module Grs = struct
           Rule.one_step ?domain: grs.domain name inst modul.Modul.rules
       end
     (* Union of strategies *)
-    | Strategy.Plus strat_list -> List_.flat_map (loop inst) strat_list
+    | Ast.Plus strat_list -> List_.flat_map (loop inst) strat_list
     (* Sequence of strategies *)
-    | Strategy.Seq [] -> Log.fcritical "Empty sequence in strategy definition"
-    | Strategy.Seq [one] -> loop inst one
-    | Strategy.Seq (head::tail) ->
+    | Ast.Seq [] -> Log.fcritical "Empty sequence in strategy definition"
+    | Ast.Seq [one] -> loop inst one
+    | Ast.Seq (head::tail) ->
       let after_first_mod = loop inst head in
-      List_.flat_map (fun new_inst -> loop new_inst (Strategy.Seq tail)) after_first_mod
+      List_.flat_map (fun new_inst -> loop new_inst (Ast.Seq tail)) after_first_mod
     (* Interation of a strategy *)
-    | Strategy.Star sub_strat ->
+    | Ast.Star sub_strat ->
       begin
         match loop inst sub_strat with
         | [] -> [inst]
-        | l -> List_.flat_map (fun new_inst -> loop new_inst (Strategy.Star sub_strat)) l
+        | l -> List_.flat_map (fun new_inst -> loop new_inst (Ast.Star sub_strat)) l
       end
     (* Diamond *)
-    | Strategy.Diamond sub_strat ->
+    | Ast.Diamond sub_strat ->
       begin
         match one_rewrite grs sub_strat inst with
         | Some new_inst -> [new_inst]
         | None -> []
       end
     (* Old style seq definition *)
-    | Strategy.Sequence module_list -> loop inst (new_style grs module_list) in
+    | Ast.Sequence module_list -> loop inst (new_style grs module_list) in
     List.map
       (fun inst -> inst.Instance.graph)
-      (loop (Instance.from_graph graph) (Parser.strategy strat_desc))
+      (loop (Instance.from_graph graph) (Parser.strat_def strat_desc))
 
 
 
@@ -404,7 +404,7 @@ module Grs = struct
 
   (* ---------------------------------------------------------------------------------------------------- *)
   let build_rew_display grs strategy_name graph =
-    let strategy = List.find (fun s -> s.Strategy.name = strategy_name) grs.strategies in
+    let strategy = List.find (fun s -> s.Ast.strat_name = strategy_name) grs.strategies in
 
     let instance = Instance.from_graph graph in
     let rec old_loop instance module_list =
@@ -451,19 +451,19 @@ module Grs = struct
     and loop instance strat_def =
       printf "%s===> loop  strat_def=%s\n%!"
         (String.make (2 * (max 0 !indent)) ' ')
-        (Strategy.to_string strat_def);
+        (Ast.strat_def_to_string strat_def);
       incr indent;
 
       match strat_def with
 
-      | Strategy.Sequence module_list -> old_loop instance module_list
+      | Ast.Sequence module_list -> old_loop instance module_list
 
       (* ========> reference to a module or to another strategy <========= *)
-      | Strategy.Ref name ->
+      | Ast.Ref name ->
         begin
           try
-            let strategy = List.find (fun s -> s.Strategy.name = name) grs.strategies in
-            loop instance strategy.Strategy.def
+            let strategy = List.find (fun s -> s.Ast.strat_name = name) grs.strategies in
+            loop instance strategy.Ast.strat_def
           with Not_found ->
             let modul =
               try List.find (fun m -> m.Modul.name=name) grs.modules
@@ -487,17 +487,17 @@ module Grs = struct
         end
 
       (* ========> Strat defined as a sequence of sub-strategies <========= *)
-      | Strategy.Seq [] -> Log.bug "[Grs.build_rew_display] Empty sequence!"; exit 2
-      | Strategy.Seq [one] -> let res = loop instance one in decr indent; res
-      | Strategy.Seq (head_strat :: tail_strat) ->
+      | Ast.Seq [] -> Log.bug "[Grs.build_rew_display] Empty sequence!"; exit 2
+      | Ast.Seq [one] -> let res = loop instance one in decr indent; res
+      | Ast.Seq (head_strat :: tail_strat) ->
         let one_step = loop instance head_strat in decr indent;
-        apply_leaf (Strategy.Seq tail_strat) one_step
+        apply_leaf (Ast.Seq tail_strat) one_step
 
-      | Strategy.Diamond strat -> diamond (loop instance strat)
+      | Ast.Diamond strat -> diamond (loop instance strat)
 
       (* ========> Strat defined as a sequence of sub-strategies <========= *)
-      | Strategy.Plus [] -> Log.bug "[Grs.build_rew_display] Empty union!"; exit 2
-      | Strategy.Plus strat_list ->
+      | Ast.Plus [] -> Log.bug "[Grs.build_rew_display] Empty union!"; exit 2
+      | Ast.Plus strat_list ->
         let rd_list = List.map (fun strat -> loop instance strat) strat_list in
         let (opt_lnf, opt_node_info) =
           List.fold_left (fun (acc_lnf, acc_node) rd ->
@@ -524,16 +524,16 @@ module Grs = struct
                 Libgrew_types.Node (graph,acc_name,(bs, Libgrew_types.Leaf graph) :: acc_bs_rd_list)
         end
 
-      | Strategy.Star strat ->
+      | Ast.Star strat ->
         begin
           match clean (loop instance strat) with
           | Libgrew_types.Empty -> Libgrew_types.Leaf instance.Instance.graph
           | Libgrew_types.Local_normal_form _ -> Log.bug "dont know if 'Local_normal_form' in star should happen or not ???"; exit 1
-          | rd -> apply_leaf (Strategy.Star strat) rd
+          | rd -> apply_leaf (Ast.Star strat) rd
         end
       in
 
-    loop instance (strategy.Strategy.def)
+    loop instance (strategy.Ast.strat_def)
 
   (* ---------------------------------------------------------------------------------------------------- *)
   let rule_iter fct grs =

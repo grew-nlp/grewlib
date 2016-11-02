@@ -32,5 +32,5 @@ module Parser : sig
 
   val pattern: string -> Ast.pattern
 
-  val strategy: string -> Strategy.def
+  val strat_def: string -> Ast.strat_def
 end

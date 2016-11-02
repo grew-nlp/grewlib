@@ -118,7 +118,7 @@ let localize t = (t,get_loc ())
 %start <Grew_ast.Ast.module_or_include list> included
 %start <Grew_ast.Ast.pattern> pattern
 %start <Grew_ast.Ast.domain> domain
-%start <Grew_types.Strategy.def> strategy
+%start <Grew_ast.Ast.strat_def> strat_def
 
 /* parsing of the string representation of the constituent representation of Sequoia */
 /* EX: "( (SENT (NP (NC Amélioration) (PP (P de) (NP (DET la) (NC sécurité))))))"    */
@@ -692,34 +692,34 @@ sequences:
 sequence:
         /*   seq_name { ant; p7_to_p7p-mc}   */
         | doc = option(COMMENT) id_loc=simple_id_with_loc mod_names=delimited(LACC,separated_list_final_opt(SEMIC,simple_id),RACC)
-            { let (name,loc) = id_loc in
+            { let (strat_name,strat_loc) = id_loc in
               {
-                Strategy.name;
-                def = Strategy.Sequence mod_names;
-                doc = begin match doc with Some d -> d | None -> [] end;
-                loc;
+                Ast.strat_name;
+                strat_def = Ast.Sequence mod_names;
+                strat_doc = begin match doc with Some d -> d | None -> [] end;
+                strat_loc;
               }
             }
         /*   strat = <>(M1+M2)*   */
-        | doc = option(COMMENT) id_loc=simple_id_with_loc EQUAL def=strat_def
-            { let (name,loc) = id_loc in
+        | doc = option(COMMENT) id_loc=simple_id_with_loc EQUAL strat_def=strat_def_rec
+            { let (strat_name,strat_loc) = id_loc in
               {
-                Strategy.name;
-                def;
-                doc = begin match doc with Some d -> d | None -> [] end;
-                loc;
+                Ast.strat_name;
+                strat_def;
+                strat_doc = begin match doc with Some d -> d | None -> [] end;
+                strat_loc;
               }
             }
 
-strat_def:
-        | m=simple_id                     { Strategy.Ref m }
-        | LPAREN s=strat_def RPAREN       { s }
-        | s=strat_def STAR                { Strategy.Star (s) }
-        | s1=strat_def PLUS s2=strat_def  { Strategy.Plus [s1; s2] }
-        | s1=strat_def SEMIC s2=strat_def { Strategy.Seq [s1; s2] }
-        | DISEQUAL s=strat_def            { Strategy.Diamond s }
+strat_def_rec:
+        | m=simple_id                     { Ast.Ref m }
+        | LPAREN s=strat_def_rec RPAREN       { s }
+        | s=strat_def_rec STAR                { Ast.Star (s) }
+        | s1=strat_def_rec PLUS s2=strat_def_rec  { Ast.Plus [s1; s2] }
+        | s1=strat_def_rec SEMIC s2=strat_def_rec { Ast.Seq [s1; s2] }
+        | DISEQUAL s=strat_def_rec            { Ast.Diamond s }
 
-strategy: s = strat_def EOF { s }
+strat_def: s = strat_def_rec EOF { s }
 
 /*=============================================================================================*/
 /* ISOLATED PATTERN (grep mode)                                                                */

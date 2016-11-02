@@ -314,6 +314,49 @@ module Ast = struct
     mod_dir: string; (* the directory where the module is defined (for lp file localisation) *)
   }
 
+  type strat_def = (* /!\ The list must not be empty in the Seq or Plus constructor *)
+    | Ref of string            (* reference to a module name or to another strategy *)
+    | Seq of strat_def list    (* a sequence of strategies to apply one after the other *)
+    | Plus of strat_def list   (* a set of strategies to apply in parallel *)
+    | Star of strat_def        (* a strategy to apply iteratively *)
+    | Diamond of strat_def     (* pick one normal form a the given strategy *)
+    | Sequence of string list  (* compatibility mode with old code *)
+
+  let rec strat_def_to_string = function
+  | Ref m -> m
+  | Seq l -> "[" ^ (String.concat "; " (List.map strat_def_to_string l)) ^ "]"
+  | Plus l -> "[" ^ (String.concat "+" (List.map strat_def_to_string l)) ^ "]"
+  | Star s -> "[" ^ (strat_def_to_string s) ^"]"  ^ "*"
+  | Diamond s -> "◇" ^ "[" ^(strat_def_to_string s)^"]"
+  | Sequence names -> "{" ^ (String.concat ";" names) ^ "}"
+
+  (* invariant: Seq list and Plus list are not empty in the input and so not empty in the output *)
+  let rec strat_def_flatten = function
+  | Sequence l -> Sequence l
+  | Ref m -> Ref m
+  | Star s -> Star (strat_def_flatten s)
+  | Diamond s -> Diamond (strat_def_flatten s)
+  | Seq l ->
+    let fl = List.map strat_def_flatten l in
+    let rec loop = function
+    | [] -> []
+    | (Seq l) :: tail -> l @ (loop tail)
+    | x :: tail -> x :: (loop tail)
+    in Seq (loop fl)
+  | Plus l ->
+    let fl = List.map strat_def_flatten l in
+    let rec loop = function
+    | [] -> []
+    | (Plus l) :: tail -> l @ (loop tail)
+    | x :: tail -> x :: (loop tail)
+    in Plus (loop fl)
+
+  type strategy = {
+    strat_name: string;
+    strat_def: strat_def;
+    strat_doc: string list;
+    strat_loc: Loc.t;
+  }
 
 
   (** a GRS: graph rewriting system *)
@@ -331,13 +374,13 @@ module Ast = struct
   type grs_wi = {
     domain_wi: domain_wi option;
     modules_wi: module_or_include list;
-    strategies_wi: Strategy.t list;
+    strategies_wi: strategy list;
   }
 
   type grs = {
     domain: domain option;
     modules: modul list;
-    strategies: Strategy.t list;
+    strategies: strategy list;
   }
 
   type gr = {

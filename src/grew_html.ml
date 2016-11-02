@@ -324,10 +324,10 @@ module Html_doc = struct
     wnl "  <center><h1>List of sequences</h1></center>";
     List.iter
       (fun ast_seq ->
-        wnl "<h6>%s</h6>" ast_seq.Strategy.name;
-        List.iter (fun l -> wnl "<p>%s</p>" (doc_to_html l)) ast_seq.Strategy.doc;
+        wnl "<h6>%s</h6>" ast_seq.Ast.strat_name;
+        List.iter (fun l -> wnl "<p>%s</p>" (doc_to_html l)) ast_seq.Ast.strat_doc;
         wnl "<div class=\"code\">";
-        wnl "%s" (Strategy.to_string ast_seq.Strategy.def);
+        wnl "%s" (Ast.strat_def_to_string ast_seq.Ast.strat_def);
         wnl "</div>";
 
       ) ast.Ast.strategies;
