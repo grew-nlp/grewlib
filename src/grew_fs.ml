@@ -25,7 +25,7 @@ module G_feature = struct
 
   let get_name = fst
 
-  let compare feat1 feat2 = Pervasives.compare (get_name feat1) (get_name feat2)
+  let compare feat1 feat2 = Pervasives.compare (String.lowercase_ascii (get_name feat1)) (String.lowercase_ascii (get_name feat2))
 
   (* another order used for printing purpose only *)
   let print_order = ["phon"; "cat"; "lemma"; "pos"]
