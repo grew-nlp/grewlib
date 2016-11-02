@@ -1,3 +1,12 @@
+Version 0.39.0 (2016/11/02)
+  * Add function Rewrite.simple_rewrite for applying strategies
+
+Version 0.38.3 (2016/10/21)
+  * add dependency to libcaml-conll
+
+Version 0.38.2 (2016/10/21)
+  * handling of extra features in column 10 of conlls
+
 Version 0.38.1 (2016/09/20)
   * Fix syntax error with pattern "match { X -> * }"
 
