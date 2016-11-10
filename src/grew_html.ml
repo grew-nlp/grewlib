@@ -19,7 +19,6 @@ open Grew_graph
 open Grew_rule
 open Grew_grs
 
-
 let html_header ?css_file ?title ?(add_lines=[]) buff =
   let wnl fmt = Printf.ksprintf (fun x -> Printf.bprintf buff "%s\n" x) fmt in
 

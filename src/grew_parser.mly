@@ -598,49 +598,49 @@ command:
         | ADD_EDGE src_loc=simple_id_with_loc label=delimited(LTR_EDGE_LEFT,label_ident,LTR_EDGE_RIGHT) tar=simple_id
             { let (src,loc) = src_loc in (Ast.Add_edge (src, tar, label), loc) }
 
-        /*   "shift_in m ==> n"   */
+        /*   shift_in m ==> n   */
         | SHIFT_IN src_loc=simple_id_with_loc ARROW tar=simple_id
             { let (src,loc) = src_loc in (Ast.Shift_in (src, tar, Ast.Neg_list []), loc) }
 
-        /*   "shift_in m =[x*|y]=> n"   */
+        /*   shift_in m =[x*|y]=> n   */
         | SHIFT_IN src_loc=simple_id_with_loc
           labels=delimited(ARROW_LEFT,separated_nonempty_list(PIPE,pattern_label_ident),ARROW_RIGHT)
           tar=simple_id
             { let (src,loc) = src_loc in (Ast.Shift_in (src, tar, Ast.Pos_list labels), loc) }
 
-        /*   "shift_in m =[^x*|y]=> n"   */
+        /*   shift_in m =[^x*|y]=> n   */
         | SHIFT_IN src_loc=simple_id_with_loc
           labels=delimited(ARROW_LEFT_NEG,separated_nonempty_list(PIPE,pattern_label_ident),ARROW_RIGHT)
           tar=simple_id
             { let (src,loc) = src_loc in (Ast.Shift_in (src, tar, Ast.Neg_list labels), loc) }
 
-        /*   "shift_out m ==> n"   */
+        /*   shift_out m ==> n   */
         | SHIFT_OUT src_loc=simple_id_with_loc ARROW tar=simple_id
             { let (src,loc) = src_loc in (Ast.Shift_out (src, tar, Ast.Neg_list []), loc) }
 
-        /*   "shift_out m =[x*|y]=> n"   */
+        /*   shift_out m =[x*|y]=> n   */
         | SHIFT_OUT src_loc=simple_id_with_loc
           labels=delimited(ARROW_LEFT,separated_nonempty_list(PIPE,pattern_label_ident),ARROW_RIGHT)
           tar=simple_id
             { let (src,loc) = src_loc in (Ast.Shift_out (src, tar, Ast.Pos_list labels), loc) }
 
-        /*   "shift_out m =[^x*|y]=> n"   */
+        /*   shift_out m =[^x*|y]=> n   */
         | SHIFT_OUT src_loc=simple_id_with_loc
           labels=delimited(ARROW_LEFT_NEG,separated_nonempty_list(PIPE,pattern_label_ident),ARROW_RIGHT)
           tar=simple_id
             { let (src,loc) = src_loc in (Ast.Shift_out (src, tar, Ast.Neg_list labels), loc) }
 
-        /*   "shift m ==> n"   */
+        /*   shift m ==> n   */
         | SHIFT src_loc=simple_id_with_loc ARROW tar=simple_id
             { let (src,loc) = src_loc in (Ast.Shift_edge (src, tar, Ast.Neg_list []), loc) }
 
-        /*   "shift m =[x*|y]=> n"   */
+        /*   shift m =[x*|y]=> n   */
         | SHIFT src_loc=simple_id_with_loc
           labels=delimited(ARROW_LEFT,separated_nonempty_list(PIPE,pattern_label_ident),ARROW_RIGHT)
           tar=simple_id
             { let (src,loc) = src_loc in (Ast.Shift_edge (src, tar, Ast.Pos_list labels), loc) }
 
-        /*   "shift m =[^x*|y]=> n"   */
+        /*   shift m =[^x*|y]=> n   */
         | SHIFT src_loc=simple_id_with_loc
           labels=delimited(ARROW_LEFT_NEG,separated_nonempty_list(PIPE,pattern_label_ident),ARROW_RIGHT)
           tar=simple_id
@@ -653,10 +653,6 @@ command:
         /*   del_node n   */
         | DEL_NODE ci_loc=simple_id_with_loc
             { let (ci,loc) = ci_loc in (Ast.Del_node (ci), loc) }
-
-        /*   add_node n: <-[x]- m   */
-        | ADD_NODE new_ci_loc=simple_id_with_loc DDOT label=delimited(RTL_EDGE_LEFT,label_ident,RTL_EDGE_RIGHT) anc_ci=simple_id
-            { let (new_ci,loc) = new_ci_loc in (Ast.New_neighbour (new_ci, anc_ci,label), loc) }
 
         /*   add_node n   */
         | ADD_NODE new_ci_loc=simple_id_with_loc
@@ -677,6 +673,12 @@ command:
         /*   m.cat = n.x + "_" + nn.y   */
         | com_fead_id_loc= feature_ident_with_loc EQUAL items=separated_nonempty_list (PLUS, concat_item)
             { let (com_fead_id,loc) = com_fead_id_loc in (Ast.Update_feat (com_fead_id, items), loc) }
+
+        /* OBSOLETE SYNTAX */
+        /*   add_node n: <-[x]- m   */
+        | ADD_NODE new_ci_loc=simple_id_with_loc DDOT label=delimited(RTL_EDGE_LEFT,label_ident,RTL_EDGE_RIGHT) anc_ci=simple_id
+            { let (new_ci,loc) = new_ci_loc in (Ast.New_neighbour (new_ci, anc_ci,label), loc) }
+
 
 concat_item:
         | gi=ID            { if Ast.is_simple_ident gi then Ast.String_item gi else Ast.Qfn_item (Ast.parse_feature_ident gi) }
