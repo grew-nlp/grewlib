@@ -347,32 +347,32 @@ module Grs = struct
           Rule.one_step ?domain: grs.domain name inst modul.Modul.rules
       end
     (* Union of strategies *)
-    | Ast.Plus strat_list -> List_.flat_map (loop inst) strat_list
+    | Ast.Plus strat_list ->
+      List.fold_left (fun acc strat -> Instance_set.union acc (loop inst strat)) Instance_set.empty strat_list
     (* Sequence of strategies *)
     | Ast.Seq [] -> Log.fcritical "Empty sequence in strategy definition"
     | Ast.Seq [one] -> loop inst one
     | Ast.Seq (head::tail) ->
       let after_first_mod = loop inst head in
-      List_.flat_map (fun new_inst -> loop new_inst (Ast.Seq tail)) after_first_mod
+      Instance_set.fold (fun new_inst acc -> Instance_set.union acc (loop new_inst (Ast.Seq tail))) after_first_mod Instance_set.empty
     (* Interation of a strategy *)
     | Ast.Star sub_strat ->
-      begin
-        match loop inst sub_strat with
-        | [] -> [inst]
-        | l -> List_.flat_map (fun new_inst -> loop new_inst (Ast.Star sub_strat)) l
-      end
+      let one_iter = loop inst sub_strat in
+      if Instance_set.is_empty one_iter
+      then Instance_set.singleton inst
+      else Instance_set.fold (fun new_inst acc -> Instance_set.union acc (loop new_inst (Ast.Star sub_strat))) one_iter Instance_set.empty
     (* Diamond *)
     | Ast.Diamond sub_strat ->
       begin
         match one_rewrite grs sub_strat inst with
-        | Some new_inst -> [new_inst]
-        | None -> []
+        | Some new_inst -> Instance_set.singleton new_inst
+        | None -> Instance_set.empty
       end
     (* Old style seq definition *)
     | Ast.Sequence module_list -> loop inst (new_style grs module_list) in
     List.map
       (fun inst -> inst.Instance.graph)
-      (loop (Instance.from_graph graph) (Parser.strat_def strat_desc))
+      (Instance_set.elements (loop (Instance.from_graph graph) (Parser.strat_def strat_desc)))
 
 
 
@@ -472,7 +472,7 @@ module Grs = struct
             begin
               printf "%s one_step (module=%s)...%!" (String.make (2 * (max 0 !indent)) ' ') modul.Modul.name;
               let domain = get_domain grs in
-              match Rule.one_step ?domain modul.Modul.name instance modul.Modul.rules with
+              match Instance_set.elements (Rule.one_step ?domain modul.Modul.name instance modul.Modul.rules) with
               | [] -> printf "0\n%!"; let res = Libgrew_types.Empty in decr indent; res
               | instance_list -> printf "%d\n%!" (List.length instance_list);
                 Libgrew_types.Node

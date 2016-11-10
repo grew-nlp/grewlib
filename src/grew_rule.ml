@@ -1041,7 +1041,7 @@ module Rule = struct
     if List.length instance.Instance.rules >= !max_depth_non_det
     then
       if !debug_loop
-      then []
+      then Instance_set.empty
       else Error.run "[Module %s] max depth %d reached, last rules applied: …, %s"
            modul_name !max_depth_non_det (List_.rev_to_string (fun x->x) ", " (List_.cut 5 instance.Instance.rules))
     else
@@ -1050,10 +1050,10 @@ module Rule = struct
           let matching_list = match_in_graph ?domain ?param:rule.param rule.pattern instance.Instance.graph in
           List.fold_left
             (fun acc1 matching ->
-              try (apply_rule ?domain modul_name instance matching rule) :: acc1
+              try Instance_set.add (apply_rule ?domain modul_name instance matching rule) acc1
               with Command_execution_fail -> acc1
             ) acc matching_list
-        ) [] rules
+        ) Instance_set.empty rules
 
   (*  ---------------------------------------------------------------------- *)
   (** [conf_one_step ?domain modul_name instance rules] computes one Some (one-step reduct) with rules, None if no rule apply *)
@@ -1113,7 +1113,7 @@ module Rule = struct
         let (new_to_do_set,new_nf_set) =
           Instance_set.fold
             (fun v (to_do_set_acc,nf_set_acc) ->
-              match one_step ?domain modul_name v rules with
+              match Instance_set.elements (one_step ?domain modul_name v rules) with
                 | [] -> (to_do_set_acc,Instance_set.add (Instance.rev_steps v) nf_set_acc)
                 | step_of_v -> (List.fold_left (fun acc v1 -> Instance_set.add v1 acc) to_do_set_acc step_of_v, nf_set_acc)
             )
