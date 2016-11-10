@@ -1,3 +1,7 @@
+Version 0.40.0 (2016/11/10)
+  * Change strategies syntax: “pick(S)”, “try(S)” and “S!”
+  * Simplification of exported exceptions: only two exception are raised by libgrew: Error and Bug
+
 Version 0.39.0 (2016/11/02)
   * Add function Rewrite.simple_rewrite for applying strategies
 
