@@ -12,29 +12,12 @@ open Conll
 
 val libgrew_debug_mode: unit -> unit
 val get_version: unit -> string
-(* ==================================================================================================== *)
-(** {2 Location} *)
-(* ==================================================================================================== *)
-module Loc : sig
-  type t = Grew_base.Loc.t
-  val to_line: t -> int
-  val to_string: t -> string
-end
 
 (* ==================================================================================================== *)
 (** {2 Exceptions} *)
 (* ==================================================================================================== *)
-exception File_not_found of string
-
-exception Parsing_err of string * Loc.t option
-
-(** raised when a Gr/Grs structure fails to build *)
-exception Build of string * Loc.t option
-
-(** raised during rewriting when a command is undefined *)
-exception Run of string * Loc.t option
-
-exception Bug of string * Loc.t option
+exception Error of string
+exception Bug of string
 
 (* ==================================================================================================== *)
 (** {2 Domain} *)

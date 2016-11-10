@@ -279,7 +279,7 @@ module Grs = struct
         (fun module_name ->
            let modul =
            try List.find (fun m -> m.Modul.name=module_name) grs.modules
-           with Not_found -> Log.fcritical "No module named '%s'" module_name in
+           with Not_found -> Error.build "No module named '%s'" module_name in
            if modul.Modul.confluent
            then Ast.Pick (Ast.Star (Ast.Ref module_name))
            else Ast.Star (Ast.Ref module_name)
@@ -298,7 +298,7 @@ module Grs = struct
         with Not_found ->
           let modul =
             try List.find (fun m -> m.Modul.name=name) grs.modules
-            with Not_found -> Log.fcritical "No module or strategy named '%s'" name in
+            with Not_found -> Error.build "No module or strategy named '%s'" name in
           Rule.conf_one_step ?domain: grs.domain name inst modul.Modul.rules
       end
     (* Union of strategies *)
@@ -352,7 +352,7 @@ module Grs = struct
         with Not_found ->
           let modul =
             try List.find (fun m -> m.Modul.name=name) grs.modules
-            with Not_found -> Log.fcritical "No module or strategy named '%s'" name in
+            with Not_found -> Error.build "No module or strategy named '%s'" name in
           Rule.one_step ?domain: grs.domain name inst modul.Modul.rules
       end
     (* Union of strategies *)

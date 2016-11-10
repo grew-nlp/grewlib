@@ -27,30 +27,27 @@ end
 (* ==================================================================================================== *)
 (** {2 Exceptions} *)
 (* ==================================================================================================== *)
-exception File_not_found of string
-exception Parsing_err of string * Loc.t option
-exception Build of string * Loc.t option
-exception Run of string * Loc.t option
-exception Bug of string * Loc.t option
+exception Error of string
+exception Bug of string
 
 let handle ?(name="") ?(file="No file defined") fct () =
   try fct () with
     (* Raise again already caught exceptions *)
-    | Parsing_err (msg,loc_opt) -> raise (Parsing_err (msg,loc_opt))
-    | Build (msg,loc_opt) -> raise (Build (msg,loc_opt))
-    | Bug (msg, loc_opt) -> raise (Bug (msg,loc_opt))
-    | Run (msg, loc_opt) -> raise (Run (msg,loc_opt))
-    | File_not_found file -> raise (File_not_found file)
+    | Error msg -> raise (Error msg)
+    | Bug msg -> raise (Bug msg)
 
     (* Catch new exceptions *)
-    | Grew_base.Error.Parse (msg, loc_opt) -> raise (Parsing_err (msg, loc_opt))
-    | Grew_base.Error.Build (msg, loc_opt) -> raise (Build (msg, loc_opt))
-    | Grew_base.Error.Bug (msg, loc_opt) -> raise (Bug (msg,loc_opt))
-    | Grew_base.Error.Run (msg, loc_opt) -> raise (Run (msg,loc_opt))
+    | Grew_base.Error.Parse (msg, Some loc) -> raise (Error (sprintf "%s %s" (Grew_base.Loc.to_string loc) msg)) 
+    | Grew_base.Error.Parse (msg, None) -> raise (Error (sprintf "%s" msg)) 
+    | Grew_base.Error.Build (msg, Some loc) -> raise (Error (sprintf "%s %s" (Grew_base.Loc.to_string loc) msg)) 
+    | Grew_base.Error.Build (msg, None) -> raise (Error (sprintf "%s" msg)) 
+    | Grew_base.Error.Run (msg, Some loc) -> raise (Error (sprintf "%s %s" (Grew_base.Loc.to_string loc) msg)) 
+    | Grew_base.Error.Run (msg, None) -> raise (Error (sprintf "%s" msg)) 
+    | Conll.Error msg -> raise (Error (sprintf "Conll error: %s" msg))
 
-    | Conll.Error msg -> raise (Parsing_err (msg,None))
-
-    | exc -> raise (Bug (sprintf "[Libgrew.%s] UNCAUGHT EXCEPTION: %s" name (Printexc.to_string exc), None))
+    | Grew_base.Error.Bug (msg, Some loc) -> raise (Bug (sprintf "%s %s" (Grew_base.Loc.to_string loc) msg)) 
+    | Grew_base.Error.Bug (msg, None) -> raise (Bug (sprintf "%s" msg))
+    | exc -> raise (Bug (sprintf "[Libgrew.%s] UNCAUGHT EXCEPTION: %s" name (Printexc.to_string exc)))
 
 
 (* ==================================================================================================== *)
@@ -106,7 +103,7 @@ type t = Grew_graph.G_graph.t
 
   let load_gr ?domain file =
     if not (Sys.file_exists file)
-    then raise (File_not_found file)
+    then raise (Error ("File_not_found: " ^ file))
     else
       handle ~name:"Graph.load_gr" ~file
         (fun () ->
@@ -129,7 +126,7 @@ type t = Grew_graph.G_graph.t
 
   let load_pst ?domain file =
     if not (Sys.file_exists file)
-    then raise (File_not_found file)
+    then raise (Error ("File_not_found: " ^ file))
     else
       handle ~name:"load_pst" ~file
         (fun () ->
@@ -220,7 +217,7 @@ module Grs = struct
     handle ~name:"Grs.load" ~file
       (fun () ->
         if not (Sys.file_exists file)
-        then raise (File_not_found file)
+        then raise (Error ("File_not_found: " ^ file))
         else Grew_grs.Grs.build file
       ) ()
 
