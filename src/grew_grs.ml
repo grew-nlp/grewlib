@@ -272,7 +272,7 @@ module Grs = struct
 
     loop (Instance.from_graph graph) (strategy.Ast.strat_def)
 
-  (* [new_style grs module_list] return an equivalent strategy expressed with Seq, Diamond and Star *)
+  (* [new_style grs module_list] return an equivalent strategy expressed with Seq, Pick and Star *)
   let new_style grs module_list =
     Ast.Seq
       (List.map
@@ -281,7 +281,7 @@ module Grs = struct
            try List.find (fun m -> m.Modul.name=module_name) grs.modules
            with Not_found -> Log.fcritical "No module named '%s'" module_name in
            if modul.Modul.confluent
-           then Ast.Diamond (Ast.Star (Ast.Ref module_name))
+           then Ast.Pick (Ast.Star (Ast.Ref module_name))
            else Ast.Star (Ast.Ref module_name)
         ) module_list
       )
@@ -325,8 +325,17 @@ module Grs = struct
         | None -> Some inst
         | Some new_inst -> loop new_inst (Ast.Star sub_strat)
       end
-    (* Diamond *)
-    | Ast.Diamond sub_strat -> loop inst sub_strat
+    (* Pick *)
+    | Ast.Pick sub_strat -> loop inst sub_strat
+    (* Bang *)
+    | Ast.Bang sub_strat -> loop inst (Ast.Star sub_strat)
+    (* Try *)
+    | Ast.Try sub_strat ->
+      begin
+        match loop inst sub_strat with
+        | None -> Some inst
+        | Some new_inst -> Some new_inst
+      end
     (* Old style seq definition *)
     | Ast.Sequence module_list -> loop inst (new_style grs module_list) in
     loop inst strat
@@ -361,28 +370,38 @@ module Grs = struct
       if Instance_set.is_empty one_iter
       then Instance_set.singleton inst
       else Instance_set.fold (fun new_inst acc -> Instance_set.union acc (loop new_inst (Ast.Star sub_strat))) one_iter Instance_set.empty
-    (* Diamond *)
-    | Ast.Diamond sub_strat ->
+    (* Pick *)
+    | Ast.Pick sub_strat ->
       begin
         match one_rewrite grs sub_strat inst with
         | Some new_inst -> Instance_set.singleton new_inst
         | None -> Instance_set.empty
       end
+    (* Try *)
+    | Ast.Try sub_strat ->
+      begin
+        match one_rewrite grs sub_strat inst with
+        | Some new_inst -> Instance_set.singleton new_inst
+        | None -> Instance_set.singleton inst
+      end
+    (* Bang *)
+    | Ast.Bang sub_strat -> loop inst (Ast.Pick (Ast.Star sub_strat))
     (* Old style seq definition *)
     | Ast.Sequence module_list -> loop inst (new_style grs module_list) in
     List.map
       (fun inst -> inst.Instance.graph)
       (Instance_set.elements (loop (Instance.from_graph graph) (Parser.strat_def strat_desc)))
 
-
-
-
-
   (* ---------------------------------------------------------------------------------------------------- *)
   (* construction of the rew_display *)
-  let rec diamond = function
+  let rec pick = function
     | Libgrew_types.Node (_, _, []) -> Log.bug "Empty node"; exit 12
-    | Libgrew_types.Node (graph, name, (bs,rd)::_) -> Libgrew_types.Node (graph, "◇" ^ name, [(bs, diamond rd)])
+    | Libgrew_types.Node (graph, name, (bs,rd)::_) -> Libgrew_types.Node (graph, "pick(" ^ name^")", [(bs, pick rd)])
+    | x -> x
+
+  let rec try_ = function
+    | Libgrew_types.Node (_, _, []) -> Log.bug "Empty node"; exit 12
+    | Libgrew_types.Node (graph, name, (bs,rd)::_) -> Libgrew_types.Node (graph, "try(" ^ name^")", [(bs, pick rd)])
     | x -> x
 
   (* ---------------------------------------------------------------------------------------------------- *)
@@ -494,7 +513,9 @@ module Grs = struct
         let one_step = loop instance head_strat in decr indent;
         apply_leaf (Ast.Seq tail_strat) one_step
 
-      | Ast.Diamond strat -> diamond (loop instance strat)
+      | Ast.Pick strat -> pick (loop instance strat)
+      | Ast.Try strat -> try_ (loop instance strat)
+      | Ast.Bang strat -> loop instance (Ast.Pick (Ast.Star strat))
 
       (* ========> Strat defined as a sequence of sub-strategies <========= *)
       | Ast.Plus [] -> Log.bug "[Grs.build_rew_display] Empty union!"; exit 2

@@ -199,7 +199,9 @@ module Ast : sig
     | Seq of strat_def list    (* a sequence of strategies to apply one after the other *)
     | Plus of strat_def list   (* a set of strategies to apply in parallel *)
     | Star of strat_def        (* a strategy to apply iteratively *)
-    | Diamond of strat_def     (* pick one normal form a the given strategy *)
+    | Bang of strat_def        (* a strategy to apply iteratively and deterministically *)
+    | Pick of strat_def        (* pick one normal form a the given strategy; return 0 if nf *)
+    | Try of strat_def         (* pick one normal form a the given strategy; return input if nf *)
     | Sequence of string list  (* compatibility mode with old code *)
 
   val strat_def_to_string: strat_def -> string

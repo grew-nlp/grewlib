@@ -12,10 +12,11 @@
 \newtheorem{lemma}{Lemma}
 
 \newcommand{\ie}{{\it i.e.\ }}
+\newcommand{\pick}{\mathrm{pick}}
+\newcommand{\try}{\mathrm{try}}
 
 \title{Strategies for Grew}
 
-%\author{Bruno Guillaume}
 \date{}
 
 \begin{document}
@@ -24,34 +25,24 @@
 \section{Notations}
 \label{sec:not}
 
+Let $\cal{G}$ be the set of graphs.
 When the graph $G$ rewrites to $G'$ with some rule $R$, we write $G \Longrightarrow_R G'$.
-When a matching exists for pattern $P$ in the graph $G$, we write $P \hookrightarrow G$; if it is not the case, we write $P \not\hookrightarrow G$
-
-\begin{definition}
-A {\em module} is a set of rewriting rules.
-A {\em filter} is a set of patterns.
-\end{definition}
-
-Given a module $M$ and a graph $G$, we define the set of graphs $M(G) = \{ G' \mid G \Longrightarrow_R G', R \in M\}$.
-
-Given a filter $F$ and a set $E$ of graphs, we define $F(E) = \{ G \in E \mid \forall P \in F, P \not\hookrightarrow G \}$.
-% section not (end)
 
 \section{Strategies}
 \label{sec:strat}
 
-Given a set $\cal{M}$ of modules and a set $\cal{F}$ of filters, strategies are defined by the following grammar:
+Given a set $\cal{R}$ of rules, strategies are defined by the following grammar:
 \[
-	S = M \mid S;S \mid S+S \mid S^\diamond \mid S^? \mid S^* \mid F[S]
+	S = R \mid (S) \mid S;S \mid S+S \mid S^* \mid \pick(S) \mid \try(S)
 \]
 
-Applying a strategy $S$ on the graph $G$ is a non-deterministic process.
-Hence, we define a relation $G \longrightarrow_S G'$ with the following rules:
+Applying a strategy $S$ on the graph $G$ is a non-deterministic and non confluent process.
+Hence, we define a relation between a graph $G \in \cal{G}$ and a set of graphs $\cal{S} \subset \cal{G}$ written $G \longrightarrow_S \cal{S}$ with the following rules:
 
 \begin{prooftree}
 \AxiomC{}
-\LeftLabel{(Module)}
-\UnaryInfC{$G \longrightarrow_M M(G)$}
+\LeftLabel{(Rule)}
+\UnaryInfC{$G \longrightarrow_R \{ G' \mid G \Longrightarrow_R G'\}$}
 \end{prooftree}
 
 
@@ -86,61 +77,43 @@ Hence, we define a relation $G \longrightarrow_S G'$ with the following rules:
 \DisplayProof
 \end{center}
 
+\begin{center}
+\AxiomC{$G \longrightarrow_S \emptyset $}
+\LeftLabel{(Pick$_\emptyset$)}
+\UnaryInfC{$G \longrightarrow_{\pick(S)} \emptyset$}
+\DisplayProof
+%
+\qquad
+%
+\AxiomC{$G \longrightarrow_{S} \{G_1, \ldots, G_k\}$}
+\LeftLabel{(Pick)}
+\UnaryInfC{$G \longrightarrow_{\pick(S)} \{G_i\}$}
+\DisplayProof
+\end{center}
 
 \begin{center}
 \AxiomC{$G \longrightarrow_S \emptyset $}
 \LeftLabel{(One$_\emptyset$)}
-\UnaryInfC{$G \longrightarrow_{S^?} \{G\}$}
+\UnaryInfC{$G \longrightarrow_{\try(S)} \{G\}$}
 \DisplayProof
 %
 \qquad
 %
 \AxiomC{$G \longrightarrow_{S} \{G_1, \ldots, G_k\}$}
 \LeftLabel{(One)}
-\UnaryInfC{$G \longrightarrow_{S^?} \{G_i\}$}
+\UnaryInfC{$G \longrightarrow_{\try(S)} \{G_i\}$}
 \DisplayProof
 \end{center}
-
-
-\begin{center}
-\AxiomC{$G \longrightarrow_S \emptyset $}
-\LeftLabel{(Diamond$_\emptyset$)}
-\UnaryInfC{$G \longrightarrow_{S^\diamond} \emptyset$}
-\DisplayProof
-%
-\qquad
-%
-\AxiomC{$G \longrightarrow_{S} \{G_1, \ldots, G_k\}$}
-\LeftLabel{(Diamond)}
-\UnaryInfC{$G \longrightarrow_{S^\diamond} \{G_i\}$}
-\DisplayProof
-\end{center}
-
-
-\begin{center}
-\AxiomC{$G \longrightarrow_{S} E$}
-\LeftLabel{(Filter)}
-\UnaryInfC{$G \longrightarrow_{F[S]} F(E)$}
-\DisplayProof
-\end{center}
-
-A strategy is called \emph{filter-free} if it contains no filter, \ie if it is defined by the following grammar:
-\[
-	S = M \mid S;S \mid S+S \mid S^\diamond \mid S^? \mid S^*
-\]
-
-
 
 \begin{lemma}
-If $S$ is a filter-free strategy, then $(S^\diamond)^* \equiv (S^*)^\diamond$.
-In particular, for any module $M$, $(M^\diamond)^* \equiv (M^*)^\diamond$.
+If $S$ is a strategy, then $(\pick(S))^* \equiv \pick(S^*)$.
 \end{lemma}
 
 \begin{proof}
 	TODO
 \end{proof}
 
-We use the notation $S^! = (S^*)^\diamond$ as a shortcut.
+We use the notation $S^! = \pick(S^*)$ as a shortcut.
 \end{document}
 
 

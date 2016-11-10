@@ -178,6 +178,9 @@ and standard target = parse
 | "filter"      { FILTER }
 | "sequences"   { SEQUENCES }
 
+| "pick"        { PICK }
+| "try"         { TRY }
+
 | "graph"       { GRAPH }
 
 | digit+ ('.' digit*)? as number  { FLOAT (float_of_string number) }
