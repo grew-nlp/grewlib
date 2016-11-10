@@ -720,7 +720,7 @@ strat_def_rec:
         | m=simple_id                             { Ast.Ref m }
         | LPAREN s=strat_def_rec RPAREN           { s }
         | s=strat_def_rec STAR                    { Ast.Star (s) }
-        | s=strat_def_rec BANG                    { Ast.Star (s) }
+        | s=strat_def_rec BANG                    { Ast.Bang (s) }
         | s1=strat_def_rec PLUS s2=strat_def_rec  { Ast.Plus [s1; s2] }
         | s1=strat_def_rec SEMIC s2=strat_def_rec { Ast.Seq [s1; s2] }
         | PICK LPAREN s=strat_def_rec RPAREN      { Ast.Pick s }
