@@ -863,17 +863,6 @@ module Rule = struct
          created_nodes
         )
 
-    | Command.NEW_NEIGHBOUR (created_name,edge,base_pid) ->
-        let base_gid = Pid_map.find base_pid matching.n_match in
-        let (new_gid,new_graph) = G_graph.add_neighbour loc ?domain instance.Instance.graph base_gid edge in
-        (
-         {instance with
-          Instance.graph = new_graph;
-          history = List_.sort_insert (Command.H_NEW_NEIGHBOUR (created_name,edge,new_gid)) instance.Instance.history;
-        },
-         (created_name,new_gid) :: created_nodes
-        )
-
     | Command.NEW_AFTER (created_name,base_cn) ->
         let base_gid = node_find base_cn in
         let (new_gid,new_graph) = G_graph.add_after loc ?domain base_gid instance.Instance.graph in

@@ -39,7 +39,6 @@ module Command  = struct
     | ADD_EDGE of (command_node * command_node * G_edge.t)
     | DEL_FEAT of (command_node * string)
     | UPDATE_FEAT of (command_node * string * item list)
-    | NEW_NEIGHBOUR of (string * G_edge.t * Pid.t) (* TODO: remove *)
 
     | NEW_NODE of string
     | NEW_BEFORE of (string * command_node)
@@ -60,7 +59,6 @@ module Command  = struct
     | H_ADD_EDGE of (Gid.t * Gid.t * G_edge.t)
     | H_DEL_FEAT of (Gid.t * string)
     | H_UPDATE_FEAT of (Gid.t * string * string)
-    | H_NEW_NEIGHBOUR of (string * G_edge.t * Gid.t) (* TODO: remove *)
 
     | H_NEW_NODE of string
     | H_NEW_BEFORE of (string * Gid.t)
@@ -128,29 +126,6 @@ module Command  = struct
           check_node_id loc act_j kai;
           ((MERGE_NODE (pid_of_act_id loc act_i, pid_of_act_id loc act_j), loc), (List_.rm act_i kai, kei))
 
-      | (Ast.New_neighbour (new_id, ancestor, label), loc) ->
-          check_node_id loc ancestor kai;
-          if List.mem new_id kai
-          then Error.build ~loc "Node identifier \"%s\" is already used" new_id;
-
-          let edge = G_edge.make ~loc ?domain label in
-          begin
-            try
-            (
-              (NEW_NEIGHBOUR
-                 (new_id,
-                  edge,
-                  Pid.Pos (Id.build ~loc ancestor table)
-                 ), loc),
-              (new_id::kai, kei)
-            )
-            with Not_found ->
-              Log.fcritical "[GRS] tries to build a command New_neighbour (%s) on node %s which is not in the pattern %s"
-               (G_edge.to_string ?domain edge)
-               ancestor
-               (Loc.to_string loc)
-          end
-
       | (Ast.New_node new_id, loc) ->
           if List.mem new_id kai
           then Error.build ~loc "Node identifier \"%s\" is already used" new_id;
@@ -205,4 +180,7 @@ module Command  = struct
               | [Feat (_,fn)] -> ()
               | _ -> Error.build ~loc "[Update_feat] Only open features can be modified with the concat operator '+' but \"%s\" is not declared as an open feature" feat_name);
           ((UPDATE_FEAT (pid_of_act_id loc act_id, feat_name, items), loc), (kai, kei))
+
+      | (Ast.New_neighbour _, _) -> Error.bug "New_neighbour command must be replaced"
+
 end (* module Command *)

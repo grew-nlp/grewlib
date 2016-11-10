@@ -33,7 +33,6 @@ module Command : sig
     | ADD_EDGE of (command_node * command_node * G_edge.t)
     | DEL_FEAT of (command_node * string)
     | UPDATE_FEAT of (command_node * string * item list)
-    | NEW_NEIGHBOUR of (string * G_edge.t * Pid.t)
 
     | NEW_NODE of string
     | NEW_BEFORE of (string * command_node)
@@ -52,7 +51,6 @@ module Command : sig
     | H_ADD_EDGE of (Gid.t * Gid.t * G_edge.t)
     | H_DEL_FEAT of (Gid.t *string)
     | H_UPDATE_FEAT of (Gid.t * string * string)
-    | H_NEW_NEIGHBOUR of (string * G_edge.t * Gid.t)
 
     | H_NEW_NODE of string
     | H_NEW_BEFORE of (string * Gid.t)
