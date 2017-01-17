@@ -1,3 +1,6 @@
+Version 0.40.1 (2017/01/17)
+  * Fix a bug introduced in 01f7b589e2024d7a86fbf8c52dc48d73b6e318d2 for handling the feature names ordering
+
 Version 0.40.0 (2016/11/10)
   * Change strategies syntax: “pick(S)”, “try(S)” and “S!”
   * Simplification of exported exceptions: only two exception are raised by libgrew: Error and Bug
