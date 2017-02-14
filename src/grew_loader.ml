@@ -66,11 +66,18 @@ module Loader = struct
      @return a syntactic tree of the parsed file
   *)
   let grs main_file =
-    let grs_wi = parse_file_to_grs_wi main_file in
+    let real_dir =
+      match (Unix.lstat main_file).Unix.st_kind with
+      | Unix.S_LNK -> Filename.dirname (Unix.readlink main_file)
+      | _ -> Filename.dirname main_file in
+
+    let unlink file = Filename.concat real_dir (Filename.basename file) in
+
+    let grs_wi = parse_file_to_grs_wi (unlink main_file) in
     let domain = match grs_wi.Ast.domain_wi with
       | None -> None
       | Some (Ast.Dom d) -> Some d
-      | Some (Ast.Dom_file file) -> Some (domain file) in
+      | Some (Ast.Dom_file file) -> Some (domain (unlink file)) in
     let rec flatten_modules current_file = function
       | [] -> []
       | Ast.Modul m :: tail ->

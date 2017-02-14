@@ -1,5 +1,5 @@
 OCB_FLAGS = -use-ocamlfind -use-menhir -I src
-OCB = 		ocamlbuild $(OCB_FLAGS)
+OCB = ocamlbuild $(OCB_FLAGS)
 
 LIB_FILES = libgrew.cma libgrew.cmxa libgrew.a libgrew.cmi libgrew_types.cmi libgrew.cmx
 INSTALL_FILES = $(LIB_FILES:%=_build/src/%)
