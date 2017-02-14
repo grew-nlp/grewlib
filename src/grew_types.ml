@@ -166,7 +166,7 @@ module Lex_par = struct
     | t -> Some t
 
   let get_param_value index = function
-    | [] -> Error.bug "[Lex_par.get_command_value] empty parameter"
+    | [] -> Error.bug "[Lex_par.get_param_value] empty parameter"
     | (params,_)::_ -> List.nth params index
 
   let get_command_value index = function
@@ -181,7 +181,10 @@ module Lex_par = struct
                | _ -> Error.bug "[Lex_par.get_command_value] inconsistent param"
              ) "/" tail
           )
-    | l -> Error.run "Lexical parameter are not functionnal"
+    | (left,_)::_ ->
+      Error.run "Lexical parameter are not functional, input parameter%s: %s"
+        (if (List.length left) > 1 then "s" else "")
+        (String.concat ", " left)
 end (* module Lex_par *)
 
 (* ================================================================================ *)
