@@ -22,12 +22,16 @@ module Loc = struct
   type t = string * int
 
   let empty = ("Not a file", -1)
+  let file f = (f, -1)
   let file_line f l = (f,l)
   let file_opt_line fo l = match fo with
   | Some f -> file_line f l
   | None -> file_line "No_file" l
 
-  let file f = (f, -1)
+  let file_opt_line_opt fo lo = match (fo,lo) with
+  | (_,Some l) -> file_opt_line fo l
+  | (Some f, None) -> file f
+  | (None, None) -> empty
 
   let to_string (file,line) = sprintf "[file: %s, line: %d]" (Filename.basename file) line
   let to_line (_,line) = line

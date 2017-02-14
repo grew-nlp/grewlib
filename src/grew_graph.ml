@@ -401,7 +401,7 @@ module G_graph = struct
       let fusion =
         List.map
           (fun {Conll.first; last; fusion; mw_line_num} ->
-              let loc = Loc.file_opt_line conll.Conll.file mw_line_num in
+              let loc = Loc.file_opt_line_opt conll.Conll.file mw_line_num in
               (
                 Id.gbuild ~loc first gtable,
                 (

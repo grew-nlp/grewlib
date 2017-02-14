@@ -51,6 +51,7 @@ module Loc: sig
 
   val file_line: string -> int -> t
   val file_opt_line: string option -> int -> t
+  val file_opt_line_opt: string option -> int option -> t
   val file: string -> t
 
   val opt_set_line: int -> t option -> t option
