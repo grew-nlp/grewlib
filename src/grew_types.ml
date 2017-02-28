@@ -193,4 +193,3 @@ module Concat_item = struct
     | Feat of (Gid.t * feature_name)
     | String of string
 end (* module Concat_item *)
-

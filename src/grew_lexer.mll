@@ -244,4 +244,3 @@ and const = parse
   | '('               { LPAREN }
   | ')'               { RPAREN }
   | [^'(' ')' ' ']+ as id { ID id }
-

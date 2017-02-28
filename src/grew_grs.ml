@@ -81,7 +81,7 @@ module Rewrite_history = struct
     let cpt = ref 0 in
     let rec loop t =
       match (t.good_nf, t.bad_nf) with
-        | [],[] -> 
+        | [],[] ->
           File.write (Instance.to_conll_string ?domain t.instance) (sprintf "%s__%d.conll" base !cpt);
           incr cpt
         | l, _ -> List.iter loop l
@@ -458,7 +458,7 @@ module Grs = struct
                     | None -> Error.bug "Cannot have no big_steps and more than one reducts at the same time"
                     | Some bs -> (bs, old_loop inst tail)
                 ) inst_list
-            ) in 
+            ) in
 
     let indent = ref 10 in
 

@@ -67,4 +67,3 @@ module Domain : sig
   (** [check_feature_name ~loc domain feature_name] fails iff a domain is set and [feature_name] is not defined in the current domain. *)
   val check_feature_name: ?loc:Loc.t -> ?domain:t -> feature_name -> unit
 end
-

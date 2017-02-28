@@ -103,7 +103,7 @@ module File = struct
 
   let read file =
     let in_ch = open_in file in
-    try 
+    try
       (* if the input file contains an UTF-8 byte order mark (EF BB BF), skip 3 bytes, else get back to 0 *)
       (match input_byte in_ch with 0xEF -> seek_in in_ch 3 | _ -> seek_in in_ch 0);
 
@@ -146,7 +146,7 @@ module File = struct
     let buff = Buffer.create 32 in
     try
       while true do
-        let next = input_line ch in 
+        let next = input_line ch in
         Printf.bprintf buff "%s\n" next
       done; assert false
     with End_of_file ->

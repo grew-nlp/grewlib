@@ -51,7 +51,7 @@ module G_node = struct
 
   let get_name gid t = match t.name with
     | Some n -> n
-    | None -> sprintf "_%s_" (Gid.to_string gid) 
+    | None -> sprintf "_%s_" (Gid.to_string gid)
 
   let empty = { name=None; fs = G_fs.empty; next = Massoc_gid.empty; succ = None; prec = None; position = -1.; conll_root=false; efs=[] }
 

@@ -103,4 +103,3 @@ module Concat_item : sig
   | Feat of (Gid.t * feature_name)
   | String of string
 end (* module Concat_item *)
-

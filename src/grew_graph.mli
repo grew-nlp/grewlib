@@ -108,7 +108,7 @@ module G_graph: sig
 
   val of_conll: ?domain:Domain.t -> Conll.t -> t
 
-  (** input : "Le/DET/le petit/ADJ/petit chat/NC/chat dort/V/dormir ./PONCT/." 
+  (** input : "Le/DET/le petit/ADJ/petit chat/NC/chat dort/V/dormir ./PONCT/."
       It supposes that "SUC" is defined in current relations *)
   val of_brown: ?domain:Domain.t -> ?sentid: string -> string -> t
 

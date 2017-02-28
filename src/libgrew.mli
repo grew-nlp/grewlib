@@ -126,7 +126,7 @@ end
 (** {2 Rewrite history} *)
 (* ==================================================================================================== *)
 module Rewrite: sig
-  
+
   type display = Libgrew_types.rew_display
   type history
 

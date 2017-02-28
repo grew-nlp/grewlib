@@ -46,7 +46,7 @@ module G_feature = struct
     | (Some i, Some j) -> Pervasives.compare i j
     | (Some i, None) -> -1
     | (None, Some j) -> 1
-    | (None, None) -> Pervasives.compare name1 name2    
+    | (None, None) -> Pervasives.compare name1 name2
 
   let build ?domain = function
     | ({Ast.kind=Ast.Equality [atom]; name=name},loc) ->
@@ -147,7 +147,7 @@ module P_feature = struct
     | _ -> Error.bug "[P_feature.to_string] multiple parameters are not handled"
 
   let build ?domain ?pat_vars = function
-    | ({Ast.kind=Ast.Absent; name=name}, loc) -> 
+    | ({Ast.kind=Ast.Absent; name=name}, loc) ->
       Domain.check_feature_name ~loc ?domain name;
       (name, {cst=Absent;in_param=[];})
     | ({Ast.kind=Ast.Equality unsorted_values; name=name}, loc) ->
@@ -354,8 +354,8 @@ module G_fs = struct
       | [] -> "_"
       | _ -> String.concat "|"
         (List.map
-          (function 
-            | (fn, String "true") -> fn 
+          (function
+            | (fn, String "true") -> fn
             | (fn, fv) -> (decode_feat_name fn)^"="^(string_of_value fv))
           ud_ordering
         )

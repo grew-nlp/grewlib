@@ -364,7 +364,6 @@ module Ast = struct
     strat_loc: Loc.t;
   }
 
-
   (** a GRS: graph rewriting system *)
   type module_or_include =
     | Modul of modul

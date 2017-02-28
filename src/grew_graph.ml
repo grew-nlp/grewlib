@@ -426,7 +426,7 @@ module G_graph = struct
           | _ -> [] in
         Conll.build_line ~id:(i+1) ~form ~lemma ~xpos:pos ~feats ~deps:([(i, "SUC")]) ()
         | _ -> Error.build "[Graph.of_brown] Cannot parse Brown item >>>%s<<< (expected \"phon/POS/lemma\") in >>>%s<<<" item brown
-      ) units in 
+      ) units in
     of_conll ?domain { Conll.file=None; meta=[]; lines=conll_lines; multiwords=[] }
 
   (* -------------------------------------------------------------------------------- *)
@@ -896,7 +896,7 @@ module G_graph = struct
     let snodes = List.sort (fun (_,n1) (_,n2) -> G_node.position_comp n1 n2) nodes in
 
     (* renumbering of nodes to have a consecutive sequence of int 1 --> n, in case of node deletion or addition *)
-    let snodes = List.mapi 
+    let snodes = List.mapi
       (fun i (gid,node) -> (gid, G_node.set_position (float i) node)
       ) snodes in
 
