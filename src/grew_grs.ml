@@ -206,6 +206,24 @@ module Grs = struct
 
   let empty = {domain=None; modules=[]; strategies=[]; ast=Ast.empty_grs; filename=""; }
 
+  let check_strategy strat t =
+    let rec loop = function
+    | Ast.Ref name ->
+      (if not (List.exists (fun m -> name = m.Modul.name) t.modules)
+      then Error.build ~loc:strat.Ast.strat_loc "In sequence '%s' definition, module '%s' undefined" strat.Ast.strat_name name)
+    | Ast.Seq sd_list -> List.iter loop sd_list
+    | Ast.Plus sd_list -> List.iter loop sd_list
+    | Ast.Star sd -> loop sd
+    | Ast.Bang sd -> loop sd
+    | Ast.Pick sd -> loop sd
+    | Ast.Try sd -> loop sd
+    | Ast.Sequence name_list ->
+      List.iter (fun name ->
+        if not (List.exists (fun m -> name = m.Modul.name) t.modules)
+        then Error.build ~loc:strat.Ast.strat_loc "In sequence '%s' definition, module '%s' undefined" strat.Ast.strat_name name
+      ) name_list
+    in loop strat.Ast.strat_def
+
   let check t =
     (* check for duplicate modules *)
     let rec loop already_defined = function
@@ -221,7 +239,14 @@ module Grs = struct
       | s::_ when List.mem s.Ast.strat_name already_defined ->
         Error.build ~loc:s.Ast.strat_loc "Sequence '%s' is defined twice" s.Ast.strat_name
       | s::tail -> loop (s.Ast.strat_name :: already_defined) tail in
-    loop [] t.strategies
+    loop [] t.strategies;
+
+    (* check for undefined module or strategy *)
+    List.iter (fun strat ->
+      check_strategy strat t
+    ) t.strategies
+
+
 
   let domain_build ast_domain =
     Domain.build
