@@ -121,6 +121,10 @@ module Ast : sig
       pat_negs: basic list;
     }
 
+  (* [check for duplicate edge identifier in pos part and
+     remove edge identifier in neg part] *)
+  val normalize_pattern : pattern -> pattern
+
   val complete_pattern : pattern -> pattern
 
   type concat_item =

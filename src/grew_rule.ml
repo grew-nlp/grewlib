@@ -395,8 +395,9 @@ module Rule = struct
       | _ -> ()
     );
 
+    let pattern = Ast.normalize_pattern rule_ast.Ast.pattern in
     let (pos, pos_table) =
-      try build_pos_basic ?domain ~pat_vars rule_ast.Ast.pattern.Ast.pat_pos
+      try build_pos_basic ?domain ~pat_vars pattern.Ast.pat_pos
       with P_fs.Fail_unif ->
         Error.build ~loc:rule_ast.Ast.rule_loc
           "[Rule.build] in rule \"%s\": feature structures declared in the \"match\" clause are inconsistent"
@@ -409,7 +410,7 @@ module Rule = struct
           Log.fwarning "In rule \"%s\" [%s], the wihtout number %d cannot be satisfied, it is skipped"
             rule_ast.Ast.rule_id (Loc.to_string rule_ast.Ast.rule_loc) pos;
           (acc, pos+1)
-      ) ([],1) rule_ast.Ast.pattern.Ast.pat_negs in
+      ) ([],1) pattern.Ast.pat_negs in
     {
       name = rule_ast.Ast.rule_id;
       pattern = (pos, negs);
@@ -420,14 +421,15 @@ module Rule = struct
     }
 
   let build_pattern ?domain pattern_ast =
+    let n_pattern = Ast.normalize_pattern pattern_ast in
     let (pos, pos_table) =
-      try build_pos_basic ?domain pattern_ast.Ast.pat_pos
+      try build_pos_basic ?domain n_pattern.Ast.pat_pos
       with P_fs.Fail_unif -> Error.build "feature structures declared in the \"match\" clause are inconsistent " in
     let negs =
       List_.try_map
         P_fs.Fail_unif (* Skip the without parts that are incompatible with the match part *)
         (fun basic_ast -> build_neg_basic ?domain pos_table basic_ast)
-        pattern_ast.Ast.pat_negs in
+        n_pattern.Ast.pat_negs in
     (pos, negs)
 
   (* ====================================================================== *)
