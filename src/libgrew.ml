@@ -199,10 +199,15 @@ type t = Grew_graph.G_graph.t
       close_out out_ch
     ) ()
 
-  let search_pattern ?domain pattern graph = Grew_rule.Rule.match_in_graph ?domain pattern graph
+  let search_pattern ?domain pattern graph =
+    handle ~name:"Graph.search_pattern" (fun () ->
+      Grew_rule.Rule.match_in_graph ?domain pattern graph
+    ) ()
 
-  let node_matching pattern graph matching  = Grew_rule.Rule.node_matching pattern graph matching
-
+  let node_matching pattern graph matching =
+    handle ~name:"Graph.node_matching" (fun () ->
+      Grew_rule.Rule.node_matching pattern graph matching
+    ) ()
 end
 
 (* ==================================================================================================== *)
