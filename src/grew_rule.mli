@@ -104,6 +104,7 @@ module Rule : sig
   type matching
   type pattern
 
+  val pid_list: pattern -> Pid.t list
 
   val to_python: pattern -> G_graph.t -> matching -> string
 

@@ -74,6 +74,11 @@ module Pattern = struct
 
   let parse ?domain desc =
   handle ~name:"Pattern.load" (fun () -> Grew_rule.Rule.build_pattern ?domain (Grew_loader.Parser.pattern desc)) ()
+
+  let pid_list pattern =
+  handle ~name:"Pattern.pid_lits"
+    (fun () -> List.map (fun x -> Grew_types.Pid.to_string x) (Grew_rule.Rule.pid_list pattern)
+    ) ()
 end
 
 (* ==================================================================================================== *)

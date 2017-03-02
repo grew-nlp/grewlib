@@ -38,6 +38,8 @@ module P_graph = struct
 
   let find = Pid_map.find
 
+  let pid_list t = Pid_map.fold (fun pid _ acc -> pid::acc) t []
+
   (* -------------------------------------------------------------------------------- *)
   let map_add_edge map id_src label id_tar =
     let node_src =

@@ -49,6 +49,8 @@ module P_graph: sig
 
   val roots: t -> Pid.t list
 
+  val pid_list: t -> Pid.t list
+
   type extension = {
       ext_map: P_node.t Pid_map.t; (* node description for new nodes and for edge "Old -> New"  *)
       old_map: P_node.t Pid_map.t; (* a partial map for new constraints on old nodes "Old [...]" *)
