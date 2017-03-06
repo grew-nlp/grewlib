@@ -41,7 +41,7 @@ module Label_domain = struct
   let parse_option string_label options =
     let init_style = match Str.bounded_split (Str.regexp ":") string_label 2 with
       | ["S"; l] -> {default with text=l; color=Some "red"}
-      | ["D"; l] -> {default with text=l; color=Some "blue"; bottom=true}
+      | ["D"; l] | ["E"; l] -> {default with text=l; color=Some "blue"; bottom=true}
       | ["I"; l] -> {default with text=l; color=Some "grey"}
       | _ -> {default with text=string_label} in
       List.fold_left

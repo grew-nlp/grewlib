@@ -79,10 +79,15 @@ module G_node = struct
     let fs = G_fs.build ?domain ast_node.Ast.fs in
     { empty with name=Some ast_node.Ast.node_id; fs; position = float_of_int position; prec; succ }
 
+  let float_of_conll_id = function
+  | (i,None) -> float i
+  | (i, Some j) when j >0 && j < 10 -> (float i) +. (float j) /. 10.
+  | _ -> Error.bug "[float_of_conll_id]"
+
   let of_conll ?loc ?prec ?succ ?domain line =
     if line = Conll.root
     then { empty with conll_root=true; succ}
-    else { empty with fs = G_fs.of_conll ?loc ?domain line; position = float line.Conll.id; prec; succ; efs=line.Conll.efs }
+    else { empty with fs = G_fs.of_conll ?loc ?domain line; position = float_of_conll_id line.Conll.id; prec; succ; efs=line.Conll.efs }
 
   let pst_leaf ?loc ?domain phon position =
     { empty with fs = G_fs.pst_leaf ?loc ?domain phon; position = float position }

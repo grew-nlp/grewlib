@@ -345,7 +345,7 @@ module G_fs = struct
   let to_conll ?exclude t =
     let reduced_t = match exclude with
       | None -> t
-      | Some list -> List.filter (fun (fn,_) -> not (List.mem fn list || fn.[0]='_')) t in
+      | Some list -> List.filter (fun (fn,_) -> not (List.mem fn list)) t in
     let ud_ordering = (* In UD CoNLL-U format, features are sorted wrt lowercase form *)
       List.sort
         (fun feat1 feat2 -> Pervasives.compare (String.lowercase_ascii (G_feature.get_name feat1)) (String.lowercase_ascii (G_feature.get_name feat2)))

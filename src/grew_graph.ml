@@ -368,7 +368,7 @@ module G_graph = struct
 
     let sorted_lines = Conll.root :: (List.sort Conll.compare conll.Conll.lines) in
 
-    let gtable = (Array.of_list (List.map (fun line -> line.Conll.id) sorted_lines), string_of_int) in
+    let gtable = (Array.of_list (List.map (fun line -> line.Conll.id) sorted_lines), Conll.dot_of_id) in
 
     let rec loop index prec = function
       | [] -> Gid_map.empty
@@ -405,9 +405,9 @@ module G_graph = struct
           (fun {Conll.first; last; fusion; mw_line_num} ->
               let loc = Loc.file_opt_line_opt conll.Conll.file mw_line_num in
               (
-                Id.gbuild ~loc first gtable,
+                Id.gbuild ~loc (first,None) gtable,
                 (
-                  Id.gbuild ~loc last gtable,
+                  Id.gbuild ~loc (last, None) gtable,
                   fusion
                 )
               )
@@ -426,7 +426,7 @@ module G_graph = struct
         let feats = match (i,sentid) with
           | (0,Some id) -> [("sentid", id)]
           | _ -> [] in
-        Conll.build_line ~id:(i+1) ~form ~lemma ~xpos:pos ~feats ~deps:([(i, "SUC")]) ()
+        Conll.build_line ~id:(i+1,None) ~form ~lemma ~xpos:pos ~feats ~deps:([(i, "SUC")]) ()
         | _ -> Error.build "[Graph.of_brown] Cannot parse Brown item >>>%s<<< (expected \"phon/POS/lemma\") in >>>%s<<<" item brown
       ) units in
     of_conll ?domain { Conll.file=None; meta=[]; lines=conll_lines; multiwords=[] }
@@ -788,7 +788,9 @@ module G_graph = struct
 
         let style = match G_fs.get_string_atom "void" fs with
           | Some "y" -> "; forecolor=red; subcolor=red; "
-          | _ -> "" in
+          | _ -> match G_fs.get_string_atom "_UD_empty" fs with
+            | Some "Yes" -> "; forecolor=purple; subcolor=purple; "
+            | _ -> "" in
 
         bprintf buff "N_%s { %s%s }\n"
           (Gid.to_string id)

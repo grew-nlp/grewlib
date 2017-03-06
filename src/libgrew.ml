@@ -60,7 +60,17 @@ module Domain = struct
     let ast = Grew_loader.Loader.domain filename in
     Grew_grs.Grs.domain_build ast
 
-  let feature_names domain =  handle ~name:"feature_names" (fun () -> Grew_domain.Domain.feature_names domain) ()
+  let load filename =
+    handle ~name:"feature_names"
+      (fun () ->
+      let ast = Grew_loader.Loader.domain filename in
+      Grew_grs.Grs.domain_build ast
+      ) ()
+
+  let feature_names domain =
+    handle ~name:"feature_names"
+      (fun () -> Grew_domain.Domain.feature_names domain)
+      ()
 end
 
 (* ==================================================================================================== *)
