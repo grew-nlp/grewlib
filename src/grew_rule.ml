@@ -258,7 +258,7 @@ module Rule = struct
   (* a [pattern] is described by the positive basic and a list of negative basics. *)
   type pattern = basic * basic list
 
-  let pid_list (pos,_) = P_graph.pid_list pos.graph
+  let pid_name_list (pos,_) = P_graph.pid_name_list pos.graph
 
   type t = {
       name: string;

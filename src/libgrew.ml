@@ -43,7 +43,7 @@ let handle ?(name="") ?(file="No file defined") fct () =
     | Grew_base.Error.Build (msg, None) -> raise (Error (sprintf "%s" msg))
     | Grew_base.Error.Run (msg, Some loc) -> raise (Error (sprintf "%s %s" (Grew_base.Loc.to_string loc) msg))
     | Grew_base.Error.Run (msg, None) -> raise (Error (sprintf "%s" msg))
-    | Conll.Error msg -> raise (Error (sprintf "Conll error: %s" msg))
+    | Conll_types.Error msg -> raise (Error (sprintf "Conll error: %s" msg))
 
     | Grew_base.Error.Bug (msg, Some loc) -> raise (Bug (sprintf "%s %s" (Grew_base.Loc.to_string loc) msg))
     | Grew_base.Error.Bug (msg, None) -> raise (Bug (sprintf "%s" msg))
@@ -85,9 +85,9 @@ module Pattern = struct
   let parse ?domain desc =
   handle ~name:"Pattern.load" (fun () -> Grew_rule.Rule.build_pattern ?domain (Grew_loader.Parser.pattern desc)) ()
 
-  let pid_list pattern =
+  let pid_name_list pattern =
   handle ~name:"Pattern.pid_lits"
-    (fun () -> List.map (fun x -> Grew_types.Pid.to_string x) (Grew_rule.Rule.pid_list pattern)
+    (fun () -> List.map (fun x -> x) (Grew_rule.Rule.pid_name_list pattern)
     ) ()
 end
 

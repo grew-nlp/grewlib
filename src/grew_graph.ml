@@ -38,7 +38,7 @@ module P_graph = struct
 
   let find = Pid_map.find
 
-  let pid_list t = Pid_map.fold (fun pid _ acc -> pid::acc) t []
+  let pid_name_list t = Pid_map.fold (fun _ node acc -> (P_node.get_name node)::acc) t []
 
   (* -------------------------------------------------------------------------------- *)
   let map_add_edge map id_src label id_tar =
@@ -368,7 +368,7 @@ module G_graph = struct
 
     let sorted_lines = Conll.root :: (List.sort Conll.compare conll.Conll.lines) in
 
-    let gtable = (Array.of_list (List.map (fun line -> line.Conll.id) sorted_lines), Conll.dot_of_id) in
+    let gtable = (Array.of_list (List.map (fun line -> line.Conll.id) sorted_lines), Conll.Id.to_dot) in
 
     let rec loop index prec = function
       | [] -> Gid_map.empty

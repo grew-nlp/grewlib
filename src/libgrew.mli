@@ -40,7 +40,7 @@ module Pattern : sig
   (** [load_pattern domain description] returns the pattern described in the [descriprion] string *)
   val parse: ?domain:Domain.t -> string -> t
 
-  val pid_list: t -> string list
+  val pid_name_list: t -> string list
 
 end
 

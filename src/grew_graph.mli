@@ -49,7 +49,7 @@ module P_graph: sig
 
   val roots: t -> Pid.t list
 
-  val pid_list: t -> Pid.t list
+  val pid_name_list: t -> Id.name list
 
   type extension = {
       ext_map: P_node.t Pid_map.t; (* node description for new nodes and for edge "Old -> New"  *)
