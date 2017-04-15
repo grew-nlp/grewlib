@@ -686,6 +686,9 @@ module G_graph = struct
     let strings_to_concat =
       List.map
         (function
+          | Concat_item.Feat (node_gid, "position") ->
+            let node = Gid_map.find node_gid graph.map in
+            sprintf "%g" (G_node.get_position node)
           | Concat_item.Feat (node_gid, feat_name) ->
             let node = Gid_map.find node_gid graph.map in
             (match G_fs.get_string_atom feat_name (G_node.get_fs node) with
