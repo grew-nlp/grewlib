@@ -135,19 +135,19 @@ module Ast = struct
   type u_const =
     | Cst_out of Id.name * edge_label_cst
     | Cst_in of Id.name * edge_label_cst
-    | Feature_eq of feature_ident * feature_ident
-    | Feature_diseq of feature_ident * feature_ident
-    | Feature_ineq of ineq * feature_ident * feature_ident
+    | Features_eq of feature_ident * feature_ident
+    | Features_diseq of feature_ident * feature_ident
+    | Features_ineq of ineq * feature_ident * feature_ident
     | Feature_ineq_cst of ineq * feature_ident * float
-    | Feature_float of feature_ident * float
+    | Feature_eq_float of feature_ident * float
     | Feature_diff_float of feature_ident * float
 
-    | Feature_re of feature_ident * string
-    | Feature_cst of feature_ident * string
+    | Feature_eq_regexp of feature_ident * string
+    | Feature_eq_cst of feature_ident * string
     | Feature_diff_cst of feature_ident * string
 
-    | Prec of Id.name * Id.name
-    | Lprec of Id.name * Id.name
+    | Immediate_prec of Id.name * Id.name
+    | Large_prec of Id.name * Id.name
   type const = u_const * Loc.t
 
   type basic = {
@@ -206,20 +206,20 @@ module Ast = struct
 
     let pat_nodes_3 = List.fold_left
     (fun acc (u_const, loc) -> match u_const with
-      | Feature_eq ((name1,_), (name2,_))
-      | Feature_diseq ((name1,_), (name2,_))
-      | Feature_ineq (_, (name1,_), (name2,_))
-      | Prec (name1, name2)
-      | Lprec (name1, name2) ->
+      | Features_eq ((name1,_), (name2,_))
+      | Features_diseq ((name1,_), (name2,_))
+      | Features_ineq (_, (name1,_), (name2,_))
+      | Immediate_prec (name1, name2)
+      | Large_prec (name1, name2) ->
         acc
         |> (add_implicit_node loc aux name1)
         |> (add_implicit_node loc aux name2)
       | Feature_ineq_cst (_, (name,_), _)
-      | Feature_cst ((name,_), _)
+      | Feature_eq_cst ((name,_), _)
       | Feature_diff_cst ((name,_), _)
-      | Feature_float ((name,_), _)
+      | Feature_eq_float ((name,_), _)
       | Feature_diff_float ((name,_), _)
-      | Feature_re ((name,_), _)
+      | Feature_eq_regexp ((name,_), _)
       | Cst_in (name,_)
       | Cst_out (name, _) ->
         acc

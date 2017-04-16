@@ -86,29 +86,29 @@ module Rule = struct
   type const =
     | Cst_out of Pid.t * Label_cst.t
     | Cst_in of Pid.t * Label_cst.t
-    | Feature_eq of Pid.t * string * Pid.t * string
-    | Feature_diseq of Pid.t * string * Pid.t * string
+    | Features_eq of Pid.t * string * Pid.t * string
+    | Features_diseq of Pid.t * string * Pid.t * string
     (* *)
-    | Feature_cst of Pid.t * string * string
+    | Feature_eq_cst of Pid.t * string * string
     | Feature_diff_cst of Pid.t * string * string
     (* *)
-    | Feature_float of Pid.t * string * float
+    | Feature_eq_float of Pid.t * string * float
     | Feature_diff_float of Pid.t * string * float
     (* *)
-    | Feature_re of Pid.t * string * string
+    | Feature_eq_regexp of Pid.t * string * string
     (* *)
-    | Feature_ineq of Ast.ineq * Pid.t * string * Pid.t * string
+    | Features_ineq of Ast.ineq * Pid.t * string * Pid.t * string
     | Feature_ineq_cst of Ast.ineq * Pid.t * string * float
     (* *)
     | Filter of Pid.t * P_fs.t (* used when a without impose a fs on a node defined by the match basic *)
     (* *)
-    | Prec of Pid.t * Pid.t
-    | Lprec of Pid.t * Pid.t
+    | Immediate_prec of Pid.t * Pid.t
+    | Large_prec of Pid.t * Pid.t
 
   let const_to_json ?domain = function
   | Cst_out (pid, label_cst) -> `Assoc ["cst_out", Label_cst.to_json ?domain label_cst]
   | Cst_in (pid, label_cst) -> `Assoc ["cst_in", Label_cst.to_json ?domain label_cst]
-  | Feature_eq (pid1,fn1,pid2,fn2) ->
+  | Features_eq (pid1,fn1,pid2,fn2) ->
     `Assoc ["features_eq",
       `Assoc [
         ("id1", `String (Pid.to_string pid1));
@@ -117,7 +117,7 @@ module Rule = struct
         ("feature_name_2", `String fn2);
       ]
     ]
-  | Feature_diseq (pid1,fn1,pid2,fn2) ->
+  | Features_diseq (pid1,fn1,pid2,fn2) ->
     `Assoc ["features_diseq",
       `Assoc [
         ("id1", `String (Pid.to_string pid1));
@@ -126,7 +126,7 @@ module Rule = struct
         ("feature_name_2", `String fn2);
       ]
     ]
-  | Feature_cst (pid,fn,value) ->
+  | Feature_eq_cst (pid,fn,value) ->
     `Assoc ["feature_eq_cst",
       `Assoc [
         ("id", `String (Pid.to_string pid));
@@ -135,14 +135,14 @@ module Rule = struct
       ]
     ]
   | Feature_diff_cst (pid,fn,value) ->
-    `Assoc ["feature_diseq_cst",
+    `Assoc ["feature_diff_cst",
       `Assoc [
         ("id", `String (Pid.to_string pid));
         ("feature_name_", `String fn);
         ("value", `String value);
       ]
     ]
-  | Feature_float (pid,fn,value) ->
+  | Feature_eq_float (pid,fn,value) ->
     `Assoc ["feature_eq_float",
       `Assoc [
         ("id", `String (Pid.to_string pid));
@@ -158,7 +158,7 @@ module Rule = struct
         ("value", `String (string_of_float value));
       ]
     ]
-  | Feature_re (pid,fn,regexp) ->
+  | Feature_eq_regexp (pid,fn,regexp) ->
     `Assoc ["feature_eq_regexp",
       `Assoc [
         ("id", `String (Pid.to_string pid));
@@ -166,7 +166,7 @@ module Rule = struct
         ("regexp", `String regexp);
       ]
     ]
-  | Feature_ineq (ineq,pid1,fn1,pid2,fn2) ->
+  | Features_ineq (ineq,pid1,fn1,pid2,fn2) ->
     `Assoc ["features_ineq",
       `Assoc [
         ("ineq", `String (Ast.string_of_ineq ineq));
@@ -192,14 +192,14 @@ module Rule = struct
         ("fs", P_fs.to_json ?domain p_fs);
       ]
     ]
-  | Prec (pid1, pid2) ->
+  | Immediate_prec (pid1, pid2) ->
     `Assoc ["immediate_prec",
       `Assoc [
         ("id1", `String (Pid.to_string pid1));
         ("id2", `String (Pid.to_string pid2));
       ]
     ]
-  | Lprec (pid1, pid2) ->
+  | Large_prec (pid1, pid2) ->
     `Assoc ["large_prec",
       `Assoc [
         ("id1", `String (Pid.to_string pid1));
@@ -215,48 +215,48 @@ module Rule = struct
       | (Ast.Cst_in (id,label_cst), loc) ->
         Cst_in (pid_of_name loc id, Label_cst.build ~loc ?domain label_cst)
 
-      | (Ast.Feature_eq ((node_name1, feat_name1), (node_name2, feat_name2)), loc) ->
+      | (Ast.Features_eq ((node_name1, feat_name1), (node_name2, feat_name2)), loc) ->
         Domain.check_feature_name ?domain ~loc feat_name1;
         Domain.check_feature_name ?domain ~loc feat_name2;
-        Feature_eq (pid_of_name loc node_name1, feat_name1, pid_of_name loc node_name2, feat_name2)
+        Features_eq (pid_of_name loc node_name1, feat_name1, pid_of_name loc node_name2, feat_name2)
 
-      | (Ast.Feature_diseq ((node_name1, feat_name1), (node_name2, feat_name2)), loc) ->
+      | (Ast.Features_diseq ((node_name1, feat_name1), (node_name2, feat_name2)), loc) ->
         Domain.check_feature_name ?domain ~loc feat_name1;
         Domain.check_feature_name ?domain ~loc feat_name2;
-        Feature_diseq (pid_of_name loc node_name1, feat_name1, pid_of_name loc node_name2, feat_name2)
+        Features_diseq (pid_of_name loc node_name1, feat_name1, pid_of_name loc node_name2, feat_name2)
 
-      | (Ast.Feature_ineq (ineq, (node_name1, feat_name1), (node_name2, feat_name2)), loc) ->
+      | (Ast.Features_ineq (ineq, (node_name1, feat_name1), (node_name2, feat_name2)), loc) ->
         Domain.check_feature_name ?domain ~loc feat_name1;
         Domain.check_feature_name ?domain ~loc feat_name2;
-        Feature_ineq (ineq, pid_of_name loc node_name1, feat_name1, pid_of_name loc node_name2, feat_name2)
+        Features_ineq (ineq, pid_of_name loc node_name1, feat_name1, pid_of_name loc node_name2, feat_name2)
 
       | (Ast.Feature_ineq_cst (ineq, (node_name1, feat_name1), constant), loc) ->
         Domain.check_feature_name ?domain ~loc feat_name1;
         Feature_ineq_cst (ineq, pid_of_name loc node_name1, feat_name1, constant)
 
-      | (Ast.Feature_re ((node_name, feat_name), regexp), loc) ->
+      | (Ast.Feature_eq_regexp ((node_name, feat_name), regexp), loc) ->
         Domain.check_feature_name ?domain ~loc feat_name;
-        Feature_re (pid_of_name loc node_name, feat_name, regexp)
+        Feature_eq_regexp (pid_of_name loc node_name, feat_name, regexp)
 
-      | (Ast.Feature_cst ((node_name, feat_name), string), loc) ->
+      | (Ast.Feature_eq_cst ((node_name, feat_name), string), loc) ->
         Domain.check_feature_name ?domain ~loc feat_name;
-        Feature_cst (pid_of_name loc node_name, feat_name, string)
+        Feature_eq_cst (pid_of_name loc node_name, feat_name, string)
       | (Ast.Feature_diff_cst ((node_name, feat_name), string), loc) ->
         Domain.check_feature_name ?domain ~loc feat_name;
         Feature_diff_cst (pid_of_name loc node_name, feat_name, string)
 
-      | (Ast.Feature_float ((node_name, feat_name), float), loc) ->
+      | (Ast.Feature_eq_float ((node_name, feat_name), float), loc) ->
         Domain.check_feature_name ?domain ~loc feat_name;
-        Feature_float (pid_of_name loc node_name, feat_name, float)
+        Feature_eq_float (pid_of_name loc node_name, feat_name, float)
       | (Ast.Feature_diff_float ((node_name, feat_name), float), loc) ->
         Domain.check_feature_name ?domain ~loc feat_name;
         Feature_diff_float (pid_of_name loc node_name, feat_name, float)
 
-      | (Ast.Prec (id1, id2), loc) ->
-        Prec (pid_of_name loc id1, pid_of_name loc id2)
+      | (Ast.Immediate_prec (id1, id2), loc) ->
+        Immediate_prec (pid_of_name loc id1, pid_of_name loc id2)
 
-      | (Ast.Lprec (id1, id2), loc) ->
-        Lprec (pid_of_name loc id1, pid_of_name loc id2)
+      | (Ast.Large_prec (id1, id2), loc) ->
+        Large_prec (pid_of_name loc id1, pid_of_name loc id2)
 
   type basic = {
     graph: P_graph.t;
@@ -292,57 +292,57 @@ module Rule = struct
       | (Ast.Cst_in (id,label_cst), loc) ->
         Cst_in (pid_of_name loc id, Label_cst.build ~loc ?domain label_cst)
 
-      | (Ast.Feature_eq (feat_id1, feat_id2), loc) ->
+      | (Ast.Features_eq (feat_id1, feat_id2), loc) ->
         let (node_name1, feat_name1) = feat_id1
         and (node_name2, feat_name2) = feat_id2 in
         Domain.check_feature_name ?domain ~loc feat_name1;
         Domain.check_feature_name ?domain ~loc feat_name2;
-        Feature_eq (pid_of_name loc node_name1, feat_name1, pid_of_name loc node_name2, feat_name2)
+        Features_eq (pid_of_name loc node_name1, feat_name1, pid_of_name loc node_name2, feat_name2)
 
-      | (Ast.Feature_diseq (feat_id1, feat_id2), loc) ->
+      | (Ast.Features_diseq (feat_id1, feat_id2), loc) ->
         let (node_name1, feat_name1) = feat_id1
         and (node_name2, feat_name2) = feat_id2 in
         Domain.check_feature_name ?domain ~loc feat_name1;
         Domain.check_feature_name ?domain ~loc feat_name2;
-        Feature_diseq (pid_of_name loc node_name1, feat_name1, pid_of_name loc node_name2, feat_name2)
+        Features_diseq (pid_of_name loc node_name1, feat_name1, pid_of_name loc node_name2, feat_name2)
 
-      | (Ast.Feature_ineq (ineq, feat_id1, feat_id2), loc) ->
+      | (Ast.Features_ineq (ineq, feat_id1, feat_id2), loc) ->
         let (node_name1, feat_name1) = feat_id1
         and (node_name2, feat_name2) = feat_id2 in
         Domain.check_feature_name ?domain ~loc feat_name1;
         Domain.check_feature_name ?domain ~loc feat_name2;
-        Feature_ineq (ineq, pid_of_name loc node_name1, feat_name1, pid_of_name loc node_name2, feat_name2)
+        Features_ineq (ineq, pid_of_name loc node_name1, feat_name1, pid_of_name loc node_name2, feat_name2)
 
       | (Ast.Feature_ineq_cst (ineq, feat_id1, constant), loc) ->
         let (node_name1, feat_name1) = feat_id1 in
         Domain.check_feature_name ?domain ~loc feat_name1;
         Feature_ineq_cst (ineq, pid_of_name loc node_name1, feat_name1, constant)
 
-      | (Ast.Feature_re (feat_id, regexp), loc) ->
+      | (Ast.Feature_eq_regexp (feat_id, regexp), loc) ->
         let (node_name, feat_name) = feat_id in
         Domain.check_feature_name ?domain ~loc feat_name;
-        Feature_re (pid_of_name loc node_name, feat_name, regexp)
+        Feature_eq_regexp (pid_of_name loc node_name, feat_name, regexp)
 
-      | (Ast.Feature_cst ((node_name, feat_name), string), loc) ->
+      | (Ast.Feature_eq_cst ((node_name, feat_name), string), loc) ->
         Domain.check_feature_name ?domain ~loc feat_name;
-        Feature_cst (pid_of_name loc node_name, feat_name, string)
+        Feature_eq_cst (pid_of_name loc node_name, feat_name, string)
       | (Ast.Feature_diff_cst ((node_name, feat_name), string), loc) ->
         Domain.check_feature_name ?domain ~loc feat_name;
         Feature_diff_cst (pid_of_name loc node_name, feat_name, string)
 
-      | (Ast.Feature_float ((node_name, feat_name), float), loc) ->
+      | (Ast.Feature_eq_float ((node_name, feat_name), float), loc) ->
         Domain.check_feature_name ?domain ~loc feat_name;
-        Feature_float (pid_of_name loc node_name, feat_name, float)
+        Feature_eq_float (pid_of_name loc node_name, feat_name, float)
       | (Ast.Feature_diff_float ((node_name, feat_name), float), loc) ->
         Domain.check_feature_name ?domain ~loc feat_name;
         Feature_diff_float (pid_of_name loc node_name, feat_name, float)
 
 
-      | (Ast.Prec (id1, id2), loc) ->
-        Prec (pid_of_name loc id1, pid_of_name loc id2)
+      | (Ast.Immediate_prec (id1, id2), loc) ->
+        Immediate_prec (pid_of_name loc id1, pid_of_name loc id2)
 
-      | (Ast.Lprec (id1, id2), loc) ->
-        Lprec (pid_of_name loc id1, pid_of_name loc id2)
+      | (Ast.Large_prec (id1, id2), loc) ->
+        Large_prec (pid_of_name loc id1, pid_of_name loc id2)
 
   (* It may raise [P_fs.Fail_unif] in case of contradiction on constraints *)
   let build_neg_basic ?domain ?pat_vars ?(locals=[||]) pos_table basic_ast =
@@ -704,13 +704,13 @@ module Rule = struct
             {matching with m_param = new_param }
           with P_fs.Fail -> raise Fail
         end
-      | Feature_eq (pid1, feat_name1, pid2, feat_name2) ->
+      | Features_eq (pid1, feat_name1, pid2, feat_name2) ->
         begin
           match (get_string_feat pid1 feat_name1, get_string_feat pid2 feat_name2) with
             | Some fv1, Some fv2 when fv1 = fv2 -> matching
             | _ -> raise Fail
         end
-      | Feature_cst (pid1, feat_name1, value) ->
+      | Feature_eq_cst (pid1, feat_name1, value) ->
         begin
           match get_string_feat pid1 feat_name1 with
             | Some fv1 when fv1 = value -> matching
@@ -722,7 +722,7 @@ module Rule = struct
             | Some fv1 when fv1 <> value -> matching
             | _ -> raise Fail
         end
-      | Feature_float (pid1, feat_name1, float) ->
+      | Feature_eq_float (pid1, feat_name1, float) ->
         begin
           match get_float_feat pid1 feat_name1 with
             | Some fv1 when fv1 = float -> matching
@@ -734,13 +734,13 @@ module Rule = struct
             | Some fv1 when fv1 <> float -> matching
             | _ -> raise Fail
         end
-      | Feature_diseq (pid1, feat_name1, pid2, feat_name2) ->
+      | Features_diseq (pid1, feat_name1, pid2, feat_name2) ->
         begin
           match (get_string_feat pid1 feat_name1, get_string_feat pid2 feat_name2) with
             | Some fv1, Some fv2 when fv1 <> fv2 -> matching
             | _ -> raise Fail
         end
-      | Feature_ineq (ineq, pid1, feat_name1, pid2, feat_name2) ->
+      | Features_ineq (ineq, pid1, feat_name1, pid2, feat_name2) ->
         begin
           match (ineq, get_float_feat pid1 feat_name1, get_float_feat pid2 feat_name2) with
             | (Ast.Lt, Some fv1, Some fv2) when fv1 < fv2 -> matching
@@ -758,7 +758,7 @@ module Rule = struct
             | (Ast.Ge, Some fv1) when fv1 >= constant -> matching
             | _ -> raise Fail
           end
-      | Feature_re (pid, feat_name, regexp) ->
+      | Feature_eq_regexp (pid, feat_name, regexp) ->
         begin
           match get_string_feat pid feat_name with
           | None -> raise Fail
@@ -766,14 +766,14 @@ module Rule = struct
             let re = Str.regexp regexp in
             if String_.re_match re string_feat then matching else raise Fail
         end
-      | Prec (pid1, pid2) ->
+      | Immediate_prec (pid1, pid2) ->
           let gid1 = Pid_map.find pid1 matching.n_match in
           let gid2 = Pid_map.find pid2 matching.n_match in
           let gnode1 = G_graph.find gid1 graph in
           if G_node.get_succ gnode1 = Some gid2
           then matching
           else  raise Fail
-      | Lprec (pid1, pid2) ->
+      | Large_prec (pid1, pid2) ->
           let gnode1 = G_graph.find (Pid_map.find pid1 matching.n_match) graph in
           let gnode2 = G_graph.find (Pid_map.find pid2 matching.n_match) graph in
           if G_node.get_position gnode1 < G_node.get_position gnode2

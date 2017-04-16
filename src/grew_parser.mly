@@ -461,24 +461,24 @@ pat_item:
         | feat_id1_loc=feature_ident_with_loc EQUAL rhs=ID
             { let (feat_id1,loc)=feat_id1_loc in
               match Ast.parse_simple_or_feature_ident rhs with
-              | (node_id, Some feat_name) -> Pat_const (Ast.Feature_eq (feat_id1, (node_id,feat_name)), loc)
-              | (value, None) -> Pat_const (Ast.Feature_cst (feat_id1, value), loc)
+              | (node_id, Some feat_name) -> Pat_const (Ast.Features_eq (feat_id1, (node_id,feat_name)), loc)
+              | (value, None) -> Pat_const (Ast.Feature_eq_cst (feat_id1, value), loc)
             }
 
         /*   X.cat = "value"   */
         | feat_id1_loc=feature_ident_with_loc EQUAL rhs=STRING
-            { let (feat_id1,loc)=feat_id1_loc in Pat_const (Ast.Feature_cst (feat_id1, rhs), loc) }
+            { let (feat_id1,loc)=feat_id1_loc in Pat_const (Ast.Feature_eq_cst (feat_id1, rhs), loc) }
 
         /*   X.cat = 12.34   */
         | feat_id1_loc=feature_ident_with_loc EQUAL rhs=FLOAT
-            { let (feat_id1,loc)=feat_id1_loc in Pat_const (Ast.Feature_float (feat_id1, rhs), loc) }
+            { let (feat_id1,loc)=feat_id1_loc in Pat_const (Ast.Feature_eq_float (feat_id1, rhs), loc) }
 
         /*   X.cat <> Y.cat   */
         /*   X.cat <> value   */
         | feat_id1_loc=feature_ident_with_loc DISEQUAL rhs=ID
             { let (feat_id1,loc)=feat_id1_loc in
               match Ast.parse_simple_or_feature_ident rhs with
-              | (node_id, Some feat_name) -> Pat_const (Ast.Feature_diseq (feat_id1, (node_id,feat_name)), loc)
+              | (node_id, Some feat_name) -> Pat_const (Ast.Features_diseq (feat_id1, (node_id,feat_name)), loc)
               | (value, None) -> Pat_const (Ast.Feature_diff_cst (feat_id1, value), loc)
             }
 
@@ -493,19 +493,19 @@ pat_item:
 
         /*   X.cat = re"regexp"   */
         | feat_id_loc=feature_ident_with_loc EQUAL regexp=REGEXP
-            { let (feat_id,loc)=feat_id_loc in Pat_const (Ast.Feature_re (feat_id, regexp), loc) }
+            { let (feat_id,loc)=feat_id_loc in Pat_const (Ast.Feature_eq_regexp (feat_id, regexp), loc) }
 
         | id1_loc=ineq_value_with_loc LT id2=ineq_value
             { let (id1,loc)=id1_loc in
               match (id1, id2) with
               (*   X.feat < Y.feat   *)
-              | (Ineq_sofi (n1, Some f1), Ineq_sofi (n2, Some f2)) -> Pat_const (Ast.Feature_ineq (Ast.Lt, (n1,f1), (n2,f2)), loc)
+              | (Ineq_sofi (n1, Some f1), Ineq_sofi (n2, Some f2)) -> Pat_const (Ast.Features_ineq (Ast.Lt, (n1,f1), (n2,f2)), loc)
               (*   X.feat < 12.34   *)
               | (Ineq_sofi (n1, Some f1), Ineq_float num) -> Pat_const (Ast.Feature_ineq_cst (Ast.Lt, (n1,f1), num), loc)
               (*   12.34 < Y.feat   *)
               | (Ineq_float num, Ineq_sofi (n1, Some f1)) -> Pat_const (Ast.Feature_ineq_cst (Ast.Gt, (n1,f1), num), loc)
               (*   X < Y   *)
-              | (Ineq_sofi (n1, None), Ineq_sofi (n2, None)) -> Pat_const (Ast.Prec (n1,n2), loc)
+              | (Ineq_sofi (n1, None), Ineq_sofi (n2, None)) -> Pat_const (Ast.Immediate_prec (n1,n2), loc)
               | (Ineq_float _, Ineq_float _) -> Error.build "the '<' symbol can be used with 2 constants"
               | _ -> Error.build "the '<' symbol can be used with 2 nodes or with 2 features but not in a mix inequality"
             }
@@ -514,24 +514,24 @@ pat_item:
             { let (id1,loc)=id1_loc in
               match (id1, id2) with
               (*   X.feat > Y.feat   *)
-              | (Ineq_sofi (n1, Some f1), Ineq_sofi (n2, Some f2)) -> Pat_const (Ast.Feature_ineq (Ast.Gt, (n1,f1), (n2,f2)), loc)
+              | (Ineq_sofi (n1, Some f1), Ineq_sofi (n2, Some f2)) -> Pat_const (Ast.Features_ineq (Ast.Gt, (n1,f1), (n2,f2)), loc)
               (*   X.feat > 12.34   *)
               | (Ineq_sofi (n1, Some f1), Ineq_float num) -> Pat_const (Ast.Feature_ineq_cst (Ast.Gt, (n1,f1), num), loc)
               (*   12.34 > Y.feat   *)
               | (Ineq_float num, Ineq_sofi (n1, Some f1)) -> Pat_const (Ast.Feature_ineq_cst (Ast.Lt, (n1,f1), num), loc)
               (*   X > Y   *)
-              | (Ineq_sofi (n1, None), Ineq_sofi (n2, None)) -> Pat_const (Ast.Prec (n2,n1), loc)
+              | (Ineq_sofi (n1, None), Ineq_sofi (n2, None)) -> Pat_const (Ast.Immediate_prec (n2,n1), loc)
               | (Ineq_float _, Ineq_float _) -> Error.build "the '>' symbol can be used with 2 constants"
               | _ -> Error.build "the '>' symbol can be used with 2 nodes or with 2 features but not in a mix inequality"
             }
 
         /*   X.position <= Y.position   */
         | feat_id1_loc=feature_ident_with_loc LE feat_id2=feature_ident
-            { let (feat_id1,loc)=feat_id1_loc in Pat_const (Ast.Feature_ineq (Ast.Le, feat_id1, feat_id2), loc) }
+            { let (feat_id1,loc)=feat_id1_loc in Pat_const (Ast.Features_ineq (Ast.Le, feat_id1, feat_id2), loc) }
 
         /*   X.position >= Y.position   */
         | feat_id1_loc=feature_ident_with_loc GE feat_id2=feature_ident
-            { let (feat_id1,loc)=feat_id1_loc in Pat_const (Ast.Feature_ineq (Ast.Ge, feat_id1, feat_id2), loc) }
+            { let (feat_id1,loc)=feat_id1_loc in Pat_const (Ast.Features_ineq (Ast.Ge, feat_id1, feat_id2), loc) }
 
         /*   X.feat >= 12.34   */
         | feat_id1_loc=feature_ident_with_loc GE num=FLOAT
@@ -545,11 +545,11 @@ pat_item:
 
         /*   A << B   */
         | n1_loc=simple_id_with_loc LPREC n2=simple_id
-            { let (n1,loc) = n1_loc in Pat_const (Ast.Lprec (n1,n2), loc) }
+            { let (n1,loc) = n1_loc in Pat_const (Ast.Large_prec (n1,n2), loc) }
 
         /*   A >> B   */
         | n1_loc=simple_id_with_loc LSUCC n2=simple_id
-            { let (n1,loc) = n1_loc in Pat_const (Ast.Lprec (n2,n1), loc) }
+            { let (n1,loc) = n1_loc in Pat_const (Ast.Large_prec (n2,n1), loc) }
 
 node_features:
         /*   cat = n|v|adj   */

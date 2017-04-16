@@ -95,19 +95,19 @@ module Ast : sig
   type u_const =
     | Cst_out of Id.name * edge_label_cst
     | Cst_in of Id.name * edge_label_cst
-    | Feature_eq of feature_ident * feature_ident
-    | Feature_diseq of feature_ident * feature_ident
-    | Feature_ineq of ineq * feature_ident * feature_ident
+    | Features_eq of feature_ident * feature_ident
+    | Features_diseq of feature_ident * feature_ident
+    | Features_ineq of ineq * feature_ident * feature_ident
     | Feature_ineq_cst of ineq * feature_ident * float
-    | Feature_float of feature_ident * float
+    | Feature_eq_float of feature_ident * float
     | Feature_diff_float of feature_ident * float
 
-    | Feature_re of feature_ident * string
-    | Feature_cst of feature_ident * string
+    | Feature_eq_regexp of feature_ident * string
+    | Feature_eq_cst of feature_ident * string
     | Feature_diff_cst of feature_ident * string
 
-    | Prec of Id.name * Id.name
-    | Lprec of Id.name * Id.name
+    | Immediate_prec of Id.name * Id.name
+    | Large_prec of Id.name * Id.name
   type const = u_const * Loc.t
 
   type basic = {

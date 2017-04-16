@@ -99,30 +99,30 @@ module Html_doc = struct
     | Ast.Cst_in (ident, Ast.Regexp re) ->
       bprintf buff "* -[re\"%s\"]-> %s" re ident
 
-    | Ast.Feature_eq (feat_id_l, feat_id_r) ->
+    | Ast.Features_eq (feat_id_l, feat_id_r) ->
       bprintf buff "%s = %s" (Ast.dump_feature_ident feat_id_l) (Ast.dump_feature_ident feat_id_r);
-    | Ast.Feature_diseq (feat_id_l, feat_id_r) ->
+    | Ast.Features_diseq (feat_id_l, feat_id_r) ->
       bprintf buff "%s <> %s" (Ast.dump_feature_ident feat_id_l) (Ast.dump_feature_ident feat_id_r);
-    | Ast.Feature_ineq (ineq, feat_id_l, feat_id_r) ->
+    | Ast.Features_ineq (ineq, feat_id_l, feat_id_r) ->
       bprintf buff "%s %s %s" (Ast.dump_feature_ident feat_id_l) (Ast.string_of_ineq ineq) (Ast.dump_feature_ident feat_id_r)
     | Ast.Feature_ineq_cst (ineq, feat_id_l, constant) ->
       bprintf buff "%s %s %f" (Ast.dump_feature_ident feat_id_l) (Ast.string_of_ineq ineq) constant
 
-    | Ast.Feature_cst (feat_id_l, value) ->
+    | Ast.Feature_eq_cst (feat_id_l, value) ->
       bprintf buff "%s = \"%s\"" (Ast.dump_feature_ident feat_id_l) value;
     | Ast.Feature_diff_cst (feat_id_l, value) ->
       bprintf buff "%s ≠ \"%s\"" (Ast.dump_feature_ident feat_id_l) value;
 
-    | Ast.Feature_float (feat_id_l, value) ->
+    | Ast.Feature_eq_float (feat_id_l, value) ->
       bprintf buff "%s = %g" (Ast.dump_feature_ident feat_id_l) value;
     | Ast.Feature_diff_float (feat_id_l, value) ->
       bprintf buff "%s ≠ %g" (Ast.dump_feature_ident feat_id_l) value;
 
-    | Ast.Feature_re (feat_id, regexp) ->
+    | Ast.Feature_eq_regexp (feat_id, regexp) ->
       bprintf buff "%s == \"%s\"" (Ast.dump_feature_ident feat_id) regexp
-    | Ast.Prec (id1, id2) ->
+    | Ast.Immediate_prec (id1, id2) ->
       bprintf buff "%s < %s" id1 id2
-    | Ast.Lprec (id1, id2) ->
+    | Ast.Large_prec (id1, id2) ->
       bprintf buff "%s << %s" id1 id2
     );
     bprintf buff "\n"
