@@ -45,6 +45,8 @@ module P_graph: sig
 
   val empty: t
 
+  val to_json: ?domain:Domain.t -> t -> Yojson.Basic.json
+
   val find: Pid.t -> t -> P_node.t
 
   val roots: t -> Pid.t list

@@ -76,6 +76,8 @@ module Modul: sig
     confluent: bool;
     loc: Loc.t;
   }
+
+  val to_json: ?domain:Domain.t -> t -> Yojson.Basic.json
 end (* module Modul *)
 
 (* ================================================================================ *)
@@ -111,4 +113,6 @@ module Grs: sig
   val filter_iter: (string -> Rule.t -> unit) -> t -> unit
 
 (*  val modules_of_sequence: t -> string -> Modul.t list*)
+
+  val to_json: t -> Yojson.Basic.json
 end (* module Grs *)

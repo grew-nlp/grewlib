@@ -123,6 +123,8 @@ module Grs: sig
   val build_html_doc: ?corpus:bool -> string -> t -> unit
 
   val get_domain: t -> Domain.t option
+
+  val to_json: t -> string
 end
 
 (* ==================================================================================================== *)

@@ -263,6 +263,10 @@ module Grs = struct
       ) ()
 
   let get_domain grs = Grew_grs.Grs.get_domain grs
+
+  let to_json t =
+    let json = Grew_grs.Grs.to_json t in
+    Yojson.Basic.pretty_to_string json
 end
 
 (* ==================================================================================================== *)

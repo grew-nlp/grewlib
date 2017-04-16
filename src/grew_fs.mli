@@ -73,6 +73,8 @@ end (* module G_fs *)
 module P_fs: sig
   type t
 
+  val to_json: ?domain:Domain.t -> t -> Yojson.Basic.json
+
   val empty: t
 
   val build: ?domain:Domain.t -> ?pat_vars: string list -> Ast.feature list -> t

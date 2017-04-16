@@ -77,6 +77,18 @@ module Label_cst = struct
     | Neg l -> "^"^(List_.to_string (Label.to_string ?domain) "|" l)
     | Regexp (_,re) -> "re\""^re^"\""
 
+  let to_json ?domain = function
+  | Pos l -> `Assoc
+    ["pos",
+      `List (List.map (fun lab -> `String (Label.to_string ?domain lab)) l)
+    ]
+  | Neg l -> `Assoc
+      ["neg",
+        `List (List.map (fun lab -> `String (Label.to_string ?domain lab)) l)
+      ]
+  | Regexp (_,re) -> `Assoc
+      ["regexp", `String re]
+
   let all = Neg []
 
   let match_ ?domain cst g_label = match cst with
@@ -129,6 +141,12 @@ module P_edge = struct
   let all = {id=fresh_name (); label_cst=Label_cst.all }
 
   let get_id t = t.id
+
+  let to_json ?domain t =
+    `Assoc [
+      ("edge_id", `String t.id);
+      ("label_cst", Label_cst.to_json ?domain t.label_cst)
+    ]
 
   let build ?domain (ast_edge, loc) =
     { id = (match ast_edge.Ast.edge_id with Some s -> s | None -> fresh_name ());

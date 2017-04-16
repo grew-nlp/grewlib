@@ -1,2 +1,2 @@
-true:	package(unix, conll, dep2pict, camomile, cairo2, log)
+true:	package(unix, conll, dep2pict, camomile, cairo2, log, yojson)
 true: bin_annot

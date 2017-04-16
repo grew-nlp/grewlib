@@ -88,22 +88,124 @@ module Rule = struct
     | Cst_in of Pid.t * Label_cst.t
     | Feature_eq of Pid.t * string * Pid.t * string
     | Feature_diseq of Pid.t * string * Pid.t * string
-
+    (* *)
     | Feature_cst of Pid.t * string * string
     | Feature_diff_cst of Pid.t * string * string
-
+    (* *)
     | Feature_float of Pid.t * string * float
     | Feature_diff_float of Pid.t * string * float
-
+    (* *)
     | Feature_re of Pid.t * string * string
-
+    (* *)
     | Feature_ineq of Ast.ineq * Pid.t * string * Pid.t * string
     | Feature_ineq_cst of Ast.ineq * Pid.t * string * float
-
+    (* *)
     | Filter of Pid.t * P_fs.t (* used when a without impose a fs on a node defined by the match basic *)
-
+    (* *)
     | Prec of Pid.t * Pid.t
     | Lprec of Pid.t * Pid.t
+
+  let const_to_json ?domain = function
+  | Cst_out (pid, label_cst) -> `Assoc ["cst_out", Label_cst.to_json ?domain label_cst]
+  | Cst_in (pid, label_cst) -> `Assoc ["cst_in", Label_cst.to_json ?domain label_cst]
+  | Feature_eq (pid1,fn1,pid2,fn2) ->
+    `Assoc ["features_eq",
+      `Assoc [
+        ("id1", `String (Pid.to_string pid1));
+        ("feature_name_1", `String fn1);
+        ("id2", `String (Pid.to_string pid2));
+        ("feature_name_2", `String fn2);
+      ]
+    ]
+  | Feature_diseq (pid1,fn1,pid2,fn2) ->
+    `Assoc ["features_diseq",
+      `Assoc [
+        ("id1", `String (Pid.to_string pid1));
+        ("feature_name_1", `String fn1);
+        ("id2", `String (Pid.to_string pid2));
+        ("feature_name_2", `String fn2);
+      ]
+    ]
+  | Feature_cst (pid,fn,value) ->
+    `Assoc ["feature_eq_cst",
+      `Assoc [
+        ("id", `String (Pid.to_string pid));
+        ("feature_name_", `String fn);
+        ("value", `String value);
+      ]
+    ]
+  | Feature_diff_cst (pid,fn,value) ->
+    `Assoc ["feature_diseq_cst",
+      `Assoc [
+        ("id", `String (Pid.to_string pid));
+        ("feature_name_", `String fn);
+        ("value", `String value);
+      ]
+    ]
+  | Feature_float (pid,fn,value) ->
+    `Assoc ["feature_eq_float",
+      `Assoc [
+        ("id", `String (Pid.to_string pid));
+        ("feature_name_", `String fn);
+        ("value", `String (string_of_float value));
+        ]
+    ]
+  | Feature_diff_float (pid,fn,value) ->
+    `Assoc ["feature_diff_float",
+      `Assoc [
+        ("id", `String (Pid.to_string pid));
+        ("feature_name", `String fn);
+        ("value", `String (string_of_float value));
+      ]
+    ]
+  | Feature_re (pid,fn,regexp) ->
+    `Assoc ["feature_eq_regexp",
+      `Assoc [
+        ("id", `String (Pid.to_string pid));
+        ("feature_name", `String fn);
+        ("regexp", `String regexp);
+      ]
+    ]
+  | Feature_ineq (ineq,pid1,fn1,pid2,fn2) ->
+    `Assoc ["features_ineq",
+      `Assoc [
+        ("ineq", `String (Ast.string_of_ineq ineq));
+        ("id1", `String (Pid.to_string pid1));
+        ("feature_name_1", `String fn1);
+        ("id2", `String (Pid.to_string pid2));
+        ("feature_name_2", `String fn2);
+      ]
+    ]
+  | Feature_ineq_cst (ineq,pid,fn,value) ->
+    `Assoc ["feature_ineq_cst",
+      `Assoc [
+        ("ineq", `String (Ast.string_of_ineq ineq));
+        ("id", `String (Pid.to_string pid));
+        ("feature_name", `String fn);
+        ("value", `String (string_of_float value));
+      ]
+    ]
+  | Filter (pid, p_fs) ->
+    `Assoc ["filter",
+      `Assoc [
+        ("id", `String (Pid.to_string pid));
+        ("fs", P_fs.to_json ?domain p_fs);
+      ]
+    ]
+  | Prec (pid1, pid2) ->
+    `Assoc ["immediate_prec",
+      `Assoc [
+        ("id1", `String (Pid.to_string pid1));
+        ("id2", `String (Pid.to_string pid2));
+      ]
+    ]
+  | Lprec (pid1, pid2) ->
+    `Assoc ["large_prec",
+      `Assoc [
+        ("id1", `String (Pid.to_string pid1));
+        ("id2", `String (Pid.to_string pid2));
+      ]
+    ]
 
   let build_pos_constraint ?domain pos_table const =
     let pid_of_name loc node_name = Pid.Pos (Id.build ~loc node_name pos_table) in
@@ -160,6 +262,12 @@ module Rule = struct
     graph: P_graph.t;
     constraints: const list;
   }
+
+  let basic_to_json ?domain basic =
+    `Assoc [
+      ("graph", P_graph.to_json ?domain basic.graph);
+      ("constraints", `List (List.map (const_to_json ?domain) basic.constraints));
+    ]
 
   let build_pos_basic ?domain ?pat_vars ?(locals=[||]) basic_ast =
     let (graph, pos_table) =
@@ -274,6 +382,15 @@ module Rule = struct
   let get_loc t = t.loc
 
   let is_filter t = t.commands = []
+
+  let to_json ?domain t =
+    match t.param with
+    | None -> `Assoc [
+      ("rule_name", `String t.name);
+      ("match", basic_to_json ?domain (fst t.pattern));
+      ("without", `List (List.map (basic_to_json ?domain) (snd t.pattern)));
+    ]
+    | Some _ -> Error.build "Rule.to_json undefined for parametrized rules"
 
   (* ====================================================================== *)
   let to_dep ?domain t =

@@ -159,6 +159,13 @@ module Modul = struct
     loc: Loc.t;
   }
 
+  let to_json ?domain t =
+    `Assoc [
+      ("module_name", `String t.name);
+      ("confluent", `Bool t.confluent);
+      ("rules", `List (List.map (Rule.to_json ?domain) t.rules));
+    ]
+
   let check t =
     (* check for duplicate rules *)
     let rec loop already_defined = function
@@ -195,6 +202,8 @@ module Grs = struct
     filename: string;
     ast: Ast.grs;
   }
+
+  let to_json t = `List (List.map Modul.to_json t.modules)
 
   let get_modules t = t.modules
   let get_ast t = t.ast

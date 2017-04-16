@@ -98,6 +98,16 @@ module P_feature = struct
     printf "in_param=[%s]\n" (String.concat "," (List.map string_of_int in_param));
     printf "%!"
 
+  let to_json ?domain (feature_name, {cst}) =
+    `Assoc [
+      ("feature_name", `String feature_name);
+      ( match cst with
+        | Absent -> ("absent", `Null)
+        | Equal val_list -> ("equal", `List (List.map (fun x -> `String (string_of_value x)) val_list))
+        | Different val_list -> ("different", `List (List.map (fun x -> `String (string_of_value x)) val_list))
+      )
+    ]
+
   let get_name = fst
 
   let compare feat1 feat2 = Pervasives.compare (get_name feat1) (get_name feat2)
@@ -367,6 +377,8 @@ module P_fs = struct
   type t = P_feature.t list
 
   let empty = []
+
+  let to_json ?domain t = `List (List.map (P_feature.to_json ?domain) t)
 
   let check_position ?param position t =
     try

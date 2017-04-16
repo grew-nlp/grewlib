@@ -78,6 +78,8 @@ module Rule : sig
   (** [is_filter t] returns [true] iff the rule [t] is a filter rule. *)
   val is_filter: t -> bool
 
+  val to_json: ?domain:Domain.t -> t -> Yojson.Basic.json
+
   (** [to_dep t] returns a string in the [dep] language describing the match basic of the rule *)
   val to_dep: ?domain:Domain.t -> t -> string
 

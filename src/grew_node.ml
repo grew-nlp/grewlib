@@ -129,6 +129,22 @@ module P_node = struct
       loc: Loc.t option;
     }
 
+  let to_json ?domain t =
+    let json_next = `List (
+      Massoc_pid.fold
+        (fun acc pid p_edge ->
+          `Assoc [
+            ("id", `String (Pid.to_string pid));
+            ("label", P_edge.to_json ?domain p_edge);
+          ] :: acc
+        ) [] t.next
+    ) in
+    `Assoc [
+      ("node_name", `String t.name);
+      ("fs", P_fs.to_json ?domain t.fs);
+      ("next", json_next)
+    ]
+
   let get_name t = t.name
   let get_fs t = t.fs
   let get_next t = t.next

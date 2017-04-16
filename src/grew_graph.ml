@@ -40,6 +40,17 @@ module P_graph = struct
 
   let pid_name_list t = Pid_map.fold (fun _ node acc -> (P_node.get_name node)::acc) t []
 
+  let to_json ?domain t =
+    `List (
+      Pid_map.fold
+        (fun pid p_node acc ->
+          (`Assoc [
+            ("id", `String (Pid.to_string pid));
+            ("node", P_node.to_json ?domain p_node)
+          ]) :: acc
+        ) t []
+      )
+
   (* -------------------------------------------------------------------------------- *)
   let map_add_edge map id_src label id_tar =
     let node_src =
