@@ -1,3 +1,12 @@
+Version 0.42.0 (2017/04/18)
+  * Add json export
+
+Version 0.41.1 (2017/03/14)
+  * adapt to new libraries versions
+
+Version 0.41 (2017/03/06)
+  * adapt to libcaml-conll 0.12.0 (UD empty nodes)
+
 Version 0.40.1 (2017/01/17)
   * Fix a bug introduced in 01f7b589e2024d7a86fbf8c52dc48d73b6e318d2 for handling the feature names ordering
 
