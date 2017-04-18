@@ -68,6 +68,8 @@ module Massoc_pid : S with type key = Pid.t
 module Lex_par: sig
   type t
 
+  val to_json: t -> Yojson.Basic.json
+
   val append: t -> t -> t
 
   val dump: t -> unit

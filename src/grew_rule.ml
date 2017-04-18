@@ -384,13 +384,20 @@ module Rule = struct
   let is_filter t = t.commands = []
 
   let to_json ?domain t =
-    match t.param with
-    | None -> `Assoc [
+    let param_json = match t.param with
+    | None -> []
+    | Some lex_par -> [
+      ("pattern_param", `List (List.map (fun x -> `String x) (fst t.param_names)));
+      ("command_param", `List (List.map (fun x -> `String x) (snd t.param_names)));
+      ("lex_par", Lex_par.to_json lex_par);
+    ] in
+    `Assoc
+    ([
       ("rule_name", `String t.name);
       ("match", basic_to_json ?domain (fst t.pattern));
       ("without", `List (List.map (basic_to_json ?domain) (snd t.pattern)));
-    ]
-    | Some _ -> Error.build "Rule.to_json undefined for parametrized rules"
+    ] @ param_json
+    )
 
   (* ====================================================================== *)
   let to_dep ?domain t =

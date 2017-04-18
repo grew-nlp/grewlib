@@ -97,7 +97,14 @@ module Lex_par = struct
 
   type item = string list * string list (* first list: pattern parameters $id , second list command parameters @id *)
 
+  let item_to_string = function
+  | (l,[]) -> String.concat "#" l
+  | (pat,com) -> (String.concat "#" pat) ^ "##" ^ (String.concat "#" com)
+
   type t = item list
+
+  let to_json t =
+    `List (List.map (fun item -> `String (item_to_string item)) t)
 
   let size = List.length
   let append = List.append

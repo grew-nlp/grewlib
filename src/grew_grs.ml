@@ -203,7 +203,7 @@ module Grs = struct
     ast: Ast.grs;
   }
 
-  let to_json t = `List (List.map Modul.to_json t.modules)
+  let to_json t = `List (List.map (Modul.to_json ?domain:t.domain) t.modules)
 
   let get_modules t = t.modules
   let get_ast t = t.ast
