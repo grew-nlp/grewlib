@@ -44,6 +44,8 @@ module Command : sig
     | MERGE_NODE of (command_node * command_node)
 
   type t = (p * Loc.t)
+  val to_json: ?domain:Domain.t -> t -> Yojson.Basic.json
+
   type h =
     | H_DEL_NODE of Gid.t
     | H_DEL_EDGE_EXPL of (Gid.t * Gid.t *G_edge.t)

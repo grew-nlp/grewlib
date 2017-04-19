@@ -1,3 +1,6 @@
+Version 0.42.1 (2017/04/19)
+  * Fix json export (missing commmands)
+
 Version 0.42.0 (2017/04/18)
   * Add json export
 

@@ -56,6 +56,8 @@ module G_edge: sig
 
   val to_string: ?domain:Domain.t -> t -> string
 
+  val to_json: ?domain:Domain.t -> t -> Yojson.Basic.json
+
   val make: ?loc:Loc.t -> ?domain:Domain.t -> string -> t
 
   val sub: t

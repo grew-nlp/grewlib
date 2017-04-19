@@ -24,12 +24,27 @@ module Command  = struct
     | Pat of Pid.t           (* a node identified in the pattern *)
     | New of string          (* a node introduced by a new_neighbour *) (* TODO: remove *)
 
+  let command_node_to_json = function
+    | Pat pid -> `String (Pid.to_string pid)
+    | New s -> `String s
+
   (* [item] is a element of the RHS of an update_feat command *)
   type item =
     | Feat of (command_node * string)
     | String of string
     | Param_in of int
     | Param_out of int
+
+  let item_to_json = function
+  | Feat (cn, feature_name) -> `Assoc [("copy_feat",
+        `Assoc [
+          ("node",command_node_to_json cn);
+          ("feature_name", `String feature_name);
+        ]
+      )]
+  | String s -> `Assoc [("string", `String s)]
+  | Param_in i -> `Assoc [("param_in", `Int i)]
+  | Param_out i -> `Assoc [("param_out", `Int i)]
 
   (* the command in pattern *)
   type p =
@@ -50,6 +65,91 @@ module Command  = struct
     | MERGE_NODE of (command_node * command_node)
 
   type t = p * Loc.t  (* remember command location to be able to localize a command failure *)
+
+  let to_json ?domain (p, _) = match p with
+  | DEL_NODE cn -> `Assoc [("del_node", command_node_to_json cn)]
+  | DEL_EDGE_EXPL (src,tar,edge) ->
+    `Assoc [("del_edge_expl",
+      `Assoc [
+        ("src",command_node_to_json src);
+        ("tar",command_node_to_json tar);
+        ("edge", G_edge.to_json ?domain edge);
+      ]
+    )]
+  | DEL_EDGE_NAME edge_name -> `Assoc [("del_edge_name", `String edge_name)]
+  | ADD_EDGE (src,tar,edge) ->
+    `Assoc [("add_edge",
+      `Assoc [
+        ("src",command_node_to_json src);
+        ("tar",command_node_to_json tar);
+        ("edge", G_edge.to_json ?domain edge);
+      ]
+    )]
+
+  | DEL_FEAT (cn, feature_name) ->
+    `Assoc [("del_feat",
+      `Assoc [
+        ("node",command_node_to_json cn);
+        ("feature_name", `String feature_name);
+      ]
+    )]
+
+  | UPDATE_FEAT (cn, feature_name, items) ->
+    `Assoc [("update_feat",
+      `Assoc [
+        ("node",command_node_to_json cn);
+        ("feature_name", `String feature_name);
+        ("items", `List (List.map item_to_json items));
+      ]
+    )]
+
+  | NEW_NODE name -> `Assoc [("new_node", `String name)]
+  | NEW_BEFORE (name, cn) ->
+    `Assoc [("new_before",
+      `Assoc [
+        ("name", `String name);
+        ("node", command_node_to_json cn);
+      ]
+    )]
+  | NEW_AFTER (name, cn) ->
+    `Assoc [("new_after",
+      `Assoc [
+        ("name", `String name);
+        ("node", command_node_to_json cn);
+      ]
+    )]
+
+  | SHIFT_EDGE (src,tar,label_cst) ->
+      `Assoc [("shift_edge",
+        `Assoc [
+          ("src",command_node_to_json src);
+          ("tar",command_node_to_json tar);
+          ("label_cst", Label_cst.to_json ?domain label_cst);
+        ]
+      )]
+  | SHIFT_IN (src,tar,label_cst) ->
+      `Assoc [("shift_in",
+        `Assoc [
+          ("src",command_node_to_json src);
+          ("tar",command_node_to_json tar);
+          ("label_cst", Label_cst.to_json ?domain label_cst);
+        ]
+      )]
+  | SHIFT_OUT (src,tar,label_cst) ->
+      `Assoc [("shift_out",
+        `Assoc [
+          ("src",command_node_to_json src);
+          ("tar",command_node_to_json tar);
+          ("label_cst", Label_cst.to_json ?domain label_cst);
+        ]
+      )]
+  | MERGE_NODE (src,tar) ->
+      `Assoc [("merge",
+        `Assoc [
+          ("src",command_node_to_json src);
+          ("tar",command_node_to_json tar);
+        ]
+      )]
 
   (* a item in the command history: command applied to a graph *)
   type h =

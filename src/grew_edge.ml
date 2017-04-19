@@ -108,6 +108,8 @@ module G_edge = struct
 
   let to_string ?domain t = Label.to_string ?domain t
 
+  let to_json ?domain t = `String (Label.to_string ?domain t)
+
   let make ?loc ?domain string = Label.from_string ?loc ?domain string
 
   let sub = make "__SUB__"
