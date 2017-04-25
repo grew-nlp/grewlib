@@ -1,3 +1,6 @@
+Version 0.42.3 (2017/04/25)
+  * Add dependence on yojson
+
 Version 0.42.2 (2017/04/25)
   * Fix ordering of dependencies in conll output
 
