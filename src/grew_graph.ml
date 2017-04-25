@@ -956,9 +956,9 @@ module G_graph = struct
           let sorted_gov_labs =
             List.sort
               (fun (g1,l1) (g2,l2) ->
-                if l1 <> "" && l1.[0] <> 'I' && l1.[0] <> 'D'
+                if l1 <> "" && l1.[0] <> 'I' && l1.[0] <> 'D' && l1.[0] <> 'E'
                 then -1
-                else if l2 <> "" && l2.[0] <> 'I' && l2.[0] <> 'D'
+                else if l2 <> "" && l2.[0] <> 'I' && l2.[0] <> 'D' && l2.[0] <> 'E'
                 then 1
                 else
                   match compare (String_.to_float g1) (String_.to_float g2) with

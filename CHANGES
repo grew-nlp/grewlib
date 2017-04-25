@@ -1,3 +1,6 @@
+Version 0.42.2 (2017/04/25)
+  * Fix ordering of dependencies in conll output
+
 Version 0.42.1 (2017/04/19)
   * Fix json export (missing commmands)
 
