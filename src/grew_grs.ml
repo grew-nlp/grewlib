@@ -272,7 +272,12 @@ module Grs = struct
 
   (* ---------------------------------------------------------------------------------------------------- *)
   let rewrite grs strategy_name graph =
-    let strategy = List.find (fun s -> s.Ast.strat_name = strategy_name) grs.strategies in
+    let strategy =
+      try List.find (fun s -> s.Ast.strat_name = strategy_name) grs.strategies
+      with Not_found ->
+        Error.run "[rewrite] Undefined stategy \"%s\"\nAvailable stategies: %s"
+        strategy_name
+        (String.concat "; " (List.map (fun s -> s.Ast.strat_name) grs.strategies)) in
 
     let rec old_loop instance module_list =
       match module_list with
