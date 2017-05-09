@@ -73,7 +73,7 @@ module Modul: sig
     local_labels: (string * string list) array;
     rules: Rule.t list;
     filters: Rule.t list;
-    confluent: bool;
+    deterministic: bool;
     loc: Loc.t;
   }
 

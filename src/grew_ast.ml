@@ -337,7 +337,7 @@ module Ast = struct
     module_id:Id.name;
     local_labels: (string * string list) list;
     rules: rule list;
-    confluent: bool;
+    deterministic: bool;
     module_doc:string list;
     mod_loc:Loc.t;
     mod_dir: string; (* the directory where the module is defined (for lp file localisation) *)

@@ -87,7 +87,7 @@ module Rewrite_history = struct
         | l, _ -> List.iter loop l
     in loop t; !cpt
 
-  (* suppose that all modules are confluent and produced exacly one normal form *)
+  (* suppose that all modules are deterministic and produced exacly one normal form *)
   let save_det_gr ?domain base t =
     let rec loop t =
       match (t.good_nf, t.bad_nf) with
@@ -155,14 +155,14 @@ module Modul = struct
     local_labels: (string * string list) array;
     rules: Rule.t list;
     filters: Rule.t list;
-    confluent: bool;
+    deterministic: bool;
     loc: Loc.t;
   }
 
   let to_json ?domain t =
     `Assoc [
       ("module_name", `String t.name);
-      ("confluent", `Bool t.confluent);
+      ("deterministic", `Bool t.deterministic);
       ("rules", `List (List.map (Rule.to_json ?domain) t.rules));
     ]
 
@@ -186,7 +186,7 @@ module Modul = struct
         local_labels = locals;
         rules;
         filters;
-        confluent = ast_module.Ast.confluent;
+        deterministic = ast_module.Ast.deterministic;
         loc = ast_module.Ast.mod_loc;
       } in
     check modul; modul
@@ -290,7 +290,7 @@ module Grs = struct
           Rule.normalize
             ?domain: grs.domain
             next.Modul.name
-            ~confluent: next.Modul.confluent
+            ~deterministic: next.Modul.deterministic
             next.Modul.rules
             next.Modul.filters
             (Instance.refresh instance) in
@@ -319,7 +319,7 @@ module Grs = struct
            let modul =
            try List.find (fun m -> m.Modul.name=module_name) grs.modules
            with Not_found -> Error.build "No module named '%s'" module_name in
-           if modul.Modul.confluent
+           if modul.Modul.deterministic
            then Ast.Pick (Ast.Star (Ast.Ref module_name))
            else Ast.Star (Ast.Ref module_name)
         ) module_list
@@ -477,7 +477,7 @@ module Grs = struct
           Rule.normalize
             ?domain: grs.domain
             next.Modul.name
-            ~confluent: next.Modul.confluent
+            ~deterministic: next.Modul.deterministic
             next.Modul.rules
             next.Modul.filters
             (Instance.refresh instance) in

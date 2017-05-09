@@ -81,7 +81,7 @@ let localize t = (t,get_loc ())
 %token WITHOUT                     /* without */
 %token COMMANDS                    /* commands */
 %token MODULE                      /* module */
-%token CONFLUENT                   /* confluent */
+%token DETERMINISTIC               /* deterministic (of deprecated confluent) */
 %token RULE                        /* rule */
 %token FILTER                      /* filter */
 %token SEQUENCES                   /* sequences */
@@ -310,12 +310,12 @@ included:
         | x=list(module_or_include) EOF { x }
 
 grew_module:
-        | doc=option(COMMENT) MODULE conf=boption(CONFLUENT) id_loc=simple_id_with_loc LACC l=option(labels) r=rules RACC
+        | doc=option(COMMENT) MODULE det=boption(DETERMINISTIC) id_loc=simple_id_with_loc LACC l=option(labels) r=rules RACC
            {
             { Ast.module_id = fst id_loc;
               local_labels = (match l with None -> [] | Some x -> x);
               rules = r;
-              confluent = conf;
+              deterministic = det;
               module_doc = (match doc with Some d -> d | None -> []);
               mod_loc = snd id_loc;
               mod_dir = "";

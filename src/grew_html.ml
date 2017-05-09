@@ -961,7 +961,7 @@ module Corpus_stat = struct
       ) t.modules;
 
    (* add a subtable for sentence ambiguity *)
-    if (List.for_all (fun m -> m.Modul.confluent) t.modules) || (Int_map.is_empty t.amb)
+    if (List.for_all (fun m -> m.Modul.deterministic) t.modules) || (Int_map.is_empty t.amb)
     then ()
     else
       begin

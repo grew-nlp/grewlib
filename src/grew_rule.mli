@@ -87,12 +87,12 @@ module Rule : sig
       [dir] is used for localisation of lp files *)
   val build: ?domain:Domain.t -> ?locals:Label_domain.decl array -> string -> Ast.rule -> t
 
-  (** [normalize domain module_name ?confluent rule_list filter_list instance] returns two sets of good normal forms and bad normal forms *)
+  (** [normalize domain module_name ?deterministic rule_list filter_list instance] returns two sets of good normal forms and bad normal forms *)
   (* raise Stop if some command fails to apply *)
   val normalize:
     ?domain:Domain.t ->
     string -> (* module name *)
-    ?confluent:bool ->
+    ?deterministic:bool ->
     t list -> (* rule list *)
     t list -> (* filter list *)
     Instance.t ->

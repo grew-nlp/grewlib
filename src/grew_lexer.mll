@@ -172,7 +172,8 @@ and standard target = parse
 | "del_feat"    { DEL_FEAT }
 
 | "module"      { MODULE }
-| "confluent"   { CONFLUENT }
+| "confluent"     { Log.fwarning "[file %s, line %d]\"confluent\" is deprecated, please use \"deterministic\" instead" !Global.current_file !Global.current_line; DETERMINISTIC }
+| "deterministic" { DETERMINISTIC }
 | "rule"        { RULE }
 | "lex_rule"    { Log.fwarning "[file %s, line %d]\"lex_rule\" is deprecated, please use \"rule\" instead" ! Global.current_file !Global.current_line; RULE }
 | "filter"      { FILTER }

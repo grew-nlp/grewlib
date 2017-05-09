@@ -1283,8 +1283,8 @@ module Rule = struct
     | None -> Instance.rev_steps instance
 
   (* ---------------------------------------------------------------------- *)
-  let normalize ?domain modul_name ?(confluent=false) rules filters instance =
-    if confluent
+  let normalize ?domain modul_name ?(deterministic=false) rules filters instance =
+    if deterministic
     then
       let output = conf_normalize ?domain modul_name instance rules in
       if filter_instance ?domain filters output
