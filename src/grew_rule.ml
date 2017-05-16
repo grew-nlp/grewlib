@@ -908,6 +908,27 @@ module Rule = struct
               Error.run "ADD_EDGE: the edge '%s' already exists %s" (G_edge.to_string ?domain edge) (Loc.to_string loc)
         end
 
+    | Command.ADD_EDGE_EXPL (src_cn,tar_cn,edge_ident) ->
+        let src_gid = node_find src_cn in
+        let tar_gid = node_find tar_cn in
+        let (_,edge,_) =
+          try List.assoc edge_ident matching.e_match
+          with Not_found -> Error.bug "The edge identifier '%s' is undefined %s" edge_ident (Loc.to_string loc) in
+
+        begin
+          match G_graph.add_edge instance.Instance.graph src_gid edge tar_gid with
+          | Some new_graph ->
+              (
+               {instance with
+                Instance.graph = new_graph;
+                history = List_.sort_insert (Command.H_ADD_EDGE_EXPL (src_gid,tar_gid,edge_ident)) instance.Instance.history
+              },
+               created_nodes
+              )
+          | None ->
+              Error.run "ADD_EDGE_EXPL: the edge '%s' already exists %s" (G_edge.to_string ?domain edge) (Loc.to_string loc)
+        end
+
     | Command.DEL_EDGE_EXPL (src_cn,tar_cn,edge) ->
         let src_gid = node_find src_cn in
         let tar_gid = node_find tar_cn in

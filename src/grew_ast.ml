@@ -248,6 +248,7 @@ module Ast = struct
     | Del_edge_expl of (Id.name * Id.name * edge_label)
     | Del_edge_name of string
     | Add_edge of (Id.name * Id.name * edge_label)
+    | Add_edge_expl of (Id.name * Id.name * string)
 
     (* 4 args: source, target, labels, flag true iff negative cst *)
     | Shift_in of (Id.name * Id.name * edge_label_cst)
@@ -272,6 +273,8 @@ module Ast = struct
     | Del_edge_name name -> sprintf "del_edge %s" name
     | Add_edge (n1,n2,label) ->
       sprintf "add_edge %s -[%s]-> %s" n1 label n2
+    | Add_edge_expl (n1,n2,name) ->
+        sprintf "add_edge %s: %s -> %s" name n1 n2
 
     | Shift_in (n1,n2,Neg_list []) ->
       sprintf "shift_in %s ==> %s" n1 n2

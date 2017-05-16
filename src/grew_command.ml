@@ -52,6 +52,7 @@ module Command  = struct
     | DEL_EDGE_EXPL of (command_node * command_node * G_edge.t)
     | DEL_EDGE_NAME of string
     | ADD_EDGE of (command_node * command_node * G_edge.t)
+    | ADD_EDGE_EXPL of (command_node * command_node * string)
     | DEL_FEAT of (command_node * string)
     | UPDATE_FEAT of (command_node * string * item list)
 
@@ -85,6 +86,15 @@ module Command  = struct
         ("edge", G_edge.to_json ?domain edge);
       ]
     )]
+
+    | ADD_EDGE_EXPL (src,tar,name) ->
+      `Assoc [("add_edge",
+        `Assoc [
+          ("src",command_node_to_json src);
+          ("tar",command_node_to_json tar);
+          ("name", `String name);
+        ]
+      )]
 
   | DEL_FEAT (cn, feature_name) ->
     `Assoc [("del_feat",
@@ -157,6 +167,7 @@ module Command  = struct
     | H_DEL_EDGE_EXPL of (Gid.t * Gid.t * G_edge.t)
     | H_DEL_EDGE_NAME of string
     | H_ADD_EDGE of (Gid.t * Gid.t * G_edge.t)
+    | H_ADD_EDGE_EXPL of (Gid.t * Gid.t * string)
     | H_DEL_FEAT of (Gid.t * string)
     | H_UPDATE_FEAT of (Gid.t * string * string)
 
@@ -205,6 +216,11 @@ module Command  = struct
           check_node_id loc act_j kai;
           let edge = G_edge.make ~loc ?domain lab in
           ((ADD_EDGE (pid_of_act_id loc act_i, pid_of_act_id loc act_j, edge), loc), (kai, kei))
+
+      | (Ast.Add_edge_expl (act_i, act_j, name), loc) ->
+          check_node_id loc act_i kai;
+          check_node_id loc act_j kai;
+          ((ADD_EDGE_EXPL (pid_of_act_id loc act_i, pid_of_act_id loc act_j, name), loc), (kai, kei))
 
       | (Ast.Shift_edge (act_i, act_j, label_cst), loc) ->
           check_node_id loc act_i kai;

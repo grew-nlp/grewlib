@@ -598,6 +598,10 @@ command:
         | ADD_EDGE src_loc=simple_id_with_loc label=delimited(LTR_EDGE_LEFT,label_ident,LTR_EDGE_RIGHT) tar=simple_id
             { let (src,loc) = src_loc in (Ast.Add_edge (src, tar, label), loc) }
 
+        /*   add_edge e: m -> n   */
+        | ADD_EDGE id_loc=simple_id_with_loc DDOT src=simple_id EDGE tar=simple_id
+            { let (id,loc) = id_loc in (Ast.Add_edge_expl (src, tar, id), loc) }
+
         /*   shift_in m ==> n   */
         | SHIFT_IN src_loc=simple_id_with_loc ARROW tar=simple_id
             { let (src,loc) = src_loc in (Ast.Shift_in (src, tar, Ast.Neg_list []), loc) }

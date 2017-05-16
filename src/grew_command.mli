@@ -31,6 +31,7 @@ module Command : sig
     | DEL_EDGE_EXPL of (command_node * command_node *G_edge.t)
     | DEL_EDGE_NAME of string
     | ADD_EDGE of (command_node * command_node * G_edge.t)
+    | ADD_EDGE_EXPL of (command_node * command_node * string)
     | DEL_FEAT of (command_node * string)
     | UPDATE_FEAT of (command_node * string * item list)
 
@@ -51,6 +52,7 @@ module Command : sig
     | H_DEL_EDGE_EXPL of (Gid.t * Gid.t *G_edge.t)
     | H_DEL_EDGE_NAME of string
     | H_ADD_EDGE of (Gid.t * Gid.t * G_edge.t)
+    | H_ADD_EDGE_EXPL of (Gid.t * Gid.t * string)
     | H_DEL_FEAT of (Gid.t *string)
     | H_UPDATE_FEAT of (Gid.t * string * string)
 
