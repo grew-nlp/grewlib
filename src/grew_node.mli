@@ -73,8 +73,8 @@ module G_node: sig
       raise an [Build] exception if there is more than one such feature. *)
   val get_annot_info: t -> string option
 
-  val build_neighbour: t -> t
-  val build_new: t -> t
+  (* val build_neighbour: t -> t
+  val build_new: t -> t *)
 
   val rename: (Gid.t * Gid.t) list -> t -> t
 end

@@ -332,7 +332,7 @@ rule:
             {
               { Ast.rule_id = fst id_loc;
                 pattern = Ast.complete_pattern { Ast.pat_pos = p; Ast.pat_negs = n };
-                commands = Ast.replace_new_neighbour cmds;
+                commands = cmds;
                 param = None;
                 lex_par = None;
                 rule_doc = begin match doc with Some d -> d | None -> [] end;
@@ -343,7 +343,7 @@ rule:
             {
               { Ast.rule_id = fst id_loc;
                 pattern = Ast.complete_pattern { Ast.pat_pos = p; Ast.pat_negs = n };
-                commands = Ast.replace_new_neighbour cmds;
+                commands = cmds;
                 param = Some param;
                 lex_par = lex_par;
                 rule_doc = begin match doc with Some d -> d | None -> [] end;
@@ -672,12 +672,6 @@ command:
         /*   m.cat = n.x + "_" + nn.y   */
         | com_fead_id_loc= feature_ident_with_loc EQUAL items=separated_nonempty_list (PLUS, concat_item)
             { let (com_fead_id,loc) = com_fead_id_loc in (Ast.Update_feat (com_fead_id, items), loc) }
-
-        /* OBSOLETE SYNTAX */
-        /*   add_node n: <-[x]- m   */
-        | ADD_NODE new_ci_loc=simple_id_with_loc DDOT label=delimited(RTL_EDGE_LEFT,label_ident,RTL_EDGE_RIGHT) anc_ci=simple_id
-            { let (new_ci,loc) = new_ci_loc in (Ast.New_neighbour (new_ci, anc_ci,label), loc) }
-
 
 concat_item:
         | gi=ID            { if Ast.is_simple_ident gi then Ast.String_item gi else Ast.Qfn_item (Ast.parse_feature_ident gi) }

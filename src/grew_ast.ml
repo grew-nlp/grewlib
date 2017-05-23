@@ -255,7 +255,6 @@ module Ast = struct
     | Shift_out of (Id.name * Id.name * edge_label_cst)
     | Shift_edge of (Id.name * Id.name * edge_label_cst)
 
-    | New_neighbour of (Id.name * Id.name * edge_label)
     | New_node of Id.name
     | New_before of (Id.name * Id.name)
     | New_after of (Id.name * Id.name)
@@ -303,7 +302,6 @@ module Ast = struct
     | Shift_edge (n1,n2,Regexp re) ->
       sprintf "shift %s =[re\"%s\"]=> %s" n1 re n2
 
-    | New_neighbour (n1,n2,label) -> sprintf "add_node %s: <-[%s]- %s" n1 label n2
     | New_node (n) -> sprintf "add_node %s" n
     | New_before (n1,n2) -> sprintf "add_node %s :< %s" n1 n2
     | New_after (n1,n2) -> sprintf "add_node %s :> %s" n1 n2
@@ -312,12 +310,6 @@ module Ast = struct
       sprintf "%s.%s = %s" act_id feat_name (List_.to_string string_of_concat_item " + " item_list)
     | Del_feat (act_id, feat_name) ->
       sprintf "del_feat %s.%s" act_id feat_name
-
-  let rec replace_new_neighbour = function
-  | [] -> []
-  | (New_neighbour (new_name, old_name, edge),loc) :: tail ->
-    (New_after (new_name, old_name),loc) :: (Add_edge (old_name, new_name, edge),loc) :: (replace_new_neighbour tail)
-  | head :: tail -> head :: (replace_new_neighbour tail)
 
   (* the [rule] type is used for 3 kinds of module items:
      - rule     { param=None; ... }

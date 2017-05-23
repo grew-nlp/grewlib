@@ -139,8 +139,6 @@ module G_graph: sig
       [graph] is unchanged if the node is not in it. *)
   val del_node: t -> Gid.t -> t
 
-  val add_neighbour: Loc.t -> ?domain:Domain.t -> t -> Gid.t -> G_edge.t -> (Gid.t * t)
-
   val add_before: Loc.t -> ?domain:Domain.t -> Gid.t -> t -> (Gid.t * t)
   val add_after: Loc.t -> ?domain:Domain.t -> Gid.t -> t -> (Gid.t * t)
 

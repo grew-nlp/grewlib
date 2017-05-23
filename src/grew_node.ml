@@ -111,9 +111,9 @@ module G_node = struct
 
   let rm_out_edges t = {t with next = Massoc_gid.empty}
 
-  let build_neighbour t = { empty with position = (get_position t) +. 0.01 }
+  (* let build_neighbour t = { empty with position = (get_position t) +. 0.01 }
 
-  let build_new t = { empty with position = (get_position t) +. 0.01 }
+  let build_new t = { empty with position = (get_position t) +. 0.01 } *)
 
   let position_comp n1 n2 = Pervasives.compare n1.position n2.position
 

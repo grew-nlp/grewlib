@@ -529,9 +529,6 @@ module G_graph = struct
     { graph with map = new_map }
 
   (* -------------------------------------------------------------------------------- *)
-  let add_neighbour loc ?domain graph node_id label = failwith "no more add_neighbour"
-
-  (* -------------------------------------------------------------------------------- *)
   let insert ?domain id1 id2 graph =
     let node1 = Gid_map.find id1 graph.map in
     let node2 = Gid_map.find id2 graph.map in

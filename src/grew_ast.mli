@@ -143,8 +143,6 @@ module Ast : sig
     | Shift_out of (Id.name * Id.name * edge_label_cst)
     | Shift_edge of (Id.name * Id.name * edge_label_cst)
 
-    | New_neighbour of (Id.name * Id.name * edge_label)
-
     | New_node of Id.name
     | New_before of (Id.name * Id.name)
     | New_after of (Id.name * Id.name)
@@ -155,10 +153,6 @@ module Ast : sig
     | Update_feat of feature_ident * concat_item list
   val string_of_u_command:  u_command -> string
   type command = u_command * Loc.t
-
-
-
-  val replace_new_neighbour: command list -> command list
 
   type rule = {
       rule_id:Id.name;
