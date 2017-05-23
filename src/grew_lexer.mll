@@ -151,41 +151,41 @@ and standard target = parse
 
 | '\n'       { incr Global.current_line; Lexing.new_line lexbuf; global lexbuf}
 
-| "include"     { INCL }
-| "domain"      { DOMAIN }
-| "features"    { FEATURES }
-| "feature"     { FEATURE }
-| "file"        { FILE }
-| "labels"      { Global.label_flag := true; LABELS }
+| "include"       { INCL }
+| "domain"        { DOMAIN }
+| "features"      { FEATURES }
+| "feature"       { FEATURE }
+| "file"          { FILE }
+| "labels"        { Global.label_flag := true; LABELS }
 
-| "match"       { Log.fwarning "[file %s, line %d]\"match\" is deprecated, please use \"pattern\" instead" !Global.current_file !Global.current_line; PATTERN }
-| "pattern"     { PATTERN }
+| "match"         { Log.fwarning "[file %s, line %d]\"match\" is deprecated, please use \"pattern\" instead" !Global.current_file !Global.current_line; PATTERN }
+| "pattern"       { PATTERN }
 
-| "without"     { WITHOUT }
-| "commands"    { COMMANDS }
+| "without"       { WITHOUT }
+| "commands"      { COMMANDS }
 
-| "add_edge"    { ADD_EDGE }
-| "del_edge"    { DEL_EDGE }
-| "shift_in"    { SHIFT_IN }
-| "shift_out"   { SHIFT_OUT }
-| "shift"       { SHIFT }
-| "merge"       { MERGE }
-| "del_node"    { DEL_NODE }
-| "add_node"    { ADD_NODE }
-| "del_feat"    { DEL_FEAT }
+| "add_edge"      { ADD_EDGE }
+| "del_edge"      { DEL_EDGE }
+| "shift_in"      { SHIFT_IN }
+| "shift_out"     { SHIFT_OUT }
+| "shift"         { SHIFT }
+| "merge"         { MERGE }
+| "del_node"      { DEL_NODE }
+| "add_node"      { ADD_NODE }
+| "del_feat"      { DEL_FEAT }
 
-| "module"      { MODULE }
+| "module"        { MODULE }
 | "confluent"     { Log.fwarning "[file %s, line %d]\"confluent\" is deprecated, please use \"deterministic\" instead" !Global.current_file !Global.current_line; DETERMINISTIC }
 | "deterministic" { DETERMINISTIC }
-| "rule"        { RULE }
-| "lex_rule"    { Log.fwarning "[file %s, line %d]\"lex_rule\" is deprecated, please use \"rule\" instead" ! Global.current_file !Global.current_line; RULE }
-| "filter"      { FILTER }
-| "sequences"   { SEQUENCES }
+| "rule"          { RULE }
+| "lex_rule"      { Log.fwarning "[file %s, line %d]\"lex_rule\" is deprecated, please use \"rule\" instead" ! Global.current_file !Global.current_line; RULE }
+| "filter"        { FILTER }
+| "sequences"     { SEQUENCES }
 
-| "pick"        { PICK }
-| "try"         { TRY }
+| "pick"          { PICK }
+| "try"           { TRY }
 
-| "graph"       { GRAPH }
+| "graph"         { GRAPH }
 
 | digit+ ('.' digit*)? as number  { FLOAT (float_of_string number) }
 
@@ -211,40 +211,41 @@ and standard target = parse
 | "!"   { BANG }
 | "<>"  { DISEQUAL }
 
+| "<"        { LT }
+| ">"        { GT }
+
 | "<<"       { LPREC }
 | ">>"       { LSUCC }
 
-| ":<"         { BEFORE }
-| ":>"         { AFTER }
+| ":<"       { BEFORE }
+| ":>"       { AFTER }
 
-| "<"        { LT }
-| ">"        { GT }
 | "<=" | "≤" { LE }
 | ">=" | "≥" { GE }
 
-| '|'   { PIPE }
-| "->"  { EDGE }
-| "-[^" { Global.label_flag := true; LTR_EDGE_LEFT_NEG }
-| "-["  { Global.label_flag := true; LTR_EDGE_LEFT }
-| "]->" { LTR_EDGE_RIGHT }
-| "<-[" { Global.label_flag := true; RTL_EDGE_LEFT }
-| "]-"  { RTL_EDGE_RIGHT }
+| '|'        { PIPE }
+| "->"       { EDGE }
+| "-[^"      { Global.label_flag := true; LTR_EDGE_LEFT_NEG }
+| "-["       { Global.label_flag := true; LTR_EDGE_LEFT }
+| "]->"      { LTR_EDGE_RIGHT }
+| "<-["      { Global.label_flag := true; RTL_EDGE_LEFT }
+| "]-"       { RTL_EDGE_RIGHT }
 
-| "==>" { ARROW }
-| "=["  { Global.label_flag := true; ARROW_LEFT }
-| "=[^" { Global.label_flag := true; ARROW_LEFT_NEG }
-| "]=>" { ARROW_RIGHT }
+| "==>"      { ARROW }
+| "=["       { Global.label_flag := true; ARROW_LEFT }
+| "=[^"      { Global.label_flag := true; ARROW_LEFT_NEG }
+| "]=>"      { ARROW_RIGHT }
 
 | '"'      { Buffer.clear buff; string_lex false global lexbuf }
 | "re\""   { Buffer.clear buff; string_lex true global lexbuf }
 
-| eof   { EOF }
+| eof      { EOF }
 
-| _ as c { raise (Error (sprintf "At line %d: unexpected character '%c'" (lexbuf.Lexing.lex_start_p.Lexing.pos_lnum) c)) }
+| _ as c   { raise (Error (sprintf "At line %d: unexpected character '%c'" (lexbuf.Lexing.lex_start_p.Lexing.pos_lnum) c)) }
 
 and const = parse
-  | [' ' '\t']        { const lexbuf }
-  | '\n'              { incr Global.current_line; const lexbuf}
-  | '('               { LPAREN }
-  | ')'               { RPAREN }
+  | [' ' '\t']            { const lexbuf }
+  | '\n'                  { incr Global.current_line; const lexbuf}
+  | '('                   { LPAREN }
+  | ')'                   { RPAREN }
   | [^'(' ')' ' ']+ as id { ID id }
