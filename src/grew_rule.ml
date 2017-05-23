@@ -885,6 +885,10 @@ module Rule = struct
   (* the exception below is added to handle unification failure in merge!! *)
   exception Command_execution_fail
 
+  (* [in_img node_gid n_match] checks if [node_gid] belongs to the codomain of [n_match] *)
+  let test_locality matching created_nodes gid =
+    (Pid_map.exists (fun _ id -> id=gid) matching.n_match) || (List.exists (fun (_,id) -> id=gid) created_nodes)
+
   (*  ---------------------------------------------------------------------- *)
   (** [apply_command instance matching created_nodes command] returns [(new_instance, new_created_nodes)] *)
   let apply_command ?domain (command,loc) instance matching created_nodes =
@@ -965,7 +969,7 @@ module Rule = struct
     | Command.MERGE_NODE (src_cn, tar_cn) ->
         let src_gid = node_find src_cn in
         let tar_gid = node_find tar_cn in
-        (match G_graph.merge_node loc ?domain instance.Instance.graph src_gid tar_gid with
+        (match G_graph.merge_node loc ?domain instance.Instance.graph (test_locality matching created_nodes) src_gid tar_gid with
         | Some new_graph ->
             (
              {instance with
@@ -1051,7 +1055,7 @@ module Rule = struct
         let tar_gid = node_find tar_cn in
         (
          {instance with
-          Instance.graph = G_graph.shift_in loc ?domain src_gid tar_gid label_cst instance.Instance.graph;
+          Instance.graph = G_graph.shift_in loc ?domain src_gid tar_gid (test_locality matching created_nodes) label_cst instance.Instance.graph;
           history = List_.sort_insert (Command.H_SHIFT_IN (src_gid,tar_gid)) instance.Instance.history
         },
          created_nodes
@@ -1062,7 +1066,7 @@ module Rule = struct
         let tar_gid = node_find tar_cn in
         (
          {instance with
-          Instance.graph = G_graph.shift_out loc ?domain src_gid tar_gid label_cst instance.Instance.graph;
+          Instance.graph = G_graph.shift_out loc ?domain src_gid tar_gid (test_locality matching created_nodes) label_cst instance.Instance.graph;
           history = List_.sort_insert (Command.H_SHIFT_OUT (src_gid,tar_gid)) instance.Instance.history
         },
          created_nodes
@@ -1073,7 +1077,7 @@ module Rule = struct
         let tar_gid = node_find tar_cn in
         (
           {instance with
-            Instance.graph = G_graph.shift_edges loc ?domain src_gid tar_gid label_cst instance.Instance.graph;
+            Instance.graph = G_graph.shift_edges loc ?domain src_gid tar_gid (test_locality matching created_nodes) label_cst instance.Instance.graph;
             history = List_.sort_insert (Command.H_SHIFT_EDGE (src_gid,tar_gid)) instance.Instance.history
           },
           created_nodes

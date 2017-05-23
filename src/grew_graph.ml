@@ -583,30 +583,21 @@ module G_graph = struct
 
   (* -------------------------------------------------------------------------------- *)
   (* move out-edges (which respect cst [labels,neg]) from id_src are moved to out-edges out off node id_tar *)
-  let shift_out loc ?domain src_gid tar_gid label_cst graph =
+  let shift_out loc ?domain src_gid tar_gid is_gid_local label_cst graph =
     let src_node = Gid_map.find src_gid graph.map in
     let tar_node = Gid_map.find tar_gid graph.map in
 
     let src_next = G_node.get_next src_node in
     let tar_next = G_node.get_next tar_node in
 
-    (* Error if a loop is created by the shift_out *)
-    let src_tar_edges = Massoc_gid.assoc tar_gid src_next in
-    let _ =
-      try
-        let loop_edge = List.find (fun edge -> Label_cst.match_ ?domain label_cst edge) src_tar_edges in
-        Error.run ~loc "The shfit_out command tries to build a loop (with label %s)" (Label.to_string ?domain loop_edge)
-      with Not_found -> () in
-
-    let (new_src_next,new_tar_next) =
+    let (new_src_next, new_tar_next) =
     Massoc_gid.fold
       (fun (acc_src_next,acc_tar_next) next_gid edge ->
-        if Label_cst.match_ ?domain label_cst edge
+        if Label_cst.match_ ?domain label_cst edge && not (is_gid_local next_gid)
         then
           match Massoc_gid.add next_gid edge acc_tar_next with
           | Some new_acc_tar_next -> (Massoc_gid.remove next_gid edge acc_src_next, new_acc_tar_next)
           | None -> Error.run ~loc "The [shift_out] command tries to build a duplicate edge (with label \"%s\")" (Label.to_string ?domain edge)
-
         else (acc_src_next,acc_tar_next)
       )
       (src_next, tar_next) src_next in
@@ -618,21 +609,13 @@ module G_graph = struct
     }
 
   (* -------------------------------------------------------------------------------- *)
-  let shift_in loc ?domain src_gid tar_gid label_cst graph =
-    let tar_node = Gid_map.find tar_gid graph.map in
-    let tar_next = G_node.get_next tar_node in
-
-    (* Error if a loop is created by the shift_in *)
-    let tar_src_edges = Massoc_gid.assoc src_gid tar_next in
-    let _ =
-      try
-        let loop_edge = List.find (fun edge -> Label_cst.match_ ?domain label_cst edge) tar_src_edges in
-        Error.run ~loc "The [shift_in] command tries to build a loop (with label \"%s\")" (Label.to_string ?domain loop_edge)
-      with Not_found -> () in
-
+  let shift_in loc ?domain src_gid tar_gid is_gid_local label_cst graph =
     { graph with map =
-        Gid_map.mapi
-          (fun node_id node ->
+      Gid_map.mapi
+        (fun node_id node ->
+          if is_gid_local node_id
+          then node
+          else
             let node_next = G_node.get_next node in
             match Massoc_gid.assoc src_gid node_next with
             | [] -> node (* no edges from node to src *)
@@ -658,14 +641,14 @@ module G_graph = struct
     }
 
   (* -------------------------------------------------------------------------------- *)
-  let shift_edges loc ?domain src_gid tar_gid label_cst graph =
+  let shift_edges loc ?domain src_gid tar_gid is_gid_local label_cst graph =
     graph
-    |> (shift_in loc ?domain src_gid tar_gid label_cst)
-    |> (shift_out loc ?domain src_gid tar_gid label_cst)
+    |> (shift_in loc ?domain src_gid tar_gid is_gid_local label_cst)
+    |> (shift_out loc ?domain src_gid tar_gid is_gid_local label_cst)
 
   (* -------------------------------------------------------------------------------- *)
-  let merge_node loc ?domain graph src_gid tar_gid =
-    let se_graph = shift_edges loc ?domain src_gid tar_gid Label_cst.all graph in
+  let merge_node loc ?domain graph is_gid_local src_gid tar_gid =
+    let se_graph = shift_edges loc ?domain src_gid tar_gid is_gid_local Label_cst.all graph in
 
     let src_node = Gid_map.find src_gid se_graph.map in
     let tar_node = Gid_map.find tar_gid se_graph.map in

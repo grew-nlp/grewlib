@@ -144,16 +144,16 @@ module G_graph: sig
   val add_before: Loc.t -> ?domain:Domain.t -> Gid.t -> t -> (Gid.t * t)
   val add_after: Loc.t -> ?domain:Domain.t -> Gid.t -> t -> (Gid.t * t)
 
-  val merge_node: Loc.t -> ?domain:Domain.t -> t -> Gid.t -> Gid.t -> t option
+  val merge_node: Loc.t -> ?domain:Domain.t -> t -> (Gid.t -> bool) -> Gid.t -> Gid.t -> t option
 
   (** move all in arcs to id_src are moved to in arcs on node id_tar from graph, with all its incoming edges *)
-  val shift_in: Loc.t -> ?domain:Domain.t -> Gid.t -> Gid.t -> Label_cst.t -> t -> t
+  val shift_in: Loc.t -> ?domain:Domain.t -> Gid.t -> Gid.t -> (Gid.t -> bool) -> Label_cst.t -> t -> t
 
   (** move all out-edges from id_src are moved to out-edges out off node id_tar *)
-  val shift_out: Loc.t -> ?domain:Domain.t -> Gid.t -> Gid.t -> Label_cst.t -> t -> t
+  val shift_out: Loc.t -> ?domain:Domain.t -> Gid.t -> Gid.t -> (Gid.t -> bool) -> Label_cst.t -> t -> t
 
   (** move all incident arcs from/to id_src are moved to incident arcs on node id_tar from graph, with all its incoming and outcoming edges *)
-  val shift_edges: Loc.t -> ?domain:Domain.t -> Gid.t -> Gid.t -> Label_cst.t -> t -> t
+  val shift_edges: Loc.t -> ?domain:Domain.t -> Gid.t -> Gid.t -> (Gid.t -> bool) -> Label_cst.t -> t -> t
 
   (** [update_feat domain tar_id tar_feat_name concat_items] sets the feature of the node [tar_id]
       with feature name [tar_feat_name] to be the contatenation of values described by the [concat_items].
