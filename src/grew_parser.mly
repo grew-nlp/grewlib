@@ -77,7 +77,7 @@ let localize t = (t,get_loc ())
 %token FEATURE                     /* feature */
 %token FILE                        /* file */
 %token LABELS                      /* labels */
-%token MATCH                       /* match */
+%token PATTERN                       /* match */
 %token WITHOUT                     /* without */
 %token COMMANDS                    /* commands */
 %token MODULE                      /* module */
@@ -377,7 +377,7 @@ var:
         | i=AROBAS_ID       { i }
 
 pos_item:
-        | MATCH i=pn_item   { i }
+        | PATTERN i=pn_item   { i }
 
 neg_item:
         | WITHOUT i=pn_item { i }
@@ -393,7 +393,7 @@ pn_item:
            }
 
 /*=============================================================================================*/
-/* MATCH DEFINITION                                                                            */
+/* PATTERN DEFINITION                                                                            */
 /*=============================================================================================*/
 pat_item:
         /*   R [cat=V, lemma=$lemma]   */

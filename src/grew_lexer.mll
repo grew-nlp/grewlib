@@ -157,7 +157,10 @@ and standard target = parse
 | "feature"     { FEATURE }
 | "file"        { FILE }
 | "labels"      { Global.label_flag := true; LABELS }
-| "match"       { MATCH }
+
+| "match"       { Log.fwarning "[file %s, line %d]\"match\" is deprecated, please use \"pattern\" instead" !Global.current_file !Global.current_line; PATTERN }
+| "pattern"     { PATTERN }
+
 | "without"     { WITHOUT }
 | "commands"    { COMMANDS }
 
