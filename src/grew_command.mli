@@ -42,7 +42,6 @@ module Command : sig
     | SHIFT_EDGE of (command_node * command_node * Label_cst.t)
     | SHIFT_IN of (command_node * command_node * Label_cst.t)
     | SHIFT_OUT of (command_node * command_node * Label_cst.t)
-    | MERGE_NODE of (command_node * command_node)
 
   type t = (p * Loc.t)
   val to_json: ?domain:Domain.t -> t -> Yojson.Basic.json
@@ -63,7 +62,6 @@ module Command : sig
     | H_SHIFT_EDGE of (Gid.t * Gid.t)
     | H_SHIFT_IN of (Gid.t * Gid.t)
     | H_SHIFT_OUT of (Gid.t * Gid.t)
-    | H_MERGE_NODE of (Gid.t * Gid.t)
 
   val build:
       ?domain: Domain.t ->

@@ -255,7 +255,6 @@ module Ast = struct
     | Shift_out of (Id.name * Id.name * edge_label_cst)
     | Shift_edge of (Id.name * Id.name * edge_label_cst)
 
-    | Merge_node of (Id.name * Id.name)
     | New_neighbour of (Id.name * Id.name * edge_label)
     | New_node of Id.name
     | New_before of (Id.name * Id.name)
@@ -304,7 +303,6 @@ module Ast = struct
     | Shift_edge (n1,n2,Regexp re) ->
       sprintf "shift %s =[re\"%s\"]=> %s" n1 re n2
 
-    | Merge_node (n1,n2) -> sprintf "merge %s ==> %s" n1 n2
     | New_neighbour (n1,n2,label) -> sprintf "add_node %s: <-[%s]- %s" n1 label n2
     | New_node (n) -> sprintf "add_node %s" n
     | New_before (n1,n2) -> sprintf "add_node %s :< %s" n1 n2

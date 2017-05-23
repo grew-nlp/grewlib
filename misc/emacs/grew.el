@@ -17,7 +17,6 @@
 ;;    ("$[a-zA-Z0-9_àéèçâôûêäïüö'\-]+" . font-lock-constant-face);;params inside
     ("del_edge" . font-lock-constant-face)
     ("add_edge" . font-lock-constant-face)
-    ("merge" . font-lock-constant-face)
     ("shift" . font-lock-constant-face)
     ("shift_in" . font-lock-constant-face)
     ("shift_out" . font-lock-constant-face)

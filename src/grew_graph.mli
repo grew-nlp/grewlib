@@ -144,8 +144,6 @@ module G_graph: sig
   val add_before: Loc.t -> ?domain:Domain.t -> Gid.t -> t -> (Gid.t * t)
   val add_after: Loc.t -> ?domain:Domain.t -> Gid.t -> t -> (Gid.t * t)
 
-  val merge_node: Loc.t -> ?domain:Domain.t -> t -> (Gid.t -> bool) -> Gid.t -> Gid.t -> t option
-
   (** move all in arcs to id_src are moved to in arcs on node id_tar from graph, with all its incoming edges *)
   val shift_in: Loc.t -> ?domain:Domain.t -> Gid.t -> Gid.t -> (Gid.t -> bool) -> Label_cst.t -> t -> t
 

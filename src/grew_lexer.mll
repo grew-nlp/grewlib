@@ -169,7 +169,7 @@ and standard target = parse
 | "shift_in"      { SHIFT_IN }
 | "shift_out"     { SHIFT_OUT }
 | "shift"         { SHIFT }
-| "merge"         { MERGE }
+| "merge"         { raise (Error "merge commnand was removed since version 0.43") }
 | "del_node"      { DEL_NODE }
 | "add_node"      { ADD_NODE }
 | "del_feat"      { DEL_FEAT }

@@ -881,11 +881,8 @@ module Rule = struct
         extend_matching ?domain (positive,neg) graph new_partial
       with P_fs.Fail -> []
 
-  (*  ---------------------------------------------------------------------- *)
-  (* the exception below is added to handle unification failure in merge!! *)
-  exception Command_execution_fail
-
-  (* [in_img node_gid n_match] checks if [node_gid] belongs to the codomain of [n_match] *)
+  (*  [test_locality matching created_nodes gid] checks if [gid] is a "local" node:
+      either it belongs to the codomain of [matching] or it is one of the [created_nodes] *)
   let test_locality matching created_nodes gid =
     (Pid_map.exists (fun _ id -> id=gid) matching.n_match) || (List.exists (fun (_,id) -> id=gid) created_nodes)
 
@@ -964,21 +961,6 @@ module Rule = struct
           history = List_.sort_insert (Command.H_DEL_NODE node_gid) instance.Instance.history
         },
          created_nodes
-        )
-
-    | Command.MERGE_NODE (src_cn, tar_cn) ->
-        let src_gid = node_find src_cn in
-        let tar_gid = node_find tar_cn in
-        (match G_graph.merge_node loc ?domain instance.Instance.graph (test_locality matching created_nodes) src_gid tar_gid with
-        | Some new_graph ->
-            (
-             {instance with
-              Instance.graph = new_graph;
-              history = List_.sort_insert (Command.H_MERGE_NODE (src_gid,tar_gid)) instance.Instance.history
-            },
-             created_nodes
-            )
-        | None -> raise Command_execution_fail
         )
 
     | Command.UPDATE_FEAT (tar_cn,tar_feat_name, item_list) ->
@@ -1084,8 +1066,7 @@ module Rule = struct
         )
 
   (*  ---------------------------------------------------------------------- *)
-  (** [apply_rule instance matching rule] returns a new instance after the application of the rule
-      [Command_execution_fail] is raised if some merge unification fails *)
+  (** [apply_rule instance matching rule] returns a new instance after the application of the rule *)
   let apply_rule ?domain modul_name instance matching rule =
 
     (* Timeout check *)
@@ -1193,8 +1174,7 @@ module Rule = struct
           let matching_list = match_in_graph ?domain ?param:rule.param rule.pattern instance.Instance.graph in
           List.fold_left
             (fun acc1 matching ->
-              try Instance_set.add (apply_rule ?domain modul_name instance matching rule) acc1
-              with Command_execution_fail -> acc1
+              Instance_set.add (apply_rule ?domain modul_name instance matching rule) acc1
             ) acc matching_list
         ) Instance_set.empty rules
 

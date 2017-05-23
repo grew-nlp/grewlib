@@ -63,7 +63,6 @@ module Command  = struct
     | SHIFT_EDGE of (command_node * command_node * Label_cst.t)
     | SHIFT_IN of (command_node * command_node * Label_cst.t)
     | SHIFT_OUT of (command_node * command_node * Label_cst.t)
-    | MERGE_NODE of (command_node * command_node)
 
   type t = p * Loc.t  (* remember command location to be able to localize a command failure *)
 
@@ -153,13 +152,6 @@ module Command  = struct
           ("label_cst", Label_cst.to_json ?domain label_cst);
         ]
       )]
-  | MERGE_NODE (src,tar) ->
-      `Assoc [("merge",
-        `Assoc [
-          ("src",command_node_to_json src);
-          ("tar",command_node_to_json tar);
-        ]
-      )]
 
   (* a item in the command history: command applied to a graph *)
   type h =
@@ -178,7 +170,6 @@ module Command  = struct
     | H_SHIFT_EDGE of (Gid.t * Gid.t)
     | H_SHIFT_IN of (Gid.t * Gid.t)
     | H_SHIFT_OUT of (Gid.t * Gid.t)
-    | H_MERGE_NODE of (Gid.t * Gid.t)
 
 
   let build ?domain ?param (kai, kei) table locals ast_command =
@@ -236,11 +227,6 @@ module Command  = struct
           check_node_id loc act_i kai;
           check_node_id loc act_j kai;
           ((SHIFT_OUT (pid_of_act_id loc act_i, pid_of_act_id loc act_j, Label_cst.build ?domain ~loc label_cst), loc), (kai, kei))
-
-      | (Ast.Merge_node (act_i, act_j), loc) ->
-          check_node_id loc act_i kai;
-          check_node_id loc act_j kai;
-          ((MERGE_NODE (pid_of_act_id loc act_i, pid_of_act_id loc act_j), loc), (List_.rm act_i kai, kei))
 
       | (Ast.New_node new_id, loc) ->
           if List.mem new_id kai

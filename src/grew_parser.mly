@@ -89,7 +89,6 @@ let localize t = (t,get_loc ())
 
 %token DEL_EDGE                    /* del_edge */
 %token ADD_EDGE                    /* add_edge */
-%token MERGE                       /* merge */
 %token SHIFT_IN                    /* shift_in */
 %token SHIFT_OUT                   /* shift_out */
 %token SHIFT                       /* shift */
@@ -649,10 +648,6 @@ command:
           labels=delimited(ARROW_LEFT_NEG,separated_nonempty_list(PIPE,pattern_label_ident),ARROW_RIGHT)
           tar=simple_id
             { let (src,loc) = src_loc in (Ast.Shift_edge (src, tar, Ast.Neg_list labels), loc) }
-
-        /*   merge m ==> n   */
-        | MERGE src_loc=simple_id_with_loc ARROW tar=simple_id
-            { let (src,loc) = src_loc in (Ast.Merge_node (src, tar), loc) }
 
         /*   del_node n   */
         | DEL_NODE ci_loc=simple_id_with_loc

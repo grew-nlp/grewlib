@@ -647,24 +647,6 @@ module G_graph = struct
     |> (shift_out loc ?domain src_gid tar_gid is_gid_local label_cst)
 
   (* -------------------------------------------------------------------------------- *)
-  let merge_node loc ?domain graph is_gid_local src_gid tar_gid =
-    let se_graph = shift_edges loc ?domain src_gid tar_gid is_gid_local Label_cst.all graph in
-
-    let src_node = Gid_map.find src_gid se_graph.map in
-    let tar_node = Gid_map.find tar_gid se_graph.map in
-
-    match G_fs.unif (G_node.get_fs src_node) (G_node.get_fs tar_node) with
-      | Some new_fs ->
-        Some {graph with map =
-            (Gid_map.add
-               tar_gid
-               (G_node.set_fs new_fs tar_node)
-               (Gid_map.remove src_gid se_graph.map)
-            )
-             }
-      | None -> None
-
-  (* -------------------------------------------------------------------------------- *)
   let set_feat ?loc ?domain graph node_id feat_name new_value =
     let node = Gid_map.find node_id graph.map in
     let new_node =

@@ -143,7 +143,6 @@ module Ast : sig
     | Shift_out of (Id.name * Id.name * edge_label_cst)
     | Shift_edge of (Id.name * Id.name * edge_label_cst)
 
-    | Merge_node of (Id.name * Id.name)
     | New_neighbour of (Id.name * Id.name * edge_label)
 
     | New_node of Id.name
