@@ -852,7 +852,7 @@ module G_graph = struct
 
     bprintf buff "digraph G {\n";
     (* bprintf buff "  rankdir=LR;\n"; *)
-    bprintf buff "  node [shape=none];\n";
+    (* bprintf buff "  node [shape=none];\n"; *)
 
     (* nodes *)
     Gid_map.iter
@@ -883,13 +883,13 @@ module G_graph = struct
       (fun id node ->
         begin
           match G_node.get_succ node with
-          | None -> ()
           | Some s when !Global.debug ->
               bprintf buff "  N_%s -> N_%s [label=\"SUCC\", style=dotted, fontcolor=lightblue, color=lightblue]; {rank=same; N_%s; N_%s };\n"
                 (Gid.to_string id) (Gid.to_string s) (Gid.to_string id) (Gid.to_string s)
-          | Some s ->
+          (* | Some s ->
               bprintf buff "  N_%s -> N_%s [style=invis]; {rank=same; N_%s; N_%s };\n"
-                (Gid.to_string id) (Gid.to_string s) (Gid.to_string id) (Gid.to_string s)
+                (Gid.to_string id) (Gid.to_string s) (Gid.to_string id) (Gid.to_string s) *)
+          | _ -> ()
         end
       ) graph.map;
 
