@@ -51,7 +51,7 @@ module G_feature = struct
   let build ?domain = function
     | ({Ast.kind=Ast.Equality [atom]; name=name},loc) ->
       (name, Feature_value.build_value ~loc ?domain name atom)
-    | _ -> Error.build "Illegal feature declaration in Graph (must be '=' and atomic)"
+    | (uf,loc) -> Error.build ~loc "in graph nodes, features must follow the shape \"name = value\" (error on feature: \"%s\")" (Ast.u_feature_to_string uf)
 
   let to_string (feat_name, feat_val) = sprintf "%s=%s" feat_name (string_of_value feat_val)
 

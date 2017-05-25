@@ -61,6 +61,8 @@ module Ast : sig
     name: feature_name;
     kind: feature_kind;
   }
+  val u_feature_to_string: u_feature -> string
+
   type feature = u_feature * Loc.t
 
   val default_fs: ?loc:Loc.t -> string -> feature list

@@ -89,11 +89,22 @@ module Ast = struct
     | Equal_param of string (* $ident *)
     | Absent
 
+  let feature_kind_to_string = function
+    | Equality fv_list -> sprintf " = %s" (String.concat "|" fv_list)
+    | Disequality [] -> ""
+    | Disequality fv_list -> sprintf " <> %s" (String.concat "|" fv_list)
+    | Equal_param param -> sprintf  " = $%s" param
+    | Absent -> " <> *"
+
   type u_feature = {
     name: feature_name;
     kind: feature_kind;
   }
+  let u_feature_to_string uf =
+    sprintf "%s%s" uf.name (feature_kind_to_string uf.kind)
+
   type feature = u_feature * Loc.t
+
 
   let default_fs ?loc lab =
     match loc with
