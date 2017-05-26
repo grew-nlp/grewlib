@@ -135,7 +135,6 @@ and label_parser target = parse
 | "re\""   { Buffer.clear buff; string_lex true global lexbuf }
 
 | "]->" { Global.label_flag := false; LTR_EDGE_RIGHT }
-| "]-"  { Global.label_flag := false; RTL_EDGE_RIGHT }
 | "]=>" { Global.label_flag := false; ARROW_RIGHT }
 
 | _ as c { raise (Error (sprintf "unexpected character '%c'" c)) }
@@ -228,8 +227,6 @@ and standard target = parse
 | "-[^"      { Global.label_flag := true; LTR_EDGE_LEFT_NEG }
 | "-["       { Global.label_flag := true; LTR_EDGE_LEFT }
 | "]->"      { LTR_EDGE_RIGHT }
-| "<-["      { Global.label_flag := true; RTL_EDGE_LEFT }
-| "]-"       { RTL_EDGE_RIGHT }
 
 | "==>"      { ARROW }
 | "=["       { Global.label_flag := true; ARROW_LEFT }

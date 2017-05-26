@@ -63,8 +63,6 @@ let localize t = (t,get_loc ())
 %token LTR_EDGE_LEFT               /* -[ */
 %token LTR_EDGE_LEFT_NEG           /* -[^ */
 %token LTR_EDGE_RIGHT              /* ]-> */
-%token RTL_EDGE_LEFT               /* <-[ */
-%token RTL_EDGE_RIGHT              /* ]- */
 
 %token ARROW                       /* ==> */
 %token ARROW_LEFT                  /* =[ */
