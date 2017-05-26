@@ -54,10 +54,7 @@ module Loc: sig
   val file_opt_line_opt: string option -> int option -> t
   val file: string -> t
 
-  val opt_set_line: int -> t option -> t option
-
   val to_string: t -> string
-  val to_line: t -> int
 end
 
 
@@ -285,10 +282,12 @@ end
 
 (* ================================================================================ *)
 module Global: sig
-  val current_file: string ref
+  val current_file: string option ref
   val current_line: int ref
   val init: string -> unit
   val label_flag: bool ref
+
+  val loc_string: unit -> string
 
   val debug: bool ref
 end

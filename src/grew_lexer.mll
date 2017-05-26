@@ -157,7 +157,7 @@ and standard target = parse
 | "file"          { FILE }
 | "labels"        { Global.label_flag := true; LABELS }
 
-| "match"         { Log.fwarning "[file %s, line %d]\"match\" is deprecated, please use \"pattern\" instead" !Global.current_file !Global.current_line; PATTERN }
+| "match"         { Log.fwarning "%s \"match\" is deprecated, please use \"pattern\" instead" (Global.loc_string ()); PATTERN }
 | "pattern"       { PATTERN }
 
 | "without"       { WITHOUT }
@@ -174,10 +174,10 @@ and standard target = parse
 | "del_feat"      { DEL_FEAT }
 
 | "module"        { MODULE }
-| "confluent"     { Log.fwarning "[file %s, line %d]\"confluent\" is deprecated, please use \"deterministic\" instead" !Global.current_file !Global.current_line; DETERMINISTIC }
+| "confluent"     { Log.fwarning "%s \"confluent\" is deprecated, please use \"deterministic\" instead" (Global.loc_string ()); DETERMINISTIC }
 | "deterministic" { DETERMINISTIC }
 | "rule"          { RULE }
-| "lex_rule"      { Log.fwarning "[file %s, line %d]\"lex_rule\" is deprecated, please use \"rule\" instead" ! Global.current_file !Global.current_line; RULE }
+| "lex_rule"      { Log.fwarning "%s \"lex_rule\" is deprecated, please use \"rule\" instead" (Global.loc_string ()); RULE }
 | "filter"        { FILTER }
 | "sequences"     { SEQUENCES }
 

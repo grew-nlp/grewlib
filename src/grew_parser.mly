@@ -28,7 +28,7 @@ type ineq_item =
   | Ineq_sofi of Ast.simple_or_feature_ident
   | Ineq_float of float
 
-let get_loc () = Loc.file_line !Global.current_file !Global.current_line
+let get_loc () = Loc.file_opt_line !Global.current_file !Global.current_line
 let localize t = (t,get_loc ())
 %}
 

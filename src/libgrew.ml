@@ -21,7 +21,6 @@ let get_version () = VERSION
 module Loc = struct
   type t = Grew_base.Loc.t
   let to_string = Grew_base.Loc.to_string
-  let to_line = Grew_base.Loc.to_line
 end
 
 (* ==================================================================================================== *)

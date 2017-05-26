@@ -19,26 +19,19 @@ module Int_map = Map.Make (struct type t = int let compare = Pervasives.compare 
 
 (* ================================================================================ *)
 module Loc = struct
-  type t = string * int
+  type t = string option * int option
 
-  let empty = ("Not a file", -1)
-  let file f = (f, -1)
-  let file_line f l = (f,l)
-  let file_opt_line fo l = match fo with
-  | Some f -> file_line f l
-  | None -> file_line "No_file" l
+  let empty = (None, None)
+  let file f = (Some f, None)
+  let file_line f l = (Some f, Some l)
+  let file_opt_line fo l = (fo, Some l)
+  let file_opt_line_opt fo lo = (fo, lo)
 
-  let file_opt_line_opt fo lo = match (fo,lo) with
-  | (_,Some l) -> file_opt_line fo l
-  | (Some f, None) -> file f
-  | (None, None) -> empty
-
-  let to_string (file,line) = sprintf "[file: %s, line: %d]" (Filename.basename file) line
-  let to_line (_,line) = line
-
-  let opt_set_line line = function
-    | None -> None
-    | Some (file,_) -> Some (file, line)
+  let to_string = function
+  | (Some file, Some line) -> sprintf "[file: %s, line: %d]" (Filename.basename file) line
+  | (None, Some line) -> sprintf "[line: %d]" line
+  | (Some file, None) -> sprintf "[file: %s]" (Filename.basename file)
+  | (None, None) -> ""
 end (* module Loc *)
 
 (* ================================================================================ *)
@@ -604,13 +597,17 @@ end (* module Timeout *)
 
 (* ================================================================================ *)
 module Global = struct
-  let current_file = ref "Not a file"
+  let current_file = ref None
   let current_line = ref 1
   let label_flag = ref false
   let debug = ref false
 
+  let loc_string () = match !current_file with
+  | None -> sprintf "[line %d]" !current_line
+  | Some f -> sprintf "[file %s, line %d]" f !current_line
+
   let init file =
-    current_file := file;
+    current_file := Some file;
     current_line := 1;
-    label_flag := false;
+    label_flag := false
 end
