@@ -282,12 +282,13 @@ end
 
 (* ================================================================================ *)
 module Global: sig
-  val current_file: string option ref
-  val current_line: int ref
-  val init: string -> unit
-  val label_flag: bool ref
+  val new_file: string -> unit
+  val new_string: unit -> unit
+  val new_line: unit -> unit
 
+  val get_loc: unit -> Loc.t
   val loc_string: unit -> string
+  val label_flag: bool ref
 
   val debug: bool ref
 end

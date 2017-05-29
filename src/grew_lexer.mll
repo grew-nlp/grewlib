@@ -56,7 +56,7 @@ let color = hex hex hex hex hex hex | hex hex hex
 (* ------------------------------------------------------------------------------- *)
 
 rule comment target = parse
-| '\n'  { incr Global.current_line; Lexing.new_line lexbuf; target lexbuf }
+| '\n'  { Global.new_line (); Lexing.new_line lexbuf; target lexbuf }
 | eof   { EOF }
 | _     { comment target lexbuf }
 
@@ -65,7 +65,7 @@ and comment_multi_doc target = shortest
   let start = ref 0 in
   try while (Str.search_forward (Str.regexp "\n") comment !start != -1) do
     start := Str.match_end ();
-    incr Global.current_line;
+    Global.new_line ();
     Lexing.new_line lexbuf;
   done; assert false
   with Not_found ->
@@ -74,7 +74,7 @@ and comment_multi_doc target = shortest
 
 and comment_multi target = parse
 | "*/" { target lexbuf }
-| '\n' { incr Global.current_line; Lexing.new_line lexbuf; comment_multi target lexbuf }
+| '\n' { Global.new_line (); Lexing.new_line lexbuf; comment_multi target lexbuf }
 | _  { comment_multi target lexbuf }
 
 and string_lex re target = parse
@@ -83,7 +83,7 @@ and string_lex re target = parse
     then (bprintf buff "\\"; escaped := false; string_lex re target lexbuf)
     else (escaped := true; string_lex re target lexbuf)
   }
-  | '\n' { incr Global.current_line; Lexing.new_line lexbuf; bprintf buff "\n"; string_lex re target lexbuf }
+  | '\n' { Global.new_line (); Lexing.new_line lexbuf; bprintf buff "\n"; string_lex re target lexbuf }
   | '\"' {
     if !escaped
     then (bprintf buff "\""; escaped := false; string_lex re target lexbuf)
@@ -98,9 +98,9 @@ and string_lex re target = parse
 
 (* a dedicated lexer for lexical parameter: read everything until "#END" *)
 and lp_lex target = parse
-| '\n'                    { incr Global.current_line; Lexing.new_line lexbuf; bprintf buff "\n"; lp_lex target lexbuf }
+| '\n'                    { Global.new_line (); Lexing.new_line lexbuf; bprintf buff "\n"; lp_lex target lexbuf }
 | _ as c                  { bprintf buff "%c" c; lp_lex target lexbuf }
-| "#END" [' ' '\t']* '\n' { incr Global.current_line; LEX_PAR (Str.split (Str.regexp "\n") (Buffer.contents buff)) }
+| "#END" [' ' '\t']* '\n' { Global.new_line (); LEX_PAR (Str.split (Str.regexp "\n") (Buffer.contents buff)) }
 
 (* The lexer must be different when label_ident are parsed. The [global] lexer calls either
    [label_parser] or [standard] depending on the flag [Global.label_flag].
@@ -120,7 +120,7 @@ and label_parser target = parse
 | [' ' '\t'] { global lexbuf }
 | "/*"       { comment_multi global lexbuf }
 | '%'        { comment global lexbuf }
-| '\n'       { incr Global.current_line; Lexing.new_line lexbuf; global lexbuf}
+| '\n'       { Global.new_line (); Lexing.new_line lexbuf; global lexbuf}
 
 | '{'   { LACC }
 | '}'   { Global.label_flag := false; RACC }
@@ -146,9 +146,9 @@ and standard target = parse
 | "/*"       { comment_multi global lexbuf }
 | '%'        { comment global lexbuf }
 
-| "#BEGIN" [' ' '\t']* '\n' { incr Global.current_line; Buffer.clear buff; lp_lex global lexbuf}
+| "#BEGIN" [' ' '\t']* '\n' { Global.new_line (); Buffer.clear buff; lp_lex global lexbuf}
 
-| '\n'       { incr Global.current_line; Lexing.new_line lexbuf; global lexbuf}
+| '\n'       { Global.new_line (); Lexing.new_line lexbuf; global lexbuf}
 
 | "include"       { INCL }
 | "domain"        { DOMAIN }
@@ -242,7 +242,7 @@ and standard target = parse
 
 and const = parse
   | [' ' '\t']            { const lexbuf }
-  | '\n'                  { incr Global.current_line; const lexbuf}
+  | '\n'                  { Global.new_line (); const lexbuf}
   | '('                   { LPAREN }
   | ')'                   { RPAREN }
   | [^'(' ')' ' ']+ as id { ID id }

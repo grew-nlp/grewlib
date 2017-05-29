@@ -597,17 +597,24 @@ end (* module Timeout *)
 
 (* ================================================================================ *)
 module Global = struct
-  let current_file = ref None
-  let current_line = ref 1
+  let current_loc = ref Loc.empty
   let label_flag = ref false
+
+  let get_loc () = !current_loc
+  let loc_string () = Loc.to_string !current_loc
+
+  let new_file filename =
+    current_loc := (Some filename, Some 1);
+    label_flag := false
+
+  let new_string () =
+    current_loc := (None , Some 1);
+    label_flag := false
+
+  let new_line () = match !current_loc with
+  | (_,None) -> ()
+  | (fo, Some l) -> current_loc := (fo, Some (l+1))
+
   let debug = ref false
 
-  let loc_string () = match !current_file with
-  | None -> sprintf "[line %d]" !current_line
-  | Some f -> sprintf "[file %s, line %d]" f !current_line
-
-  let init file =
-    current_file := Some file;
-    current_line := 1;
-    label_flag := false
 end
