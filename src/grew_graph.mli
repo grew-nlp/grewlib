@@ -62,7 +62,6 @@ module P_graph: sig
   val build:
       ?domain:Domain.t ->
       ?pat_vars: string list ->
-      ?locals: Label_domain.decl array ->
       Ast.node list ->
       Ast.edge list ->
       (t * Id.table)
@@ -71,7 +70,6 @@ module P_graph: sig
   val build_extension:
       ?domain:Domain.t ->
       ?pat_vars: string list ->
-      ?locals: Label_domain.decl array ->
       Id.table ->
       Ast.node list ->
       Ast.edge list ->
@@ -108,7 +106,7 @@ module G_graph: sig
   (* Build functions *)
   (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
 
-  val build: ?domain:Domain.t -> ?grewpy: bool -> ?locals: Label_domain.decl array -> Ast.gr -> t
+  val build: ?domain:Domain.t -> ?grewpy: bool -> Ast.gr -> t
 
   val of_conll: ?domain:Domain.t -> Conll.t -> t
 

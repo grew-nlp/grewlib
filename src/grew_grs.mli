@@ -69,7 +69,6 @@ end (* module Rewrite_history *)
 module Modul: sig
   type t = {
     name: string;
-    local_labels: (string * string list) array;
     rules: Rule.t list;
     deterministic: bool;
     loc: Loc.t;

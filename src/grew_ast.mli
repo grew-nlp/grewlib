@@ -168,7 +168,6 @@ module Ast : sig
 
   type modul = {
       module_id:Id.name;
-      local_labels: (string * string list) list;
       rules: rule list;
       deterministic: bool;
       module_doc:string list;

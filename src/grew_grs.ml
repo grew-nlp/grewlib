@@ -148,7 +148,6 @@ end (* module Rewrite_history *)
 module Modul = struct
   type t = {
     name: string;
-    local_labels: (string * string list) array;
     rules: Rule.t list;
     deterministic: bool;
     loc: Loc.t;
@@ -171,13 +170,10 @@ module Modul = struct
     loop [] t.rules
 
   let build ?domain ast_module =
-    let locals = Array.of_list ast_module.Ast.local_labels in
-    Array.sort compare locals;
-    let rules = List.map (Rule.build ?domain ~locals ast_module.Ast.mod_dir) ast_module.Ast.rules in
+    let rules = List.map (Rule.build ?domain ast_module.Ast.mod_dir) ast_module.Ast.rules in
     let modul =
       {
         name = ast_module.Ast.module_id;
-        local_labels = locals;
         rules;
         deterministic = ast_module.Ast.deterministic;
         loc = ast_module.Ast.mod_loc;

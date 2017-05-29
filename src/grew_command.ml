@@ -172,7 +172,7 @@ module Command  = struct
     | H_SHIFT_OUT of (Gid.t * Gid.t)
 
 
-  let build ?domain ?param (kai, kei) table locals ast_command =
+  let build ?domain ?param (kai, kei) table ast_command =
     (* kai stands for "known act ident", kei for "known edge ident" *)
 
     let pid_of_act_id loc node_name =

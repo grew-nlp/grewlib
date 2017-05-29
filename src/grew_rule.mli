@@ -82,7 +82,7 @@ module Rule : sig
 
   (** [build domain ?local dir ast_rule] returns the Rule.t value corresponding to [ast_rule].
       [dir] is used for localisation of lp files *)
-  val build: ?domain:Domain.t -> ?locals:Label_domain.decl array -> string -> Ast.rule -> t
+  val build: ?domain:Domain.t -> string -> Ast.rule -> t
 
   (** [normalize domain module_name ?deterministic rule_list instance] returns a set of normal forms *)
   (* raise Stop if some command fails to apply *)

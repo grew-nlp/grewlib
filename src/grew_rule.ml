@@ -269,7 +269,7 @@ module Rule = struct
       ("constraints", `List (List.map (const_to_json ?domain) basic.constraints));
     ]
 
-  let build_pos_basic ?domain ?pat_vars ?(locals=[||]) basic_ast =
+  let build_pos_basic ?domain ?pat_vars basic_ast =
     let (graph, pos_table) =
       P_graph.build ?domain ?pat_vars basic_ast.Ast.pat_nodes basic_ast.Ast.pat_edges in
     (
@@ -345,7 +345,7 @@ module Rule = struct
         Large_prec (pid_of_name loc id1, pid_of_name loc id2)
 
   (* It may raise [P_fs.Fail_unif] in case of contradiction on constraints *)
-  let build_neg_basic ?domain ?pat_vars ?(locals=[||]) pos_table basic_ast =
+  let build_neg_basic ?domain ?pat_vars pos_table basic_ast =
     let (extension, neg_table) =
       P_graph.build_extension ?domain ?pat_vars pos_table basic_ast.Ast.pat_nodes basic_ast.Ast.pat_edges in
 
@@ -458,7 +458,7 @@ module Rule = struct
     Buffer.contents buff
 
   (* ====================================================================== *)
-  let build_commands ?domain ?param ?(locals=[||]) pos pos_table ast_commands =
+  let build_commands ?domain ?param pos pos_table ast_commands =
     let known_act_ids = Array.to_list pos_table in
     let known_edge_ids = get_edge_ids pos in
 
@@ -471,7 +471,6 @@ module Rule = struct
               ?param
               (kai,kei)
               pos_table
-              locals
               ast_command in
           command :: (loop (new_kai,new_kei) tail) in
     loop (known_act_ids, known_edge_ids) ast_commands
@@ -490,7 +489,7 @@ module Rule = struct
     parse_pat_vars vars
 
   (* ====================================================================== *)
-  let build ?domain ?(locals=[||]) dir rule_ast =
+  let build ?domain dir rule_ast =
 
     let (param, pat_vars, cmd_vars) =
       match rule_ast.Ast.param with

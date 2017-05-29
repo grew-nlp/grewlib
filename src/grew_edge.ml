@@ -48,7 +48,7 @@ module Label = struct
     let style = get_style ?domain t in
     Label_domain.to_dot ~deco style
 
-  let from_string ?loc ?domain ?(locals=[||]) str =
+  let from_string ?loc ?domain str =
     match Domain.edge_id_from_string ?loc ?domain str with
     | Some id -> id
     | None ->

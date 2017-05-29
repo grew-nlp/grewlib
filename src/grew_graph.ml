@@ -67,7 +67,7 @@ module P_graph = struct
     (pid, fs)
 
   (* -------------------------------------------------------------------------------- *)
-  let build ?domain ?pat_vars ?(locals=[||]) (full_node_list : Ast.node list) full_edge_list =
+  let build ?domain ?pat_vars (full_node_list : Ast.node list) full_edge_list =
 
     (* NB: insert searches for a previous node with the Same name and uses unification rather than constraint *)
     (* NB: insertion of new node at the end of the list: not efficient but graph building is not the hard part. *)
@@ -122,7 +122,7 @@ module P_graph = struct
 
   (* -------------------------------------------------------------------------------- *)
   (* It may raise [P_fs.Fail_unif] in case of contradiction on constraints *)
-  let build_extension ?domain ?pat_vars ?(locals=[||]) pos_table full_node_list full_edge_list =
+  let build_extension ?domain ?pat_vars pos_table full_node_list full_edge_list =
 
     let built_nodes = List.map (P_node.build ?domain ?pat_vars) full_node_list in
 
@@ -332,7 +332,7 @@ module G_graph = struct
       | None -> None
 
   (* -------------------------------------------------------------------------------- *)
-  let build ?domain ?(grewpy=false) ?(locals=[||]) gr_ast =
+  let build ?domain ?(grewpy=false) gr_ast =
     let full_node_list =
       if grewpy
       then List.sort (Ast.grewpy_compare) gr_ast.Ast.nodes

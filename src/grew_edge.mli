@@ -29,7 +29,7 @@ module Label : sig
 
   val to_dot: ?domain: Domain.t -> ?deco:bool -> t -> string
 
-  val from_string: ?loc:Loc.t -> ?domain: Domain.t -> ?locals:Label_domain.decl array -> string -> t
+  val from_string: ?loc:Loc.t -> ?domain: Domain.t -> string -> t
 end (* module Label *)
 
 
