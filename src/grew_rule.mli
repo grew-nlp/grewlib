@@ -75,9 +75,6 @@ module Rule : sig
   (** [get_loc t] returns the file location of the rule [t]. *)
   val get_loc: t -> Loc.t
 
-  (** [is_filter t] returns [true] iff the rule [t] is a filter rule. *)
-  val is_filter: t -> bool
-
   val to_json: ?domain:Domain.t -> t -> Yojson.Basic.json
 
   (** [to_dep t] returns a string in the [dep] language describing the match basic of the rule *)
@@ -87,16 +84,15 @@ module Rule : sig
       [dir] is used for localisation of lp files *)
   val build: ?domain:Domain.t -> ?locals:Label_domain.decl array -> string -> Ast.rule -> t
 
-  (** [normalize domain module_name ?deterministic rule_list filter_list instance] returns two sets of good normal forms and bad normal forms *)
+  (** [normalize domain module_name ?deterministic rule_list instance] returns a set of normal forms *)
   (* raise Stop if some command fails to apply *)
   val normalize:
     ?domain:Domain.t ->
     string -> (* module name *)
     ?deterministic:bool ->
     t list -> (* rule list *)
-    t list -> (* filter list *)
     Instance.t ->
-      Instance_set.t * Instance_set.t
+      Instance_set.t
 
   val one_step: ?domain: Domain.t -> string -> Instance.t -> t list -> Instance_set.t
   val conf_one_step: ?domain: Domain.t -> string -> Instance.t -> t list -> Instance.t option

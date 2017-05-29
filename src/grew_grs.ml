@@ -28,29 +28,25 @@ module Rewrite_history = struct
     instance: Instance.t;
     module_name: string;
     good_nf: t list;
-    bad_nf: Instance.t list;
   }
 
   let rec get_graphs = function
-    | { good_nf = []; bad_nf = []; instance } -> [instance.Instance.graph]
-    | { good_nf = [] } -> []
+    | { good_nf = []; instance } -> [instance.Instance.graph]
     | { good_nf = l} -> List_.flat_map get_graphs l
 
   let rec is_empty t =
     (t.instance.Instance.rules = []) && List.for_all is_empty t.good_nf
 
   let rec num_sol = function
-    | { good_nf = []; bad_nf = [] } -> 1
-    | { good_nf = [] } -> 0 (* dead branch *)
+    | { good_nf = [] } -> 1
     | { good_nf = l} -> List.fold_left (fun acc t -> acc + (num_sol t)) 0 l
 
   let save_nfs ?domain ?filter ?main_feat ~dot base_name t =
     let rec loop file_name rules t =
-      match (t.good_nf, t.bad_nf) with
-        | [],[] when dot -> Instance.save_dot_png ?domain ?filter ?main_feat file_name t.instance; [rules, file_name]
-        | [],[] -> ignore (Instance.save_dep_png ?domain ?filter ?main_feat file_name t.instance); [rules, file_name]
-        | [],_ -> []
-        | l, _ ->
+      match t.good_nf with
+        | [] when dot -> Instance.save_dot_png ?domain ?filter ?main_feat file_name t.instance; [rules, file_name]
+        | [] -> ignore (Instance.save_dep_png ?domain ?filter ?main_feat file_name t.instance); [rules, file_name]
+        | l ->
           List_.foldi_left
             (fun i acc son ->
               (* Instance.save_dep_png ?main_feat (sprintf "%s_%d" file_name i) son.instance; *)
@@ -65,34 +61,34 @@ module Rewrite_history = struct
 
   let save_gr ?domain base t =
     let rec loop file_name t =
-      match (t.good_nf, t.bad_nf) with
-        | [],[] -> File.write (Instance.to_gr ?domain t.instance) (file_name^".gr")
-        | l, _ -> List.iteri (fun i son -> loop (sprintf "%s_%d" file_name i) son) l
+      match t.good_nf with
+        | [] -> File.write (Instance.to_gr ?domain t.instance) (file_name^".gr")
+        | l -> List.iteri (fun i son -> loop (sprintf "%s_%d" file_name i) son) l
     in loop base t
 
   let save_conll ?domain base t =
     let rec loop file_name t =
-      match (t.good_nf, t.bad_nf) with
-        | [],[] -> File.write (Instance.to_conll_string ?domain t.instance) (file_name^".conll")
-        | l, _ -> List.iteri (fun i son -> loop (sprintf "%s_%d" file_name i) son) l
+      match t.good_nf with
+        | [] -> File.write (Instance.to_conll_string ?domain t.instance) (file_name^".conll")
+        | l -> List.iteri (fun i son -> loop (sprintf "%s_%d" file_name i) son) l
     in loop base t
 
   let save_full_conll ?domain base t =
     let cpt = ref 0 in
     let rec loop t =
-      match (t.good_nf, t.bad_nf) with
-        | [],[] ->
+      match t.good_nf with
+        | [] ->
           File.write (Instance.to_conll_string ?domain t.instance) (sprintf "%s__%d.conll" base !cpt);
           incr cpt
-        | l, _ -> List.iter loop l
+        | l -> List.iter loop l
     in loop t; !cpt
 
   (* suppose that all modules are deterministic and produced exacly one normal form *)
   let save_det_gr ?domain base t =
     let rec loop t =
-      match (t.good_nf, t.bad_nf) with
-        | [],[] -> File.write (Instance.to_gr ?domain t.instance) (base^".gr")
-        | [one], [] -> loop one
+      match t.good_nf with
+        | [] -> File.write (Instance.to_gr ?domain t.instance) (base^".gr")
+        | [one] -> loop one
         | _ -> Error.run "[save_det_gr] Not a single rewriting"
     in loop t
 
@@ -113,24 +109,24 @@ module Rewrite_history = struct
 
   let save_det_conll ?domain ?header base t =
     let rec loop t =
-      match (t.good_nf, t.bad_nf) with
-        | ([],[]) ->
+      match t.good_nf with
+        | [] ->
           let output =
             match header with
               | Some h -> sprintf "%% %s\n%s" h (Instance.to_conll_string ?domain t.instance)
               | None -> Instance.to_conll_string ?domain t.instance in
           File.write output (base^".conll")
-        | ([one], []) -> loop one
+        | [one] -> loop one
         | _ -> Error.run "[save_det_conll] Not a single rewriting"
     in loop t
 
   let det_dep_string ?domain t =
     let rec loop t =
-      match (t.good_nf, t.bad_nf) with
-        | [],[] ->
+      match t.good_nf with
+        | [] ->
           let graph = t.instance.Instance.graph in
           Some (G_graph.to_dep ?domain graph)
-        | [one], [] -> loop one
+        | [one] -> loop one
         | _ -> None
     in loop t
 
@@ -139,11 +135,11 @@ module Rewrite_history = struct
     then None
     else
       let rec loop t =
-        match (t.good_nf, t.bad_nf) with
-          | [],[] ->
+        match t.good_nf with
+          | [] ->
             let graph = t.instance.Instance.graph in
             Some (G_graph.to_conll_string ?domain graph)
-          | [one], [] -> loop one
+          | [one] -> loop one
           | _ -> None
       in loop t
 end (* module Rewrite_history *)
@@ -154,7 +150,6 @@ module Modul = struct
     name: string;
     local_labels: (string * string list) array;
     rules: Rule.t list;
-    filters: Rule.t list;
     deterministic: bool;
     loc: Loc.t;
   }
@@ -178,14 +173,12 @@ module Modul = struct
   let build ?domain ast_module =
     let locals = Array.of_list ast_module.Ast.local_labels in
     Array.sort compare locals;
-    let rules_or_filters = List.map (Rule.build ?domain ~locals ast_module.Ast.mod_dir) ast_module.Ast.rules in
-    let (filters, rules) = List.partition Rule.is_filter rules_or_filters in
+    let rules = List.map (Rule.build ?domain ~locals ast_module.Ast.mod_dir) ast_module.Ast.rules in
     let modul =
       {
         name = ast_module.Ast.module_id;
         local_labels = locals;
         rules;
-        filters;
         deterministic = ast_module.Ast.deterministic;
         loc = ast_module.Ast.mod_loc;
       } in
@@ -281,26 +274,23 @@ module Grs = struct
 
     let rec old_loop instance module_list =
       match module_list with
-      | [] -> {Rewrite_history.instance = instance; module_name = ""; good_nf = []; bad_nf = []; }
+      | [] -> {Rewrite_history.instance = instance; module_name = ""; good_nf = []; }
       | module_name :: tail ->
          let next =
            try List.find (fun m -> m.Modul.name=module_name) grs.modules
            with Not_found -> Log.fcritical "No module named '%s'" module_name in
-        let (good_set, bad_set) =
+        let good_set =
           Rule.normalize
             ?domain: grs.domain
             next.Modul.name
             ~deterministic: next.Modul.deterministic
             next.Modul.rules
-            next.Modul.filters
             (Instance.refresh instance) in
-        let good_list = Instance_set.elements good_set
-        and bad_list = Instance_set.elements bad_set in
+        let good_list = Instance_set.elements good_set in
         {
           Rewrite_history.instance = instance;
           module_name = next.Modul.name;
           good_nf = List.map (fun i -> old_loop i tail) good_list;
-          bad_nf = bad_list;
         } in
 
     let loop instance def =
@@ -473,16 +463,14 @@ module Grs = struct
          let next =
            try List.find (fun m -> m.Modul.name=next_name) grs.modules
            with Not_found -> Log.fcritical "No module named '%s'" next_name in
-        let (good_set, bad_set) =
+        let good_set =
           Rule.normalize
             ?domain: grs.domain
             next.Modul.name
             ~deterministic: next.Modul.deterministic
             next.Modul.rules
-            next.Modul.filters
             (Instance.refresh instance) in
-        let inst_list = Instance_set.elements good_set
-              (* and bad_list = Instance_set.elements bad_set *) in
+        let inst_list = Instance_set.elements good_set in
 
         match inst_list with
           | [{Instance.big_step = None}] ->
@@ -603,10 +591,4 @@ module Grs = struct
         List.iter (fun rule -> fct modul.Modul.name rule) modul.Modul.rules
       ) grs.modules
 
-  (* ---------------------------------------------------------------------------------------------------- *)
-  let filter_iter fct grs =
-    List.iter
-      (fun modul ->
-        List.iter (fun filter -> fct modul.Modul.name filter) modul.Modul.filters
-      ) grs.modules
 end (* module Grs *)

@@ -21,7 +21,6 @@ module Rewrite_history: sig
       instance: Instance.t;
       module_name: string;
       good_nf: t list;
-      bad_nf: Instance.t list;
     }
 
   val get_graphs: t -> G_graph.t list
@@ -72,7 +71,6 @@ module Modul: sig
     name: string;
     local_labels: (string * string list) array;
     rules: Rule.t list;
-    filters: Rule.t list;
     deterministic: bool;
     loc: Loc.t;
   }
@@ -110,7 +108,6 @@ module Grs: sig
   val build_rew_display: t -> string -> G_graph.t -> Libgrew_types.rew_display
 
   val rule_iter: (string -> Rule.t -> unit) -> t -> unit
-  val filter_iter: (string -> Rule.t -> unit) -> t -> unit
 
 (*  val modules_of_sequence: t -> string -> Modul.t list*)
 

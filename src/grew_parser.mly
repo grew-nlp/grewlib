@@ -81,7 +81,6 @@ let localize t = (t,get_loc ())
 %token MODULE                      /* module */
 %token DETERMINISTIC               /* deterministic (of deprecated confluent) */
 %token RULE                        /* rule */
-%token FILTER                      /* filter */
 %token SEQUENCES                   /* sequences */
 %token GRAPH                       /* graph */
 
@@ -344,17 +343,6 @@ rule:
                 commands = cmds;
                 param = Some param;
                 lex_par = lex_par;
-                rule_doc = begin match doc with Some d -> d | None -> [] end;
-                rule_loc = snd id_loc;
-              }
-            }
-        | doc=option(COMMENT) FILTER id_loc=simple_id_with_loc LACC p=pos_item n=list(neg_item) RACC
-            {
-              { Ast.rule_id = fst id_loc;
-                pattern = Ast.complete_pattern { Ast.pat_pos = p; Ast.pat_negs = n };
-                commands = [];
-                param = None;
-                lex_par = None;
                 rule_doc = begin match doc with Some d -> d | None -> [] end;
                 rule_loc = snd id_loc;
               }

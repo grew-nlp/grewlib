@@ -178,7 +178,6 @@ and standard target = parse
 | "deterministic" { DETERMINISTIC }
 | "rule"          { RULE }
 | "lex_rule"      { Log.fwarning "%s \"lex_rule\" is deprecated, please use \"rule\" instead" (Global.loc_string ()); RULE }
-| "filter"        { FILTER }
 | "sequences"     { SEQUENCES }
 
 | "pick"          { PICK }

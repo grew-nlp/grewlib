@@ -147,8 +147,6 @@ module Html_doc = struct
       (fun rule ->
         (* the first line: (lex_)rule / filter *)
         (match (rule.Ast.commands, rule.Ast.param) with
-          | ([], None) ->
-            bprintf buff "<font color=\"purple\">filter</font> %s <b>{</b>\n" rule.Ast.rule_id
           | (_,None) ->
             bprintf buff "<font color=\"purple\">rule</font> %s <b>{</b>\n" rule.Ast.rule_id
           | (_,Some (files, vars)) ->
@@ -168,12 +166,9 @@ module Html_doc = struct
         List.iter (buff_html_neg_basic buff) rule.Ast.pattern.Ast.pat_negs;
 
         (*  the commands part *)
-        (match rule.Ast.commands with
-          | [] -> ()  (* filter *)
-          | list ->
-            bprintf buff "    <font color=\"purple\">commands</font> <b>{</b>\n";
-            List.iter (buff_html_command buff) list;
-            bprintf buff "    <b>}</b>\n");
+        bprintf buff "    <font color=\"purple\">commands</font> <b>{</b>\n";
+        List.iter (buff_html_command buff) rule.Ast.commands;
+        bprintf buff "    <b>}</b>\n";
 
         bprintf buff "<b>}</b>\n";
       ) rules;
@@ -751,10 +746,9 @@ module Gr_stat = struct
   let from_rew_history rew_history =
     let rec loop prev_module rh =
       let sub_stat =
-        match (rh.Rewrite_history.good_nf, rh.Rewrite_history.bad_nf) with
-          | [],[] -> Some (String_map.empty)
-          | [], _ -> None
-          | l, _ ->
+        match rh.Rewrite_history.good_nf with
+          | [] -> Some (String_map.empty)
+          | l ->
             match List_.opt_map (loop (Some rh.Rewrite_history.module_name)) l with
               | [] -> None
               | h::t -> Some (List.fold_left min_max_stat h t) in

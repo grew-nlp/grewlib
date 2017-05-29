@@ -251,14 +251,13 @@ module Grs = struct
       (fun () ->
         Grew_html.Html_doc.build ~corpus ~dep:true dir grs;
 
-        (* draw pattern graphs for all rules and all filters *)
+        (* draw pattern graphs for all rules *)
         let fct module_ rule_ =
           let dep_code = Grew_rule.Rule.to_dep ?domain:(Grew_grs.Grs.get_domain grs) rule_ in
           let dep_png_file = sprintf "%s/%s_%s-patt.png" dir module_ (Grew_rule.Rule.get_name rule_) in
           let d2p = Dep2pict.Dep2pict.from_dep ~dep:dep_code in
           Dep2pict.Dep2pict.save_png ~filename:dep_png_file d2p in
-        Grew_grs.Grs.rule_iter fct grs;
-        Grew_grs.Grs.filter_iter fct grs
+        Grew_grs.Grs.rule_iter fct grs
       ) ()
 
   let get_domain grs = Grew_grs.Grs.get_domain grs

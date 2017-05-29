@@ -325,7 +325,6 @@ module Ast = struct
   (* the [rule] type is used for 3 kinds of module items:
      - rule     { param=None; ... }
      - lex_rule
-     - filter   { param=None; commands=[]; ... }
   *)
   type rule = {
     rule_id:Id.name;

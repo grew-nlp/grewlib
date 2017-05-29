@@ -24,7 +24,7 @@ $language_data = array (
             ),
         2 => array('del_edge', 'add_edge', 'del_node', 'add_node', 'del_feat', 'add', 'shift', 'shift_in', 'shift_out', 'activate'
             ),
-        3 => array('rule', 'lex_rule', 'module', 'filter', 'labels', 'bad_labels', 'sequences', 'features')
+        3 => array('rule', 'lex_rule', 'module', 'labels', 'sequences', 'features')
         ),
     'SYMBOLS' => array(
         '{', '}',';','-','=','<','>',','

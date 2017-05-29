@@ -381,8 +381,6 @@ module Rule = struct
 
   let get_loc t = t.loc
 
-  let is_filter t = t.commands = []
-
   let to_json ?domain t =
     let param_json = match t.param with
     | None -> []
@@ -1253,50 +1251,14 @@ module Rule = struct
     reduced_nfs
 
   (* ---------------------------------------------------------------------- *)
-  (* [filter_instance instance filters] return a boolean:
-     - true iff the instance does NOT match any pattern in [filters] *)
-  let filter_instance ?domain filters instance =
-    let rec loop = function
-      | [] -> true (* no more filter to check *)
-      | filter::filter_tail ->
-          let (pos,negs) = filter.pattern in
-
-          (* get the list of partial matching for positive part of the pattern *)
-          let matching_list =
-            extend_matching
-              ?domain
-              (pos.graph,P_graph.empty)
-              instance.Instance.graph
-              (init filter.param pos) in
-
-          if List.exists
-              (fun (sub, already_matched_gids) ->
-                List.for_all
-                  (fun neg ->
-                    let new_partial_matching = update_partial pos.graph neg (sub, already_matched_gids) in
-                    fulfill ?domain (pos.graph,neg.graph) instance.Instance.graph new_partial_matching
-                  ) negs
-              ) matching_list
-          then (* one of the matching can be extended *) false
-          else loop filter_tail in
-    loop filters
-
-  (* ---------------------------------------------------------------------- *)
   let rec conf_normalize ?domain modul_name instance rules =
     match conf_one_step ?domain modul_name instance rules with
     | Some new_instance -> conf_normalize ?domain modul_name new_instance rules
     | None -> Instance.rev_steps instance
 
   (* ---------------------------------------------------------------------- *)
-  let normalize ?domain modul_name ?(deterministic=false) rules filters instance =
+  let normalize ?domain modul_name ?(deterministic=false) rules instance =
     if deterministic
-    then
-      let output = conf_normalize ?domain modul_name instance rules in
-      if filter_instance ?domain filters output
-      then (Instance_set.singleton output, Instance_set.empty)
-      else (Instance_set.empty, Instance_set.singleton output)
-    else
-      let output_set = normalize_instance ?domain modul_name instance rules in
-      let (good_set, bad_set) = Instance_set.partition (filter_instance ?domain filters) output_set in
-      (good_set, bad_set)
+    then Instance_set.singleton (conf_normalize ?domain modul_name instance rules)
+    else normalize_instance ?domain modul_name instance rules
 end (* module Rule *)
