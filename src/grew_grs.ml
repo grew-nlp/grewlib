@@ -602,29 +602,37 @@ module New_grs = struct
     decls: decl list;
     ast: New_ast.grs;
   }
-(*
-  let load_decl file =
-    let ast = Loader.new_grs file in
-    List.map (fun
-      )
-
-
-
-  let load file =
-    let ast = Loader.new_grs file in
-    match ast with
-    | *)
 
   let load filename =
     let ast = Loader.new_grs filename in
+
     let feature_domains = List_.opt_map
       (fun x -> match x with
-        | New_ast.Features desc -> Some desc
+        | New_ast.Features desc -> Some (Feature_domain.build desc)
         | _ -> None
       ) ast in
+    let feature_domain = match feature_domains with
+    | [] -> None
+    | h::t -> Some (List.fold_left Feature_domain.merge h t) in
+
+    let label_domains = List_.opt_map
+      (fun x -> match x with
+        | New_ast.Labels desc -> Some (Label_domain.build desc)
+        | _ -> None
+      ) ast in
+    let label_domain = match label_domains with
+    | [] -> None
+    | h::t -> Some (List.fold_left Label_domain.merge h t) in
+
+    let domain = match (label_domain, feature_domain) with
+    | (None, None) -> None
+    | (Some ld, None) -> Some (Domain.build_labels_only ld)
+    | (None, Some fd) -> Some (Domain.build_features_only fd)
+    | (Some ld, Some fd) -> Some (Domain.build ld fd) in
+
     { filename;
       ast;
-      domain = None;
+      domain;
       decls = [];
     }
 end

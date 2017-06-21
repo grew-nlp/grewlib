@@ -34,6 +34,8 @@ module Label_domain = struct
   (** The [default] style value *)
   let default = { text="UNSET"; bottom=false; color=None; bgcolor=None; line=Solid }
 
+  let merge t1 t2 = failwith "TODO"
+
   (** [decl] is the type for a label declaration: the name and a list of display styles *)
   type decl = string * string list
 
@@ -119,6 +121,8 @@ module Feature_domain = struct
   let feature_names feature_domain =
     List.map (function Ast.Closed (fn, _) | Ast.Open fn | Ast.Num fn -> fn) feature_domain
 
+  let merge t1 t2 = failwith "TODO"
+
   let get feature_name feature_domain =
     List.find (function
       | Ast.Closed (fn,_) when fn = feature_name -> true
@@ -169,45 +173,53 @@ end (* Feature_domain *)
 
 (* ================================================================================ *)
 module Domain = struct
-  type t = Label_domain.t * Feature_domain.t
+  type t =
+  | Both of Label_domain.t * Feature_domain.t
+  | Label of Label_domain.t
+  | Feature of Feature_domain.t
 
-  let build ld fd = (ld, fd)
+  let build ld fd = Both (ld, fd)
+
+  let build_features_only fd = Feature fd
+  let build_labels_only ld = Label ld
 
   let build_disj ?loc ?domain name unsorted_values =
     match domain with
-    | Some (_, feature_domain) -> Feature_domain.build_disj ?loc ~feature_domain name unsorted_values
-    | None -> Feature_domain.build_disj ?loc name unsorted_values
+    | Some (Feature feature_domain) | Some (Both (_, feature_domain)) ->
+      Feature_domain.build_disj ?loc ~feature_domain name unsorted_values
+    | _ -> Feature_domain.build_disj ?loc name unsorted_values
 
-  let feature_names (_, feature_domain) = Feature_domain.feature_names feature_domain
+  let feature_names = function
+   | Feature feature_domain | Both (_, feature_domain) -> Feature_domain.feature_names feature_domain
+   | _ -> []
 
   let get_label_name ?domain index = match domain with
-  | Some ((names,_),_) -> Some names.(index)
-  | None -> None
+  | Some (Both ((names,_),_)) | Some (Label (names,_)) -> Some names.(index)
+  | _ -> None
 
   let get_label_style ?domain index = match domain with
-  | Some ((_,styles),_) -> Some styles.(index)
-  | None -> None
+  | Some (Both ((_,styles),_)) | Some (Label (_,styles))-> Some styles.(index)
+  | _ -> None
 
   let edge_id_from_string ?loc ?domain str = match domain with
-  | Some ((names,_),_) ->
+  | Some (Both ((names,_),_)) | Some (Label (names,_)) ->
     begin
       try Some (Id.build ?loc str names)
       with Not_found -> Error.build "[Domain.edge_id_from_string] unknown edge label '%s'" str
     end
-  | None -> None
-
+  | _ -> None
 
   let is_open_feature ?domain name = match domain with
-  | Some (_, feature_domain) -> Feature_domain.is_open feature_domain name
-  | None -> true
+  | Some (Feature feature_domain) | Some (Both (_, feature_domain)) -> Feature_domain.is_open feature_domain name
+  | _ -> true
 
   let check_feature ?loc ?domain name value = match domain with
-  | Some (_, feature_domain) -> Feature_domain.check_feature ?loc ~feature_domain name value
-  | None -> ()
+  | Some (Feature feature_domain) | Some (Both (_, feature_domain)) -> Feature_domain.check_feature ?loc ~feature_domain name value
+  | _ -> ()
 
   let check_feature_name ?loc ?domain name = match domain with
-  | None -> ()
-  | Some (_, feature_domain) ->
+  | Some (Feature feature_domain) | Some (Both (_, feature_domain)) ->
       if not (Feature_domain.is_defined name feature_domain)
       then Error.build ?loc "The feature name \"%s\" in not defined in the domain" name
+  | _ -> ()
 end
