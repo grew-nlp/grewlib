@@ -95,6 +95,16 @@ module Loader = struct
       Ast.strategies = grs_wi.Ast.strategies_wi;
     }
 
+  let new_grs file =
+    try
+      Global.new_file file;
+      let in_ch = open_in file in
+      let lexbuf = Lexing.from_channel in_ch in
+      let grs = parse_handle (Grew_parser.new_grs Grew_lexer.global) lexbuf in
+      close_in in_ch;
+      grs
+  with Sys_error msg -> Error.parse ~loc:(Loc.file file) "[Grew_loader.Loader.grs] %s" msg
+
   (* ------------------------------------------------------------------------------------------*)
   let gr file =
     try

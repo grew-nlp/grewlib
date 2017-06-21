@@ -588,3 +588,43 @@ module Grs = struct
       ) grs.modules
 
 end (* module Grs *)
+
+module New_grs = struct
+
+  type decl =
+  | Rule of Rule.t
+  | Strategy of New_ast.strat
+  | Package of string * decl list
+
+  type t = {
+    filename: string;
+    domain: Domain.t option;
+    decls: decl list;
+    ast: New_ast.grs;
+  }
+(*
+  let load_decl file =
+    let ast = Loader.new_grs file in
+    List.map (fun
+      )
+
+
+
+  let load file =
+    let ast = Loader.new_grs file in
+    match ast with
+    | *)
+
+  let load filename =
+    let ast = Loader.new_grs filename in
+    let feature_domains = List_.opt_map
+      (fun x -> match x with
+        | New_ast.Features desc -> Some desc
+        | _ -> None
+      ) ast in
+    { filename;
+      ast;
+      domain = None;
+      decls = [];
+    }
+end

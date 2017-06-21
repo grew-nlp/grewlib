@@ -178,7 +178,6 @@ module Domain = struct
     | Some (_, feature_domain) -> Feature_domain.build_disj ?loc ~feature_domain name unsorted_values
     | None -> Feature_domain.build_disj ?loc name unsorted_values
 
-
   let feature_names (_, feature_domain) = Feature_domain.feature_names feature_domain
 
   let get_label_name ?domain index = match domain with

@@ -18,6 +18,8 @@ module Loader: sig
 
   val grs: string -> Ast.grs
 
+  val new_grs: string -> New_ast.grs
+
   val gr: string -> Ast.gr
 
   val pattern: string -> Ast.pattern

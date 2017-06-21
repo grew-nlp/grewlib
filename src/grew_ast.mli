@@ -242,3 +242,33 @@ module Ast : sig
   | T of (Loc.t * string * pst list)
   val word_list: pst -> string list
 end (* module Ast *)
+
+
+(* ================================================================================================ *)
+module New_ast : sig
+  type strat =
+  | Ref of Ast.node_ident       (* reference to a rule name or to another strategy *)
+  | Pick of strat               (* pick one normal form a the given strategy; return 0 if nf *)
+  | Alt of strat list           (* a set of strategies to apply in parallel *)
+  | Seq of strat list           (* a sequence of strategies to apply one after the other *)
+  | Iter of strat               (* a strategy to apply iteratively *)
+  | If of strat * strat * strat (* choose a stragegy with a test *)
+  (* syntactic sugar *)
+  | Empty                       (* ≜ Seq [] *)
+  | Try of strat                (* ≜ If (S, S, Empty): pick one normal form a the given strategy; return input if nf *)
+  | Rules of Ast.node_ident     (* ≜ Alt (rules defined in the top level of the package with the given name *)
+
+  type decl =
+  | Package of (Ast.simple_ident * decl list)
+  | Rule of Ast.rule
+  | Strategy of (Ast.simple_ident * strat)
+  | Import of string
+  | Include of string
+
+  type top_decl =
+  | Features of Ast.feature_spec list
+  | Labels of (string * string list) list
+  | D of decl
+
+  type grs = top_decl list
+end (* module New_ast *)

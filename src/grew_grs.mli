@@ -112,3 +112,9 @@ module Grs: sig
 
   val to_json: t -> Yojson.Basic.json
 end (* module Grs *)
+
+module New_grs : sig
+  type t
+
+  val load: string  -> t
+end

@@ -71,15 +71,18 @@ let localize t = (t,get_loc ())
 
 %token DOMAIN                      /* domain */
 %token INCL                        /* include */
+%token IMPORT                      /* import */
 %token FEATURES                    /* features */
 %token FEATURE                     /* feature */
 %token FILE                        /* file */
 %token LABELS                      /* labels */
-%token PATTERN                       /* match */
+%token PATTERN                     /* pattern */
 %token WITHOUT                     /* without */
 %token COMMANDS                    /* commands */
 %token MODULE                      /* module */
-%token DETERMINISTIC               /* deterministic (of deprecated confluent) */
+%token STRAT                       /* strat */
+%token PACKAGE                     /* package */
+%token DETERMINISTIC               /* deterministic (or deprecated confluent) */
 %token RULE                        /* rule */
 %token SEQUENCES                   /* sequences */
 %token GRAPH                       /* graph */
@@ -93,8 +96,14 @@ let localize t = (t,get_loc ())
 %token ADD_NODE                    /* add_node */
 %token DEL_FEAT                    /* del_feat */
 
-%token PICK                        /* pick */
-%token TRY                         /* try */
+%token PICK                        /* Pick */
+%token ALT                         /* Alt */
+%token SEQ                         /* Seq */
+%token ITER                        /* Iter */
+%token IF                          /* If */
+%token EMPTY                       /* Empty */
+%token TRY                         /* Try */
+%token RULES                       /* Rules */
 
 %token <string> DOLLAR_ID          /* $id */
 %token <string> AROBAS_ID          /* @id */
@@ -118,6 +127,10 @@ let localize t = (t,get_loc ())
 %start <Grew_ast.Ast.pattern> pattern
 %start <Grew_ast.Ast.domain> domain
 %start <Grew_ast.Ast.strat_def> strat_def
+
+%start <Grew_ast.New_ast.grs> new_grs
+
+
 
 /* parsing of the string representation of the constituent representation of Sequoia */
 /* EX: "( (SENT (NP (NC Amélioration) (PP (P de) (NP (DET la) (NC sécurité))))))"    */
@@ -723,4 +736,43 @@ pst:
         | LPAREN pos=ID ff=ID RPAREN  { Grew_ast.Ast.T (get_loc(), pos, [Grew_ast.Ast.Leaf (get_loc(), ff)])  }
         | LPAREN cat=ID daugthers=nonempty_list (pst) RPAREN { Grew_ast.Ast.T (get_loc(), cat, daugthers) }
 
+
+/*=============================================================================================*/
+/*=============================================================================================*/
+/*=============================================================================================*/
+/*=============================================================================================*/
+/*=============================================================================================*/
+/*=============================================================================================*/
+/*=============================================================================================*/
+/*=============================================================================================*/
+/*=============================================================================================*/
+/*=============================================================================================*/
+/*=============================================================================================*/
+/*=============================================================================================*/
+
+new_grs:
+  | top_decls = list(top_decl) EOF { top_decls }
+
+top_decl:
+  | f=features_group   { New_ast.Features f }
+  | l=labels           { New_ast.Labels l   }
+  | d=decl             { New_ast.D d        }
+
+decl:
+  | r=rule                                                    { New_ast.Rule r                  }
+  | IMPORT f=STRING                                           { New_ast.Import f                }
+  | INCL f=STRING                                             { New_ast.Include f               }
+  | PACKAGE id_loc=simple_id_with_loc LACC l=list(decl) RACC  { New_ast.Package (fst id_loc, l) }
+  | STRAT id_loc=simple_id_with_loc LACC d = strat_desc RACC  { New_ast.Strategy (fst id_loc, d) }
+
+strat_desc:
+  | id = node_id                                                           { New_ast.Ref id }
+  | PICK LPAREN s=strat_desc RPAREN                                        { New_ast.Pick s }
+  | ALT LPAREN sl=separated_list_final_opt(COMA,strat_desc) RPAREN         { New_ast.Alt sl }
+  | SEQ LPAREN sl=separated_list_final_opt(COMA,strat_desc) RPAREN         { New_ast.Seq sl }
+  | ITER LPAREN s=strat_desc RPAREN                                        { New_ast.Iter s }
+  | IF LPAREN s1=strat_desc COMA s2=strat_desc COMA s3=strat_desc RPAREN   { New_ast.If (s1,s2,s3) }
+  | EMPTY                                                                  { New_ast.Empty  }
+  | TRY LPAREN s=strat_desc RPAREN                                         { New_ast.Try s }
+  | RULES LPAREN id=node_id RPAREN                                         { New_ast.Rules id }
 %%

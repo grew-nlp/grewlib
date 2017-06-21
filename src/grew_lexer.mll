@@ -151,6 +151,7 @@ and standard target = parse
 | '\n'       { Global.new_line (); Lexing.new_line lexbuf; global lexbuf}
 
 | "include"       { INCL }
+| "import"        { IMPORT }
 | "domain"        { DOMAIN }
 | "features"      { FEATURES }
 | "feature"       { FEATURE }
@@ -174,14 +175,22 @@ and standard target = parse
 | "del_feat"      { DEL_FEAT }
 
 | "module"        { MODULE }
+| "package"       { PACKAGE }
 | "confluent"     { Log.fwarning "%s \"confluent\" is deprecated, please use \"deterministic\" instead" (Global.loc_string ()); DETERMINISTIC }
 | "deterministic" { DETERMINISTIC }
 | "rule"          { RULE }
+| "strat"         { STRAT }
 | "lex_rule"      { Log.fwarning "%s \"lex_rule\" is deprecated, please use \"rule\" instead" (Global.loc_string ()); RULE }
 | "sequences"     { SEQUENCES }
 
-| "pick"          { PICK }
-| "try"           { TRY }
+| "Pick"          { PICK }
+| "Alt"           { ALT }
+| "Seq"           { SEQ }
+| "Iter"          { ITER }
+| "If"            { IF }
+| "Empty"         { EMPTY }
+| "Try"           { TRY }
+| "Rules"         { RULES }
 
 | "graph"         { GRAPH }
 
