@@ -593,7 +593,7 @@ module New_grs = struct
 
   type decl =
   | Rule of Rule.t
-  | Strategy of New_ast.strat
+  | Strategy of string * New_ast.strat
   | Package of string * decl list
 
   type t = {
@@ -603,26 +603,50 @@ module New_grs = struct
     ast: New_ast.grs;
   }
 
+  let rec dump_decl indent = function
+    | Rule r -> printf "%srule %s\n" (String.make indent ' ') (Rule.get_name r)
+    | Strategy (name, def) -> printf "%sstrat %s\n" (String.make indent ' ') name
+    | Package (name, decl_list) ->
+      printf "%spackage %s:\n" (String.make indent ' ') name;
+      List.iter (dump_decl (indent + 2)) decl_list
+
+  let dump t =
+    printf "================ New_grs ================\n";
+    Domain.dump t.domain;
+    printf "-----------------------\n";
+    List.iter (dump_decl 0) t.decls;
+    printf "================ New_grs ================\n%!";
+    ()
+
+
+  let rec build_decl ?domain = function
+  | New_ast.Package (name, decl_list) -> Package (name, List.map build_decl decl_list)
+  | New_ast.Rule ast_rule -> Rule (Rule.build ?domain "TODO" ast_rule)
+  | New_ast.Strategy (name, ast_strat) -> Strategy (name, ast_strat)
+  | _ -> Error.bug "[build_decl] Inconsistent ast for new_grs"
+
+  let domain t = t.domain
+
   let load filename =
     let ast = Loader.new_grs filename in
 
     let feature_domains = List_.opt_map
       (fun x -> match x with
-        | New_ast.Features desc -> Some (Feature_domain.build desc)
+        | New_ast.Features desc -> Some desc
         | _ -> None
       ) ast in
     let feature_domain = match feature_domains with
     | [] -> None
-    | h::t -> Some (List.fold_left Feature_domain.merge h t) in
+    | h::t -> Some (Feature_domain.build (List.fold_left Feature_domain.merge h t)) in
 
     let label_domains = List_.opt_map
       (fun x -> match x with
-        | New_ast.Labels desc -> Some (Label_domain.build desc)
+        | New_ast.Labels desc -> Some desc
         | _ -> None
       ) ast in
     let label_domain = match label_domains with
     | [] -> None
-    | h::t -> Some (List.fold_left Label_domain.merge h t) in
+    | h::t -> Some (Label_domain.build (List.fold_left Label_domain.merge h t)) in
 
     let domain = match (label_domain, feature_domain) with
     | (None, None) -> None
@@ -630,9 +654,18 @@ module New_grs = struct
     | (None, Some fd) -> Some (Domain.build_features_only fd)
     | (Some ld, Some fd) -> Some (Domain.build ld fd) in
 
+    let decls = List_.opt_map
+      (fun x -> match x with
+        | New_ast.Features _ -> None
+        | New_ast.Labels _ -> None
+        | New_ast.Import _ -> Error.bug "[load] Import: inconsistent ast for new_grs"
+        | New_ast.Include _ -> Error.bug "[load] Inlcude: inconsistent ast for new_grs"
+        | x -> Some (build_decl ?domain x)
+      ) ast in
+
     { filename;
       ast;
       domain;
-      decls = [];
+      decls;
     }
 end

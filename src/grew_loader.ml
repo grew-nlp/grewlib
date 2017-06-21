@@ -95,7 +95,7 @@ module Loader = struct
       Ast.strategies = grs_wi.Ast.strategies_wi;
     }
 
-  let new_grs file =
+  let rec loc_new_grs file =
     try
       Global.new_file file;
       let in_ch = open_in file in
@@ -104,6 +104,23 @@ module Loader = struct
       close_in in_ch;
       grs
   with Sys_error msg -> Error.parse ~loc:(Loc.file file) "[Grew_loader.Loader.grs] %s" msg
+
+  and unfold_new_grs top new_ast_grs = List.fold_left
+    (fun acc decl -> match decl with
+      | New_ast.Import filename ->
+        let sub = loc_new_grs filename in
+        let unfolded_sub = unfold_new_grs false sub in
+          New_ast.Package (filename, unfolded_sub) :: acc
+      | New_ast.Include filename ->
+        let sub = loc_new_grs filename in
+        let unfolded_sub = unfold_new_grs top sub in
+          unfolded_sub @ acc
+      | New_ast.Features _ when not top -> Error.bug "Non top features declaration"
+      | New_ast.Labels _ when not top -> Error.bug "Non top labels declaration"
+      | x -> x :: acc
+    ) [] new_ast_grs
+
+  let new_grs file = unfold_new_grs true (loc_new_grs file)
 
   (* ------------------------------------------------------------------------------------------*)
   let gr file =

@@ -26,9 +26,10 @@ module Label_domain : sig
   (* [decl] is the type for a label declaration: the name and a list of display options *)
   type decl = string * string list
 
+  val merge: decl list -> decl list -> decl list
+
   val build: decl list -> t
 
-  val merge: t -> t -> t
 end
 
 (* ================================================================================ *)
@@ -37,15 +38,18 @@ module Feature_domain: sig
 
   val build: Ast.feature_spec list -> t
 
+
   (** [sub domain fn1 fn2] returns [true] iff the domain of [fn1] is a subset if the domain of [fn2]. *)
   val sub:  t -> feature_name -> feature_name -> bool
 
-  val merge: t -> t -> t
+  val merge: Ast.feature_spec list -> Ast.feature_spec list -> Ast.feature_spec list
 end (* module Feature_domain *)
 
 (* ================================================================================ *)
 module Domain : sig
   type t
+
+  val dump: t option -> unit
 
   val build: Label_domain.t -> Feature_domain.t -> t
   val build_features_only: Feature_domain.t -> t

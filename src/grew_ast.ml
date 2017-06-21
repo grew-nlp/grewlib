@@ -488,18 +488,15 @@ module New_ast = struct
   | Rules of Ast.node_ident     (* ≜ Alt (rules defined in the top level of the package with the given name *)
 
   type decl =
+  | Features of Ast.feature_spec list
+  | Labels of (string * string list) list
   | Package of (Ast.simple_ident * decl list)
   | Rule of Ast.rule
   | Strategy of (Ast.simple_ident * strat)
   | Import of string
   | Include of string
 
-  type top_decl =
-  | Features of Ast.feature_spec list
-  | Labels of (string * string list) list
-  | D of decl
-
-  type grs = top_decl list
+  type grs = decl list
 end (* module New_ast *)
 
 

@@ -31,13 +31,24 @@ module Label_domain = struct
 
   type t = string array * style array
 
+  let dump (label_array, _) =
+  Printf.printf "========= Label domain =========\n";
+  Array.iter (function label -> Printf.printf " - %s\n" label) label_array;
+  Printf.printf "==================================\n%!"
+
   (** The [default] style value *)
   let default = { text="UNSET"; bottom=false; color=None; bgcolor=None; line=Solid }
 
-  let merge t1 t2 = failwith "TODO"
-
   (** [decl] is the type for a label declaration: the name and a list of display styles *)
   type decl = string * string list
+
+  let merge l1 l2 =
+    List.fold_left
+    (fun acc (name, styles) ->
+      if List.mem_assoc name acc
+      then (Log.fwarning "duplicate label definition \"%s\"" name; acc)
+      else (name, styles) :: acc
+    ) l1 l2
 
   (** Computes the style of a label from its options and maybe its shape (like I:...). *)
   let parse_option string_label options =
@@ -100,13 +111,22 @@ end
 module Feature_domain = struct
   type t = Ast.feature_spec list
 
+  let dump t =
+    Printf.printf "========= Feature domain =========\n";
+    List.iter (function
+      | Ast.Closed (fn, values) -> Printf.printf " %s : %s\n" fn (String.concat ", " values)
+      | Ast.Open fn -> Printf.printf " %s is OPEN\n" fn
+      | Ast.Num fn -> Printf.printf " %s id NUMERICAL\n" fn
+      ) t;
+    Printf.printf "==================================\n%!"
+
+  let get_name = function
+  | Ast.Closed (fn, _) -> fn
+  | Ast.Open fn -> fn
+  | Ast.Num fn -> fn
+
   let is_defined feature_name feature_domain =
-    List.exists (function
-      | Ast.Closed (fn,_) when fn = feature_name -> true
-      | Ast.Open fn when fn = feature_name -> true
-      | Ast.Num fn when fn = feature_name -> true
-      | _ -> false
-    ) feature_domain
+    List.exists (fun item -> get_name item = feature_name) feature_domain
 
   let rec build = function
     | [] -> [Ast.Num "position"]
@@ -121,7 +141,22 @@ module Feature_domain = struct
   let feature_names feature_domain =
     List.map (function Ast.Closed (fn, _) | Ast.Open fn | Ast.Num fn -> fn) feature_domain
 
-  let merge t1 t2 = failwith "TODO"
+  let merge list1 list2 =
+    List.fold_left
+    (fun acc item ->
+      match List.filter (fun i -> get_name i = get_name item) acc with
+      | [] -> item :: acc
+      | [one] ->
+        let new_item = match (one, item) with
+        | (Ast.Open _, Ast.Open _) | (Ast.Num _, Ast.Num _) -> item
+        | (Ast.Open fn, Ast.Closed _) | (Ast.Closed _, Ast.Open fn) ->
+          Log.fwarning "Feature name \"%s\" is declared twice as open and close; it is consider as open" fn; Ast.Open fn
+        | (Ast.Closed (fn, l1), (Ast.Closed (_, l2))) -> Ast.Closed (fn , l1 @ l2)
+        | _ -> Error.build "Cannot merge numerical ans non numerical feature \"%s\"" (get_name item) in
+        new_item :: acc
+      | _ -> Error.bug "Duplicate in Feature_domain.merge"
+       acc)
+    list1 list2
 
   let get feature_name feature_domain =
     List.find (function
@@ -177,6 +212,12 @@ module Domain = struct
   | Both of Label_domain.t * Feature_domain.t
   | Label of Label_domain.t
   | Feature of Feature_domain.t
+
+  let dump = function
+  | None -> Printf.printf "=================== No domain ===================\n";
+  | Some Both (ld,fd) -> Label_domain.dump ld; Feature_domain.dump fd
+  | Some Label ld -> Label_domain.dump ld
+  | Some Feature fd -> Feature_domain.dump fd
 
   let build ld fd = Both (ld, fd)
 

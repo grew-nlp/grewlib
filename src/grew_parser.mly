@@ -751,18 +751,15 @@ pst:
 /*=============================================================================================*/
 
 new_grs:
-  | top_decls = list(top_decl) EOF { top_decls }
-
-top_decl:
-  | f=features_group   { New_ast.Features f }
-  | l=labels           { New_ast.Labels l   }
-  | d=decl             { New_ast.D d        }
+  | decls = list(decl) EOF { decls }
 
 decl:
-  | r=rule                                                    { New_ast.Rule r                  }
-  | IMPORT f=STRING                                           { New_ast.Import f                }
-  | INCL f=STRING                                             { New_ast.Include f               }
-  | PACKAGE id_loc=simple_id_with_loc LACC l=list(decl) RACC  { New_ast.Package (fst id_loc, l) }
+  | f=features_group                                          { New_ast.Features f               }
+  | l=labels                                                  { New_ast.Labels l                 }
+  | r=rule                                                    { New_ast.Rule r                   }
+  | IMPORT f=STRING                                           { New_ast.Import f                 }
+  | INCL f=STRING                                             { New_ast.Include f                }
+  | PACKAGE id_loc=simple_id_with_loc LACC l=list(decl) RACC  { New_ast.Package (fst id_loc, l)  }
   | STRAT id_loc=simple_id_with_loc LACC d = strat_desc RACC  { New_ast.Strategy (fst id_loc, d) }
 
 strat_desc:

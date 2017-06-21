@@ -117,4 +117,8 @@ module New_grs : sig
   type t
 
   val load: string  -> t
+
+  val dump: t -> unit
+
+  val domain: t -> Domain.t option
 end

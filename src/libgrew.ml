@@ -70,6 +70,12 @@ module Domain = struct
     handle ~name:"Domain.feature_names"
       (fun () -> Grew_domain.Domain.feature_names domain)
       ()
+
+  let dump domain =
+    handle ~name:"Domain.dump"
+      (fun () -> Grew_domain.Domain.dump domain)
+      ()
+
 end
 
 (* ==================================================================================================== *)
@@ -277,6 +283,18 @@ module New_grs = struct
     handle ~name:"New_grs.load" ~file
       (fun () ->
         Grew_grs.New_grs.load file
+      ) ()
+
+  let dump grs =
+    handle ~name:"New_grs.dump"
+      (fun () ->
+        Grew_grs.New_grs.dump grs
+      ) ()
+
+  let domain grs =
+    handle ~name:"New_grs.domain"
+      (fun () ->
+        Grew_grs.New_grs.domain grs
       ) ()
 end
 

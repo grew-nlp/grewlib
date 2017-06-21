@@ -25,6 +25,7 @@ exception Bug of string
 module Domain : sig
   type t
   val load: string -> t
+  val dump: t option -> unit
   val feature_names: t -> string list
 end
 
@@ -134,6 +135,10 @@ module New_grs : sig
   type t
 
   val load: string -> t
+
+  val dump: t -> unit
+
+  val domain: t -> Domain.t option
 end
 
 (* ==================================================================================================== *)
