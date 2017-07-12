@@ -188,9 +188,9 @@ and standard target = parse
 | "Seq"           { SEQ }
 | "Iter"          { ITER }
 | "If"            { IF }
-| "Empty"         { EMPTY }
 | "Try"           { TRY }
-| "Rules"         { RULES }
+| "Emty"          { EMPTY }
+| "Onf"           { ONF }
 
 | "graph"         { GRAPH }
 

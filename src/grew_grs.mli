@@ -121,4 +121,6 @@ module New_grs : sig
   val dump: t -> unit
 
   val domain: t -> Domain.t option
+
+  val simple_rewrite: t -> string -> G_graph.t -> G_graph.t list
 end

@@ -94,8 +94,8 @@ module Rule : sig
     Instance.t ->
       Instance_set.t
 
-  val one_step: ?domain: Domain.t -> string -> Instance.t -> t list -> Instance_set.t
-  val conf_one_step: ?domain: Domain.t -> string -> Instance.t -> t list -> Instance.t option
+  val one_step: ?domain: Domain.t -> Instance.t -> t list -> Instance_set.t
+  val conf_one_step: ?domain: Domain.t -> Instance.t -> t list -> Instance.t option
 
   (** the type matching encodes the graph morphism from a pattern to a graph *)
   (* NB: it was made public for the grep mode *)
@@ -117,4 +117,14 @@ module Rule : sig
   (** [match_deco rule matching] builds the decoration of the [graph] illustrating the given [matching] of the [rule] *)
   (* NB: it can be computed independly from the graph itself! *)
   val match_deco: pattern -> matching -> G_deco.t
+
+
+
+
+  val apply: ?domain: Domain.t -> t -> Instance.t -> Instance_set.t
+  val det_apply: ?domain: Domain.t -> t -> Instance.t -> Instance.t option
+
+
+
+
 end (* module Rule *)

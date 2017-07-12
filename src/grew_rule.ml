@@ -1064,7 +1064,7 @@ module Rule = struct
 
   (*  ---------------------------------------------------------------------- *)
   (** [apply_rule instance matching rule] returns a new instance after the application of the rule *)
-  let apply_rule ?domain modul_name instance matching rule =
+  let apply_rule ?domain instance matching rule =
 
     (* Timeout check *)
     (try Timeout.check () with Timeout.Stop -> Error.run "Time out");
@@ -1155,37 +1155,41 @@ module Rule = struct
     List.map fst filtered_matching_list
 
   (*  ---------------------------------------------------------------------- *)
-  (** [one_step ?domain modul_name instance rules] computes the list of one-step reduct with rules *)
-  let one_step ?domain modul_name instance rules =
+  (** [one_step ?domain instance rules] computes the list of one-step reduct with rules *)
+  let one_step ?domain instance rules =
 
     (* limit the rewriting depth to avoid looping rewriting *)
     if List.length instance.Instance.rules >= !max_depth_non_det
     then
       if !debug_loop
       then Instance_set.empty
-      else Error.run "[Module %s] max depth %d reached, last rules applied: …, %s"
-           modul_name !max_depth_non_det (List_.rev_to_string (fun x->x) ", " (List_.cut 5 instance.Instance.rules))
+      else Error.run "max depth %d reached, last rules applied: …, %s"
+           !max_depth_non_det (List_.rev_to_string (fun x->x) ", " (List_.cut 5 instance.Instance.rules))
     else
       List.fold_left
         (fun acc rule ->
           let matching_list = match_in_graph ?domain ?param:rule.param rule.pattern instance.Instance.graph in
           List.fold_left
             (fun acc1 matching ->
-              Instance_set.add (apply_rule ?domain modul_name instance matching rule) acc1
+              Instance_set.add (apply_rule ?domain instance matching rule) acc1
             ) acc matching_list
         ) Instance_set.empty rules
 
+
+
+
+
   (*  ---------------------------------------------------------------------- *)
   (** [conf_one_step ?domain modul_name instance rules] computes one Some (one-step reduct) with rules, None if no rule apply *)
-  let rec conf_one_step ?domain modul_name (instance : Instance.t) rules =
+  let rec conf_one_step ?domain (instance : Instance.t) rules =
 
     (* limit the rewriting depth to avoid looping rewriting *)
     if List.length instance.Instance.rules >= !max_depth_det
     then
       if !debug_loop
       then None
-      else Error.run "[Module %s] max depth %d reached, last rules applied: …, %s"
-           modul_name !max_depth_det (List_.rev_to_string (fun x->x) ", " (List_.cut 5 instance.Instance.rules))
+      else Error.run "max depth %d reached, last rules applied: …, %s"
+           !max_depth_det (List_.rev_to_string (fun x->x) ", " (List_.cut 5 instance.Instance.rules))
     else
     match rules with
       | [] -> None
@@ -1208,8 +1212,8 @@ module Rule = struct
                     fulfill ?domain (pos.graph,neg.graph) instance.Instance.graph new_partial_matching
                   ) negs
               ) matching_list in
-          Some (apply_rule ?domain modul_name instance first_matching_where_all_witout_are_fulfilled rule)
-        with Not_found -> (* try another rule *) conf_one_step ?domain modul_name instance rule_tail
+          Some (apply_rule ?domain instance first_matching_where_all_witout_are_fulfilled rule)
+        with Not_found -> (* try another rule *) conf_one_step ?domain instance rule_tail
 
   (* ---------------------------------------------------------------------- *)
   (** filter nfs being equal *)
@@ -1233,7 +1237,7 @@ module Rule = struct
         let (new_to_do_set,new_nf_set) =
           Instance_set.fold
             (fun v (to_do_set_acc,nf_set_acc) ->
-              match Instance_set.elements (one_step ?domain modul_name v rules) with
+              match Instance_set.elements (one_step ?domain v rules) with
                 | [] -> (to_do_set_acc,Instance_set.add (Instance.rev_steps v) nf_set_acc)
                 | step_of_v -> (List.fold_left (fun acc v1 -> Instance_set.add v1 acc) to_do_set_acc step_of_v, nf_set_acc)
             )
@@ -1250,14 +1254,67 @@ module Rule = struct
     reduced_nfs
 
   (* ---------------------------------------------------------------------- *)
-  let rec conf_normalize ?domain modul_name instance rules =
-    match conf_one_step ?domain modul_name instance rules with
-    | Some new_instance -> conf_normalize ?domain modul_name new_instance rules
+  let rec conf_normalize ?domain instance rules =
+    match conf_one_step ?domain instance rules with
+    | Some new_instance -> conf_normalize ?domain new_instance rules
     | None -> Instance.rev_steps instance
 
   (* ---------------------------------------------------------------------- *)
   let normalize ?domain modul_name ?(deterministic=false) rules instance =
     if deterministic
-    then Instance_set.singleton (conf_normalize ?domain modul_name instance rules)
+    then Instance_set.singleton (conf_normalize ?domain instance rules)
     else normalize_instance ?domain modul_name instance rules
+
+
+
+  let apply ?domain rule instance =
+  (* limit the rewriting depth to avoid looping rewriting *)
+  if List.length instance.Instance.rules >= !max_depth_non_det
+  then
+    if !debug_loop
+    then Instance_set.empty
+    else Error.run "max depth %d reached, last rules applied: …, %s"
+      !max_depth_non_det (List_.rev_to_string (fun x->x) ", " (List_.cut 5 instance.Instance.rules))
+  else
+    let matching_list = match_in_graph ?domain ?param:rule.param rule.pattern instance.Instance.graph in
+    List.fold_left
+      (fun acc matching ->
+        Instance_set.add (apply_rule ?domain instance matching rule) acc
+      ) Instance_set.empty matching_list
+
+
+  let rec det_apply ?domain rule instance =
+    (* limit the rewriting depth to avoid looping rewriting *)
+    if List.length instance.Instance.rules >= !max_depth_det
+      then
+        if !debug_loop
+        then None
+        else Error.run "max depth %d reached, last rules applied: …, %s"
+          !max_depth_det (List_.rev_to_string (fun x->x) ", " (List_.cut 5 instance.Instance.rules))
+        else
+          let (pos,negs) = rule.pattern in
+          (* get the list of partial matching for positive part of the pattern *)
+          let matching_list =
+            extend_matching
+              ?domain
+              (pos.graph,P_graph.empty)
+              instance.Instance.graph
+              (init rule.param pos) in
+          try
+            let (first_matching_where_all_witout_are_fulfilled,_) =
+              List.find
+                (fun (sub, already_matched_gids) ->
+                  List.for_all
+                    (fun neg ->
+                      let new_partial_matching = update_partial pos.graph neg (sub, already_matched_gids) in
+                      fulfill ?domain (pos.graph,neg.graph) instance.Instance.graph new_partial_matching
+                    ) negs
+                ) matching_list in
+            Some (apply_rule ?domain instance first_matching_where_all_witout_are_fulfilled rule)
+          with Not_found -> None
+
+
+
+
+
 end (* module Rule *)

@@ -101,9 +101,9 @@ let localize t = (t,get_loc ())
 %token SEQ                         /* Seq */
 %token ITER                        /* Iter */
 %token IF                          /* If */
+%token ONF                         /* Onf */
 %token EMPTY                       /* Empty */
 %token TRY                         /* Try */
-%token RULES                       /* Rules */
 
 %token <string> DOLLAR_ID          /* $id */
 %token <string> AROBAS_ID          /* @id */
@@ -769,7 +769,7 @@ strat_desc:
   | SEQ LPAREN sl=separated_list_final_opt(COMA,strat_desc) RPAREN         { New_ast.Seq sl }
   | ITER LPAREN s=strat_desc RPAREN                                        { New_ast.Iter s }
   | IF LPAREN s1=strat_desc COMA s2=strat_desc COMA s3=strat_desc RPAREN   { New_ast.If (s1,s2,s3) }
-  | EMPTY                                                                  { New_ast.Empty  }
   | TRY LPAREN s=strat_desc RPAREN                                         { New_ast.Try s }
-  | RULES LPAREN id=node_id RPAREN                                         { New_ast.Rules id }
+  | ONF LPAREN s=strat_desc RPAREN                                         { New_ast.Pick (New_ast.Iter s) }
+  | EMPTY                                                                  { New_ast.Seq [] }
 %%

@@ -321,6 +321,10 @@ module Rewrite = struct
   let simple_rewrite ~gr ~grs ~strat =
     handle ~name:"Rewrite.simple_rewrite" (fun () -> Grew_grs.Grs.simple_rewrite grs strat gr) ()
 
+  let new_simple_rewrite ~gr ~grs ~strat =
+    handle ~name:"Rewrite.new_simple_rewrite" (fun () -> Grew_grs.New_grs.simple_rewrite grs strat gr) ()
+
+
   let is_empty rh =
     handle ~name:"Rewrite.is_empty" (fun () -> Grew_grs.Rewrite_history.is_empty rh) ()
 

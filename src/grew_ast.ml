@@ -483,9 +483,7 @@ module New_ast = struct
   | Iter of strat               (* a strategy to apply iteratively *)
   | If of strat * strat * strat (* choose a stragegy with a test *)
   (* syntactic sugar *)
-  | Empty                       (* ≜ Seq [] *)
   | Try of strat                (* ≜ If (S, S, Empty): pick one normal form a the given strategy; return input if nf *)
-  | Rules of Ast.node_ident     (* ≜ Alt (rules defined in the top level of the package with the given name *)
 
   type decl =
   | Features of Ast.feature_spec list
