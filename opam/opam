@@ -20,4 +20,5 @@ depends: [
   "camomile"
   "libcaml-dep2pict"
   "yojson"
+  "containers"
 ]

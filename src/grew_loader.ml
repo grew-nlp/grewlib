@@ -108,9 +108,12 @@ module Loader = struct
   and unfold_new_grs top new_ast_grs = List.fold_left
     (fun acc decl -> match decl with
       | New_ast.Import filename ->
+        let pack_name = match CCString.chop_suffix ~suf:".grs" filename with
+          | Some x -> x
+          | None -> Error.build "Imported file must have the \".grs\" file extension" in
         let sub = loc_new_grs filename in
         let unfolded_sub = unfold_new_grs false sub in
-          New_ast.Package (filename, unfolded_sub) :: acc
+          New_ast.Package (pack_name, unfolded_sub) :: acc
       | New_ast.Include filename ->
         let sub = loc_new_grs filename in
         let unfolded_sub = unfold_new_grs top sub in
