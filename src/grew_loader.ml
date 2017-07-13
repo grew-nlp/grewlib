@@ -230,5 +230,14 @@ module Parser = struct
       strategy
     with Sys_error msg -> Error.parse "[Grew_loader.Parser.strategy] %s" msg
 
+  (* ------------------------------------------------------------------------------------------*)
+  let strategy desc =
+    try
+      Global.new_string ();
+      let lexbuf = Lexing.from_string desc in
+      let strategy = parse_handle (Grew_parser.strat_desc Grew_lexer.global) lexbuf in
+      strategy
+    with Sys_error msg -> Error.parse "[Grew_loader.Parser.strategy] %s" msg
+
 
 end

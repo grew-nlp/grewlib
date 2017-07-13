@@ -129,8 +129,7 @@ let localize t = (t,get_loc ())
 %start <Grew_ast.Ast.strat_def> strat_def
 
 %start <Grew_ast.New_ast.grs> new_grs
-
-
+%start <Grew_ast.New_ast.strat> strat_desc
 
 /* parsing of the string representation of the constituent representation of Sequoia */
 /* EX: "( (SENT (NP (NC Amélioration) (PP (P de) (NP (DET la) (NC sécurité))))))"    */

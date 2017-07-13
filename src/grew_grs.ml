@@ -872,9 +872,9 @@ module New_grs = struct
         | Some _ -> det_strat_simple_rewrite pointed s2 instance
       end
 
-  let simple_rewrite grs name graph =
+  let simple_rewrite grs strat graph =
     let instance = Instance.from_graph graph in
-    let set = intern_simple_rewrite (top grs) name instance in
+    let set = strat_simple_rewrite (top grs) (Parser.strategy strat) instance in
     List.map
       (fun inst -> inst.Instance.graph)
       (Instance_set.elements set)
