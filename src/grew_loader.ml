@@ -95,6 +95,34 @@ module Loader = struct
       Ast.strategies = grs_wi.Ast.strategies_wi;
     }
 
+  let rec check_duplicate_id id = function
+    | [] -> None
+    | New_ast.Rule r :: _ when r.Ast.rule_id = id -> Some r.Ast.rule_loc
+    | New_ast.Package (loc, name, _) :: _ when name = id -> Some loc
+    | New_ast.Strategy (loc, name, _) :: _ when name = id -> Some loc
+    | _ -> None
+
+  let rec check_grs = function
+    | [] -> ()
+    | New_ast.Rule r :: tail ->
+      begin
+        match check_duplicate_id r.Ast.rule_id tail with
+        | None -> ()
+        | Some loc -> Error.build "Identifier \"%s\" is used twice in the same package (%s and %s)"
+          r.Ast.rule_id (Loc.to_string r.Ast.rule_loc) (Loc.to_string loc)
+      end;
+      check_grs tail
+    | New_ast.Strategy (loc, name, _) :: tail
+    | New_ast.Package (loc, name, _) :: tail ->
+      begin
+        match check_duplicate_id name tail with
+        | None -> ()
+        | Some loc2 -> Error.build "Identifier \"%s\" is used twice in the same package (%s and %s)"
+          name (Loc.to_string loc) (Loc.to_string loc2)
+      end;
+      check_grs tail
+    | _ :: tail -> check_grs tail
+
   let rec loc_new_grs file =
     try
       Global.new_file file;
@@ -113,17 +141,20 @@ module Loader = struct
           | None -> Error.build "Imported file must have the \".grs\" file extension" in
         let sub = loc_new_grs filename in
         let unfolded_sub = unfold_new_grs false sub in
-          New_ast.Package (pack_name, unfolded_sub) :: acc
+          New_ast.Package (Loc.file filename, pack_name, unfolded_sub) :: acc
       | New_ast.Include filename ->
         let sub = loc_new_grs filename in
         let unfolded_sub = unfold_new_grs top sub in
           unfolded_sub @ acc
-      | New_ast.Features _ when not top -> Error.bug "Non top features declaration"
-      | New_ast.Labels _ when not top -> Error.bug "Non top labels declaration"
+      | New_ast.Features _ when not top -> Error.build "Non top features declaration"
+      | New_ast.Labels _ when not top -> Error.build "Non top labels declaration"
       | x -> x :: acc
     ) [] new_ast_grs
 
-  let new_grs file = unfold_new_grs true (loc_new_grs file)
+  let new_grs file =
+    let final_grs = unfold_new_grs true (loc_new_grs file) in
+    check_grs final_grs;
+    final_grs
 
   (* ------------------------------------------------------------------------------------------*)
   let gr file =

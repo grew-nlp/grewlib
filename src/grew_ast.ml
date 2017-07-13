@@ -482,15 +482,14 @@ module New_ast = struct
   | Seq of strat list           (* a sequence of strategies to apply one after the other *)
   | Iter of strat               (* a strategy to apply iteratively *)
   | If of strat * strat * strat (* choose a stragegy with a test *)
-  (* syntactic sugar *)
   | Try of strat                (* ≜ If (S, S, Empty): pick one normal form a the given strategy; return input if nf *)
 
   type decl =
   | Features of Ast.feature_spec list
   | Labels of (string * string list) list
-  | Package of (Ast.simple_ident * decl list)
+  | Package of (Loc.t * Ast.simple_ident * decl list)
   | Rule of Ast.rule
-  | Strategy of (Ast.simple_ident * strat)
+  | Strategy of (Loc.t * Ast.simple_ident * strat)
   | Import of string
   | Include of string
 

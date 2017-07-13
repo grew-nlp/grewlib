@@ -643,9 +643,9 @@ module New_grs = struct
 
 
   let rec build_decl ?domain = function
-  | New_ast.Package (name, decl_list) -> Package (name, List.map build_decl decl_list)
+  | New_ast.Package (loc, name, decl_list) -> Package (name, List.map build_decl decl_list)
   | New_ast.Rule ast_rule -> Rule (Rule.build ?domain "TODO" ast_rule)
-  | New_ast.Strategy (name, ast_strat) -> Strategy (name, ast_strat)
+  | New_ast.Strategy (loc, name, ast_strat) -> Strategy (name, ast_strat)
   | _ -> Error.bug "[build_decl] Inconsistent ast for new_grs"
 
   let domain t = t.domain
