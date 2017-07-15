@@ -296,6 +296,8 @@ module New_grs = struct
       (fun () ->
         Grew_grs.New_grs.domain grs
       ) ()
+
+  let to_json _ = failwith "TODO New_grs.to_json"
 end
 
 (* ==================================================================================================== *)

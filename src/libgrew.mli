@@ -139,6 +139,9 @@ module New_grs : sig
   val dump: t -> unit
 
   val domain: t -> Domain.t option
+
+  val to_json: t -> string
+
 end
 
 (* ==================================================================================================== *)
