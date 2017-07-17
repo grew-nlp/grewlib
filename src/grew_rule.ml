@@ -489,7 +489,11 @@ module Rule = struct
     parse_pat_vars vars
 
   (* ====================================================================== *)
-  let build ?domain dir rule_ast =
+  let build ?domain deprecated_dir rule_ast =
+
+    let dir = match rule_ast.Ast.rule_dir with
+    | Some d -> d
+    | None -> deprecated_dir in
 
     let (param, pat_vars, cmd_vars) =
       match rule_ast.Ast.param with

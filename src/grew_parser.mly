@@ -345,6 +345,7 @@ rule:
                 lex_par = None;
                 rule_doc = begin match doc with Some d -> d | None -> [] end;
                 rule_loc = snd id_loc;
+                rule_dir = None;
               }
             }
         | doc=option(COMMENT) RULE id_loc=simple_id_with_loc param=param LACC p=pos_item n=list(neg_item) cmds=commands RACC lex_par=option(lex_par)
@@ -356,6 +357,7 @@ rule:
                 lex_par = lex_par;
                 rule_doc = begin match doc with Some d -> d | None -> [] end;
                 rule_loc = snd id_loc;
+                rule_dir = None;
               }
             }
 

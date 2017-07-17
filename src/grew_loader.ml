@@ -95,6 +95,14 @@ module Loader = struct
       Ast.strategies = grs_wi.Ast.strategies_wi;
     }
 
+
+
+
+
+
+
+
+
   let rec check_duplicate_id id = function
     | [] -> None
     | New_ast.Rule r :: _ when r.Ast.rule_id = id -> Some r.Ast.rule_loc
@@ -140,7 +148,8 @@ module Loader = struct
       grs
   with Sys_error msg -> Error.parse ~loc:(Loc.file file) "[Grew_loader.Loader.grs] %s" msg
 
-  let rec unfold_new_grs dir top new_ast_grs = List.fold_left
+  let rec unfold_new_grs dir top new_ast_grs =
+  List.fold_left
     (fun acc decl -> match decl with
       | New_ast.Import filename ->
         let real_file = unlink dir filename in
@@ -157,6 +166,10 @@ module Loader = struct
           unfolded_sub @ acc
       | New_ast.Features _ when not top -> Error.build "Non top features declaration"
       | New_ast.Labels _ when not top -> Error.build "Non top labels declaration"
+      | New_ast.Package (loc, name, decls) ->
+        New_ast.Package (loc, name, unfold_new_grs dir top decls) :: acc
+      | New_ast.Rule ast_rule ->
+        New_ast.Rule {ast_rule with Ast.rule_dir = Some dir} :: acc
       | x -> x :: acc
     ) [] new_ast_grs
 

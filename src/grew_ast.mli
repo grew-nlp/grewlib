@@ -164,6 +164,7 @@ module Ast : sig
       lex_par: string list option; (* lexical parameters in the file *)
       rule_doc:string list;
       rule_loc: Loc.t;
+      rule_dir: string option; (* the real folder where the file is defined *)
     }
 
   type modul = {
