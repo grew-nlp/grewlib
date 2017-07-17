@@ -123,7 +123,14 @@ module Loader = struct
       check_grs tail
     | _ :: tail -> check_grs tail
 
-  let rec loc_new_grs file =
+  let real_dir file =
+    match (Unix.lstat file).Unix.st_kind with
+    | Unix.S_LNK -> Filename.dirname (Unix.readlink file)
+    | _ -> Filename.dirname file
+
+  let unlink dir file = Filename.concat dir (Filename.basename file)
+
+  let loc_new_grs file =
     try
       Global.new_file file;
       let in_ch = open_in file in
@@ -133,18 +140,20 @@ module Loader = struct
       grs
   with Sys_error msg -> Error.parse ~loc:(Loc.file file) "[Grew_loader.Loader.grs] %s" msg
 
-  and unfold_new_grs top new_ast_grs = List.fold_left
+  let rec unfold_new_grs dir top new_ast_grs = List.fold_left
     (fun acc decl -> match decl with
       | New_ast.Import filename ->
+        let real_file = unlink dir filename in
         let pack_name = match CCString.chop_suffix ~suf:".grs" filename with
           | Some x -> x
           | None -> Error.build "Imported file must have the \".grs\" file extension" in
         let sub = loc_new_grs filename in
-        let unfolded_sub = unfold_new_grs false sub in
+        let unfolded_sub = unfold_new_grs (real_dir real_file) false sub in
           New_ast.Package (Loc.file filename, pack_name, unfolded_sub) :: acc
       | New_ast.Include filename ->
-        let sub = loc_new_grs filename in
-        let unfolded_sub = unfold_new_grs top sub in
+        let real_file = unlink dir filename in
+        let sub = loc_new_grs real_file in
+        let unfolded_sub = unfold_new_grs (real_dir real_file) top sub in
           unfolded_sub @ acc
       | New_ast.Features _ when not top -> Error.build "Non top features declaration"
       | New_ast.Labels _ when not top -> Error.build "Non top labels declaration"
@@ -152,7 +161,7 @@ module Loader = struct
     ) [] new_ast_grs
 
   let new_grs file =
-    let final_grs = unfold_new_grs true (loc_new_grs file) in
+    let final_grs = unfold_new_grs (real_dir file) true (loc_new_grs file) in
     check_grs final_grs;
     final_grs
 
