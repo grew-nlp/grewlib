@@ -21,6 +21,12 @@ type rule_app = {
     down: G_deco.t;
   }
 
+(* the type for big edges which correspond to a module *)
+type big_step = {
+    first: rule_app;
+    small_step: (G_graph.t * rule_app) list;
+  }
+
 (* the main type for display the result of a rewriting *)
 type rew_display =
   | Empty (* pour les besoin du dev *)
@@ -28,8 +34,3 @@ type rew_display =
   | Local_normal_form of G_graph.t * module_name * rew_display
   | Node of G_graph.t * module_name * (big_step * rew_display) list
 
-(* the type for big edges which correspond to a module *)
-and big_step = {
-    first: rule_app;
-    small_step: (G_graph.t * rule_app) list;
-  }

@@ -266,4 +266,6 @@ module New_ast : sig
   | Include of string
 
   type grs = decl list
+
+  val strat_list: grs -> string list
 end (* module New_ast *)

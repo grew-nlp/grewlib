@@ -603,13 +603,14 @@ module New_grs = struct
   | Strategy of string * New_ast.strat
   | Package of string * decl list
 
-
   type t = {
     filename: string;
     domain: Domain.t option;
     decls: decl list;
     ast: New_ast.grs;
   }
+
+  let get_strat_list grs = Grew_ast.New_ast.strat_list grs.ast
 
   let rec dump_decl indent = function
     | Rule r -> printf "%srule %s\n" (String.make indent ' ') (Rule.get_name r)
@@ -628,7 +629,7 @@ module New_grs = struct
 
 
   let rec build_decl ?domain = function
-  | New_ast.Package (loc, name, decl_list) -> Package (name, List.map build_decl decl_list)
+  | New_ast.Package (loc, name, decl_list) -> Package (name, List.map (build_decl ?domain) decl_list)
   | New_ast.Rule ast_rule -> Rule (Rule.build ?domain "TODO: remove this arg (old grs)" ast_rule)
   | New_ast.Strategy (loc, name, ast_strat) -> Strategy (name, ast_strat)
   | _ -> Error.bug "[build_decl] Inconsistent ast for new_grs"
@@ -731,99 +732,47 @@ module New_grs = struct
         | Pack (_,mother) -> search_from mother path
       )
 
-  let rec intern_simple_rewrite pointed strat_name instance =
-    let path = Str.split (Str.regexp "\\.") strat_name in
-    match search_from pointed path with
-    | None -> Error.build "Simple rewrite, cannot find strat %s" strat_name
-    | Some (Rule r,_) -> Rule.apply r instance
-    | Some (Package (_, decl_list), _) -> pack_rewrite decl_list instance
-    | Some (Strategy (_,ast_strat), new_pointed) ->
-      strat_simple_rewrite new_pointed ast_strat instance
-
-  and det_intern_simple_rewrite pointed strat_name instance =
-    let path = Str.split (Str.regexp "\\.") strat_name in
-    match search_from pointed path with
-    | None -> Error.build "Simple rewrite, cannot find strat %s" strat_name
-    | Some (Rule r,_) -> Rule.det_apply r instance
-    | Some (Package (_, decl_list), _) -> det_pack_rewrite decl_list instance
-    | Some (Strategy (_,ast_strat), new_pointed) ->
-      det_strat_simple_rewrite new_pointed ast_strat instance
-
-  and pack_rewrite decl_list instance =
-    List.fold_left
-      (fun acc decl ->
-          match decl with
-          | Rule r -> Instance_set.union acc (Rule.apply r instance)
-          | _ -> acc
-      ) Instance_set.empty decl_list
-
-  and det_pack_rewrite decl_list instance =
+  (* det apply a package to an instance = apply only top level rules in the package *)
+  let det_pack_rewrite ?domain decl_list instance =
     let rec loop = function
       | [] -> None
       | Rule r :: tail_decl ->
-        (match Rule.det_apply r instance with
-        | None -> loop tail_decl
+        (match Rule.det_apply ?domain r instance with
         | Some x -> Some x
+        | None -> loop tail_decl
         )
       | _ :: tail_decl -> loop tail_decl in
       loop decl_list
 
-  and strat_simple_rewrite pointed strat instance =
+  (* apply a package to an instance = apply only top level rules in the package *)
+  let pack_rewrite ?domain decl_list instance =
+    List.fold_left
+      (fun acc decl -> match decl with
+        | Rule r -> Instance_set.union acc (Rule.apply ?domain r instance)
+        | _ -> acc
+      ) Instance_set.empty decl_list
+
+  (* deterministic case *)
+  let rec det_intern_simple_rewrite ?domain pointed strat_name instance =
+    let path = Str.split (Str.regexp "\\.") strat_name in
+    match search_from pointed path with
+    | None -> Error.build "Simple rewrite, cannot find strat %s" strat_name
+    | Some (Rule r,_) -> Rule.det_apply ?domain r instance
+    | Some (Package (_, decl_list), _) -> det_pack_rewrite ?domain decl_list instance
+    | Some (Strategy (_,ast_strat), new_pointed) ->
+      det_strat_simple_rewrite new_pointed ast_strat instance
+
+  and det_strat_simple_rewrite ?domain pointed strat instance =
     match strat with
-    | New_ast.Ref subname -> intern_simple_rewrite pointed subname instance
-    | New_ast.Pick strat ->
-      begin
-        match det_strat_simple_rewrite pointed strat instance with
-        | None -> Grew_rule.Instance_set.empty
-        | Some x -> Instance_set.singleton x
-      end
-
-    | New_ast.Alt [] -> Grew_rule.Instance_set.empty
-    | New_ast.Alt strat_list -> List.fold_left
-      (fun acc strat -> Instance_set.union acc (strat_simple_rewrite pointed strat instance)
-      ) Instance_set.empty strat_list
-
-    | New_ast.Seq [] -> Instance_set.singleton instance
-    | New_ast.Seq (head_strat :: tail_strat) ->
-      let first_strat = strat_simple_rewrite pointed head_strat instance in
-      Instance_set.fold
-        (fun instance acc -> Instance_set.union acc (strat_simple_rewrite pointed (New_ast.Seq tail_strat) instance)
-        ) first_strat Instance_set.empty
-
-    | New_ast.Iter strat ->
-      let one_step = strat_simple_rewrite pointed strat instance in
-      if Instance_set.is_empty one_step
-      then Instance_set.singleton instance
-      else Instance_set.fold
-        (fun instance acc -> Instance_set.union acc (strat_simple_rewrite pointed (New_ast.Iter strat) instance)
-        ) one_step Instance_set.empty
-
-    | New_ast.Try strat ->
-      begin
-        let one_step = strat_simple_rewrite pointed strat instance in
-        if Instance_set.is_empty one_step
-        then Instance_set.singleton instance
-        else one_step
-      end
-
-    | New_ast.If (s, s1, s2) ->
-      begin
-        match det_strat_simple_rewrite pointed s instance with
-        | None -> strat_simple_rewrite pointed s1 instance
-        | Some _ -> strat_simple_rewrite pointed s2 instance
-      end
-
-  and det_strat_simple_rewrite pointed strat instance =
-    match strat with
-    | New_ast.Ref subname -> det_intern_simple_rewrite pointed subname instance
-    | New_ast.Pick strat -> det_strat_simple_rewrite pointed strat instance
+    | New_ast.Ref subname -> det_intern_simple_rewrite ?domain pointed subname instance
+    | New_ast.Pick strat -> det_strat_simple_rewrite ?domain pointed strat instance
 
     | New_ast.Alt [] -> None
     | New_ast.Alt strat_list ->
       let rec loop = function
         | [] -> None
         | head_strat :: tail_strat ->
-          match det_strat_simple_rewrite pointed head_strat instance with
+          match det_strat_simple_rewrite ?domain pointed head_strat instance with
           | None -> loop tail_strat
           | Some x -> Some x in
         loop strat_list
@@ -831,36 +780,246 @@ module New_grs = struct
     | New_ast.Seq [] -> Some instance
     | New_ast.Seq (head_strat :: tail_strat) ->
       begin
-        match det_strat_simple_rewrite pointed head_strat instance with
+        match det_strat_simple_rewrite ?domain pointed head_strat instance with
         | None -> None
-        | Some inst -> det_strat_simple_rewrite pointed (New_ast.Seq tail_strat) inst
+        | Some inst -> det_strat_simple_rewrite ?domain pointed (New_ast.Seq tail_strat) inst
       end
 
     | New_ast.Iter strat ->
       begin
-        match det_strat_simple_rewrite pointed strat instance with
+        match det_strat_simple_rewrite ?domain pointed strat instance with
         | None -> Some instance
-        | Some inst -> det_strat_simple_rewrite pointed (New_ast.Iter strat) inst
+        | Some inst -> det_strat_simple_rewrite ?domain pointed (New_ast.Iter strat) inst
         end
 
     | New_ast.Try strat ->
         begin
-          match det_strat_simple_rewrite pointed strat instance with
+          match det_strat_simple_rewrite ?domain pointed strat instance with
           | None -> Some instance
           | Some i -> Some i
         end
 
     | New_ast.If (s, s1, s2) ->
       begin
-        match det_strat_simple_rewrite pointed s instance with
-        | None -> det_strat_simple_rewrite pointed s1 instance
-        | Some _ -> det_strat_simple_rewrite pointed s2 instance
+        match det_strat_simple_rewrite ?domain pointed s instance with
+        | None -> det_strat_simple_rewrite ?domain pointed s1 instance
+        | Some _ -> det_strat_simple_rewrite ?domain pointed s2 instance
       end
 
+  (* non deterministic case *)
+  let rec intern_simple_rewrite ?domain pointed strat_name instance =
+    let path = Str.split (Str.regexp "\\.") strat_name in
+    match search_from pointed path with
+    | None -> Error.build "Simple rewrite, cannot find strat %s" strat_name
+    | Some (Rule r,_) -> Rule.apply r instance
+    | Some (Package (_, decl_list), _) -> pack_rewrite decl_list instance
+    | Some (Strategy (_,ast_strat), new_pointed) ->
+      strat_simple_rewrite ?domain new_pointed ast_strat instance
+
+  and strat_simple_rewrite ?domain pointed strat instance =
+    match strat with
+    | New_ast.Ref subname -> intern_simple_rewrite ?domain pointed subname instance
+    | New_ast.Pick strat ->
+      begin
+        match det_strat_simple_rewrite ?domain pointed strat instance with
+        | None -> Grew_rule.Instance_set.empty
+        | Some x -> Instance_set.singleton x
+      end
+
+    | New_ast.Alt [] -> Grew_rule.Instance_set.empty
+    | New_ast.Alt strat_list -> List.fold_left
+      (fun acc strat -> Instance_set.union acc (strat_simple_rewrite ?domain pointed strat instance)
+      ) Instance_set.empty strat_list
+
+    | New_ast.Seq [] -> Instance_set.singleton instance
+    | New_ast.Seq (head_strat :: tail_strat) ->
+      let first_strat = strat_simple_rewrite ?domain pointed head_strat instance in
+      Instance_set.fold
+        (fun instance acc -> Instance_set.union acc (strat_simple_rewrite ?domain pointed (New_ast.Seq tail_strat) instance)
+        ) first_strat Instance_set.empty
+
+    | New_ast.Iter strat ->
+      let one_step = strat_simple_rewrite ?domain pointed strat instance in
+      if Instance_set.is_empty one_step
+      then Instance_set.singleton instance
+      else Instance_set.fold
+        (fun instance acc -> Instance_set.union acc (strat_simple_rewrite ?domain pointed (New_ast.Iter strat) instance)
+        ) one_step Instance_set.empty
+
+    | New_ast.Try strat ->
+      begin
+        let one_step = strat_simple_rewrite ?domain pointed strat instance in
+        if Instance_set.is_empty one_step
+        then Instance_set.singleton instance
+        else one_step
+      end
+
+    | New_ast.If (s, s1, s2) ->
+      begin
+        match det_strat_simple_rewrite ?domain pointed s instance with
+        | None -> strat_simple_rewrite ?domain pointed s1 instance
+        | Some _ -> strat_simple_rewrite ?domain pointed s2 instance
+      end
+
+
   let simple_rewrite grs strat graph =
+    let domain = domain grs in
     let instance = Instance.from_graph graph in
-    let set = strat_simple_rewrite (top grs) (Parser.strategy strat) instance in
+    let set = strat_simple_rewrite ?domain (top grs) (Parser.strategy strat) instance in
     List.map
       (fun inst -> inst.Instance.graph)
       (Instance_set.elements set)
+
+
+
+
+
+  let det_pack_one ?domain decl_list instance =
+    let rec loop = function
+      | [] -> None
+      | Rule r :: tail_decl ->
+        (match Rule.det_apply ?domain r instance with
+        | Some x -> Some (x, Rule.get_name r)
+        | None -> loop tail_decl
+        )
+      | _ :: tail_decl -> loop tail_decl in
+      loop decl_list
+
+
+
+  let det_iter_pack ?domain decl_list instance = (* return a (big step, inst) *)
+    match det_pack_one decl_list instance with
+    | None -> None
+    | Some (x, rule_name) ->
+      let first = {Libgrew_types.rule_name; up=G_deco.empty; down=G_deco.empty} in
+      let rec loop inst =
+        match det_pack_one ?domain decl_list inst with
+        | None -> ([], inst)
+        | Some (next, rule_name) ->
+            let (tail, final) = loop next in
+            (
+              (inst.Instance.graph, {Libgrew_types.rule_name; up=G_deco.empty; down=G_deco.empty} ) :: tail,
+              final
+            ) in
+      let (small_step, final) = loop x in
+      Some ({ Libgrew_types.first; small_step }, final)
+
+  let rec det_rew_display_tmp ?domain pointed strat instance =
+    match strat with
+    | New_ast.Ref subname ->
+      let path = Str.split (Str.regexp "\\.") subname in
+      begin
+        match search_from pointed path with
+        | None -> Error.build "Simple rewrite, cannot find strat %s" subname
+        | Some (Rule r,_) ->
+          begin
+            match Rule.det_apply ?domain r instance with
+            | None -> None
+            | Some inst -> Some [(
+                Rule.get_name r,
+                { Libgrew_types.first = {Libgrew_types.rule_name=Rule.get_name r; up=G_deco.empty; down=G_deco.empty}; small_step = [] },
+                inst
+              )]
+          end
+        | Some (Package (_, decl_list), _) ->
+            begin
+              match det_pack_one ?domain decl_list instance with
+              | None -> None
+              | Some (inst,rule_name) -> Some [(
+                  rule_name,
+                  { Libgrew_types.first = {Libgrew_types.rule_name=rule_name; up=G_deco.empty; down=G_deco.empty}; small_step = [] },
+                  inst
+                )]
+            end
+        | Some (Strategy (_,ast_strat), new_pointed) ->
+            det_rew_display_tmp ?domain new_pointed ast_strat instance
+      end
+
+    | New_ast.Pick strat -> det_rew_display_tmp ?domain pointed strat instance
+
+    | New_ast.Alt [] -> None
+    | New_ast.Alt strat_list ->
+      let rec loop = function
+        | [] -> None
+        | head_strat :: tail_strat ->
+          match det_rew_display_tmp ?domain pointed head_strat instance with
+          | None -> loop tail_strat
+          | Some x -> Some x in
+        loop strat_list
+
+    | New_ast.Seq [] -> Some []
+    | New_ast.Seq (head_strat :: tail_strat) ->
+      begin
+        match det_rew_display_tmp ?domain pointed head_strat instance with
+        | None -> None
+        | Some [] -> det_rew_display_tmp ?domain pointed (New_ast.Seq tail_strat) instance
+        | Some (((_,_,inst) :: _) as l) ->
+          begin
+            match det_rew_display_tmp ?domain pointed (New_ast.Seq tail_strat) inst with
+            | None -> None
+            | Some l2 -> Some (l2 @ l)
+          end
+      end
+
+    | New_ast.Iter (New_ast.Ref subname) ->
+      let path = Str.split (Str.regexp "\\.") subname in
+        begin
+          match search_from pointed path with
+          | None -> Error.build "Simple rewrite, cannot find strat %s" subname
+          | Some (Rule r,_) ->
+            begin
+              match det_iter_pack [Rule r] instance with
+              | Some (big_step, final) -> Some [(Rule.get_name r, big_step, final)]
+              | None -> Some []
+            end
+          | Some (Package (pack_name, decl_list), _) ->
+            begin
+              match det_iter_pack decl_list instance with
+              | Some (big_step, final) -> Some [(pack_name, big_step, final)]
+              | None -> Some []
+            end
+          | Some (Strategy (_,ast_strat), new_pointed) ->
+              det_rew_display_tmp ?domain new_pointed ast_strat instance
+        end
+
+    | New_ast.Iter strat ->
+      begin
+        match det_rew_display_tmp ?domain pointed strat instance with
+        | None -> Some []
+        | Some [] -> Some []
+        | Some (((_,_,inst) :: _) as l) ->
+          begin
+            match det_rew_display_tmp ?domain pointed (New_ast.Iter strat) inst with
+            | None -> Some l
+            | Some l2 -> Some (l2 @ l)
+          end
+      end
+
+    | New_ast.Try strat ->
+        begin
+          match det_rew_display_tmp ?domain pointed strat instance with
+          | None -> Some []
+          | Some i -> Some i
+        end
+
+    | New_ast.If (s, s1, s2) ->
+      begin
+        match det_strat_simple_rewrite ?domain pointed s instance with
+        | None -> det_rew_display_tmp ?domain pointed s1 instance
+        | Some _ -> det_rew_display_tmp ?domain pointed s2 instance
+      end
+
+  let det_rew_display grs strat graph =
+    let domain = domain grs in
+    let instance = Instance.from_graph graph in
+    let rec loop (s,b,rd) = function
+    | [] -> Libgrew_types.Node (instance.Instance.graph, s, [b, rd])
+    | (s2, b2, i2) :: tail -> loop (s2, b2, Libgrew_types.Node (i2.Instance.graph,s,[b,rd])) tail in
+
+    match det_rew_display_tmp ?domain (top grs) (Parser.strategy strat) instance with
+    | None -> Libgrew_types.Empty
+    | Some [] -> Libgrew_types.Leaf instance.Instance.graph
+    | Some ((s1,b1,i1) :: tail) -> loop (s1,b1,Libgrew_types.Leaf i1.Instance.graph) tail
+
 end
+

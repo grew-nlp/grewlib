@@ -120,4 +120,7 @@ module New_grs : sig
   val domain: t -> Domain.t option
 
   val simple_rewrite: t -> string -> G_graph.t -> G_graph.t list
+  val det_rew_display: t -> string -> G_graph.t -> Libgrew_types.rew_display
+
+  val get_strat_list: t -> string list
 end

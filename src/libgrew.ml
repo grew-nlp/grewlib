@@ -298,6 +298,13 @@ module New_grs = struct
       ) ()
 
   let to_json _ = failwith "TODO New_grs.to_json"
+
+  let get_strat_list grs =
+    handle ~name:"New_grs.get_strat_list"
+      (fun () ->
+        Grew_grs.New_grs.get_strat_list grs
+        ) ()
+
 end
 
 (* ==================================================================================================== *)
@@ -314,6 +321,9 @@ module Rewrite = struct
 
   let display ~gr ~grs ~seq =
     handle ~name:"Rewrite.display" (fun () -> Grew_grs.Grs.build_rew_display grs seq gr) ()
+
+  let new_display ~gr ~grs ~strat =
+    handle ~name:"Rewrite.new_display" (fun () -> Grew_grs.New_grs.det_rew_display grs strat gr) ()
 
   let set_timeout t = Grew_base.Timeout.timeout := t
 

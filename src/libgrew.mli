@@ -142,6 +142,7 @@ module New_grs : sig
 
   val to_json: t -> string
 
+  val get_strat_list: t -> string list
 end
 
 (* ==================================================================================================== *)
@@ -162,6 +163,8 @@ module Rewrite: sig
       @param grs the graph rewriting system
       @param seq the name of the sequence to apply *)
   val display: gr:Graph.t -> grs:Grs.t -> seq:string -> display
+  val new_display: gr:Graph.t -> grs:New_grs.t -> strat:string -> display
+
 
   val set_timeout: float option -> unit
 

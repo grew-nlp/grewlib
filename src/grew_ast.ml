@@ -495,7 +495,15 @@ module New_ast = struct
   | Include of string
 
   type grs = decl list
-end (* module New_ast *)
+
+  let strat_list grs =
+    let rec loop pref = function
+    [] -> []
+    | Strategy (_,name,_) :: tail -> name :: (loop pref tail)
+    | Package (_,pack_name,decl_list) :: tail -> (loop (pref^"."^pack_name) decl_list) @  (loop pref tail)
+    | _ :: tail -> loop pref tail
+    in loop "" grs
+  end (* module New_ast *)
 
 
 
