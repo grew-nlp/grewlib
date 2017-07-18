@@ -92,21 +92,6 @@ module Rewrite_history = struct
         | _ -> Error.run "[save_det_gr] Not a single rewriting"
     in loop t
 
-  let save_annot ?domain out_dir base_name t =
-    List.mapi
-      (fun i alts ->
-        match alts.good_nf with
-      | [alt_1; alt_2] ->
-        let a = sprintf "%s_%d_A" base_name i in
-        let b = sprintf "%s_%d_B" base_name i in
-        let hpa = Instance.save_dep_svg ?domain (Filename.concat out_dir a) alt_1.instance in
-        let hpb = Instance.save_dep_svg ?domain (Filename.concat out_dir b) alt_2.instance in
-        let (afn,apos) = G_graph.get_annot_info alt_1.instance.Instance.graph
-        and (bfn,bpos) = G_graph.get_annot_info alt_2.instance.Instance.graph in
-        (base_name,i,(afn,apos),(bfn,bpos),(hpa,hpb))
-      | _ -> Error.run "Not two alternatives in an annotation rewriting in %s" base_name
-      ) t.good_nf
-
   let save_det_conll ?domain ?header base t =
     let rec loop t =
       match t.good_nf with

@@ -336,9 +336,6 @@ module Rewrite = struct
   let write_stat filename rew_hist =
     handle ~name:"Rewrite.write_stat" (fun () -> Grew_html.Gr_stat.save filename (Grew_html.Gr_stat.from_rew_history rew_hist)) ()
 
-  let write_annot ?domain ~title static_dir annot_dir base_name_rew_hist_list =
-    handle ~name:"Rewrite.write_annot" (fun () -> Grew_html.Html_annot.build ?domain ~title static_dir annot_dir base_name_rew_hist_list) ()
-
   let save_index ~dirname ~base_names =
     handle ~name:"Rewrite.save_index" (fun () ->
       let out_ch = open_out (Filename.concat dirname "index") in

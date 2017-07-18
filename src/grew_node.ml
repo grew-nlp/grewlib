@@ -79,8 +79,6 @@ module G_node = struct
     | [] -> "_"
     | list -> String.concat "|" (List.map (fun (f,v) -> sprintf "%s=%s" f v) list)
 
-  let get_annot_info t = G_fs.get_annot_info t.fs
-
   let current_index = ref 0
   let fresh_index () = decr current_index; !current_index
 

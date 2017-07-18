@@ -199,8 +199,6 @@ module Rewrite: sig
 
   val save_index: dirname:string -> base_names: string array -> unit
 
-  val write_annot: ?domain:Domain.t -> title:string -> string -> string -> (string * history) list -> unit
-
   val write_html: ?domain:Domain.t -> ?no_init: bool -> ?out_gr: bool -> ?filter: string list -> ?main_feat: string -> ?dot: bool -> header: string -> ?graph_file: string -> history -> string ->  unit
 
   val error_html: ?domain:Domain.t -> ?no_init:bool -> ?main_feat:string -> ?dot: bool -> header: string -> string -> ?init:Graph.t -> string -> unit

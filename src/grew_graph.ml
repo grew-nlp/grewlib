@@ -296,19 +296,6 @@ module G_graph = struct
     let node = Gid_map.find node_id graph.map in
     Massoc_gid.exists (fun _ e -> Label_cst.match_ ?domain label_cst e) (G_node.get_next node)
 
-  let get_annot_info graph = failwith "Unused function !"
-    (* let annot_info =
-      Gid_map.fold
-        (fun _ node acc ->
-          match (G_node.get_annot_info node, acc) with
-            | (None,_) -> acc
-            | (Some f, None) -> Some (f,G_node.get_position node)
-            | (Some _, Some _) -> Error.build "[G_node.get_annot_info] Two nodes with annot info"
-        ) graph.map None in
-    match annot_info with
-      | Some x -> x
-      | None -> Error.build "[G_node.get_annot_info] No nodes with annot info" *)
-
   (* -------------------------------------------------------------------------------- *)
   let map_add_edge_opt map id_src label id_tar =
     let node_src =

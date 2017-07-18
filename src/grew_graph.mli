@@ -97,11 +97,6 @@ module G_graph: sig
   (** [edge_out label_domain t id label_cst] returns true iff there is an out-edge from the node [id] with a label compatible with [label_cst] *)
   val edge_out: ?domain:Domain.t -> t -> Gid.t -> Label_cst.t -> bool
 
-  (** [get_annot_info graph] searches for exactly one node with an annot-feature (with name starting with "__").
-      It returns the annot-feature name without the prefix "__" together with the position.
-      raise an [Build] exception if there is not exactly one annot-feature (with name starting with "__")  *)
-  val get_annot_info: t -> (string * float)
-
   (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
   (* Build functions *)
   (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
