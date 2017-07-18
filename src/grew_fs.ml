@@ -382,11 +382,14 @@ module P_fs = struct
 
   let check_position ?param position t =
     try
-      match List.assoc "position" t with
-        | {P_feature.cst=P_feature.Equal pos_list; in_param=[]} -> List.mem (Float position) pos_list
-        | {P_feature.cst=P_feature.Different pos_list; in_param=[]} -> not (List.mem (Float position) pos_list)
-        | {P_feature.cst=P_feature.Absent} -> false
-        | _ -> Error.bug "Position can't be parametrized"
+      match (List.assoc "position" t, position) with
+      | ({P_feature.cst=P_feature.Equal pos_list; in_param=[]}, Some p) -> List.mem (Float p) pos_list
+      | ({P_feature.cst=P_feature.Equal pos_list; in_param=[]}, None) -> false
+      | ({P_feature.cst=P_feature.Different pos_list; in_param=[]}, Some p) -> not (List.mem (Float p) pos_list)
+      | ({P_feature.cst=P_feature.Different pos_list; in_param=[]}, None) -> false
+      | ({P_feature.cst=P_feature.Absent}, Some _) -> false
+      | ({P_feature.cst=P_feature.Absent}, None) -> true
+      | _ -> Error.bug "Position can't be parametrized"
     with Not_found -> true
 
   let build ?domain ?pat_vars ast_fs =

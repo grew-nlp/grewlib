@@ -296,8 +296,8 @@ module G_graph = struct
     let node = Gid_map.find node_id graph.map in
     Massoc_gid.exists (fun _ e -> Label_cst.match_ ?domain label_cst e) (G_node.get_next node)
 
-  let get_annot_info graph =
-    let annot_info =
+  let get_annot_info graph = failwith "Unused function !"
+    (* let annot_info =
       Gid_map.fold
         (fun _ node acc ->
           match (G_node.get_annot_info node, acc) with
@@ -307,7 +307,7 @@ module G_graph = struct
         ) graph.map None in
     match annot_info with
       | Some x -> x
-      | None -> Error.build "[G_node.get_annot_info] No nodes with annot info"
+      | None -> Error.build "[G_node.get_annot_info] No nodes with annot info" *)
 
   (* -------------------------------------------------------------------------------- *)
   let map_add_edge_opt map id_src label id_tar =
@@ -350,7 +350,7 @@ module G_graph = struct
         else
           let (new_tail, table) = loop (node_id :: already_bound) (index+1) (Some index) tail in
           let succ = if tail = [] then None else Some (index+1) in
-          let new_node = G_node.build ?domain ?prec ?succ index (ast_node, loc) in
+          let new_node = G_node.build ?domain ?prec ?succ ~position:(float index) (ast_node, loc) in
             (
               Gid_map.add index new_node new_tail,
               (node_id,index)::table
@@ -529,54 +529,62 @@ module G_graph = struct
     { graph with map = new_map }
 
   (* -------------------------------------------------------------------------------- *)
-  let insert ?domain id1 id2 graph =
+  let insert id1 id2 graph =
     let node1 = Gid_map.find id1 graph.map in
     let node2 = Gid_map.find id2 graph.map in
-    let pos1 = G_node.get_position node1 in
-    let pos2 = G_node.get_position node2 in
-    let new_pos= (pos1 +. pos2) /. 2. in
+    let new_pos = match (G_node.get_position node1, G_node.get_position node2) with
+    | (G_node.Ordered pos1, G_node.Ordered pos2) -> (pos1 +. pos2) /. 2.
+    | _ -> Error.run "Try to insert into non ordered nodes" in
     let new_gid = graph.highest_index + 1 in
     let map = graph.map
-      |> (Gid_map.add new_gid (G_node.fresh ?domain ~prec:id1 ~succ:id2 new_pos))
+      |> (Gid_map.add new_gid (G_node.fresh ~prec:id1 ~succ:id2 new_pos))
       |> (Gid_map.add id1 (G_node.set_succ new_gid node1))
       |> (Gid_map.add id2 (G_node.set_prec new_gid node2)) in
     (new_gid, { graph with map; highest_index = new_gid })
 
   (* -------------------------------------------------------------------------------- *)
-  let append ?domain id graph =
+  let append id graph =
     let node = Gid_map.find id graph.map in
-    let pos = G_node.get_position node in
-    let new_pos= pos +. 1. in
+    let new_pos = match G_node.get_position node with
+    | G_node.Ordered pos -> pos +. 1.
+    | _ -> Error.run "Try to append into non ordered nodes" in
     let new_gid = graph.highest_index + 1 in
     let map = graph.map
-      |> (Gid_map.add new_gid (G_node.fresh ?domain ~prec:id new_pos))
+      |> (Gid_map.add new_gid (G_node.fresh ~prec:id new_pos))
       |> (Gid_map.add id (G_node.set_succ new_gid node)) in
     (new_gid, { graph with map; highest_index = new_gid })
 
   (* -------------------------------------------------------------------------------- *)
-  let prepend ?domain id graph =
+  let prepend id graph =
     let node = Gid_map.find id graph.map in
-    let pos = G_node.get_position node in
-    let new_pos= pos -. 1. in
+    let new_pos = match G_node.get_position node with
+    | G_node.Ordered pos -> pos -. 1.
+    | _ -> Error.run "Try to prepend into non ordered nodes" in
     let new_gid = graph.highest_index + 1 in
     let map = graph.map
-      |> (Gid_map.add new_gid (G_node.fresh ?domain ~succ:id new_pos))
+      |> (Gid_map.add new_gid (G_node.fresh ~succ:id new_pos))
       |> (Gid_map.add id (G_node.set_prec new_gid node)) in
     (new_gid, { graph with map; highest_index = new_gid })
 
   (* -------------------------------------------------------------------------------- *)
-  let add_after loc ?domain node_id graph =
+  let add_after node_id graph =
     let node = Gid_map.find node_id graph.map in
     match G_node.get_succ node with
-    | Some gid_succ -> insert ?domain node_id gid_succ graph
-    | None -> append ?domain node_id graph
+    | Some gid_succ -> insert node_id gid_succ graph
+    | None -> append node_id graph
 
   (* -------------------------------------------------------------------------------- *)
-  let add_before loc ?domain node_id graph =
+  let add_before node_id graph =
     let node = Gid_map.find node_id graph.map in
     match G_node.get_prec node with
-    | Some gid_prec -> insert ?domain gid_prec node_id graph
-    | None -> prepend ?domain node_id graph
+    | Some gid_prec -> insert gid_prec node_id graph
+    | None -> prepend node_id graph
+
+  (* -------------------------------------------------------------------------------- *)
+  let add_unordered graph =
+    let new_gid = graph.highest_index + 1 in
+    let map = Gid_map.add new_gid (G_node.fresh_unordered ()) graph.map in
+    (new_gid, { graph with map; highest_index = new_gid })
 
   (* -------------------------------------------------------------------------------- *)
   (* move out-edges (which respect cst [labels,neg]) from id_src are moved to out-edges out off node id_tar *)
@@ -661,7 +669,11 @@ module G_graph = struct
         (function
           | Concat_item.Feat (node_gid, "position") ->
             let node = Gid_map.find node_gid graph.map in
-            sprintf "%g" (G_node.get_position node)
+            begin
+              match G_node.get_position node with
+              | G_node.Ordered p -> sprintf "%g" p
+              | _ -> Error.run ?loc "Try to read position of an unordered node"
+            end
           | Concat_item.Feat (node_gid, feat_name) ->
             let node = Gid_map.find node_gid graph.map in
             (match G_fs.get_string_atom feat_name (G_node.get_fs node) with
@@ -760,7 +772,8 @@ module G_graph = struct
       (fun (id, node) ->
         let decorated_feat = try List.assoc id deco.G_deco.nodes with Not_found -> ("",[]) in
         let fs = G_node.get_fs node in
-        let dep_fs = G_fs.to_dep ~decorated_feat ~position:(G_node.get_position node) ?filter ?main_feat fs in
+        let pos= match G_node.get_position node with G_node.Ordered x -> Some x | _ -> None in
+        let dep_fs = G_fs.to_dep ~decorated_feat ?position:pos ?filter ?main_feat fs in
 
         let style = match G_fs.get_string_atom "void" fs with
           | Some "y" -> "; forecolor=red; subcolor=red; "
@@ -884,7 +897,7 @@ module G_graph = struct
       let gnode = List.assoc gid snodes in
       if G_node.is_conll_root gnode
       then 0.
-      else G_node.get_position (List.assoc gid snodes) in
+      else G_node.get_float (List.assoc gid snodes) in
 
     (* Warning: [govs_labs] maps [gid]s to [num]s *)
     let govs_labs =

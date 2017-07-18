@@ -97,7 +97,7 @@ module P_fs: sig
 
   (** [check_position ?parma position pfs] checks wheter [pfs] is compatible with a node at [position].
       It returns [true] iff [pfs] has no requirement about position ok if the requirement is satisfied. *)
-  val check_position: ?param:Lex_par.t -> float -> t -> bool
+  val check_position: ?param:Lex_par.t -> float option -> t -> bool
 
   exception Fail_unif
 

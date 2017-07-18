@@ -594,7 +594,7 @@ module Rule = struct
       (fun pid gid acc ->
         let pnode = P_graph.find pid (fst pattern).graph in
         let gnode = G_graph.find gid graph in
-        (P_node.get_name pnode, int_of_float (G_node.get_position gnode)) :: acc
+        (P_node.get_name pnode, G_node.get_float gnode) :: acc
       ) n_match []
 
   let empty_matching param = { n_match = Pid_map.empty; e_match = []; m_param = param;}
@@ -684,10 +684,20 @@ module Rule = struct
   let apply_cst ?domain graph matching cst =
     let get_node pid = G_graph.find (Pid_map.find pid matching.n_match) graph in
     let get_string_feat pid = function
-      | "position" -> Some (sprintf "%g" (G_node.get_position (get_node pid)))
+      | "position" ->
+        begin
+          match G_node.get_position (get_node pid) with
+          | G_node.Ordered f -> Some (sprintf "%g" f)
+          | _ -> Error.run "Cannot read position of an unordered node"
+        end
       | feat_name -> G_fs.get_string_atom feat_name (G_node.get_fs (get_node pid)) in
     let get_float_feat pid = function
-      | "position" -> Some (G_node.get_position (get_node pid))
+      | "position" ->
+        begin
+          match G_node.get_position (get_node pid) with
+          | G_node.Ordered f -> Some f
+          | _ -> Error.run "Cannot read position of an unordered node"
+        end
       | feat_name -> G_fs.get_float_feat feat_name (G_node.get_fs (get_node pid)) in
 
     match cst with
@@ -1002,33 +1012,32 @@ module Rule = struct
 
     | Command.NEW_AFTER (created_name,base_cn) ->
         let base_gid = node_find base_cn in
-        let (new_gid,new_graph) = G_graph.add_after loc ?domain base_gid instance.Instance.graph in
+        let (new_gid,new_graph) = G_graph.add_after base_gid instance.Instance.graph in
         (
          {instance with
           Instance.graph = new_graph;
-          history = List_.sort_insert (Command.H_NEW_AFTER (created_name,new_gid)) instance.Instance.history;
+          history = List_.sort_insert (Command.H_NEW_AFTER (created_name,base_gid)) instance.Instance.history;
         },
          (created_name,new_gid) :: created_nodes
         )
 
     | Command.NEW_NODE (created_name) ->
-        let base_gid = G_graph.get_highest instance.Instance.graph in
-        let (new_gid,new_graph) = G_graph.add_after loc ?domain base_gid instance.Instance.graph in
+        let (new_gid,new_graph) = G_graph.add_unordered instance.Instance.graph in
         (
          {instance with
           Instance.graph = new_graph;
-          history = List_.sort_insert (Command.H_NEW_AFTER (created_name,new_gid)) instance.Instance.history;
+          history = List_.sort_insert (Command.H_NEW_NODE created_name) instance.Instance.history;
         },
          (created_name,new_gid) :: created_nodes
         )
 
     | Command.NEW_BEFORE (created_name,base_cn) ->
         let base_gid = node_find base_cn in
-        let (new_gid,new_graph) = G_graph.add_before loc ?domain base_gid instance.Instance.graph in
+        let (new_gid,new_graph) = G_graph.add_before base_gid instance.Instance.graph in
         (
          {instance with
           Instance.graph = new_graph;
-          history = List_.sort_insert (Command.H_NEW_BEFORE (created_name,new_gid)) instance.Instance.history;
+          history = List_.sort_insert (Command.H_NEW_BEFORE (created_name,base_gid)) instance.Instance.history;
         },
          (created_name,new_gid) :: created_nodes
         )
@@ -1316,9 +1325,5 @@ module Rule = struct
                 ) matching_list in
             Some (apply_rule ?domain instance first_matching_where_all_witout_are_fulfilled rule)
           with Not_found -> None
-
-
-
-
 
 end (* module Rule *)

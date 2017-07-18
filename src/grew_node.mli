@@ -19,6 +19,11 @@ open Grew_ast
 
 (* ================================================================================ *)
 module G_node: sig
+  type position =
+  | Ordered of float
+  | Unordered of int
+
+
   type t
 
   val empty: t
@@ -40,6 +45,10 @@ module G_node: sig
 
   val set_fs: G_fs.t -> t -> t
   val set_position: float -> t -> t
+  val get_position: t -> position
+  val get_float: t -> float
+
+
   val set_next: G_edge.t Massoc_gid.t -> t -> t
 
   val get_name: Gid.t -> t -> string
@@ -57,14 +66,16 @@ module G_node: sig
   val rm_out_edges: t -> t
 
   val add_edge: G_edge.t -> Gid.t -> t -> t option
-  val build: ?domain:Domain.t -> ?prec:Gid.t -> ?succ:Gid.t -> int -> Ast.node -> t
+
+
+  val build: ?domain:Domain.t -> ?prec:Gid.t -> ?succ:Gid.t -> ?position:float -> Ast.node -> t
   val of_conll: ?loc:Loc.t -> ?prec:Gid.t -> ?succ:Gid.t -> ?domain:Domain.t -> Conll.line -> t
   val pst_leaf: ?loc:Loc.t -> ?domain:Domain.t -> string -> int -> t
   val pst_node: ?loc:Loc.t -> ?domain:Domain.t -> string -> int -> t
 
-  val fresh: ?domain:Domain.t -> ?prec:Gid.t -> ?succ:Gid.t -> float -> t
+  val fresh: ?prec:Gid.t -> ?succ:Gid.t -> float -> t
+  val fresh_unordered: unit -> t
 
-  val get_position: t -> float
 
   val position_comp: t -> t -> int
 

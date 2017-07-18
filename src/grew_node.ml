@@ -20,13 +20,17 @@ open Grew_fs
 
 (* ================================================================================ *)
 module G_node = struct
+  type position =
+  | Ordered of float
+  | Unordered of int
+
   type t = {
       name: Id.name option;
       fs: G_fs.t;
       next: G_edge.t Massoc_gid.t;
       succ: Gid.t option;
       prec: Gid.t option;
-      position: float;
+      position: position;
       conll_root: bool;
       efs: (string * string) list;
     }
@@ -38,7 +42,9 @@ module G_node = struct
   let set_next next t = {t with next }
 
   let get_position t = t.position
-  let set_position position t = { t with position }
+  let set_position p t = { t with position = Ordered p }
+
+  let get_float t = match t.position with Ordered p -> p | Unordered i -> float i
 
   let get_prec t = t.prec
   let get_succ t = t.succ
@@ -53,7 +59,7 @@ module G_node = struct
     | Some n -> n
     | None -> sprintf "_%s_" (Gid.to_string gid)
 
-  let empty = { name=None; fs = G_fs.empty; next = Massoc_gid.empty; succ = None; prec = None; position = -1.; conll_root=false; efs=[] }
+  let empty = { name=None; fs = G_fs.empty; next = Massoc_gid.empty; succ = None; prec = None; position = Unordered 0; conll_root=false; efs=[] }
 
   let is_conll_root t = t.conll_root
 
@@ -75,9 +81,13 @@ module G_node = struct
 
   let get_annot_info t = G_fs.get_annot_info t.fs
 
-  let build ?domain ?prec ?succ position (ast_node, loc) =
+  let current_index = ref 0
+  let fresh_index () = decr current_index; !current_index
+
+  let build ?domain ?prec ?succ ?position (ast_node, loc) =
     let fs = G_fs.build ?domain ast_node.Ast.fs in
-    { empty with name=Some ast_node.Ast.node_id; fs; position = float_of_int position; prec; succ }
+    let pos = match position with None -> Unordered (fresh_index ()) | Some p -> Ordered p in
+    { empty with name=Some ast_node.Ast.node_id; fs; position = pos; prec; succ }
 
   let float_of_conll_id = function
   | (i,None) -> float i
@@ -87,14 +97,15 @@ module G_node = struct
   let of_conll ?loc ?prec ?succ ?domain line =
     if line = Conll.root
     then { empty with conll_root=true; succ}
-    else { empty with fs = G_fs.of_conll ?loc ?domain line; position = float_of_conll_id line.Conll.id; prec; succ; efs=line.Conll.efs }
+    else { empty with fs = G_fs.of_conll ?loc ?domain line; position = Ordered (float_of_conll_id line.Conll.id); prec; succ; efs=line.Conll.efs }
 
   let pst_leaf ?loc ?domain phon position =
-    { empty with fs = G_fs.pst_leaf ?loc ?domain phon; position = float position }
+    { empty with fs = G_fs.pst_leaf ?loc ?domain phon; position = Ordered (float position) }
   let pst_node ?loc ?domain cat position =
-    { empty with fs = G_fs.pst_node ?loc ?domain cat; position = float position }
+    { empty with fs = G_fs.pst_node ?loc ?domain cat; position = Ordered (float position) } (* TODO : change to Unordered *)
 
-  let fresh ?domain ?prec ?succ position = { empty with position; prec; succ }
+  let fresh ?prec ?succ pos = { empty with position = Ordered pos; prec; succ }
+  let fresh_unordered () = { empty with position = Unordered (fresh_index ())}
 
   let remove (id_tar : Gid.t) label t = {t with next = Massoc_gid.remove id_tar label t.next}
 
@@ -169,9 +180,12 @@ module P_node = struct
 
   let match_ ?param p_node g_node =
     (* (match param with None -> printf "<None>" | Some p -> printf "<Some>"; Lex_par.dump p); *)
-    if P_fs.check_position ?param (G_node.get_position g_node) p_node.fs
-    then P_fs.match_ ?param p_node.fs (G_node.get_fs g_node)
-    else raise P_fs.Fail
+    match G_node.get_position g_node with
+    | G_node.Unordered _ -> None
+    | G_node.Ordered p ->
+      if P_fs.check_position ?param (Some p) p_node.fs
+      then P_fs.match_ ?param p_node.fs (G_node.get_fs g_node)
+      else raise P_fs.Fail
 
   let compare_pos t1 t2 = Pervasives.compare t1.loc t2.loc
 end (* module P_node *)

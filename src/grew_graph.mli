@@ -137,8 +137,9 @@ module G_graph: sig
       [graph] is unchanged if the node is not in it. *)
   val del_node: t -> Gid.t -> t
 
-  val add_before: Loc.t -> ?domain:Domain.t -> Gid.t -> t -> (Gid.t * t)
-  val add_after: Loc.t -> ?domain:Domain.t -> Gid.t -> t -> (Gid.t * t)
+  val add_before: Gid.t -> t -> (Gid.t * t)
+  val add_after: Gid.t -> t -> (Gid.t * t)
+  val add_unordered: t -> (Gid.t * t)
 
   (** move all in arcs to id_src are moved to in arcs on node id_tar from graph, with all its incoming edges *)
   val shift_in: Loc.t -> ?domain:Domain.t -> Gid.t -> Gid.t -> (Gid.t -> bool) -> Label_cst.t -> t -> t
