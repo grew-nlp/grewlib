@@ -265,4 +265,6 @@ module New_ast : sig
   type grs = decl list
 
   val strat_list: grs -> string list
+
+  val convert: Ast.grs -> grs
 end (* module New_ast *)

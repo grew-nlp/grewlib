@@ -346,7 +346,7 @@ module Ast = struct
     mod_dir: string; (* the directory where the module is defined (for lp file localisation) *)
   }
 
-  type strat_def = (* /!\ The list must not be empty in the Seq or Plus constructor *)
+  type strat_def = (* /!\ The list must not be empty in the Seq constructor *)
     | Ref of string            (* reference to a module name or to another strategy *)
     | Seq of strat_def list    (* a sequence of strategies to apply one after the other *)
     | Star of strat_def        (* a strategy to apply iteratively *)
@@ -488,6 +488,37 @@ module New_ast = struct
     | Package (_,pack_name,decl_list) :: tail -> (loop (pref^"."^pack_name) decl_list) @  (loop pref tail)
     | _ :: tail -> loop pref tail
     in loop "" grs
+
+  (* conversion from old grs to new ones *)
+  let modul2package modul =
+    let decl_list = List.map (fun rule -> Rule rule) modul.Ast.rules in
+    Package (modul.Ast.mod_loc, modul.Ast.module_id, decl_list)
+
+  let convert_strat det_modules old_strat =
+    let new_strat_list =
+      match old_strat.Ast.strat_def with
+      | Ast.Sequence module_list ->
+        Seq (List.map
+          (fun name ->
+            if List.mem name det_modules
+            then Pick (Iter (Ref name))
+            else Iter (Ref name)
+          ) module_list
+        )
+      | _ -> failwith "No translation of old strat ≠ Sequence" in
+    let strat_name = old_strat.Ast.strat_name in
+    let loc = old_strat.Ast.strat_loc in
+    Strategy (loc, strat_name, new_strat_list)
+
+  let convert old_grs =
+    let new_domain =
+      match old_grs.Ast.domain with
+      | None -> []
+      | Some { Ast.feature_domain; label_domain } -> [Features feature_domain; Labels label_domain] in
+    let packages = List.map modul2package old_grs.Ast.modules in
+    let det_modules = List.fold_left (fun acc modul -> if modul.Ast.deterministic then modul.Ast.module_id::acc else acc) [] old_grs.Ast.modules in
+    let new_strat_list = List.map (convert_strat det_modules) old_grs.Ast.strategies in
+    new_domain @ packages @ new_strat_list
   end (* module New_ast *)
 
 
