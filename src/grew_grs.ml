@@ -195,11 +195,8 @@ module Grs = struct
       (if not (List.exists (fun m -> name = m.Modul.name) t.modules)
       then Error.build ~loc:strat.Ast.strat_loc "In sequence '%s' definition, module '%s' undefined" strat.Ast.strat_name name)
     | Ast.Seq sd_list -> List.iter loop sd_list
-    | Ast.Plus sd_list -> List.iter loop sd_list
     | Ast.Star sd -> loop sd
-    | Ast.Bang sd -> loop sd
     | Ast.Pick sd -> loop sd
-    | Ast.Try sd -> loop sd
     | Ast.Sequence name_list ->
       List.iter (fun name ->
         if not (List.exists (fun m -> name = m.Modul.name) t.modules)
@@ -311,14 +308,6 @@ module Grs = struct
             with Not_found -> Error.build "No module or strategy named '%s'" name in
           Rule.conf_one_step ?domain: grs.domain inst modul.Modul.rules
       end
-    (* Union of strategies *)
-    | Ast.Plus [] -> None (* the list can be empty in a recursive call! *)
-    | Ast.Plus (head::tail) ->
-      begin
-        match loop inst head with
-        | Some new_inst -> Some new_inst
-        | None -> loop inst (Ast.Plus tail)
-      end
     (* Sequence of strategies *)
     | Ast.Seq [] -> Log.fcritical "Empty sequence in strategy definition"
     | Ast.Seq [one] -> loop inst one
@@ -337,15 +326,6 @@ module Grs = struct
       end
     (* Pick *)
     | Ast.Pick sub_strat -> loop inst sub_strat
-    (* Bang *)
-    | Ast.Bang sub_strat -> loop inst (Ast.Star sub_strat)
-    (* Try *)
-    | Ast.Try sub_strat ->
-      begin
-        match loop inst sub_strat with
-        | None -> Some inst
-        | Some new_inst -> Some new_inst
-      end
     (* Old style seq definition *)
     | Ast.Sequence module_list -> loop inst (new_style grs module_list) in
     loop inst strat
@@ -472,37 +452,6 @@ module Grs = struct
         apply_leaf (Ast.Seq tail_strat) one_step
 
       | Ast.Pick strat -> pick (loop instance strat)
-      | Ast.Try strat -> try_ (loop instance strat)
-      | Ast.Bang strat -> loop instance (Ast.Pick (Ast.Star strat))
-
-      (* ========> Strat defined as a sequence of sub-strategies <========= *)
-      | Ast.Plus [] -> Log.bug "[Grs.build_rew_display] Empty union!"; exit 2
-      | Ast.Plus strat_list ->
-        let rd_list = List.map (fun strat -> loop instance strat) strat_list in
-        let (opt_lnf, opt_node_info) =
-          List.fold_left (fun (acc_lnf, acc_node) rd ->
-            match (rd, acc_lnf, acc_node) with
-            | (Libgrew_types.Empty, acc_lnf, acc_node) -> (acc_lnf, acc_node)
-
-            | (Libgrew_types.Leaf graph, None ,_) -> (Some (graph,"0"), acc_node)
-            | (Libgrew_types.Leaf _,Some (graph,names) ,_) -> (Some (graph,"0+"^names), acc_node)
-
-            | (Libgrew_types.Local_normal_form (graph,name,_), None, _) -> (Some (graph,name), acc_node)
-            | (Libgrew_types.Local_normal_form (_,name,_), Some (graph,names), _) -> (Some (graph,name^"+"^names), acc_node)
-
-            | (Libgrew_types.Node (graph,name,bs_rd_list), _, None) -> (acc_lnf, Some (graph,name,bs_rd_list))
-            | (Libgrew_types.Node (_,name,bs_rd_list), _, Some (graph,acc_names,acc_bs_rd_list)) ->
-                (acc_lnf, Some (graph, name^"+"^acc_names,bs_rd_list @ acc_bs_rd_list))
-          ) (None,None) rd_list in
-        begin
-          match (opt_lnf, opt_node_info) with
-            | (None, None) -> Libgrew_types.Empty
-            | (Some (graph,lnf_name), None) -> Libgrew_types.Local_normal_form (graph, lnf_name, Libgrew_types.Leaf graph)
-            | (None, Some (a,b,c)) -> Libgrew_types.Node (a,b,c)
-            | (Some (_,lnf_name), Some (graph,acc_name,acc_bs_rd_list)) ->
-                let bs = {Libgrew_types.first={Libgrew_types.rule_name="dummy";up=G_deco.empty;down=G_deco.empty}; small_step=[]} in
-                Libgrew_types.Node (graph,acc_name,(bs, Libgrew_types.Leaf graph) :: acc_bs_rd_list)
-        end
 
       | Ast.Star strat ->
         begin

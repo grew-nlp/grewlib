@@ -349,21 +349,15 @@ module Ast = struct
   type strat_def = (* /!\ The list must not be empty in the Seq or Plus constructor *)
     | Ref of string            (* reference to a module name or to another strategy *)
     | Seq of strat_def list    (* a sequence of strategies to apply one after the other *)
-    | Plus of strat_def list   (* a set of strategies to apply in parallel *)
     | Star of strat_def        (* a strategy to apply iteratively *)
-    | Bang of strat_def        (* a strategy to apply iteratively and deterministically *)
     | Pick of strat_def        (* pick one normal form a the given strategy; return 0 if nf *)
-    | Try of strat_def         (* pick one normal form a the given strategy; return input if nf *)
     | Sequence of string list  (* compatibility mode with old code *)
 
   let rec strat_def_to_string = function
   | Ref m -> m
   | Seq l -> "(" ^ (String.concat "; " (List.map strat_def_to_string l)) ^ ")"
-  | Plus l -> "(" ^ (String.concat "+" (List.map strat_def_to_string l)) ^ ")"
   | Star s -> "(" ^ (strat_def_to_string s) ^")" ^ "*"
-  | Bang s -> "(" ^ (strat_def_to_string s) ^")" ^ "!"
   | Pick s -> "pick" ^ "(" ^(strat_def_to_string s)^")"
-  | Try s -> "try" ^ "(" ^(strat_def_to_string s)^")"
   | Sequence names -> "{" ^ (String.concat ";" names) ^ "}"
 
   (* invariant: Seq list and Plus list are not empty in the input and so not empty in the output *)
@@ -371,9 +365,7 @@ module Ast = struct
   | Sequence l -> Sequence l
   | Ref m -> Ref m
   | Star s -> Star (strat_def_flatten s)
-  | Bang s -> Bang (strat_def_flatten s)
   | Pick s -> Pick (strat_def_flatten s)
-  | Try s -> Try (strat_def_flatten s)
   | Seq l ->
     let fl = List.map strat_def_flatten l in
     let rec loop = function
@@ -381,13 +373,6 @@ module Ast = struct
     | (Seq l) :: tail -> l @ (loop tail)
     | x :: tail -> x :: (loop tail)
     in Seq (loop fl)
-  | Plus l ->
-    let fl = List.map strat_def_flatten l in
-    let rec loop = function
-    | [] -> []
-    | (Plus l) :: tail -> l @ (loop tail)
-    | x :: tail -> x :: (loop tail)
-    in Plus (loop fl)
 
   type strategy = {
     strat_name: string;

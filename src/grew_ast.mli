@@ -197,11 +197,8 @@ module Ast : sig
   type strat_def = (* /!\ The list must not be empty in the Seq or Plus constructor *)
     | Ref of string            (* reference to a module name or to another strategy *)
     | Seq of strat_def list    (* a sequence of strategies to apply one after the other *)
-    | Plus of strat_def list   (* a set of strategies to apply in parallel *)
     | Star of strat_def        (* a strategy to apply iteratively *)
-    | Bang of strat_def        (* a strategy to apply iteratively and deterministically *)
     | Pick of strat_def        (* pick one normal form a the given strategy; return 0 if nf *)
-    | Try of strat_def         (* pick one normal form a the given strategy; return input if nf *)
     | Sequence of string list  (* compatibility mode with old code *)
 
   val strat_def_to_string: strat_def -> string
