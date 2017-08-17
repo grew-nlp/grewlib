@@ -126,7 +126,6 @@ let localize t = (t,get_loc ())
 %start <Grew_ast.Ast.module_or_include list> included
 %start <Grew_ast.Ast.pattern> pattern
 %start <Grew_ast.Ast.domain> domain
-%start <Grew_ast.Ast.strat_def> strat_def
 
 %start <Grew_ast.New_ast.grs> new_grs
 %start <Grew_ast.New_ast.strat> strat_desc
@@ -135,12 +134,7 @@ let localize t = (t,get_loc ())
 /* EX: "( (SENT (NP (NC Amélioration) (PP (P de) (NP (DET la) (NC sécurité))))))"    */
 %start <Grew_ast.Ast.pst> phrase_structure_tree
 
-%left SEMIC
-%left PLUS
-%nonassoc STAR
-%nonassoc BANG
 %%
-
 
 %public separated_list_final_opt(separator,X):
 |                                                               { [] }
@@ -697,29 +691,6 @@ sequence:
                 strat_loc;
               }
             }
-        /*   strat = <>(M1+M2)*   */
-        | doc = option(COMMENT) id_loc=simple_id_with_loc EQUAL strat_def=strat_def_rec
-            { let (strat_name,strat_loc) = id_loc in
-              {
-                Ast.strat_name;
-                strat_def;
-                strat_doc = begin match doc with Some d -> d | None -> [] end;
-                strat_loc;
-              }
-            }
-
-strat_def_rec:
-        | m=simple_id                             { Ast.Ref m }
-        | LPAREN s=strat_def_rec RPAREN           { s }
-        | s=strat_def_rec STAR                    { Ast.Star (s) }
-        | s=strat_def_rec BANG                    { Ast.Bang (s) }
-        | s1=strat_def_rec PLUS s2=strat_def_rec  { Ast.Plus [s1; s2] }
-        | s1=strat_def_rec SEMIC s2=strat_def_rec { Ast.Seq [s1; s2] }
-        | PICK LPAREN s=strat_def_rec RPAREN      { Ast.Pick s }
-        | TRY LPAREN s=strat_def_rec RPAREN       { Ast.Try s }
-
-
-strat_def: s = strat_def_rec EOF { s }
 
 /*=============================================================================================*/
 /* ISOLATED PATTERN (grep mode)                                                                */

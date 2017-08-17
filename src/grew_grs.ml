@@ -350,57 +350,7 @@ module Grs = struct
     | Ast.Sequence module_list -> loop inst (new_style grs module_list) in
     loop inst strat
 
-
-  let simple_rewrite grs strat_desc graph =
-    let rec loop inst = function
-    (* name can refer to another strategy def or to a module *)
-    | Ast.Ref name ->
-      begin
-        try
-          let sub_strat = List.find (fun s -> s.Ast.strat_name = name) grs.strategies in
-          loop inst sub_strat.Ast.strat_def
-        with Not_found ->
-          let modul =
-            try List.find (fun m -> m.Modul.name=name) grs.modules
-            with Not_found -> Error.build "No module or strategy named '%s'" name in
-          Rule.one_step ?domain: grs.domain inst modul.Modul.rules
-      end
-    (* Union of strategies *)
-    | Ast.Plus strat_list ->
-      List.fold_left (fun acc strat -> Instance_set.union acc (loop inst strat)) Instance_set.empty strat_list
-    (* Sequence of strategies *)
-    | Ast.Seq [] -> Log.fcritical "Empty sequence in strategy definition"
-    | Ast.Seq [one] -> loop inst one
-    | Ast.Seq (head::tail) ->
-      let after_first_mod = loop inst head in
-      Instance_set.fold (fun new_inst acc -> Instance_set.union acc (loop new_inst (Ast.Seq tail))) after_first_mod Instance_set.empty
-    (* Interation of a strategy *)
-    | Ast.Star sub_strat ->
-      let one_iter = loop inst sub_strat in
-      if Instance_set.is_empty one_iter
-      then Instance_set.singleton inst
-      else Instance_set.fold (fun new_inst acc -> Instance_set.union acc (loop new_inst (Ast.Star sub_strat))) one_iter Instance_set.empty
-    (* Pick *)
-    | Ast.Pick sub_strat ->
-      begin
-        match one_rewrite grs sub_strat inst with
-        | Some new_inst -> Instance_set.singleton new_inst
-        | None -> Instance_set.empty
-      end
-    (* Try *)
-    | Ast.Try sub_strat ->
-      begin
-        match one_rewrite grs sub_strat inst with
-        | Some new_inst -> Instance_set.singleton new_inst
-        | None -> Instance_set.singleton inst
-      end
-    (* Bang *)
-    | Ast.Bang sub_strat -> loop inst (Ast.Pick (Ast.Star sub_strat))
-    (* Old style seq definition *)
-    | Ast.Sequence module_list -> loop inst (new_style grs module_list) in
-    List.map
-      (fun inst -> inst.Instance.graph)
-      (Instance_set.elements (loop (Instance.from_graph graph) (Parser.strat_def strat_desc)))
+  let simple_rewrite grs strat_desc graph = failwith "OBSOLETE [Grs.simple_rewrite]"
 
   (* ---------------------------------------------------------------------------------------------------- *)
   (* construction of the rew_display *)
@@ -571,7 +521,6 @@ module Grs = struct
       (fun modul ->
         List.iter (fun rule -> fct modul.Modul.name rule) modul.Modul.rules
       ) grs.modules
-
 end (* module Grs *)
 
 
