@@ -160,7 +160,7 @@ module Loader = struct
         let pack_name = match CCString.chop_suffix ~suf:".grs" filename with
           | Some x -> x
           | None -> Error.build "Imported file must have the \".grs\" file extension" in
-        let sub = loc_new_grs filename in
+        let sub = loc_new_grs real_file in
         let unfolded_sub = unfold_new_grs (real_dir real_file) false sub in
           New_ast.Package (Loc.file filename, pack_name, unfolded_sub) :: acc
       | New_ast.Include filename ->
