@@ -282,7 +282,7 @@ module New_grs = struct
   let load file =
     handle ~name:"New_grs.load" ~file
       (fun () ->
-        Grew_grs.New_grs.load file
+        Grew_grs.Univ_grs.load file
       ) ()
 
   let dump grs =

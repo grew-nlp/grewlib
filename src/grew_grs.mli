@@ -124,3 +124,7 @@ module New_grs : sig
 
   val get_strat_list: t -> string list
 end
+
+module Univ_grs : sig
+  val load: string -> New_grs.t
+end

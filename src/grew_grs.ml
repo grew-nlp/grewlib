@@ -226,8 +226,6 @@ module Grs = struct
       check_strategy strat t
     ) t.strategies
 
-
-
   let domain_build ast_domain =
     Domain.build
       (Label_domain.build ast_domain.Ast.label_domain)
@@ -472,28 +470,6 @@ module Grs = struct
       ) grs.modules
 end (* module Grs *)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 module New_grs = struct
 
   type decl =
@@ -534,8 +510,7 @@ module New_grs = struct
 
   let domain t = t.domain
 
-  let load filename =
-    let ast = Loader.new_grs filename in
+  let from_ast filename ast =
 
     let feature_domains = List_.opt_map
       (fun x -> match x with
@@ -575,6 +550,8 @@ module New_grs = struct
       domain;
       decls;
     }
+
+  let load filename = from_ast filename (Loader.new_grs filename)
 
   (* The type [pointed] is a zipper style data structure for resolving names x.y.z *)
   type pointed =
@@ -921,3 +898,21 @@ module New_grs = struct
 
 end
 
+module Univ_grs = struct
+  let load file =
+    let new_ast =
+    try
+      let ast = Loader.new_grs file in
+      Log.finfo "[Univ_grs.load] SUCCEED to load file \"%s\" with NEW syntax" file;
+      ast
+    with exc_new ->
+      Log.finfo "[Univ_grs.load] FAILED to load file \"%s\" with NEW syntax: exc=\"%s\"" file (Printexc.to_string exc_new);
+      try
+        let ast = New_ast.convert (Loader.grs file) in
+        Log.finfo "[Univ_grs.load] SUCCEED to load file \"%s\" with OLD syntax" file;
+        ast
+      with exc_old ->
+        Log.finfo "[Univ_grs.load] FAILED to load file \"%s\" with OLD syntax: exc=\"%s\"" file (Printexc.to_string exc_old);
+        raise exc_new in
+  New_grs.from_ast file new_ast
+end
