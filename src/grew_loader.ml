@@ -80,7 +80,11 @@ module Loader = struct
     let rec flatten_modules current_file = function
       | [] -> []
       | Ast.Modul m :: tail ->
-        {m with Ast.mod_dir = Filename.dirname current_file}
+        let real_dir = Filename.dirname current_file in
+        {m with
+          Ast.mod_dir = real_dir;
+          rules = List.map (fun r -> {r with Ast.rule_dir = Some real_dir}) m.Ast.rules
+        }
         :: (flatten_modules current_file tail)
       | Ast.Includ (inc_file,loc) :: tail ->
         let sub_file =
