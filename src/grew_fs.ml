@@ -210,7 +210,7 @@ module G_fs = struct
     match List_.sort_assoc feat_name t with
       | None -> None
       | Some (Float i) -> Some i
-      | Some _ -> Error.build "[Fs.get_float_feat]"
+      | Some (String s) -> Error.build "[Fs.get_float_feat] feat_name=%s, value=%s" feat_name s
 
   (* ---------------------------------------------------------------------- *)
   let to_string t = List_.to_string G_feature.to_string "," t

@@ -763,7 +763,7 @@ module New_grs = struct
 
 
   let det_iter_pack ?domain decl_list instance = (* return a (big step, inst) *)
-    match det_pack_one decl_list instance with
+    match det_pack_one ?domain decl_list instance with
     | None -> None
     | Some (x, rule_name) ->
       let first = {Libgrew_types.rule_name; up=G_deco.empty; down=G_deco.empty} in
@@ -843,13 +843,13 @@ module New_grs = struct
           | None -> Error.build "Simple rewrite, cannot find strat %s" subname
           | Some (Rule r,_) ->
             begin
-              match det_iter_pack [Rule r] instance with
+              match det_iter_pack ?domain [Rule r] instance with
               | Some (big_step, final) -> Some [(Rule.get_name r, big_step, final)]
               | None -> Some []
             end
           | Some (Package (pack_name, decl_list), _) ->
             begin
-              match det_iter_pack decl_list instance with
+              match det_iter_pack ?domain decl_list instance with
               | Some (big_step, final) -> Some [(pack_name, big_step, final)]
               | None -> Some []
             end
