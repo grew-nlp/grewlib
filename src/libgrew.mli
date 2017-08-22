@@ -106,7 +106,7 @@ end
 (* ==================================================================================================== *)
 (** {2 Graph Rewriting System} *)
 (* ==================================================================================================== *)
-module Grs: sig
+module Old_grs: sig
 
   type t
   val empty: t
@@ -131,7 +131,7 @@ end
 (* ==================================================================================================== *)
 (** {2 New Graph Rewriting System} *)
 (* ==================================================================================================== *)
-module New_grs : sig
+module Grs : sig
   type t
 
   val load: string -> t
@@ -163,18 +163,18 @@ module Rewrite: sig
       @param gr the grapth to rewrite
       @param grs the graph rewriting system
       @param seq the name of the sequence to apply *)
-  val display: gr:Graph.t -> grs:Grs.t -> seq:string -> display
-  val new_display: gr:Graph.t -> grs:New_grs.t -> strat:string -> display
+  val old_display: gr:Graph.t -> grs:Old_grs.t -> seq:string -> display
+  val display: gr:Graph.t -> grs:Grs.t -> strat:string -> display
 
-  val at_least_one: grs:New_grs.t -> strat:string -> bool
-  val at_most_one: grs:New_grs.t -> strat:string -> bool
+  val at_least_one: grs:Grs.t -> strat:string -> bool
+  val at_most_one: grs:Grs.t -> strat:string -> bool
 
   val set_timeout: float option -> unit
 
-  val rewrite: gr:Graph.t -> grs:Grs.t -> seq:string -> history
+  val rewrite: gr:Graph.t -> grs:Old_grs.t -> seq:string -> history
 
+  val old_simple_rewrite: gr:Graph.t -> grs:Old_grs.t -> strat:string -> Graph.t list
   val simple_rewrite: gr:Graph.t -> grs:Grs.t -> strat:string -> Graph.t list
-  val new_simple_rewrite: gr:Graph.t -> grs:New_grs.t -> strat:string -> Graph.t list
 
   val is_empty: history -> bool
 
@@ -209,7 +209,7 @@ module Rewrite: sig
 
   val error_html: ?domain:Domain.t -> ?no_init:bool -> ?main_feat:string -> ?dot: bool -> header: string -> string -> ?init:Graph.t -> string -> unit
 
-  val make_index: title: string -> grs_file: string -> html: bool -> grs: Grs.t -> seq: string -> input_dir: string -> output_dir: string -> base_names: string array -> unit
+  val make_index: title: string -> grs_file: string -> html: bool -> grs: Old_grs.t -> seq: string -> input_dir: string -> output_dir: string -> base_names: string array -> unit
 
   val html_sentences: title:string -> string -> (bool * string * int * string) list -> unit
 end

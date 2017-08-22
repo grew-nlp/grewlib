@@ -167,7 +167,7 @@ module Modul = struct
 end (* module Modul *)
 
 (* ================================================================================ *)
-module Grs = struct
+module Old_grs = struct
 
   type t = {
     domain: Domain.t option;
@@ -473,7 +473,7 @@ end (* module Grs *)
 
 
 
-module New_grs = struct
+module Grs = struct
 
   type decl =
   | Rule of Rule.t
@@ -497,11 +497,11 @@ module New_grs = struct
       List.iter (dump_decl (indent + 2)) decl_list
 
   let dump t =
-    printf "================ New_grs ================\n";
+    printf "================ Grs ================\n";
     Domain.dump t.domain;
     printf "-----------------------\n";
     List.iter (dump_decl 0) t.decls;
-    printf "================ New_grs ================\n%!";
+    printf "================ Grs ================\n%!";
     ()
 
 
@@ -959,5 +959,5 @@ module Univ_grs = struct
       with exc_old ->
         Log.finfo "[Univ_grs.load] FAILED to load file \"%s\" with OLD syntax: exc=\"%s\"" file (Printexc.to_string exc_old);
         raise exc_new in
-  New_grs.from_ast file new_ast
+  Grs.from_ast file new_ast
 end

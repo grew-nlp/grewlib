@@ -17,7 +17,7 @@ open Grew_graph
 (* ================================================================================ *)
 module Html_doc : sig
   (* dep is a flag which is true iff dep file are shown in doc (iff dep2pict is available) *)
-  val build: dep:bool -> corpus:bool -> string -> Grs.t -> unit
+  val build: dep:bool -> corpus:bool -> string -> Old_grs.t -> unit
 end (* module Html_doc *)
 
 (* ================================================================================ *)
@@ -68,7 +68,7 @@ end (* module Gr_stat *)
 module Corpus_stat: sig
   type t
 
-  val empty: grs:Grs.t -> seq:string -> t
+  val empty: grs:Old_grs.t -> seq:string -> t
 
   val add_gr_stat: string -> Gr_stat.t -> t -> t
 

@@ -75,7 +75,7 @@ module Modul: sig
 end (* module Modul *)
 
 (* ================================================================================ *)
-module Grs: sig
+module Old_grs: sig
   type t
 
   val empty: t
@@ -110,7 +110,7 @@ module Grs: sig
   val to_json: t -> Yojson.Basic.json
 end (* module Grs *)
 
-module New_grs : sig
+module Grs : sig
   type t
 
   val load: string  -> t
@@ -128,5 +128,5 @@ module New_grs : sig
 end
 
 module Univ_grs : sig
-  val load: string -> New_grs.t
+  val load: string -> Grs.t
 end

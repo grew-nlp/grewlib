@@ -403,8 +403,8 @@ module Html_doc = struct
     Buffer.contents buff
 
   let build ~dep ~corpus output_dir grs =
-    let filename = Grs.get_filename grs in
-    let ast = Grs.get_ast grs in
+    let filename = Old_grs.get_filename grs in
+    let ast = Old_grs.get_ast grs in
     ignore(Sys.command ("rm -rf "^output_dir));
     ignore(Sys.command ("mkdir "^output_dir));
     (* ignore(Sys.command ("cp "^DATA_DIR^"/style.css "^output_dir)); *)
@@ -827,7 +827,7 @@ module Corpus_stat = struct
               ) String_map.empty modul.Modul.rules in
           String_map.add modul.Modul.name rule_map acc
         else acc
-      ) String_map.empty (Grs.get_modules grs) in
+      ) String_map.empty (Old_grs.get_modules grs) in
     { modules=modules; map = map; amb = Int_map.empty; error = []; num = 0 }
 
   let add modul rule file (min_occ,max_occ) map =

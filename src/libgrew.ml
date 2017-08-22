@@ -57,13 +57,13 @@ module Domain = struct
 
   let load filename =
     let ast = Grew_loader.Loader.domain filename in
-    Grew_grs.Grs.domain_build ast
+    Grew_grs.Old_grs.domain_build ast
 
   let load filename =
     handle ~name:"Domain.load"
       (fun () ->
       let ast = Grew_loader.Loader.domain filename in
-      Grew_grs.Grs.domain_build ast
+      Grew_grs.Old_grs.domain_build ast
       ) ()
 
   let feature_names domain =
@@ -233,76 +233,76 @@ end
 (* ==================================================================================================== *)
 (** {2 Graph Rewriting System} *)
 (* ==================================================================================================== *)
-module Grs = struct
-  type t = Grew_grs.Grs.t
+module Old_grs = struct
+  type t = Grew_grs.Old_grs.t
 
-  let empty = Grew_grs.Grs.empty
+  let empty = Grew_grs.Old_grs.empty
 
   let load file =
-    handle ~name:"Grs.load" ~file
+    handle ~name:"Old_grs.load" ~file
       (fun () ->
         if not (Sys.file_exists file)
         then raise (Error ("File_not_found: " ^ file))
-        else Grew_grs.Grs.build file
+        else Grew_grs.Old_grs.build file
       ) ()
 
   let get_sequence_names grs =
-    handle ~name:"Grs.get_sequence_names"
+    handle ~name:"Old_grs.get_sequence_names"
       (fun () ->
-        Grew_grs.Grs.sequence_names grs
+        Grew_grs.Old_grs.sequence_names grs
       ) ()
 
-  let build_html_doc ?(corpus=false) dir grs =
-    handle ~name:"Grs.build_doc [with Dep2pict]"
+  let build_html_doc ?(corpus=false) dir (grs : Grew_grs.Old_grs.t) =
+    handle ~name:"Old_grs.build_doc [with Dep2pict]"
       (fun () ->
         Grew_html.Html_doc.build ~corpus ~dep:true dir grs;
 
         (* draw pattern graphs for all rules *)
         let fct module_ rule_ =
-          let dep_code = Grew_rule.Rule.to_dep ?domain:(Grew_grs.Grs.get_domain grs) rule_ in
+          let dep_code = Grew_rule.Rule.to_dep ?domain:(Grew_grs.Old_grs.get_domain grs) rule_ in
           let dep_png_file = sprintf "%s/%s_%s-patt.png" dir module_ (Grew_rule.Rule.get_name rule_) in
           let d2p = Dep2pict.Dep2pict.from_dep ~dep:dep_code in
           Dep2pict.Dep2pict.save_png ~filename:dep_png_file d2p in
-        Grew_grs.Grs.rule_iter fct grs
+        Grew_grs.Old_grs.rule_iter fct grs
       ) ()
 
-  let get_domain grs = Grew_grs.Grs.get_domain grs
+  let get_domain grs = Grew_grs.Old_grs.get_domain grs
 
   let to_json t =
-    let json = Grew_grs.Grs.to_json t in
+    let json = Grew_grs.Old_grs.to_json t in
     Yojson.Basic.pretty_to_string json
 end
 
 (* ==================================================================================================== *)
 (** {2 New Graph Rewriting System} *)
 (* ==================================================================================================== *)
-module New_grs = struct
-  type t = Grew_grs.New_grs.t
+module Grs = struct
+  type t = Grew_grs.Grs.t
 
   let load file =
-    handle ~name:"New_grs.load" ~file
+    handle ~name:"Grs.load" ~file
       (fun () ->
         Grew_grs.Univ_grs.load file
       ) ()
 
   let dump grs =
-    handle ~name:"New_grs.dump"
+    handle ~name:"Grs.dump"
       (fun () ->
-        Grew_grs.New_grs.dump grs
+        Grew_grs.Grs.dump grs
       ) ()
 
   let domain grs =
-    handle ~name:"New_grs.domain"
+    handle ~name:"Grs.domain"
       (fun () ->
-        Grew_grs.New_grs.domain grs
+        Grew_grs.Grs.domain grs
       ) ()
 
-  let to_json _ = failwith "TODO New_grs.to_json"
+  let to_json _ = failwith "TODO Grs.to_json"
 
   let get_strat_list grs =
-    handle ~name:"New_grs.get_strat_list"
+    handle ~name:"Grs.get_strat_list"
       (fun () ->
-        Grew_grs.New_grs.get_strat_list grs
+        Grew_grs.Grs.get_strat_list grs
         ) ()
 
 end
@@ -321,27 +321,27 @@ module Rewrite = struct
 
   let set_debug_loop () = Grew_rule.Rule.set_debug_loop ()
 
-  let display ~gr ~grs ~seq =
-    handle ~name:"Rewrite.display" (fun () -> Grew_grs.Grs.build_rew_display grs seq gr) ()
+  let old_display ~gr ~grs ~seq =
+    handle ~name:"Rewrite.old_display" (fun () -> Grew_grs.Old_grs.build_rew_display grs seq gr) ()
 
-  let new_display ~gr ~grs ~strat =
-    handle ~name:"Rewrite.new_display" (fun () -> Grew_grs.New_grs.det_rew_display grs strat gr) ()
+  let display ~gr ~grs ~strat =
+    handle ~name:"Rewrite.display" (fun () -> Grew_grs.Grs.det_rew_display grs strat gr) ()
 
   let set_timeout t = Grew_base.Timeout.timeout := t
 
   let rewrite ~gr ~grs ~seq =
-    handle ~name:"Rewrite.rewrite" (fun () -> Grew_grs.Grs.rewrite grs seq gr) ()
+    handle ~name:"Rewrite.rewrite" (fun () -> Grew_grs.Old_grs.rewrite grs seq gr) ()
+
+  let old_simple_rewrite ~gr ~grs ~strat =
+    handle ~name:"Rewrite.old_simple_rewrite" (fun () -> Grew_grs.Old_grs.simple_rewrite grs strat gr) ()
 
   let simple_rewrite ~gr ~grs ~strat =
     handle ~name:"Rewrite.simple_rewrite" (fun () -> Grew_grs.Grs.simple_rewrite grs strat gr) ()
 
-  let new_simple_rewrite ~gr ~grs ~strat =
-    handle ~name:"Rewrite.new_simple_rewrite" (fun () -> Grew_grs.New_grs.simple_rewrite grs strat gr) ()
-
   let at_least_one ~grs ~strat =
-    handle ~name:"Rewrite.new_simple_rewrite" (fun () -> Grew_grs.New_grs.at_least_one grs strat) ()
+    handle ~name:"Rewrite.at_least_one" (fun () -> Grew_grs.Grs.at_least_one grs strat) ()
   let at_most_one ~grs ~strat =
-    handle ~name:"Rewrite.new_simple_rewrite" (fun () -> Grew_grs.New_grs.at_most_one grs strat) ()
+    handle ~name:"Rewrite.at_most_one" (fun () -> Grew_grs.Grs.at_most_one grs strat) ()
 
 
   let is_empty rh =
