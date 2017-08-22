@@ -34,3 +34,8 @@ type rew_display =
   | Local_normal_form of G_graph.t * module_name * rew_display
   | Node of G_graph.t * module_name * (big_step * rew_display) list
 
+let rec rew_display_size = function
+  | Empty -> 0
+  | Leaf _ -> 1
+  | Local_normal_form (_,_,rd) -> rew_display_size rd
+  | Node (_,_,l) -> List.fold_left (fun acc (_,rd) -> acc+(rew_display_size rd)) 0 l

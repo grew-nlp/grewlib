@@ -123,6 +123,8 @@ module New_grs : sig
   val det_rew_display: t -> string -> G_graph.t -> Libgrew_types.rew_display
 
   val get_strat_list: t -> string list
+  val at_least_one: t -> string -> bool
+  val at_most_one: t -> string -> bool
 end
 
 module Univ_grs : sig

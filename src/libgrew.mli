@@ -153,6 +153,7 @@ module Rewrite: sig
   type display = Libgrew_types.rew_display
   type history
 
+  val size: display -> int
   val set_max_depth_det: int -> unit
   val set_max_depth_non_det: int -> unit
   val set_debug_loop: unit -> unit
@@ -165,6 +166,8 @@ module Rewrite: sig
   val display: gr:Graph.t -> grs:Grs.t -> seq:string -> display
   val new_display: gr:Graph.t -> grs:New_grs.t -> strat:string -> display
 
+  val at_least_one: grs:New_grs.t -> strat:string -> bool
+  val at_most_one: grs:New_grs.t -> strat:string -> bool
 
   val set_timeout: float option -> unit
 

@@ -470,6 +470,9 @@ module Grs = struct
       ) grs.modules
 end (* module Grs *)
 
+
+
+
 module New_grs = struct
 
   type decl =
@@ -896,6 +899,48 @@ module New_grs = struct
     | Some [] -> Libgrew_types.Leaf instance.Instance.graph
     | Some ((s1,b1,i1) :: tail) -> loop (s1,b1,Libgrew_types.Leaf i1.Instance.graph) tail
 
+  (* return true if strat always return at least one graph *)
+  let at_least_one grs strat =
+    let rec loop pointed strat =
+      match strat with
+      | New_ast.Ref strat_name ->
+        begin
+          let path = Str.split (Str.regexp "\\.") strat_name in
+          match search_from pointed path with
+          | None -> Error.build "cannot find strat %s" strat_name
+          | Some (Rule _,_)
+          | Some (Package _, _) -> false
+          | Some (Strategy (_,ast_strat), new_pointed) -> loop new_pointed ast_strat
+        end
+      | New_ast.Pick s -> loop pointed s
+      | New_ast.Alt l -> List.exists (fun s -> loop pointed s) l
+      | New_ast.Seq l -> List.for_all (fun s -> loop pointed s) l
+      | New_ast.Iter _ -> true
+      | New_ast.If (_,s1, s2) -> (loop pointed s1) && (loop pointed s2)
+      | New_ast.Try (s) -> loop pointed s in
+    loop (top grs) (Parser.strategy strat)
+
+  (* return true if strat always return at most one graph *)
+  let at_most_one grs strat =
+    let rec loop pointed strat =
+      match strat with
+      | New_ast.Ref strat_name ->
+        begin
+          let path = Str.split (Str.regexp "\\.") strat_name in
+          match search_from pointed path with
+          | None -> Error.build "cannot find strat %s" strat_name
+          | Some (Rule _,_)
+          | Some (Package _, _) -> false
+          | Some (Strategy (_,ast_strat), new_pointed) -> loop new_pointed ast_strat
+        end
+      | New_ast.Pick s -> true
+      | New_ast.Alt [one] -> loop pointed one
+      | New_ast.Alt _ -> false
+      | New_ast.Seq l -> List.for_all (fun s -> loop pointed s) l
+      | New_ast.Iter s -> loop pointed s
+      | New_ast.If (_,s1, s2) -> (loop pointed s1) || (loop pointed s2)
+      | New_ast.Try (s) -> loop pointed s in
+    loop (top grs) (Parser.strategy strat)
 end
 
 module Univ_grs = struct

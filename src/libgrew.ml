@@ -314,6 +314,8 @@ module Rewrite = struct
   type display = Libgrew_types.rew_display
   type history = Grew_grs.Rewrite_history.t
 
+  let size = Libgrew_types.rew_display_size
+
   let set_max_depth_det value = Grew_rule.Rule.set_max_depth_det value
   let set_max_depth_non_det value = Grew_rule.Rule.set_max_depth_non_det value
 
@@ -335,6 +337,11 @@ module Rewrite = struct
 
   let new_simple_rewrite ~gr ~grs ~strat =
     handle ~name:"Rewrite.new_simple_rewrite" (fun () -> Grew_grs.New_grs.simple_rewrite grs strat gr) ()
+
+  let at_least_one ~grs ~strat =
+    handle ~name:"Rewrite.new_simple_rewrite" (fun () -> Grew_grs.New_grs.at_least_one grs strat) ()
+  let at_most_one ~grs ~strat =
+    handle ~name:"Rewrite.new_simple_rewrite" (fun () -> Grew_grs.New_grs.at_most_one grs strat) ()
 
 
   let is_empty rh =

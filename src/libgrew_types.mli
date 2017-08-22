@@ -39,3 +39,4 @@ type rew_display =
   | Local_normal_form of graph * module_name * rew_display
   | Node of graph * module_name * (big_step * rew_display) list
 
+val rew_display_size: rew_display -> int
