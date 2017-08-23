@@ -297,7 +297,9 @@ module Grs = struct
         Grew_grs.Grs.domain grs
       ) ()
 
-  let to_json _ = failwith "TODO Grs.to_json"
+  let to_json t =
+    let json = Grew_grs.Grs.to_json t in
+      Yojson.Basic.pretty_to_string json
 
   let get_strat_list grs =
     handle ~name:"Grs.get_strat_list"

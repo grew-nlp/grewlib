@@ -36,6 +36,8 @@ module Label_domain = struct
   Array.iter (function label -> Printf.printf " - %s\n" label) label_array;
   Printf.printf "==================================\n%!"
 
+  let to_json (labels,_) = `List (List.map (fun x -> `String x) (Array.to_list labels))
+
   (** The [default] style value *)
   let default = { text="UNSET"; bottom=false; color=None; bgcolor=None; line=Solid }
 
@@ -119,6 +121,15 @@ module Feature_domain = struct
       | Ast.Num fn -> Printf.printf " %s id NUMERICAL\n" fn
       ) t;
     Printf.printf "==================================\n%!"
+
+  let to_json t =
+    `Assoc (
+      List.map (function
+        | Ast.Closed (fn, values) -> (fn, `List (List.map (fun x -> `String x) values))
+        | Ast.Open fn -> (fn, `String "Open")
+        | Ast.Num fn -> (fn, `String "Num")
+        ) t
+      )
 
   let get_name = function
   | Ast.Closed (fn, _) -> fn
@@ -218,6 +229,11 @@ module Domain = struct
   | Some Both (ld,fd) -> Label_domain.dump ld; Feature_domain.dump fd
   | Some Label ld -> Label_domain.dump ld
   | Some Feature fd -> Feature_domain.dump fd
+
+  let to_json = function
+  | Both (ld, fd) -> `Assoc [("Label_domain", Label_domain.to_json ld); ("feature_domain", `Null);]
+  | Label ld -> `Assoc [("Label_domain", Label_domain.to_json ld)]
+  | Feature fd -> `Assoc [("feature_domain", `Null);]
 
   let build ld fd = Both (ld, fd)
 

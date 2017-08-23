@@ -264,6 +264,8 @@ module New_ast : sig
 
   type grs = decl list
 
+  val strat_to_json: strat -> Yojson.Basic.json
+
   val strat_list: grs -> string list
 
   val convert: Ast.grs -> grs

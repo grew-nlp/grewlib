@@ -481,6 +481,15 @@ module New_ast = struct
 
   type grs = decl list
 
+  let rec strat_to_json = function
+  | Ref name -> `Assoc [("Ref", `String name)]
+  | Pick s -> `Assoc [("Pick", strat_to_json s)]
+  | Alt l -> `Assoc [("Alt", `List (List.map strat_to_json l))]
+  | Seq l -> `Assoc [("Seq", `List (List.map strat_to_json l))]
+  | Iter s -> `Assoc [("Iter", strat_to_json s)]
+  | If (s, s1, s2) -> `Assoc [("If", strat_to_json s); ("Then", strat_to_json s1); ("Else", strat_to_json s2)]
+  | Try s -> `Assoc [("Try", strat_to_json s)]
+
   let strat_list grs =
     let rec loop pref = function
     [] -> []

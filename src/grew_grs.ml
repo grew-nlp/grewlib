@@ -487,6 +487,24 @@ module Grs = struct
     ast: New_ast.grs;
   }
 
+  let rec decl_to_json = function
+    | Rule r -> Rule.to_json r
+    | Strategy (name, strat) -> `Assoc [("strat_name", `String name); ("strat_def", New_ast.strat_to_json strat)]
+    | Package (name, decl_list) -> `Assoc [("package_name", `String name); "decls", `List (List.map decl_to_json decl_list)]
+
+  let to_json t =
+    match t.domain with
+    | None -> `Assoc [
+      "filename", `String t.filename;
+      "decls", `List (List.map decl_to_json t.decls)
+    ]
+    | Some dom -> `Assoc [
+      "domain", Domain.to_json dom;
+      "filename", `String t.filename;
+      "decls", `List (List.map decl_to_json t.decls)
+    ]
+
+
   let get_strat_list grs = Grew_ast.New_ast.strat_list grs.ast
 
   let rec dump_decl indent = function

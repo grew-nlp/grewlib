@@ -117,6 +117,7 @@ module Grs : sig
 
   val dump: t -> unit
 
+  val to_json: t -> Yojson.Basic.json
   val domain: t -> Domain.t option
 
   val simple_rewrite: t -> string -> G_graph.t -> G_graph.t list

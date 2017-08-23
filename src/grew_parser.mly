@@ -128,7 +128,7 @@ let localize t = (t,get_loc ())
 %start <Grew_ast.Ast.domain> domain
 
 %start <Grew_ast.New_ast.grs> new_grs
-%start <Grew_ast.New_ast.strat> strat_desc
+%start <Grew_ast.New_ast.strat> strat_alone
 
 /* parsing of the string representation of the constituent representation of Sequoia */
 /* EX: "( (SENT (NP (NC Amélioration) (PP (P de) (NP (DET la) (NC sécurité))))))"    */
@@ -744,4 +744,7 @@ strat_desc:
   | TRY LPAREN s=strat_desc RPAREN                                         { New_ast.Try s }
   | ONF LPAREN s=strat_desc RPAREN                                         { New_ast.Pick (New_ast.Iter s) }
   | EMPTY                                                                  { New_ast.Seq [] }
+
+strat_alone:
+  | s = strat_desc EOF  { s }
 %%
