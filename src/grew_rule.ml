@@ -32,6 +32,11 @@ module Instance = struct
     big_step: Libgrew_types.big_step option;
   }
 
+  let swap t =
+    match t.big_step with
+    | None -> t
+    | Some bs -> {t with big_step = Some (Libgrew_types.swap bs) }
+
   let empty = {graph = G_graph.empty; rules=[]; history=[]; big_step=None; }
 
   let from_graph graph = {empty with graph}

@@ -26,6 +26,8 @@ module Instance : sig
     big_step: Libgrew_types.big_step option;
   }
 
+  val swap: t -> t
+
   (** [from_graph graph] return a fresh instance based on the input [graph]. *)
   val from_graph: G_graph.t -> t
 

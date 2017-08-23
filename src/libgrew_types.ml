@@ -27,6 +27,8 @@ type big_step = {
     small_step: (G_graph.t * rule_app) list;
   }
 
+let swap bs = {bs with small_step = List.rev bs.small_step}
+
 (* the main type for display the result of a rewriting *)
 type rew_display =
   | Empty (* pour les besoin du dev *)

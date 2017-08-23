@@ -32,6 +32,8 @@ type big_step = {
     small_step: (graph * rule_app) list;
 }
 
+val swap : big_step -> big_step
+
 (** the main type for display the result of a rewriting *)
 type rew_display =
   | Empty (* pour les besoin du dev *)

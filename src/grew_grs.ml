@@ -775,30 +775,21 @@ module Grs = struct
       | [] -> None
       | Rule r :: tail_decl ->
         (match Rule.det_apply ?domain r instance with
-        | Some x -> Some (x, Rule.get_name r)
+        | Some x -> Some x
         | None -> loop tail_decl
         )
       | _ :: tail_decl -> loop tail_decl in
       loop decl_list
 
-
-
-  let det_iter_pack ?domain decl_list instance = (* return a (big step, inst) *)
+  let det_iter_pack ?domain decl_list instance =
     match det_pack_one ?domain decl_list instance with
     | None -> None
-    | Some (x, rule_name) ->
-      let first = {Libgrew_types.rule_name; up=G_deco.empty; down=G_deco.empty} in
+    | Some x ->
       let rec loop inst =
         match det_pack_one ?domain decl_list inst with
-        | None -> ([], inst)
-        | Some (next, rule_name) ->
-            let (tail, final) = loop next in
-            (
-              (inst.Instance.graph, {Libgrew_types.rule_name; up=G_deco.empty; down=G_deco.empty} ) :: tail,
-              final
-            ) in
-      let (small_step, final) = loop x in
-      Some ({ Libgrew_types.first; small_step }, final)
+        | None -> Some (Instance.swap inst)
+        | Some next -> loop next
+      in loop x
 
   let rec det_rew_display_tmp ?domain pointed strat instance =
     match strat with
@@ -809,23 +800,15 @@ module Grs = struct
         | None -> Error.build "Simple rewrite, cannot find strat %s" subname
         | Some (Rule r,_) ->
           begin
-            match Rule.det_apply ?domain r instance with
+            match Rule.det_apply ?domain r (Instance.refresh instance) with
             | None -> None
-            | Some inst -> Some [(
-                Rule.get_name r,
-                { Libgrew_types.first = {Libgrew_types.rule_name=Rule.get_name r; up=G_deco.empty; down=G_deco.empty}; small_step = [] },
-                inst
-              )]
+            | Some inst -> Some [(Rule.get_name r, inst)]
           end
-        | Some (Package (_, decl_list), _) ->
+        | Some (Package (pack_name, decl_list), _) ->
             begin
-              match det_pack_one ?domain decl_list instance with
+              match det_pack_one ?domain decl_list (Instance.refresh instance) with
               | None -> None
-              | Some (inst,rule_name) -> Some [(
-                  rule_name,
-                  { Libgrew_types.first = {Libgrew_types.rule_name=rule_name; up=G_deco.empty; down=G_deco.empty}; small_step = [] },
-                  inst
-                )]
+              | Some inst -> Some [( pack_name, inst )]
             end
         | Some (Strategy (_,ast_strat), new_pointed) ->
             det_rew_display_tmp ?domain new_pointed ast_strat instance
@@ -849,7 +832,7 @@ module Grs = struct
         match det_rew_display_tmp ?domain pointed head_strat instance with
         | None -> None
         | Some [] -> det_rew_display_tmp ?domain pointed (New_ast.Seq tail_strat) instance
-        | Some (((_,_,inst) :: _) as l) ->
+        | Some (((_,inst) :: _) as l) ->
           begin
             match det_rew_display_tmp ?domain pointed (New_ast.Seq tail_strat) inst with
             | None -> None
@@ -864,14 +847,14 @@ module Grs = struct
           | None -> Error.build "Simple rewrite, cannot find strat %s" subname
           | Some (Rule r,_) ->
             begin
-              match det_iter_pack ?domain [Rule r] instance with
-              | Some (big_step, final) -> Some [(Rule.get_name r, big_step, final)]
+              match det_iter_pack ?domain [Rule r] (Instance.refresh instance) with
+              | Some final -> Some [(Rule.get_name r, final)]
               | None -> Some []
             end
           | Some (Package (pack_name, decl_list), _) ->
             begin
-              match det_iter_pack ?domain decl_list instance with
-              | Some (big_step, final) -> Some [(pack_name, big_step, final)]
+              match det_iter_pack ?domain decl_list (Instance.refresh instance) with
+              | Some final -> Some [(pack_name, final)]
               | None -> Some []
             end
           | Some (Strategy (_,ast_strat), new_pointed) ->
@@ -883,7 +866,7 @@ module Grs = struct
         match det_rew_display_tmp ?domain pointed strat instance with
         | None -> Some []
         | Some [] -> Some []
-        | Some (((_,_,inst) :: _) as l) ->
+        | Some (((_,inst) :: _) as l) ->
           begin
             match det_rew_display_tmp ?domain pointed (New_ast.Iter strat) inst with
             | None -> Some l
@@ -908,14 +891,24 @@ module Grs = struct
   let det_rew_display grs strat graph =
     let domain = domain grs in
     let instance = Instance.from_graph graph in
-    let rec loop (s,b,rd) = function
-    | [] -> Libgrew_types.Node (instance.Instance.graph, s, [b, rd])
-    | (s2, b2, i2) :: tail -> loop (s2, b2, Libgrew_types.Node (i2.Instance.graph,s,[b,rd])) tail in
 
-    match det_rew_display_tmp ?domain (top grs) (Parser.strategy strat) instance with
+    let rec loop inst = function
+    | [] -> Libgrew_types.Leaf inst.Instance.graph
+    | (s2, i2) :: tail ->
+      begin
+        match i2.Instance.big_step with
+        | Some bs2 -> Libgrew_types.Node (inst.Instance.graph, s2, [bs2, loop i2 tail])
+        | _ -> failwith "missing BS"
+      end in
+
+    match CCOpt.map List.rev (det_rew_display_tmp ?domain (top grs) (Parser.strategy strat) instance) with
     | None -> Libgrew_types.Empty
     | Some [] -> Libgrew_types.Leaf instance.Instance.graph
-    | Some ((s1,b1,i1) :: tail) -> loop (s1,b1,Libgrew_types.Leaf i1.Instance.graph) tail
+    | Some ((s1,i1) :: tail) ->
+      match i1.Instance.big_step with
+      | Some bs -> Libgrew_types.Node (instance.Instance.graph, s1, [bs, loop i1 tail])
+      (* Libgrew_types.Node (i2.Instance.graph,s2,[bs,rd])) tail *)
+    | _ -> failwith "missing BS2"
 
   (* return true if strat always return at least one graph *)
   let at_least_one grs strat =
