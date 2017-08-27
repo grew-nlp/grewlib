@@ -867,7 +867,7 @@ module G_graph = struct
     in loop 0
 
   (* -------------------------------------------------------------------------------- *)
-  let to_conll_string ?domain graph =
+  let to_conll_string ?domain graph = (* Unused code! *)
     let nodes = Gid_map.fold
       (fun gid node acc -> (gid,node)::acc)
       graph.map [] in
@@ -935,11 +935,105 @@ module G_graph = struct
             (match G_fs.get_string_atom "lemma" fs with Some p -> p | None -> "_")
             (match G_fs.get_string_atom "cat" fs with Some p -> p | None -> "_")
             (match G_fs.get_string_atom "pos" fs with Some p -> p | None -> "_")
-            (G_fs.to_conll ~exclude: ["phon"; "lemma"; "cat"; "pos"; "position"] fs)
+            (G_fs.to_conll_string ~exclude: ["phon"; "lemma"; "cat"; "pos"; "position"] fs)
             (match govs with [] -> "_" | _ -> String.concat "|" govs)
             (match labs with [] -> "_" | _ -> String.concat "|" labs)
             (G_node.string_efs node)
       )
       snodes;
     Buffer.contents buff
+
+
+
+
+
+
+
+
+
+  (* -------------------------------------------------------------------------------- *)
+  let to_conll ?domain graph =
+    let nodes = Gid_map.fold
+      (fun gid node acc -> (gid,node)::acc)
+      graph.map [] in
+
+    (* sort nodes wrt position *)
+    let snodes = List.sort (fun (_,n1) (_,n2) -> G_node.position_comp n1 n2) nodes in
+
+    (* renumbering of nodes to have a consecutive sequence of int 1 --> n, in case of node deletion or addition *)
+    let snodes = List.mapi
+      (fun i (gid,node) -> (gid, G_node.set_position (float i) node)
+      ) snodes in
+
+    let get_num gid =
+      let gnode = List.assoc gid snodes in
+      if G_node.is_conll_root gnode
+      then 0.
+      else G_node.get_float (List.assoc gid snodes) in
+
+    (* Warning: [govs_labs] maps [gid]s to [num]s *)
+    let govs_labs =
+      Gid_map.fold
+        (fun src_gid node acc ->
+          let src_num = get_num src_gid in
+          Massoc_gid.fold
+            (fun acc2 tar_gid edge  ->
+              let old = try Gid_map.find tar_gid acc2 with Not_found -> [] in
+              Gid_map.add tar_gid ((sprintf "%g" src_num, G_edge.to_string ?domain edge)::old) acc2
+            ) acc (G_node.get_next node)
+        ) graph.map Gid_map.empty in
+
+    let multiwords =
+      List.map (fun (gid,(gid_last,fusion)) ->
+        { Conll.mw_line_num = None;
+          first = int_of_float (get_num gid);
+          last = int_of_float (get_num gid_last);
+          fusion;
+          mw_efs = []
+        }
+      ) graph.fusion in
+
+    let lines = List_.opt_map
+    (fun (gid,node) ->
+      if G_node.is_conll_root node
+      then None
+      else
+      let gov_labs = try Gid_map.find gid govs_labs with Not_found -> [] in
+
+      let sorted_gov_labs =
+        List.sort
+          (fun (g1,l1) (g2,l2) ->
+            if l1 <> "" && l1.[0] <> 'I' && l1.[0] <> 'D' && l1.[0] <> 'E'
+            then -1
+            else if l2 <> "" && l2.[0] <> 'I' && l2.[0] <> 'D' && l2.[0] <> 'E'
+            then 1
+            else
+              match compare (String_.to_float g1) (String_.to_float g2) with
+                | 0 -> compare l1 l2
+                | x -> x
+          ) gov_labs in
+
+    let id_of_gid gid = Conll.Id.of_string (string_of_float (get_num gid)) in
+    let fs = G_node.get_fs node in
+      Some {
+      Conll.line_num = 0;
+      id = id_of_gid gid;
+      form = (match G_fs.get_string_atom "phon" fs with Some p -> p | None -> "_");
+      lemma = (match G_fs.get_string_atom "lemma" fs with Some p -> p | None -> "_");
+      upos = (match G_fs.get_string_atom "cat" fs with Some p -> p | None -> "_");
+      xpos = (match G_fs.get_string_atom "pos" fs with Some p -> p | None -> "_");
+      feats = (G_fs.to_conll ~exclude: ["phon"; "lemma"; "cat"; "pos"; "position"] fs);
+      deps = List.map (fun (gov,lab) -> ( Conll.Id.of_string gov, lab)) sorted_gov_labs;
+      efs = [];
+    } ) snodes in
+    {
+      Conll.file = None;
+      Conll.meta = graph.meta;
+      lines;
+      multiwords;
+    }
+
+  let to_conll_string ?domain graph =
+    let conll = to_conll ?domain graph in
+    Conll.to_string (Conll.normalize_multiwords conll)
 end (* module G_graph *)
