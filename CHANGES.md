@@ -1,96 +1,101 @@
-Version 0.43.0 (2017/05/23)
-  /!\ syntax change: conluent --> deterministic
-  /!\ syntax change: match --> pattern
-  /!\ change shift semantics: edges with source and target nodes in the pattern are not concerned by the shifts
-  * Fix https://gitlab.inria.fr/grew/libcaml-grew/issues/2 (Add a new syntax for add_edge command)
+# 0.44.0 (2017/09/05)
+  * /!\ new grs syntax (with package and strategies), see [http://grew.loria.fr/grs](http://grew.loria.fr/grs)
+  * /!\ remove function `Rewrite.write_annot`
+  * adapt to libcaml-conll 0.14.0
 
-Version 0.42.3 (2017/04/25)
+# 0.43.0 (2017/05/23)
+  * /!\ syntax change: `confluent` --> `deterministic`
+  * /!\ syntax change: `match` --> `pattern`
+  * /!\ change shift semantics: edges with source and target nodes in the pattern are not concerned by the shifts
+  * Fix [#2](https://gitlab.inria.fr/grew/libcaml-grew/issues/2) (Add a new syntax for `add_edge` command)
+
+## 0.42.3 (2017/04/25)
   * Add dependence on yojson
 
-Version 0.42.2 (2017/04/25)
+## 0.42.2 (2017/04/25)
   * Fix ordering of dependencies in conll output
 
-Version 0.42.1 (2017/04/19)
+## 0.42.1 (2017/04/19)
   * Fix json export (missing commmands)
 
-Version 0.42.0 (2017/04/18)
+# 0.42.0 (2017/04/18)
   * Add json export
 
-Version 0.41.1 (2017/03/14)
+## 0.41.1 (2017/03/14)
   * adapt to new libraries versions
 
-Version 0.41 (2017/03/06)
+## 0.41 (2017/03/06)
   * adapt to libcaml-conll 0.12.0 (UD empty nodes)
 
-Version 0.40.1 (2017/01/17)
-  * Fix a bug introduced in 01f7b589e2024d7a86fbf8c52dc48d73b6e318d2 for handling the feature names ordering
+## 0.40.1 (2017/01/17)
+  * Fix a bug introduced in [01f7b589](https://gitlab.inria.fr/grew/libcaml-grew/commit/01f7b589e2024d7a86fbf8c52dc48d73b6e318d2) for handling the feature names ordering
 
-Version 0.40.0 (2016/11/10)
-  * Change strategies syntax: “pick(S)”, “try(S)” and “S!”
+# 0.40.0 (2016/11/10)
+  * Change strategies syntax: `pick(S)`, `try(S)` and `S!``
   * Simplification of exported exceptions: only two exception are raised by libgrew: Error and Bug
 
-Version 0.39.0 (2016/11/02)
-  * Add function Rewrite.simple_rewrite for applying strategies
+# 0.39.0 (2016/11/02)
+  * Add function `Rewrite.simple_rewrite` for applying strategies
 
-Version 0.38.3 (2016/10/21)
+## 0.38.3 (2016/10/21)
   * add dependency to libcaml-conll
 
-Version 0.38.2 (2016/10/21)
+## 0.38.2 (2016/10/21)
   * handling of extra features in column 10 of conlls
 
-Version 0.38.1 (2016/09/20)
-  * Fix syntax error with pattern "match { X -> * }"
+## 0.38.1 (2016/09/20)
+  * Fix syntax error with pattern `match { X -> * }``
 
-Version 0.38.0 (2016/09/20)
+# 0.38.0 (2016/09/20)
   * add code for interaction with python
   * add function get_version
 
-Version 0.37.0 (2016/09/02)
-  * add support for constitency trees
+# 0.37.0 (2016/09/02)
+  * add support for constituency trees
   * add definition of strategies (not completly implemented…)
 
-Version 0.36.2 (2016/08/30)
+## 0.36.2 (2016/08/30)
   * Remove dependencies amongst xml-light and camlp4
 
-Version 0.36.1 (2016/08/29)
-  * Fix bug #15 [http://talc2.loria.fr:8888/bruno/grew/issues/15]
+## 0.36.1 (2016/08/29)
+  * Fix bug [#15](http://talc2.loria.fr:8888/bruno/grew/issues/15)
 
-Version 0.36 (2016/08/18)
+## 0.36 (2016/08/18)
   * Make domains optional
 
-Version 0.35 (2016/07/14)
+## 0.35 (2016/07/14)
   * add the debug_loop flag (when a loop is suspected graph is considered as a normal form, such that it is possible to see it in the GUI)
   * new functions in libgrew.mli for Grewpy:
-    - Graph.of_gr
-    - Rewrite.get_graphs
+    * `Graph.of_gr`
+    * `Rewrite.get_graphs`
   * improve error reporting
 
-Version 0.34.4 (2016/05/19)
+## 0.34.4 (2016/05/19)
   Bug fix again… introduced in previous version
 
-Version 0.34.3 (2016/05/18)
+## 0.34.3 (2016/05/18)
   Bug fix introduced in previous version
 
-Version 0.34.2 (2016/05/18)
+## 0.34.2 (2016/05/18)
   Bug fix in node ordering in case of del_node
 
-Version 0.34.1 (2016/05/14)
+## 0.34.1 (2016/05/14)
   Bug fix in default values for depth bounds
 
-Version 0.34 (2016/05/10)
+## 0.34 (2016/05/10)
   NB: changes prefixed with "==>" belows breaks existing code!
   NB: changes prefixed with "-->" belows makes existing code deprecated
-  ==> new syntax:
+  * ==> new syntax:
        X<<Y for X is before Y in the linear order
        X<Y fot X is immediatly before Y in the linear order (diff from semantics introduced in 0.32)
-  ==> new_syntax for regular expression on label edges:
+  * ==> new_syntax for regular expression on label edges:
       NEW: X -[re"__your_regular_expression_here__"]-> Y
       OLD: X -[aux:*]-> Y is not supported anymore
-  ==> new_syntax for regular expression on featues:
+  * ==> new_syntax for regular expression on featues:
       NEW: X.feat = re"__your_regular_expression_here__" (no whitespace between re and double quote)
       OLD: X.feat == "__your_regular_expression_here__" introduced in 0.32 is not supported anymore
-  --> remove lex_rule keyword: use "rule" instead
-  --> add_neighbour is now deprecated and new syntax is introduced for nodes creation:
+  * --> remove lex_rule keyword: use "rule" instead
+  * --> add_neighbour is now deprecated and new syntax is introduced for nodes creation:
       add_node X        Create a new node named X wihtout position constraint
       add_node X :> Y   Create a new node named X immediatly after Y
       add_node X :< Y   Create a new node named X immediatly before Y
@@ -104,14 +109,14 @@ Version 0.34 (2016/05/10)
   * change precedence implementation
   * remove useless code
 
-Version 0.33.1 (2016/03/14)
+## 0.33.1 (2016/03/14)
   * fix Conll error locations
 
-Version 0.33 (2016/03/11)
+## 0.33 (2016/03/11)
   * Fix implicit nodes handling with matching item with regexp: N.lemma == "a.*er"
   * move conll handling code into an external library libcaml-conll
 
-Version 0.32 (2016/02/01)
+## 0.32 (2016/02/01)
   * extend syntax:
     - syntactic sugar: "A < B" is interpreted as "A.position < B.position"
     - complete pattern with implicit nodes
@@ -119,32 +124,32 @@ Version 0.32 (2016/02/01)
   * move to ocamlbuild
   * add "node_matching" function for the new "grep" mode
 
-Version 0.31 (2015/11/15)
+## 0.31 (2015/11/15)
   * take ranges into account in conlls (UD)
   * Code reorganisation
 
-Version 0.30 (2015/09/25)
+## 0.30 (2015/09/25)
   * Internal changes (adapt to new version of libcaml-dep2pict)
 
-Version 0.29 (2015/08/28)
+## 0.29 (2015/08/28)
   * renumbering of conll output
   * ignore UDT lines with "i-j" number in UDT Conll
 
-Version 0.28 (2015/08/12)
+## 0.28 (2015/08/12)
   * Add inequality constraints between numerical features and constants
 
-Version 0.27
+## 0.27
   * add syntax for inequality on features
 
-Version 0.26 (2015/04/23)
+## 0.26 (2015/04/23)
   * The shift command can be parametrized by edge constraints
   * Negative edge constraint are available in out-edge (N -[^mod]-> *) and in-edge (* -[^mod]-> N) constraints
 
-Version 0.25 (2015/04/08)
+## 0.25 (2015/04/08)
   * add support for the [-full] mode
   * handling of "*" in pattern edge labels
 
-Version 0.24 (2014/11/24)
+## 0.24 (2014/11/24)
   * Changes in the interface:
     - the "loc" type is abstract and exported (changes the libgrew interface)
   * New features:
@@ -159,5 +164,5 @@ Version 0.24 (2014/11/24)
     - code reorganization
     - add activate mechanism (untested)
 
-Version 0.23 (2014-06-05) and ealier
-  Please refer to SVN logs
+## 0.23 (2014-06-05) and earlier
+  Please refer to git history
