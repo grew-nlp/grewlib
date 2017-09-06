@@ -1,3 +1,6 @@
+## 0.44.1 (2017/09/06)
+  * Fix bug “undefined domain”
+
 # 0.44.0 (2017/09/05)
   * /!\ new grs syntax (with package and strategies), see [http://grew.loria.fr/grs](http://grew.loria.fr/grs)
   * /!\ remove function `Rewrite.write_annot`
