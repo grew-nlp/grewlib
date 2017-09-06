@@ -468,7 +468,7 @@ module Old_grs = struct
       (fun modul ->
         List.iter (fun rule -> fct modul.Modul.name rule) modul.Modul.rules
       ) grs.modules
-end (* module Grs *)
+end (* module Old_grs *)
 
 
 
@@ -487,10 +487,10 @@ module Grs = struct
     ast: New_ast.grs;
   }
 
-  let rec decl_to_json = function
-    | Rule r -> Rule.to_json r
+  let rec decl_to_json ?domain = function
+    | Rule r -> Rule.to_json ?domain r
     | Strategy (name, strat) -> `Assoc [("strat_name", `String name); ("strat_def", New_ast.strat_to_json strat)]
-    | Package (name, decl_list) -> `Assoc [("package_name", `String name); "decls", `List (List.map decl_to_json decl_list)]
+    | Package (name, decl_list) -> `Assoc [("package_name", `String name); "decls", `List (List.map (decl_to_json ?domain) decl_list)]
 
   let to_json t =
     match t.domain with
@@ -501,7 +501,7 @@ module Grs = struct
     | Some dom -> `Assoc [
       "domain", Domain.to_json dom;
       "filename", `String t.filename;
-      "decls", `List (List.map decl_to_json t.decls)
+      "decls", `List (List.map (decl_to_json ~domain:dom) t.decls)
     ]
 
 
