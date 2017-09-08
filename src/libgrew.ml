@@ -199,6 +199,9 @@ type t = Grew_graph.G_graph.t
   let to_gr ?domain graph =
     handle ~name:"Graph.to_gr" (fun () -> Grew_graph.G_graph.to_gr ?domain graph) ()
 
+  let to_conll ?domain graph =
+    handle ~name:"Graph.to_conll" (fun () -> Grew_graph.G_graph.to_conll ?domain graph) ()
+
   let to_conll_string ?domain graph =
     handle ~name:"Graph.to_conll_string" (fun () -> Grew_graph.G_graph.to_conll_string ?domain graph) ()
 

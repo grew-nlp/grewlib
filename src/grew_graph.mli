@@ -163,5 +163,6 @@ module G_graph: sig
   val to_dot: ?domain:Domain.t -> ?main_feat:string -> ?deco:G_deco.t -> t -> string
   val to_sentence: ?main_feat:string -> t -> string
   val to_dep: ?domain:Domain.t -> ?filter : string list -> ?main_feat:string -> ?deco:G_deco.t -> t -> string
+  val to_conll: ?domain:Domain.t -> t -> Conll.t
   val to_conll_string: ?domain:Domain.t -> t -> string
 end (* module G_graph *)

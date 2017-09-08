@@ -95,6 +95,8 @@ module Graph : sig
 
   val to_gr: ?domain:Domain.t -> t -> string
 
+  val to_conll: ?domain:Domain.t -> t -> Conll.t
+
   val to_conll_string: ?domain:Domain.t -> t -> string
 
   (** [search_pattern pattern graph] returns the list of the possible matching of [pattern] in [graph] *)
