@@ -135,6 +135,7 @@ module Grs : sig
   type t
 
   val load: string -> t
+  val load_old: string -> t
 
   val dump: t -> unit
 

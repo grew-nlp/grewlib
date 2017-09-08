@@ -573,6 +573,7 @@ module Grs = struct
     }
 
   let load filename = from_ast filename (Loader.new_grs filename)
+  let load_old filename = from_ast filename (New_ast.convert (Loader.grs filename))
 
   (* The type [pointed] is a zipper style data structure for resolving names x.y.z *)
   type pointed =
@@ -952,23 +953,4 @@ module Grs = struct
       | New_ast.If (_,s1, s2) -> (loop pointed s1) || (loop pointed s2)
       | New_ast.Try (s) -> loop pointed s in
     loop (top grs) (Parser.strategy strat)
-end
-
-module Univ_grs = struct
-  let load file =
-    let new_ast =
-    try
-      let ast = Loader.new_grs file in
-      Log.finfo "[Univ_grs.load] SUCCEED to load file \"%s\" with NEW syntax" file;
-      ast
-    with exc_new ->
-      Log.finfo "[Univ_grs.load] FAILED to load file \"%s\" with NEW syntax: exc=\"%s\"" file (Printexc.to_string exc_new);
-      try
-        let ast = New_ast.convert (Loader.grs file) in
-        Log.finfo "[Univ_grs.load] SUCCEED to load file \"%s\" with OLD syntax" file;
-        ast
-      with exc_old ->
-        Log.finfo "[Univ_grs.load] FAILED to load file \"%s\" with OLD syntax: exc=\"%s\"" file (Printexc.to_string exc_old);
-        raise exc_new in
-  Grs.from_ast file new_ast
 end

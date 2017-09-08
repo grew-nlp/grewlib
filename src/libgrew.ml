@@ -56,10 +56,6 @@ module Domain = struct
   type t = Grew_domain.Domain.t
 
   let load filename =
-    let ast = Grew_loader.Loader.domain filename in
-    Grew_grs.Old_grs.domain_build ast
-
-  let load filename =
     handle ~name:"Domain.load"
       (fun () ->
       let ast = Grew_loader.Loader.domain filename in
@@ -282,7 +278,13 @@ module Grs = struct
   let load file =
     handle ~name:"Grs.load" ~file
       (fun () ->
-        Grew_grs.Univ_grs.load file
+        Grew_grs.Grs.load file
+      ) ()
+
+  let load_old file =
+    handle ~name:"Grs.load" ~file
+      (fun () ->
+        Grew_grs.Grs.load_old file
       ) ()
 
   let dump grs =

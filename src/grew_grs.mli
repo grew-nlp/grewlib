@@ -114,6 +114,7 @@ module Grs : sig
   type t
 
   val load: string  -> t
+  val load_old: string  -> t
 
   val dump: t -> unit
 
@@ -126,8 +127,4 @@ module Grs : sig
   val get_strat_list: t -> string list
   val at_least_one: t -> string -> bool
   val at_most_one: t -> string -> bool
-end
-
-module Univ_grs : sig
-  val load: string -> Grs.t
 end
