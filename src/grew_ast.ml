@@ -207,37 +207,14 @@ module Ast = struct
     then pat_nodes
     else ({node_id=name; position=None; fs=[]}, loc) :: pat_nodes
 
-  let complete_basic aux {pat_nodes; pat_edges; pat_const} =
-    let pat_nodes_2 = List.fold_left
+  let complete_basic aux basic =
+    let new_pat_nodes = List.fold_left
     (fun acc ({src; tar}, loc) ->
       acc
       |> (add_implicit_node loc aux src)
       |> (add_implicit_node loc aux tar)
-    ) pat_nodes pat_edges in
-
-    let pat_nodes_3 = List.fold_left
-    (fun acc (u_const, loc) -> match u_const with
-      | Features_eq ((name1,_), (name2,_))
-      | Features_diseq ((name1,_), (name2,_))
-      | Features_ineq (_, (name1,_), (name2,_))
-      | Immediate_prec (name1, name2)
-      | Large_prec (name1, name2) ->
-        acc
-        |> (add_implicit_node loc aux name1)
-        |> (add_implicit_node loc aux name2)
-      | Feature_ineq_cst (_, (name,_), _)
-      | Feature_eq_cst ((name,_), _)
-      | Feature_diff_cst ((name,_), _)
-      | Feature_eq_float ((name,_), _)
-      | Feature_diff_float ((name,_), _)
-      | Feature_eq_regexp ((name,_), _)
-      | Cst_in (name,_)
-      | Cst_out (name, _) ->
-        acc
-        |> (add_implicit_node loc aux name)
-    ) pat_nodes_2 pat_const in
-
-    {pat_nodes=pat_nodes_3; pat_edges; pat_const}
+    ) basic.pat_nodes basic.pat_edges in
+    {basic with pat_nodes=new_pat_nodes}
 
   let complete_pattern pattern =
     let new_pat_pos = complete_basic [] pattern.pat_pos in
