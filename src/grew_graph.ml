@@ -939,7 +939,7 @@ module G_graph = struct
       xpos = (match G_fs.get_string_atom "pos" fs with Some p -> p | None -> "_");
       feats = (G_fs.to_conll ~exclude: ["phon"; "lemma"; "cat"; "pos"; "position"] fs);
       deps = List.map (fun (gov,lab) -> ( Conll.Id.of_string gov, lab)) sorted_gov_labs;
-      efs = [];
+      efs = G_node.get_efs node;
     } ) snodes in
     {
       Conll.file = None;

@@ -75,6 +75,8 @@ module G_node = struct
     | Some l -> Some {t with next = l}
     | None -> None
 
+  let get_efs n = n.efs
+
   let string_efs n = match n.efs with
     | [] -> "_"
     | list -> String.concat "|" (List.map (fun (f,v) -> sprintf "%s=%s" f v) list)
