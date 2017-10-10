@@ -221,11 +221,18 @@ end (* module G_deco *)
 
 (* ================================================================================ *)
 module G_graph = struct
+  type fusion_item = {
+    first: Gid.t;
+    last: Gid.t;
+    word: string;
+    efs: (string * string) list;
+  }
+
   type t = {
-    meta: string list;                       (* meta-informations *)
-    map: G_node.t Gid_map.t;                 (* node description *)
-    fusion: (Gid.t * (Gid.t * string)) list; (* the list of fusion word considered in UD conll *)
-    highest_index: int;                      (* the next free integer index *)
+    meta: string list;            (* meta-informations *)
+    map: G_node.t Gid_map.t;      (* node description *)
+    fusion: fusion_item list;     (* the list of fusion word considered in UD conll *)
+    highest_index: int;           (* the next free integer index *)
   }
 
   let empty = {meta=[]; map=Gid_map.empty; fusion=[]; highest_index=0; }
@@ -400,14 +407,15 @@ module G_graph = struct
 
       let fusion =
         List.map
-          (fun {Conll.first; last; fusion; mw_line_num} ->
+          (fun {Conll.first; last; fusion; mw_line_num; mw_efs} ->
               let loc = Loc.file_opt_line_opt conll.Conll.file mw_line_num in
               (
-                Id.gbuild ~loc (first,None) gtable,
-                (
-                  Id.gbuild ~loc (last, None) gtable,
-                  fusion
-                )
+                {
+                  first = Id.gbuild ~loc (first,None) gtable;
+                  last = Id.gbuild ~loc (last, None) gtable;
+                  word = fusion;
+                  efs = mw_efs;
+                }
               )
           ) conll.Conll.multiwords in
 
@@ -849,12 +857,12 @@ module G_graph = struct
         ) graph.map Gid_map.empty in
 
     let multiwords =
-      List.map (fun (gid,(gid_last,fusion)) ->
+      List.map (fun fusion_item ->
         { Conll.mw_line_num = None;
-          first = int_of_float (get_num gid);
-          last = int_of_float (get_num gid_last);
-          fusion;
-          mw_efs = []
+          first = int_of_float (get_num fusion_item.first);
+          last = int_of_float (get_num fusion_item.last);
+          fusion = fusion_item.word;
+          mw_efs = fusion_item.efs;
         }
       ) graph.fusion in
 
