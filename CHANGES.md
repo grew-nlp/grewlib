@@ -1,3 +1,8 @@
+# 0.45.0 (2017/10/10)
+  * Keep features defined in column 10 of conll (like SpaceAfter=No)
+  * /!\ implicit nodes are allowed only in edge definitions
+  * /!\ new grs syntax is required (old syntax can be used with -old_grs command line argument)
+
 ## 0.44.1 (2017/09/06)
   * Fix bug “undefined domain”
 
