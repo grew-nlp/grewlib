@@ -423,10 +423,13 @@ module G_graph = struct
 
   (* -------------------------------------------------------------------------------- *)
   (** input : "Le/DET/le petit/ADJ/petit chat/NC/chat dort/V/dormir ./PONCT/." *)
+
+  let re = Str.regexp "/\\(ADJ\\|ADJWH\\|ADV\\|ADVWH\\|CC\\|CLO\\|CLR\\|CLS\\|CS\\|DET\\|DETWH\\|ET\\|I\\|NC\\|NPP\\|P\\|P\\+D\\|P\\+PRO\\|PONCT\\|PREF\\|PRO\\|PROREL\\|PROWH\\|V\\|VIMP\\|VINF\\|VPP\\|VPR\\|VS\\)/"
+
   let of_brown ?domain ?sentid brown =
     let units = Str.split (Str.regexp " ") brown in
       let conll_lines = List.mapi
-      (fun i item -> match Str.full_split (Str.regexp "/[A-Z'+'']+/") item with
+      (fun i item -> match Str.full_split re   item with
         | [Str.Text form; Str.Delim pos; Str.Text lemma] ->
         let pos = String.sub pos 1 ((String.length pos)-2) in
         let feats = match (i,sentid) with
