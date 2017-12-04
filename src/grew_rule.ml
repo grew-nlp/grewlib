@@ -464,21 +464,21 @@ module Rule = struct
 
   (* ====================================================================== *)
   let build_commands ?domain ?param pos pos_table ast_commands =
-    let known_act_ids = Array.to_list pos_table in
+    let known_node_ids = Array.to_list pos_table in
     let known_edge_ids = get_edge_ids pos in
 
-    let rec loop (kai,kei) = function
+    let rec loop (kni,kei) = function
       | [] -> []
       | ast_command :: tail ->
-          let (command, (new_kai, new_kei)) =
+          let (command, (new_kni, new_kei)) =
             Command.build
               ?domain
               ?param
-              (kai,kei)
+              (kni,kei)
               pos_table
               ast_command in
-          command :: (loop (new_kai,new_kei) tail) in
-    loop (known_act_ids, known_edge_ids) ast_commands
+          command :: (loop (new_kni,new_kei) tail) in
+    loop (known_node_ids, known_edge_ids) ast_commands
 
   (* ====================================================================== *)
   let parse_vars loc vars =
