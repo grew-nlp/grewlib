@@ -126,11 +126,11 @@ module G_graph: sig
 
   (** [del_edge ?edge_ident loc graph id_src label id_tar] removes the edge (id_src -[label]-> id_tar) from graph.
      Log.critical if the edge is not in graph *)
-  val del_edge: ?domain:Domain.t -> ?edge_ident: string -> Loc.t -> t -> Gid.t -> G_edge.t -> Gid.t -> t
+  val del_edge: ?domain:Domain.t -> ?edge_ident: string -> Loc.t -> t -> Gid.t -> G_edge.t -> Gid.t -> t option
 
   (** [del_node graph id] remove node [id] from [graph], with all its incoming and outcoming edges.
-      [graph] is unchanged if the node is not in it. *)
-  val del_node: t -> Gid.t -> t
+      None is returned if [id] not defined in [graph]*)
+  val del_node: t -> Gid.t -> t option
 
   val add_before: Gid.t -> t -> (Gid.t * t)
   val add_after: Gid.t -> t -> (Gid.t * t)

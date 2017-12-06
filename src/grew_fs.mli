@@ -38,6 +38,8 @@ module G_fs: sig
       If [t] does not contain such a feature, [t] is returned unchanged. *)
   val del_feat:  string -> t ->  t
 
+  val get_atom: string -> t -> value option
+
   (** [get_string_atom f t] returns [Some v] if the fs [t] contains the feature (f,v).
       It returns [None] if there is no feature named [f] in [t] *)
   val get_string_atom: string -> t -> string option

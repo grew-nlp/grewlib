@@ -949,36 +949,46 @@ module Rule = struct
     | Command.DEL_EDGE_EXPL (src_cn,tar_cn,edge) ->
         let src_gid = node_find src_cn in
         let tar_gid = node_find tar_cn in
-        (
-         {instance with
-          Instance.graph = G_graph.del_edge ?domain loc instance.Instance.graph src_gid edge tar_gid;
-           history = List_.sort_insert (Command.H_DEL_EDGE_EXPL (src_gid,tar_gid,edge)) instance.Instance.history
-        },
-         created_nodes
+        (match G_graph.del_edge ?domain loc instance.Instance.graph src_gid edge tar_gid with
+          | None -> Error.run "DEL_EDGE_EXPL: the edge '%s' does not exist %s" (G_edge.to_string ?domain edge) (Loc.to_string loc)
+          | Some new_graph ->
+          (
+            {instance with
+              Instance.graph = new_graph;
+              history = List_.sort_insert (Command.H_DEL_EDGE_EXPL (src_gid,tar_gid,edge)) instance.Instance.history
+              },
+              created_nodes
+              )
         )
 
     | Command.DEL_EDGE_NAME edge_ident ->
         let (src_gid,edge,tar_gid) =
           try List.assoc edge_ident matching.e_match
           with Not_found -> Error.bug "The edge identifier '%s' is undefined %s" edge_ident (Loc.to_string loc) in
+          (match G_graph.del_edge ?domain ~edge_ident loc instance.Instance.graph src_gid edge tar_gid with
+          | None -> Error.bug "DEL_EDGE_NAME"
+          | Some new_graph ->
         (
          {instance with
-          Instance.graph = G_graph.del_edge ?domain ~edge_ident loc instance.Instance.graph src_gid edge tar_gid;
+          Instance.graph = new_graph;
           history = List_.sort_insert (Command.H_DEL_EDGE_EXPL (src_gid,tar_gid,edge)) instance.Instance.history
         },
          created_nodes
-        )
+        ))
 
     | Command.DEL_NODE node_cn ->
         let node_gid = node_find node_cn in
+        (match G_graph.del_node instance.Instance.graph node_gid with
+        | None -> Error.run "DEL_NODE: the node does not exist %s" (Loc.to_string loc)
+        | Some new_graph ->
         (
          {instance with
-          Instance.graph = G_graph.del_node instance.Instance.graph node_gid;
+          Instance.graph = new_graph;
           history = List_.sort_insert (Command.H_DEL_NODE node_gid) instance.Instance.history
         },
          created_nodes
         )
-
+        )
     | Command.UPDATE_FEAT (tar_cn,tar_feat_name, item_list) ->
         let tar_gid = node_find tar_cn in
         let rule_items = List.map

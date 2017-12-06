@@ -488,9 +488,11 @@ module G_graph = struct
         match edge_ident with
           | None -> Log.fcritical "[RUN] Some edge refers to a dead node, please report"
           | Some id -> Error.run ~loc "[Graph.del_edge] cannot find source node of edge \"%s\"" id in
-    try {graph with map = Gid_map.add id_src (G_node.remove id_tar label node_src) graph.map}
-    with Not_found -> Error.run ~loc "[Graph.del_edge] cannot find edge '%s'" (G_edge.to_string ?domain label)
+    match G_node.remove_opt id_tar label node_src with
+    | None -> None
+    | Some new_node -> Some {graph with map = Gid_map.add id_src new_node graph.map}
 
+  exception EEE
   (* -------------------------------------------------------------------------------- *)
   let del_node graph node_id =
     let map_wo_node =
@@ -500,31 +502,33 @@ module G_graph = struct
           then acc
           else Gid_map.add id (G_node.remove_key node_id value) acc
         ) graph.map Gid_map.empty in
-    let node = Gid_map.find node_id graph.map in
-    let new_map =
-      match (G_node.get_prec node, G_node.get_succ node) with
-      | (Some id_prec, Some id_succ) ->
-        begin
-          let prec = Gid_map.find id_prec map_wo_node
-          and succ = Gid_map.find id_succ map_wo_node in
-          map_wo_node
-          |> (Gid_map.add id_prec (G_node.set_succ id_succ prec))
-          |> (Gid_map.add id_succ (G_node.set_prec id_prec succ))
-        end
-      | (Some id_prec, None) ->
-        begin
-          let prec = Gid_map.find id_prec map_wo_node in
-          map_wo_node
-          |> (Gid_map.add id_prec (G_node.remove_succ prec))
-        end
-      | (None, Some id_succ) ->
-        begin
-          let succ = Gid_map.find id_succ map_wo_node in
-          map_wo_node
-          |> (Gid_map.add id_succ (G_node.remove_prec succ))
-        end
-      | (None, None) -> map_wo_node in
-    { graph with map = new_map }
+    try
+      let node = Gid_map.find node_id graph.map in
+      let new_map =
+        match (G_node.get_prec node, G_node.get_succ node) with
+        | (Some id_prec, Some id_succ) ->
+          begin
+            let prec = Gid_map.find id_prec map_wo_node
+            and succ = Gid_map.find id_succ map_wo_node in
+            map_wo_node
+            |> (Gid_map.add id_prec (G_node.set_succ id_succ prec))
+            |> (Gid_map.add id_succ (G_node.set_prec id_prec succ))
+          end
+        | (Some id_prec, None) ->
+          begin
+            let prec = Gid_map.find id_prec map_wo_node in
+            map_wo_node
+            |> (Gid_map.add id_prec (G_node.remove_succ prec))
+          end
+        | (None, Some id_succ) ->
+          begin
+            let succ = Gid_map.find id_succ map_wo_node in
+            map_wo_node
+            |> (Gid_map.add id_succ (G_node.remove_prec succ))
+          end
+        | (None, None) -> map_wo_node in
+      Some { graph with map = new_map }
+    with Not_found -> None
 
   (* -------------------------------------------------------------------------------- *)
   let insert id1 id2 graph =
@@ -598,7 +602,7 @@ module G_graph = struct
       (fun (acc_src_next,acc_tar_next) next_gid edge ->
         if Label_cst.match_ ?domain label_cst edge && not (is_gid_local next_gid)
         then
-          match Massoc_gid.add next_gid edge acc_tar_next with
+          match Massoc_gid.add_opt next_gid edge acc_tar_next with
           | Some new_acc_tar_next -> (Massoc_gid.remove next_gid edge acc_src_next, new_acc_tar_next)
           | None -> Error.run ~loc "The [shift_out] command tries to build a duplicate edge (with label \"%s\")" (Label.to_string ?domain edge)
         else (acc_src_next,acc_tar_next)

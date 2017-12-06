@@ -57,7 +57,7 @@ module G_node: sig
   val string_efs: t -> string
   val is_conll_root: t -> bool
 
-  val remove: Gid.t -> G_edge.t -> t -> t
+  val remove_opt: Gid.t -> G_edge.t -> t -> t option
 
   val remove_key: Gid.t -> t -> t
 

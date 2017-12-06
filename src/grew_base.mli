@@ -201,7 +201,7 @@ module type S =
 
     val iter: (key -> 'a -> unit) -> 'a t -> unit
 
-    val add: key -> 'a -> 'a t -> 'a t option
+    val add_opt: key -> 'a -> 'a t -> 'a t option
 
     val replace: key -> 'a list -> 'a t -> 'a t
 
@@ -209,6 +209,7 @@ module type S =
 
     (* raise Not_found if no (key,elt) *)
     val remove: key -> 'a -> 'a t -> 'a t
+    val remove_opt: key -> 'a -> 'a t -> 'a t option
 
     (* raise Not_found if no (key,elt) *)
     val remove_key: key -> 'a t -> 'a t

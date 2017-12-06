@@ -71,7 +71,7 @@ module G_node = struct
   let to_gr t = sprintf "[%s] " (G_fs.to_gr t.fs)
 
   let add_edge g_edge gid_tar t =
-    match Massoc_gid.add gid_tar g_edge t.next with
+    match Massoc_gid.add_opt gid_tar g_edge t.next with
     | Some l -> Some {t with next = l}
     | None -> None
 
@@ -107,7 +107,10 @@ module G_node = struct
   let fresh ?prec ?succ pos = { empty with position = Ordered pos; prec; succ }
   let fresh_unordered () = { empty with position = Unordered (fresh_index ())}
 
-  let remove (id_tar : Gid.t) label t = {t with next = Massoc_gid.remove id_tar label t.next}
+  let remove_opt (id_tar : Gid.t) label t =
+    match Massoc_gid.remove_opt id_tar label t.next with
+    | Some new_next -> Some {t with next = new_next}
+    | None -> None
 
   let remove_key node_id t =
     try {t with next = Massoc_gid.remove_key node_id t.next} with Not_found -> t
@@ -174,7 +177,7 @@ module P_node = struct
      } )
 
   let add_edge p_edge pid_tar t =
-    match Massoc_pid.add pid_tar p_edge t.next with
+    match Massoc_pid.add_opt pid_tar p_edge t.next with
     | Some l -> Some {t with next = l}
     | None -> None
 

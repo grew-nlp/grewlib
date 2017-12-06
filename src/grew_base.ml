@@ -410,7 +410,7 @@ module type S = sig
 
   val iter: (key -> 'a -> unit) -> 'a t -> unit
 
-  val add: key -> 'a -> 'a t -> 'a t option
+  val add_opt: key -> 'a -> 'a t -> 'a t option
 
   val replace: key -> 'a list -> 'a t -> 'a t
 
@@ -418,6 +418,7 @@ module type S = sig
 
   (* raise Not_found if no (key,elt) *)
   val remove: key -> 'a -> 'a t -> 'a t
+  val remove_opt: key -> 'a -> 'a t -> 'a t option
 
   (* raise Not_found if no (key,elt) *)
   val remove_key: key -> 'a t -> 'a t
@@ -464,7 +465,7 @@ module Massoc_make (Ord: OrderedType) = struct
 
   let replace = M.add
 
-  let add key elt t =
+  let add_opt key elt t =
     try
       let list = M.find key t in
       match List_.usort_insert elt list with
@@ -486,6 +487,10 @@ module Massoc_make (Ord: OrderedType) = struct
     match M.find key t with
       | [one] when one=value -> M.remove key t
       | old -> M.add key (List_.usort_remove value old) t
+
+  let remove_opt key value t =
+    try Some (remove key value t)
+    with Not_found -> None
 
   let remove_key key t = M.remove key t
 
