@@ -590,7 +590,9 @@ module G_graph = struct
 
   (* -------------------------------------------------------------------------------- *)
   (* move out-edges (which respect cst [labels,neg]) from id_src are moved to out-edges out off node id_tar *)
-  let shift_out loc ?domain src_gid tar_gid is_gid_local label_cst graph =
+  let shift_out loc ?domain strict src_gid tar_gid is_gid_local label_cst graph =
+    let del_edges = ref [] and add_edges = ref [] in
+
     let src_node = Gid_map.find src_gid graph.map in
     let tar_node = Gid_map.find tar_gid graph.map in
 
@@ -603,24 +605,33 @@ module G_graph = struct
         if Label_cst.match_ ?domain label_cst edge && not (is_gid_local next_gid)
         then
           match Massoc_gid.add_opt next_gid edge acc_tar_next with
-          | Some new_acc_tar_next -> (Massoc_gid.remove next_gid edge acc_src_next, new_acc_tar_next)
-          | None -> Error.run ~loc "The [shift_out] command tries to build a duplicate edge (with label \"%s\")" (Label.to_string ?domain edge)
+          | None when strict -> Error.run ~loc "The [shift_out] command tries to build a duplicate edge (with label \"%s\")" (Label.to_string ?domain edge)
+          | None ->
+            del_edges := (src_gid,edge,next_gid) :: !del_edges;
+            (Massoc_gid.remove next_gid edge acc_src_next, acc_tar_next)
+          | Some new_acc_tar_next ->
+            del_edges := (src_gid,edge,next_gid) :: !del_edges;
+            add_edges := (tar_gid,edge,next_gid) :: !add_edges;
+            (Massoc_gid.remove next_gid edge acc_src_next, new_acc_tar_next)
         else (acc_src_next,acc_tar_next)
       )
       (src_next, tar_next) src_next in
 
-    { graph with map =
-      graph.map
+    let new_map = graph.map
       |> (Gid_map.add src_gid (G_node.set_next new_src_next src_node))
-      |> (Gid_map.add tar_gid (G_node.set_next new_tar_next tar_node))
-    }
+      |> (Gid_map.add tar_gid (G_node.set_next new_tar_next tar_node)) in
+    ( { graph with map = new_map },
+      !del_edges,
+      !add_edges
+    )
 
   (* -------------------------------------------------------------------------------- *)
-  let shift_in loc ?domain src_gid tar_gid is_gid_local label_cst graph =
-    { graph with map =
+  let shift_in loc ?domain strict src_gid tar_gid is_gid_local label_cst graph =
+    let del_edges = ref [] and add_edges = ref [] in
+    let new_map =
       Gid_map.mapi
         (fun node_id node ->
-          if is_gid_local node_id
+          if is_gid_local node_id (* shift does not move pattern edges *)
           then node
           else
             let node_next = G_node.get_next node in
@@ -634,8 +645,15 @@ module G_graph = struct
                 if Label_cst.match_ ?domain label_cst edge
                 then
                   match List_.usort_insert edge acc_node_tar_edges with
-                  | None -> Error.run ~loc "The [shift_in] command tries to build a duplicate edge (with label \"%s\")" (Label.to_string ?domain edge)
-                  | Some l -> (List_.usort_remove edge acc_node_src_edges, l)
+                  | None when strict ->
+                    Error.run ~loc "The [shift_in] command tries to build a duplicate edge (with label \"%s\")" (Label.to_string ?domain edge)
+                  | None ->
+                    del_edges := (node_id,edge,src_gid) :: !del_edges;
+                    (List_.usort_remove edge acc_node_src_edges, acc_node_tar_edges)
+                  | Some l ->
+                    del_edges := (node_id,edge,src_gid) :: !del_edges;
+                    add_edges := (node_id,edge,tar_gid) :: !add_edges;
+                    (List_.usort_remove edge acc_node_src_edges, l)
                 else (acc_node_src_edges,acc_node_tar_edges)
               )
               (node_src_edges, node_tar_edges) node_src_edges in
@@ -644,14 +662,17 @@ module G_graph = struct
                 |> (Massoc_gid.replace src_gid new_node_src_edges)
                 |> (Massoc_gid.replace tar_gid new_node_tar_edges) in
               G_node.set_next new_next node
-          ) graph.map
-    }
+          ) graph.map in
+    ( { graph with map = new_map },
+      !del_edges,
+      !add_edges
+    )
 
   (* -------------------------------------------------------------------------------- *)
-  let shift_edges loc ?domain src_gid tar_gid is_gid_local label_cst graph =
-    graph
-    |> (shift_in loc ?domain src_gid tar_gid is_gid_local label_cst)
-    |> (shift_out loc ?domain src_gid tar_gid is_gid_local label_cst)
+  let shift_edges loc ?domain strict src_gid tar_gid is_gid_local label_cst graph =
+    let (g1,de1,ae1) = shift_in loc ?domain strict src_gid tar_gid is_gid_local label_cst graph in
+    let (g2,de2,ae2) = shift_in loc ?domain strict src_gid tar_gid is_gid_local label_cst g1 in
+    (g2, de1 @ de2, ae1 @ ae2)
 
   (* -------------------------------------------------------------------------------- *)
   let set_feat ?loc ?domain graph node_id feat_name new_value =
@@ -690,8 +711,9 @@ module G_graph = struct
   (* -------------------------------------------------------------------------------- *)
   let del_feat graph node_id feat_name =
     let node = Gid_map.find node_id graph.map in
-    let new_fs = G_fs.del_feat feat_name (G_node.get_fs node) in
-    { graph with map = Gid_map.add node_id (G_node.set_fs new_fs node) graph.map }
+    match G_fs.del_feat feat_name (G_node.get_fs node) with
+      | Some new_fs -> Some { graph with map = Gid_map.add node_id (G_node.set_fs new_fs node) graph.map }
+      | None -> None
 
   (* -------------------------------------------------------------------------------- *)
   let to_gr ?domain graph =
@@ -921,3 +943,76 @@ module G_graph = struct
     let conll = to_conll ?domain graph in
     Conll.to_dot conll
 end (* module G_graph *)
+
+
+
+(* ================================================================================ *)
+(* The module [Delta] defines a type for recording the effect of a set of commands on a graph *)
+(* It is used a key to detect egal graphs based on rewriting history *)
+module Delta = struct
+  type status = Add | Del
+
+  exception Inconsistent of string
+
+  (* the tree list are ordered *)
+  type t = {
+    del_nodes: Gid.t list;
+    edges: ((Gid.t * Label.t * Gid.t) * status) list;
+    feats: ((Gid.t * feature_name) * (value option)) list;
+  }
+
+  let empty = { del_nodes=[]; edges=[]; feats=[]; }
+
+  let del_node gid t =
+    match List_.usort_insert gid t.del_nodes with
+    | None -> raise (Inconsistent "del_node")
+    | Some new_del_nodes -> {
+      del_nodes= new_del_nodes;
+      edges = List.filter (fun ((g1,_,g2),_) -> g1 <> gid && g2 <> gid) t.edges;
+      feats = List.filter (fun ((g,_),_) -> g <> gid) t.feats;
+    }
+
+  let add_edge src lab tar t =
+    let rec loop = fun old -> match old with
+    | []                                                 -> ((src,lab,tar),Add)::old
+    | ((s,l,t),stat)::tail when (src,lab,tar) < (s,l,t)  -> ((src,lab,tar),Add)::old
+    | ((s,l,t),stat)::tail when (src,lab,tar) > (s,l,t)  -> ((s,l,t),stat)::(loop tail)
+    | ((s,l,t), Add)::tail (* (src,lab,tar) = (s,l,t) *) -> raise (Inconsistent "add_edge")
+    | ((s,l,t), Del)::tail (* (src,lab,tar) = (s,l,t) *) -> tail in
+    { t with edges = loop t.edges }
+
+  let del_edge src lab tar t =
+    let rec loop = fun old -> match old with
+    | []                                                 -> ((src,lab,tar),Del)::old
+    | ((s,l,t),stat)::tail when (src,lab,tar) < (s,l,t)  -> ((src,lab,tar),Del)::old
+    | ((s,l,t),stat)::tail when (src,lab,tar) > (s,l,t)  -> ((s,l,t),stat)::(loop tail)
+    | ((s,l,t), Del)::tail (* (src,lab,tar) = (s,l,t) *) -> raise (Inconsistent "del_edge")
+    | ((s,l,t), Add)::tail (* (src,lab,tar) = (s,l,t) *) -> tail in
+    { t with edges = loop t.edges }
+
+  let set_feat seed_graph gid feat_name new_val_opt t =
+    (* equal_orig is true iff new val is the same as the one in seed_graph *)
+    let equal_orig = (new_val_opt = G_fs.get_atom feat_name (G_node.get_fs (G_graph.find gid seed_graph))) in
+    let rec loop = fun old -> match old with
+    | [] when equal_orig                                             -> []
+    | []                                                             -> [(gid,feat_name), new_val_opt]
+    | ((g,f),_)::tail when (gid,feat_name) < (g,f) && equal_orig     -> old
+    | ((g,f),v)::tail when (gid,feat_name) < (g,f)                   -> ((gid,feat_name), new_val_opt)::old
+    | ((g,f),v)::tail when (gid,feat_name) > (g,f)                   -> ((g,f),v)::(loop tail)
+    | ((g,f),_)::tail when (* (g,f)=(gid,feat_name) && *) equal_orig -> tail
+    | ((g,f),_)::tail (* when (g,f)=(gid,feat_name) *)               -> ((g,f), new_val_opt) :: tail in
+    { t with feats = loop t.feats }
+end (* module Delta *)
+
+module Graph_with_history = struct
+  type t = {
+    seed: G_graph.t;
+    delta: Delta.t;
+    graph: G_graph.t;
+  }
+
+  (* WARNING: compare is correct only on data with the same seed! *)
+  let compare t1 t2 = Pervasives.compare t1.delta t2.delta
+end
+
+module Graph_with_history_set = Set.Make (Graph_with_history)

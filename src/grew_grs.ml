@@ -953,4 +953,4 @@ module Grs = struct
       | New_ast.If (_,s1, s2) -> (loop pointed s1) || (loop pointed s2)
       | New_ast.Try (s) -> loop pointed s in
     loop (top grs) (Parser.strategy strat)
-end
+end (* module Grs *)

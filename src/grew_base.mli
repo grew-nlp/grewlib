@@ -162,6 +162,8 @@ module List_: sig
       if [key] not found, the unchanged input list is returned *)
   val sort_remove_assoc: 'a -> ('a * 'b) list -> ('a * 'b) list
 
+  val sort_remove_assoc_opt: 'a -> ('a * 'b) list -> ('a * 'b) list option
+
   val foldi_left: (int -> 'a -> 'b -> 'a) -> 'a -> 'b list -> 'a
 
   val prev_next_iter: (?prev:'a -> ?next:'a -> 'a -> unit) -> 'a list -> unit

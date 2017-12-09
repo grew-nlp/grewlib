@@ -1017,13 +1017,16 @@ module Rule = struct
 
     | Command.DEL_FEAT (tar_cn,feat_name) ->
         let tar_gid = node_find tar_cn in
+        (match G_graph.del_feat instance.Instance.graph tar_gid feat_name with
+        | None -> Error.run "DEL_FEAT: the feat does not exist %s" (Loc.to_string loc)
+        | Some new_graph ->
         (
          {instance with
-          Instance.graph = G_graph.del_feat instance.Instance.graph tar_gid feat_name;
+          Instance.graph = new_graph;
           history = List_.sort_insert (Command.H_DEL_FEAT (tar_gid,feat_name)) instance.Instance.history
         },
          created_nodes
-        )
+        ))
 
     | Command.NEW_AFTER (created_name,base_cn) ->
         let base_gid = node_find base_cn in
@@ -1060,9 +1063,10 @@ module Rule = struct
     | Command.SHIFT_IN (src_cn,tar_cn,label_cst) ->
         let src_gid = node_find src_cn in
         let tar_gid = node_find tar_cn in
+        let (new_graph, _, _) = G_graph.shift_in loc ?domain true src_gid tar_gid (test_locality matching created_nodes) label_cst instance.Instance.graph in
         (
          {instance with
-          Instance.graph = G_graph.shift_in loc ?domain src_gid tar_gid (test_locality matching created_nodes) label_cst instance.Instance.graph;
+          Instance.graph = new_graph;
           history = List_.sort_insert (Command.H_SHIFT_IN (src_gid,tar_gid)) instance.Instance.history
         },
          created_nodes
@@ -1071,9 +1075,10 @@ module Rule = struct
     | Command.SHIFT_OUT (src_cn,tar_cn,label_cst) ->
         let src_gid = node_find src_cn in
         let tar_gid = node_find tar_cn in
+        let (new_graph, _, _) = G_graph.shift_out loc ?domain true src_gid tar_gid (test_locality matching created_nodes) label_cst instance.Instance.graph in
         (
          {instance with
-          Instance.graph = G_graph.shift_out loc ?domain src_gid tar_gid (test_locality matching created_nodes) label_cst instance.Instance.graph;
+          Instance.graph = new_graph;
           history = List_.sort_insert (Command.H_SHIFT_OUT (src_gid,tar_gid)) instance.Instance.history
         },
          created_nodes
@@ -1082,9 +1087,10 @@ module Rule = struct
     | Command.SHIFT_EDGE (src_cn,tar_cn,label_cst) ->
         let src_gid = node_find src_cn in
         let tar_gid = node_find tar_cn in
+        let (new_graph, _, _) = G_graph.shift_edges loc ?domain true src_gid tar_gid (test_locality matching created_nodes) label_cst instance.Instance.graph in
         (
           {instance with
-            Instance.graph = G_graph.shift_edges loc ?domain src_gid tar_gid (test_locality matching created_nodes) label_cst instance.Instance.graph;
+            Instance.graph = new_graph;
             history = List_.sort_insert (Command.H_SHIFT_EDGE (src_gid,tar_gid)) instance.Instance.history
           },
           created_nodes
@@ -1340,5 +1346,446 @@ module Rule = struct
                 ) matching_list in
             Some (apply_rule ?domain instance first_matching_where_all_witout_are_fulfilled rule)
           with Not_found -> None
+
+
+
+
+
+
+  (*  ---------------------------------------------------------------------- *)
+  (*  ---------------------------------------------------------------------- *)
+  (*  ---------------------------------------------------------------------- *)
+  (*  ---------------------------------------------------------------------- *)
+  (*  ---------------------------------------------------------------------- *)
+  (*  ---------------------------------------------------------------------- *)
+  (*  ---------------------------------------------------------------------- *)
+  (*  ---------------------------------------------------------------------- *)
+  (*  ---------------------------------------------------------------------- *)
+  (*  ---------------------------------------------------------------------- *)
+  (*  ---------------------------------------------------------------------- *)
+  (*  ---------------------------------------------------------------------- *)
+  (*  ---------------------------------------------------------------------- *)
+  (*  ---------------------------------------------------------------------- *)
+
+
+
+
+
+  let strict = false
+
+
+
+  let onf_find cnode ?loc (matching, created_nodes) =
+    match cnode with
+    | Command.Pat pid ->
+        (try Pid_map.find pid matching.n_match
+        with Not_found -> Error.bug ?loc "Inconsistent matching pid '%s' not found" (Pid.to_string pid))
+    | Command.New name ->
+        (try List.assoc name created_nodes
+        with Not_found -> Error.run ?loc "Identifier '%s' not found" name)
+
+  (*  ---------------------------------------------------------------------- *)
+  (** [onf_apply_command eff ?domain command graph matching created_nodes]
+      returns [(new_graph, new_created_nodes, new_eff)] *)
+  let onf_apply_command eff ?domain (command,loc) graph matching created_nodes =
+    let node_find cnode = onf_find ~loc cnode (matching, created_nodes) in
+
+    match command with
+    | Command.ADD_EDGE (src_cn,tar_cn,edge) ->
+        let src_gid = node_find src_cn in
+        let tar_gid = node_find tar_cn in
+        begin
+          match G_graph.add_edge graph src_gid edge tar_gid with
+          | None when strict ->
+              Error.run "ADD_EDGE: the edge '%s' already exists %s" (G_edge.to_string ?domain edge) (Loc.to_string loc)
+          | None -> (graph, created_nodes, eff)
+          | Some new_graph -> (new_graph, created_nodes, true)
+        end
+
+    | Command.ADD_EDGE_EXPL (src_cn,tar_cn,edge_ident) ->
+        let src_gid = node_find src_cn in
+        let tar_gid = node_find tar_cn in
+        let (_,edge,_) =
+          try List.assoc edge_ident matching.e_match
+          with Not_found -> Error.bug "The edge identifier '%s' is undefined %s" edge_ident (Loc.to_string loc) in
+        begin
+          match G_graph.add_edge graph src_gid edge tar_gid with
+          | None when strict ->
+              Error.run "ADD_EDGE_EXPL: the edge '%s' already exists %s" (G_edge.to_string ?domain edge) (Loc.to_string loc)
+          | None -> (graph, created_nodes, eff)
+          | Some new_graph -> (new_graph, created_nodes, true)
+        end
+
+    | Command.DEL_EDGE_EXPL (src_cn,tar_cn,edge) ->
+        let src_gid = node_find src_cn in
+        let tar_gid = node_find tar_cn in
+        (match G_graph.del_edge ?domain loc graph src_gid edge tar_gid with
+          | None when strict -> Error.run "DEL_EDGE_EXPL: the edge '%s' does not exist %s" (G_edge.to_string ?domain edge) (Loc.to_string loc)
+
+          | None -> (graph, created_nodes, eff)
+          | Some new_graph -> (new_graph, created_nodes, true)
+        )
+
+    | Command.DEL_EDGE_NAME edge_ident ->
+        let (src_gid,edge,tar_gid) =
+          try List.assoc edge_ident matching.e_match
+          with Not_found -> Error.bug "The edge identifier '%s' is undefined %s" edge_ident (Loc.to_string loc) in
+          (match G_graph.del_edge ?domain ~edge_ident loc graph src_gid edge tar_gid with
+            | None -> Error.bug "DEL_EDGE_NAME"
+            | Some new_graph -> (new_graph, created_nodes, true)
+          )
+    | Command.DEL_NODE node_cn ->
+        let node_gid = node_find node_cn in
+        (match G_graph.del_node graph node_gid with
+          | None -> Error.run "DEL_NODE: the node does not exist %s" (Loc.to_string loc)
+          | Some new_graph -> (new_graph, created_nodes, true)
+        )
+
+    | Command.UPDATE_FEAT (tar_cn,tar_feat_name, item_list) ->
+        let tar_gid = node_find tar_cn in
+        let rule_items = List.map
+            (function
+              | Command.Feat (cnode, feat_name) -> Concat_item.Feat (node_find cnode, feat_name)
+              | Command.String s -> Concat_item.String s
+              | Command.Param_out index ->
+                  (match matching.m_param with
+                  | None -> Error.bug "Cannot apply a UPDATE_FEAT command without parameter"
+                  | Some param -> Concat_item.String (Lex_par.get_command_value index param))
+              | Command.Param_in index ->
+                  (match matching.m_param with
+                  | None -> Error.bug "Cannot apply a UPDATE_FEAT command without parameter"
+                  | Some param -> Concat_item.String (Lex_par.get_param_value index param))
+            ) item_list in
+
+        let (new_graph, new_feature_value) =
+          G_graph.update_feat ~loc ?domain graph tar_gid tar_feat_name rule_items in
+          (new_graph, created_nodes, true)
+
+    | Command.DEL_FEAT (tar_cn,feat_name) ->
+        let tar_gid = node_find tar_cn in
+        (match G_graph.del_feat graph tar_gid feat_name with
+          | None when strict -> Error.run "XXX"
+          | None -> (graph, created_nodes, eff)
+          | Some new_graph -> (new_graph, created_nodes, true)
+        )
+
+    | Command.SHIFT_IN (src_cn,tar_cn,label_cst) ->
+        let src_gid = node_find src_cn in
+        let tar_gid = node_find tar_cn in
+        let (new_graph, de, ae) = G_graph.shift_in loc ?domain true src_gid tar_gid (test_locality matching created_nodes) label_cst graph in
+        (new_graph, created_nodes, eff || de <> [] || ae <> [])
+
+    | Command.SHIFT_OUT (src_cn,tar_cn,label_cst) ->
+        let src_gid = node_find src_cn in
+        let tar_gid = node_find tar_cn in
+        let (new_graph, de, ae) = G_graph.shift_out loc ?domain true src_gid tar_gid (test_locality matching created_nodes) label_cst graph in
+        (new_graph, created_nodes, eff || de <> [] || ae <> [])
+
+    | Command.SHIFT_EDGE (src_cn,tar_cn,label_cst) ->
+        let src_gid = node_find src_cn in
+        let tar_gid = node_find tar_cn in
+        let (new_graph, de, ae) = G_graph.shift_edges loc ?domain true src_gid tar_gid (test_locality matching created_nodes) label_cst graph in
+        (new_graph, created_nodes, eff || de <> [] || ae <> [])
+
+    | Command.NEW_AFTER (created_name,base_cn) ->
+        let base_gid = node_find base_cn in
+        let (new_gid,new_graph) = G_graph.add_after base_gid graph in
+        (new_graph, (created_name,new_gid) :: created_nodes, true)
+
+    | Command.NEW_BEFORE (created_name,base_cn) ->
+        let base_gid = node_find base_cn in
+        let (new_gid,new_graph) = G_graph.add_before base_gid graph in
+        (new_graph, (created_name,new_gid) :: created_nodes, true)
+
+    | Command.NEW_NODE (created_name) ->
+        let (new_gid,new_graph) = G_graph.add_unordered graph in
+        (new_graph, (created_name,new_gid) :: created_nodes, true)
+
+  let rec onf_apply ?domain rule graph =
+    let (pos,negs) = rule.pattern in
+    (* get the list of partial matching for positive part of the pattern *)
+      let matching_list =
+        extend_matching
+          ?domain
+          (pos.graph,P_graph.empty)
+          graph
+          (init rule.param pos) in
+          try
+            let (first_matching_where_all_witout_are_fulfilled,_) =
+              List.find
+                (fun (sub, already_matched_gids) ->
+                  List.for_all
+                    (fun neg ->
+                      let new_partial_matching = update_partial pos.graph neg (sub, already_matched_gids) in
+                      fulfill ?domain (pos.graph,neg.graph) graph new_partial_matching
+                    ) negs
+                ) matching_list in
+
+            let (new_graph, created_nodes, eff) =
+              List.fold_left
+                (fun (graph, created_nodes, eff) command ->
+                  onf_apply_command eff ?domain command graph first_matching_where_all_witout_are_fulfilled created_nodes
+                )
+                (graph, [], false)
+                rule.commands in
+            if eff
+            then Some new_graph
+            else None
+          with Not_found -> (* raised by List.find, no matching apply *) None
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  let find cnode ?loc matching =
+    match cnode with
+    | Command.Pat pid ->
+        (try Pid_map.find pid matching.n_match
+        with Not_found -> Error.bug ?loc "Inconsistent matching pid '%s' not found" (Pid.to_string pid))
+    | Command.New name -> Error.bug ?loc "New node must not appear HERE !" name
+
+
+  let gwh_apply_command ?domain (command,loc) gwh matching =
+    let node_find cnode = find ~loc cnode matching in
+
+    match command with
+    | Command.ADD_EDGE (src_cn,tar_cn,edge) ->
+        let src_gid = node_find src_cn in
+        let tar_gid = node_find tar_cn in
+        begin
+          match G_graph.add_edge gwh.Graph_with_history.graph src_gid edge tar_gid with
+          | None when strict ->
+            Error.run "ADD_EDGE: the edge '%s' already exists %s"
+            (G_edge.to_string ?domain edge) (Loc.to_string loc)
+          | None -> gwh
+          | Some new_graph ->
+              {gwh with
+                Graph_with_history.graph = new_graph;
+                delta = Delta.add_edge src_gid edge tar_gid gwh.Graph_with_history.delta;
+              }
+        end
+
+    | Command.ADD_EDGE_EXPL (src_cn,tar_cn,edge_ident) ->
+        let src_gid = node_find src_cn in
+        let tar_gid = node_find tar_cn in
+        let (_,edge,_) =
+          try List.assoc edge_ident matching.e_match
+          with Not_found -> Error.bug "The edge identifier '%s' is undefined %s" edge_ident (Loc.to_string loc) in
+
+        begin
+          match G_graph.add_edge gwh.Graph_with_history.graph src_gid edge tar_gid with
+          | None when strict ->
+            Error.run "ADD_EDGE_EXPL: the edge '%s' already exists %s"
+            (G_edge.to_string ?domain edge) (Loc.to_string loc)
+          | None -> gwh
+          | Some new_graph ->
+              {gwh with
+                Graph_with_history.graph = new_graph;
+                delta = Delta.add_edge src_gid edge tar_gid gwh.Graph_with_history.delta;
+              }
+        end
+
+    | Command.DEL_EDGE_EXPL (src_cn,tar_cn,edge) ->
+        let src_gid = node_find src_cn in
+        let tar_gid = node_find tar_cn in
+        (match G_graph.del_edge ?domain loc gwh.Graph_with_history.graph src_gid edge tar_gid with
+        | None when strict ->
+          Error.run "DEL_EDGE_EXPL: the edge '%s' does not exist %s"
+          (G_edge.to_string ?domain edge) (Loc.to_string loc)
+        | None -> gwh
+        | Some new_graph ->
+         {gwh with
+            Graph_with_history.graph = new_graph;
+            delta = Delta.del_edge src_gid edge tar_gid gwh.Graph_with_history.delta;
+        })
+
+    | Command.DEL_EDGE_NAME edge_ident ->
+        let (src_gid,edge,tar_gid) =
+          try List.assoc edge_ident matching.e_match
+          with Not_found -> Error.bug "The edge identifier '%s' is undefined %s" edge_ident (Loc.to_string loc) in
+          (match G_graph.del_edge ?domain ~edge_ident loc gwh.Graph_with_history.graph src_gid edge tar_gid with
+        | None when strict -> Error.run "DEL_EDGE_NAME: the edge '%s' does not exist %s" edge_ident (Loc.to_string loc)
+        | None -> gwh
+        | Some new_graph ->
+         {gwh with
+            Graph_with_history.graph = new_graph;
+            delta = Delta.del_edge src_gid edge tar_gid gwh.Graph_with_history.delta;
+        })
+
+    | Command.DEL_NODE node_cn ->
+        let node_gid = node_find node_cn in
+        (match G_graph.del_node gwh.Graph_with_history.graph node_gid with
+          | None when strict -> Error.run "DEL_NODE the node does not exist %s" (Loc.to_string loc)
+          | None -> gwh
+          | Some new_graph ->
+            { gwh with
+              Graph_with_history.graph = new_graph;
+              delta = Delta.del_node node_gid gwh.Graph_with_history.delta;
+            }
+        )
+
+    | Command.UPDATE_FEAT (tar_cn,tar_feat_name, item_list) ->
+        let tar_gid = node_find tar_cn in
+        let rule_items = List.map
+            (function
+              | Command.Feat (cnode, feat_name) -> Concat_item.Feat (node_find cnode, feat_name)
+              | Command.String s -> Concat_item.String s
+              | Command.Param_out index ->
+                  (match matching.m_param with
+                  | None -> Error.bug "Cannot apply a UPDATE_FEAT command without parameter"
+                  | Some param -> Concat_item.String (Lex_par.get_command_value index param))
+              | Command.Param_in index ->
+                  (match matching.m_param with
+                  | None -> Error.bug "Cannot apply a UPDATE_FEAT command without parameter"
+                  | Some param -> Concat_item.String (Lex_par.get_param_value index param))
+            ) item_list in
+
+        let (new_graph, new_feature_value) = (* TODO: take value type into account in update_feat *)
+          G_graph.update_feat ~loc ?domain gwh.Graph_with_history.graph tar_gid tar_feat_name rule_items in
+        let new_value =
+          if Domain.is_num ?domain tar_feat_name
+          then Float (float_of_string new_feature_value)
+          else String new_feature_value in
+          { gwh with
+            Graph_with_history.graph = new_graph;
+            delta = Delta.set_feat gwh.Graph_with_history.seed tar_gid tar_feat_name (Some new_value) gwh.Graph_with_history.delta;
+          }
+
+    | Command.DEL_FEAT (tar_cn,feat_name) ->
+        let tar_gid = node_find tar_cn in
+        (match G_graph.del_feat gwh.Graph_with_history.graph tar_gid feat_name with
+          | None when strict -> Error.run "DEL_FEAT the feat does not exist %s" (Loc.to_string loc)
+          | None -> gwh
+          | Some new_graph -> { gwh with
+            Graph_with_history.graph = new_graph;
+            delta = Delta.set_feat gwh.Graph_with_history.seed tar_gid feat_name None gwh.Graph_with_history.delta;
+          }
+        )
+
+    | Command.SHIFT_IN (src_cn,tar_cn,label_cst) ->
+        let src_gid = node_find src_cn in
+        let tar_gid = node_find tar_cn in
+        let (new_graph, del_edges, add_edges) =
+        G_graph.shift_in loc ?domain strict src_gid tar_gid (test_locality matching []) label_cst gwh.Graph_with_history.graph in
+          { gwh with
+            Graph_with_history.graph = new_graph;
+            delta = gwh.Graph_with_history.delta
+            |> (List.fold_right (fun (s,e,t) -> Delta.del_edge s e t) del_edges)
+            |> (List.fold_right (fun (s,e,t) -> Delta.add_edge s e t) add_edges)
+          }
+
+    | Command.SHIFT_OUT (src_cn,tar_cn,label_cst) ->
+        let src_gid = node_find src_cn in
+        let tar_gid = node_find tar_cn in
+        let (new_graph, del_edges, add_edges) =
+        G_graph.shift_out loc ?domain strict src_gid tar_gid (test_locality matching []) label_cst gwh.Graph_with_history.graph in
+          { gwh with
+            Graph_with_history.graph = new_graph;
+            delta = gwh.Graph_with_history.delta
+            |> (List.fold_right (fun (s,e,t) -> Delta.del_edge s e t) del_edges)
+            |> (List.fold_right (fun (s,e,t) -> Delta.add_edge s e t) add_edges)
+          }
+
+    | Command.SHIFT_EDGE (src_cn,tar_cn,label_cst) ->
+        let src_gid = node_find src_cn in
+        let tar_gid = node_find tar_cn in
+        let (new_graph, del_edges, add_edges) =
+        G_graph.shift_edges loc ?domain strict src_gid tar_gid (test_locality matching []) label_cst gwh.Graph_with_history.graph in
+          { gwh with
+            Graph_with_history.graph = new_graph;
+            delta = gwh.Graph_with_history.delta
+            |> (List.fold_right (fun (s,e,t) -> Delta.del_edge s e t) del_edges)
+            |> (List.fold_right (fun (s,e,t) -> Delta.add_edge s e t) add_edges)
+          }
+
+    | _ -> Error.bug "Add node must not occur here !!!"
+
+
+
+
+
+
+
+
+
+
+  (*  ---------------------------------------------------------------------- *)
+  (** [apply_rule graph_with_history matching rule] returns a new graph_with_history after the application of the rule *)
+  let gwh_apply_rule ?domain graph_with_history matching rule =
+(*
+    (* Timeout check *)
+    (try Timeout.check () with Timeout.Stop -> Error.run "Time out"); *)
+
+    let new_graph_with_history =
+      List.fold_left
+        (fun gwh command ->
+          gwh_apply_command ?domain command gwh matching
+        )
+        graph_with_history
+        rule.commands in
+      new_graph_with_history
+(*
+    let rule_app = {
+      Libgrew_types.rule_name = rule.name;
+      up = match_deco rule.pattern matching;
+      down = down_deco (matching,created_nodes) rule.commands
+    } in
+ *)
+
+
+
+
+
+
+
+
+
+
+
+
+  let gwh_apply ?domain rule graph_with_history =
+(*
+  (* limit the rewriting depth to avoid looping rewriting *)
+  if List.length instance.Instance.rules >= !max_depth_non_det
+  then
+    if !debug_loop
+    then Instance_set.empty
+    else Error.run "max depth %d reached, last rules applied: …, %s"
+      !max_depth_non_det (List_.rev_to_string (fun x->x) ", " (List_.cut 5 instance.Instance.rules))
+  else
+*)
+    let matching_list = match_in_graph ?domain ?param:rule.param rule.pattern graph_with_history.Graph_with_history.graph in
+    List.fold_left
+      (fun acc matching ->
+        Graph_with_history_set.add (gwh_apply_rule ?domain graph_with_history matching rule) acc
+      ) Graph_with_history_set.empty matching_list
+
+
+
+
+
+
+
 
 end (* module Rule *)

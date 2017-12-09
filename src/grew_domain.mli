@@ -68,8 +68,12 @@ module Domain : sig
   val get_label_style: ?domain:t -> int -> Label_domain.style option
 
   val edge_id_from_string: ?loc:Loc.t -> ?domain:t -> string -> int option
+
   (** [is_open_feature domain feature_name] returns [true] iff no domain is set or if [feature_name] is defined to be open in the current domain. *)
   val is_open_feature: ?domain: t -> feature_name -> bool
+
+  (** [is_num domain feature_name] returns [true] iff the domain is set and [feature_name] is defined to be numerical *)
+  val is_num: ?domain: t -> feature_name -> bool
 
   (** [check_feature ~loc domain feature_name feature_value] fails iff a domain is set and [feature_name,feature_value] is not defined in the current domain. *)
   val check_feature: ?loc:Loc.t -> ?domain: t -> feature_name -> feature_atom -> unit

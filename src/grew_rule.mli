@@ -128,5 +128,10 @@ module Rule : sig
 
 
 
+  val onf_apply: ?domain: Domain.t -> t -> G_graph.t -> G_graph.t option
+  val gwh_apply: ?domain: Domain.t -> t -> Graph_with_history.t -> Graph_with_history_set.t
+
+
+
 
 end (* module Rule *)

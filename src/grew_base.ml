@@ -294,6 +294,16 @@ module List_ = struct
     | (k,v)::t when key>k -> (k,v) :: (sort_remove_assoc key t)
     | (_,v)::t -> t
 
+  let rec sort_remove_assoc_opt key = function
+    | [] -> None
+    | (k,_)::_ when key<k -> None
+    | (k,v)::t when key>k ->
+      (match sort_remove_assoc_opt key t with
+        | None -> None
+        | Some new_t -> Some ((k,v) :: new_t)
+      )
+    | (_,v)::t (* key = k *) -> Some t
+
   exception Usort
 
   let rec usort_remove key = function

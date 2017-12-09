@@ -177,6 +177,12 @@ module Feature_domain = struct
       | _ -> false
     ) feature_domain
 
+  let is_num feature_domain feature_name =
+    List.exists (function
+      | Ast.Num fn when fn = feature_name -> true
+      | _ -> false
+    ) feature_domain
+
   let sub feature_domain name1 name2 =
     match (get name1 feature_domain, get name2 feature_domain) with
         | (_, Ast.Open _) -> true
@@ -269,6 +275,10 @@ module Domain = struct
   let is_open_feature ?domain name = match domain with
   | Some (Feature feature_domain) | Some (Both (_, feature_domain)) -> Feature_domain.is_open feature_domain name
   | _ -> true
+
+  let is_num ?domain name = match domain with
+  | Some (Feature feature_domain) | Some (Both (_, feature_domain)) -> Feature_domain.is_num feature_domain name
+  | _ -> false
 
   let check_feature ?loc ?domain name value = match domain with
   | Some (Feature feature_domain) | Some (Both (_, feature_domain)) -> Feature_domain.check_feature ?loc ~feature_domain name value

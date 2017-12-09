@@ -136,14 +136,50 @@ module G_graph: sig
   val add_after: Gid.t -> t -> (Gid.t * t)
   val add_unordered: t -> (Gid.t * t)
 
-  (** move all in arcs to id_src are moved to in arcs on node id_tar from graph, with all its incoming edges *)
-  val shift_in: Loc.t -> ?domain:Domain.t -> Gid.t -> Gid.t -> (Gid.t -> bool) -> Label_cst.t -> t -> t
+  (** shift all crown-edges ending in [src_gid] to edges ending in [tar_gid] *)
+  val shift_in:
+    Loc.t ->            (* localization of the command *)
+    ?domain:Domain.t ->
+    bool ->             (* true iff strict rewriting *)
+    Gid.t ->            (* [src_gid] the source gid of the "shift_in" *)
+    Gid.t ->            (* [tar_gid] the target gid of the "shift_in" *)
+    (Gid.t -> bool) ->  (* a locality test: true iff the node is a pattern node *)
+    Label_cst.t ->      (* what are the constraint on edge label *)
+    t ->                (* input graph *)
+      ( t *                                (* output graph *)
+        (Gid.t * G_edge.t * Gid.t) list *  (* list of really deleted edges *)
+        (Gid.t * G_edge.t * Gid.t) list    (* list of really added edges *)
+      )
 
-  (** move all out-edges from id_src are moved to out-edges out off node id_tar *)
-  val shift_out: Loc.t -> ?domain:Domain.t -> Gid.t -> Gid.t -> (Gid.t -> bool) -> Label_cst.t -> t -> t
+  (** shift all crown-edges starting from [src_gid] to edges starting from [tar_gid] *)
+  val shift_out:
+    Loc.t ->            (* localization of the command *)
+    ?domain:Domain.t ->
+    bool ->             (* true iff strict rewriting *)
+    Gid.t ->            (* [src_gid] the source gid of the "shift_out" *)
+    Gid.t ->            (* [tar_gid] the target gid of the "shift_out" *)
+    (Gid.t -> bool) ->  (* a locality test: true iff the node is a pattern node *)
+    Label_cst.t ->      (* what are the constraint on edge label *)
+    t ->                (* input graph *)
+      ( t *                                (* output graph *)
+        (Gid.t * G_edge.t * Gid.t) list *  (* list of really deleted edges *)
+        (Gid.t * G_edge.t * Gid.t) list    (* list of really added edges *)
+      )
 
-  (** move all incident arcs from/to id_src are moved to incident arcs on node id_tar from graph, with all its incoming and outcoming edges *)
-  val shift_edges: Loc.t -> ?domain:Domain.t -> Gid.t -> Gid.t -> (Gid.t -> bool) -> Label_cst.t -> t -> t
+  (** move all incident crown-edges from/to [src_gid] are moved to incident edges on node [tar_gid] from graph *)
+  val shift_edges:
+    Loc.t ->            (* localization of the command *)
+    ?domain:Domain.t ->
+    bool ->             (* true iff strict rewriting *)
+    Gid.t ->            (* [src_gid] the source gid of the "shift_edges" *)
+    Gid.t ->            (* [tar_gid] the target gid of the "shift_edges" *)
+    (Gid.t -> bool) ->  (* a locality test: true iff the node is a pattern node *)
+    Label_cst.t ->      (* what are the constraint on edge label *)
+    t ->                (* input graph *)
+      ( t *                                (* output graph *)
+        (Gid.t * G_edge.t * Gid.t) list *  (* list of really deleted edges *)
+        (Gid.t * G_edge.t * Gid.t) list    (* list of really added edges *)
+      )
 
   (** [update_feat domain tar_id tar_feat_name concat_items] sets the feature of the node [tar_id]
       with feature name [tar_feat_name] to be the contatenation of values described by the [concat_items].
@@ -153,8 +189,8 @@ module G_graph: sig
   val set_feat: ?loc:Loc.t -> ?domain:Domain.t -> t -> Gid.t -> string -> string -> t
 
   (** [del_feat graph node_id feat_name] returns [graph] where the feat [feat_name] of [node_id] is deleted
-      If the feature is not present, [graph] is returned. *)
-  val del_feat: t -> Gid.t -> string -> t
+      If the feature is not present, None is returned. *)
+  val del_feat: t -> Gid.t -> string -> t option
 
   (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
   (* Output functions *)
@@ -166,3 +202,26 @@ module G_graph: sig
   val to_conll: ?domain:Domain.t -> t -> Conll.t
   val to_conll_string: ?domain:Domain.t -> t -> string
 end (* module G_graph *)
+
+module Delta : sig
+  type t
+
+  val empty: t
+
+  val del_node: Gid.t -> t -> t
+  val add_edge: Gid.t -> Label.t -> Gid.t -> t -> t
+  val del_edge: Gid.t -> Label.t -> Gid.t -> t -> t
+  val set_feat: G_graph.t -> Gid.t -> feature_name -> value option -> t -> t
+end
+
+module Graph_with_history : sig
+  type t = {
+    seed: G_graph.t;
+    delta: Delta.t;
+    graph: G_graph.t;
+  }
+
+  val compare: t -> t -> int
+end
+
+module Graph_with_history_set : Set.S with type elt = Graph_with_history.t

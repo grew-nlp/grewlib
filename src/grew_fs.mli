@@ -35,8 +35,8 @@ module G_fs: sig
   val set_feat: ?loc:Loc.t -> ?domain:Domain.t -> feature_name -> string -> t ->  t
 
   (** [del_feat feature_name t] remove the feature with name [feature_name] in [t].
-      If [t] does not contain such a feature, [t] is returned unchanged. *)
-  val del_feat:  string -> t ->  t
+      If [t] does not contain such a feature, None is returned. *)
+  val del_feat:  string -> t ->  t option
 
   val get_atom: string -> t -> value option
 

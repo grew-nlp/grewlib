@@ -194,7 +194,7 @@ module G_fs = struct
     in loop t
 
   (* ---------------------------------------------------------------------- *)
-  let del_feat = List_.sort_remove_assoc
+  let del_feat = List_.sort_remove_assoc_opt
 
   (* ---------------------------------------------------------------------- *)
   let get_atom = List_.sort_assoc
