@@ -221,6 +221,8 @@ module Graph_with_history : sig
     graph: G_graph.t;
   }
 
+  val from_graph: G_graph.t -> t
+
   val compare: t -> t -> int
 end
 

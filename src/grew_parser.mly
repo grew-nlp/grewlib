@@ -742,7 +742,7 @@ strat_desc:
   | ITER LPAREN s=strat_desc RPAREN                                        { New_ast.Iter s }
   | IF LPAREN s1=strat_desc COMA s2=strat_desc COMA s3=strat_desc RPAREN   { New_ast.If (s1,s2,s3) }
   | TRY LPAREN s=strat_desc RPAREN                                         { New_ast.Try s }
-  | ONF LPAREN s=strat_desc RPAREN                                         { New_ast.Pick (New_ast.Iter s) }
+  | ONF LPAREN s=strat_desc RPAREN                                         { New_ast.Onf s }
   | EMPTY                                                                  { New_ast.Seq [] }
 
 strat_alone:

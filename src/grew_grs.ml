@@ -661,6 +661,7 @@ module Grs = struct
 
   and det_strat_simple_rewrite ?domain pointed strat instance =
     match strat with
+    | New_ast.Onf s -> det_strat_simple_rewrite ?domain pointed (New_ast.Pick (New_ast.Iter s)) instance
     | New_ast.Ref subname -> det_intern_simple_rewrite ?domain pointed subname instance
     | New_ast.Pick strat -> det_strat_simple_rewrite ?domain pointed strat instance
 
@@ -715,6 +716,7 @@ module Grs = struct
 
   and strat_simple_rewrite ?domain pointed strat instance =
     match strat with
+    | New_ast.Onf s -> strat_simple_rewrite ?domain pointed (New_ast.Pick (New_ast.Iter s)) instance
     | New_ast.Ref subname -> intern_simple_rewrite ?domain pointed subname instance
     | New_ast.Pick strat ->
       begin
@@ -794,6 +796,7 @@ module Grs = struct
 
   let rec det_rew_display_tmp ?domain pointed strat instance =
     match strat with
+    | New_ast.Onf s -> det_rew_display_tmp ?domain pointed (New_ast.Pick (New_ast.Iter s)) instance
     | New_ast.Ref subname ->
       let path = Str.split (Str.regexp "\\.") subname in
       begin
@@ -925,6 +928,7 @@ module Grs = struct
           | Some (Strategy (_,ast_strat), new_pointed) -> loop new_pointed ast_strat
         end
       | New_ast.Pick s -> loop pointed s
+      | New_ast.Onf s -> loop pointed s
       | New_ast.Alt l -> List.exists (fun s -> loop pointed s) l
       | New_ast.Seq l -> List.for_all (fun s -> loop pointed s) l
       | New_ast.Iter _ -> true
@@ -946,6 +950,7 @@ module Grs = struct
           | Some (Strategy (_,ast_strat), new_pointed) -> loop new_pointed ast_strat
         end
       | New_ast.Pick s -> true
+      | New_ast.Onf s -> true
       | New_ast.Alt [one] -> loop pointed one
       | New_ast.Alt _ -> false
       | New_ast.Seq l -> List.for_all (fun s -> loop pointed s) l
@@ -953,4 +958,200 @@ module Grs = struct
       | New_ast.If (_,s1, s2) -> (loop pointed s1) || (loop pointed s2)
       | New_ast.Try (s) -> loop pointed s in
     loop (top grs) (Parser.strategy strat)
+
+
+(* ============================================================================================= *)
+(* ============================================================================================= *)
+(* ============================================================================================= *)
+(* ============================================================================================= *)
+(* ============================================================================================= *)
+(* ============================================================================================= *)
+(* ============================================================================================= *)
+(* ============================================================================================= *)
+(* ============================================================================================= *)
+(* ============================================================================================= *)
+(* ============================================================================================= *)
+(* ============================================================================================= *)
+(* ============================================================================================= *)
+
+  let onf_pack_rewrite ?domain decl_list graph =
+    let rec loop = function
+      | [] -> None
+      | Rule r :: tail_decl ->
+        (match Rule.onf_apply ?domain r graph with
+        | Some x -> Some x
+        | None -> loop tail_decl
+        )
+      | _ :: tail_decl -> loop tail_decl in
+      loop decl_list
+
+  let rec onf_intern_simple_rewrite ?domain pointed strat_name graph =
+    let path = Str.split (Str.regexp "\\.") strat_name in
+    match search_from pointed path with
+    | None -> Error.build "Simple rewrite, cannot find strat %s" strat_name
+    | Some (Rule r,_) -> Rule.onf_apply ?domain r graph
+    | Some (Package (_, decl_list), _) -> onf_pack_rewrite ?domain decl_list graph
+    | Some (Strategy (_,ast_strat), new_pointed) ->
+      onf_strat_simple_rewrite ?domain new_pointed ast_strat graph
+
+  and onf_strat_simple_rewrite ?domain pointed strat graph =
+    match strat with
+    | New_ast.Ref subname -> onf_intern_simple_rewrite ?domain pointed subname graph
+    | New_ast.Pick strat -> onf_strat_simple_rewrite ?domain pointed strat graph
+
+    | New_ast.Alt [] -> None
+    | New_ast.Alt strat_list ->
+      let rec loop = function
+        | [] -> None
+        | head_strat :: tail_strat ->
+          match onf_strat_simple_rewrite ?domain pointed head_strat graph with
+          | None -> loop tail_strat
+          | Some x -> Some x in
+        loop strat_list
+
+    | New_ast.Seq [] -> Some graph
+    | New_ast.Seq (head_strat :: tail_strat) ->
+      begin
+        match onf_strat_simple_rewrite ?domain pointed head_strat graph with
+        | None -> None
+        | Some inst -> onf_strat_simple_rewrite ?domain pointed (New_ast.Seq tail_strat) inst
+      end
+
+    | New_ast.Iter sub_strat ->
+      begin
+        match onf_strat_simple_rewrite ?domain pointed sub_strat graph with
+        | None -> Some graph
+        | Some inst -> onf_strat_simple_rewrite ?domain pointed strat inst
+        end
+
+    | New_ast.Try sub_strat ->
+        begin
+          match onf_strat_simple_rewrite ?domain pointed sub_strat graph with
+          | None -> Some graph
+          | Some i -> Some i
+        end
+
+    | New_ast.If (s, s1, s2) ->
+      begin
+        match onf_strat_simple_rewrite ?domain pointed s graph with
+        | None   -> onf_strat_simple_rewrite ?domain pointed s1 graph
+        | Some _ -> onf_strat_simple_rewrite ?domain pointed s2 graph
+      end
+
+    | New_ast.Onf (s) -> onf_strat_simple_rewrite ?domain pointed s graph
+
+
+
+
+  (* non deterministic case *)
+  (* apply a package to an instance = apply only top level rules in the package *)
+  let gwh_pack_rewrite ?domain decl_list gwh =
+    List.fold_left
+      (fun acc decl -> match decl with
+        | Rule r -> Graph_with_history_set.union acc (Rule.gwh_apply ?domain r gwh)
+        | _ -> acc
+      ) Graph_with_history_set.empty decl_list
+
+  let rec gwh_intern_simple_rewrite ?domain pointed strat_name gwh =
+    let path = Str.split (Str.regexp "\\.") strat_name in
+    match search_from pointed path with
+    | None -> Error.build "Simple rewrite, cannot find strat %s" strat_name
+    | Some (Rule r,_) -> Rule.gwh_apply r gwh
+    | Some (Package (_, decl_list), _) -> gwh_pack_rewrite decl_list gwh
+    | Some (Strategy (_,ast_strat), new_pointed) ->
+      gwh_strat_simple_rewrite ?domain new_pointed ast_strat gwh
+
+  and gwh_strat_simple_rewrite ?domain pointed strat gwh =
+    match strat with
+    | New_ast.Ref subname -> gwh_intern_simple_rewrite ?domain pointed subname gwh
+    | New_ast.Pick strat ->
+      begin
+        match Graph_with_history_set.choose_opt
+          (gwh_strat_simple_rewrite ?domain pointed strat gwh) with
+        | None -> Graph_with_history_set.empty
+        | Some x -> Graph_with_history_set.singleton x
+      end
+
+    | New_ast.Alt [] -> Graph_with_history_set.empty
+    | New_ast.Alt strat_list -> List.fold_left
+      (fun acc strat -> Graph_with_history_set.union acc (gwh_strat_simple_rewrite ?domain pointed strat gwh)
+      ) Graph_with_history_set.empty strat_list
+
+    | New_ast.Seq [] -> Graph_with_history_set.singleton gwh
+    | New_ast.Seq (head_strat :: tail_strat) ->
+      let first_strat = gwh_strat_simple_rewrite ?domain pointed head_strat gwh in
+      Graph_with_history_set.fold
+        (fun gwh acc -> Graph_with_history_set.union acc (gwh_strat_simple_rewrite ?domain pointed (New_ast.Seq tail_strat) gwh)
+        ) first_strat Graph_with_history_set.empty
+
+    | New_ast.Iter strat -> iter_gwh ?domain pointed strat gwh
+
+    | New_ast.Try strat ->
+      begin
+        let one_step = gwh_strat_simple_rewrite ?domain pointed strat gwh in
+        if Graph_with_history_set.is_empty one_step
+        then Graph_with_history_set.singleton gwh
+        else one_step
+      end
+
+    | New_ast.If (s, s1, s2) ->
+      begin
+        match (* TODO: is it correct to put onf_ ?*)
+        onf_strat_simple_rewrite ?domain pointed s gwh.Graph_with_history.graph with
+        | None -> gwh_strat_simple_rewrite ?domain pointed s1 gwh
+        | Some _ -> gwh_strat_simple_rewrite ?domain pointed s2 gwh
+      end
+
+    | New_ast.Onf s ->
+      begin
+        match onf_strat_simple_rewrite ?domain pointed (New_ast.Iter s) gwh.Graph_with_history.graph with
+        | None -> Graph_with_history_set.empty
+        | Some new_g -> Graph_with_history_set.singleton (Graph_with_history.from_graph new_g)
+      end
+
+  and iter_gwh ?domain pointed strat gwh =
+    let rec loop  (todo, not_nf, nf) =
+      match Graph_with_history_set.choose_opt todo with
+      | None -> nf
+      | Some one ->
+        let new_todo = Graph_with_history_set.remove one todo in
+        let one_step = gwh_strat_simple_rewrite ?domain pointed strat one in
+        if Graph_with_history_set.subset one_step (Graph_with_history_set.singleton one)
+        then
+        loop (
+          new_todo,
+          not_nf,
+          Graph_with_history_set.add one nf
+        )
+        else
+          let new_graphs =
+            (Graph_with_history_set.diff
+              (Graph_with_history_set.diff
+                (Graph_with_history_set.diff one_step todo)
+              not_nf)
+            nf) in
+        loop (
+          Graph_with_history_set.union new_todo new_graphs,
+          Graph_with_history_set.add one not_nf,
+          nf
+        ) in
+      loop (Graph_with_history_set.singleton gwh, Graph_with_history_set.empty, Graph_with_history_set.empty)
+
+  let gwh_simple_rewrite grs strat graph =
+    let domain = domain grs in
+    let gwh = Graph_with_history.from_graph graph in
+    let set = gwh_strat_simple_rewrite ?domain (top grs) (Parser.strategy strat) gwh in
+    List.map
+      (fun gwh -> gwh.Graph_with_history.graph)
+      (Graph_with_history_set.elements set)
+
+
 end (* module Grs *)
+
+
+
+
+
+
+
+

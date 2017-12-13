@@ -1011,6 +1011,8 @@ module Graph_with_history = struct
     graph: G_graph.t;
   }
 
+  let from_graph graph = { graph; seed=graph; delta = Delta.empty }
+
   (* WARNING: compare is correct only on data with the same seed! *)
   let compare t1 t2 = Pervasives.compare t1.delta t2.delta
 end

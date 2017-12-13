@@ -127,4 +127,7 @@ module Grs : sig
   val get_strat_list: t -> string list
   val at_least_one: t -> string -> bool
   val at_most_one: t -> string -> bool
+
+  val gwh_simple_rewrite: t -> string -> G_graph.t -> G_graph.t list
+
 end

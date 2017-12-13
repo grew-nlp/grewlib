@@ -444,6 +444,7 @@ module New_ast = struct
   | Alt of strat list           (* a set of strategies to apply in parallel *)
   | Seq of strat list           (* a sequence of strategies to apply one after the other *)
   | Iter of strat               (* a strategy to apply iteratively *)
+  | Onf of strat                (* deterministic computation of One Normal Form *)
   | If of strat * strat * strat (* choose a stragegy with a test *)
   | Try of strat                (* ≜ If (S, S, Empty): pick one normal form a the given strategy; return input if nf *)
 
@@ -461,6 +462,7 @@ module New_ast = struct
   let rec strat_to_json = function
   | Ref name -> `Assoc [("Ref", `String name)]
   | Pick s -> `Assoc [("Pick", strat_to_json s)]
+  | Onf s -> `Assoc [("Onf", strat_to_json s)]
   | Alt l -> `Assoc [("Alt", `List (List.map strat_to_json l))]
   | Seq l -> `Assoc [("Seq", `List (List.map strat_to_json l))]
   | Iter s -> `Assoc [("Iter", strat_to_json s)]
