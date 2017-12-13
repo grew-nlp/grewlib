@@ -45,11 +45,6 @@ module Instance : sig
   (** [to_conll_string t] returns a string which contains the "conll" code of the current graph *)
   val to_conll_string: ?domain:Domain.t -> t -> string
 
-  (** [save_dep_png base t] writes a file "base.png" with the dep representation of [t].
-      NB: if the Dep2pict is not available, nothing is done *)
-  val save_dep_png: ?domain:Domain.t -> ?filter: string list -> ?main_feat: string -> string -> t -> float option
-  val save_dep_svg: ?domain:Domain.t -> ?filter: string list -> ?main_feat: string -> string -> t -> float option
-
   (** [save_dot_png base t] writes a file "base.png" with the dot representation of [t] *)
   val save_dot_png: ?domain:Domain.t -> ?filter: string list -> ?main_feat: string -> string -> t -> unit
 end (* module Instance *)

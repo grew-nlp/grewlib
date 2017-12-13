@@ -11,8 +11,6 @@
 open Log
 open Printf
 
-open Dep2pict
-
 open Grew_base
 open Grew_types
 open Grew_ast
@@ -59,18 +57,6 @@ module Instance = struct
 
   let save_dot_png ?domain ?filter ?main_feat base t =
     ignore (Dot.to_png_file (G_graph.to_dot ?domain ?main_feat t.graph) (base^".png"))
-
-  let save_dep_png ?domain ?filter ?main_feat base t =
-    let dep = G_graph.to_dep ?domain ?filter ?main_feat t.graph in
-    let d2p = Dep2pict.from_dep ~dep in
-    let _ = Dep2pict.save_png ~filename: (base^".png") d2p in
-    Dep2pict.highlight_shift ()
-
-  let save_dep_svg ?domain ?filter ?main_feat base t =
-    let dep = G_graph.to_dep ?domain ?filter ?main_feat t.graph in
-    let d2p = Dep2pict.from_dep ~dep in
-    let _ = Dep2pict.save_svg ~filename: (base^".png") d2p in
-    Dep2pict.highlight_shift ()
 end (* module Instance *)
 
 (* ================================================================================ *)

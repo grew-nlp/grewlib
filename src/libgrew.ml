@@ -251,20 +251,6 @@ module Old_grs = struct
         Grew_grs.Old_grs.sequence_names grs
       ) ()
 
-  let build_html_doc ?(corpus=false) dir (grs : Grew_grs.Old_grs.t) =
-    handle ~name:"Old_grs.build_doc [with Dep2pict]"
-      (fun () ->
-        Grew_html.Html_doc.build ~corpus ~dep:true dir grs;
-
-        (* draw pattern graphs for all rules *)
-        let fct module_ rule_ =
-          let dep_code = Grew_rule.Rule.to_dep ?domain:(Grew_grs.Old_grs.get_domain grs) rule_ in
-          let dep_png_file = sprintf "%s/%s_%s-patt.png" dir module_ (Grew_rule.Rule.get_name rule_) in
-          let d2p = Dep2pict.Dep2pict.from_dep ~dep:dep_code in
-          Dep2pict.Dep2pict.save_png ~filename:dep_png_file d2p in
-        Grew_grs.Old_grs.rule_iter fct grs
-      ) ()
-
   let get_domain grs = Grew_grs.Old_grs.get_domain grs
 
   let to_json t =
@@ -357,9 +343,6 @@ module Rewrite = struct
   let num_sol rh =
     handle ~name:"Rewrite.num_sol" (fun () -> Grew_grs.Rewrite_history.num_sol rh) ()
 
-  let write_stat filename rew_hist =
-    handle ~name:"Rewrite.write_stat" (fun () -> Grew_html.Gr_stat.save filename (Grew_html.Gr_stat.from_rew_history rew_hist)) ()
-
   let save_index ~dirname ~base_names =
     handle ~name:"Rewrite.save_index" (fun () ->
       let out_ch = open_out (Filename.concat dirname "index") in
@@ -387,31 +370,4 @@ module Rewrite = struct
 
   let conll_dep_string ?domain ?keep_empty_rh rew_hist =
     handle ~name:"Rewrite.conll_dep_string" (fun () -> Grew_grs.Rewrite_history.conll_dep_string ?domain ?keep_empty_rh rew_hist) ()
-
-  let write_html ?domain ?(no_init=false) ?(out_gr=false) ?filter ?main_feat ?dot ~header ?graph_file rew_hist output_base =
-    handle ~name:"Rewrite.write_html" (fun () ->
-      ignore (
-        Grew_html.Html_rh.build ?domain ?filter ?main_feat ?dot ~out_gr ~init_graph: (not no_init) ~header ?graph_file output_base rew_hist
-      )
-    ) ()
-
-  let error_html ?domain ?(no_init=false) ?main_feat ?dot ~header msg ?init output_base =
-    handle ~name:"Rewrite.error_html" (fun () ->
-      ignore (
-        Grew_html.Html_rh.error ?domain ?main_feat ?dot ~init_graph: (not no_init) ~header output_base msg init
-      )
-    ) ()
-
-  let make_index ~title ~grs_file ~html ~grs ~seq ~input_dir ~output_dir ~base_names  =
-    handle ~name:"Rewrite.make_index" (fun () ->
-      let init = Grew_html.Corpus_stat.empty grs seq in
-      let corpus_stat =
-        Array.fold_left
-          (fun acc base_name ->
-            Grew_html.Corpus_stat.add_gr_stat base_name (Grew_html.Gr_stat.load (Filename.concat output_dir (base_name^".stat"))) acc
-          ) init base_names in
-      Grew_html.Corpus_stat.save_html title grs_file input_dir output_dir corpus_stat
-    ) ()
-
-  let html_sentences ~title = handle ~name:"Rewrite.html_sentences" (fun () -> Grew_html.Html_sentences.build ~title) ()
 end

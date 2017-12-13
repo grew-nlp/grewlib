@@ -29,19 +29,6 @@ module Rewrite_history: sig
 
   val num_sol: t -> int
 
-  (** [save_nfs ?main_feat base_name t] does two things:
-      - write PNG files of normal forms
-      - returns a list of couples (rules, file)
-  *)
-  val save_nfs:
-    ?domain:Domain.t ->
-    ?filter: string list ->
-    ?main_feat: string ->
-    dot: bool ->
-    string ->
-    t ->
-    ((string * string list) list * string) list
-
   (** [save_gr base_name t] saves one gr_file for each normal form defined in [t].
       Output files are named according to [base_name] and the Gorn adress in the rewriting tree. *)
   val save_gr: ?domain:Domain.t -> string -> t -> unit

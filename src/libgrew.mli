@@ -122,10 +122,6 @@ module Old_grs: sig
   (** [get_sequence_names t] returns the list of sequence names defined in a GRS *)
   val get_sequence_names: t -> string list
 
-  (** [build_html_doc ?corpus directory t]
-      @[corpus] is a flag (default is [false]) for complete html doc with corpus sentence. *)
-  val build_html_doc: ?corpus:bool -> string -> t -> unit
-
   val get_domain: t -> Domain.t option
 
   val to_json: t -> string
@@ -168,8 +164,6 @@ module Rewrite: sig
       @param gr the grapth to rewrite
       @param grs the graph rewriting system
       @param seq the name of the sequence to apply *)
-
-  (* OBSOLETE val old_display: gr:Graph.t -> grs:Old_grs.t -> seq:string -> display *)
   val display: gr:Graph.t -> grs:Grs.t -> strat:string -> display
 
   val at_least_one: grs:Grs.t -> strat:string -> bool
@@ -177,16 +171,11 @@ module Rewrite: sig
 
   val set_timeout: float option -> unit
 
-  (* OBSOLETE val rewrite: gr:Graph.t -> grs:Old_grs.t -> seq:string -> history *)
-
-  (* OBSOLETE val old_simple_rewrite: gr:Graph.t -> grs:Old_grs.t -> strat:string -> Graph.t list *)
   val simple_rewrite: gr:Graph.t -> grs:Grs.t -> strat:string -> Graph.t list
 
   val is_empty: history -> bool
 
   val num_sol: history -> int
-
-  val write_stat: string -> history -> unit
 
   val save_gr: ?domain:Domain.t -> string -> history -> unit
 
@@ -210,12 +199,4 @@ module Rewrite: sig
   val conll_dep_string: ?domain:Domain.t -> ?keep_empty_rh:bool -> history -> string option
 
   val save_index: dirname:string -> base_names: string array -> unit
-
-  val write_html: ?domain:Domain.t -> ?no_init: bool -> ?out_gr: bool -> ?filter: string list -> ?main_feat: string -> ?dot: bool -> header: string -> ?graph_file: string -> history -> string ->  unit
-
-  val error_html: ?domain:Domain.t -> ?no_init:bool -> ?main_feat:string -> ?dot: bool -> header: string -> string -> ?init:Graph.t -> string -> unit
-
-  (* OBSOLETE val make_index: title: string -> grs_file: string -> html: bool -> grs: Old_grs.t -> seq: string -> input_dir: string -> output_dir: string -> base_names: string array -> unit *)
-
-  val html_sentences: title:string -> string -> (bool * string * int * string) list -> unit
 end
