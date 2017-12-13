@@ -11,14 +11,11 @@ remove: [
   ["make" "uninstall"]
 ]
 depends: [
+  "cppo"
+  "menhir"
+  "yojson"
+  "containers"
   "ANSITerminal"
   "libcaml-log"
   "libcaml-conll"
-  "cppo"
-  "cairo2"
-  "menhir"
-  "camomile"
-  "libcaml-dep2pict"
-  "yojson"
-  "containers"
 ]
