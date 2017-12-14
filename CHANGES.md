@@ -1,3 +1,8 @@
+# 0.46.0 (2017/12/14)
+  * Remove Dep2pict dependency
+  * Remove old code
+  * Prepare new version of command history management
+
 # 0.45.0 (2017/10/10)
   * Keep features defined in column 10 of conll (like SpaceAfter=No)
   * /!\ implicit nodes are allowed only in edge definitions

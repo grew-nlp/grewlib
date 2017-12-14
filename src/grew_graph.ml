@@ -492,7 +492,6 @@ module G_graph = struct
     | None -> None
     | Some new_node -> Some {graph with map = Gid_map.add id_src new_node graph.map}
 
-  exception EEE
   (* -------------------------------------------------------------------------------- *)
   let del_node graph node_id =
     let map_wo_node =
