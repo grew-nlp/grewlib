@@ -910,7 +910,7 @@ module Grs = struct
           | Some (Strategy (_,ast_strat), new_pointed) -> loop new_pointed ast_strat
         end
       | New_ast.Pick s -> loop pointed s
-      | New_ast.Onf s -> loop pointed s
+      | New_ast.Onf s -> true
       | New_ast.Alt l -> List.exists (fun s -> loop pointed s) l
       | New_ast.Seq l -> List.for_all (fun s -> loop pointed s) l
       | New_ast.Iter _ -> true
@@ -1087,7 +1087,7 @@ module Grs = struct
     | New_ast.Onf s ->
       begin
         match onf_strat_simple_rewrite ?domain pointed (New_ast.Iter s) gwh.Graph_with_history.graph with
-        | None -> Graph_with_history_set.empty
+        | None -> Graph_with_history_set.singleton gwh
         | Some new_g -> Graph_with_history_set.singleton (Graph_with_history.from_graph new_g)
       end
 
