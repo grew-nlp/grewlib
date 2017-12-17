@@ -907,8 +907,9 @@ module Rule = struct
               },
                created_nodes
               )
-          | None ->
+          | None when !Global.strict ->
               Error.run "ADD_EDGE: the edge '%s' already exists %s" (G_edge.to_string ?domain edge) (Loc.to_string loc)
+          | None -> (instance, created_nodes)
         end
 
     | Command.ADD_EDGE_EXPL (src_cn,tar_cn,edge_ident) ->
@@ -928,15 +929,18 @@ module Rule = struct
               },
                created_nodes
               )
-          | None ->
+          | None when !Global.strict ->
               Error.run "ADD_EDGE_EXPL: the edge '%s' already exists %s" (G_edge.to_string ?domain edge) (Loc.to_string loc)
+          | None -> (instance, created_nodes)
+
         end
 
     | Command.DEL_EDGE_EXPL (src_cn,tar_cn,edge) ->
         let src_gid = node_find src_cn in
         let tar_gid = node_find tar_cn in
         (match G_graph.del_edge ?domain loc instance.Instance.graph src_gid edge tar_gid with
-          | None -> Error.run "DEL_EDGE_EXPL: the edge '%s' does not exist %s" (G_edge.to_string ?domain edge) (Loc.to_string loc)
+          | None when !Global.strict -> Error.run "DEL_EDGE_EXPL: the edge '%s' does not exist %s" (G_edge.to_string ?domain edge) (Loc.to_string loc)
+          | None -> (instance, created_nodes)
           | Some new_graph ->
           (
             {instance with
@@ -965,7 +969,8 @@ module Rule = struct
     | Command.DEL_NODE node_cn ->
         let node_gid = node_find node_cn in
         (match G_graph.del_node instance.Instance.graph node_gid with
-        | None -> Error.run "DEL_NODE: the node does not exist %s" (Loc.to_string loc)
+        | None when !Global.strict -> Error.run "DEL_NODE: the node does not exist %s" (Loc.to_string loc)
+        | None -> (instance, created_nodes)
         | Some new_graph ->
         (
          {instance with
@@ -1004,7 +1009,10 @@ module Rule = struct
     | Command.DEL_FEAT (tar_cn,feat_name) ->
         let tar_gid = node_find tar_cn in
         (match G_graph.del_feat instance.Instance.graph tar_gid feat_name with
-        | None -> Error.run "DEL_FEAT: the feat does not exist %s" (Loc.to_string loc)
+        | None when !Global.strict -> Error.run "DEL_FEAT: the feat does not exist %s" (Loc.to_string loc)
+        | None ->
+          Log.fwarning "DEL_FEAT: the feat does not exist %s" (Loc.to_string loc);
+          (instance, created_nodes)
         | Some new_graph ->
         (
          {instance with
@@ -1357,7 +1365,6 @@ module Rule = struct
 
 
 
-  let strict = false
 
 
 
@@ -1382,7 +1389,7 @@ module Rule = struct
         let tar_gid = node_find tar_cn in
         begin
           match G_graph.add_edge graph src_gid edge tar_gid with
-          | None when strict ->
+          | None when !Global.strict ->
               Error.run "ADD_EDGE: the edge '%s' already exists %s" (G_edge.to_string ?domain edge) (Loc.to_string loc)
           | None -> (graph, created_nodes, eff)
           | Some new_graph -> (new_graph, created_nodes, true)
@@ -1396,7 +1403,7 @@ module Rule = struct
           with Not_found -> Error.bug "The edge identifier '%s' is undefined %s" edge_ident (Loc.to_string loc) in
         begin
           match G_graph.add_edge graph src_gid edge tar_gid with
-          | None when strict ->
+          | None when !Global.strict ->
               Error.run "ADD_EDGE_EXPL: the edge '%s' already exists %s" (G_edge.to_string ?domain edge) (Loc.to_string loc)
           | None -> (graph, created_nodes, eff)
           | Some new_graph -> (new_graph, created_nodes, true)
@@ -1406,7 +1413,7 @@ module Rule = struct
         let src_gid = node_find src_cn in
         let tar_gid = node_find tar_cn in
         (match G_graph.del_edge ?domain loc graph src_gid edge tar_gid with
-          | None when strict -> Error.run "DEL_EDGE_EXPL: the edge '%s' does not exist %s" (G_edge.to_string ?domain edge) (Loc.to_string loc)
+          | None when !Global.strict -> Error.run "DEL_EDGE_EXPL: the edge '%s' does not exist %s" (G_edge.to_string ?domain edge) (Loc.to_string loc)
 
           | None -> (graph, created_nodes, eff)
           | Some new_graph -> (new_graph, created_nodes, true)
@@ -1450,7 +1457,7 @@ module Rule = struct
     | Command.DEL_FEAT (tar_cn,feat_name) ->
         let tar_gid = node_find tar_cn in
         (match G_graph.del_feat graph tar_gid feat_name with
-          | None when strict -> Error.run "XXX"
+          | None when !Global.strict -> Error.run "XXX"
           | None -> (graph, created_nodes, eff)
           | Some new_graph -> (new_graph, created_nodes, true)
         )
@@ -1561,7 +1568,7 @@ module Rule = struct
         let tar_gid = node_find tar_cn in
         begin
           match G_graph.add_edge gwh.Graph_with_history.graph src_gid edge tar_gid with
-          | None when strict ->
+          | None when !Global.strict ->
             Error.run "ADD_EDGE: the edge '%s' already exists %s"
             (G_edge.to_string ?domain edge) (Loc.to_string loc)
           | None -> gwh
@@ -1581,7 +1588,7 @@ module Rule = struct
 
         begin
           match G_graph.add_edge gwh.Graph_with_history.graph src_gid edge tar_gid with
-          | None when strict ->
+          | None when !Global.strict ->
             Error.run "ADD_EDGE_EXPL: the edge '%s' already exists %s"
             (G_edge.to_string ?domain edge) (Loc.to_string loc)
           | None -> gwh
@@ -1596,7 +1603,7 @@ module Rule = struct
         let src_gid = node_find src_cn in
         let tar_gid = node_find tar_cn in
         (match G_graph.del_edge ?domain loc gwh.Graph_with_history.graph src_gid edge tar_gid with
-        | None when strict ->
+        | None when !Global.strict ->
           Error.run "DEL_EDGE_EXPL: the edge '%s' does not exist %s"
           (G_edge.to_string ?domain edge) (Loc.to_string loc)
         | None -> gwh
@@ -1611,7 +1618,7 @@ module Rule = struct
           try List.assoc edge_ident matching.e_match
           with Not_found -> Error.bug "The edge identifier '%s' is undefined %s" edge_ident (Loc.to_string loc) in
           (match G_graph.del_edge ?domain ~edge_ident loc gwh.Graph_with_history.graph src_gid edge tar_gid with
-        | None when strict -> Error.run "DEL_EDGE_NAME: the edge '%s' does not exist %s" edge_ident (Loc.to_string loc)
+        | None when !Global.strict -> Error.run "DEL_EDGE_NAME: the edge '%s' does not exist %s" edge_ident (Loc.to_string loc)
         | None -> gwh
         | Some new_graph ->
          {gwh with
@@ -1622,7 +1629,7 @@ module Rule = struct
     | Command.DEL_NODE node_cn ->
         let node_gid = node_find node_cn in
         (match G_graph.del_node gwh.Graph_with_history.graph node_gid with
-          | None when strict -> Error.run "DEL_NODE the node does not exist %s" (Loc.to_string loc)
+          | None when !Global.strict -> Error.run "DEL_NODE the node does not exist %s" (Loc.to_string loc)
           | None -> gwh
           | Some new_graph ->
             { gwh with
@@ -1661,7 +1668,7 @@ module Rule = struct
     | Command.DEL_FEAT (tar_cn,feat_name) ->
         let tar_gid = node_find tar_cn in
         (match G_graph.del_feat gwh.Graph_with_history.graph tar_gid feat_name with
-          | None when strict -> Error.run "DEL_FEAT the feat does not exist %s" (Loc.to_string loc)
+          | None when !Global.strict -> Error.run "DEL_FEAT the feat does not exist %s" (Loc.to_string loc)
           | None -> gwh
           | Some new_graph -> { gwh with
             Graph_with_history.graph = new_graph;
@@ -1673,7 +1680,7 @@ module Rule = struct
         let src_gid = node_find src_cn in
         let tar_gid = node_find tar_cn in
         let (new_graph, del_edges, add_edges) =
-        G_graph.shift_in loc ?domain strict src_gid tar_gid (test_locality matching []) label_cst gwh.Graph_with_history.graph in
+        G_graph.shift_in loc ?domain !Global.strict src_gid tar_gid (test_locality matching []) label_cst gwh.Graph_with_history.graph in
           { gwh with
             Graph_with_history.graph = new_graph;
             delta = gwh.Graph_with_history.delta
@@ -1685,7 +1692,7 @@ module Rule = struct
         let src_gid = node_find src_cn in
         let tar_gid = node_find tar_cn in
         let (new_graph, del_edges, add_edges) =
-        G_graph.shift_out loc ?domain strict src_gid tar_gid (test_locality matching []) label_cst gwh.Graph_with_history.graph in
+        G_graph.shift_out loc ?domain !Global.strict src_gid tar_gid (test_locality matching []) label_cst gwh.Graph_with_history.graph in
           { gwh with
             Graph_with_history.graph = new_graph;
             delta = gwh.Graph_with_history.delta
@@ -1697,7 +1704,7 @@ module Rule = struct
         let src_gid = node_find src_cn in
         let tar_gid = node_find tar_cn in
         let (new_graph, del_edges, add_edges) =
-        G_graph.shift_edges loc ?domain strict src_gid tar_gid (test_locality matching []) label_cst gwh.Graph_with_history.graph in
+        G_graph.shift_edges loc ?domain !Global.strict src_gid tar_gid (test_locality matching []) label_cst gwh.Graph_with_history.graph in
           { gwh with
             Graph_with_history.graph = new_graph;
             delta = gwh.Graph_with_history.delta

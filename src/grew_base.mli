@@ -294,4 +294,5 @@ module Global: sig
   val label_flag: bool ref
 
   val debug: bool ref
+  val strict: bool ref
 end

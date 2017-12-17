@@ -631,5 +631,5 @@ module Global = struct
   | (fo, Some l) -> current_loc := (fo, Some (l+1))
 
   let debug = ref false
-
+  let strict = ref false
 end

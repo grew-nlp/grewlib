@@ -1,3 +1,6 @@
+## 0.46.2 (2017/12/17)
+  * Non stricti rewrite by default (fom demo)
+
 ## 0.46.1 (2017/12/17)
   * Fix semantics of Onf
 
