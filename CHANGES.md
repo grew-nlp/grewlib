@@ -1,3 +1,6 @@
+## 0.46.1 (2017/12/17)
+  * Fix semantics of Onf
+
 # 0.46.0 (2017/12/14)
   * Remove Dep2pict dependency
   * Remove old code
