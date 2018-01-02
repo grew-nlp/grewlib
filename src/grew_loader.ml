@@ -124,14 +124,22 @@ module Loader = struct
           r.Ast.rule_id (Loc.to_string r.Ast.rule_loc) (Loc.to_string loc)
       end;
       check_grs tail
-    | New_ast.Strategy (loc, name, _) :: tail
-    | New_ast.Package (loc, name, _) :: tail ->
+    | New_ast.Strategy (loc, name, _) :: tail ->
       begin
         match check_duplicate_id name tail with
         | None -> ()
         | Some loc2 -> Error.build "Identifier \"%s\" is used twice in the same package (%s and %s)"
           name (Loc.to_string loc) (Loc.to_string loc2)
       end;
+      check_grs tail
+    | New_ast.Package (loc, name, sub) :: tail ->
+      begin
+        match check_duplicate_id name tail with
+        | None -> ()
+        | Some loc2 -> Error.build "Identifier \"%s\" is used twice in the same package (%s and %s)"
+          name (Loc.to_string loc) (Loc.to_string loc2)
+      end;
+      check_grs sub;
       check_grs tail
     | _ :: tail -> check_grs tail
 
