@@ -1,5 +1,10 @@
+## 0.46.3 (2018/01/03)
+  * Fix #21580: out_edges not shifted by the shift command
+  * Fix #21581: detection of duplicate identifiers inside packages
+  * change `of_brown` function: `sent_id` goes in metadata
+
 ## 0.46.2 (2017/12/17)
-  * Non stricti rewrite by default (fom demo)
+  * Non strict rewrite by default (for demo)
 
 ## 0.46.1 (2017/12/17)
   * Fix semantics of Onf
