@@ -667,7 +667,7 @@ module G_graph = struct
 
   (* -------------------------------------------------------------------------------- *)
   let shift_edges loc ?domain strict src_gid tar_gid is_gid_local label_cst graph =
-    let (g1,de1,ae1) = shift_in loc ?domain strict src_gid tar_gid is_gid_local label_cst graph in
+    let (g1,de1,ae1) = shift_out loc ?domain strict src_gid tar_gid is_gid_local label_cst graph in
     let (g2,de2,ae2) = shift_in loc ?domain strict src_gid tar_gid is_gid_local label_cst g1 in
     (g2, de1 @ de2, ae1 @ ae2)
 
