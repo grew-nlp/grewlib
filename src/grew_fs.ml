@@ -339,7 +339,7 @@ module G_fs = struct
         then (sprintf "%s:B:yellow" esc_atom) :: acc
         else
           match filter with
-            | Some filt_list when not (List.mem feat_name filt_list) -> acc
+            | Some test when not (test feat_name) -> acc
             | _ -> esc_atom :: acc
       ) last sub in
     let subword = String.concat "#" (List.rev lines) in
@@ -409,7 +409,7 @@ module P_fs = struct
   let to_dep ?filter param_names t =
     let reduced = match filter with
       | None -> t
-      | Some l -> List.filter (fun (fn,_) -> List.mem fn l) t in
+      | Some test -> List.filter (fun (fn,_) -> test fn) t in
     List_.to_string (P_feature.to_string ~param_names) "#" reduced
 
   let to_dot t = List_.to_string P_feature.to_string "\\n" t

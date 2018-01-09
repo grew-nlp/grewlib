@@ -46,7 +46,7 @@ module Instance : sig
   val to_conll_string: ?domain:Domain.t -> t -> string
 
   (** [save_dot_png base t] writes a file "base.png" with the dot representation of [t] *)
-  val save_dot_png: ?domain:Domain.t -> ?filter: string list -> ?main_feat: string -> string -> t -> unit
+  val save_dot_png: ?domain:Domain.t -> ?filter: (string -> bool) -> ?main_feat: string -> string -> t -> unit
 end (* module Instance *)
 
 (* ================================================================================ *)

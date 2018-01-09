@@ -48,7 +48,7 @@ module G_fs: sig
   val to_gr: t -> string
   val to_dot: ?decorated_feat:(string * string list) -> ?main_feat: string -> t -> string
   val to_word: ?main_feat: string -> t -> string
-  val to_dep: ?decorated_feat:(string * string list) -> ?position:float -> ?main_feat: string -> ?filter: string list -> t -> string
+  val to_dep: ?decorated_feat:(string * string list) -> ?position:float -> ?main_feat: string -> ?filter: (string -> bool) -> t -> string
   val to_conll_string: ?exclude: string list -> t -> string
   val to_conll: ?exclude: string list -> t -> (string * string) list
 
@@ -79,7 +79,7 @@ module P_fs: sig
 
   val to_string: t -> string
 
-  val to_dep: ?filter: string list -> (string list * string list) -> t -> string
+  val to_dep: ?filter: (string -> bool) -> (string list * string list) -> t -> string
 
   val to_dot: t -> string
 

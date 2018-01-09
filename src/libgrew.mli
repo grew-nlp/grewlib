@@ -91,7 +91,7 @@ module Graph : sig
 
   val to_dot : ?domain:Domain.t -> ?main_feat:string -> ?deco:Deco.t -> t -> string
 
-  val to_dep : ?domain:Domain.t -> ?filter: string list -> ?main_feat:string -> ?deco:Deco.t -> t -> string
+  val to_dep : ?domain:Domain.t -> ?filter: (string -> bool) -> ?main_feat:string -> ?deco:Deco.t -> t -> string
 
   val to_gr: ?domain:Domain.t -> t -> string
 
