@@ -73,6 +73,7 @@ let localize t = (t,get_loc ())
 %token INCL                        /* include */
 %token IMPORT                      /* import */
 %token FEATURES                    /* features */
+%token CONLL_FIELDS                /* conll_fields */
 %token FEATURE                     /* feature */
 %token FILE                        /* file */
 %token LABELS                      /* labels */
@@ -221,12 +222,19 @@ gr_item:
             { Graph_edge ({Ast.edge_id = None; src=fst n1_loc; edge_label_cst=Ast.Pos_list [label]; tar=n2}, snd n1_loc) }
 
 /*=============================================================================================*/
+/* CONLL FIELD DEFINITION                                                                       */
+/*=============================================================================================*/
+conll_fields:
+        | CONLL_FIELDS LACC x=separated_nonempty_list_final_opt(SEMIC,simple_id) RACC { x }
+
+/*=============================================================================================*/
 /*  DOMAIN DEFINITION                                                                          */
 /*=============================================================================================*/
 domain:
-        | f=features_group g=labels
+        | c=option(conll_fields) f=features_group g=labels EOF
             {
               {  Ast.feature_domain = f;
+                 conll_fields = c;
                  label_domain = g;
               }
             }
@@ -726,6 +734,7 @@ new_grs:
   | decls = list(decl) EOF { decls }
 
 decl:
+  | c=conll_fields                                            { New_ast.Conll_fields c                       }
   | f=features_group                                          { New_ast.Features f                           }
   | l=labels                                                  { New_ast.Labels l                             }
   | r=rule                                                    { New_ast.Rule r                               }

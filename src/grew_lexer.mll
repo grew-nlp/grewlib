@@ -154,6 +154,7 @@ and standard target = parse
 | "import"        { IMPORT }
 | "domain"        { DOMAIN }
 | "features"      { FEATURES }
+| "conll_fields"  { CONLL_FIELDS }
 | "feature"       { FEATURE }
 | "file"          { FILE }
 | "labels"        { Global.label_flag := true; LABELS }
