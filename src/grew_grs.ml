@@ -209,9 +209,15 @@ module Old_grs = struct
     ) t.strategies
 
   let domain_build ast_domain =
+
+    let conll_fields = match ast_domain.Ast.conll_fields with
+      | Some [c2;c3;c4;c5] -> Some (c2,c3,c4,c5)
+      | Some _ -> Error.build "conll_fields declaration does not contains exactly 4 values"
+      | _ -> None in
+
     Domain.build
       (Label_domain.build ast_domain.Ast.label_domain)
-      (Feature_domain.build ast_domain.Ast.feature_domain)
+      (Feature_domain.build ?conll_fields ast_domain.Ast.feature_domain)
 
   let build filename =
     let ast = Loader.grs filename in
