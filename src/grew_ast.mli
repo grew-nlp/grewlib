@@ -188,6 +188,7 @@ module Ast : sig
   val build_closed: feature_name -> feature_atom list -> feature_spec
 
   type domain = {
+      conll_fields: string list option;
       feature_domain: feature_spec list;
       label_domain: (string * string list) list;
     }
@@ -255,6 +256,7 @@ module New_ast : sig
   | Try of strat                (* ≜ If (S, S, Empty): pick one normal form a the given strategy; return input if nf *)
 
   type decl =
+  | Conll_fields of string list
   | Features of Ast.feature_spec list
   | Labels of (string * string list) list
   | Package of (Loc.t * Ast.simple_ident * decl list)
