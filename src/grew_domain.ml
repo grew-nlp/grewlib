@@ -111,7 +111,12 @@ end
 
 (* ================================================================================ *)
 module Feature_domain = struct
-  type t = Ast.feature_spec list
+  type t = {
+    decls: Ast.feature_spec list;
+    conll_fields: (string * string * string * string);
+  }
+
+  let default_conll_fields = ("phon", "lemma", "cat", "pos")
 
   let dump t =
     Printf.printf "========= Feature domain =========\n";
@@ -119,7 +124,7 @@ module Feature_domain = struct
       | Ast.Closed (fn, values) -> Printf.printf " %s : %s\n" fn (String.concat ", " values)
       | Ast.Open fn -> Printf.printf " %s is OPEN\n" fn
       | Ast.Num fn -> Printf.printf " %s id NUMERICAL\n" fn
-      ) t;
+      ) t.decls;
     Printf.printf "==================================\n%!"
 
   let to_json t =
@@ -128,7 +133,7 @@ module Feature_domain = struct
         | Ast.Closed (fn, values) -> (fn, `List (List.map (fun x -> `String x) values))
         | Ast.Open fn -> (fn, `String "Open")
         | Ast.Num fn -> (fn, `String "Num")
-        ) t
+        ) t.decls
       )
 
   let get_name = function
@@ -136,21 +141,27 @@ module Feature_domain = struct
   | Ast.Open fn -> fn
   | Ast.Num fn -> fn
 
-  let is_defined feature_name feature_domain =
-    List.exists (fun item -> get_name item = feature_name) feature_domain
+  let is_defined feature_name decls =
+    List.exists (fun item -> get_name item = feature_name) decls
 
-  let rec build = function
+  let rec build_decls = function
     | [] -> [Ast.Num "position"]
-    | (Ast.Num "position") :: tail -> Log.warning "[Feature_domain] declaration of the feature name \"position\" in useless"; build tail
+    | (Ast.Num "position") :: tail -> Log.warning "[Feature_domain] declaration of the feature name \"position\" in useless"; build_decls tail
     | (Ast.Open "position") :: _
     | (Ast.Closed ("position",_)) :: _ ->
       Error.build "[Feature_domain] The feature named \"position\" is reserved and must be types 'integer', you cannot not redefine it"
     | (Ast.Num fn) :: tail | (Ast.Open fn) :: tail | Ast.Closed (fn,_) :: tail when is_defined fn tail ->
       Error.build "[Feature_domain] The feature named \"%s\" is defined several times" fn
-    | x :: tail -> x :: (build tail)
+    | x :: tail -> x :: (build_decls tail)
+
+  let build ?conll_fields feature_spec_list =
+    let decls = build_decls feature_spec_list in
+    match conll_fields with
+    | Some cf -> { decls; conll_fields=cf }
+    | None -> { decls; conll_fields = default_conll_fields }
 
   let feature_names feature_domain =
-    List.map (function Ast.Closed (fn, _) | Ast.Open fn | Ast.Num fn -> fn) feature_domain
+    List.map (function Ast.Closed (fn, _) | Ast.Open fn | Ast.Num fn -> fn) feature_domain.decls
 
   let merge list1 list2 =
     List.fold_left
@@ -175,13 +186,13 @@ module Feature_domain = struct
       | Ast.Open fn when fn = feature_name -> true
       | Ast.Num fn when fn = feature_name -> true
       | _ -> false
-    ) feature_domain
+    ) feature_domain.decls
 
   let is_num feature_domain feature_name =
     List.exists (function
       | Ast.Num fn when fn = feature_name -> true
       | _ -> false
-    ) feature_domain
+    ) feature_domain.decls
 
   let sub feature_domain name1 name2 =
     match (get name1 feature_domain, get name2 feature_domain) with
@@ -191,7 +202,7 @@ module Feature_domain = struct
         | _ -> false
 
   let is_open feature_domain name =
-    List.exists (function Ast.Open n when n=name -> true | _ -> false) feature_domain
+    List.exists (function Ast.Open n when n=name -> true | _ -> false) feature_domain.decls
 
   (* This function is defined here because it is used by check_feature *)
   let build_disj ?loc ?feature_domain name unsorted_values =
@@ -199,7 +210,7 @@ module Feature_domain = struct
     match (feature_domain, name.[0]) with
       | (None, _)
       | (Some _, '_') -> List.map (fun s -> String s) values (* no check on feat_name starting with '_' *)
-      | (Some dom, _) ->
+      | (Some {decls=dom}, _) ->
         let rec loop = function
           | [] -> Error.build ?loc "[GRS] Unknown feature name '%s'" name
           | ((Ast.Open n)::_) when n = name ->
@@ -286,7 +297,12 @@ module Domain = struct
 
   let check_feature_name ?loc ?domain name = match domain with
   | Some (Feature feature_domain) | Some (Both (_, feature_domain)) ->
-      if not (Feature_domain.is_defined name feature_domain)
+      if not (Feature_domain.is_defined name feature_domain.decls)
       then Error.build ?loc "The feature name \"%s\" in not defined in the domain" name
   | _ -> ()
+
+  let conll_fields = function
+  | Some (Feature feature_domain) | Some (Both (_, feature_domain)) ->
+  feature_domain.Feature_domain.conll_fields
+  | _ -> Feature_domain.default_conll_fields
 end

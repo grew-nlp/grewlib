@@ -40,7 +40,7 @@ module G_feature = struct
   let compare feat1 feat2 = Pervasives.compare (get_name feat1) (get_name feat2)
 
   (* another order used for printing purpose only *)
-  let print_order = ["phon"; "cat"; "lemma"; "pos"]
+  let print_order = ["phon"; "form"; "cat"; "upos"; "lemma"; "pos"; "xpos"]
   let print_cmp (name1,_) (name2,_) =
     match (List_.index name1 print_order, List_.index name2 print_order) with
     | (Some i, Some j) -> Pervasives.compare i j
@@ -225,16 +225,17 @@ module G_fs = struct
 
   (* ---------------------------------------------------------------------- *)
   let of_conll ?loc ?domain line =
+    let (c2, c3, c4, c5) = Domain.conll_fields domain in
     let raw_list0 =
-      ("phon", Feature_value.build_value ?loc ?domain "phon" line.Conll.form)
-      :: ("cat", Feature_value.build_value ?loc ?domain "cat" line.Conll.upos)
+      (c2, Feature_value.build_value ?loc ?domain c2 line.Conll.form)
+      :: (c4, Feature_value.build_value ?loc ?domain c4 line.Conll.upos)
       :: (List.map (fun (f,v) -> (f, Feature_value.build_value ?loc ?domain f v)) line.Conll.feats) in
     let raw_list1 = match line.Conll.xpos with
       | "" | "_" -> raw_list0
-      | s -> ("pos", Feature_value.build_value ?loc ?domain "pos" s) :: raw_list0 in
+      | s -> (c5, Feature_value.build_value ?loc ?domain c5 s) :: raw_list0 in
     let raw_list2 = match line.Conll.lemma with
       | "" | "_" -> raw_list1
-      | s -> ("lemma", Feature_value.build_value ?loc ?domain "lemma" s) :: raw_list1 in
+      | s -> (c3, Feature_value.build_value ?loc ?domain c3 s) :: raw_list1 in
     List.sort G_feature.compare raw_list2
 
 
@@ -257,9 +258,10 @@ module G_fs = struct
 
   (* ---------------------------------------------------------------------- *)
   let get_main ?main_feat t =
+    let default_list = ["phon"; "form"; "label"; "cat"; "upos"] in
     let main_list = match main_feat with
-    | None -> ["phon";"label"; "cat"]
-    | Some string -> (Str.split (Str.regexp "\\( *; *\\)\\|#") string) @ ["phon";"label"; "cat"] in
+    | None -> default_list
+    | Some string -> (Str.split (Str.regexp "\\( *; *\\)\\|#") string) @ default_list in
     let rec loop = function
       | [] -> (None, t)
       | feat_name :: tail ->

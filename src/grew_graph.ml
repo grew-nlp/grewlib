@@ -17,6 +17,7 @@ open Grew_ast
 open Grew_types
 
 open Grew_edge
+open Grew_domain
 open Grew_fs
 open Grew_node
 
@@ -903,15 +904,16 @@ module G_graph = struct
           ) gov_labs in
 
     let id_of_gid gid = Conll.Id.of_string (string_of_float (get_num gid)) in
+    let (c2, c3, c4, c5) = Domain.conll_fields domain in
     let fs = G_node.get_fs node in
       Some {
       Conll.line_num = 0;
       id = id_of_gid gid;
-      form = (match G_fs.get_string_atom "phon" fs with Some p -> p | None -> "_");
-      lemma = (match G_fs.get_string_atom "lemma" fs with Some p -> p | None -> "_");
-      upos = (match G_fs.get_string_atom "cat" fs with Some p -> p | None -> "_");
-      xpos = (match G_fs.get_string_atom "pos" fs with Some p -> p | None -> "_");
-      feats = (G_fs.to_conll ~exclude: ["phon"; "lemma"; "cat"; "pos"; "position"] fs);
+      form = (match G_fs.get_string_atom c2 fs with Some p -> p | None -> "_");
+      lemma = (match G_fs.get_string_atom c3 fs with Some p -> p | None -> "_");
+      upos = (match G_fs.get_string_atom c4 fs with Some p -> p | None -> "_");
+      xpos = (match G_fs.get_string_atom c5 fs with Some p -> p | None -> "_");
+      feats = (G_fs.to_conll ~exclude: [c2; c3; c4; c5; "position"] fs);
       deps = List.map (fun (gov,lab) -> ( Conll.Id.of_string gov, lab)) sorted_gov_labs;
       efs = G_node.get_efs node;
     } ) snodes in
