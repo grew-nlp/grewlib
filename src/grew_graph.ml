@@ -882,16 +882,6 @@ module G_graph = struct
             ) acc (G_node.get_next node)
         ) graph.map Gid_map.empty in
 
-    let multiwords =
-      List.map (fun fusion_item ->
-        { Conll.mw_line_num = None;
-          first = int_of_float (get_num fusion_item.first);
-          last = int_of_float (get_num fusion_item.last);
-          fusion = fusion_item.word;
-          mw_efs = fusion_item.efs;
-        }
-      ) graph.fusion in
-
     let lines = List_.opt_map
     (fun (gid,node) ->
       if G_node.is_conll_root node
@@ -929,7 +919,7 @@ module G_graph = struct
       Conll.file = None;
       Conll.meta = graph.meta;
       lines;
-      multiwords;
+      multiwords = []; (* multiwords are handled by _UD_* features *)
     }
 
   let to_conll_string ?domain graph =
