@@ -87,7 +87,7 @@ module Label_domain = struct
       @ (match style.line with
         | Dot -> ["style=dot"]
         | Dash -> ["style=dash"]
-        | Solid when deco -> ["bgcolor=yellow"]
+        | Solid when deco -> ["bgcolor=#8bf56e"]
         | Solid -> []) in
     sprintf "{ label = \"%s\"; %s}" style.text (String.concat "; " dep_items)
 

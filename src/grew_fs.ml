@@ -317,12 +317,12 @@ module G_fs = struct
       | Some (feat_name, atom) ->
         let esc_atom = escape_sharp (string_of_value atom) in
         [ if List.mem feat_name (snd decorated_feat)
-          then sprintf "%s:B:yellow" esc_atom
+          then sprintf "%s:B:#8bf56e" esc_atom
           else esc_atom] in
 
     let word_list = match pid_name with
       | "" -> main
-      | _ -> (sprintf "[%s]:B:yellow" pid_name)::main in
+      | _ -> (sprintf "[%s]:B:#8bf56e" pid_name)::main in
 
     let word = match word_list with
       | [] -> "_"
@@ -336,7 +336,7 @@ module G_fs = struct
       (fun acc (feat_name, atom) ->
         let esc_atom = escape_sharp (G_feature.to_string (decode_feat_name feat_name, atom)) in
         if List.mem feat_name (snd decorated_feat)
-        then (sprintf "%s:B:yellow" esc_atom) :: acc
+        then (sprintf "%s:B:#8bf56e" esc_atom) :: acc
         else
           match filter with
             | Some test when not (test feat_name) -> acc
