@@ -928,9 +928,56 @@ module G_graph = struct
     let conll = to_conll ?domain graph in
     Conll.to_string (Conll.normalize_multiwords conll)
 
+  (* -------------------------------------------------------------------------------- *)
   let to_dot ?domain ?main_feat ?(deco=G_deco.empty) graph =
-    let conll = to_conll ?domain graph in
-    Conll.to_dot conll
+    let buff = Buffer.create 32 in
+
+    bprintf buff "digraph G {\n";
+    bprintf buff "  node [shape=Mrecord];\n";
+    (* bprintf buff "  rankdir=LR;\n"; *)
+    (* bprintf buff "  node [shape=none];\n"; *)
+
+    (* nodes *)
+    Gid_map.iter
+      (fun id node ->
+        let decorated_feat =
+          try List.assoc id deco.G_deco.nodes
+          with Not_found -> ("",[]) in
+        bprintf buff "  N_%s [label=<%s>, color=%s]\n"
+          (Gid.to_string id)
+          (G_fs.to_dot ~decorated_feat ?main_feat (G_node.get_fs node))
+          (* TODO: add bgcolor in dot output *)
+          (if List.mem_assoc id deco.G_deco.nodes then "red" else "black")
+      ) graph.map;
+
+    (* edges *)
+    Gid_map.iter
+      (fun id node ->
+        Massoc_gid.iter
+          (fun tar g_edge ->
+            let deco = List.mem (id,g_edge,tar) deco.G_deco.edges in
+            if g_edge = G_edge.sub
+            then bprintf buff "  N_%s -> N_%s [dir=none];\n" (Gid.to_string id) (Gid.to_string tar)
+            else bprintf buff "  N_%s -> N_%s%s;\n" (Gid.to_string id) (Gid.to_string tar) (G_edge.to_dot ?domain ~deco g_edge)
+          ) (G_node.get_next node)
+      ) graph.map;
+
+    (* Set "rank=same" and more edge in debug modes *)
+    Gid_map.iter
+      (fun id node ->
+        begin
+          match G_node.get_succ node with
+          | Some s when !Global.debug ->
+              bprintf buff "  N_%s -> N_%s [label=\"SUCC\", style=dotted, fontcolor=lightblue, color=lightblue]; {rank=same; N_%s; N_%s };\n"
+                (Gid.to_string id) (Gid.to_string s) (Gid.to_string id) (Gid.to_string s)
+          | Some s -> bprintf buff " {rank=same; N_%s; N_%s };\n" (Gid.to_string id) (Gid.to_string s)
+          | _ -> ()
+        end
+      ) graph.map;
+
+    bprintf buff "}\n";
+    Buffer.contents buff
+
 end (* module G_graph *)
 
 
