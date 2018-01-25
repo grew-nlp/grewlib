@@ -1,3 +1,7 @@
+# ONGOING
+  * Add conll_fields in domain definition
+  * /!\ change type of function Graph.to_dep
+
 ## 0.46.3 (2018/01/03)
   * Fix #21580: out_edges not shifted by the shift command
   * Fix #21581: detection of duplicate identifiers inside packages
