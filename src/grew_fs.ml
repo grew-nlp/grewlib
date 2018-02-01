@@ -296,10 +296,12 @@ module G_fs = struct
       | s -> sprintf "<TABLE BORDER=\"0\" CELLBORDER=\"0\" CELLSPACING=\"0\">\n%s\n</TABLE>\n" s
 
   (* ---------------------------------------------------------------------- *)
-  let to_word ?main_feat t =
-    match get_main ?main_feat t with
-      | (None, _) -> "#"
-      | (Some (_,atom), _) -> string_of_value atom
+  let to_word (t:t) =
+    match List_.sort_assoc "phon" t with
+    | Some s -> Some (string_of_value s)
+    | None -> match List_.sort_assoc "form" t with
+        | Some s -> Some (string_of_value s)
+        | None -> None
 
   (* ---------------------------------------------------------------------- *)
   let escape_sharp s =

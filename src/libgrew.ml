@@ -205,10 +205,10 @@ type t = Grew_graph.G_graph.t
   let to_conll_string ?domain graph =
     handle ~name:"Graph.to_conll_string" (fun () -> Grew_graph.G_graph.to_conll_string ?domain graph) ()
 
-  let to_sentence ?main_feat gr =
+  let to_sentence ?main_feat ?deco gr =
     handle ~name:"Graph.to_sentence"
       (fun () ->
-        Grew_graph.G_graph.to_sentence ?main_feat gr
+        Grew_graph.G_graph.to_sentence ?main_feat ?deco gr
       ) ()
 
   let save_conll ?domain filename graph =

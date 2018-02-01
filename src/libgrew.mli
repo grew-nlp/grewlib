@@ -87,7 +87,7 @@ module Graph : sig
   val of_pst: ?domain:Domain.t -> string -> t
   val sentence_of_pst: ?domain:Domain.t -> string -> string
 
-  val to_sentence: ?main_feat:string -> t -> string
+  val to_sentence: ?main_feat:string -> ?deco:Deco.t -> t -> string
 
   val to_dot : ?domain:Domain.t -> ?main_feat:string -> ?deco:Deco.t -> t -> string
 

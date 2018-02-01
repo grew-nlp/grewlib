@@ -756,29 +756,60 @@ module G_graph = struct
     Buffer.contents buff
 
   (* -------------------------------------------------------------------------------- *)
-  let to_sentence ?main_feat graph =
+  let fusion_item_space_after fi =
+    try if List.assoc "SpaceAfter" fi.efs = "No" then "" else " "
+    with Not_found -> " "
+
+  let space_after gnode =
+    match G_fs.get_string_atom "_MISC_SpaceAfter" (G_node.get_fs gnode) with
+    | Some "No" -> ""
+    | _ -> " "
+
+  let esc s = Str.global_replace (Str.regexp "<") "&lt;" s
+
+  let to_sentence ?main_feat ?(deco=G_deco.empty) graph =
+
+    let is_highlighted_gid gid = List.mem_assoc gid deco.nodes in
+
+    let inside fusion_item gid =
+      let first = Gid_map.find fusion_item.first graph.map in
+      let last = Gid_map.find fusion_item.last graph.map in
+      let node = Gid_map.find gid graph.map in
+      match (G_node.get_position first, G_node.get_position node, G_node.get_position last) with
+      | (Ordered f, Ordered n, Ordered l) when f <=n && n <= l -> true
+      | _ -> false in
+
+    let is_highlighted_fusion_item fusion_item =
+      List.exists (fun (gid,_) -> inside fusion_item gid) deco.nodes in
+
     let nodes = Gid_map.fold (fun id elt acc -> (id,elt)::acc) graph.map [] in
     let snodes = List.sort (fun (_,n1) (_,n2) -> G_node.position_comp n1 n2) nodes in
 
-    let words = List.map
-      (fun (id, node) -> G_fs.to_word ?main_feat (G_node.get_fs node)
-      ) snodes in
-    List.fold_left
-      (fun acc (regexp,repl) ->
-        Str.global_replace (Str.regexp_string regexp) repl acc
-      )
-      (String.concat " " words)
-      [
-        " -t-", "-t-";
-        "_-_", "-";
-        "_", " ";
-        "' ", "'";
-        " ,", ",";
-        " .", ".";
-        "( ", "(";
-        " )", ")";
-        "\\\"", "\"";
-      ]
+    let rec loop skip = function
+    | [] -> ""
+    | (gid, gnode)::gtail when skip = None ->
+      begin
+        match List.find_opt (fun fusion_item -> fusion_item.first=gid) graph.fusion with
+        | Some fusion_item ->
+          (if is_highlighted_fusion_item fusion_item
+            then sprintf "<span class=\"highlight\">%s</span>" (esc fusion_item.word)
+            else (esc fusion_item.word))
+          ^ (fusion_item_space_after fusion_item)
+          ^ (loop (Some fusion_item.last) gtail)
+        | None ->
+          match G_fs.to_word (G_node.get_fs gnode) with
+          | None -> (loop None gtail)
+          | Some text ->
+          (if is_highlighted_gid gid
+            then sprintf "<span class=\"highlight\">%s</span>" (esc text)
+            else esc (text))
+          ^ (space_after gnode)
+          ^ (loop None gtail)
+      end
+    | (gid, gnode)::gtail when skip = Some gid -> loop None gtail
+    | (gid, gnode)::gtail -> loop skip gtail in
+
+    Sentence.fr_clean_spaces (loop None snodes)
 
   (* -------------------------------------------------------------------------------- *)
   let to_dep ?domain ?filter ?main_feat ?(deco=G_deco.empty) graph =
