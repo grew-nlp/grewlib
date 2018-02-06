@@ -238,16 +238,6 @@ module G_graph = struct
 
   let empty = {meta=[]; map=Gid_map.empty; fusion=[]; highest_index=0; }
 
-  (* ---------------------------------------------------------------------- *)
-  let rename mapping graph =
-    {graph with map =
-        Gid_map.fold
-          (fun id node acc ->
-            let new_id = try List.assoc id mapping with Not_found -> id in
-            let new_node = G_node.rename mapping node in
-            Gid_map.add new_id new_node acc
-          ) graph.map Gid_map.empty
-    }
 
   let get_highest g = g.highest_index
 
