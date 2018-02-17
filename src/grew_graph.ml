@@ -230,14 +230,16 @@ module G_graph = struct
   }
 
   type t = {
+    domain: Domain.t option;
     meta: string list;            (* meta-informations *)
     map: G_node.t Gid_map.t;      (* node description *)
     fusion: fusion_item list;     (* the list of fusion word considered in UD conll *)
     highest_index: int;           (* the next free integer index *)
   }
 
-  let empty = {meta=[]; map=Gid_map.empty; fusion=[]; highest_index=0; }
+  let empty = { domain=None; meta=[]; map=Gid_map.empty; fusion=[]; highest_index=0; }
 
+  let get_domain t = t.domain
 
   let get_highest g = g.highest_index
 
@@ -251,7 +253,8 @@ module G_graph = struct
     Gid_map.fold (fun gid _ acc -> fct gid acc) t.map init
 
   (* is there an edge e out of node i ? *)
-  let edge_out ?domain graph node_id label_cst =
+  let edge_out graph node_id label_cst =
+    let domain = get_domain graph in
     let node = Gid_map.find node_id graph.map in
     Massoc_gid.exists (fun _ e -> Label_cst.match_ ?domain label_cst e) (G_node.get_next node)
 
@@ -318,7 +321,13 @@ module G_graph = struct
           )
         ) map_without_edges full_edge_list in
 
-    {meta=gr_ast.Ast.meta; map=map; fusion = []; highest_index = (List.length full_node_list) -1}
+    {
+      domain;
+      meta=gr_ast.Ast.meta;
+      map;
+      fusion = [];
+      highest_index = (List.length full_node_list) -1
+    }
 
   (* -------------------------------------------------------------------------------- *)
   let of_conll ?domain conll =
@@ -371,7 +380,13 @@ module G_graph = struct
               )
           ) conll.Conll.multiwords in
 
-    {meta = conll.Conll.meta; map=map_with_edges; fusion; highest_index= (List.length sorted_lines) -1 }
+    {
+      domain;
+      meta = conll.Conll.meta;
+      map=map_with_edges;
+      fusion;
+      highest_index= (List.length sorted_lines) -1
+    }
 
   (* -------------------------------------------------------------------------------- *)
   (** input : "Le/DET/le petit/ADJ/petit chat/NC/chat dort/V/dormir ./PONCT/." *)
@@ -428,10 +443,16 @@ module G_graph = struct
       |> (Gid_map.add n1 (G_node.set_succ n2 node1))
       |> (Gid_map.add n2 (G_node.set_prec n1 node2)) in
 
-    {meta=[]; map=prec_loop map (List.rev !leaf_list); fusion = []; highest_index = !cpt}
+    {
+      domain;
+      meta=[];
+      map=prec_loop map (List.rev !leaf_list);
+      fusion = [];
+      highest_index = !cpt
+    }
 
   (* -------------------------------------------------------------------------------- *)
-  let del_edge ?domain ?edge_ident loc graph id_src label id_tar =
+  let del_edge ?edge_ident loc graph id_src label id_tar =
     let node_src =
       try Gid_map.find id_src graph.map
       with Not_found ->
@@ -539,7 +560,8 @@ module G_graph = struct
 
   (* -------------------------------------------------------------------------------- *)
   (* move out-edges (which respect cst [labels,neg]) from id_src are moved to out-edges out off node id_tar *)
-  let shift_out loc ?domain strict src_gid tar_gid is_gid_local label_cst graph =
+  let shift_out loc strict src_gid tar_gid is_gid_local label_cst graph =
+    let domain = get_domain graph in
     let del_edges = ref [] and add_edges = ref [] in
 
     let src_node = Gid_map.find src_gid graph.map in
@@ -575,7 +597,8 @@ module G_graph = struct
     )
 
   (* -------------------------------------------------------------------------------- *)
-  let shift_in loc ?domain strict src_gid tar_gid is_gid_local label_cst graph =
+  let shift_in loc strict src_gid tar_gid is_gid_local label_cst graph =
+    let domain = get_domain graph in
     let del_edges = ref [] and add_edges = ref [] in
     let new_map =
       Gid_map.mapi
@@ -618,13 +641,14 @@ module G_graph = struct
     )
 
   (* -------------------------------------------------------------------------------- *)
-  let shift_edges loc ?domain strict src_gid tar_gid is_gid_local label_cst graph =
-    let (g1,de1,ae1) = shift_out loc ?domain strict src_gid tar_gid is_gid_local label_cst graph in
-    let (g2,de2,ae2) = shift_in loc ?domain strict src_gid tar_gid is_gid_local label_cst g1 in
+  let shift_edges loc strict src_gid tar_gid is_gid_local label_cst graph =
+    let (g1,de1,ae1) = shift_out loc strict src_gid tar_gid is_gid_local label_cst graph in
+    let (g2,de2,ae2) = shift_in loc strict src_gid tar_gid is_gid_local label_cst g1 in
     (g2, de1 @ de2, ae1 @ ae2)
 
   (* -------------------------------------------------------------------------------- *)
-  let set_feat ?loc ?domain graph node_id feat_name new_value =
+  let set_feat ?loc graph node_id feat_name new_value =
+    let domain = get_domain graph in
     let node = Gid_map.find node_id graph.map in
     let new_node =
       match feat_name with
@@ -635,7 +659,8 @@ module G_graph = struct
     { graph with map = Gid_map.add node_id new_node graph.map }
 
   (* -------------------------------------------------------------------------------- *)
-  let update_feat ?loc ?domain graph tar_id tar_feat_name item_list =
+  let update_feat ?loc graph tar_id tar_feat_name item_list =
+    let domain = get_domain graph in
     let strings_to_concat =
       List.map
         (function
@@ -655,7 +680,7 @@ module G_graph = struct
           | Concat_item.String s -> s
         ) item_list in
     let new_feature_value = List_.to_string (fun s->s) "" strings_to_concat in
-    (set_feat ?loc ?domain graph tar_id tar_feat_name new_feature_value, new_feature_value)
+    (set_feat ?loc graph tar_id tar_feat_name new_feature_value, new_feature_value)
 
   (* -------------------------------------------------------------------------------- *)
   let del_feat graph node_id feat_name =
@@ -665,7 +690,8 @@ module G_graph = struct
       | None -> None
 
   (* -------------------------------------------------------------------------------- *)
-  let to_gr ?domain graph =
+  let to_gr graph =
+    let domain = get_domain graph in
 
     let gr_id id = G_node.get_name id (Gid_map.find id graph.map) in
 
@@ -763,7 +789,9 @@ module G_graph = struct
     Sentence.fr_clean_spaces (loop None snodes)
 
   (* -------------------------------------------------------------------------------- *)
-  let to_dep ?domain ?filter ?main_feat ?(deco=G_deco.empty) graph =
+  let to_dep ?filter ?main_feat ?(deco=G_deco.empty) graph =
+    let domain = get_domain graph in
+
     let nodes = Gid_map.fold (fun id elt acc -> (id,elt)::acc) graph.map [] in
     let snodes = List.sort (fun (_,n1) (_,n2) -> G_node.position_comp n1 n2) nodes in
 
@@ -834,7 +862,9 @@ module G_graph = struct
     in loop 0
 
   (* -------------------------------------------------------------------------------- *)
-  let to_conll ?domain graph =
+  let to_conll graph =
+    let domain = get_domain graph in
+
     let nodes = Gid_map.fold
       (fun gid node acc -> (gid,node)::acc)
       graph.map [] in
@@ -906,12 +936,13 @@ module G_graph = struct
       multiwords = []; (* multiwords are handled by _UD_* features *)
     }
 
-  let to_conll_string ?domain graph =
-    let conll = to_conll ?domain graph in
+  let to_conll_string graph =
+    let conll = to_conll graph in
     Conll.to_string (Conll.normalize_multiwords conll)
 
   (* -------------------------------------------------------------------------------- *)
-  let to_dot ?domain ?main_feat ?(deco=G_deco.empty) graph =
+  let to_dot ?main_feat ?(deco=G_deco.empty) graph =
+    let domain = get_domain graph in
     let buff = Buffer.create 32 in
 
     bprintf buff "digraph G {\n";

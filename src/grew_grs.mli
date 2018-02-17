@@ -31,22 +31,22 @@ module Rewrite_history: sig
 
   (** [save_gr base_name t] saves one gr_file for each normal form defined in [t].
       Output files are named according to [base_name] and the Gorn adress in the rewriting tree. *)
-  val save_gr: ?domain:Domain.t -> string -> t -> unit
-  val save_conll: ?domain:Domain.t -> string -> t -> unit
+  val save_gr: string -> t -> unit
+  val save_conll: string -> t -> unit
 
   (** [save_full_conll base_name t] saves one conll_file for each normal form defined in [t].
       Output files are named according to [base_name] and a secondary index after "__".
       The number of conll file produced is returned. *)
-  val save_full_conll: ?domain:Domain.t -> string -> t -> int
+  val save_full_conll: string -> t -> int
 
   (** [save_det_gr base_name t] supposes that the current GRS is deterministic.
       It writes exactly one output file named [base_name].gr with the unique normal form. *)
-  val save_det_gr: ?domain:Domain.t ->string -> t -> unit
-  val save_det_conll: ?domain:Domain.t -> ?header:string -> string -> t -> unit
+  val save_det_gr: string -> t -> unit
+  val save_det_conll: ?header:string -> string -> t -> unit
 
-  val det_dep_string: ?domain:Domain.t -> t -> string option
+  val det_dep_string: t -> string option
 
-  val conll_dep_string: ?domain:Domain.t -> ?keep_empty_rh:bool -> t -> string option
+  val conll_dep_string: ?keep_empty_rh:bool -> t -> string option
 end (* module Rewrite_history *)
 
 (* ================================================================================ *)

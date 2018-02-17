@@ -41,63 +41,63 @@ module Rewrite_history = struct
     | { good_nf = [] } -> 1
     | { good_nf = l} -> List.fold_left (fun acc t -> acc + (num_sol t)) 0 l
 
-  let save_gr ?domain base t =
+  let save_gr base t =
     let rec loop file_name t =
       match t.good_nf with
-        | [] -> File.write (Instance.to_gr ?domain t.instance) (file_name^".gr")
+        | [] -> File.write (Instance.to_gr t.instance) (file_name^".gr")
         | l -> List.iteri (fun i son -> loop (sprintf "%s_%d" file_name i) son) l
     in loop base t
 
-  let save_conll ?domain base t =
+  let save_conll base t =
     let rec loop file_name t =
       match t.good_nf with
-        | [] -> File.write (Instance.to_conll_string ?domain t.instance) (file_name^".conll")
+        | [] -> File.write (Instance.to_conll_string t.instance) (file_name^".conll")
         | l -> List.iteri (fun i son -> loop (sprintf "%s_%d" file_name i) son) l
     in loop base t
 
-  let save_full_conll ?domain base t =
+  let save_full_conll base t =
     let cpt = ref 0 in
     let rec loop t =
       match t.good_nf with
         | [] ->
-          File.write (Instance.to_conll_string ?domain t.instance) (sprintf "%s__%d.conll" base !cpt);
+          File.write (Instance.to_conll_string t.instance) (sprintf "%s__%d.conll" base !cpt);
           incr cpt
         | l -> List.iter loop l
     in loop t; !cpt
 
   (* suppose that all modules are deterministic and produced exacly one normal form *)
-  let save_det_gr ?domain base t =
+  let save_det_gr base t =
     let rec loop t =
       match t.good_nf with
-        | [] -> File.write (Instance.to_gr ?domain t.instance) (base^".gr")
+        | [] -> File.write (Instance.to_gr t.instance) (base^".gr")
         | [one] -> loop one
         | _ -> Error.run "[save_det_gr] Not a single rewriting"
     in loop t
 
-  let save_det_conll ?domain ?header base t =
+  let save_det_conll ?header base t =
     let rec loop t =
       match t.good_nf with
         | [] ->
           let output =
             match header with
-              | Some h -> sprintf "%% %s\n%s" h (Instance.to_conll_string ?domain t.instance)
-              | None -> Instance.to_conll_string ?domain t.instance in
+              | Some h -> sprintf "%% %s\n%s" h (Instance.to_conll_string t.instance)
+              | None -> Instance.to_conll_string t.instance in
           File.write output (base^".conll")
         | [one] -> loop one
         | _ -> Error.run "[save_det_conll] Not a single rewriting"
     in loop t
 
-  let det_dep_string ?domain t =
+  let det_dep_string t =
     let rec loop t =
       match t.good_nf with
         | [] ->
           let graph = t.instance.Instance.graph in
-          Some (G_graph.to_dep ?domain graph)
+          Some (G_graph.to_dep graph)
         | [one] -> loop one
         | _ -> None
     in loop t
 
-  let conll_dep_string ?domain ?(keep_empty_rh=false) t =
+  let conll_dep_string ?(keep_empty_rh=false) t =
     if (not keep_empty_rh) && is_empty t
     then None
     else
@@ -105,7 +105,7 @@ module Rewrite_history = struct
         match t.good_nf with
           | [] ->
             let graph = t.instance.Instance.graph in
-            Some (G_graph.to_conll_string ?domain graph)
+            Some (G_graph.to_conll_string graph)
           | [one] -> loop one
           | _ -> None
       in loop t
@@ -520,7 +520,6 @@ module Grs = struct
   let domain t = t.domain
 
   let from_ast filename ast =
-
     let conll_fields = match List_.opt_map
       (fun x -> match x with
         | New_ast.Conll_fields desc -> Some desc
@@ -560,6 +559,7 @@ module Grs = struct
       (fun x -> match x with
         | New_ast.Features _ -> None
         | New_ast.Labels _ -> None
+        | New_ast.Conll_fields _ -> None
         | New_ast.Import _ -> Error.bug "[load] Import: inconsistent ast for new_grs"
         | New_ast.Include _ -> Error.bug "[load] Inlcude: inconsistent ast for new_grs"
         | x -> Some (build_decl ?domain x)

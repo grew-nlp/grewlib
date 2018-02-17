@@ -94,8 +94,8 @@ module G_graph: sig
 
   val get_highest: t -> int
 
-  (** [edge_out label_domain t id label_cst] returns true iff there is an out-edge from the node [id] with a label compatible with [label_cst] *)
-  val edge_out: ?domain:Domain.t -> t -> Gid.t -> Label_cst.t -> bool
+  (** [edge_out t id label_cst] returns true iff there is an out-edge from the node [id] with a label compatible with [label_cst] *)
+  val edge_out: t -> Gid.t -> Label_cst.t -> bool
 
   (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
   (* Build functions *)
@@ -123,7 +123,7 @@ module G_graph: sig
 
   (** [del_edge ?edge_ident loc graph id_src label id_tar] removes the edge (id_src -[label]-> id_tar) from graph.
      Log.critical if the edge is not in graph *)
-  val del_edge: ?domain:Domain.t -> ?edge_ident: string -> Loc.t -> t -> Gid.t -> G_edge.t -> Gid.t -> t option
+  val del_edge: ?edge_ident: string -> Loc.t -> t -> Gid.t -> G_edge.t -> Gid.t -> t option
 
   (** [del_node graph id] remove node [id] from [graph], with all its incoming and outcoming edges.
       None is returned if [id] not defined in [graph]*)
@@ -136,7 +136,6 @@ module G_graph: sig
   (** shift all crown-edges ending in [src_gid] to edges ending in [tar_gid] *)
   val shift_in:
     Loc.t ->            (* localization of the command *)
-    ?domain:Domain.t ->
     bool ->             (* true iff strict rewriting *)
     Gid.t ->            (* [src_gid] the source gid of the "shift_in" *)
     Gid.t ->            (* [tar_gid] the target gid of the "shift_in" *)
@@ -151,7 +150,6 @@ module G_graph: sig
   (** shift all crown-edges starting from [src_gid] to edges starting from [tar_gid] *)
   val shift_out:
     Loc.t ->            (* localization of the command *)
-    ?domain:Domain.t ->
     bool ->             (* true iff strict rewriting *)
     Gid.t ->            (* [src_gid] the source gid of the "shift_out" *)
     Gid.t ->            (* [tar_gid] the target gid of the "shift_out" *)
@@ -166,7 +164,6 @@ module G_graph: sig
   (** move all incident crown-edges from/to [src_gid] are moved to incident edges on node [tar_gid] from graph *)
   val shift_edges:
     Loc.t ->            (* localization of the command *)
-    ?domain:Domain.t ->
     bool ->             (* true iff strict rewriting *)
     Gid.t ->            (* [src_gid] the source gid of the "shift_edges" *)
     Gid.t ->            (* [tar_gid] the target gid of the "shift_edges" *)
@@ -181,9 +178,9 @@ module G_graph: sig
   (** [update_feat domain tar_id tar_feat_name concat_items] sets the feature of the node [tar_id]
       with feature name [tar_feat_name] to be the contatenation of values described by the [concat_items].
       It returns both the new graph and the new feature value produced as the second element *)
-  val update_feat: ?loc:Loc.t -> ?domain:Domain.t -> t -> Gid.t -> string -> Concat_item.t list -> (t * string)
+  val update_feat: ?loc:Loc.t -> t -> Gid.t -> string -> Concat_item.t list -> (t * string)
 
-  val set_feat: ?loc:Loc.t -> ?domain:Domain.t -> t -> Gid.t -> string -> string -> t
+  val set_feat: ?loc:Loc.t -> t -> Gid.t -> string -> string -> t
 
   (** [del_feat graph node_id feat_name] returns [graph] where the feat [feat_name] of [node_id] is deleted
       If the feature is not present, None is returned. *)
@@ -192,12 +189,12 @@ module G_graph: sig
   (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
   (* Output functions *)
   (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
-  val to_gr: ?domain:Domain.t -> t -> string
-  val to_dot: ?domain:Domain.t -> ?main_feat:string -> ?deco:G_deco.t -> t -> string
+  val to_gr: t -> string
+  val to_dot: ?main_feat:string -> ?deco:G_deco.t -> t -> string
   val to_sentence: ?main_feat:string -> ?deco:G_deco.t -> t -> string
-  val to_dep: ?domain:Domain.t -> ?filter: (string -> bool) -> ?main_feat:string -> ?deco:G_deco.t -> t -> string
-  val to_conll: ?domain:Domain.t -> t -> Conll.t
-  val to_conll_string: ?domain:Domain.t -> t -> string
+  val to_dep: ?filter: (string -> bool) -> ?main_feat:string -> ?deco:G_deco.t -> t -> string
+  val to_conll: t -> Conll.t
+  val to_conll_string: t -> string
 end (* module G_graph *)
 
 module Delta : sig

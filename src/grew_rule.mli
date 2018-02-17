@@ -40,13 +40,13 @@ module Instance : sig
   val refresh: t -> t
 
   (** [to_gr t] returns a string which contains the "gr" code of the current graph *)
-  val to_gr: ?domain:Domain.t -> t -> string
+  val to_gr: t -> string
 
   (** [to_conll_string t] returns a string which contains the "conll" code of the current graph *)
-  val to_conll_string: ?domain:Domain.t -> t -> string
+  val to_conll_string: t -> string
 
   (** [save_dot_png base t] writes a file "base.png" with the dot representation of [t] *)
-  val save_dot_png: ?domain:Domain.t -> ?filter: (string -> bool) -> ?main_feat: string -> string -> t -> unit
+  val save_dot_png: ?filter: (string -> bool) -> ?main_feat: string -> string -> t -> unit
 end (* module Instance *)
 
 (* ================================================================================ *)

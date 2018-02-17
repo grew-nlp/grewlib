@@ -85,19 +85,21 @@ module Graph : sig
   val of_brown: ?domain:Domain.t -> ?sentid:string -> string -> t
 
   val of_pst: ?domain:Domain.t -> string -> t
+
   val sentence_of_pst: ?domain:Domain.t -> string -> string
+
 
   val to_sentence: ?main_feat:string -> ?deco:Deco.t -> t -> string
 
-  val to_dot : ?domain:Domain.t -> ?main_feat:string -> ?deco:Deco.t -> t -> string
+  val to_dot : ?main_feat:string -> ?deco:Deco.t -> t -> string
 
-  val to_dep : ?domain:Domain.t -> ?filter: (string -> bool) -> ?main_feat:string -> ?deco:Deco.t -> t -> string
+  val to_dep : ?filter: (string -> bool) -> ?main_feat:string -> ?deco:Deco.t -> t -> string
 
-  val to_gr: ?domain:Domain.t -> t -> string
+  val to_gr: t -> string
 
-  val to_conll: ?domain:Domain.t -> t -> Conll.t
+  val to_conll: t -> Conll.t
 
-  val to_conll_string: ?domain:Domain.t -> t -> string
+  val to_conll_string: t -> string
 
   (** [search_pattern pattern graph] returns the list of the possible matching of [pattern] in [graph] *)
   val search_pattern: ?domain:Domain.t -> Pattern.t -> t -> Matching.t list
@@ -177,26 +179,26 @@ module Rewrite: sig
 
   val num_sol: history -> int
 
-  val save_gr: ?domain:Domain.t -> string -> history -> unit
+  val save_gr: string -> history -> unit
 
-  val save_conll: ?domain:Domain.t -> string -> history -> unit
+  val save_conll: string -> history -> unit
 
   (** [save_full_conll base_name rh] saves one conll_file for each normal form defined in [rh].
       Output files are named according to [base_name] and a secondary index after "__".
       The number of conll file produced is returned. *)
-  val save_full_conll: ?domain:Domain.t -> string -> history -> int
+  val save_full_conll: string -> history -> int
 
-  val save_det_gr: ?domain:Domain.t -> string -> history -> unit
-
-  val save_index: dirname:string -> base_names: string list -> unit
+  val save_det_gr: string -> history -> unit
 
   val save_index: dirname:string -> base_names: string list -> unit
 
-  val save_det_conll: ?domain:Domain.t -> ?header:string -> string -> history -> unit
+  val save_index: dirname:string -> base_names: string list -> unit
 
-  val det_dep_string: ?domain:Domain.t -> history -> string option
+  val save_det_conll: ?header:string -> string -> history -> unit
 
-  val conll_dep_string: ?domain:Domain.t -> ?keep_empty_rh:bool -> history -> string option
+  val det_dep_string: history -> string option
+
+  val conll_dep_string: ?keep_empty_rh:bool -> history -> string option
 
   val save_index: dirname:string -> base_names: string array -> unit
 end

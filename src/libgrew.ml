@@ -113,9 +113,7 @@ end
 (** {2 Graph} *)
 (* ==================================================================================================== *)
 module Graph = struct
-
-
-type t = Grew_graph.G_graph.t
+  type t = Grew_graph.G_graph.t
 
   let load_gr ?domain file =
     if not (Sys.file_exists file)
@@ -190,20 +188,20 @@ type t = Grew_graph.G_graph.t
   let of_brown ?domain ?sentid brown =
     handle ~name:"Graph.of_brown" (fun () -> Grew_graph.G_graph.of_brown ?domain ?sentid brown) ()
 
-  let to_dot ?domain ?main_feat ?(deco=Grew_graph.G_deco.empty) graph =
-    handle ~name:"Graph.to_dot" (fun () -> Grew_graph.G_graph.to_dot ?domain ?main_feat graph ~deco) ()
+  let to_dot ?main_feat ?(deco=Grew_graph.G_deco.empty) graph =
+    handle ~name:"Graph.to_dot" (fun () -> Grew_graph.G_graph.to_dot ?main_feat graph ~deco) ()
 
-  let to_dep ?domain ?filter ?main_feat ?(deco=Grew_graph.G_deco.empty) graph =
-    handle ~name:"Graph.to_dep" (fun () -> Grew_graph.G_graph.to_dep ?domain ?filter ?main_feat ~deco graph) ()
+  let to_dep ?filter ?main_feat ?(deco=Grew_graph.G_deco.empty) graph =
+    handle ~name:"Graph.to_dep" (fun () -> Grew_graph.G_graph.to_dep ?filter ?main_feat ~deco graph) ()
 
-  let to_gr ?domain graph =
-    handle ~name:"Graph.to_gr" (fun () -> Grew_graph.G_graph.to_gr ?domain graph) ()
+  let to_gr graph =
+    handle ~name:"Graph.to_gr" (fun () -> Grew_graph.G_graph.to_gr graph) ()
 
-  let to_conll ?domain graph =
-    handle ~name:"Graph.to_conll" (fun () -> Grew_graph.G_graph.to_conll ?domain graph) ()
+  let to_conll graph =
+    handle ~name:"Graph.to_conll" (fun () -> Grew_graph.G_graph.to_conll graph) ()
 
-  let to_conll_string ?domain graph =
-    handle ~name:"Graph.to_conll_string" (fun () -> Grew_graph.G_graph.to_conll_string ?domain graph) ()
+  let to_conll_string graph =
+    handle ~name:"Graph.to_conll_string" (fun () -> Grew_graph.G_graph.to_conll_string graph) ()
 
   let to_sentence ?main_feat ?deco gr =
     handle ~name:"Graph.to_sentence"
@@ -211,10 +209,10 @@ type t = Grew_graph.G_graph.t
         Grew_graph.G_graph.to_sentence ?main_feat ?deco gr
       ) ()
 
-  let save_conll ?domain filename graph =
+  let save_conll filename graph =
     handle ~name:"Graph.save_conll" (fun () ->
       let out_ch = open_out filename in
-      fprintf out_ch "%s" (Grew_graph.G_graph.to_conll_string ?domain graph);
+      fprintf out_ch "%s" (Grew_graph.G_graph.to_conll_string graph);
       close_out out_ch
     ) ()
 
@@ -297,7 +295,6 @@ module Grs = struct
       (fun () ->
         Grew_grs.Grs.get_strat_list grs
         ) ()
-
 end
 
 (* ==================================================================================================== *)
@@ -336,7 +333,6 @@ module Rewrite = struct
   let at_most_one ~grs ~strat =
     handle ~name:"Rewrite.at_most_one" (fun () -> Grew_grs.Grs.at_most_one grs strat) ()
 
-
   let is_empty rh =
     handle ~name:"Rewrite.is_empty" (fun () -> Grew_grs.Rewrite_history.is_empty rh) ()
 
@@ -350,24 +346,24 @@ module Rewrite = struct
       close_out out_ch
     ) ()
 
-  let save_gr ?domain base rew_hist =
-    handle ~name:"Rewrite.save_gr" (fun () -> Grew_grs.Rewrite_history.save_gr ?domain base rew_hist) ()
+  let save_gr base rew_hist =
+    handle ~name:"Rewrite.save_gr" (fun () -> Grew_grs.Rewrite_history.save_gr base rew_hist) ()
 
-  let save_conll ?domain base rew_hist =
-    handle ~name:"Rewrite.save_conll" (fun () -> Grew_grs.Rewrite_history.save_conll ?domain base rew_hist) ()
+  let save_conll base rew_hist =
+    handle ~name:"Rewrite.save_conll" (fun () -> Grew_grs.Rewrite_history.save_conll base rew_hist) ()
 
-  let save_full_conll ?domain base rew_hist =
-    handle ~name:"Rewrite.save_full_conll" (fun () -> Grew_grs.Rewrite_history.save_full_conll ?domain base rew_hist) ()
+  let save_full_conll base rew_hist =
+    handle ~name:"Rewrite.save_full_conll" (fun () -> Grew_grs.Rewrite_history.save_full_conll base rew_hist) ()
 
-  let save_det_gr ?domain base rew_hist =
-    handle ~name:"Rewrite.save_det_gr" (fun () -> Grew_grs.Rewrite_history.save_det_gr ?domain base rew_hist) ()
+  let save_det_gr base rew_hist =
+    handle ~name:"Rewrite.save_det_gr" (fun () -> Grew_grs.Rewrite_history.save_det_gr base rew_hist) ()
 
-  let save_det_conll ?domain ?header base rew_hist =
-    handle ~name:"Rewrite.save_det_conll" (fun () -> Grew_grs.Rewrite_history.save_det_conll ?domain ?header base rew_hist) ()
+  let save_det_conll ?header base rew_hist =
+    handle ~name:"Rewrite.save_det_conll" (fun () -> Grew_grs.Rewrite_history.save_det_conll ?header base rew_hist) ()
 
-  let det_dep_string ?domain rew_hist =
-    handle ~name:"Rewrite.det_dep_string" (fun () -> Grew_grs.Rewrite_history.det_dep_string ?domain rew_hist) ()
+  let det_dep_string rew_hist =
+    handle ~name:"Rewrite.det_dep_string" (fun () -> Grew_grs.Rewrite_history.det_dep_string rew_hist) ()
 
-  let conll_dep_string ?domain ?keep_empty_rh rew_hist =
-    handle ~name:"Rewrite.conll_dep_string" (fun () -> Grew_grs.Rewrite_history.conll_dep_string ?domain ?keep_empty_rh rew_hist) ()
+  let conll_dep_string ?keep_empty_rh rew_hist =
+    handle ~name:"Rewrite.conll_dep_string" (fun () -> Grew_grs.Rewrite_history.conll_dep_string ?keep_empty_rh rew_hist) ()
 end
