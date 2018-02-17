@@ -247,7 +247,7 @@ and standard target = parse
 
 | eof      { EOF }
 
-| _ as c   { raise (Error (sprintf "At line %d: unexpected character '%c'" (lexbuf.Lexing.lex_start_p.Lexing.pos_lnum) c)) }
+| _ as c   { raise (Error (sprintf "unexpected character '%c'" c)) }
 
 and const = parse
   | [' ' '\t']            { const lexbuf }

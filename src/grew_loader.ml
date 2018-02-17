@@ -13,14 +13,14 @@ open Grew_ast
 
 (* ------------------------------------------------------------------------------------------*)
 (** general function to handle parse errors *)
-let parse_handle fct lexbuf =
+let parse_handle fct_name fct lexbuf =
   try fct lexbuf with
-    | Grew_lexer.Error msg -> Error.parse ~loc:(Global.get_loc ()) "Lexing error: %s" msg
-    | Grew_parser.Error -> Error.parse ~loc:(Global.get_loc ()) "Syntax error: %s" (Lexing.lexeme lexbuf)
-    | Error.Build (msg, None) -> Error.parse ~loc:(Global.get_loc ()) "Syntax error: %s" msg
-    | Error.Build (msg, Some loc) -> Error.parse ~loc "Syntax error: %s" msg
-    | Failure msg -> Error.parse ~loc:(Global.get_loc ()) "Failure: %s" msg
-    | err -> Error.bug ~loc:(Global.get_loc ()) "Unexpected error: %s" (Printexc.to_string err)
+    | Grew_lexer.Error msg ->        Error.parse ~loc:(Global.get_loc ()) "%s, Lexing error: %s" fct_name msg
+    | Grew_parser.Error ->           Error.parse ~loc:(Global.get_loc ()) "%s, Syntax error: %s" fct_name (Lexing.lexeme lexbuf)
+    | Error.Build (msg, None) ->     Error.parse ~loc:(Global.get_loc ()) "%s, Syntax error: %s" fct_name msg
+    | Error.Build (msg, Some loc) -> Error.parse ~loc "%s, Syntax error: %s" fct_name msg
+    | Failure msg ->                 Error.parse ~loc:(Global.get_loc ()) "%s, Failure: %s" fct_name msg
+    | err ->                         Error.bug ~loc:(Global.get_loc ()) "%s, Unexpected error: %s" fct_name (Printexc.to_string err)
 
 module Loader = struct
 
@@ -31,7 +31,7 @@ module Loader = struct
       Global.new_file file;
       let in_ch = open_in file in
       let lexbuf = Lexing.from_channel in_ch in
-      let grs = parse_handle (Grew_parser.grs_wi Grew_lexer.global) lexbuf in
+      let grs = parse_handle "[Grew_loader.Loader.parse_file_to_grs_wi]" (Grew_parser.grs_wi Grew_lexer.global) lexbuf in
       close_in in_ch;
       grs
     with Sys_error msg -> Error.parse ~loc:(Loc.file file) "[Grew_loader.Loader.parse_file_to_grs_wi] %s" msg
@@ -42,7 +42,7 @@ module Loader = struct
       Global.new_file file;
       let in_ch = open_in file in
       let lexbuf = Lexing.from_channel in_ch in
-      let module_list = parse_handle (Grew_parser.included Grew_lexer.global) lexbuf in
+      let module_list = parse_handle "[Grew_loader.Loader.parse_file_to_module_list]" (Grew_parser.included Grew_lexer.global) lexbuf in
       close_in in_ch;
       module_list
     with Sys_error msg -> Error.parse ~loc:(Loc.file file) "[Grew_loader.Loader.parse_file_to_module_list] %s" msg
@@ -53,7 +53,7 @@ module Loader = struct
       Global.new_file file;
       let in_ch = open_in file in
       let lexbuf = Lexing.from_channel in_ch in
-      let gr = parse_handle (Grew_parser.domain Grew_lexer.global) lexbuf in
+      let gr = parse_handle "[Grew_loader.Loader.domain]" (Grew_parser.domain Grew_lexer.global) lexbuf in
       close_in in_ch;
       gr
     with Sys_error msg -> Error.parse ~loc:(Loc.file file) "[Grew_loader.Loader.domain] %s" msg
@@ -155,7 +155,7 @@ module Loader = struct
       Global.new_file file;
       let in_ch = open_in file in
       let lexbuf = Lexing.from_channel in_ch in
-      let grs = parse_handle (Grew_parser.new_grs Grew_lexer.global) lexbuf in
+      let grs = parse_handle "loc_new_grs" (Grew_parser.new_grs Grew_lexer.global) lexbuf in
       close_in in_ch;
       grs
   with Sys_error msg -> Error.parse ~loc:(Loc.file file) "[Grew_loader.Loader.grs] %s" msg
@@ -196,7 +196,7 @@ module Loader = struct
       Global.new_file file;
       let in_ch = open_in file in
       let lexbuf = Lexing.from_channel in_ch in
-      let gr = parse_handle (Grew_parser.gr Grew_lexer.global) lexbuf in
+      let gr = parse_handle "[Grew_loader.Loader.gr]" (Grew_parser.gr Grew_lexer.global) lexbuf in
       close_in in_ch;
       gr
     with Sys_error msg -> Error.parse ~loc:(Loc.file file) "[Grew_loader.Loader.gr] %s" msg
@@ -208,7 +208,7 @@ module Loader = struct
       Global.new_file file;
       let in_ch = open_in file in
       let lexbuf = Lexing.from_channel in_ch in
-      let pattern = parse_handle (Grew_parser.pattern Grew_lexer.global) lexbuf in
+      let pattern = parse_handle "[Grew_loader.Loader.pattern]" (Grew_parser.pattern Grew_lexer.global) lexbuf in
       close_in in_ch;
       pattern
     with Sys_error msg -> Error.parse ~loc:(Loc.file file) "[Grew_loader.Loader.pattern] %s" msg
@@ -219,7 +219,7 @@ module Loader = struct
       Global.new_file file;
       let in_ch = open_in file in
       let lexbuf = Lexing.from_channel in_ch in
-      let graph = parse_handle (Grew_parser.phrase_structure_tree Grew_lexer.const) lexbuf in
+      let graph = parse_handle "[Grew_loader.Loader.phrase_structure_tree]" (Grew_parser.phrase_structure_tree Grew_lexer.const) lexbuf in
       close_in in_ch;
       graph
     with Sys_error msg -> Error.parse ~loc:(Loc.file file) "[Grew_loader.Loader.phrase_structure_tree] %s" msg
@@ -233,7 +233,7 @@ module Parser = struct
     try
       Global.new_string ();
       let lexbuf = Lexing.from_string gr_string in
-      let gr = parse_handle (Grew_parser.gr Grew_lexer.global) lexbuf in
+      let gr = parse_handle "[Grew_loader.Parser.gr]" (Grew_parser.gr Grew_lexer.global) lexbuf in
       gr
     with Sys_error msg -> Error.parse "[Grew_loader.Parser.gr] %s" msg
 
@@ -242,7 +242,7 @@ module Parser = struct
     try
       Global.new_string ();
       let lexbuf = Lexing.from_string s in
-      let graph = parse_handle (Grew_parser.phrase_structure_tree Grew_lexer.const) lexbuf in
+      let graph = parse_handle "[Grew_loader.Parser.phrase_structure_tree]" (Grew_parser.phrase_structure_tree Grew_lexer.const) lexbuf in
       graph
     with Sys_error msg -> Error.parse "[Grew_loader.Parser.phrase_structure_tree] %s" msg
 
@@ -251,7 +251,7 @@ module Parser = struct
     try
       Global.new_string ();
       let lexbuf = Lexing.from_string desc in
-      let pattern = parse_handle (Grew_parser.pattern Grew_lexer.global) lexbuf in
+      let pattern = parse_handle "[Grew_loader.Parser.pattern]" (Grew_parser.pattern Grew_lexer.global) lexbuf in
       pattern
     with Sys_error msg -> Error.parse "[Grew_loader.Parser.pattern] %s" msg
 
@@ -260,7 +260,7 @@ module Parser = struct
     try
       Global.new_string ();
       let lexbuf = Lexing.from_string desc in
-      let strategy = parse_handle (Grew_parser.strat_alone Grew_lexer.global) lexbuf in
+      let strategy = parse_handle "[Grew_loader.Parser.strategy]" (Grew_parser.strat_alone Grew_lexer.global) lexbuf in
       strategy
     with Sys_error msg -> Error.parse "[Grew_loader.Parser.strategy] %s" msg
 
