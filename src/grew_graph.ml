@@ -1003,7 +1003,7 @@ module Delta = struct
 
   exception Inconsistent of string
 
-  (* the tree list are ordered *)
+  (* the three list are ordered *)
   type t = {
     del_nodes: Gid.t list;
     edges: ((Gid.t * Label.t * Gid.t) * status) list;
@@ -1064,6 +1064,6 @@ module Graph_with_history = struct
 
   (* WARNING: compare is correct only on data with the same seed! *)
   let compare t1 t2 = Pervasives.compare t1.delta t2.delta
-end
+end (* module Graph_with_history*)
 
 module Graph_with_history_set = Set.Make (Graph_with_history)
