@@ -1138,7 +1138,10 @@ module Grs = struct
 
   let gwh_simple_rewrite grs strat graph =
     let domain = domain grs in
-    let gwh = Graph_with_history.from_graph graph in
+    let casted_graph = match domain with
+    | None -> graph
+    | Some dom ->  G_graph.cast dom graph in
+    let gwh = Graph_with_history.from_graph casted_graph in
     let set = gwh_strat_simple_rewrite ?domain (top grs) (Parser.strategy strat) gwh in
     List.map
       (fun gwh -> gwh.Graph_with_history.graph)

@@ -991,6 +991,9 @@ module G_graph = struct
     bprintf buff "}\n";
     Buffer.contents buff
 
+  let cast new_domain graph = match graph.domain with
+    | Some dom when dom == new_domain -> (* ====== NO CAST NEEDED ====== *) graph
+    | _ -> (* ====== CASTING NEEDED ====== *) of_conll ~domain:new_domain (to_conll graph)
 end (* module G_graph *)
 
 
