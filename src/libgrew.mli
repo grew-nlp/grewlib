@@ -166,6 +166,7 @@ module Rewrite: sig
       @param gr the grapth to rewrite
       @param grs the graph rewriting system
       @param seq the name of the sequence to apply *)
+  val old_display: gr:Graph.t -> grs:Grs.t -> strat:string -> display
   val display: gr:Graph.t -> grs:Grs.t -> strat:string -> display
 
   val at_least_one: grs:Grs.t -> strat:string -> bool

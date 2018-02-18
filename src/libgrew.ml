@@ -311,11 +311,14 @@ module Rewrite = struct
 
   let set_debug_loop () = Grew_rule.Rule.set_debug_loop ()
 
-  let old_display ~gr ~grs ~seq =
-    handle ~name:"Rewrite.old_display" (fun () -> Grew_grs.Old_grs.build_rew_display grs seq gr) ()
+  let old_old_display ~gr ~grs ~seq =
+    handle ~name:"Rewrite.old_old_display" (fun () -> Grew_grs.Old_grs.build_rew_display grs seq gr) ()
+
+  let old_display ~gr ~grs ~strat =
+    handle ~name:"Rewrite.old_display" (fun () -> Grew_grs.Grs.det_rew_display grs strat gr) ()
 
   let display ~gr ~grs ~strat =
-    handle ~name:"Rewrite.display" (fun () -> Grew_grs.Grs.det_rew_display grs strat gr) ()
+    handle ~name:"Rewrite.display" (fun () -> Grew_grs.Grs.wrd_rewrite grs strat gr) ()
 
   let set_timeout t = Grew_base.Timeout.timeout := t
 
@@ -326,7 +329,7 @@ module Rewrite = struct
     handle ~name:"Rewrite.old_simple_rewrite" (fun () -> Grew_grs.Old_grs.simple_rewrite grs strat gr) ()
 
   let simple_rewrite ~gr ~grs ~strat =
-    handle ~name:"Rewrite.simple_rewrite" (fun () -> Grew_grs.Grs.simple_rewrite grs strat gr) ()
+    handle ~name:"Rewrite.simple_rewrite" (fun () -> Grew_grs.Grs.gwh_simple_rewrite grs strat gr) ()
 
   let at_least_one ~grs ~strat =
     handle ~name:"Rewrite.at_least_one" (fun () -> Grew_grs.Grs.at_least_one grs strat) ()

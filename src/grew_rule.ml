@@ -1368,6 +1368,8 @@ module Rule = struct
 
 
 
+
+
   let onf_find cnode ?loc (matching, created_nodes) =
     match cnode with
     | Command.Pat pid ->
@@ -1537,6 +1539,48 @@ module Rule = struct
 
 
 
+  let rec wrd_apply ?domain rule (graph, big_step_opt) =
+    let (pos,negs) = rule.pattern in
+    (* get the list of partial matching for positive part of the pattern *)
+      let matching_list =
+        extend_matching
+          ?domain
+          (pos.graph,P_graph.empty)
+          graph
+          (init rule.param pos) in
+          try
+            let (first_matching_where_all_witout_are_fulfilled,_) =
+              List.find
+                (fun (sub, already_matched_gids) ->
+                  List.for_all
+                    (fun neg ->
+                      let new_partial_matching = update_partial pos.graph neg (sub, already_matched_gids) in
+                      fulfill ?domain (pos.graph,neg.graph) graph new_partial_matching
+                    ) negs
+                ) matching_list in
+
+            let (new_graph, created_nodes, eff) =
+              List.fold_left
+                (fun (graph, created_nodes, eff) command ->
+                  onf_apply_command eff ?domain command graph first_matching_where_all_witout_are_fulfilled created_nodes
+                )
+                (graph, [], false)
+                rule.commands in
+
+            let rule_app = {
+              Libgrew_types.rule_name = rule.name;
+              up = match_deco rule.pattern first_matching_where_all_witout_are_fulfilled;
+              down = down_deco (first_matching_where_all_witout_are_fulfilled,created_nodes) rule.commands
+            } in
+
+            let new_big_step = match big_step_opt with
+              | None -> {Libgrew_types.small_step = []; first=rule_app}
+              | Some {Libgrew_types.small_step; first} -> {Libgrew_types.small_step = (graph,rule_app) :: small_step; first} in
+
+            if eff
+            then Some (new_graph, new_big_step)
+            else None
+          with Not_found -> (* raised by List.find, no matching apply *) None
 
 
 

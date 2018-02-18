@@ -122,6 +122,9 @@ module Rule : sig
   val det_apply: ?domain: Domain.t -> t -> Instance.t -> Instance.t option
 
 
+  val wrd_apply: ?domain: Domain.t -> t -> (G_graph.t * Libgrew_types.big_step option) -> (G_graph.t * Libgrew_types.big_step) option
+
+
 
   val onf_apply: ?domain: Domain.t -> t -> G_graph.t -> G_graph.t option
   val gwh_apply: ?domain: Domain.t -> t -> Graph_with_history.t -> Graph_with_history_set.t

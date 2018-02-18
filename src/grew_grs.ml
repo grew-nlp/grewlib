@@ -973,6 +973,14 @@ module Grs = struct
 (* ============================================================================================= *)
 (* ============================================================================================= *)
 
+
+
+
+  (* ============================================================================================= *)
+  (* Rewriting in the deterministic case with graph type *)
+  (* ============================================================================================= *)
+
+  (* apply a package to an instance = apply only top level rules in the package *)
   let onf_pack_rewrite ?domain decl_list graph =
     let rec loop = function
       | [] -> None
@@ -1037,12 +1045,12 @@ module Grs = struct
         | Some _ -> onf_strat_simple_rewrite ?domain pointed s2 graph
       end
 
-    | New_ast.Onf (s) -> onf_strat_simple_rewrite ?domain pointed s graph
+    | New_ast.Onf (s) -> onf_strat_simple_rewrite ?domain pointed s graph (* TODO check Onf (P) == 1 rule app ? *)
 
+  (* ============================================================================================= *)
+  (* Rewriting in the non-deterministic case with Graph_with_history.t type *)
+  (* ============================================================================================= *)
 
-
-
-  (* non deterministic case *)
   (* apply a package to an instance = apply only top level rules in the package *)
   let gwh_pack_rewrite ?domain decl_list gwh =
     List.fold_left
@@ -1147,6 +1155,119 @@ module Grs = struct
       (fun gwh -> gwh.Graph_with_history.graph)
       (Graph_with_history_set.elements set)
 
+
+  (* ============================================================================================= *)
+  (* production of rew_display of linear rewriting history for GUI *)
+  (* ============================================================================================= *)
+  type linear_rd = {
+    graph: G_graph.t;
+    steps: (string * G_graph.t * Libgrew_types.big_step) list;
+  }
+
+  let wrd_pack_rewrite ?domain decl_list graph_with_big_step =
+    let rec loop = function
+      | [] -> None
+      | Rule r :: tail_decl ->
+        (match Rule.wrd_apply ?domain r graph_with_big_step with
+        | Some x -> Some x
+        | None -> loop tail_decl
+        )
+      | _ :: tail_decl -> loop tail_decl in
+      loop decl_list
+
+  let rec wrd_pack_iter_rewrite ?domain decl_list graph_with_big_step =
+    match (graph_with_big_step, wrd_pack_rewrite ?domain decl_list graph_with_big_step) with
+      | (_, Some (new_gr, new_bs)) -> wrd_pack_iter_rewrite ?domain decl_list (new_gr, Some new_bs)
+      | ((gr, Some bs), None) -> Some (gr, bs)
+      | ((gr, None), None) -> None
+
+  (* functions [wrd_intern_simple_rewrite] and [wrd_strat_simple_rewrite] computes
+     one normal form and output the data needed for rew_display production.
+     output = list of ... tranformed later into rew_display by [build_rew_display_from_linear_rd]
+     [iter_flag] is set to true when rules application should be put together (in the old modules style).
+  *)
+  let rec wrd_intern_simple_rewrite ?domain iter_flag pointed strat_name linear_rd =
+    let path = Str.split (Str.regexp "\\.") strat_name in
+    match search_from pointed path with
+    | None -> Error.build "Simple rewrite, cannot find strat %s" strat_name
+    | Some (Rule r,_) ->
+      begin
+        match Rule.wrd_apply ?domain r (linear_rd.graph, None) with
+          | None -> None
+          | Some (new_graph, big_step) -> Some {steps = (Rule.get_name r, linear_rd.graph, big_step) :: linear_rd.steps; graph = new_graph}
+      end
+    | Some (Package (name, decl_list), _) when iter_flag ->
+      begin
+        match wrd_pack_iter_rewrite ?domain decl_list (linear_rd.graph, None) with
+          | None -> None
+          | Some (new_graph, big_step) -> Some {steps = (name, linear_rd.graph, big_step) :: linear_rd.steps; graph = new_graph}
+      end
+    | Some (Package (name, decl_list), _) ->
+      begin
+        match wrd_pack_rewrite ?domain decl_list (linear_rd.graph, None) with
+          | None -> None
+          | Some (new_graph, big_step) -> Some {steps = (name, linear_rd.graph, big_step) :: linear_rd.steps; graph = new_graph}
+      end
+    | Some (Strategy (_,ast_strat), new_pointed) ->
+      wrd_strat_simple_rewrite ?domain iter_flag new_pointed ast_strat linear_rd
+
+  and wrd_strat_simple_rewrite ?domain iter_flag pointed strat linear_rd  =
+    match strat with
+    | New_ast.Ref subname -> wrd_intern_simple_rewrite iter_flag ?domain pointed subname linear_rd
+    | New_ast.Pick strat -> wrd_strat_simple_rewrite iter_flag ?domain pointed strat linear_rd
+
+    | New_ast.Alt [] -> None
+    | New_ast.Alt strat_list ->
+      let rec loop = function
+        | [] -> None
+        | head_strat :: tail_strat ->
+          match wrd_strat_simple_rewrite ?domain false pointed head_strat linear_rd  with
+          | None -> loop tail_strat
+          | Some x -> Some x in
+        loop strat_list
+
+    | New_ast.Seq [] -> Some linear_rd
+    | New_ast.Seq (head_strat :: tail_strat) ->
+      begin
+        match wrd_strat_simple_rewrite ?domain false pointed head_strat linear_rd  with
+        | None -> None
+        | Some gwrd -> wrd_strat_simple_rewrite iter_flag ?domain pointed (New_ast.Seq tail_strat) gwrd
+      end
+
+    | New_ast.Iter sub_strat
+    | New_ast.Onf sub_strat ->
+      begin
+        match wrd_strat_simple_rewrite ?domain true pointed sub_strat linear_rd  with
+        | None -> Some linear_rd
+        | Some gwrd -> wrd_strat_simple_rewrite ?domain iter_flag pointed strat gwrd
+      end
+
+    | New_ast.Try sub_strat ->
+        begin
+          match wrd_strat_simple_rewrite ?domain false pointed sub_strat linear_rd  with
+          | None -> Some linear_rd
+          | Some i -> Some i
+        end
+
+    | New_ast.If (s, s1, s2) ->
+      begin
+        match onf_strat_simple_rewrite ?domain pointed s linear_rd.graph with
+        | None   -> wrd_strat_simple_rewrite iter_flag ?domain pointed s1 linear_rd
+        | Some _ -> wrd_strat_simple_rewrite iter_flag ?domain pointed s2 linear_rd
+      end
+
+  let build_rew_display_from_linear_rd linear_rd =
+    List.fold_left
+      (fun acc (n,g,bs) -> Libgrew_types.Node (g, n, [Libgrew_types.swap bs, acc])) (Libgrew_types.Leaf linear_rd.graph) linear_rd.steps
+
+  let wrd_rewrite grs strat graph =
+    let domain = domain grs in
+    let casted_graph = match domain with
+    | None -> graph
+    | Some dom ->  G_graph.cast dom graph in
+    match wrd_strat_simple_rewrite ?domain false (top grs) (Parser.strategy strat) {graph=casted_graph; steps=[]} with
+    | None -> Libgrew_types.Leaf graph
+    | Some linear_rd -> build_rew_display_from_linear_rd linear_rd
 
 end (* module Grs *)
 

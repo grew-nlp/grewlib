@@ -116,5 +116,5 @@ module Grs : sig
   val at_most_one: t -> string -> bool
 
   val gwh_simple_rewrite: t -> string -> G_graph.t -> G_graph.t list
-
+  val wrd_rewrite: t -> string -> G_graph.t -> Libgrew_types.rew_display
 end
