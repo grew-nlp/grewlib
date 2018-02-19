@@ -12,8 +12,6 @@ open Printf
 open Log
 open Conll
 
-let libgrew_debug_mode () = Grew_base.Global.debug := true
-let get_version () = VERSION
 
 (* ==================================================================================================== *)
 (** {2 Location} *)
@@ -26,28 +24,33 @@ end
 (* ==================================================================================================== *)
 (** {2 Exceptions} *)
 (* ==================================================================================================== *)
-exception Error of string
-exception Bug of string
+module Libgrew = struct
+  let get_version () = VERSION
 
-let handle ?(name="") ?(file="No file defined") fct () =
-  try fct () with
-    (* Raise again already caught exceptions *)
-    | Error msg -> raise (Error msg)
-    | Bug msg -> raise (Bug msg)
+  let set_debug_mode flag = Grew_base.Global.debug := flag
 
-    (* Catch new exceptions *)
-    | Grew_base.Error.Parse (msg, Some loc) -> raise (Error (sprintf "%s %s" (Grew_base.Loc.to_string loc) msg))
-    | Grew_base.Error.Parse (msg, None) -> raise (Error (sprintf "%s" msg))
-    | Grew_base.Error.Build (msg, Some loc) -> raise (Error (sprintf "%s %s" (Grew_base.Loc.to_string loc) msg))
-    | Grew_base.Error.Build (msg, None) -> raise (Error (sprintf "%s" msg))
-    | Grew_base.Error.Run (msg, Some loc) -> raise (Error (sprintf "%s %s" (Grew_base.Loc.to_string loc) msg))
-    | Grew_base.Error.Run (msg, None) -> raise (Error (sprintf "%s" msg))
-    | Conll_types.Error msg -> raise (Error (sprintf "Conll error: %s" (Yojson.Basic.to_string msg)))
+  exception Error of string
+  exception Bug of string
 
-    | Grew_base.Error.Bug (msg, Some loc) -> raise (Bug (sprintf "%s %s" (Grew_base.Loc.to_string loc) msg))
-    | Grew_base.Error.Bug (msg, None) -> raise (Bug (sprintf "%s" msg))
-    | exc -> raise (Bug (sprintf "[Libgrew.%s] UNCAUGHT EXCEPTION: %s" name (Printexc.to_string exc)))
+  let handle ?(name="") ?(file="No file defined") fct () =
+    try fct () with
+      (* Raise again already caught exceptions *)
+      | Error msg -> raise (Error msg)
+      | Bug msg -> raise (Bug msg)
 
+      (* Catch new exceptions *)
+      | Grew_base.Error.Parse (msg, Some loc) -> raise (Error (sprintf "%s %s" (Grew_base.Loc.to_string loc) msg))
+      | Grew_base.Error.Parse (msg, None) -> raise (Error (sprintf "%s" msg))
+      | Grew_base.Error.Build (msg, Some loc) -> raise (Error (sprintf "%s %s" (Grew_base.Loc.to_string loc) msg))
+      | Grew_base.Error.Build (msg, None) -> raise (Error (sprintf "%s" msg))
+      | Grew_base.Error.Run (msg, Some loc) -> raise (Error (sprintf "%s %s" (Grew_base.Loc.to_string loc) msg))
+      | Grew_base.Error.Run (msg, None) -> raise (Error (sprintf "%s" msg))
+      | Conll_types.Error msg -> raise (Error (sprintf "Conll error: %s" (Yojson.Basic.to_string msg)))
+
+      | Grew_base.Error.Bug (msg, Some loc) -> raise (Bug (sprintf "%s %s" (Grew_base.Loc.to_string loc) msg))
+      | Grew_base.Error.Bug (msg, None) -> raise (Bug (sprintf "%s" msg))
+      | exc -> raise (Bug (sprintf "[Libgrew.%s] UNCAUGHT EXCEPTION: %s" name (Printexc.to_string exc)))
+end
 
 (* ==================================================================================================== *)
 (** {2 Domain} *)
@@ -56,19 +59,19 @@ module Domain = struct
   type t = Grew_domain.Domain.t
 
   let load filename =
-    handle ~name:"Domain.load"
+    Libgrew.handle ~name:"Domain.load"
       (fun () ->
       let ast = Grew_loader.Loader.domain filename in
       Grew_grs.Old_grs.domain_build ast
       ) ()
 
   let feature_names domain =
-    handle ~name:"Domain.feature_names"
+    Libgrew.handle ~name:"Domain.feature_names"
       (fun () -> Grew_domain.Domain.feature_names domain)
       ()
 
   let dump domain =
-    handle ~name:"Domain.dump"
+    Libgrew.handle ~name:"Domain.dump"
       (fun () -> Grew_domain.Domain.dump domain)
       ()
 
@@ -81,13 +84,13 @@ module Pattern = struct
   type t = Grew_rule.Rule.pattern
 
   let load ?domain file =
-  handle ~name:"Pattern.load" (fun () -> Grew_rule.Rule.build_pattern ?domain (Grew_loader.Loader.pattern file)) ()
+  Libgrew.handle ~name:"Pattern.load" (fun () -> Grew_rule.Rule.build_pattern ?domain (Grew_loader.Loader.pattern file)) ()
 
   let parse ?domain desc =
-  handle ~name:"Pattern.load" (fun () -> Grew_rule.Rule.build_pattern ?domain (Grew_loader.Parser.pattern desc)) ()
+  Libgrew.handle ~name:"Pattern.load" (fun () -> Grew_rule.Rule.build_pattern ?domain (Grew_loader.Parser.pattern desc)) ()
 
   let pid_name_list pattern =
-  handle ~name:"Pattern.pid_lits"
+  Libgrew.handle ~name:"Pattern.pid_lits"
     (fun () -> List.map (fun x -> x) (Grew_rule.Rule.pid_name_list pattern)
     ) ()
 end
@@ -117,22 +120,22 @@ module Graph = struct
 
   let load_gr ?domain file =
     if not (Sys.file_exists file)
-    then raise (Error ("File_not_found: " ^ file))
+    then raise (Libgrew.Error ("File_not_found: " ^ file))
     else
-      handle ~name:"Graph.load_gr" ~file
+      Libgrew.handle ~name:"Graph.load_gr" ~file
         (fun () ->
           let gr_ast = Grew_loader.Loader.gr file in
           Grew_graph.G_graph.build ?domain gr_ast
         ) ()
 
   let load_conll ?domain file =
-    handle ~name:"Graph.load_conll" ~file
+    Libgrew.handle ~name:"Graph.load_conll" ~file
       (fun () ->
         Grew_graph.G_graph.of_conll ?domain (Conll.load file)
       ) ()
 
   let load_brown ?domain file =
-    handle ~name:"Graph.load_brown"
+    Libgrew.handle ~name:"Graph.load_brown"
       (fun () ->
         let brown = Grew_base.File.load file in
         Grew_graph.G_graph.of_brown ?domain brown
@@ -140,16 +143,16 @@ module Graph = struct
 
   let load_pst ?domain file =
     if not (Sys.file_exists file)
-    then raise (Error ("File_not_found: " ^ file))
+    then raise (Libgrew.Error ("File_not_found: " ^ file))
     else
-      handle ~name:"load_pst" ~file
+      Libgrew.handle ~name:"load_pst" ~file
         (fun () ->
           let const_ast = Grew_loader.Loader.phrase_structure_tree file in
           Grew_graph.G_graph.of_pst ?domain const_ast
         ) ()
 
   let load ?domain file =
-    handle ~name:"Graph.load_graph" ~file
+    Libgrew.handle ~name:"Graph.load_graph" ~file
       (fun () ->
         match Grew_base.File.get_suffix file with
         | Some ".gr" -> load_gr ?domain file
@@ -165,20 +168,20 @@ module Graph = struct
       ) ()
 
   let of_gr ?domain ?(grewpy=false) gr_string =
-    handle ~name:"Graph.of_gr" (fun () -> Grew_graph.G_graph.build ?domain ~grewpy (Grew_loader.Parser.gr gr_string)) ()
+    Libgrew.handle ~name:"Graph.of_gr" (fun () -> Grew_graph.G_graph.build ?domain ~grewpy (Grew_loader.Parser.gr gr_string)) ()
 
   let of_conll ?domain conll =
-    handle ~name:"Graph.of_conll" (fun () -> Grew_graph.G_graph.of_conll ?domain conll) ()
+    Libgrew.handle ~name:"Graph.of_conll" (fun () -> Grew_graph.G_graph.of_conll ?domain conll) ()
 
   let of_pst ?domain pst_string =
-    handle ~name:"of_pst"
+    Libgrew.handle ~name:"of_pst"
       (fun () ->
         let pst_ast = Grew_loader.Parser.phrase_structure_tree pst_string in
         (Grew_graph.G_graph.of_pst ?domain pst_ast)
       ) ()
 
   let sentence_of_pst ?domain pst_string =
-    handle ~name:"of_pst"
+    Libgrew.handle ~name:"of_pst"
       (fun () ->
         let pst_ast = Grew_loader.Parser.phrase_structure_tree pst_string in
         let word_list = Grew_ast.Ast.word_list pst_ast in
@@ -186,43 +189,43 @@ module Graph = struct
       ) ()
 
   let of_brown ?domain ?sentid brown =
-    handle ~name:"Graph.of_brown" (fun () -> Grew_graph.G_graph.of_brown ?domain ?sentid brown) ()
+    Libgrew.handle ~name:"Graph.of_brown" (fun () -> Grew_graph.G_graph.of_brown ?domain ?sentid brown) ()
 
   let to_dot ?main_feat ?(deco=Grew_graph.G_deco.empty) graph =
-    handle ~name:"Graph.to_dot" (fun () -> Grew_graph.G_graph.to_dot ?main_feat graph ~deco) ()
+    Libgrew.handle ~name:"Graph.to_dot" (fun () -> Grew_graph.G_graph.to_dot ?main_feat graph ~deco) ()
 
   let to_dep ?filter ?main_feat ?(deco=Grew_graph.G_deco.empty) graph =
-    handle ~name:"Graph.to_dep" (fun () -> Grew_graph.G_graph.to_dep ?filter ?main_feat ~deco graph) ()
+    Libgrew.handle ~name:"Graph.to_dep" (fun () -> Grew_graph.G_graph.to_dep ?filter ?main_feat ~deco graph) ()
 
   let to_gr graph =
-    handle ~name:"Graph.to_gr" (fun () -> Grew_graph.G_graph.to_gr graph) ()
+    Libgrew.handle ~name:"Graph.to_gr" (fun () -> Grew_graph.G_graph.to_gr graph) ()
 
   let to_conll graph =
-    handle ~name:"Graph.to_conll" (fun () -> Grew_graph.G_graph.to_conll graph) ()
+    Libgrew.handle ~name:"Graph.to_conll" (fun () -> Grew_graph.G_graph.to_conll graph) ()
 
   let to_conll_string graph =
-    handle ~name:"Graph.to_conll_string" (fun () -> Grew_graph.G_graph.to_conll_string graph) ()
+    Libgrew.handle ~name:"Graph.to_conll_string" (fun () -> Grew_graph.G_graph.to_conll_string graph) ()
 
   let to_sentence ?main_feat ?deco gr =
-    handle ~name:"Graph.to_sentence"
+    Libgrew.handle ~name:"Graph.to_sentence"
       (fun () ->
         Grew_graph.G_graph.to_sentence ?main_feat ?deco gr
       ) ()
 
   let save_conll filename graph =
-    handle ~name:"Graph.save_conll" (fun () ->
+    Libgrew.handle ~name:"Graph.save_conll" (fun () ->
       let out_ch = open_out filename in
       fprintf out_ch "%s" (Grew_graph.G_graph.to_conll_string graph);
       close_out out_ch
     ) ()
 
   let search_pattern ?domain pattern graph =
-    handle ~name:"Graph.search_pattern" (fun () ->
+    Libgrew.handle ~name:"Graph.search_pattern" (fun () ->
       Grew_rule.Rule.match_in_graph ?domain pattern graph
     ) ()
 
   let node_matching pattern graph matching =
-    handle ~name:"Graph.node_matching" (fun () ->
+    Libgrew.handle ~name:"Graph.node_matching" (fun () ->
       Grew_rule.Rule.node_matching pattern graph matching
     ) ()
 end
@@ -236,15 +239,15 @@ module Old_grs = struct
   let empty = Grew_grs.Old_grs.empty
 
   let load file =
-    handle ~name:"Old_grs.load" ~file
+    Libgrew.handle ~name:"Old_grs.load" ~file
       (fun () ->
         if not (Sys.file_exists file)
-        then raise (Error ("File_not_found: " ^ file))
+        then raise (Libgrew.Error ("File_not_found: " ^ file))
         else Grew_grs.Old_grs.build file
       ) ()
 
   let get_sequence_names grs =
-    handle ~name:"Old_grs.get_sequence_names"
+    Libgrew.handle ~name:"Old_grs.get_sequence_names"
       (fun () ->
         Grew_grs.Old_grs.sequence_names grs
       ) ()
@@ -263,25 +266,25 @@ module Grs = struct
   type t = Grew_grs.Grs.t
 
   let load file =
-    handle ~name:"Grs.load" ~file
+    Libgrew.handle ~name:"Grs.load" ~file
       (fun () ->
         Grew_grs.Grs.load file
       ) ()
 
   let load_old file =
-    handle ~name:"Grs.load" ~file
+    Libgrew.handle ~name:"Grs.load" ~file
       (fun () ->
         Grew_grs.Grs.load_old file
       ) ()
 
   let dump grs =
-    handle ~name:"Grs.dump"
+    Libgrew.handle ~name:"Grs.dump"
       (fun () ->
         Grew_grs.Grs.dump grs
       ) ()
 
   let domain grs =
-    handle ~name:"Grs.domain"
+    Libgrew.handle ~name:"Grs.domain"
       (fun () ->
         Grew_grs.Grs.domain grs
       ) ()
@@ -291,7 +294,7 @@ module Grs = struct
       Yojson.Basic.pretty_to_string json
 
   let get_strat_list grs =
-    handle ~name:"Grs.get_strat_list"
+    Libgrew.handle ~name:"Grs.get_strat_list"
       (fun () ->
         Grew_grs.Grs.get_strat_list grs
         ) ()
@@ -312,61 +315,61 @@ module Rewrite = struct
   let set_debug_loop () = Grew_rule.Rule.set_debug_loop ()
 
   let old_old_display ~gr ~grs ~seq =
-    handle ~name:"Rewrite.old_old_display" (fun () -> Grew_grs.Old_grs.build_rew_display grs seq gr) ()
+    Libgrew.handle ~name:"Rewrite.old_old_display" (fun () -> Grew_grs.Old_grs.build_rew_display grs seq gr) ()
 
   let old_display ~gr ~grs ~strat =
-    handle ~name:"Rewrite.old_display" (fun () -> Grew_grs.Grs.det_rew_display grs strat gr) ()
+    Libgrew.handle ~name:"Rewrite.old_display" (fun () -> Grew_grs.Grs.det_rew_display grs strat gr) ()
 
   let display ~gr ~grs ~strat =
-    handle ~name:"Rewrite.display" (fun () -> Grew_grs.Grs.wrd_rewrite grs strat gr) ()
+    Libgrew.handle ~name:"Rewrite.display" (fun () -> Grew_grs.Grs.wrd_rewrite grs strat gr) ()
 
   let set_timeout t = Grew_base.Timeout.timeout := t
 
   let rewrite ~gr ~grs ~seq =
-    handle ~name:"Rewrite.rewrite" (fun () -> Grew_grs.Old_grs.rewrite grs seq gr) ()
+    Libgrew.handle ~name:"Rewrite.rewrite" (fun () -> Grew_grs.Old_grs.rewrite grs seq gr) ()
 
   let old_simple_rewrite ~gr ~grs ~strat =
-    handle ~name:"Rewrite.old_simple_rewrite" (fun () -> Grew_grs.Old_grs.simple_rewrite grs strat gr) ()
+    Libgrew.handle ~name:"Rewrite.old_simple_rewrite" (fun () -> Grew_grs.Old_grs.simple_rewrite grs strat gr) ()
 
   let simple_rewrite ~gr ~grs ~strat =
-    handle ~name:"Rewrite.simple_rewrite" (fun () -> Grew_grs.Grs.gwh_simple_rewrite grs strat gr) ()
+    Libgrew.handle ~name:"Rewrite.simple_rewrite" (fun () -> Grew_grs.Grs.gwh_simple_rewrite grs strat gr) ()
 
   let at_least_one ~grs ~strat =
-    handle ~name:"Rewrite.at_least_one" (fun () -> Grew_grs.Grs.at_least_one grs strat) ()
+    Libgrew.handle ~name:"Rewrite.at_least_one" (fun () -> Grew_grs.Grs.at_least_one grs strat) ()
   let at_most_one ~grs ~strat =
-    handle ~name:"Rewrite.at_most_one" (fun () -> Grew_grs.Grs.at_most_one grs strat) ()
+    Libgrew.handle ~name:"Rewrite.at_most_one" (fun () -> Grew_grs.Grs.at_most_one grs strat) ()
 
   let is_empty rh =
-    handle ~name:"Rewrite.is_empty" (fun () -> Grew_grs.Rewrite_history.is_empty rh) ()
+    Libgrew.handle ~name:"Rewrite.is_empty" (fun () -> Grew_grs.Rewrite_history.is_empty rh) ()
 
   let num_sol rh =
-    handle ~name:"Rewrite.num_sol" (fun () -> Grew_grs.Rewrite_history.num_sol rh) ()
+    Libgrew.handle ~name:"Rewrite.num_sol" (fun () -> Grew_grs.Rewrite_history.num_sol rh) ()
 
   let save_index ~dirname ~base_names =
-    handle ~name:"Rewrite.save_index" (fun () ->
+    Libgrew.handle ~name:"Rewrite.save_index" (fun () ->
       let out_ch = open_out (Filename.concat dirname "index") in
       Array.iter (fun f -> fprintf out_ch "%s\n" f) base_names;
       close_out out_ch
     ) ()
 
   let save_gr base rew_hist =
-    handle ~name:"Rewrite.save_gr" (fun () -> Grew_grs.Rewrite_history.save_gr base rew_hist) ()
+    Libgrew.handle ~name:"Rewrite.save_gr" (fun () -> Grew_grs.Rewrite_history.save_gr base rew_hist) ()
 
   let save_conll base rew_hist =
-    handle ~name:"Rewrite.save_conll" (fun () -> Grew_grs.Rewrite_history.save_conll base rew_hist) ()
+    Libgrew.handle ~name:"Rewrite.save_conll" (fun () -> Grew_grs.Rewrite_history.save_conll base rew_hist) ()
 
   let save_full_conll base rew_hist =
-    handle ~name:"Rewrite.save_full_conll" (fun () -> Grew_grs.Rewrite_history.save_full_conll base rew_hist) ()
+    Libgrew.handle ~name:"Rewrite.save_full_conll" (fun () -> Grew_grs.Rewrite_history.save_full_conll base rew_hist) ()
 
   let save_det_gr base rew_hist =
-    handle ~name:"Rewrite.save_det_gr" (fun () -> Grew_grs.Rewrite_history.save_det_gr base rew_hist) ()
+    Libgrew.handle ~name:"Rewrite.save_det_gr" (fun () -> Grew_grs.Rewrite_history.save_det_gr base rew_hist) ()
 
   let save_det_conll ?header base rew_hist =
-    handle ~name:"Rewrite.save_det_conll" (fun () -> Grew_grs.Rewrite_history.save_det_conll ?header base rew_hist) ()
+    Libgrew.handle ~name:"Rewrite.save_det_conll" (fun () -> Grew_grs.Rewrite_history.save_det_conll ?header base rew_hist) ()
 
   let det_dep_string rew_hist =
-    handle ~name:"Rewrite.det_dep_string" (fun () -> Grew_grs.Rewrite_history.det_dep_string rew_hist) ()
+    Libgrew.handle ~name:"Rewrite.det_dep_string" (fun () -> Grew_grs.Rewrite_history.det_dep_string rew_hist) ()
 
   let conll_dep_string ?keep_empty_rh rew_hist =
-    handle ~name:"Rewrite.conll_dep_string" (fun () -> Grew_grs.Rewrite_history.conll_dep_string ?keep_empty_rh rew_hist) ()
+    Libgrew.handle ~name:"Rewrite.conll_dep_string" (fun () -> Grew_grs.Rewrite_history.conll_dep_string ?keep_empty_rh rew_hist) ()
 end
