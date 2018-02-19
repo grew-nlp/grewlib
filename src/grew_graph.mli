@@ -193,7 +193,7 @@ module G_graph: sig
   val to_conll: t -> Conll.t
   val to_conll_string: t -> string
 
-  val cast: Domain.t -> t -> t
+  val cast: ?domain:Domain.t -> t -> t
 end (* module G_graph *)
 
 module Delta : sig

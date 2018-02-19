@@ -1159,6 +1159,7 @@ module Rule = struct
 
   (*  ---------------------------------------------------------------------- *)
   let match_in_graph ?domain ?param (pos, negs) graph =
+    let casted_graph = G_graph.cast ?domain graph in
     let pos_graph = pos.graph in
 
     (* get the list of partial matching for positive part of the pattern *)
@@ -1166,7 +1167,7 @@ module Rule = struct
       extend_matching
         ?domain
         (pos_graph,P_graph.empty)
-        graph
+        casted_graph
         (init param pos) in
 
     let filtered_matching_list =
