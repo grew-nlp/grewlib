@@ -660,7 +660,6 @@ module G_graph = struct
 
   (* -------------------------------------------------------------------------------- *)
   let update_feat ?loc graph tar_id tar_feat_name item_list =
-    let domain = get_domain graph in
     let strings_to_concat =
       List.map
         (function
