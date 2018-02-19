@@ -14,8 +14,9 @@ open Conll
 (** {2 General definitions} *)
 (* ==================================================================================================== *)
 module Libgrew : sig
-  val set_debug_mode: bool -> unit
   val get_version: unit -> string
+  val set_debug_mode: bool -> unit
+  val set_safe_commands: bool -> unit
 
   exception Error of string
   exception Bug of string

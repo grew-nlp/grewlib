@@ -29,6 +29,8 @@ module Libgrew = struct
 
   let set_debug_mode flag = Grew_base.Global.debug := flag
 
+  let set_safe_commands flag = Grew_base.Global.safe_commands := flag
+
   exception Error of string
   exception Bug of string
 
