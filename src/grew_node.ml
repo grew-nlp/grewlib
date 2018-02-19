@@ -115,14 +115,6 @@ module G_node = struct
   let remove_key node_id t =
     try {t with next = Massoc_gid.remove_key node_id t.next} with Not_found -> t
 
-  let merge_key ?(strict=false) src_id tar_id t =
-    try Some {t with next = Massoc_gid.merge_key src_id tar_id t.next}
-    with Massoc_gid.Duplicate -> if strict then None else Some t
-
-  let shift_out ?(strict=false) src_t tar_t =
-    try Some {tar_t with next = Massoc_gid.disjoint_union src_t.next tar_t.next}
-    with Massoc_gid.Not_disjoint -> if strict then None else Some tar_t
-
   let rm_out_edges t = {t with next = Massoc_gid.empty}
 
   (* let build_neighbour t = { empty with position = (get_position t) +. 0.01 }

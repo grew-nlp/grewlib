@@ -225,9 +225,6 @@ module type S =
     exception Not_disjoint
     val disjoint_union: 'a t -> 'a t -> 'a t
 
-    exception Duplicate
-    val merge_key: key -> key -> 'a t -> 'a t
-
     val exists: (key -> 'a -> bool) -> 'a t -> bool
 
     val rename: (key * key) list -> 'a t -> 'a t
@@ -294,5 +291,5 @@ module Global: sig
   val label_flag: bool ref
 
   val debug: bool ref
-  val strict: bool ref
+  val safe_commands: bool ref
 end

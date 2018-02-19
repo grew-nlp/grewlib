@@ -442,8 +442,6 @@ module type S = sig
   exception Not_disjoint
   val disjoint_union: 'a t -> 'a t -> 'a t
 
-  exception Duplicate
-  val merge_key: key -> key -> 'a t -> 'a t
 
   val exists: (key -> 'a -> bool) -> 'a t -> bool
 
@@ -522,17 +520,6 @@ module Massoc_make (Ord: OrderedType) = struct
           | Not_found -> M.add key list acc
           | List_.Not_disjoint -> raise Not_disjoint
       ) t1 t2
-
-  exception Duplicate
-
-  let merge_key i j t =
-    try
-      let old_i = M.find i t in
-      let old_j = try M.find j t with Not_found -> [] in
-      M.add j (List_.sort_disjoint_union old_i old_j) (M.remove i t)
-    with
-      | Not_found -> (* no key i *) t
-      | List_.Not_disjoint -> raise Duplicate
 
   exception True
   let exists fct t =
@@ -631,5 +618,5 @@ module Global = struct
   | (fo, Some l) -> current_loc := (fo, Some (l+1))
 
   let debug = ref false
-  let strict = ref false
+  let safe_commands = ref false
 end

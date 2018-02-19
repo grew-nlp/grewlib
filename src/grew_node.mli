@@ -61,8 +61,6 @@ module G_node: sig
 
   val remove_key: Gid.t -> t -> t
 
-  val merge_key: ?strict:bool -> Gid.t -> Gid.t -> t -> t option
-  val shift_out: ?strict:bool -> t -> t -> t option
 
   val rm_out_edges: t -> t
 

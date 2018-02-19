@@ -136,7 +136,6 @@ module G_graph: sig
   (** shift all crown-edges ending in [src_gid] to edges ending in [tar_gid] *)
   val shift_in:
     Loc.t ->            (* localization of the command *)
-    bool ->             (* true iff strict rewriting *)
     Gid.t ->            (* [src_gid] the source gid of the "shift_in" *)
     Gid.t ->            (* [tar_gid] the target gid of the "shift_in" *)
     (Gid.t -> bool) ->  (* a locality test: true iff the node is a pattern node *)
@@ -150,7 +149,6 @@ module G_graph: sig
   (** shift all crown-edges starting from [src_gid] to edges starting from [tar_gid] *)
   val shift_out:
     Loc.t ->            (* localization of the command *)
-    bool ->             (* true iff strict rewriting *)
     Gid.t ->            (* [src_gid] the source gid of the "shift_out" *)
     Gid.t ->            (* [tar_gid] the target gid of the "shift_out" *)
     (Gid.t -> bool) ->  (* a locality test: true iff the node is a pattern node *)
@@ -164,7 +162,6 @@ module G_graph: sig
   (** move all incident crown-edges from/to [src_gid] are moved to incident edges on node [tar_gid] from graph *)
   val shift_edges:
     Loc.t ->            (* localization of the command *)
-    bool ->             (* true iff strict rewriting *)
     Gid.t ->            (* [src_gid] the source gid of the "shift_edges" *)
     Gid.t ->            (* [tar_gid] the target gid of the "shift_edges" *)
     (Gid.t -> bool) ->  (* a locality test: true iff the node is a pattern node *)

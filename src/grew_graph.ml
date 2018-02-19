@@ -560,7 +560,7 @@ module G_graph = struct
 
   (* -------------------------------------------------------------------------------- *)
   (* move out-edges (which respect cst [labels,neg]) from id_src are moved to out-edges out off node id_tar *)
-  let shift_out loc strict src_gid tar_gid is_gid_local label_cst graph =
+  let shift_out loc src_gid tar_gid is_gid_local label_cst graph =
     let domain = get_domain graph in
     let del_edges = ref [] and add_edges = ref [] in
 
@@ -576,7 +576,7 @@ module G_graph = struct
         if Label_cst.match_ ?domain label_cst edge && not (is_gid_local next_gid)
         then
           match Massoc_gid.add_opt next_gid edge acc_tar_next with
-          | None when strict -> Error.run ~loc "The [shift_out] command tries to build a duplicate edge (with label \"%s\")" (Label.to_string ?domain edge)
+          | None when !Global.safe_commands -> Error.run ~loc "The [shift_out] command tries to build a duplicate edge (with label \"%s\")" (Label.to_string ?domain edge)
           | None ->
             del_edges := (src_gid,edge,next_gid) :: !del_edges;
             (Massoc_gid.remove next_gid edge acc_src_next, acc_tar_next)
@@ -597,7 +597,7 @@ module G_graph = struct
     )
 
   (* -------------------------------------------------------------------------------- *)
-  let shift_in loc strict src_gid tar_gid is_gid_local label_cst graph =
+  let shift_in loc src_gid tar_gid is_gid_local label_cst graph =
     let domain = get_domain graph in
     let del_edges = ref [] and add_edges = ref [] in
     let new_map =
@@ -617,7 +617,7 @@ module G_graph = struct
                 if Label_cst.match_ ?domain label_cst edge
                 then
                   match List_.usort_insert edge acc_node_tar_edges with
-                  | None when strict ->
+                  | None when !Global.safe_commands ->
                     Error.run ~loc "The [shift_in] command tries to build a duplicate edge (with label \"%s\")" (Label.to_string ?domain edge)
                   | None ->
                     del_edges := (node_id,edge,src_gid) :: !del_edges;
@@ -641,9 +641,9 @@ module G_graph = struct
     )
 
   (* -------------------------------------------------------------------------------- *)
-  let shift_edges loc strict src_gid tar_gid is_gid_local label_cst graph =
-    let (g1,de1,ae1) = shift_out loc strict src_gid tar_gid is_gid_local label_cst graph in
-    let (g2,de2,ae2) = shift_in loc strict src_gid tar_gid is_gid_local label_cst g1 in
+  let shift_edges loc src_gid tar_gid is_gid_local label_cst graph =
+    let (g1,de1,ae1) = shift_out loc src_gid tar_gid is_gid_local label_cst graph in
+    let (g2,de2,ae2) = shift_in loc src_gid tar_gid is_gid_local label_cst g1 in
     (g2, de1 @ de2, ae1 @ ae2)
 
   (* -------------------------------------------------------------------------------- *)
