@@ -297,9 +297,13 @@ module G_fs = struct
 
   (* ---------------------------------------------------------------------- *)
   let to_word (t:t) =
-    match List_.sort_assoc "phon" t with
-    | Some s -> Some (string_of_value s)
-    | None -> match List_.sort_assoc "form" t with
+    match List_.sort_assoc "_UD_empty" t with
+    | Some v when string_of_value v = "Yes" -> None
+    | _ ->
+      match List_.sort_assoc "phon" t with
+      | Some s -> Some (string_of_value s)
+      | None ->
+        match List_.sort_assoc "form" t with
         | Some s -> Some (string_of_value s)
         | None -> None
 
