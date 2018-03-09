@@ -1,3 +1,6 @@
+## 0.46.4 (2018/03/09)
+  * Fix Not_found excption in conversion UD to Sequoia (fusion words)
+
 ## 0.46.3 (2018/01/03)
   * Fix #21580: out_edges not shifted by the shift command
   * Fix #21581: detection of duplicate identifiers inside packages
