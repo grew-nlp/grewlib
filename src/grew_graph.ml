@@ -229,10 +229,7 @@ module G_graph = struct
     highest_index: int;           (* the next free integer index *)
   }
 
-<<<<<<< HEAD
-  let empty = { domain=None; meta=[]; map=Gid_map.empty; fusion=[]; highest_index=0; }
-=======
-  let empty = {meta=[]; map=Gid_map.empty; highest_index=0; }
+  let empty = { domain=None; meta=[]; map=Gid_map.empty; highest_index=0; }
 
   (* ---------------------------------------------------------------------- *)
   let rename mapping graph =
