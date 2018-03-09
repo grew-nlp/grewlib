@@ -221,21 +221,13 @@ end (* module G_deco *)
 
 (* ================================================================================ *)
 module G_graph = struct
-  type fusion_item = {
-    first: Gid.t;
-    last: Gid.t;
-    word: string;
-    efs: (string * string) list;
-  }
-
   type t = {
     meta: string list;            (* meta-informations *)
     map: G_node.t Gid_map.t;      (* node description *)
-    fusion: fusion_item list;     (* the list of fusion word considered in UD conll *)
     highest_index: int;           (* the next free integer index *)
   }
 
-  let empty = {meta=[]; map=Gid_map.empty; fusion=[]; highest_index=0; }
+  let empty = {meta=[]; map=Gid_map.empty; highest_index=0; }
 
   (* ---------------------------------------------------------------------- *)
   let rename mapping graph =
@@ -366,7 +358,7 @@ module G_graph = struct
           )
         ) map_without_edges full_edge_list in
 
-    {meta=gr_ast.Ast.meta; map=map; fusion = []; highest_index = (List.length full_node_list) -1}
+    {meta=gr_ast.Ast.meta; map=map; highest_index = (List.length full_node_list) -1}
 
   (* -------------------------------------------------------------------------------- *)
   let of_conll ?domain conll =
@@ -405,21 +397,7 @@ module G_graph = struct
             ) acc line.Conll.deps
         ) map_without_edges conll.Conll.lines in
 
-      let fusion =
-        List.map
-          (fun {Conll.first; last; fusion; mw_line_num; mw_efs} ->
-              let loc = Loc.file_opt_line_opt conll.Conll.file mw_line_num in
-              (
-                {
-                  first = Id.gbuild ~loc (first,None) gtable;
-                  last = Id.gbuild ~loc (last, None) gtable;
-                  word = fusion;
-                  efs = mw_efs;
-                }
-              )
-          ) conll.Conll.multiwords in
-
-    {meta = conll.Conll.meta; map=map_with_edges; fusion; highest_index= (List.length sorted_lines) -1 }
+    {meta = conll.Conll.meta; map=map_with_edges; highest_index= (List.length sorted_lines) -1 }
 
   (* -------------------------------------------------------------------------------- *)
   (** input : "Le/DET/le petit/ADJ/petit chat/NC/chat dort/V/dormir ./PONCT/." *)
@@ -476,7 +454,7 @@ module G_graph = struct
       |> (Gid_map.add n1 (G_node.set_succ n2 node1))
       |> (Gid_map.add n2 (G_node.set_prec n1 node2)) in
 
-    {meta=[]; map=prec_loop map (List.rev !leaf_list); fusion = []; highest_index = !cpt}
+    {meta=[]; map=prec_loop map (List.rev !leaf_list); highest_index = !cpt}
 
   (* -------------------------------------------------------------------------------- *)
   let del_edge ?domain ?edge_ident loc graph id_src label id_tar =
@@ -882,16 +860,6 @@ module G_graph = struct
             ) acc (G_node.get_next node)
         ) graph.map Gid_map.empty in
 
-    let multiwords =
-      List.map (fun fusion_item ->
-        { Conll.mw_line_num = None;
-          first = int_of_float (get_num fusion_item.first);
-          last = int_of_float (get_num fusion_item.last);
-          fusion = fusion_item.word;
-          mw_efs = fusion_item.efs;
-        }
-      ) graph.fusion in
-
     let lines = List_.opt_map
     (fun (gid,node) ->
       if G_node.is_conll_root node
@@ -929,7 +897,7 @@ module G_graph = struct
       Conll.file = None;
       Conll.meta = graph.meta;
       lines;
-      multiwords;
+      multiwords=[];
     }
 
   let to_conll_string ?domain graph =
