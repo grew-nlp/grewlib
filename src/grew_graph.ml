@@ -222,29 +222,22 @@ end (* module G_deco *)
 
 (* ================================================================================ *)
 module G_graph = struct
+  type fusion_item = {
+    first: Gid.t;
+    last: Gid.t;
+    word: string;
+    efs: (string * string) list;
+  }
+
   type t = {
     domain: Domain.t option;
     meta: string list;            (* meta-informations *)
     map: G_node.t Gid_map.t;      (* node description *)
+    fusion: fusion_item list;     (* the list of fusion word considered in UD conll *)
     highest_index: int;           (* the next free integer index *)
   }
 
-  let empty = { domain=None; meta=[]; map=Gid_map.empty; highest_index=0; }
-
-  (* ---------------------------------------------------------------------- *)
-  let rename mapping graph =
-    {graph with map =
-        Gid_map.fold
-          (fun id node acc ->
-            let new_id = try List.assoc id mapping with Not_found -> id in
-            let new_node = G_node.rename mapping node in
-            Gid_map.add new_id new_node acc
-          ) graph.map Gid_map.empty
-    }
-
-  exception Not_a_tree
-  type tree = T of (Gid.t * tree list)
->>>>>>> refs/heads/master
+  let empty = { domain=None; meta=[]; map=Gid_map.empty; fusion=[]; highest_index=0; }
 
   let get_domain t = t.domain
 
@@ -332,6 +325,7 @@ module G_graph = struct
       domain;
       meta=gr_ast.Ast.meta;
       map;
+      fusion = [];
       highest_index = (List.length full_node_list) -1
     }
 
@@ -372,10 +366,25 @@ module G_graph = struct
             ) acc line.Conll.deps
         ) map_without_edges conll.Conll.lines in
 
+      let fusion =
+        List.map
+          (fun {Conll.first; last; fusion; mw_line_num; mw_efs} ->
+              let loc = Loc.file_opt_line_opt conll.Conll.file mw_line_num in
+              (
+                {
+                  first = Id.gbuild ~loc (first,None) gtable;
+                  last = Id.gbuild ~loc (last, None) gtable;
+                  word = fusion;
+                  efs = mw_efs;
+                }
+              )
+          ) conll.Conll.multiwords in
+
     {
       domain;
       meta = conll.Conll.meta;
       map=map_with_edges;
+      fusion;
       highest_index= (List.length sorted_lines) -1
     }
 
@@ -438,6 +447,7 @@ module G_graph = struct
       domain;
       meta=[];
       map=prec_loop map (List.rev !leaf_list);
+      fusion = [];
       highest_index = !cpt
     }
 
