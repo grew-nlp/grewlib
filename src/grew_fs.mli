@@ -8,6 +8,7 @@
 (*    Authors: see AUTHORS file                                                   *)
 (**********************************************************************************)
 
+open Yojson.Basic
 open Conll
 
 open Grew_base
@@ -51,7 +52,7 @@ module G_fs: sig
   val to_dep: ?decorated_feat:(string * string list) -> ?position:float -> ?main_feat: string -> ?filter: (string -> bool) -> t -> string
   val to_conll_string: ?exclude: string list -> t -> string
   val to_conll: ?exclude: string list -> t -> (string * string) list
-
+  val to_json: t -> json
   val to_string: t -> string
 
   val build: ?domain:Domain.t -> Ast.feature list -> t

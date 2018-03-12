@@ -381,6 +381,9 @@ module G_fs = struct
         (fun feat1 feat2 -> Pervasives.compare (String.lowercase_ascii (G_feature.get_name feat1)) (String.lowercase_ascii (G_feature.get_name feat2)))
         reduced_t in
     List.map (fun (fn, fv) -> (fn, string_of_value fv)) ud_ordering
+
+  let to_json t = `Assoc (List.map (fun (fn, fv) -> (fn, `String (string_of_value fv))) t)
+
 end (* module G_fs *)
 
 (* ================================================================================ *)

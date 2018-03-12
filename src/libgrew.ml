@@ -103,7 +103,7 @@ end
 module Matching = struct
   type t = Grew_rule.Rule.matching
 
-  let to_python pattern graph t = Grew_rule.Rule.to_python pattern graph t
+  let to_json pattern graph t = Grew_rule.Rule.to_python pattern graph t
 end
 
 (* ==================================================================================================== *)
@@ -205,6 +205,9 @@ module Graph = struct
   let to_gr graph =
     Libgrew.handle ~name:"Graph.to_gr" (fun () -> Grew_graph.G_graph.to_gr graph) ()
 
+  let to_json graph =
+    Libgrew.handle ~name:"Graph.to_json" (fun () -> Grew_graph.G_graph.to_json graph) ()
+
   let to_conll graph =
     Libgrew.handle ~name:"Graph.to_conll" (fun () -> Grew_graph.G_graph.to_conll graph) ()
 
@@ -294,9 +297,11 @@ module Grs = struct
         Grew_grs.Grs.domain grs
       ) ()
 
-  let to_json t =
-    let json = Grew_grs.Grs.to_json t in
-      Yojson.Basic.pretty_to_string json
+  let to_json grs =
+    Libgrew.handle ~name:"Grs.to_json"
+      (fun () ->
+        Grew_grs.Grs.to_json grs
+      ) ()
 
   let get_strat_list grs =
     Libgrew.handle ~name:"Grs.get_strat_list"

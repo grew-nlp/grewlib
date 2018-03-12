@@ -194,6 +194,7 @@ module G_graph: sig
   val to_dep: ?filter: (string -> bool) -> ?main_feat:string -> ?deco:G_deco.t -> t -> string
   val to_conll: t -> Conll.t
   val to_conll_string: t -> string
+  val to_json: t -> json
 
   val cast: ?domain:Domain.t -> t -> t
 end (* module G_graph *)

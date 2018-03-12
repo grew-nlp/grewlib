@@ -55,7 +55,7 @@ end
 module Matching: sig
   type t
 
-  val to_python: Pattern.t -> Grew_graph.G_graph.t -> t -> json
+  val to_json: Pattern.t -> Grew_graph.G_graph.t -> t -> json
 end
 
 (* ==================================================================================================== *)
@@ -87,6 +87,7 @@ module Graph : sig
   val of_conll: ?domain:Domain.t -> Conll.t -> t
 
   val of_json: json -> t
+  val to_json: t -> json
 
   val of_brown: ?domain:Domain.t -> ?sentid:string -> string -> t
 
@@ -148,7 +149,7 @@ module Grs : sig
 
   val domain: t -> Domain.t option
 
-  val to_json: t -> string
+  val to_json: t -> json
 
   val get_strat_list: t -> string list
 end

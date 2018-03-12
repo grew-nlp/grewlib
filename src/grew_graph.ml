@@ -713,6 +713,26 @@ module G_graph = struct
       | None -> None
 
   (* -------------------------------------------------------------------------------- *)
+  let to_json graph =
+    let domain = get_domain graph in
+
+    let gr_id id = G_node.get_name id (Gid_map.find id graph.map) in
+
+    let nodes = Gid_map.fold
+      (fun id node acc ->
+        let node_id = gr_id id
+        and fs = G_node.get_fs node
+        and succ =
+        Massoc_gid.fold
+          (fun acc tar edge ->
+            (`List [`String (G_edge.to_string ?domain edge); `String (gr_id tar)]) :: acc
+          ) [] (G_node.get_next node) in
+         (node_id,`List [G_fs.to_json fs; `List succ])::acc
+      ) graph.map [] in
+
+    `Assoc nodes
+
+  (* -------------------------------------------------------------------------------- *)
   let to_gr graph =
     let domain = get_domain graph in
 
