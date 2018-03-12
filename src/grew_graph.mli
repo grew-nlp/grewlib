@@ -9,6 +9,7 @@
 (**********************************************************************************)
 
 open Conll
+open Yojson.Basic
 
 open Grew_base
 open Grew_types
@@ -104,6 +105,7 @@ module G_graph: sig
   val build: ?domain:Domain.t -> ?grewpy: bool -> Ast.gr -> t
 
   val of_conll: ?domain:Domain.t -> Conll.t -> t
+  val of_json: json -> t
 
   (** input : "Le/DET/le petit/ADJ/petit chat/NC/chat dort/V/dormir ./PONCT/."
       It supposes that "SUC" is defined in current relations *)

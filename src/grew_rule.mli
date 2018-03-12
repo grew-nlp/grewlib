@@ -8,6 +8,7 @@
 (*    Authors: see AUTHORS file                                                   *)
 (**********************************************************************************)
 
+open Yojson.Basic
 open Grew_base
 open Grew_types
 open Grew_domain
@@ -101,7 +102,7 @@ module Rule : sig
 
   val pid_name_list: pattern -> Id.name list
 
-  val to_python: pattern -> G_graph.t -> matching -> string
+  val to_python: pattern -> G_graph.t -> matching -> json
 
   val build_pattern: ?domain:Domain.t -> Ast.pattern -> pattern
 

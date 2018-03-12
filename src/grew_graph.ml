@@ -288,7 +288,6 @@ module G_graph = struct
       else gr_ast.Ast.nodes
     and full_edge_list = gr_ast.Ast.edges in
 
-
     let rec loop already_bound index prec = function
       | [] -> (Gid_map.empty,[])
 
@@ -328,6 +327,31 @@ module G_graph = struct
       fusion = [];
       highest_index = (List.length full_node_list) -1
     }
+
+  (* -------------------------------------------------------------------------------- *)
+  let of_json = function
+  | `Assoc (l : (string * Yojson.Basic.json) list) ->
+    let (ast_node_list, ast_edge_list) = List.fold_left
+      (fun (acc_node, acc_edge) -> function
+        | (id, `List [`Assoc feat_json_list; `List succ]) ->
+          let fs = List.map (function
+            | (feat_name, `String value) -> ({Ast.name= feat_name; kind = Ast.Equality [value]}, Loc.empty)
+            | _ -> Error.build "[Graph.of_json] not an valid feature structure"
+          ) feat_json_list in
+          let new_edges = List.map
+            (function
+              | `List [`String rel; `String tar] -> ({Ast.edge_id=None; edge_label_cst=Ast.Pos_list [rel]; src=id; tar},Loc.empty)
+              | _ -> Error.build "[Graph.of_json] not an valid succ list"
+            ) succ in
+          (
+            ({ Ast.node_id=id; position=None; fs}, Loc.empty) :: acc_node,
+            new_edges @ acc_edge
+          )
+        | _ -> Error.build "[Graph.of_json] not an assoc list"
+      ) ([],[]) l in
+      let graph_ast = { Ast.meta=[]; nodes=ast_node_list; edges=ast_edge_list}
+      in build ~grewpy:true graph_ast
+  | _ -> Error.build "[Graph.of_json] not an assoc list"
 
   (* -------------------------------------------------------------------------------- *)
   let of_conll ?domain conll =

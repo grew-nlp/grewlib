@@ -9,6 +9,7 @@
 (**********************************************************************************)
 
 open Conll
+open Yojson.Basic
 
 (* ==================================================================================================== *)
 (** {2 General definitions} *)
@@ -54,7 +55,7 @@ end
 module Matching: sig
   type t
 
-  val to_python: Pattern.t -> Grew_graph.G_graph.t -> t -> string
+  val to_python: Pattern.t -> Grew_graph.G_graph.t -> t -> json
 end
 
 (* ==================================================================================================== *)
@@ -85,12 +86,13 @@ module Graph : sig
 
   val of_conll: ?domain:Domain.t -> Conll.t -> t
 
+  val of_json: json -> t
+
   val of_brown: ?domain:Domain.t -> ?sentid:string -> string -> t
 
   val of_pst: ?domain:Domain.t -> string -> t
 
   val sentence_of_pst: ?domain:Domain.t -> string -> string
-
 
   val to_sentence: ?main_feat:string -> ?deco:Deco.t -> t -> string
 

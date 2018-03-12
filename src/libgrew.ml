@@ -190,6 +190,9 @@ module Graph = struct
         Sentence.fr_clean_spaces (String.concat " " word_list)
       ) ()
 
+  let of_json json =
+    Libgrew.handle ~name:"Graph.of_json" (fun () -> Grew_graph.G_graph.of_json json) ()
+
   let of_brown ?domain ?sentid brown =
     Libgrew.handle ~name:"Graph.of_brown" (fun () -> Grew_graph.G_graph.of_brown ?domain ?sentid brown) ()
 
