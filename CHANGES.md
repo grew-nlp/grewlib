@@ -1,6 +1,9 @@
-# ONGOING
+# 0.47.0 (2018/03/13)
   * Add conll_fields in domain definition
+  * graphs are managing the own domain (change types in library)
   * /!\ change type of function Graph.to_dep
+  * add -safe_commands mode
+  * more json
 
 ## 0.46.4 (2018/03/09)
   * Fix Not_found exception in conversion UD to Sequoia (fusion words)
