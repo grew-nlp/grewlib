@@ -148,8 +148,6 @@ module Loader = struct
     | Unix.S_LNK -> Filename.dirname (Unix.readlink file)
     | _ -> Filename.dirname file
 
-  let unlink dir file = Filename.concat dir (Filename.basename file)
-
   let loc_new_grs file =
     try
       Global.new_file file;
@@ -164,7 +162,7 @@ module Loader = struct
   List.fold_left
     (fun acc decl -> match decl with
       | New_ast.Import filename ->
-        let real_file = unlink dir filename in
+        let real_file = Filename.concat dir filename in
         let pack_name = match CCString.chop_suffix ~suf:".grs" filename with
           | Some x -> x
           | None -> Error.build "Imported file must have the \".grs\" file extension" in
@@ -172,7 +170,7 @@ module Loader = struct
         let unfolded_sub = unfold_new_grs (real_dir real_file) false sub in
           New_ast.Package (Loc.file filename, pack_name, unfolded_sub) :: acc
       | New_ast.Include filename ->
-        let real_file = unlink dir filename in
+        let real_file = Filename.concat dir filename in
         let sub = loc_new_grs real_file in
         let unfolded_sub = unfold_new_grs (real_dir real_file) top sub in
           unfolded_sub @ acc

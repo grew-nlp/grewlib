@@ -1,3 +1,6 @@
+## 0.47.1 (2018/03/16)
+  * fix bug in grs loading with relative path
+
 # 0.47.0 (2018/03/13)
   * Add conll_fields in domain definition
   * graphs are managing the own domain (change types in library)

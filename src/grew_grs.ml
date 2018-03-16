@@ -561,7 +561,7 @@ module Grs = struct
         | New_ast.Labels _ -> None
         | New_ast.Conll_fields _ -> None
         | New_ast.Import _ -> Error.bug "[load] Import: inconsistent ast for new_grs"
-        | New_ast.Include _ -> Error.bug "[load] Inlcude: inconsistent ast for new_grs"
+        | New_ast.Include _ -> Error.bug "[load] Include: inconsistent ast for new_grs"
         | x -> Some (build_decl ?domain x)
       ) ast in
 
