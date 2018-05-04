@@ -1,5 +1,8 @@
+## 0.47.2 (2018/05/04)
+  * Deal with increasing Grs
+
 ## 0.47.1 (2018/03/16)
-  * fix bug in grs loading with relative path
+  * Fix bug in grs loading with relative path
 
 # 0.47.0 (2018/03/13)
   * Add conll_fields in domain definition

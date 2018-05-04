@@ -1144,11 +1144,13 @@ module Grs = struct
         ) in
       loop (Graph_with_history_set.singleton gwh, Graph_with_history_set.empty, Graph_with_history_set.empty)
 
-  let gwh_simple_rewrite grs strat graph =
+
+  let gwh_simple_rewrite grs strat_string graph =
     let domain = domain grs in
     let casted_graph = G_graph.cast ?domain graph in
+    let strat = Parser.strategy strat_string in
     let gwh = Graph_with_history.from_graph casted_graph in
-    let set = gwh_strat_simple_rewrite ?domain (top grs) (Parser.strategy strat) gwh in
+    let set = gwh_strat_simple_rewrite ?domain (top grs) strat gwh in
     List.map
       (fun gwh -> gwh.Graph_with_history.graph)
       (Graph_with_history_set.elements set)

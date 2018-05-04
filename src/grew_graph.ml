@@ -1088,7 +1088,9 @@ module Delta = struct
 
   let set_feat seed_graph gid feat_name new_val_opt t =
     (* equal_orig is true iff new val is the same as the one in seed_graph *)
-    let equal_orig = (new_val_opt = G_fs.get_atom feat_name (G_node.get_fs (G_graph.find gid seed_graph))) in
+    let equal_orig =
+      try (new_val_opt = G_fs.get_atom feat_name (G_node.get_fs (G_graph.find gid seed_graph)))
+      with Not_found -> false (* when gid is in created nodes *) in
     let rec loop = fun old -> match old with
     | [] when equal_orig                                             -> []
     | []                                                             -> [(gid,feat_name), new_val_opt]
@@ -1105,12 +1107,13 @@ module Graph_with_history = struct
     seed: G_graph.t;
     delta: Delta.t;
     graph: G_graph.t;
+    added_gids: (string * Gid.t) list;
   }
 
-  let from_graph graph = { graph; seed=graph; delta = Delta.empty }
+  let from_graph graph = { graph; seed=graph; delta = Delta.empty; added_gids = [] }
 
   (* WARNING: compare is correct only on data with the same seed! *)
-  let compare t1 t2 = Pervasives.compare t1.delta t2.delta
+  let compare t1 t2 = Pervasives.compare (t1.delta,t1.added_gids) (t2.delta, t2.added_gids)
 end (* module Graph_with_history*)
 
 module Graph_with_history_set = Set.Make (Graph_with_history)

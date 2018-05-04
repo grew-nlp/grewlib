@@ -215,6 +215,7 @@ module Graph_with_history : sig
     seed: G_graph.t;
     delta: Delta.t;
     graph: G_graph.t;
+    added_gids: (string * Gid.t) list;
   }
 
   val from_graph: G_graph.t -> t

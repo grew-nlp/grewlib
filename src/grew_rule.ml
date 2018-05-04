@@ -1488,7 +1488,7 @@ module Rule = struct
         let (new_gid,new_graph) = G_graph.add_unordered graph in
         (new_graph, (created_name,new_gid) :: created_nodes, true)
 
-  let rec onf_apply ?domain rule graph =
+  let onf_apply ?domain rule graph =
     let (pos,negs) = rule.pattern in
     (* get the list of partial matching for positive part of the pattern *)
       let matching_list =
@@ -1587,16 +1587,16 @@ module Rule = struct
 
 
 
-  let find cnode ?loc matching =
+  let find cnode ?loc gwh matching =
     match cnode with
     | Command.Pat pid ->
         (try Pid_map.find pid matching.n_match
         with Not_found -> Error.bug ?loc "Inconsistent matching pid '%s' not found" (Pid.to_string pid))
-    | Command.New name -> Error.bug ?loc "New node must not appear HERE !" name
+    | Command.New name -> List.assoc name gwh.Graph_with_history.added_gids
 
 
   let gwh_apply_command ?domain (command,loc) gwh matching =
-    let node_find cnode = find ~loc cnode matching in
+    let node_find cnode = find ~loc cnode gwh matching in
 
     match command with
     | Command.ADD_EDGE (src_cn,tar_cn,edge) ->
@@ -1748,16 +1748,28 @@ module Rule = struct
             |> (List.fold_right (fun (s,e,t) -> Delta.add_edge s e t) add_edges)
           }
 
-    | _ -> Error.bug "Add node must not occur here !!!"
+    | Command.NEW_AFTER (created_name,base_cn) ->
+        let base_gid = node_find base_cn in
+        let (new_gid,new_graph) = G_graph.add_after base_gid gwh.Graph_with_history.graph in
+          { gwh with
+            Graph_with_history.graph = new_graph;
+            added_gids = (created_name, new_gid) :: gwh.Graph_with_history.added_gids
+          }
 
+    | Command.NEW_BEFORE (created_name,base_cn) ->
+        let base_gid = node_find base_cn in
+        let (new_gid,new_graph) = G_graph.add_before base_gid gwh.Graph_with_history.graph in
+          { gwh with
+            Graph_with_history.graph = new_graph;
+            added_gids = (created_name, new_gid) :: gwh.Graph_with_history.added_gids
+          }
 
-
-
-
-
-
-
-
+    | Command.NEW_NODE (created_name) ->
+        let (new_gid,new_graph) = G_graph.add_unordered gwh.Graph_with_history.graph in
+          { gwh with
+            Graph_with_history.graph = new_graph;
+            added_gids = (created_name, new_gid) :: gwh.Graph_with_history.added_gids
+          }
 
   (*  ---------------------------------------------------------------------- *)
   (** [apply_rule graph_with_history matching rule] returns a new graph_with_history after the application of the rule *)
