@@ -104,7 +104,7 @@ module G_node = struct
   let pst_node ?loc ?domain cat position =
     { empty with fs = G_fs.pst_node ?loc ?domain cat; position = Ordered (float position) } (* TODO : change to Unordered *)
 
-  let fresh ?prec ?succ pos = { empty with position = Ordered pos; prec; succ }
+  let fresh ?prec ?succ pos = { empty with position = Ordered pos; prec; succ; name=Some (Printf.sprintf "W%g" pos) }
   let fresh_unordered () = { empty with position = Unordered (fresh_index ())}
 
   let remove_opt (id_tar : Gid.t) label t =
