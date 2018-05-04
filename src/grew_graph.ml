@@ -245,7 +245,7 @@ module G_graph = struct
 
   let find node_id graph = Gid_map.find node_id graph.map
 
-  let equals t t' = Gid_map.equal (fun node1 node2 -> node1 = node2) t.map t'.map
+  let equals t t' = Gid_map.equal (=) t.map t'.map
 
   let node_exists fct t = Gid_map.exists (fun _ node -> fct node) t.map
 

@@ -1105,8 +1105,8 @@ module Grs = struct
       begin
         match (* TODO: is it correct to put onf_ ?*)
         onf_strat_simple_rewrite ?domain pointed s gwh.Graph_with_history.graph with
-        | None -> gwh_strat_simple_rewrite ?domain pointed s1 gwh
-        | Some _ -> gwh_strat_simple_rewrite ?domain pointed s2 gwh
+        | Some _ -> gwh_strat_simple_rewrite ?domain pointed s1 gwh
+        | None   -> gwh_strat_simple_rewrite ?domain pointed s2 gwh
       end
 
     | New_ast.Onf s ->
@@ -1250,8 +1250,8 @@ module Grs = struct
     | New_ast.If (s, s1, s2) ->
       begin
         match onf_strat_simple_rewrite ?domain pointed s linear_rd.graph with
-        | None   -> wrd_strat_simple_rewrite iter_flag ?domain pointed s1 linear_rd
-        | Some _ -> wrd_strat_simple_rewrite iter_flag ?domain pointed s2 linear_rd
+        | Some _ -> wrd_strat_simple_rewrite iter_flag ?domain pointed s1 linear_rd
+        | None   -> wrd_strat_simple_rewrite iter_flag ?domain pointed s2 linear_rd
       end
 
   let build_rew_display_from_linear_rd linear_rd =
