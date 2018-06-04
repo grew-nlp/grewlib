@@ -116,7 +116,7 @@ module Feature_domain = struct
     conll_fields: (string * string * string * string);
   }
 
-  let default_conll_fields = ("phon", "lemma", "cat", "pos")
+  let default_conll_fields = ("form", "lemma", "upos", "xpos")
 
   let dump t =
     Printf.printf "========= Feature domain =========\n";
@@ -206,6 +206,11 @@ module Feature_domain = struct
 
   (* This function is defined here because it is used by check_feature *)
   let build_disj ?loc ?feature_domain name unsorted_values =
+    let intern_name = match name with
+    | "cat" -> "upos"
+    | "pos" -> "xpos"
+    | "phon" -> "form"
+    | x -> x in
     let values = List.sort Pervasives.compare unsorted_values in
     match (feature_domain, name.[0]) with
       | (None, _)
@@ -224,7 +229,7 @@ module Feature_domain = struct
               | l when List.for_all (fun x -> x.[0] = '_') l -> List.map (fun s -> String s) values
               | l -> Error.build ?loc "Unknown feature values '%s' for feature name '%s'"
                   (List_.to_string (fun x->x) ", " l)
-          name
+          intern_name
             )
           | _::t -> loop t in
         loop dom

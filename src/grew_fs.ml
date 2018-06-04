@@ -240,8 +240,8 @@ module G_fs = struct
 
 
   (* ---------------------------------------------------------------------- *)
-  let pst_leaf ?loc ?domain phon = [("phon", Feature_value.build_value ?loc ?domain "phon" phon)]
-  let pst_node ?loc ?domain cat = [("cat", Feature_value.build_value ?loc ?domain "cat" cat)]
+  let pst_leaf ?loc ?domain form = [("form", Feature_value.build_value ?loc ?domain "form" form)]
+  let pst_node ?loc ?domain upos = [("upos", Feature_value.build_value ?loc ?domain "upos" upos)]
 
   (* ---------------------------------------------------------------------- *)
   exception Fail_unif
