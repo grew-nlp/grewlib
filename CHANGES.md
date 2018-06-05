@@ -1,3 +1,6 @@
+# 0.48.0 (2018/06/19)
+  * remove `conll_fields` mechanism (names of conll fields 2, 4 and 5 are fomr, upos, xpos)
+
 ## 0.47.2 (2018/05/04)
   * Deal with increasing Grs
 
