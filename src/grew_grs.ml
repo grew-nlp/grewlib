@@ -209,15 +209,9 @@ module Old_grs = struct
     ) t.strategies
 
   let domain_build ast_domain =
-
-    let conll_fields = match ast_domain.Ast.conll_fields with
-      | Some [c2;c3;c4;c5] -> Some (c2,c3,c4,c5)
-      | Some _ -> Error.build "conll_fields declaration does not contains exactly 4 values"
-      | _ -> None in
-
     Domain.build
       (Label_domain.build ast_domain.Ast.label_domain)
-      (Feature_domain.build ?conll_fields ast_domain.Ast.feature_domain)
+      (Feature_domain.build ast_domain.Ast.feature_domain)
 
   let build filename =
     let ast = Loader.grs filename in
@@ -520,16 +514,6 @@ module Grs = struct
   let domain t = t.domain
 
   let from_ast filename ast =
-    let conll_fields = match List_.opt_map
-      (fun x -> match x with
-        | New_ast.Conll_fields desc -> Some desc
-        | _ -> None
-      ) ast with
-      | [] -> None
-      | [[c2;c3;c4;c5]] -> Some (c2,c3,c4,c5)
-      | [_] -> Error.build "conll_fields declaration does not contains exactly 4 values"
-      | _ :: _ :: _ -> Error.build "Several conll_fields declaration" in
-
     let feature_domains = List_.opt_map
       (fun x -> match x with
         | New_ast.Features desc -> Some desc
@@ -538,7 +522,7 @@ module Grs = struct
 
     let feature_domain = match feature_domains with
     | [] -> None
-    | h::t -> Some (Feature_domain.build ?conll_fields (List.fold_left Feature_domain.merge h t)) in
+    | h::t -> Some (Feature_domain.build (List.fold_left Feature_domain.merge h t)) in
 
     let label_domains = List_.opt_map
       (fun x -> match x with

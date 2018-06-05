@@ -16,6 +16,12 @@ open Grew_types
 (* ================================================================================ *)
 module Ast = struct
 
+  let to_uname = function
+    | "cat" -> "upos"
+    | "pos" -> "xpos"
+    | "phon" -> "form"
+    | x -> x
+
   (* general function for checking that an identifier is of the right kind *)
   (* allowed is a char list which is a sub set of ['#'; '.'; ':'; '*'] *)
   let check_special name allowed s =
@@ -66,7 +72,7 @@ module Ast = struct
   let parse_feature_ident s =
     check_special "feature ident" ["."] s;
     match Str.full_split (Str.regexp "\\.") s with
-    | [Str.Text base; Str.Delim "."; Str.Text fn] -> (base, fn)
+    | [Str.Text base; Str.Delim "."; Str.Text fn] -> (base, to_uname fn)
     | _ -> Error.build "The identifier '%s' must be a feature identifier (with exactly one '.' symbol, like \"V.cat\" for instance)" s
 
   (* ---------------------------------------------------------------------- *)
@@ -78,7 +84,7 @@ module Ast = struct
     check_special "feature ident" ["."] s;
     match Str.full_split (Str.regexp "\\.") s with
     | [Str.Text base; ] -> (base, None)
-    | [Str.Text base; Str.Delim "."; Str.Text fn] -> (base, Some fn)
+    | [Str.Text base; Str.Delim "."; Str.Text fn] -> (base, Some (to_uname fn))
     | _ -> Error.build "The identifier '%s' must be a feature identifier (with at most one '.' symbol, like \"V\" or \"V.cat\" for instance)" s
 
 
@@ -381,7 +387,6 @@ module Ast = struct
     Closed (feature_name, without_duplicate)
 
   type domain = {
-    conll_fields: string list option;
     feature_domain: feature_spec list;
     label_domain: (string * string list) list;
   }

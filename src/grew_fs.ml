@@ -225,17 +225,16 @@ module G_fs = struct
 
   (* ---------------------------------------------------------------------- *)
   let of_conll ?loc ?domain line =
-    let (c2, c3, c4, c5) = Domain.conll_fields domain in
     let raw_list0 =
-      (c2, Feature_value.build_value ?loc ?domain c2 line.Conll.form)
-      :: (c4, Feature_value.build_value ?loc ?domain c4 line.Conll.upos)
+      ("form", Feature_value.build_value ?loc ?domain "form" line.Conll.form)
+      :: ("upos", Feature_value.build_value ?loc ?domain "upos" line.Conll.upos)
       :: (List.map (fun (f,v) -> (f, Feature_value.build_value ?loc ?domain f v)) line.Conll.feats) in
     let raw_list1 = match line.Conll.xpos with
       | "" | "_" -> raw_list0
-      | s -> (c5, Feature_value.build_value ?loc ?domain c5 s) :: raw_list0 in
+      | s -> ("xpos", Feature_value.build_value ?loc ?domain "xpos" s) :: raw_list0 in
     let raw_list2 = match line.Conll.lemma with
       | "" | "_" -> raw_list1
-      | s -> (c3, Feature_value.build_value ?loc ?domain c3 s) :: raw_list1 in
+      | s -> ("lemma", Feature_value.build_value ?loc ?domain "lemma" s) :: raw_list1 in
     List.sort G_feature.compare raw_list2
 
 

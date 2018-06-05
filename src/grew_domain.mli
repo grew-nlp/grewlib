@@ -36,14 +36,13 @@ end
 module Feature_domain: sig
   type t
 
-  val build:
-    ?conll_fields: (string * string * string * string) ->
-    Ast.feature_spec list -> t
+  val build: Ast.feature_spec list -> t
 
   (** [sub domain fn1 fn2] returns [true] iff the domain of [fn1] is a subset if the domain of [fn2]. *)
   val sub:  t -> feature_name -> feature_name -> bool
 
   val merge: Ast.feature_spec list -> Ast.feature_spec list -> Ast.feature_spec list
+
 end (* module Feature_domain *)
 
 (* ================================================================================ *)
@@ -81,6 +80,4 @@ module Domain : sig
 
   (** [check_feature_name ~loc domain feature_name] fails iff a domain is set and [feature_name] is not defined in the current domain. *)
   val check_feature_name: ?loc:Loc.t -> ?domain:t -> feature_name -> unit
-
-  val conll_fields: t option -> (string * string * string * string)
 end

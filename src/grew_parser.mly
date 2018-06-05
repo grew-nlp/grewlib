@@ -32,6 +32,8 @@ let get_loc () = Global.get_loc ()
 let localize t = (t,get_loc ())
 %}
 
+%token DUMMY
+
 %token LACC                        /* { */
 %token RACC                        /* } */
 %token LBRACKET                    /* [ */
@@ -73,7 +75,6 @@ let localize t = (t,get_loc ())
 %token INCL                        /* include */
 %token IMPORT                      /* import */
 %token FEATURES                    /* features */
-%token CONLL_FIELDS                /* conll_fields */
 %token FEATURE                     /* feature */
 %token FILE                        /* file */
 %token LABELS                      /* labels */
@@ -222,19 +223,12 @@ gr_item:
             { Graph_edge ({Ast.edge_id = None; src=fst n1_loc; edge_label_cst=Ast.Pos_list [label]; tar=n2}, snd n1_loc) }
 
 /*=============================================================================================*/
-/* CONLL FIELD DEFINITION                                                                       */
-/*=============================================================================================*/
-conll_fields:
-        | CONLL_FIELDS LACC x=separated_nonempty_list_final_opt(SEMIC,simple_id) RACC { x }
-
-/*=============================================================================================*/
 /*  DOMAIN DEFINITION                                                                          */
 /*=============================================================================================*/
 domain:
-        | c=option(conll_fields) f=features_group g=labels EOF
+        | c=option(DUMMY) f=features_group g=labels EOF
             {
               {  Ast.feature_domain = f;
-                 conll_fields = c;
                  label_domain = g;
               }
             }
@@ -292,7 +286,7 @@ feature:
             { Ast.Open feature_name }
 
 feature_name:
-        | ci=ID { ci }
+        | ci=ID { Ast.to_uname ci }
 
 features_values:
         | SHARP                                         { ["#"] }
@@ -555,29 +549,30 @@ node_features:
         /*   cat = n|v|adj   */
         | name_loc=simple_id_with_loc EQUAL values=separated_nonempty_list(PIPE,feature_value)
             { let (name,loc) = name_loc in
+              let uname = Ast.to_uname name in
               match values with
-              | ["*"] -> ({Ast.kind = Ast.Disequality []; name},loc)
-              | _ -> ({Ast.kind = Ast.Equality values; name }, loc) }
+              | ["*"] -> ({Ast.kind = Ast.Disequality []; name=uname},loc)
+              | _ -> ({Ast.kind = Ast.Equality values; name=uname }, loc) }
 
         /*   cat = *   */
         | name_loc=simple_id_with_loc EQUAL STAR
-            { let (name,loc) = name_loc in ({Ast.kind = Ast.Disequality []; name},loc) }
+            { let (name,loc) = name_loc in ({Ast.kind = Ast.Disequality []; name=Ast.to_uname name},loc) }
 
         /*   cat   */
         | name_loc=simple_id_with_loc
-            { let (name,loc) = name_loc in ({Ast.kind = Ast.Disequality []; name},loc) }
+            { let (name,loc) = name_loc in ({Ast.kind = Ast.Disequality []; name=Ast.to_uname name},loc) }
 
         /*    cat<>n|v|adj   */
         | name_loc=simple_id_with_loc DISEQUAL values=separated_nonempty_list(PIPE,feature_value)
-            { let (name,loc) = name_loc in ( {Ast.kind = Ast.Disequality values; name}, loc) }
+            { let (name,loc) = name_loc in ( {Ast.kind = Ast.Disequality values; name=Ast.to_uname name}, loc) }
 
         /*    lemma=$lem   */
         | name_loc=simple_id_with_loc EQUAL p=DOLLAR_ID
-            { let (name,loc) = name_loc in ( {Ast.kind = Ast.Equal_param p; name }, loc) }
+            { let (name,loc) = name_loc in ( {Ast.kind = Ast.Equal_param p; name=Ast.to_uname name }, loc) }
 
         /*   !lemma   */
         | BANG name_loc=simple_id_with_loc
-            { let (name,loc) = name_loc in ({Ast.kind = Ast.Absent; name}, loc) }
+            { let (name,loc) = name_loc in ({Ast.kind = Ast.Absent; name=Ast.to_uname name}, loc) }
 
 /*=============================================================================================*/
 /* COMMANDS DEFINITION                                                                         */
@@ -734,7 +729,6 @@ new_grs:
   | decls = list(decl) EOF { decls }
 
 decl:
-  | c=conll_fields                                            { New_ast.Conll_fields c                       }
   | f=features_group                                          { New_ast.Features f                           }
   | l=labels                                                  { New_ast.Labels l                             }
   | r=rule                                                    { New_ast.Rule r                               }

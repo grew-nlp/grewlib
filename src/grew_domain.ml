@@ -113,10 +113,8 @@ end
 module Feature_domain = struct
   type t = {
     decls: Ast.feature_spec list;
-    conll_fields: (string * string * string * string);
   }
 
-  let default_conll_fields = ("form", "lemma", "upos", "xpos")
 
   let dump t =
     Printf.printf "========= Feature domain =========\n";
@@ -151,14 +149,16 @@ module Feature_domain = struct
     | (Ast.Closed ("position",_)) :: _ ->
       Error.build "[Feature_domain] The feature named \"position\" is reserved and must be types 'integer', you cannot not redefine it"
     | (Ast.Num fn) :: tail | (Ast.Open fn) :: tail | Ast.Closed (fn,_) :: tail when is_defined fn tail ->
-      Error.build "[Feature_domain] The feature named \"%s\" is defined several times" fn
+      begin
+        if fn = "form" || fn = "upos" || fn = "xpos"
+        then Error.build "[Feature_domain] The feature named \"%s\" is defined several times (see http://grew.fr/features/note-about-backward-compatibility for details)" fn
+        else Error.build "[Feature_domain] The feature named \"%s\" is defined several times" fn
+
+      end
     | x :: tail -> x :: (build_decls tail)
 
-  let build ?conll_fields feature_spec_list =
-    let decls = build_decls feature_spec_list in
-    match conll_fields with
-    | Some cf -> { decls; conll_fields=cf }
-    | None -> { decls; conll_fields = default_conll_fields }
+  let build feature_spec_list =
+    {decls = build_decls feature_spec_list}
 
   let feature_names feature_domain =
     List.map (function Ast.Closed (fn, _) | Ast.Open fn | Ast.Num fn -> fn) feature_domain.decls
@@ -206,11 +206,6 @@ module Feature_domain = struct
 
   (* This function is defined here because it is used by check_feature *)
   let build_disj ?loc ?feature_domain name unsorted_values =
-    let intern_name = match name with
-    | "cat" -> "upos"
-    | "pos" -> "xpos"
-    | "phon" -> "form"
-    | x -> x in
     let values = List.sort Pervasives.compare unsorted_values in
     match (feature_domain, name.[0]) with
       | (None, _)
@@ -229,7 +224,7 @@ module Feature_domain = struct
               | l when List.for_all (fun x -> x.[0] = '_') l -> List.map (fun s -> String s) values
               | l -> Error.build ?loc "Unknown feature values '%s' for feature name '%s'"
                   (List_.to_string (fun x->x) ", " l)
-          intern_name
+          name
             )
           | _::t -> loop t in
         loop dom
@@ -305,9 +300,4 @@ module Domain = struct
       if not (Feature_domain.is_defined name feature_domain.decls)
       then Error.build ?loc "The feature name \"%s\" in not defined in the domain" name
   | _ -> ()
-
-  let conll_fields = function
-  | Some (Feature feature_domain) | Some (Both (_, feature_domain)) ->
-  feature_domain.Feature_domain.conll_fields
-  | _ -> Feature_domain.default_conll_fields
 end

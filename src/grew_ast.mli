@@ -13,6 +13,8 @@ open Grew_types
 
 module Ast : sig
 
+  val to_uname: feature_name -> feature_name
+
   (* ---------------------------------------------------------------------- *)
   (* simple_ident: cat or V *)
   type simple_ident = Id.name
@@ -188,7 +190,6 @@ module Ast : sig
   val build_closed: feature_name -> feature_atom list -> feature_spec
 
   type domain = {
-      conll_fields: string list option;
       feature_domain: feature_spec list;
       label_domain: (string * string list) list;
     }
