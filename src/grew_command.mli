@@ -23,8 +23,7 @@ module Command : sig
   type item =
     | Feat of (command_node * string)
     | String of string
-    | Param_in of int
-    | Param_out of int
+    | Param of int
 
   type p =
     | DEL_NODE of command_node
@@ -65,7 +64,7 @@ module Command : sig
 
   val build:
       ?domain: Domain.t ->
-      ?param: (string list * string list) ->
+      ?param: string list ->
       (Id.name list * string list) ->
       Id.table ->
       Ast.command ->

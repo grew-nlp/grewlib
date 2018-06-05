@@ -364,7 +364,7 @@ module Rule = struct
       pattern: pattern;
       commands: Command.t list;
       param: Lex_par.t option;
-      param_names: (string list * string list);
+      param_names: string list;
       loc: Loc.t;
     }
 
@@ -376,8 +376,7 @@ module Rule = struct
     let param_json = match t.param with
     | None -> []
     | Some lex_par -> [
-      ("pattern_param", `List (List.map (fun x -> `String x) (fst t.param_names)));
-      ("command_param", `List (List.map (fun x -> `String x) (snd t.param_names)));
+      ("pattern_param", `List (List.map (fun x -> `String x) (t.param_names)));
       ("lex_par", Lex_par.to_json lex_par);
     ] in
     `Assoc
@@ -467,47 +466,32 @@ module Rule = struct
     loop (known_node_ids, known_edge_ids) ast_commands
 
   (* ====================================================================== *)
-  let parse_vars loc vars =
-    let rec parse_cmd_vars = function
-      | [] -> []
-      | x::t when x.[0] = '@' -> x :: parse_cmd_vars t
-      | x::t -> Error.bug ~loc "Illegal feature definition '%s' in the lexical rule" x in
-    let rec parse_pat_vars = function
-      | [] -> ([],[])
-      | x::t when x.[0] = '@' -> ([],parse_cmd_vars (x::t))
-      | x::t when x.[0] = '$' -> let (pv,cv) = parse_pat_vars t in (x::pv, cv)
-      | x::t -> Error.bug ~loc "Illegal feature definition '%s' in the lexical rule" x in
-    parse_pat_vars vars
-
-  (* ====================================================================== *)
   let build ?domain deprecated_dir rule_ast =
 
     let dir = match rule_ast.Ast.rule_dir with
     | Some d -> d
     | None -> deprecated_dir in
 
-    let (param, pat_vars, cmd_vars) =
+    let (param, pat_vars) =
       match rule_ast.Ast.param with
-      | None -> (None,[],[])
+      | None -> (None,[])
       | Some (files,vars) ->
-          let (pat_vars, cmd_vars) = parse_vars rule_ast.Ast.rule_loc vars in
-          let nb_pv = List.length pat_vars in
-          let nb_cv = List.length cmd_vars in
+          let nb_var = List.length vars in
 
           (* first: load lexical parameters given in the same file at the end of the rule definition *)
           let local_param = match rule_ast.Ast.lex_par with
           | None -> None
-          | Some lines -> Some (Lex_par.from_lines ~loc:rule_ast.Ast.rule_loc nb_pv nb_cv lines) in
+          | Some lines -> Some (Lex_par.from_lines ~loc:rule_ast.Ast.rule_loc nb_var lines) in
 
           (* second: load lexical parameters given in external files *)
           let full_param = List.fold_left
             (fun acc file ->
               match acc with
-              | None -> Some (Lex_par.load ~loc:rule_ast.Ast.rule_loc dir nb_pv nb_cv file)
-              | Some lp -> Some (Lex_par.append (Lex_par.load ~loc:rule_ast.Ast.rule_loc dir nb_pv nb_cv file) lp)
+              | None -> Some (Lex_par.load ~loc:rule_ast.Ast.rule_loc dir nb_var file)
+              | Some lp -> Some (Lex_par.append (Lex_par.load ~loc:rule_ast.Ast.rule_loc dir nb_var file) lp)
             ) local_param files in
 
-          (full_param, pat_vars, cmd_vars) in
+          (full_param, vars) in
 
     (match (param, pat_vars) with
       | (None, _::_) -> Error.build ~loc:rule_ast.Ast.rule_loc "[Rule.build] Missing lexical parameters in rule \"%s\"" rule_ast.Ast.rule_id
@@ -533,10 +517,10 @@ module Rule = struct
     {
       name = rule_ast.Ast.rule_id;
       pattern = (pos, negs);
-      commands = build_commands ?domain ~param:(pat_vars,cmd_vars) pos pos_table rule_ast.Ast.commands;
+      commands = build_commands ?domain ~param:pat_vars pos pos_table rule_ast.Ast.commands;
       loc = rule_ast.Ast.rule_loc;
       param = param;
-      param_names = (pat_vars,cmd_vars)
+      param_names = pat_vars;
     }
 
   let build_pattern ?domain pattern_ast =
@@ -975,11 +959,7 @@ module Rule = struct
             (function
               | Command.Feat (cnode, feat_name) -> Concat_item.Feat (node_find cnode, feat_name)
               | Command.String s -> Concat_item.String s
-              | Command.Param_out index ->
-                  (match matching.m_param with
-                  | None -> Error.bug "Cannot apply a UPDATE_FEAT command without parameter"
-                  | Some param -> Concat_item.String (Lex_par.get_command_value index param))
-              | Command.Param_in index ->
+              | Command.Param index ->
                   (match matching.m_param with
                   | None -> Error.bug "Cannot apply a UPDATE_FEAT command without parameter"
                   | Some param -> Concat_item.String (Lex_par.get_param_value index param))
@@ -1434,11 +1414,7 @@ module Rule = struct
             (function
               | Command.Feat (cnode, feat_name) -> Concat_item.Feat (node_find cnode, feat_name)
               | Command.String s -> Concat_item.String s
-              | Command.Param_out index ->
-                  (match matching.m_param with
-                  | None -> Error.bug "Cannot apply a UPDATE_FEAT command without parameter"
-                  | Some param -> Concat_item.String (Lex_par.get_command_value index param))
-              | Command.Param_in index ->
+              | Command.Param index ->
                   (match matching.m_param with
                   | None -> Error.bug "Cannot apply a UPDATE_FEAT command without parameter"
                   | Some param -> Concat_item.String (Lex_par.get_param_value index param))
@@ -1680,14 +1656,10 @@ module Rule = struct
             (function
               | Command.Feat (cnode, feat_name) -> Concat_item.Feat (node_find cnode, feat_name)
               | Command.String s -> Concat_item.String s
-              | Command.Param_out index ->
+              | Command.Param index ->
                   (match matching.m_param with
                   | None -> Error.bug "Cannot apply a UPDATE_FEAT command without parameter"
                   | Some param -> Concat_item.String (Lex_par.get_command_value index param))
-              | Command.Param_in index ->
-                  (match matching.m_param with
-                  | None -> Error.bug "Cannot apply a UPDATE_FEAT command without parameter"
-                  | Some param -> Concat_item.String (Lex_par.get_param_value index param))
             ) item_list in
 
         let (new_graph, new_feature_value) = (* TODO: take value type into account in update_feat *)

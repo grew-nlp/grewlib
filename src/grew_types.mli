@@ -66,7 +66,7 @@ module Massoc_pid : S with type key = Pid.t
 (* ================================================================================ *)
 (** module for rules that are lexically parametrized *)
 module Lex_par: sig
-  type t
+  type t = string list list
 
   val to_json: t -> Yojson.Basic.json
 
@@ -76,20 +76,20 @@ module Lex_par: sig
 
   val size: t -> int
 
-  (** [signature t] returns (number of pattern parameters, number of lexical parameters) *)
-  val signature: t -> (int * int)
+  (** [signature t] returns number of parameters *)
+  val signature: t -> int
 
-  (** [from_lines filename nb_pattern_var nb_command_var strings] *)
-  val from_lines: ?loc: Loc.t -> int -> int -> string list -> t
+  (** [from_lines filename nb_var strings] *)
+  val from_lines: ?loc: Loc.t -> int -> string list -> t
 
-  (** [load ?loc local_dir_name nb_pattern_var nb_command_var file] *)
-  val load: ?loc: Loc.t -> string -> int -> int -> string -> t
+  (** [load ?loc local_dir_name nb_var file] *)
+  val load: ?loc: Loc.t -> string -> int -> string -> t
 
   (** [select index atom t] returns the subset of [t] which contains only entries
       which refers to [atom] at the [index]^th pattern_var.
       [None] is returned if no such entry s founded.
    *)
-  val select: int -> string -> t -> t option
+  val select: int -> string -> t -> t
 
   (** [get_param_value index t] returns the [index]^th param_var. *)
   val get_param_value: int -> t -> string

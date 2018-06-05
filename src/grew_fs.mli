@@ -80,7 +80,7 @@ module P_fs: sig
 
   val to_string: t -> string
 
-  val to_dep: ?filter: (string -> bool) -> (string list * string list) -> t -> string
+  val to_dep: ?filter: (string -> bool) -> string list -> t -> string
 
   val to_dot: t -> string
 

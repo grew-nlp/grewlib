@@ -95,11 +95,9 @@ module Massoc_pid = Massoc_make (Pid)
 (* This module defines a type for lexical parameter (i.e. one line in a lexical file) *)
 module Lex_par = struct
 
-  type item = string list * string list (* first list: pattern parameters $id , second list command parameters @id *)
+  type item = string list
 
-  let item_to_string = function
-  | (l,[]) -> String.concat "#" l
-  | (pat,com) -> (String.concat "#" pat) ^ "##" ^ (String.concat "#" com)
+  let item_to_string l = String.concat "#" l
 
   type t = item list
 
@@ -111,87 +109,49 @@ module Lex_par = struct
 
   let signature = function
     | [] -> Error.bug "[Lex_par.signature] empty data"
-    | (pp,cp)::_ -> (List.length pp,List.length cp)
+    | v -> List.length v
 
   let dump t =
     printf "[Lex_par.dump] --> size = %d\n" (List.length t);
-    List.iter (fun (pp,cp) ->
-      printf "%s##%s\n"
-        (String.concat "#" pp)
-        (String.concat "#" cp)
-    ) t
+    List.iter (fun il -> printf "%s\n" (String.concat "#" il)) t
 
-  let parse_line ?loc nb_p nb_c line =
+  let parse_line ?loc nb_var line =
     let line = String_.rm_peripheral_white line in
     if line = "" || line.[0] = '%'
     then None
     else
       let line = Str.global_replace (Str.regexp "\\\\%") "%" line in
-      match Str.split (Str.regexp "##") line with
-        | [args] when nb_c = 0 ->
-          (match Str.split (Str.regexp "#") args with
-            | l when List.length l = nb_p -> Some (l,[])
-            | _ -> Error.build ?loc
-              "Illegal lexical parameter line: \"%s\" doesn't contain %d args"
-              line nb_p)
-        | [args; values] ->
-          (match (Str.split (Str.regexp "#") args, Str.split (Str.regexp "#") values) with
-            | (lp,lc) when List.length lp = nb_p && List.length lc = nb_c -> Some (lp,lc)
-            | _ -> Error.build ?loc
-              "Illegal lexical parameter line: \"%s\" doesn't contain %d args and %d values"
-              line nb_p nb_c)
-        | _ -> Error.build ?loc "Illegal param line: '%s'" line
+      match Str.split (Str.regexp "##\\|#") line with
+        | args when List.length args = nb_var -> Some args
+        | args -> Error.build ?loc "Wrong param number: '%d instead of %d'" (List.length args) nb_var
 
-  let from_lines ?loc nb_p nb_c lines =
-    match List_.opt_map (parse_line ?loc nb_p nb_c) lines with
+  let from_lines ?loc nb_var lines =
+    match List_.opt_map (parse_line ?loc nb_var) lines with
     | [] -> Error.build ?loc "Empty lexical parameter list"
     | l -> l
 
-  let load ?loc dir nb_p nb_c file =
+  let load ?loc dir nb_var file =
     try
       let full_file =
         if Filename.is_relative file
         then Filename.concat dir file
         else file in
       let lines = File.read full_file in
-      match List_.opt_mapi (fun i line -> parse_line ~loc:(Loc.file_line full_file i) nb_p nb_c line) lines with
+      match List_.opt_mapi (fun i line -> parse_line ~loc:(Loc.file_line full_file i) nb_var line) lines with
       | [] -> Error.build ?loc "Empty lexical parameter file '%s'" file
       | l -> l
     with Sys_error _ -> Error.build ?loc "External lexical file '%s' not found" file
 
-  let select index atom t =
-    match
-      List_.opt_map
-        (fun (p_par, c_par) ->
-          let par = List.nth p_par index in
-          if atom = par
-          then Some (p_par, c_par)
-          else None
-        ) t
-    with
-    | [] -> None
-    | t -> Some t
+  let select index atom t =  List.filter (fun par -> List.nth par index = atom) t
 
   let get_param_value index = function
     | [] -> Error.bug "[Lex_par.get_param_value] empty parameter"
-    | (params,_)::_ -> List.nth params index
+    | params::_ -> List.nth params index
 
   let get_command_value index = function
-    | [(_,one)] -> List.nth one index
     | [] -> Error.bug "[Lex_par.get_command_value] empty parameter"
-    | (_,[sing])::tail when index=0 ->
-        Printf.sprintf "%s/%s"
-          sing
-          (List_.to_string
-             (function
-               | (_,[s]) -> s
-               | _ -> Error.bug "[Lex_par.get_command_value] inconsistent param"
-             ) "/" tail
-          )
-    | (left,_)::_ ->
-      Error.run "Lexical parameter are not functional, input parameter%s: %s"
-        (if (List.length left) > 1 then "s" else "")
-        (String.concat ", " left)
+    | [one] -> List.nth one index
+    | _ -> Error.run "Lexical parameter are not functional"
 end (* module Lex_par *)
 
 (* ================================================================================ *)

@@ -142,7 +142,7 @@ module P_feature = struct
   let to_string ?param_names t =
     let param_string index = match param_names with
       | None -> sprintf "$%d" index
-      | Some (l,_) -> sprintf "%s" (List.nth l index) in
+      | Some l -> sprintf "%s" (List.nth l index) in
 
     match t with
     | (feat_name, {cst=Absent ;in_param=[]}) -> sprintf "!%s" feat_name
@@ -458,8 +458,8 @@ module P_fs = struct
           | (None,_) -> Log.bug "[P_fs.match_] Parametrized constraint in a non-parametrized rule"; exit 2
           | (Some param, [index]) ->
             (match Lex_par.select index (string_of_value atom) param with
-              | None -> raise Fail
-              | Some new_param -> loop (Some new_param) (t_pat,t)
+              | [] -> raise Fail
+              | new_param -> loop (Some new_param) (t_pat,t)
             )
           | _ -> Error.bug "[P_fs.match_] several different parameters contraints for the same feature is not implemented" in
     loop param (p_fs_wo_pos,g_fs)

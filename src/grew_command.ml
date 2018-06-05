@@ -32,8 +32,7 @@ module Command  = struct
   type item =
     | Feat of (command_node * string)
     | String of string
-    | Param_in of int
-    | Param_out of int
+    | Param of int
 
   let item_to_json = function
   | Feat (cn, feature_name) -> `Assoc [("copy_feat",
@@ -43,8 +42,7 @@ module Command  = struct
         ]
       )]
   | String s -> `Assoc [("string", `String s)]
-  | Param_in i -> `Assoc [("param_in", `Int i)]
-  | Param_out i -> `Assoc [("param_out", `Int i)]
+  | Param i -> `Assoc [("param", `Int i)]
 
   (* the command in pattern *)
   type p =
@@ -266,16 +264,15 @@ module Command  = struct
               | Ast.Param_item var ->
                 match param with
                   | None -> Error.build ~loc "Unknown command variable '%s'" var
-                  | Some (par,cmd) ->
-                    match (List_.index var par, List_.index var cmd) with
-                      | (_,Some index) -> Param_out index
-                      | (Some index,_) -> Param_in index
+                  | Some par ->
+                    match List_.index var par with
+                      | Some index -> Param index
                       | _ -> Error.build ~loc "Unknown command variable '%s'" var
             ) ast_items in
             (* check for consistency *)
             (match items with
               | _ when Domain.is_open_feature ?domain feat_name -> ()
-              | [Param_out _] -> () (* TODO: check that lexical parameters are compatible with the feature domain *)
+              | [Param _] -> () (* TODO: check that lexical parameters are compatible with the feature domain *)
               | [String s] -> Domain.check_feature ~loc ?domain feat_name s
               | [Feat (_,fn)] -> ()
               | _ -> Error.build ~loc "[Update_feat] Only open features can be modified with the concat operator '+' but \"%s\" is not declared as an open feature" feat_name);
