@@ -66,7 +66,9 @@ module Massoc_pid : S with type key = Pid.t
 (* ================================================================================ *)
 (** module for rules that are lexically parametrized *)
 module Lex_par: sig
-  type t = string list list
+  type item = string list
+
+  type t = item list
 
   val to_json: t -> Yojson.Basic.json
 

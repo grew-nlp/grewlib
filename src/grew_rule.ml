@@ -363,8 +363,7 @@ module Rule = struct
       name: string;
       pattern: pattern;
       commands: Command.t list;
-      param: Lex_par.t option;
-      param_names: string list;
+      param: Lex_par.t * string list; (* ([],[]) if None *)
       loc: Loc.t;
     }
 
@@ -374,9 +373,9 @@ module Rule = struct
 
   let to_json ?domain t =
     let param_json = match t.param with
-    | None -> []
-    | Some lex_par -> [
-      ("pattern_param", `List (List.map (fun x -> `String x) (t.param_names)));
+    | ([],[]) -> []
+    | (lex_par, param_names) -> [
+      ("pattern_param", `List (List.map (fun x -> `String x) (param_names)));
       ("lex_par", Lex_par.to_json lex_par);
     ] in
     `Assoc
@@ -398,7 +397,7 @@ module Rule = struct
       Pid_map.fold
         (fun id node acc ->
           (node, sprintf "  N_%s { word=\"%s\"; subword=\"%s\"}"
-            (Pid.to_id id) (P_node.get_name node) (P_fs.to_dep t.param_names (P_node.get_fs node))
+            (Pid.to_id id) (P_node.get_name node) (P_fs.to_dep (snd t.param) (P_node.get_fs node))
           )
           :: acc
         ) pos_basic.graph [] in
@@ -474,27 +473,27 @@ module Rule = struct
 
     let (param, pat_vars) =
       match rule_ast.Ast.param with
-      | None -> (None,[])
+      | None -> ([],[])
       | Some (files,vars) ->
           let nb_var = List.length vars in
 
           (* first: load lexical parameters given in the same file at the end of the rule definition *)
           let local_param = match rule_ast.Ast.lex_par with
-          | None -> None
-          | Some lines -> Some (Lex_par.from_lines ~loc:rule_ast.Ast.rule_loc nb_var lines) in
+          | None -> []
+          | Some lines -> Lex_par.from_lines ~loc:rule_ast.Ast.rule_loc nb_var lines in
 
           (* second: load lexical parameters given in external files *)
           let full_param = List.fold_left
             (fun acc file ->
               match acc with
-              | None -> Some (Lex_par.load ~loc:rule_ast.Ast.rule_loc dir nb_var file)
-              | Some lp -> Some (Lex_par.append (Lex_par.load ~loc:rule_ast.Ast.rule_loc dir nb_var file) lp)
+              | [] -> Lex_par.load ~loc:rule_ast.Ast.rule_loc dir nb_var file
+              | lp -> Lex_par.append (Lex_par.load ~loc:rule_ast.Ast.rule_loc dir nb_var file) lp
             ) local_param files in
 
           (full_param, vars) in
 
     (match (param, pat_vars) with
-      | (None, _::_) -> Error.build ~loc:rule_ast.Ast.rule_loc "[Rule.build] Missing lexical parameters in rule \"%s\"" rule_ast.Ast.rule_id
+      | ([], _::_) -> Error.build ~loc:rule_ast.Ast.rule_loc "[Rule.build] Missing lexical parameters in rule \"%s\"" rule_ast.Ast.rule_id
       | _ -> ()
     );
 
@@ -519,8 +518,7 @@ module Rule = struct
       pattern = (pos, negs);
       commands = build_commands ?domain ~param:pat_vars pos pos_table rule_ast.Ast.commands;
       loc = rule_ast.Ast.rule_loc;
-      param = param;
-      param_names = pat_vars;
+      param = (param, pat_vars);
     }
 
   let build_pattern ?domain pattern_ast =
@@ -1166,7 +1164,7 @@ module Rule = struct
     else
       List.fold_left
         (fun acc rule ->
-          let matching_list = match_in_graph ?domain ?param:rule.param rule.pattern instance.Instance.graph in
+          let matching_list = match_in_graph ?domain ~param:(fst rule.param) rule.pattern instance.Instance.graph in
           List.fold_left
             (fun acc1 matching ->
               Instance_set.add (apply_rule ?domain instance matching rule) acc1
@@ -1199,7 +1197,7 @@ module Rule = struct
             ?domain
             (pos.graph,P_graph.empty)
             instance.Instance.graph
-            (init rule.param pos) in
+            (init (Some (fst rule.param)) pos) in
         try
           let (first_matching_where_all_witout_are_fulfilled,_) =
             List.find
@@ -1274,7 +1272,7 @@ module Rule = struct
     else Error.run "max depth %d reached, last rules applied: …, %s"
       !max_depth_non_det (List_.rev_to_string (fun x->x) ", " (List_.cut 5 instance.Instance.rules))
   else
-    let matching_list = match_in_graph ?domain ?param:rule.param rule.pattern instance.Instance.graph in
+    let matching_list = match_in_graph ?domain ?param:(Some (fst rule.param)) rule.pattern instance.Instance.graph in
     List.fold_left
       (fun acc matching ->
         Instance_set.add (apply_rule ?domain instance matching rule) acc
@@ -1297,7 +1295,7 @@ module Rule = struct
               ?domain
               (pos.graph,P_graph.empty)
               instance.Instance.graph
-              (init rule.param pos) in
+              (init (Some (fst rule.param)) pos) in
           try
             let (first_matching_where_all_witout_are_fulfilled,_) =
               List.find
@@ -1472,7 +1470,7 @@ module Rule = struct
           ?domain
           (pos.graph,P_graph.empty)
           graph
-          (init rule.param pos) in
+          (init (Some (fst rule.param)) pos) in
           try
             let (first_matching_where_all_witout_are_fulfilled,_) =
               List.find
@@ -1515,7 +1513,7 @@ module Rule = struct
           ?domain
           (pos.graph,P_graph.empty)
           graph
-          (init rule.param pos) in
+          (init (Some (fst rule.param)) pos) in
           try
             let (first_matching_where_all_witout_are_fulfilled,_) =
               List.find
@@ -1788,7 +1786,7 @@ module Rule = struct
       !max_depth_non_det (List_.rev_to_string (fun x->x) ", " (List_.cut 5 instance.Instance.rules))
   else
 *)
-    let matching_list = match_in_graph ?domain ?param:rule.param rule.pattern graph_with_history.Graph_with_history.graph in
+    let matching_list = match_in_graph ?domain ?param:(Some (fst rule.param)) rule.pattern graph_with_history.Graph_with_history.graph in
     List.fold_left
       (fun acc matching ->
         Graph_with_history_set.add (gwh_apply_rule ?domain graph_with_history matching rule) acc
