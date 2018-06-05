@@ -426,6 +426,8 @@ module type S = sig
 
   val fold: ('b -> key -> 'a -> 'b) -> 'b -> 'a t -> 'b
 
+  val fold_on_list: ('b -> key -> 'a list -> 'b) -> 'b -> 'a t -> 'b
+
   (* raise Not_found if no (key,elt) *)
   val remove: key -> 'a -> 'a t -> 'a t
   val remove_opt: key -> 'a -> 'a t -> 'a t option
@@ -489,6 +491,8 @@ module Massoc_make (Ord: OrderedType) = struct
             fct acc2 key elt)
           acc list)
       t init
+
+  let fold_on_list fct init t = M.fold (fun key list acc -> fct acc key list) t init
 
   (* Not found raised in the value is not defined *)
   let remove key value t =

@@ -86,10 +86,10 @@ module Pattern = struct
   type t = Grew_rule.Rule.pattern
 
   let load ?domain file =
-  Libgrew.handle ~name:"Pattern.load" (fun () -> Grew_rule.Rule.build_pattern ?domain (Grew_loader.Loader.pattern file)) ()
+  Libgrew.handle ~name:"Pattern.load" (fun () -> Grew_rule.Rule.build_pattern ?domain [] (Grew_loader.Loader.pattern file)) ()
 
   let parse ?domain desc =
-  Libgrew.handle ~name:"Pattern.load" (fun () -> Grew_rule.Rule.build_pattern ?domain (Grew_loader.Parser.pattern desc)) ()
+  Libgrew.handle ~name:"Pattern.load" (fun () -> Grew_rule.Rule.build_pattern ?domain [] (Grew_loader.Parser.pattern desc)) ()
 
   let pid_name_list pattern =
   Libgrew.handle ~name:"Pattern.pid_lits"

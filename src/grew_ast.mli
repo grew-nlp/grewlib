@@ -49,8 +49,12 @@ module Ast : sig
   (* ---------------------------------------------------------------------- *)
   (* simple_or_feature_ident: union of simple_ident and feature_ident *)
   (* Note: used for parsing of "X < Y" and "X.feat < Y.feat" without conflicts *)
-  type simple_or_feature_ident = Id.name * feature_name option
-  val parse_simple_or_feature_ident: string -> simple_or_feature_ident
+  type pointed = string * string
+  type simple_or_pointed =
+    | Simple of Id.name
+    | Pointed of pointed
+
+  val parse_simple_or_pointed: string -> simple_or_pointed
 
   (* ---------------------------------------------------------------------- *)
   type feature_kind =
@@ -105,11 +109,16 @@ module Ast : sig
     | Feature_ineq_cst of ineq * feature_ident * float
     | Feature_eq_float of feature_ident * float
     | Feature_diff_float of feature_ident * float
-
+    (* ambiguous case, context needed to make difference "N.cat = M.cat" VS "N.cat = lex.cat" *)
+    | Feature_eq_lex_or_fs of feature_ident * (string * string)
+    | Feature_diff_lex_or_fs of feature_ident * (string * string)
+    (* *)
     | Feature_eq_regexp of feature_ident * string
     | Feature_eq_cst of feature_ident * string
+    | Feature_eq_lex of feature_ident * (string * string)
     | Feature_diff_cst of feature_ident * string
-
+    | Feature_diff_lex of feature_ident * (string * string)
+    (* *)
     | Immediate_prec of Id.name * Id.name
     | Large_prec of Id.name * Id.name
   type const = u_const * Loc.t
@@ -132,7 +141,7 @@ module Ast : sig
   val complete_pattern : pattern -> pattern
 
   type concat_item =
-    | Qfn_item of feature_ident
+    | Qfn_or_lex_item of (string * string)
     | String_item of string
     | Param_item of string
 
@@ -158,12 +167,19 @@ module Ast : sig
   val string_of_u_command:  u_command -> string
   type command = u_command * Loc.t
 
+  type lexicon =
+  | File of string
+  | Final of string list
+
+  type lexicon_info = lexicon Massoc_string.t
+
   type rule = {
       rule_id:Id.name;
       pattern: pattern;
       commands: command list;
       param: (string list * string list) option; (* (files, vars) *)
       lex_par: string list option; (* lexical parameters in the file *)
+      lexicon_info: lexicon_info;
       rule_doc:string list;
       rule_loc: Loc.t;
       rule_dir: string option; (* the real folder where the file is defined *)

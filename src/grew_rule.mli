@@ -104,7 +104,7 @@ module Rule : sig
 
   val to_python: pattern -> G_graph.t -> matching -> json
 
-  val build_pattern: ?domain:Domain.t -> Ast.pattern -> pattern
+  val build_pattern: ?domain:Domain.t -> (string * Lexicon.t) list -> Ast.pattern -> pattern
 
   (** [node_matching pattern graph matching] return a assoc list (pid_name, gid.position) *)
   val node_matching: pattern -> G_graph.t -> matching -> (string * float) list

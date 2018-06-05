@@ -76,16 +76,20 @@ module Ast = struct
     | _ -> Error.build "The identifier '%s' must be a feature identifier (with exactly one '.' symbol, like \"V.cat\" for instance)" s
 
   (* ---------------------------------------------------------------------- *)
-  (* simple_or_feature_ident: union of simple_ident and feature_ident *)
+  (* simple_or_pointed: union of simple_ident, feature_ident and lex field *)
   (* Note: used for parsing of "X < Y" and "X.feat < Y.feat" without conflicts *)
-  type simple_or_feature_ident = Id.name * feature_name option
+  type pointed = string * string
+  let dump_pointed (s1,s2) = sprintf "%s.%s" s1 s2
+  type simple_or_pointed =
+    | Simple of Id.name
+    | Pointed of pointed
 
-  let parse_simple_or_feature_ident s =
+  let parse_simple_or_pointed s =
     check_special "feature ident" ["."] s;
-    match Str.full_split (Str.regexp "\\.") s with
-    | [Str.Text base; ] -> (base, None)
-    | [Str.Text base; Str.Delim "."; Str.Text fn] -> (base, Some (to_uname fn))
-    | _ -> Error.build "The identifier '%s' must be a feature identifier (with at most one '.' symbol, like \"V\" or \"V.cat\" for instance)" s
+    match Str.split (Str.regexp "\\.") s with
+    | [base] -> Simple base
+    | [s1; s2] -> Pointed (s1, s2)
+    | _ -> Error.build "The identifier '%s' must be a feature identifier or a lexical reference (with at most one '.' symbol, like \"V\", \"V.cat\" or \"lex.cat\" for instance)" s
 
 
   (* ---------------------------------------------------------------------- *)
@@ -159,9 +163,15 @@ module Ast = struct
     | Feature_eq_float of feature_ident * float
     | Feature_diff_float of feature_ident * float
 
+    (* ambiguous case, context needed to make difference "N.cat = M.cat" VS "N.cat = lex.cat" *)
+    | Feature_eq_lex_or_fs of feature_ident * (string * string)
+    | Feature_diff_lex_or_fs of feature_ident * (string * string)
+    (* *)
     | Feature_eq_regexp of feature_ident * string
     | Feature_eq_cst of feature_ident * string
+    | Feature_eq_lex of feature_ident * (string * string)
     | Feature_diff_cst of feature_ident * string
+    | Feature_diff_lex of feature_ident * (string * string)
 
     | Immediate_prec of Id.name * Id.name
     | Large_prec of Id.name * Id.name
@@ -229,14 +239,14 @@ module Ast = struct
     { pat_pos = new_pat_pos; pat_negs = new_pat_negs;}
 
   type concat_item =
-    | Qfn_item of feature_ident
+    | Qfn_or_lex_item of pointed
     | String_item of string
     | Param_item of string
 
   let string_of_concat_item = function
-    | Qfn_item id -> sprintf "%s" (dump_feature_ident id)
+    | Qfn_or_lex_item pointed -> sprintf "%s.%s" (fst pointed) (snd pointed)
     | String_item s -> sprintf "\"%s\"" s
-    | Param_item var -> sprintf "%s" var
+    | Param_item var -> var
 
   type u_command =
     | Del_edge_expl of (Id.name * Id.name * edge_label)
@@ -305,17 +315,24 @@ module Ast = struct
     | Del_feat (act_id, feat_name) ->
       sprintf "del_feat %s.%s" act_id feat_name
 
+  type lexicon =
+  | File of string
+  | Final of string list
+
+  type lexicon_info = lexicon Massoc_string.t
+
   (* the [rule] type is used for 3 kinds of module items:
      - rule     { param=None; ... }
      - lex_rule
   *)
   type rule = {
-    rule_id:Id.name;
+    rule_id: Id.name;
     pattern: pattern;
     commands: command list;
     param: (string list * string list) option; (* (files, vars) *)
     lex_par: string list option; (* lexical parameters in the file *)
-    rule_doc:string list;
+    lexicon_info: lexicon_info;
+    rule_doc: string list;
     rule_loc: Loc.t;
     rule_dir: string option; (* the real folder where the file is defined *)
   }

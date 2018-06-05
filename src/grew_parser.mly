@@ -25,7 +25,7 @@ type graph_item =
   | Graph_edge of Ast.edge
 
 type ineq_item =
-  | Ineq_sofi of Ast.simple_or_feature_ident
+  | Ineq_sofi of Ast.simple_or_pointed
   | Ineq_float of float
 
 let get_loc () = Global.get_loc ()
@@ -115,11 +115,11 @@ let localize t = (t,get_loc ())
 
 /* %token <Grew_ast.Ast.complex_id>   COMPLEX_ID*/
 
-%token <string>           STRING
-%token <string>           REGEXP
-%token <float>            FLOAT
-%token <string list>      COMMENT
-%token <string list>      LEX_PAR
+%token <string>                STRING
+%token <string>                REGEXP
+%token <float>                 FLOAT
+%token <string list>           COMMENT
+%token <string * string list>  LEX_PAR
 
 %token EOF                         /* end of file */
 
@@ -182,11 +182,11 @@ feature_value:
         | v=FLOAT     { Printf.sprintf "%g" v }
 
 ineq_value:
-        | v=ID    { Ineq_sofi (Ast.parse_simple_or_feature_ident v) }
+        | v=ID    { Ineq_sofi (Ast.parse_simple_or_pointed v) }
         | v=FLOAT { Ineq_float v }
 
 ineq_value_with_loc:
-        | v=ID    { localize (Ineq_sofi (Ast.parse_simple_or_feature_ident v)) }
+        | v=ID    { localize (Ineq_sofi (Ast.parse_simple_or_pointed v)) }
         | v=FLOAT { localize (Ineq_float v) }
 
 /*=============================================================================================*/
@@ -332,13 +332,14 @@ rules:
         | r = list(rule) { r }
 
 rule:
-        | doc=option(COMMENT) RULE id_loc=simple_id_with_loc LACC p=pos_item n=list(neg_item) cmds=commands RACC
+        | doc=option(COMMENT) RULE id_loc=simple_id_with_loc LACC p=pos_item n=list(neg_item) cmds=commands RACC lex_par=list(lex_par)
             {
               { Ast.rule_id = fst id_loc;
                 pattern = Ast.complete_pattern { Ast.pat_pos = p; Ast.pat_negs = n };
                 commands = cmds;
                 param = None;
                 lex_par = None;
+                lexicon_info = Massoc_string.empty; (* TODOLEX *)
                 rule_doc = begin match doc with Some d -> d | None -> [] end;
                 rule_loc = snd id_loc;
                 rule_dir = None;
@@ -351,6 +352,7 @@ rule:
                 commands = cmds;
                 param = Some param;
                 lex_par = lex_par;
+                lexicon_info = Massoc_string.empty; (* TODOLEX *)
                 rule_doc = begin match doc with Some d -> d | None -> [] end;
                 rule_loc = snd id_loc;
                 rule_dir = None;
@@ -358,7 +360,7 @@ rule:
             }
 
 lex_par:
-        | lex_par = LEX_PAR  { lex_par }
+        | lex_par = LEX_PAR  { snd (lex_par) }
 
 param:
         | LPAREN FEATURE vars=separated_nonempty_list(COMA,var) RPAREN                                       { ([],vars) }
@@ -450,14 +452,17 @@ pat_item:
         | STAR labels=delimited(LTR_EDGE_LEFT_NEG,separated_nonempty_list(PIPE,pattern_label_ident),LTR_EDGE_RIGHT) n2_loc=simple_id_with_loc
             { let (n2,loc) = n2_loc in Pat_const (Ast.Cst_in (n2,Ast.Neg_list labels), loc) }
 
+        /*   X.cat = lex.value   */
         /*   X.cat = Y.cat   */
-        /*   X.cat = value   */
+        /*   X.cat = lex.value   */
         | feat_id1_loc=feature_ident_with_loc EQUAL rhs=ID
-            { let (feat_id1,loc)=feat_id1_loc in
-              match Ast.parse_simple_or_feature_ident rhs with
-              | (node_id, Some feat_name) -> Pat_const (Ast.Features_eq (feat_id1, (node_id,feat_name)), loc)
-              | (value, None) -> Pat_const (Ast.Feature_eq_cst (feat_id1, value), loc)
-            }
+             { let (feat_id1,loc)=feat_id1_loc in
+              match Ast.parse_simple_or_pointed rhs with
+              | Ast.Simple value ->
+                Pat_const (Ast.Feature_eq_cst (feat_id1, value), loc)
+              | Ast.Pointed (s1, s2) ->
+                Pat_const (Ast.Feature_eq_lex_or_fs (feat_id1, (s1,s2)), loc)
+             }
 
         /*   X.cat = "value"   */
         | feat_id1_loc=feature_ident_with_loc EQUAL rhs=STRING
@@ -469,12 +474,15 @@ pat_item:
 
         /*   X.cat <> Y.cat   */
         /*   X.cat <> value   */
+        /*   X.cat <> lex.value   */
         | feat_id1_loc=feature_ident_with_loc DISEQUAL rhs=ID
-            { let (feat_id1,loc)=feat_id1_loc in
-              match Ast.parse_simple_or_feature_ident rhs with
-              | (node_id, Some feat_name) -> Pat_const (Ast.Features_diseq (feat_id1, (node_id,feat_name)), loc)
-              | (value, None) -> Pat_const (Ast.Feature_diff_cst (feat_id1, value), loc)
-            }
+             { let (feat_id1,loc)=feat_id1_loc in
+              match Ast.parse_simple_or_pointed rhs with
+              | Ast.Simple value ->
+                Pat_const (Ast.Feature_diff_cst (feat_id1, value), loc)
+              | Ast.Pointed (s1, s2) ->
+                Pat_const (Ast.Feature_diff_lex_or_fs (feat_id1, (s1,s2)), loc)
+             }
 
         /*   X.cat <> "value"   */
         | feat_id1_loc=feature_ident_with_loc DISEQUAL rhs=STRING
@@ -493,13 +501,24 @@ pat_item:
             { let (id1,loc)=id1_loc in
               match (id1, id2) with
               (*   X.feat < Y.feat   *)
-              | (Ineq_sofi (n1, Some f1), Ineq_sofi (n2, Some f2)) -> Pat_const (Ast.Features_ineq (Ast.Lt, (n1,f1), (n2,f2)), loc)
+              | (Ineq_sofi (Ast.Pointed (n1, f1)), Ineq_sofi (Ast.Pointed (n2, f2))) ->
+                Pat_const (Ast.Features_ineq (Ast.Lt, (n1,f1), (n2,f2)), loc)
+
               (*   X.feat < 12.34   *)
-              | (Ineq_sofi (n1, Some f1), Ineq_float num) -> Pat_const (Ast.Feature_ineq_cst (Ast.Lt, (n1,f1), num), loc)
+              | (Ineq_sofi (Ast.Pointed (n1, f1)), Ineq_float num) ->
+                Pat_const (Ast.Feature_ineq_cst (Ast.Lt, (n1,f1), num), loc)
+
               (*   12.34 < Y.feat   *)
-              | (Ineq_float num, Ineq_sofi (n1, Some f1)) -> Pat_const (Ast.Feature_ineq_cst (Ast.Gt, (n1,f1), num), loc)
+              | (Ineq_float num, Ineq_sofi (Ast.Pointed (n1, f1))) ->
+                Pat_const (Ast.Feature_ineq_cst (Ast.Gt, (n1,f1), num), loc)
+
               (*   X < Y   *)
-              | (Ineq_sofi (n1, None), Ineq_sofi (n2, None)) -> Pat_const (Ast.Immediate_prec (n1,n2), loc)
+              | (Ineq_sofi (Ast.Simple n1), Ineq_sofi (Ast.Simple n2)) ->
+                Pat_const (Ast.Immediate_prec (n1,n2), loc)
+
+(* TODO : axe lex_field *)
+
+              (*  __ERRORS__   *)
               | (Ineq_float _, Ineq_float _) -> Error.build "the '<' symbol can be used with 2 constants"
               | _ -> Error.build "the '<' symbol can be used with 2 nodes or with 2 features but not in a mix inequality"
             }
@@ -508,13 +527,26 @@ pat_item:
             { let (id1,loc)=id1_loc in
               match (id1, id2) with
               (*   X.feat > Y.feat   *)
-              | (Ineq_sofi (n1, Some f1), Ineq_sofi (n2, Some f2)) -> Pat_const (Ast.Features_ineq (Ast.Gt, (n1,f1), (n2,f2)), loc)
+              | (Ineq_sofi (Ast.Pointed (n1, f1)), Ineq_sofi (Ast.Pointed (n2, f2))) ->
+                Pat_const (Ast.Features_ineq (Ast.Gt, (n1,f1), (n2,f2)), loc)
+
               (*   X.feat > 12.34   *)
-              | (Ineq_sofi (n1, Some f1), Ineq_float num) -> Pat_const (Ast.Feature_ineq_cst (Ast.Gt, (n1,f1), num), loc)
+              | (Ineq_sofi (Ast.Pointed (n1, f1)), Ineq_float num) ->
+                Pat_const (Ast.Feature_ineq_cst (Ast.Gt, (n1,f1), num), loc)
+
               (*   12.34 > Y.feat   *)
-              | (Ineq_float num, Ineq_sofi (n1, Some f1)) -> Pat_const (Ast.Feature_ineq_cst (Ast.Lt, (n1,f1), num), loc)
+              | (Ineq_float num, Ineq_sofi (Ast.Pointed (n1, f1))) ->
+                Pat_const (Ast.Feature_ineq_cst (Ast.Lt, (n1,f1), num), loc)
+
               (*   X > Y   *)
-              | (Ineq_sofi (n1, None), Ineq_sofi (n2, None)) -> Pat_const (Ast.Immediate_prec (n2,n1), loc)
+              | (Ineq_sofi (Ast.Simple n1), Ineq_sofi (Ast.Simple n2)) ->
+                Pat_const (Ast.Immediate_prec (n2,n1), loc)
+
+(* TODO : axe lex_field *)
+
+              (*  __ERRORS__   *)
+              | (Ineq_float _, Ineq_float _) -> Error.build "the '>' symbol can be used with 2 constants"
+
               | (Ineq_float _, Ineq_float _) -> Error.build "the '>' symbol can be used with 2 constants"
               | _ -> Error.build "the '>' symbol can be used with 2 nodes or with 2 features but not in a mix inequality"
             }
@@ -670,7 +702,12 @@ command:
             { let (com_fead_id,loc) = com_fead_id_loc in (Ast.Update_feat (com_fead_id, items), loc) }
 
 concat_item:
-        | gi=ID            { if Ast.is_simple_ident gi then Ast.String_item gi else Ast.Qfn_item (Ast.parse_feature_ident gi) }
+        | gi=ID
+          {
+            match Ast.parse_simple_or_pointed gi with
+            | Ast.Simple value -> Ast.String_item value
+            | Ast.Pointed (s1, s2) -> Ast.Qfn_or_lex_item (s1, s2)
+          }
         | s=STRING         { Ast.String_item s }
         | f=FLOAT          { Ast.String_item (Printf.sprintf "%g" f) }
         | p=AROBAS_ID      { Ast.Param_item p }

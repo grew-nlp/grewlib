@@ -83,6 +83,9 @@ module Rule = struct
     | Feature_eq_cst of Pid.t * string * string
     | Feature_diff_cst of Pid.t * string * string
     (* *)
+    | Feature_eq_lex of Pid.t * string * (string * string)
+    | Feature_diff_lex of Pid.t * string * (string * string)
+    (* *)
     | Feature_eq_float of Pid.t * string * float
     | Feature_diff_float of Pid.t * string * float
     (* *)
@@ -133,6 +136,26 @@ module Rule = struct
         ("value", `String value);
       ]
     ]
+  | Feature_eq_lex (pid,fn,(lex,field)) ->
+    `Assoc ["feature_eq_lex",
+      `Assoc [
+        ("id", `String (Pid.to_string pid));
+        ("feature_name_", `String fn);
+        ("lexicon", `String lex);
+        ("field", `String field);
+      ]
+    ]
+  | Feature_diff_lex (pid,fn,(lex,field)) ->
+    `Assoc ["feature_diff_lex",
+      `Assoc [
+        ("id", `String (Pid.to_string pid));
+        ("feature_name_", `String fn);
+        ("lexicon", `String lex);
+        ("field", `String field);
+      ]
+    ]
+
+
   | Feature_eq_float (pid,fn,value) ->
     `Assoc ["feature_eq_float",
       `Assoc [
@@ -198,7 +221,7 @@ module Rule = struct
       ]
     ]
 
-  let build_pos_constraint ?domain pos_table const =
+  let build_pos_constraint ?domain (lexicons : (string * Lexicon.t) list) pos_table const =
     let pid_of_name loc node_name = Pid.Pos (Id.build ~loc node_name pos_table) in
     match const with
       | (Ast.Cst_out (id,label_cst), loc) ->
@@ -236,6 +259,13 @@ module Rule = struct
         Domain.check_feature_name ?domain ~loc feat_name;
         Feature_diff_cst (pid_of_name loc node_name, feat_name, string)
 
+      | (Ast.Feature_eq_lex ((node_name, feat_name), lf), loc) ->
+        Domain.check_feature_name ?domain ~loc feat_name;
+        Feature_eq_lex (pid_of_name loc node_name, feat_name, lf)
+      | (Ast.Feature_diff_lex ((node_name, feat_name), lf), loc) ->
+        Domain.check_feature_name ?domain ~loc feat_name;
+        Feature_diff_lex (pid_of_name loc node_name, feat_name, lf)
+
       | (Ast.Feature_eq_float ((node_name, feat_name), float), loc) ->
         Domain.check_feature_name ?domain ~loc feat_name;
         Feature_eq_float (pid_of_name loc node_name, feat_name, float)
@@ -249,6 +279,10 @@ module Rule = struct
       | (Ast.Large_prec (id1, id2), loc) ->
         Large_prec (pid_of_name loc id1, pid_of_name loc id2)
 
+      | (Ast.Feature_eq_lex_or_fs (s1,s2), loc) -> failwith "TODO"
+      | (Ast.Feature_diff_lex_or_fs (s1,s2), loc) -> failwith "TODO"
+
+
   type basic = {
     graph: P_graph.t;
     constraints: const list;
@@ -260,13 +294,13 @@ module Rule = struct
       ("constraints", `List (List.map (const_to_json ?domain) basic.constraints));
     ]
 
-  let build_pos_basic ?domain ?pat_vars basic_ast =
+  let build_pos_basic ?domain lexicons ?pat_vars basic_ast =
     let (graph, pos_table) =
       P_graph.build ?domain ?pat_vars basic_ast.Ast.pat_nodes basic_ast.Ast.pat_edges in
     (
       {
         graph = graph;
-        constraints = List.map (build_pos_constraint ?domain pos_table) basic_ast.Ast.pat_const
+        constraints = List.map (build_pos_constraint ?domain lexicons pos_table) basic_ast.Ast.pat_const
       },
       pos_table
     )
@@ -321,6 +355,13 @@ module Rule = struct
         Domain.check_feature_name ?domain ~loc feat_name;
         Feature_diff_cst (pid_of_name loc node_name, feat_name, string)
 
+      | (Ast.Feature_eq_lex ((node_name, feat_name), lf), loc) ->
+        Domain.check_feature_name ?domain ~loc feat_name;
+        Feature_eq_lex (pid_of_name loc node_name, feat_name, lf)
+      | (Ast.Feature_diff_lex ((node_name, feat_name), lf), loc) ->
+        Domain.check_feature_name ?domain ~loc feat_name;
+        Feature_diff_lex (pid_of_name loc node_name, feat_name, lf)
+
       | (Ast.Feature_eq_float ((node_name, feat_name), float), loc) ->
         Domain.check_feature_name ?domain ~loc feat_name;
         Feature_eq_float (pid_of_name loc node_name, feat_name, float)
@@ -328,12 +369,15 @@ module Rule = struct
         Domain.check_feature_name ?domain ~loc feat_name;
         Feature_diff_float (pid_of_name loc node_name, feat_name, float)
 
-
       | (Ast.Immediate_prec (id1, id2), loc) ->
         Immediate_prec (pid_of_name loc id1, pid_of_name loc id2)
 
       | (Ast.Large_prec (id1, id2), loc) ->
         Large_prec (pid_of_name loc id1, pid_of_name loc id2)
+
+      | (Ast.Feature_eq_lex_or_fs (s1,s2), loc) -> failwith "TODO"
+      | (Ast.Feature_diff_lex_or_fs (s1,s2), loc) -> failwith "TODO"
+
 
   (* It may raise [P_fs.Fail_unif] in case of contradiction on constraints *)
   let build_neg_basic ?domain ?pat_vars pos_table basic_ast =
@@ -364,6 +408,7 @@ module Rule = struct
       pattern: pattern;
       commands: Command.t list;
       param: Lex_par.t * string list; (* ([],[]) if None *)
+      lexicons: (string * Lexicon.t) list;
       loc: Loc.t;
     }
 
@@ -447,7 +492,7 @@ module Rule = struct
     Buffer.contents buff
 
   (* ====================================================================== *)
-  let build_commands ?domain ?param pos pos_table ast_commands =
+  let build_commands ?domain ?param lexicon_names pos pos_table ast_commands =
     let known_node_ids = Array.to_list pos_table in
     let known_edge_ids = get_edge_ids pos in
 
@@ -458,11 +503,17 @@ module Rule = struct
             Command.build
               ?domain
               ?param
+              lexicon_names
               (kni,kei)
               pos_table
               ast_command in
           command :: (loop (new_kni,new_kei) tail) in
     loop (known_node_ids, known_edge_ids) ast_commands
+
+  let build_lex = function
+  | Ast.File filename -> Lexicon.load filename
+  | Ast.Final line_list -> Lexicon.build (List.map (fun s -> Str.split (Str.regexp "\\t") s) line_list)
+
 
   (* ====================================================================== *)
   let build ?domain deprecated_dir rule_ast =
@@ -470,6 +521,21 @@ module Rule = struct
     let dir = match rule_ast.Ast.rule_dir with
     | Some d -> d
     | None -> deprecated_dir in
+
+    let (lexicons : (string * Lexicon.t) list) =
+      Massoc_string.fold_on_list (fun acc name desc_list ->
+        match desc_list with
+        | [] -> Error.bug "Empty description list in lexicon %s" name
+        | h::t ->
+          let lex =
+          List.fold_left
+            (fun acc2 desc -> Lexicon.union acc2 (build_lex desc)) (build_lex h) t in
+        (name, lex) :: acc
+        ) [] rule_ast.Ast.lexicon_info
+     in
+
+    let lexicon_names = List.map fst lexicons in
+    Printf.printf "******* %d --> %s\n%!" (List.length lexicon_names) (String.concat "/" lexicon_names);
 
     let (param, pat_vars) =
       match rule_ast.Ast.param with
@@ -499,7 +565,7 @@ module Rule = struct
 
     let pattern = Ast.normalize_pattern rule_ast.Ast.pattern in
     let (pos, pos_table) =
-      try build_pos_basic ?domain ~pat_vars pattern.Ast.pat_pos
+      try build_pos_basic ?domain lexicons ~pat_vars pattern.Ast.pat_pos
       with P_fs.Fail_unif ->
         Error.build ~loc:rule_ast.Ast.rule_loc
           "[Rule.build] in rule \"%s\": feature structures declared in the \"match\" clause are inconsistent"
@@ -516,15 +582,16 @@ module Rule = struct
     {
       name = rule_ast.Ast.rule_id;
       pattern = (pos, negs);
-      commands = build_commands ?domain ~param:pat_vars pos pos_table rule_ast.Ast.commands;
+      commands = build_commands ?domain ~param:pat_vars lexicon_names pos pos_table rule_ast.Ast.commands;
       loc = rule_ast.Ast.rule_loc;
+      lexicons;
       param = (param, pat_vars);
     }
 
-  let build_pattern ?domain pattern_ast =
+  let build_pattern ?domain lexicons pattern_ast =
     let n_pattern = Ast.normalize_pattern pattern_ast in
     let (pos, pos_table) =
-      try build_pos_basic ?domain n_pattern.Ast.pat_pos
+      try build_pos_basic ?domain lexicons n_pattern.Ast.pat_pos
       with P_fs.Fail_unif -> Error.build "feature structures declared in the \"match\" clause are inconsistent " in
     let negs =
       List_.try_map
@@ -538,6 +605,8 @@ module Rule = struct
       n_match: Gid.t Pid_map.t;                     (* partial fct: pattern nodes |--> graph nodes *)
       e_match: (string*(Gid.t*Label.t*Gid.t)) list; (* edge matching: edge ident  |--> (src,label,tar) *)
       m_param: Lex_par.t option;
+      (* l_param: (string * Lexicon.t) list; *)
+
     }
 
   let to_python pattern graph m =
@@ -760,6 +829,8 @@ module Rule = struct
           if G_node.get_position gnode1 < G_node.get_position gnode2
           then matching
           else raise Fail
+      | Feature_eq_lex (_, _, _) |Feature_diff_lex (_, _, _) -> failwith ("TODOLEX")
+
 
   (*  ---------------------------------------------------------------------- *)
   (* returns all extension of the partial input matching *)
@@ -957,6 +1028,7 @@ module Rule = struct
             (function
               | Command.Feat (cnode, feat_name) -> Concat_item.Feat (node_find cnode, feat_name)
               | Command.String s -> Concat_item.String s
+              | Command.Lexical_field _ -> failwith "TODOLEX"
               | Command.Param index ->
                   (match matching.m_param with
                   | None -> Error.bug "Cannot apply a UPDATE_FEAT command without parameter"
@@ -1412,6 +1484,7 @@ module Rule = struct
             (function
               | Command.Feat (cnode, feat_name) -> Concat_item.Feat (node_find cnode, feat_name)
               | Command.String s -> Concat_item.String s
+              | Command.Lexical_field _ -> failwith "TODOLEX"
               | Command.Param index ->
                   (match matching.m_param with
                   | None -> Error.bug "Cannot apply a UPDATE_FEAT command without parameter"
@@ -1654,6 +1727,7 @@ module Rule = struct
             (function
               | Command.Feat (cnode, feat_name) -> Concat_item.Feat (node_find cnode, feat_name)
               | Command.String s -> Concat_item.String s
+              | Command.Lexical_field _ -> failwith "TODOLEX"
               | Command.Param index ->
                   (match matching.m_param with
                   | None -> Error.bug "Cannot apply a UPDATE_FEAT command without parameter"

@@ -209,6 +209,8 @@ module type S =
 
     val fold: ('b -> key -> 'a -> 'b) -> 'b -> 'a t -> 'b
 
+    val fold_on_list: ('b -> key -> 'a list -> 'b) -> 'b -> 'a t -> 'b
+
     (* raise Not_found if no (key,elt) *)
     val remove: key -> 'a -> 'a t -> 'a t
     val remove_opt: key -> 'a -> 'a t -> 'a t option

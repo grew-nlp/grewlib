@@ -23,6 +23,7 @@ module Command : sig
   type item =
     | Feat of (command_node * string)
     | String of string
+    | Lexical_field of (string * string)
     | Param of int
 
   type p =
@@ -65,6 +66,7 @@ module Command : sig
   val build:
       ?domain: Domain.t ->
       ?param: string list ->
+      string list -> (* lexicon names *)
       (Id.name list * string list) ->
       Id.table ->
       Ast.command ->

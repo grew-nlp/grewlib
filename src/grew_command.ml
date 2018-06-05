@@ -32,6 +32,7 @@ module Command  = struct
   type item =
     | Feat of (command_node * string)
     | String of string
+    | Lexical_field of (string * string)
     | Param of int
 
   let item_to_json = function
@@ -42,6 +43,7 @@ module Command  = struct
         ]
       )]
   | String s -> `Assoc [("string", `String s)]
+  | Lexical_field (lex,field) -> `Assoc [("lexical_filed", `String (lex ^ "." ^ field))]
   | Param i -> `Assoc [("param", `Int i)]
 
   (* the command in pattern *)
@@ -170,7 +172,7 @@ module Command  = struct
     | H_SHIFT_OUT of (Gid.t * Gid.t)
 
 
-  let build ?domain ?param (kni, kei) table ast_command =
+  let build ?domain ?param lexicon_names (kni, kei) table ast_command =
     (* kni stands for "known node idents", kei for "known edge idents" *)
 
     let cn_of_node_id node_id =
@@ -178,9 +180,11 @@ module Command  = struct
       | Some x -> Pat (Pid.Pos x)
       | None   -> New node_id in
 
-    let check_node_id loc node_id kni =
+    let check_node_id_msg loc msg node_id kni =
       if not (List.mem node_id kni)
-      then Error.build ~loc "Unbound node identifier \"%s\"" node_id in
+      then Error.build ~loc "%s \"%s\"" msg node_id in
+
+    let check_node_id loc node_id kni = check_node_id_msg loc "Unbound node identifier" node_id kni in
 
     (* check that the edge_id is defined in the pattern *)
     let check_edge loc edge_id kei =
@@ -256,10 +260,16 @@ module Command  = struct
           check_node_id loc node_id kni;
           let items = List.map
             (function
-              | Ast.Qfn_item (node_id,feature_name) ->
-                check_node_id loc node_id kni;
-                Domain.check_feature_name ~loc ?domain feature_name;
-                Feat (cn_of_node_id node_id, feature_name)
+              (* TODO update code for new lexicon *)
+              | Ast.Qfn_or_lex_item (node_id_or_lex,feature_name_or_lex_field) ->
+                if List.mem node_id_or_lex lexicon_names
+                then Lexical_field (node_id_or_lex, feature_name_or_lex_field)
+                else
+                  begin
+                    check_node_id_msg loc ("Unbound identifier %s (neither a node nor a lexicon)") node_id_or_lex kni;
+                    Domain.check_feature_name ~loc ?domain feature_name_or_lex_field;
+                    Feat (cn_of_node_id node_id_or_lex, feature_name_or_lex_field)
+                  end
               | Ast.String_item s -> String s
               | Ast.Param_item var ->
                 match param with
