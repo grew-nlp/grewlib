@@ -319,7 +319,7 @@ module Ast = struct
   | File of string
   | Final of string list
 
-  type lexicon_info = lexicon Massoc_string.t
+  type lexicon_info = (string * lexicon) list
 
   (* the [rule] type is used for 3 kinds of module items:
      - rule     { param=None; ... }

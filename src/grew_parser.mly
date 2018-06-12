@@ -339,7 +339,7 @@ rule:
                 commands = cmds;
                 param = None;
                 lex_par = None;
-                lexicon_info = Massoc_string.empty; (* TODOLEX *)
+                lexicon_info = lex_par;
                 rule_doc = begin match doc with Some d -> d | None -> [] end;
                 rule_loc = snd id_loc;
                 rule_dir = None;
@@ -351,8 +351,8 @@ rule:
                 pattern = Ast.complete_pattern { Ast.pat_pos = p; Ast.pat_negs = n };
                 commands = cmds;
                 param = Some param;
-                lex_par = lex_par;
-                lexicon_info = Massoc_string.empty; (* TODOLEX *)
+                lex_par = None;
+                lexicon_info = []; (* TODOLEX *)
                 rule_doc = begin match doc with Some d -> d | None -> [] end;
                 rule_loc = snd id_loc;
                 rule_dir = None;
@@ -360,7 +360,7 @@ rule:
             }
 
 lex_par:
-        | lex_par = LEX_PAR  { snd (lex_par) }
+        | lex_par = LEX_PAR  { (fst lex_par, Ast.Final (snd lex_par)) }
 
 param:
         | LPAREN FEATURE vars=separated_nonempty_list(COMA,var) RPAREN                                       { ([],vars) }

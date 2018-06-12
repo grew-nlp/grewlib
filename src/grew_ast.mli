@@ -171,7 +171,7 @@ module Ast : sig
   | File of string
   | Final of string list
 
-  type lexicon_info = lexicon Massoc_string.t
+  type lexicon_info = (string * lexicon) list
 
   type rule = {
       rule_id:Id.name;

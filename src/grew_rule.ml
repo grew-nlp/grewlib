@@ -512,7 +512,7 @@ module Rule = struct
 
   let build_lex = function
   | Ast.File filename -> Lexicon.load filename
-  | Ast.Final line_list -> Lexicon.build (List.map (fun s -> Str.split (Str.regexp "\\t") s) line_list)
+  | Ast.Final line_list -> Lexicon.build (List.map (fun s -> Str.split (Str.regexp "\t") s) line_list)
 
 
   (* ====================================================================== *)
@@ -523,19 +523,15 @@ module Rule = struct
     | None -> deprecated_dir in
 
     let (lexicons : (string * Lexicon.t) list) =
-      Massoc_string.fold_on_list (fun acc name desc_list ->
-        match desc_list with
-        | [] -> Error.bug "Empty description list in lexicon %s" name
-        | h::t ->
-          let lex =
-          List.fold_left
-            (fun acc2 desc -> Lexicon.union acc2 (build_lex desc)) (build_lex h) t in
-        (name, lex) :: acc
-        ) [] rule_ast.Ast.lexicon_info
-     in
+      List.fold_left (fun acc (name,lex) ->
+        try
+          let prev = List.assoc name acc in
+          (name, (Lexicon.union prev (build_lex lex))) :: (List.remove_assoc name acc)
+        with
+          Not_found -> (name, build_lex lex) :: acc
+      ) [] rule_ast.Ast.lexicon_info in
 
     let lexicon_names = List.map fst lexicons in
-    Printf.printf "******* %d --> %s\n%!" (List.length lexicon_names) (String.concat "/" lexicon_names);
 
     let (param, pat_vars) =
       match rule_ast.Ast.param with

@@ -97,15 +97,13 @@ and string_lex re target = parse
   }
 
 (* a dedicated lexer for lexical parameter: read everything until "#END" *)
-and lp_lex target = parse
-| '\n'                    { Global.new_line (); Lexing.new_line lexbuf; bprintf buff "\n"; lp_lex target lexbuf }
-| _ as c                  { bprintf buff "%c" c; lp_lex target lexbuf }
+and lp_lex name target = parse
+| '\n'                    { Global.new_line (); Lexing.new_line lexbuf; bprintf buff "\n"; lp_lex name target lexbuf }
+| _ as c                  { bprintf buff "%c" c; lp_lex name target lexbuf }
 | "#END" [' ' '\t']* '\n' { Global.new_line ();
-                            Printf.printf "********%s********\n%!" (Buffer.contents buff);
-                            LEX_PAR (
-                              "TODO",
-                              Str.split (Str.regexp "\n") (Buffer.contents buff)
-                            )
+                            let s = Buffer.contents buff in
+                            let lines= Str.split (Str.regexp "\n") s in
+                            LEX_PAR ( name, lines)
                           }
 
 (* The lexer must be different when label_ident are parsed. The [global] lexer calls either
@@ -153,7 +151,7 @@ and standard target = parse
 | '%'        { comment global lexbuf }
 
 | "#BEGIN" [' ' '\t']* (label_ident as li) [' ' '\t']* '\n'
-             { Printf.printf "%s\n%!" li; Global.new_line (); Buffer.clear buff; lp_lex global lexbuf}
+             { Global.new_line (); Buffer.clear buff; lp_lex li global lexbuf}
 
 | '\n'       { Global.new_line (); Lexing.new_line lexbuf; global lexbuf}
 

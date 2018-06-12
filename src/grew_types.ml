@@ -179,7 +179,7 @@ module Lexicon = struct
 
   let load file =
     let lines = File.read file in
-    let items = List.map (fun line -> Str.split (Str.regexp "\\t") line) lines in
+    let items = List.map (fun line -> Str.split (Str.regexp "\t") line) lines in
     build items
 
   let reduce sub_list lexicon =
