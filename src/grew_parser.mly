@@ -177,9 +177,14 @@ feature_ident_with_loc :
         | id=ID      { localize (Ast.parse_feature_ident id) }
 
 feature_value:
-        | v=ID        { v }
+        | v=ID        { Ast.parse_simple_ident v }
         | v=STRING    { v }
         | v=FLOAT     { Printf.sprintf "%g" v }
+
+pattern_feature_value:
+        | v=ID        { Ast.parse_simple_or_pointed v }
+        | v=STRING    { Ast.Simple v }
+        | v=FLOAT     { Ast.Simple (Printf.sprintf "%g" v) }
 
 ineq_value:
         | v=ID    { Ineq_sofi (Ast.parse_simple_or_pointed v) }
@@ -226,7 +231,7 @@ gr_item:
 /*  DOMAIN DEFINITION                                                                          */
 /*=============================================================================================*/
 domain:
-        | c=option(DUMMY) f=features_group g=labels EOF
+        | c=option(DUMMY) f=feature_group g=labels EOF
             {
               {  Ast.feature_domain = f;
                  label_domain = g;
@@ -265,7 +270,7 @@ subfile:
 /*=============================================================================================*/
 /* FEATURES DOMAIN DEFINITION                                                                  */
 /*=============================================================================================*/
-features_group:
+feature_group:
         | FEATURES x=features { x }
 
 features:
@@ -274,7 +279,7 @@ features:
 feature:
         /*   pos=#   */
         /*   m: ind,inf,part,subj,imp   */
-        | feature_name=feature_name DDOT feature_values=features_values
+        | feature_name=feature_name DDOT feature_values=feature_values
             {
               match feature_values with
                 | ["#"] -> Ast.Num feature_name
@@ -288,7 +293,7 @@ feature:
 feature_name:
         | ci=ID { Ast.to_uname ci }
 
-features_values:
+feature_values:
         | SHARP                                         { ["#"] }
         | x=separated_nonempty_list(COMA,feature_value) { x }
 
@@ -461,6 +466,7 @@ pat_item:
               | Ast.Simple value ->
                 Pat_const (Ast.Feature_eq_cst (feat_id1, value), loc)
               | Ast.Pointed (s1, s2) ->
+                Printf.printf "###%s--%s###\n%!" s1 s2;
                 Pat_const (Ast.Feature_eq_lex_or_fs (feat_id1, (s1,s2)), loc)
              }
 
@@ -579,32 +585,65 @@ pat_item:
 
 node_features:
         /*   cat = n|v|adj   */
-        | name_loc=simple_id_with_loc EQUAL values=separated_nonempty_list(PIPE,feature_value)
-            { let (name,loc) = name_loc in
+        | name_loc=simple_id_with_loc EQUAL values=separated_nonempty_list(PIPE,pattern_feature_value)
+            {
+              let (name,loc) = name_loc in
               let uname = Ast.to_uname name in
               match values with
-              | ["*"] -> ({Ast.kind = Ast.Disequality []; name=uname},loc)
-              | _ -> ({Ast.kind = Ast.Equality values; name=uname }, loc) }
+              | [Ast.Simple "*"] ->
+                Printf.printf "###node_features[1.1] --> %s\n%!" name;
+                ({Ast.kind = Ast.Disequality []; name=uname},loc)
+              | [Ast.Pointed (lex,fn)] ->
+                Printf.printf "###node_features[1.2] --> %s\n%!" name;
+                ({Ast.kind = Ast.Equal_lex (lex,fn); name=uname }, loc)
+              | l ->
+                Printf.printf "###node_features[1.3] --> %s\n%!" name;
+                let value_list = List.map (function
+                  | Ast.Simple x -> x
+                  | Ast.Pointed (lex,fn) -> Error.build "Lexical reference '%s.%s' cannot be used in a disjunction" lex fn
+                ) l in ({Ast.kind = Ast.Equality value_list; name=uname }, loc)
+            }
 
         /*   cat = *   */
         | name_loc=simple_id_with_loc EQUAL STAR
-            { let (name,loc) = name_loc in ({Ast.kind = Ast.Disequality []; name=Ast.to_uname name},loc) }
+            { let (name,loc) = name_loc in
+              Printf.printf "###node_features[2] --> %s\n%!" name;
+              ({Ast.kind = Ast.Disequality []; name=Ast.to_uname name},loc) }
 
         /*   cat   */
         | name_loc=simple_id_with_loc
-            { let (name,loc) = name_loc in ({Ast.kind = Ast.Disequality []; name=Ast.to_uname name},loc) }
+            { let (name,loc) = name_loc in
+              Printf.printf "###node_features[3] --> %s\n%!" name;
+              ({Ast.kind = Ast.Disequality []; name=Ast.to_uname name},loc) }
 
         /*    cat<>n|v|adj   */
-        | name_loc=simple_id_with_loc DISEQUAL values=separated_nonempty_list(PIPE,feature_value)
-            { let (name,loc) = name_loc in ( {Ast.kind = Ast.Disequality values; name=Ast.to_uname name}, loc) }
+        | name_loc=simple_id_with_loc DISEQUAL values=separated_nonempty_list(PIPE,pattern_feature_value)
+            {
+              let (name,loc) = name_loc in
+              let uname = Ast.to_uname name in
+              match values with
+              | [Ast.Pointed (lex,fn)] ->
+                Printf.printf "###node_features[4.2] --> %s\n%!" name;
+                ({Ast.kind = Ast.Disequal_lex (lex,fn); name=uname }, loc)
+              | l ->
+                Printf.printf "###node_features[4.3] --> %s\n%!" name;
+                let value_list = List.map (function
+                  | Ast.Simple x -> x
+                  | Ast.Pointed (lex,fn) -> Error.build "Lexical reference '%s.%s' cannot be used in a disjunction" lex fn
+                ) l in ({Ast.kind = Ast.Disequality value_list; name=uname }, loc)
+            }
 
         /*    lemma=$lem   */
         | name_loc=simple_id_with_loc EQUAL p=DOLLAR_ID
-            { let (name,loc) = name_loc in ( {Ast.kind = Ast.Equal_param p; name=Ast.to_uname name }, loc) }
+            { let (name,loc) = name_loc in
+              Printf.printf "###node_features[5] --> %s\n%!" name;
+              ( {Ast.kind = Ast.Equal_param p; name=Ast.to_uname name }, loc) }
 
         /*   !lemma   */
         | BANG name_loc=simple_id_with_loc
-            { let (name,loc) = name_loc in ({Ast.kind = Ast.Absent; name=Ast.to_uname name}, loc) }
+            { let (name,loc) = name_loc in
+                            Printf.printf "###node_features[6] --> %s\n%!" name;
+ ({Ast.kind = Ast.Absent; name=Ast.to_uname name}, loc) }
 
 /*=============================================================================================*/
 /* COMMANDS DEFINITION                                                                         */
@@ -766,7 +805,7 @@ new_grs:
   | decls = list(decl) EOF { decls }
 
 decl:
-  | f=features_group                                          { New_ast.Features f                           }
+  | f=feature_group                                          { New_ast.Features f                           }
   | l=labels                                                  { New_ast.Labels l                             }
   | r=rule                                                    { New_ast.Rule r                               }
   | IMPORT f=STRING                                           { New_ast.Import f                             }

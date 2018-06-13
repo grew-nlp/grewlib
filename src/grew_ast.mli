@@ -60,6 +60,8 @@ module Ast : sig
   type feature_kind =
     | Equality of feature_value list
     | Disequality of feature_value list
+    | Equal_lex of string * string
+    | Disequal_lex of string * string
     | Equal_param of string (* $ident *)
     | Absent
 

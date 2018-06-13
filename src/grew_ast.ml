@@ -96,6 +96,8 @@ module Ast = struct
   type feature_kind =
     | Equality of feature_value list
     | Disequality of feature_value list
+    | Equal_lex of string * string
+    | Disequal_lex of string * string
     | Equal_param of string (* $ident *)
     | Absent
 
@@ -103,6 +105,8 @@ module Ast = struct
     | Equality fv_list -> sprintf " = %s" (String.concat "|" fv_list)
     | Disequality [] -> ""
     | Disequality fv_list -> sprintf " <> %s" (String.concat "|" fv_list)
+    | Equal_lex (lex,fn) -> sprintf " = %s.%s" lex fn
+    | Disequal_lex (lex,fn) -> sprintf " <> %s.%s" lex fn
     | Equal_param param -> sprintf  " = $%s" param
     | Absent -> " <> *"
 
@@ -162,7 +166,6 @@ module Ast = struct
     | Feature_ineq_cst of ineq * feature_ident * float
     | Feature_eq_float of feature_ident * float
     | Feature_diff_float of feature_ident * float
-
     (* ambiguous case, context needed to make difference "N.cat = M.cat" VS "N.cat = lex.cat" *)
     | Feature_eq_lex_or_fs of feature_ident * (string * string)
     | Feature_diff_lex_or_fs of feature_ident * (string * string)

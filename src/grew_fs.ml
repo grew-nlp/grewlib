@@ -78,6 +78,8 @@ module P_feature = struct
     | Absent
     | Equal of value list     (* with Equal constr, the list MUST never be empty *)
     | Different of value list
+    | Equal_lex of string * string
+    | Different_lex of string * string
 
   (* NB: in the current version, |in_param| ≤ 1 *)
   type v = {
@@ -94,6 +96,8 @@ module P_feature = struct
       | Different [] -> "=*"
       | Different l -> "≠" ^ (String.concat "|" (List.map string_of_value l))
       | Equal l -> "=" ^ (String.concat "|" (List.map string_of_value l))
+      | Equal_lex (lex,fn) -> sprintf "= %s.%s" lex fn
+      | Different_lex (lex,fn) -> sprintf "≠ %s.%s" lex fn
       | Absent -> " must be Absent!");
     printf "in_param=[%s]\n" (String.concat "," (List.map string_of_int in_param));
     printf "%!"
@@ -105,6 +109,8 @@ module P_feature = struct
         | Absent -> ("absent", `Null)
         | Equal val_list -> ("equal", `List (List.map (fun x -> `String (string_of_value x)) val_list))
         | Different val_list -> ("different", `List (List.map (fun x -> `String (string_of_value x)) val_list))
+        | Equal_lex (lex,fn) -> ("equal_lex", `String (sprintf "%s.%s" lex fn))
+        | Different_lex (lex,fn) -> ("different_lex", `String (sprintf "%s.%s" lex fn))
       )
     ]
 
@@ -164,6 +170,8 @@ module P_feature = struct
       let values = Feature_value.build_disj ~loc ?domain name unsorted_values in (name, {cst=Equal values;in_param=[];})
     | ({Ast.kind=Ast.Disequality unsorted_values; name=name}, loc) ->
       let values = Feature_value.build_disj ~loc ?domain name unsorted_values in (name, {cst=Different values;in_param=[];})
+    | ({Ast.kind=Ast.Equal_lex (lex,fn); name=name}, loc) -> (name, {cst=Equal_lex (lex,fn); in_param=[];})
+    | ({Ast.kind=Ast.Disequal_lex (lex,fn); name=name}, loc) -> (name, {cst=Different_lex (lex,fn); in_param=[];})
     | ({Ast.kind=Ast.Equal_param var; name=name}, loc) ->
         begin
           match pat_vars with
