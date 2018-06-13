@@ -171,6 +171,7 @@ module Lexicon = struct
   | (x::xs) :: xss -> (x :: List.map List.hd xss) :: transpose (xs :: List.map List.tl xss)
 
   let build items =
+    if items = [] then Error.bug "[Lexicon.build] a lexicon must not be empty";
     let tr = transpose items in
     let sorted_tr = List.sort (fun l1 l2 -> Pervasives.compare (List.hd l1) (List.hd l2)) tr in
     match transpose sorted_tr with
@@ -204,7 +205,21 @@ module Lexicon = struct
     match List_.index head lex.header with
     | None -> Error.build "[Lexicon.select] cannot find %s in lexicon" head
     | Some index ->
-      { lex with lines = Line_set.filter (fun line -> List.nth line index = value) lex.lines}
+      let new_set = Line_set.filter (fun line -> List.nth line index = value) lex.lines in
+      if Line_set.is_empty new_set
+      then None
+      else ( Printf.printf "###>>> Lexicon select %d --> %d\n%!" (Line_set.cardinal lex.lines) (Line_set.cardinal new_set);
+      Some { lex with lines = new_set }
+      )
+
+  let unselect head value lex =
+    match List_.index head lex.header with
+    | None -> Error.build "[Lexicon.unselect] cannot find %s in lexicon" head
+    | Some index ->
+      let new_set = Line_set.filter (fun line -> List.nth line index <> value) lex.lines in
+      if Line_set.is_empty new_set
+      then None
+      else Some { lex with lines = new_set }
 
   let projection head lex =
     match List_.index head lex.header with
@@ -215,14 +230,14 @@ module Lexicon = struct
   exception Not_functional_lexicon
   let read head lex =
     match String_set.elements (projection head lex) with
-    | [] -> None
-    | [one] -> Some one
+    | [] -> Error.bug "[Lexicon.read] a lexicon must not be empty"
+    | [one] -> one
     | _ -> raise Not_functional_lexicon
 
   let read_multi head lex =
     match String_set.elements (projection head lex) with
-    | [] -> None
-    | l -> Some (String.concat "/" l)
+    | [] -> Error.bug "[Lexicon.read] a lexicon must not be empty"
+    | l -> String.concat "/" l
 end (* module Lexicon *)
 
 (* ================================================================================ *)

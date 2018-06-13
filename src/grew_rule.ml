@@ -601,7 +601,7 @@ module Rule = struct
       n_match: Gid.t Pid_map.t;                     (* partial fct: pattern nodes |--> graph nodes *)
       e_match: (string*(Gid.t*Label.t*Gid.t)) list; (* edge matching: edge ident  |--> (src,label,tar) *)
       m_param: Lex_par.t option;
-      (* l_param: (string * Lexicon.t) list; *)
+      l_param: (string * Lexicon.t) list;
 
     }
 
@@ -624,7 +624,7 @@ module Rule = struct
         (P_node.get_name pnode, G_node.get_float gnode) :: acc
       ) n_match []
 
-  let empty_matching param = { n_match = Pid_map.empty; e_match = []; m_param = param;}
+  let empty_matching lexicons param = { n_match = Pid_map.empty; e_match = []; m_param = param; l_param = lexicons;}
 
   let e_comp (e1,_) (e2,_) = compare e1 e2
 
@@ -687,7 +687,7 @@ module Rule = struct
            - the ?domain of the pattern P is the disjoint union of ?domain([sub]) and [unmatched_nodes]
          *)
   (*  ---------------------------------------------------------------------- *)
-  let init param basic =
+  let init lexicons param basic =
     let roots = P_graph.roots basic.graph in
 
     let node_list = Pid_map.fold (fun pid _ acc -> pid::acc) basic.graph [] in
@@ -700,7 +700,7 @@ module Rule = struct
         | false, true -> 1
         | _ -> 0) node_list in
 
-    { sub = empty_matching param;
+    { sub = empty_matching lexicons param;
       unmatched_nodes = sorted_node_list;
       unmatched_edges = [];
       already_matched_gids = [];
@@ -746,8 +746,8 @@ module Rule = struct
           try
             let gid = Pid_map.find pid matching.n_match in
             let gnode = G_graph.find gid graph in
-            let new_param = P_fs.match_ ?param:matching.m_param fs (G_node.get_fs gnode) in
-            {matching with m_param = new_param }
+            let new_param = P_fs.match_ ~lexicons:(matching.l_param) fs (G_node.get_fs gnode) in
+            {matching with l_param = new_param }
           with P_fs.Fail -> raise Fail
         end
       | Features_eq (pid1, feat_name1, pid2, feat_name2) ->
@@ -825,7 +825,28 @@ module Rule = struct
           if G_node.get_position gnode1 < G_node.get_position gnode2
           then matching
           else raise Fail
-      | Feature_eq_lex (_, _, _) |Feature_diff_lex (_, _, _) -> failwith ("TODOLEX")
+      | Feature_eq_lex (pid, feature_name, (lexicon,field)) ->
+        begin
+          Printf.printf "### Feature_eq_lex\n%!";
+          match get_string_feat pid feature_name with
+          | None -> raise Fail
+          | Some v ->
+              let old_lex = List.assoc lexicon matching.l_param in
+              match Lexicon.select field v old_lex with
+              | None -> raise Fail
+              | Some new_lex -> {matching with l_param = (lexicon, new_lex) :: (List.remove_assoc lexicon matching.l_param) }
+        end
+
+      | Feature_diff_lex (pid, feature_name, (lexicon,field)) ->
+        begin
+          match get_string_feat pid feature_name with
+          | None -> raise Fail
+          | Some v ->
+              let old_lex = List.assoc lexicon matching.l_param in
+              match Lexicon.unselect field v old_lex with
+              | None -> raise Fail
+              | Some new_lex -> {matching with l_param = (lexicon, new_lex) :: (List.remove_assoc lexicon matching.l_param) }
+        end
 
 
   (*  ---------------------------------------------------------------------- *)
@@ -904,7 +925,7 @@ module Rule = struct
       let g_node = try G_graph.find gid graph with Not_found -> Error.bug "[extend_matching_from] cannot find gid in graph" in
 
       try
-        let new_param = P_node.match_ ?param: partial.sub.m_param p_node g_node in
+        let new_lex_set = P_node.match_ ~lexicons:partial.sub.l_param p_node g_node in
         (* add all out-edges from pid in pattern *)
         let new_unmatched_edges =
           Massoc_pid.fold
@@ -916,7 +937,7 @@ module Rule = struct
             unmatched_nodes = (try List_.rm pid partial.unmatched_nodes with Not_found -> Error.bug "[extend_matching_from] cannot find pid in unmatched_nodes");
             unmatched_edges = new_unmatched_edges;
             already_matched_gids = gid :: partial.already_matched_gids;
-            sub = {partial.sub with n_match = Pid_map.add pid gid partial.sub.n_match; m_param = new_param};
+            sub = {partial.sub with n_match = Pid_map.add pid gid partial.sub.n_match; l_param = new_lex_set};
           } in
         extend_matching ?domain (positive,neg) graph new_partial
       with P_fs.Fail -> []
@@ -1024,7 +1045,7 @@ module Rule = struct
             (function
               | Command.Feat (cnode, feat_name) -> Concat_item.Feat (node_find cnode, feat_name)
               | Command.String s -> Concat_item.String s
-              | Command.Lexical_field _ -> failwith "TODOLEX"
+              | Command.Lexical_field _ -> failwith "TODOLEX1"
               | Command.Param index ->
                   (match matching.m_param with
                   | None -> Error.bug "Cannot apply a UPDATE_FEAT command without parameter"
@@ -1193,7 +1214,7 @@ module Rule = struct
     | _ -> false
 
   (*  ---------------------------------------------------------------------- *)
-  let match_in_graph ?domain ?param (pos, negs) graph =
+  let match_in_graph ?domain ?(lexicons=[]) ?param (pos, negs) graph =
     let casted_graph = G_graph.cast ?domain graph in
     let pos_graph = pos.graph in
 
@@ -1203,7 +1224,7 @@ module Rule = struct
         ?domain
         (pos_graph,P_graph.empty)
         casted_graph
-        (init param pos) in
+        (init lexicons param pos) in
 
     let filtered_matching_list =
       List.filter
@@ -1232,7 +1253,7 @@ module Rule = struct
     else
       List.fold_left
         (fun acc rule ->
-          let matching_list = match_in_graph ?domain ~param:(fst rule.param) rule.pattern instance.Instance.graph in
+          let matching_list = match_in_graph ?domain ~lexicons:rule.lexicons ~param:(fst rule.param) rule.pattern instance.Instance.graph in
           List.fold_left
             (fun acc1 matching ->
               Instance_set.add (apply_rule ?domain instance matching rule) acc1
@@ -1265,7 +1286,7 @@ module Rule = struct
             ?domain
             (pos.graph,P_graph.empty)
             instance.Instance.graph
-            (init (Some (fst rule.param)) pos) in
+            (init rule.lexicons (Some (fst rule.param)) pos) in
         try
           let (first_matching_where_all_witout_are_fulfilled,_) =
             List.find
@@ -1340,7 +1361,7 @@ module Rule = struct
     else Error.run "max depth %d reached, last rules applied: …, %s"
       !max_depth_non_det (List_.rev_to_string (fun x->x) ", " (List_.cut 5 instance.Instance.rules))
   else
-    let matching_list = match_in_graph ?domain ?param:(Some (fst rule.param)) rule.pattern instance.Instance.graph in
+    let matching_list = match_in_graph ?domain ~lexicons:rule.lexicons ?param:(Some (fst rule.param)) rule.pattern instance.Instance.graph in
     List.fold_left
       (fun acc matching ->
         Instance_set.add (apply_rule ?domain instance matching rule) acc
@@ -1363,7 +1384,7 @@ module Rule = struct
               ?domain
               (pos.graph,P_graph.empty)
               instance.Instance.graph
-              (init (Some (fst rule.param)) pos) in
+              (init rule.lexicons (Some (fst rule.param)) pos) in
           try
             let (first_matching_where_all_witout_are_fulfilled,_) =
               List.find
@@ -1480,7 +1501,15 @@ module Rule = struct
             (function
               | Command.Feat (cnode, feat_name) -> Concat_item.Feat (node_find cnode, feat_name)
               | Command.String s -> Concat_item.String s
-              | Command.Lexical_field _ -> failwith "TODOLEX"
+              | Command.Lexical_field (lex_name, field) ->
+                  (try
+                    let lexicon = List.assoc lex_name matching.l_param in
+                    let v = Lexicon.read field lexicon in
+                    Concat_item.String v
+                   with
+                    | Not_found -> Error.run ~loc "UPDATE_FEAT: the lexicon '%s' does not exist" lex_name
+                    | Lexicon.Not_functional_lexicon -> Error.run ~loc "UPDATE_FEAT: the lexicon is not functional" lex_name
+                    )
               | Command.Param index ->
                   (match matching.m_param with
                   | None -> Error.bug "Cannot apply a UPDATE_FEAT command without parameter"
@@ -1539,7 +1568,7 @@ module Rule = struct
           ?domain
           (pos.graph,P_graph.empty)
           graph
-          (init (Some (fst rule.param)) pos) in
+          (init rule.lexicons (Some (fst rule.param)) pos) in
           try
             let (first_matching_where_all_witout_are_fulfilled,_) =
               List.find
@@ -1582,7 +1611,7 @@ module Rule = struct
           ?domain
           (pos.graph,P_graph.empty)
           graph
-          (init (Some (fst rule.param)) pos) in
+          (init rule.lexicons (Some (fst rule.param)) pos) in
           try
             let (first_matching_where_all_witout_are_fulfilled,_) =
               List.find
@@ -1723,7 +1752,7 @@ module Rule = struct
             (function
               | Command.Feat (cnode, feat_name) -> Concat_item.Feat (node_find cnode, feat_name)
               | Command.String s -> Concat_item.String s
-              | Command.Lexical_field _ -> failwith "TODOLEX"
+              | Command.Lexical_field _ -> failwith "TODOLEX3"
               | Command.Param index ->
                   (match matching.m_param with
                   | None -> Error.bug "Cannot apply a UPDATE_FEAT command without parameter"
@@ -1856,7 +1885,7 @@ module Rule = struct
       !max_depth_non_det (List_.rev_to_string (fun x->x) ", " (List_.cut 5 instance.Instance.rules))
   else
 *)
-    let matching_list = match_in_graph ?domain ?param:(Some (fst rule.param)) rule.pattern graph_with_history.Graph_with_history.graph in
+    let matching_list = match_in_graph ?domain ~lexicons:rule.lexicons ?param:(Some (fst rule.param)) rule.pattern graph_with_history.Graph_with_history.graph in
     List.fold_left
       (fun acc matching ->
         Graph_with_history_set.add (gwh_apply_rule ?domain graph_with_history matching rule) acc

@@ -106,7 +106,9 @@ module P_node: sig
 
   val add_edge: P_edge.t -> Pid.t -> t -> t option
 
-  val match_: ?param: Lex_par.t -> t -> G_node.t -> Lex_par.t option
+  val match_:
+   ?lexicons:(string * Grew_types.Lexicon.t) list ->
+   t -> G_node.t -> (string * Grew_types.Lexicon.t) list
 
   val compare_pos: t -> t -> int
 end

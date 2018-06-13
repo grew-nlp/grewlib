@@ -173,13 +173,14 @@ module P_node = struct
     | Some l -> Some {t with next = l}
     | None -> None
 
-  let match_ ?param p_node g_node =
+
+  let match_ ?lexicons p_node g_node =
     (* (match param with None -> printf "<None>" | Some p -> printf "<Some>"; Lex_par.dump p); *)
     match G_node.get_position g_node with
-    | G_node.Unordered _ -> None
+    | G_node.Unordered _ -> raise P_fs.Fail (* TOOO: check this return !! *)
     | G_node.Ordered p ->
-      if P_fs.check_position ?param (Some p) p_node.fs
-      then P_fs.match_ ?param p_node.fs (G_node.get_fs g_node)
+      if P_fs.check_position (Some p) p_node.fs
+      then P_fs.match_ ?lexicons p_node.fs (G_node.get_fs g_node)
       else raise P_fs.Fail
 
   let compare_pos t1 t2 = Pervasives.compare t1.loc t2.loc

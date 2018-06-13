@@ -126,23 +126,20 @@ module Lexicon : sig
       It supposed that the two lexicons define the same columns *)
   val union: t -> t -> t
 
-  (** [select head value] returns the sublexicon with only items where the [head] column is equals to [value] *)
-  val select: string -> string -> t -> t
+  (** [select head value] returns the sublexicon with only items where the [head] column is equal to [value] if any, else returns None *)
+  val select: string -> string -> t -> t option
+
+  (** [unselect head value] returns the sublexicon with only items where the [head] column is different to [value] if any, else returns None *)
+  val unselect: string -> string -> t -> t option
 
   exception Not_functional_lexicon
 
-  (** [read head lexicon] returns
-      * None if [lexicon] is empty;
-      * Some value if all items have a [head] column equals to [value]
-      * raise [Not_functional_lexicon] if several values are defined
-      *)
-  val read: string -> t -> string option
+  (** [read head lexicon] return [value] if all items have in the [head] column equals to [value]
+      * raise [Not_functional_lexicon] if several values are defined *)
+  val read: string -> t -> string
 
-  (** [read_multi head lexicon] returns
-      * None if [lexicon] is empty;
-      * Some "v_1/…/v_k" where v_i are the values of the [head] column
-      *)
-  val read_multi: string -> t -> string option
+  (** [read_multi head lexicon] returns "v_1/…/v_k" where v_i are the values of the [head] column *)
+  val read_multi: string -> t -> string
 end (* module Lexicon *)
 
 (* ================================================================================ *)

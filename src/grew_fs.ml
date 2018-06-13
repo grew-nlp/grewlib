@@ -432,14 +432,14 @@ module P_fs = struct
 
   exception Fail
 
-  let match_ ?param p_fs g_fs =
+  let match_ ?(lexicons=[]) p_fs g_fs =
     let p_fs_wo_pos =
       try List.remove_assoc "position" p_fs
       with Not_found -> p_fs in
     let rec loop acc = function
       | [], _ -> acc
 
-      (* a feature_name present only in instance -> Skip it *)
+      (* a feature_name present only in graph -> Skip it *)
       | ((fn_pat, fv_pat)::t_pat, (fn, _)::t) when fn_pat > fn -> loop acc ((fn_pat, fv_pat)::t_pat, t)
 
       (* Two next cases: p_fs requires for the absence of a feature -> OK *)
@@ -451,26 +451,25 @@ module P_fs = struct
       | ((fn_pat, _)::_, (fn, _)::_) when fn_pat < fn -> raise Fail
 
       (* Next cases: fn_pat = fn *)
-      | ((_, {P_feature.cst=cst; P_feature.in_param=in_param})::t_pat, (_, atom)::t) ->
+      | ((_, {P_feature.cst=P_feature.Absent})::_, (_, atom)::t) -> raise Fail
+      | ((_, {P_feature.cst=P_feature.Equal fv})::_, (_, atom)::t) when not (List_.sort_mem atom fv) -> raise Fail
+      | ((_, {P_feature.cst=P_feature.Different fv})::_, (_, atom)::t) when List_.sort_mem atom fv -> raise Fail
 
-        (* check for the constraint part and fail if needed *)
-        let () = match cst with
-        | P_feature.Absent -> raise Fail
-        | P_feature.Equal fv when not (List_.sort_mem atom fv) -> raise Fail
-        | P_feature.Different fv when List_.sort_mem atom fv -> raise Fail
-        | _ -> () in
+      | ((_, {P_feature.cst=P_feature.Equal_lex (lex_name,field)})::t_pat, (_, atom)::t) ->
+        begin
+          try
+            let lexicon = List.assoc lex_name acc in
+            match Lexicon.select field (string_of_value atom) lexicon with
+            | None -> raise Fail
+            | Some new_lexicon ->
+              let new_acc = (lex_name, new_lexicon) :: (List.remove_assoc lex_name acc) in
+              loop new_acc (t_pat, t)
+          with
+          | Not_found -> failwith "TODO"
+        end
+      | _ -> acc
 
-        (* if constraint part don't fail, look for lexical parameters *)
-        match (acc, in_param) with
-          | (_,[]) -> loop acc (t_pat,t)
-          | (None,_) -> Log.bug "[P_fs.match_] Parametrized constraint in a non-parametrized rule"; exit 2
-          | (Some param, [index]) ->
-            (match Lex_par.select index (string_of_value atom) param with
-              | [] -> raise Fail
-              | new_param -> loop (Some new_param) (t_pat,t)
-            )
-          | _ -> Error.bug "[P_fs.match_] several different parameters contraints for the same feature is not implemented" in
-    loop param (p_fs_wo_pos,g_fs)
+    in loop lexicons (p_fs_wo_pos,g_fs)
 
   exception Fail_unif
   let unif fs1 fs2 =

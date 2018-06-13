@@ -92,7 +92,9 @@ module P_fs: sig
       If [param] is [None], it returns [None] if matching succeeds and else raise [Fail].
       If [param] is [Some p], it returns [Some p'] if matching succeeds and else raise [Fail].
    *)
-  val match_: ?param:Lex_par.t -> t -> G_fs.t -> Lex_par.t option
+  val match_:
+        ?lexicons:(string * Grew_types.Lexicon.t) list ->
+        t -> G_fs.t -> (string * Grew_types.Lexicon.t) list
 
   (** [check_position ?parma position pfs] checks wheter [pfs] is compatible with a node at [position].
       It returns [true] iff [pfs] has no requirement about position ok if the requirement is satisfied. *)
