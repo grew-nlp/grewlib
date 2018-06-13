@@ -88,13 +88,8 @@ module P_fs: sig
 
   exception Fail
 
-  (** [match_ ?param p_fs g_fs] tries to match the pattern fs [p_fs] with the graph fs [g_fs].
-      If [param] is [None], it returns [None] if matching succeeds and else raise [Fail].
-      If [param] is [Some p], it returns [Some p'] if matching succeeds and else raise [Fail].
-   *)
-  val match_:
-        ?lexicons:(string * Grew_types.Lexicon.t) list ->
-        t -> G_fs.t -> (string * Grew_types.Lexicon.t) list
+  (** [match_ ?lexicons p_fs g_fs] tries to match the pattern fs [p_fs] with the graph fs [g_fs]. *)
+  val match_: ?lexicons:Lexicons.t -> t -> G_fs.t -> Lexicons.t
 
   (** [check_position ?parma position pfs] checks wheter [pfs] is compatible with a node at [position].
       It returns [true] iff [pfs] has no requirement about position ok if the requirement is satisfied. *)

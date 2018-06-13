@@ -104,13 +104,13 @@ module Rule : sig
 
   val to_python: pattern -> G_graph.t -> matching -> json
 
-  val build_pattern: ?domain:Domain.t -> (string * Lexicon.t) list -> Ast.pattern -> pattern
+  val build_pattern: ?domain:Domain.t -> ?lexicons: Lexicons.t -> Ast.pattern -> pattern
 
   (** [node_matching pattern graph matching] return a assoc list (pid_name, gid.position) *)
   val node_matching: pattern -> G_graph.t -> matching -> (string * float) list
 
   (** [match_in_graph rule graph] returns the list of matching of the pattern of the rule into the graph *)
-  val match_in_graph: ?domain:Domain.t -> ?lexicons: (string * Lexicon.t) list -> ?param:Lex_par.t -> pattern -> G_graph.t -> matching list
+  val match_in_graph: ?domain:Domain.t -> ?lexicons: Lexicons.t -> ?param:Lex_par.t -> pattern -> G_graph.t -> matching list
 
   (** [match_deco rule matching] builds the decoration of the [graph] illustrating the given [matching] of the [rule] *)
   (* NB: it can be computed independly from the graph itself! *)

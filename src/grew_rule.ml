@@ -221,7 +221,7 @@ module Rule = struct
       ]
     ]
 
-  let build_pos_constraint ?domain (lexicons : (string * Lexicon.t) list) pos_table const =
+  let build_pos_constraint ?domain ?lexicons pos_table const =
     let pid_of_name loc node_name = Pid.Pos (Id.build ~loc node_name pos_table) in
     match const with
       | (Ast.Cst_out (id,label_cst), loc) ->
@@ -294,13 +294,13 @@ module Rule = struct
       ("constraints", `List (List.map (const_to_json ?domain) basic.constraints));
     ]
 
-  let build_pos_basic ?domain lexicons ?pat_vars basic_ast =
+  let build_pos_basic ?domain ?lexicons ?pat_vars basic_ast =
     let (graph, pos_table) =
       P_graph.build ?domain ?pat_vars basic_ast.Ast.pat_nodes basic_ast.Ast.pat_edges in
     (
       {
         graph = graph;
-        constraints = List.map (build_pos_constraint ?domain lexicons pos_table) basic_ast.Ast.pat_const
+        constraints = List.map (build_pos_constraint ?domain ?lexicons pos_table) basic_ast.Ast.pat_const
       },
       pos_table
     )
@@ -408,7 +408,7 @@ module Rule = struct
       pattern: pattern;
       commands: Command.t list;
       param: Lex_par.t * string list; (* ([],[]) if None *)
-      lexicons: (string * Lexicon.t) list;
+      lexicons: Lexicons.t;
       loc: Loc.t;
     }
 
@@ -522,8 +522,7 @@ module Rule = struct
     | Some d -> d
     | None -> deprecated_dir in
 
-    let (lexicons : (string * Lexicon.t) list) =
-      List.fold_left (fun acc (name,lex) ->
+    let lexicons = List.fold_left (fun acc (name,lex) ->
         try
           let prev = List.assoc name acc in
           (name, (Lexicon.union prev (build_lex lex))) :: (List.remove_assoc name acc)
@@ -561,7 +560,7 @@ module Rule = struct
 
     let pattern = Ast.normalize_pattern rule_ast.Ast.pattern in
     let (pos, pos_table) =
-      try build_pos_basic ?domain lexicons ~pat_vars pattern.Ast.pat_pos
+      try build_pos_basic ?domain ~lexicons:lexicons ~pat_vars pattern.Ast.pat_pos
       with P_fs.Fail_unif ->
         Error.build ~loc:rule_ast.Ast.rule_loc
           "[Rule.build] in rule \"%s\": feature structures declared in the \"match\" clause are inconsistent"
@@ -584,10 +583,10 @@ module Rule = struct
       param = (param, pat_vars);
     }
 
-  let build_pattern ?domain lexicons pattern_ast =
+  let build_pattern ?domain ?lexicons pattern_ast =
     let n_pattern = Ast.normalize_pattern pattern_ast in
     let (pos, pos_table) =
-      try build_pos_basic ?domain lexicons n_pattern.Ast.pat_pos
+      try build_pos_basic ?domain ?lexicons n_pattern.Ast.pat_pos
       with P_fs.Fail_unif -> Error.build "feature structures declared in the \"match\" clause are inconsistent " in
     let negs =
       List_.try_map
@@ -601,7 +600,7 @@ module Rule = struct
       n_match: Gid.t Pid_map.t;                     (* partial fct: pattern nodes |--> graph nodes *)
       e_match: (string*(Gid.t*Label.t*Gid.t)) list; (* edge matching: edge ident  |--> (src,label,tar) *)
       m_param: Lex_par.t option;
-      l_param: (string * Lexicon.t) list;
+      l_param: Lexicons.t;
 
     }
 
@@ -624,7 +623,7 @@ module Rule = struct
         (P_node.get_name pnode, G_node.get_float gnode) :: acc
       ) n_match []
 
-  let empty_matching lexicons param = { n_match = Pid_map.empty; e_match = []; m_param = param; l_param = lexicons;}
+  let empty_matching ?(lexicons=[]) param = { n_match = Pid_map.empty; e_match = []; m_param = param; l_param = lexicons;}
 
   let e_comp (e1,_) (e2,_) = compare e1 e2
 
@@ -687,7 +686,7 @@ module Rule = struct
            - the ?domain of the pattern P is the disjoint union of ?domain([sub]) and [unmatched_nodes]
          *)
   (*  ---------------------------------------------------------------------- *)
-  let init lexicons param basic =
+  let init ?lexicons param basic =
     let roots = P_graph.roots basic.graph in
 
     let node_list = Pid_map.fold (fun pid _ acc -> pid::acc) basic.graph [] in
@@ -700,7 +699,7 @@ module Rule = struct
         | false, true -> 1
         | _ -> 0) node_list in
 
-    { sub = empty_matching lexicons param;
+    { sub = empty_matching ?lexicons param;
       unmatched_nodes = sorted_node_list;
       unmatched_edges = [];
       already_matched_gids = [];
@@ -1214,17 +1213,18 @@ module Rule = struct
     | _ -> false
 
   (*  ---------------------------------------------------------------------- *)
-  let match_in_graph ?domain ?(lexicons=[]) ?param (pos, negs) graph =
+  let match_in_graph ?domain ?lexicons ?param (pos, negs) graph =
     let casted_graph = G_graph.cast ?domain graph in
     let pos_graph = pos.graph in
 
     (* get the list of partial matching for positive part of the pattern *)
     let matching_list =
+
       extend_matching
         ?domain
         (pos_graph,P_graph.empty)
         casted_graph
-        (init lexicons param pos) in
+        (init ?lexicons param pos) in
 
     let filtered_matching_list =
       List.filter
@@ -1286,7 +1286,7 @@ module Rule = struct
             ?domain
             (pos.graph,P_graph.empty)
             instance.Instance.graph
-            (init rule.lexicons (Some (fst rule.param)) pos) in
+            (init ~lexicons:rule.lexicons (Some (fst rule.param)) pos) in
         try
           let (first_matching_where_all_witout_are_fulfilled,_) =
             List.find
@@ -1384,7 +1384,8 @@ module Rule = struct
               ?domain
               (pos.graph,P_graph.empty)
               instance.Instance.graph
-              (init rule.lexicons (Some (fst rule.param)) pos) in
+              (init ~lexicons:rule.lexicons (Some (fst rule.param)) pos) in
+
           try
             let (first_matching_where_all_witout_are_fulfilled,_) =
               List.find
@@ -1568,7 +1569,7 @@ module Rule = struct
           ?domain
           (pos.graph,P_graph.empty)
           graph
-          (init rule.lexicons (Some (fst rule.param)) pos) in
+          (init ~lexicons:rule.lexicons (Some (fst rule.param)) pos) in
           try
             let (first_matching_where_all_witout_are_fulfilled,_) =
               List.find
@@ -1602,7 +1603,6 @@ module Rule = struct
 
 
 
-
   let rec wrd_apply ?domain rule (graph, big_step_opt) =
     let (pos,negs) = rule.pattern in
     (* get the list of partial matching for positive part of the pattern *)
@@ -1611,7 +1611,7 @@ module Rule = struct
           ?domain
           (pos.graph,P_graph.empty)
           graph
-          (init rule.lexicons (Some (fst rule.param)) pos) in
+          (init ~lexicons:rule.lexicons (Some (fst rule.param)) pos) in
           try
             let (first_matching_where_all_witout_are_fulfilled,_) =
               List.find

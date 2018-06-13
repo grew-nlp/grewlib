@@ -241,6 +241,10 @@ module Lexicon = struct
 end (* module Lexicon *)
 
 (* ================================================================================ *)
+module Lexicons = struct
+  type t = (string * Lexicon.t) list
+end
+(* ================================================================================ *)
 module Concat_item = struct
   type t =
     | Feat of (Gid.t * feature_name)

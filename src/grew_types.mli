@@ -143,6 +143,11 @@ module Lexicon : sig
 end (* module Lexicon *)
 
 (* ================================================================================ *)
+module Lexicons : sig
+  type t = (string * Lexicon.t) list
+end
+
+(* ================================================================================ *)
 module Concat_item : sig
   type t =
   | Feat of (Gid.t * feature_name)
