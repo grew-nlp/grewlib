@@ -170,18 +170,44 @@ module Lexicon = struct
   | []   :: xss    -> transpose xss
   | (x::xs) :: xss -> (x :: List.map List.hd xss) :: transpose (xs :: List.map List.tl xss)
 
-  let build items =
-    if items = [] then Error.bug "[Lexicon.build] a lexicon must not be empty";
-    let tr = transpose items in
-    let sorted_tr = List.sort (fun l1 l2 -> Pervasives.compare (List.hd l1) (List.hd l2)) tr in
-    match transpose sorted_tr with
-    | [] -> Error.bug "[Lexicon.build] inconsistent data"
-    | header :: lines_list -> { header; lines = List.fold_right Line_set.add lines_list Line_set.empty }
+  exception Equal of string
+  let strict_compare x y =
+    match Pervasives.compare x y with
+    | 0 -> raise (Equal x)
+    | x -> x
+
+  let build loc items =
+    let real_items = List.filter (fun (_,x) -> x <> "" && x.[0] <> '%') items in
+    match real_items with
+      | [] | [_] -> Error.build ~loc "[Lexicon.build] a lexicon must not be empty"
+      | (linenum_h, h)::t ->
+        let fields = Str.split (Str.regexp "\t") h in
+        let l = List.length fields in
+        let rec loop = function
+          | [] -> []
+          | (linenum, line)::tail ->
+            let items = Str.split (Str.regexp "\t") line in
+            if List.length items <> l then
+              begin
+                let loc = Loc.set_line linenum loc in
+                Error.build ~loc "[Lexicon.build] line with %d items (%d expected!!)" (List.length items) l
+              end;
+            fields :: (loop tail) in
+        let items_list = loop t in
+        let tr = transpose items_list in
+        try
+          let sorted_tr = List.sort (fun l1 l2 -> strict_compare (List.hd l1) (List.hd l2)) tr in
+          match transpose sorted_tr with
+            | [] -> Error.bug ~loc "[Lexicon.build] inconsistent data"
+            | header :: lines_list -> { header; lines = List.fold_right Line_set.add lines_list Line_set.empty }
+        with Equal v ->
+          let loc = Loc.set_line linenum_h loc in
+          Error.build ~loc "[Lexicon.build] the field name \"%s\" is used twice" v
 
   let load file =
-    let lines = File.read file in
-    let items = List.map (fun line -> Str.split (Str.regexp "\t") line) lines in
-    build items
+    let lines = File.read_ln file in
+    let loc = Loc.file file in
+    build loc lines
 
   let reduce sub_list lexicon =
     let sorted_sub_list = List.sort Pervasives.compare sub_list in
@@ -208,9 +234,11 @@ module Lexicon = struct
       let new_set = Line_set.filter (fun line -> List.nth line index = value) lex.lines in
       if Line_set.is_empty new_set
       then None
-      else ( Printf.printf "###>>> Lexicon select %d --> %d\n%!" (Line_set.cardinal lex.lines) (Line_set.cardinal new_set);
-      Some { lex with lines = new_set }
-      )
+      else
+let _ =
+  printf "###>>> %d --> %d \n%!" (Line_set.cardinal lex.lines) (Line_set.cardinal new_set) in
+        Some { lex with lines = new_set }
+
 
   let unselect head value lex =
     match List_.index head lex.header with
@@ -224,8 +252,7 @@ module Lexicon = struct
   let projection head lex =
     match List_.index head lex.header with
     | None -> Error.build "[Lexicon.projection] cannot find %s in lexicon" head
-    | Some index ->
-      Line_set.fold (fun line acc -> String_set.add (List.nth line index) acc) lex.lines String_set.empty
+    | Some index -> Line_set.fold (fun line acc -> String_set.add (List.nth line index) acc) lex.lines String_set.empty
 
   exception Not_functional_lexicon
   let read head lex =
@@ -233,6 +260,8 @@ module Lexicon = struct
     | [] -> Error.bug "[Lexicon.read] a lexicon must not be empty"
     | [one] -> one
     | _ -> raise Not_functional_lexicon
+
+  let get head lex = String_set.choose (projection head lex)
 
   let read_multi head lex =
     match String_set.elements (projection head lex) with
@@ -244,6 +273,7 @@ end (* module Lexicon *)
 module Lexicons = struct
   type t = (string * Lexicon.t) list
 end
+
 (* ================================================================================ *)
 module Concat_item = struct
   type t =

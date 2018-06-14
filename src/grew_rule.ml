@@ -510,9 +510,9 @@ module Rule = struct
           command :: (loop (new_kni,new_kei) tail) in
     loop (known_node_ids, known_edge_ids) ast_commands
 
-  let build_lex = function
+  let build_lex loc = function
   | Ast.File filename -> Lexicon.load filename
-  | Ast.Final line_list -> Lexicon.build (List.map (fun s -> Str.split (Str.regexp "\t") s) line_list)
+  | Ast.Final (line_list) -> Lexicon.build loc line_list
 
 
   (* ====================================================================== *)
@@ -525,9 +525,9 @@ module Rule = struct
     let lexicons = List.fold_left (fun acc (name,lex) ->
         try
           let prev = List.assoc name acc in
-          (name, (Lexicon.union prev (build_lex lex))) :: (List.remove_assoc name acc)
+          (name, (Lexicon.union prev (build_lex rule_ast.Ast.rule_loc lex))) :: (List.remove_assoc name acc)
         with
-          Not_found -> (name, build_lex lex) :: acc
+          Not_found -> (name, build_lex rule_ast.Ast.rule_loc lex) :: acc
       ) [] rule_ast.Ast.lexicon_info in
 
     let lexicon_names = List.map fst lexicons in
@@ -1505,11 +1505,10 @@ module Rule = struct
               | Command.Lexical_field (lex_name, field) ->
                   (try
                     let lexicon = List.assoc lex_name matching.l_param in
-                    let v = Lexicon.read field lexicon in
+                    let v = Lexicon.get field lexicon in
                     Concat_item.String v
                    with
                     | Not_found -> Error.run ~loc "UPDATE_FEAT: the lexicon '%s' does not exist" lex_name
-                    | Lexicon.Not_functional_lexicon -> Error.run ~loc "UPDATE_FEAT: the lexicon is not functional" lex_name
                     )
               | Command.Param index ->
                   (match matching.m_param with
@@ -1752,7 +1751,16 @@ module Rule = struct
             (function
               | Command.Feat (cnode, feat_name) -> Concat_item.Feat (node_find cnode, feat_name)
               | Command.String s -> Concat_item.String s
-              | Command.Lexical_field _ -> failwith "TODOLEX3"
+              | Command.Lexical_field (lex_name, field) ->
+                  (try
+                    let lexicon = List.assoc lex_name matching.l_param in
+                    let v = Lexicon.read field lexicon in
+                    Concat_item.String v
+                   with
+                    | Not_found -> Error.run ~loc "UPDATE_FEAT: the lexicon '%s' does not exist" lex_name
+                    | Lexicon.Not_functional_lexicon -> Error.run ~loc "UPDATE_FEAT: the lexicon is not functional" lex_name
+                    )
+
               | Command.Param index ->
                   (match matching.m_param with
                   | None -> Error.bug "Cannot apply a UPDATE_FEAT command without parameter"

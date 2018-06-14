@@ -108,11 +108,11 @@ end (* module Lex_par *)
 module Lexicon : sig
   type t
 
-  (** [build items] build a lexicon from a list.
+  (** [build loc items] build a lexicon from a list.
       The first list is interpreted as the column headers.
       All other lines are lexicon items.
       It is supposed that all sublist have the same length *)
-  val build: string list list -> t
+  val build: Loc.t -> (int * string) list -> t
 
   (** [load file] build a lexicon from a file.
       The file should contain same data than the ones in the build function
@@ -137,6 +137,9 @@ module Lexicon : sig
   (** [read head lexicon] return [value] if all items have in the [head] column equals to [value]
       * raise [Not_functional_lexicon] if several values are defined *)
   val read: string -> t -> string
+
+  (** [get head lexicon] return [value] if one items have the [value] in the [head] field *)
+  val get: string -> t -> string
 
   (** [read_multi head lexicon] returns "v_1/…/v_k" where v_i are the values of the [head] column *)
   val read_multi: string -> t -> string

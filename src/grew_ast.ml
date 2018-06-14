@@ -320,7 +320,7 @@ module Ast = struct
 
   type lexicon =
   | File of string
-  | Final of string list
+  | Final of (int * string) list
 
   type lexicon_info = (string * lexicon) list
 

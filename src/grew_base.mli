@@ -54,6 +54,8 @@ module Loc: sig
   val file_opt_line_opt: string option -> int option -> t
   val file: string -> t
 
+  val set_line: int -> t -> t
+
   val to_string: t -> string
 end
 
@@ -289,6 +291,7 @@ module Global: sig
   val new_line: unit -> unit
 
   val get_loc: unit -> Loc.t
+  val get_line: unit -> int option
   val loc_string: unit -> string
   val label_flag: bool ref
 

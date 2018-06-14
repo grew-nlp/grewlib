@@ -26,6 +26,7 @@ module Loc = struct
   let file_line f l = (Some f, Some l)
   let file_opt_line fo l = (fo, Some l)
   let file_opt_line_opt fo lo = (fo, lo)
+  let set_line l (x,_) = (x, Some l)
 
   let to_string = function
   | (Some file, Some line) -> sprintf "[file: %s, line: %d]" (Filename.basename file) line
@@ -608,6 +609,8 @@ module Global = struct
 
   let get_loc () = !current_loc
   let loc_string () = Loc.to_string !current_loc
+
+  let get_line () = snd (get_loc ())
 
   let new_file filename =
     current_loc := (Some filename, Some 1);

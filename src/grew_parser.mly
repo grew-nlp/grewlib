@@ -75,8 +75,7 @@ let localize t = (t,get_loc ())
 %token INCL                        /* include */
 %token IMPORT                      /* import */
 %token FEATURES                    /* features */
-%token FEATURE                     /* feature */
-%token FILE                        /* file */
+%token FROM                        /* from */
 %token LABELS                      /* labels */
 %token PATTERN                     /* pattern */
 %token WITHOUT                     /* without */
@@ -107,7 +106,6 @@ let localize t = (t,get_loc ())
 %token EMPTY                       /* Empty */
 %token TRY                         /* Try */
 
-%token <string> DOLLAR_ID          /* $id */
 %token <string> AROBAS_ID          /* @id */
 %token <string> COLOR              /* @#89abCD */
 
@@ -119,7 +117,7 @@ let localize t = (t,get_loc ())
 %token <string>                REGEXP
 %token <float>                 FLOAT
 %token <string list>           COMMENT
-%token <string * string list>  LEX_PAR
+%token <string * (int *string) list>  LEX_PAR
 
 %token EOF                         /* end of file */
 
@@ -337,45 +335,31 @@ rules:
         | r = list(rule) { r }
 
 rule:
-        | doc=option(COMMENT) RULE id_loc=simple_id_with_loc LACC p=pos_item n=list(neg_item) cmds=commands RACC lex_par=list(lex_par)
+        | doc=option(COMMENT) RULE id_loc=simple_id_with_loc file_lexicons = option(external_lexicons) LACC p=pos_item n=list(neg_item) cmds=commands RACC final_lexicons=list(final_lexicon)
             {
+              let lexicons = match file_lexicons with
+              | Some l -> l @ final_lexicons
+              | None -> final_lexicons in
               { Ast.rule_id = fst id_loc;
                 pattern = Ast.complete_pattern { Ast.pat_pos = p; Ast.pat_negs = n };
                 commands = cmds;
                 param = None;
                 lex_par = None;
-                lexicon_info = lex_par;
-                rule_doc = begin match doc with Some d -> d | None -> [] end;
-                rule_loc = snd id_loc;
-                rule_dir = None;
-              }
-            }
-        | doc=option(COMMENT) RULE id_loc=simple_id_with_loc param=param LACC p=pos_item n=list(neg_item) cmds=commands RACC lex_par=option(lex_par)
-            {
-              { Ast.rule_id = fst id_loc;
-                pattern = Ast.complete_pattern { Ast.pat_pos = p; Ast.pat_negs = n };
-                commands = cmds;
-                param = Some param;
-                lex_par = None;
-                lexicon_info = []; (* TODOLEX *)
+                lexicon_info = lexicons;
                 rule_doc = begin match doc with Some d -> d | None -> [] end;
                 rule_loc = snd id_loc;
                 rule_dir = None;
               }
             }
 
-lex_par:
-        | lex_par = LEX_PAR  { (fst lex_par, Ast.Final (snd lex_par)) }
+external_lexicons:
+        | LPAREN external_lexicons= separated_nonempty_list_final_opt(COMA, external_lexicon) RPAREN       { external_lexicons }
 
-param:
-        | LPAREN FEATURE vars=separated_nonempty_list(COMA,var) RPAREN                                       { ([],vars) }
-        | LPAREN FEATURE vars=separated_nonempty_list(COMA,var) SEMIC files=separated_list(COMA,file) RPAREN { (files,vars) }
+external_lexicon:
+        | lex_name=simple_id FROM file=STRING { (lex_name, Ast.File file)}
 
-file:
-        | FILE f=STRING     { f }
-var:
-        | i=DOLLAR_ID       { i }
-        | i=AROBAS_ID       { i }
+final_lexicon:
+        | final_lexicon = LEX_PAR  { (fst final_lexicon, Ast.Final (snd final_lexicon)) }
 
 pos_item:
         | PATTERN i=pn_item   { i }
@@ -466,7 +450,6 @@ pat_item:
               | Ast.Simple value ->
                 Pat_const (Ast.Feature_eq_cst (feat_id1, value), loc)
               | Ast.Pointed (s1, s2) ->
-                Printf.printf "###%s--%s###\n%!" s1 s2;
                 Pat_const (Ast.Feature_eq_lex_or_fs (feat_id1, (s1,s2)), loc)
              }
 
@@ -552,8 +535,6 @@ pat_item:
 
               (*  __ERRORS__   *)
               | (Ineq_float _, Ineq_float _) -> Error.build "the '>' symbol can be used with 2 constants"
-
-              | (Ineq_float _, Ineq_float _) -> Error.build "the '>' symbol can be used with 2 constants"
               | _ -> Error.build "the '>' symbol can be used with 2 nodes or with 2 features but not in a mix inequality"
             }
 
@@ -591,13 +572,10 @@ node_features:
               let uname = Ast.to_uname name in
               match values with
               | [Ast.Simple "*"] ->
-                Printf.printf "###node_features[1.1] --> %s\n%!" name;
                 ({Ast.kind = Ast.Disequality []; name=uname},loc)
               | [Ast.Pointed (lex,fn)] ->
-                Printf.printf "###node_features[1.2] --> %s\n%!" name;
                 ({Ast.kind = Ast.Equal_lex (lex,fn); name=uname }, loc)
               | l ->
-                Printf.printf "###node_features[1.3] --> %s\n%!" name;
                 let value_list = List.map (function
                   | Ast.Simple x -> x
                   | Ast.Pointed (lex,fn) -> Error.build "Lexical reference '%s.%s' cannot be used in a disjunction" lex fn
@@ -607,13 +585,11 @@ node_features:
         /*   cat = *   */
         | name_loc=simple_id_with_loc EQUAL STAR
             { let (name,loc) = name_loc in
-              Printf.printf "###node_features[2] --> %s\n%!" name;
               ({Ast.kind = Ast.Disequality []; name=Ast.to_uname name},loc) }
 
         /*   cat   */
         | name_loc=simple_id_with_loc
             { let (name,loc) = name_loc in
-              Printf.printf "###node_features[3] --> %s\n%!" name;
               ({Ast.kind = Ast.Disequality []; name=Ast.to_uname name},loc) }
 
         /*    cat<>n|v|adj   */
@@ -623,27 +599,18 @@ node_features:
               let uname = Ast.to_uname name in
               match values with
               | [Ast.Pointed (lex,fn)] ->
-                Printf.printf "###node_features[4.2] --> %s\n%!" name;
                 ({Ast.kind = Ast.Disequal_lex (lex,fn); name=uname }, loc)
               | l ->
-                Printf.printf "###node_features[4.3] --> %s\n%!" name;
                 let value_list = List.map (function
                   | Ast.Simple x -> x
                   | Ast.Pointed (lex,fn) -> Error.build "Lexical reference '%s.%s' cannot be used in a disjunction" lex fn
                 ) l in ({Ast.kind = Ast.Disequality value_list; name=uname }, loc)
             }
 
-        /*    lemma=$lem   */
-        | name_loc=simple_id_with_loc EQUAL p=DOLLAR_ID
-            { let (name,loc) = name_loc in
-              Printf.printf "###node_features[5] --> %s\n%!" name;
-              ( {Ast.kind = Ast.Equal_param p; name=Ast.to_uname name }, loc) }
 
         /*   !lemma   */
         | BANG name_loc=simple_id_with_loc
-            { let (name,loc) = name_loc in
-                            Printf.printf "###node_features[6] --> %s\n%!" name;
- ({Ast.kind = Ast.Absent; name=Ast.to_uname name}, loc) }
+            { let (name,loc) = name_loc in ({Ast.kind = Ast.Absent; name=Ast.to_uname name}, loc) }
 
 /*=============================================================================================*/
 /* COMMANDS DEFINITION                                                                         */
@@ -749,8 +716,6 @@ concat_item:
           }
         | s=STRING         { Ast.String_item s }
         | f=FLOAT          { Ast.String_item (Printf.sprintf "%g" f) }
-        | p=AROBAS_ID      { Ast.Param_item p }
-        | p=DOLLAR_ID      { Ast.Param_item p }
 
 
 /*=============================================================================================*/
