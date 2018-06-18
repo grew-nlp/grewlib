@@ -467,9 +467,8 @@ module P_fs = struct
           with
           | Not_found -> failwith "TODO"
         end
-      | _ -> acc
-
-    in loop lexicons (p_fs_wo_pos,g_fs)
+      | (_::p_tail, _::g_tail) -> loop acc (p_tail,g_tail) in
+    loop lexicons (p_fs_wo_pos,g_fs)
 
   exception Fail_unif
   let unif fs1 fs2 =

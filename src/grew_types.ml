@@ -192,8 +192,8 @@ module Lexicon = struct
                 let loc = Loc.set_line linenum loc in
                 Error.build ~loc "[Lexicon.build] line with %d items (%d expected!!)" (List.length items) l
               end;
-            fields :: (loop tail) in
-        let items_list = loop t in
+             items :: (loop tail) in
+        let items_list = fields ::(loop t) in
         let tr = transpose items_list in
         try
           let sorted_tr = List.sort (fun l1 l2 -> strict_compare (List.hd l1) (List.hd l2)) tr in
@@ -234,11 +234,7 @@ module Lexicon = struct
       let new_set = Line_set.filter (fun line -> List.nth line index = value) lex.lines in
       if Line_set.is_empty new_set
       then None
-      else
-let _ =
-  printf "###>>> %d --> %d \n%!" (Line_set.cardinal lex.lines) (Line_set.cardinal new_set) in
-        Some { lex with lines = new_set }
-
+      else Some { lex with lines = new_set }
 
   let unselect head value lex =
     match List_.index head lex.header with
