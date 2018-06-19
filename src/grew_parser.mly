@@ -441,8 +441,8 @@ pat_item:
         | STAR labels=delimited(LTR_EDGE_LEFT_NEG,separated_nonempty_list(PIPE,pattern_label_ident),LTR_EDGE_RIGHT) n2_loc=simple_id_with_loc
             { let (n2,loc) = n2_loc in Pat_const (Ast.Cst_in (n2,Ast.Neg_list labels), loc) }
 
-        /*   X.cat = lex.value   */
         /*   X.cat = Y.cat   */
+        /*   X.cat = value   */
         /*   X.cat = lex.value   */
         | feat_id1_loc=feature_ident_with_loc EQUAL rhs=ID
              { let (feat_id1,loc)=feat_id1_loc in
@@ -450,7 +450,7 @@ pat_item:
               | Ast.Simple value ->
                 Pat_const (Ast.Feature_eq_cst (feat_id1, value), loc)
               | Ast.Pointed (s1, s2) ->
-                Pat_const (Ast.Feature_eq_lex_or_fs (feat_id1, (s1,s2)), loc)
+                Pat_const (Ast.Feature_eq_lex_or_fs (feat_id1, (s1, Ast.to_uname s2)), loc)
              }
 
         /*   X.cat = "value"   */
@@ -470,7 +470,7 @@ pat_item:
               | Ast.Simple value ->
                 Pat_const (Ast.Feature_diff_cst (feat_id1, value), loc)
               | Ast.Pointed (s1, s2) ->
-                Pat_const (Ast.Feature_diff_lex_or_fs (feat_id1, (s1,s2)), loc)
+                Pat_const (Ast.Feature_diff_lex_or_fs (feat_id1, (s1, Ast.to_uname s2)), loc)
              }
 
         /*   X.cat <> "value"   */
@@ -712,7 +712,7 @@ concat_item:
           {
             match Ast.parse_simple_or_pointed gi with
             | Ast.Simple value -> Ast.String_item value
-            | Ast.Pointed (s1, s2) -> Ast.Qfn_or_lex_item (s1, s2)
+            | Ast.Pointed (s1, s2) -> Ast.Qfn_or_lex_item (s1, Ast.to_uname s2)
           }
         | s=STRING         { Ast.String_item s }
         | f=FLOAT          { Ast.String_item (Printf.sprintf "%g" f) }

@@ -62,21 +62,15 @@ module P_graph = struct
       | Some new_node -> Some (Pid_map.add id_src new_node map)
 
   (* -------------------------------------------------------------------------------- *)
-  let build_filter ?domain table (ast_node, loc) =
-    let pid = Id.build ~loc ast_node.Ast.node_id table in
-    let fs = P_fs.build ?domain ast_node.Ast.fs in
-    (pid, fs)
-
-  (* -------------------------------------------------------------------------------- *)
-  let build ?domain ?pat_vars (full_node_list : Ast.node list) full_edge_list =
+  let build ?domain ?pat_vars lexicons (full_node_list : Ast.node list) full_edge_list =
 
     (* NB: insert searches for a previous node with the Same name and uses unification rather than constraint *)
     (* NB: insertion of new node at the end of the list: not efficient but graph building is not the hard part. *)
     let rec insert (ast_node, loc) = function
-      | [] -> [P_node.build ?domain ?pat_vars (ast_node, loc)]
+      | [] -> [P_node.build ?domain ?pat_vars lexicons (ast_node, loc)]
       | (node_id,fs)::tail when ast_node.Ast.node_id = node_id ->
         begin
-          try (node_id, P_node.unif_fs (P_fs.build ?domain ?pat_vars ast_node.Ast.fs) fs) :: tail
+          try (node_id, P_node.unif_fs (P_fs.build ?domain ?pat_vars lexicons ast_node.Ast.fs) fs) :: tail
           with Error.Build (msg,_) -> raise (Error.Build (msg,Some loc))
         end
       | head :: tail -> head :: (insert (ast_node, loc) tail) in
@@ -123,9 +117,9 @@ module P_graph = struct
 
   (* -------------------------------------------------------------------------------- *)
   (* It may raise [P_fs.Fail_unif] in case of contradiction on constraints *)
-  let build_extension ?domain ?pat_vars pos_table full_node_list full_edge_list =
+  let build_extension ?domain ?pat_vars lexicons pos_table full_node_list full_edge_list =
 
-    let built_nodes = List.map (P_node.build ?domain ?pat_vars) full_node_list in
+    let built_nodes = List.map (P_node.build ?domain ?pat_vars lexicons) full_node_list in
 
     let (old_nodes, new_nodes) =
       List.partition

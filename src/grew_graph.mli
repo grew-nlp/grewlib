@@ -63,6 +63,7 @@ module P_graph: sig
   val build:
       ?domain:Domain.t ->
       ?pat_vars: string list ->
+      Lexicons.t ->
       Ast.node list ->
       Ast.edge list ->
       (t * Id.table)
@@ -71,6 +72,7 @@ module P_graph: sig
   val build_extension:
       ?domain:Domain.t ->
       ?pat_vars: string list ->
+      Lexicons.t ->
       Id.table ->
       Ast.node list ->
       Ast.edge list ->

@@ -221,7 +221,7 @@ module Rule = struct
       ]
     ]
 
-  let build_pos_constraint ?domain ?lexicons pos_table const =
+  let build_pos_constraint ?domain lexicons pos_table const =
     let pid_of_name loc node_name = Pid.Pos (Id.build ~loc node_name pos_table) in
     match const with
       | (Ast.Cst_out (id,label_cst), loc) ->
@@ -279,8 +279,22 @@ module Rule = struct
       | (Ast.Large_prec (id1, id2), loc) ->
         Large_prec (pid_of_name loc id1, pid_of_name loc id2)
 
-      | (Ast.Feature_eq_lex_or_fs (s1,s2), loc) -> failwith "TODO"
-      | (Ast.Feature_diff_lex_or_fs (s1,s2), loc) -> failwith "TODO"
+      | (Ast.Feature_eq_lex_or_fs ((node_name, feat_name),(node_or_lex, fn_or_field)), loc) ->
+          begin
+            match Id.build_opt node_or_lex pos_table with
+            | None ->
+              Lexicons.check ~loc node_or_lex fn_or_field lexicons;
+              Feature_eq_lex (pid_of_name loc node_name, feat_name, (node_or_lex, fn_or_field))
+            | _ ->  Features_eq (pid_of_name loc node_name, feat_name, pid_of_name loc node_or_lex, fn_or_field)
+          end
+      | (Ast.Feature_diff_lex_or_fs ((node_name, feat_name),(node_or_lex, fn_or_field)), loc) ->
+          begin
+            match Id.build_opt node_or_lex pos_table with
+            | None ->
+              Lexicons.check ~loc node_or_lex fn_or_field lexicons;
+              Feature_diff_lex (pid_of_name loc node_name, feat_name, (node_or_lex, fn_or_field))
+            | _ ->  Features_diseq (pid_of_name loc node_name, feat_name, pid_of_name loc node_or_lex, fn_or_field)
+          end
 
 
   type basic = {
@@ -294,19 +308,19 @@ module Rule = struct
       ("constraints", `List (List.map (const_to_json ?domain) basic.constraints));
     ]
 
-  let build_pos_basic ?domain ?lexicons ?pat_vars basic_ast =
+  let build_pos_basic ?domain lexicons ?pat_vars basic_ast =
     let (graph, pos_table) =
-      P_graph.build ?domain ?pat_vars basic_ast.Ast.pat_nodes basic_ast.Ast.pat_edges in
+      P_graph.build ?domain ?pat_vars lexicons basic_ast.Ast.pat_nodes basic_ast.Ast.pat_edges in
     (
       {
         graph = graph;
-        constraints = List.map (build_pos_constraint ?domain ?lexicons pos_table) basic_ast.Ast.pat_const
+        constraints = List.map (build_pos_constraint ?domain lexicons pos_table) basic_ast.Ast.pat_const
       },
       pos_table
     )
 
   (* the neg part *)
-  let build_neg_constraint ?domain pos_table neg_table const =
+  let build_neg_constraint ?domain lexicons pos_table neg_table const =
     let pid_of_name loc node_name =
       match Id.build_opt node_name pos_table with
         | Some i -> Pid.Pos i
@@ -375,19 +389,32 @@ module Rule = struct
       | (Ast.Large_prec (id1, id2), loc) ->
         Large_prec (pid_of_name loc id1, pid_of_name loc id2)
 
-      | (Ast.Feature_eq_lex_or_fs (s1,s2), loc) -> failwith "TODO"
-      | (Ast.Feature_diff_lex_or_fs (s1,s2), loc) -> failwith "TODO"
+      | (Ast.Feature_eq_lex_or_fs ((node_name, feat_name),(node_or_lex, fn_or_field)), loc) ->
+          begin
+            match (Id.build_opt node_or_lex pos_table, Id.build_opt node_or_lex neg_table) with
+            | (None, None) ->
+              Lexicons.check ~loc node_or_lex fn_or_field lexicons;
+              Feature_eq_lex (pid_of_name loc node_name, feat_name, (node_or_lex, fn_or_field))
+            | _ ->  Features_eq (pid_of_name loc node_name, feat_name, pid_of_name loc node_or_lex, fn_or_field)
+          end
+      | (Ast.Feature_diff_lex_or_fs ((node_name, feat_name),(node_or_lex, fn_or_field)), loc) ->
+          begin
+            match (Id.build_opt node_or_lex pos_table, Id.build_opt node_or_lex neg_table) with
+            | (None, None) -> Feature_diff_lex (pid_of_name loc node_name, feat_name, (node_or_lex, fn_or_field))
+            | _ ->  Features_diseq (pid_of_name loc node_name, feat_name, pid_of_name loc node_or_lex, fn_or_field)
+          end
+
 
 
   (* It may raise [P_fs.Fail_unif] in case of contradiction on constraints *)
-  let build_neg_basic ?domain ?pat_vars pos_table basic_ast =
+  let build_neg_basic ?domain ?pat_vars lexicons pos_table basic_ast =
     let (extension, neg_table) =
-      P_graph.build_extension ?domain ?pat_vars pos_table basic_ast.Ast.pat_nodes basic_ast.Ast.pat_edges in
+      P_graph.build_extension ?domain ?pat_vars lexicons pos_table basic_ast.Ast.pat_nodes basic_ast.Ast.pat_edges in
 
     let filters = Pid_map.fold (fun id node acc -> Filter (id, P_node.get_fs node) :: acc) extension.P_graph.old_map [] in
     {
       graph = extension.P_graph.ext_map;
-      constraints = filters @ List.map (build_neg_constraint ?domain pos_table neg_table) basic_ast.Ast.pat_const ;
+      constraints = filters @ List.map (build_neg_constraint ?domain lexicons pos_table neg_table) basic_ast.Ast.pat_const ;
     }
 
   let get_edge_ids basic =
@@ -492,7 +519,7 @@ module Rule = struct
     Buffer.contents buff
 
   (* ====================================================================== *)
-  let build_commands ?domain ?param lexicon_names pos pos_table ast_commands =
+  let build_commands ?domain ?param lexicons pos pos_table ast_commands =
     let known_node_ids = Array.to_list pos_table in
     let known_edge_ids = get_edge_ids pos in
 
@@ -503,7 +530,7 @@ module Rule = struct
             Command.build
               ?domain
               ?param
-              lexicon_names
+              lexicons
               (kni,kei)
               pos_table
               ast_command in
@@ -511,7 +538,10 @@ module Rule = struct
     loop (known_node_ids, known_edge_ids) ast_commands
 
   let build_lex loc = function
-  | Ast.File filename -> Lexicon.load filename
+  | Ast.File filename ->
+      if Filename.is_relative filename
+      then Lexicon.load (Filename.concat (Global.get_dir ()) filename)
+      else Lexicon.load filename
   | Ast.Final (line_list) -> Lexicon.build loc line_list
 
 
@@ -522,15 +552,13 @@ module Rule = struct
     | Some d -> d
     | None -> deprecated_dir in
 
-    let lexicons = List.fold_left (fun acc (name,lex) ->
+    let lexicons =
+      List.fold_left (fun acc (name,lex) ->
         try
           let prev = List.assoc name acc in
           (name, (Lexicon.union prev (build_lex rule_ast.Ast.rule_loc lex))) :: (List.remove_assoc name acc)
-        with
-          Not_found -> (name, build_lex rule_ast.Ast.rule_loc lex) :: acc
-      ) [] rule_ast.Ast.lexicon_info in
-
-    let lexicon_names = List.map fst lexicons in
+        with Not_found -> (name, build_lex rule_ast.Ast.rule_loc lex) :: acc
+    ) [] rule_ast.Ast.lexicon_info in
 
     let (param, pat_vars) =
       match rule_ast.Ast.param with
@@ -560,7 +588,7 @@ module Rule = struct
 
     let pattern = Ast.normalize_pattern rule_ast.Ast.pattern in
     let (pos, pos_table) =
-      try build_pos_basic ?domain ~lexicons:lexicons ~pat_vars pattern.Ast.pat_pos
+      try build_pos_basic ?domain lexicons ~pat_vars pattern.Ast.pat_pos
       with P_fs.Fail_unif ->
         Error.build ~loc:rule_ast.Ast.rule_loc
           "[Rule.build] in rule \"%s\": feature structures declared in the \"match\" clause are inconsistent"
@@ -568,7 +596,7 @@ module Rule = struct
     let (negs,_) =
       List.fold_left
       (fun (acc,pos) basic_ast ->
-        try ((build_neg_basic ?domain ~pat_vars pos_table basic_ast) :: acc, pos+1)
+        try ((build_neg_basic ?domain ~pat_vars lexicons pos_table basic_ast) :: acc, pos+1)
         with P_fs.Fail_unif ->
           Log.fwarning "In rule \"%s\" [%s], the wihtout number %d cannot be satisfied, it is skipped"
             rule_ast.Ast.rule_id (Loc.to_string rule_ast.Ast.rule_loc) pos;
@@ -577,21 +605,21 @@ module Rule = struct
     {
       name = rule_ast.Ast.rule_id;
       pattern = (pos, negs);
-      commands = build_commands ?domain ~param:pat_vars lexicon_names pos pos_table rule_ast.Ast.commands;
+      commands = build_commands ?domain ~param:pat_vars lexicons pos pos_table rule_ast.Ast.commands;
       loc = rule_ast.Ast.rule_loc;
       lexicons;
       param = (param, pat_vars);
     }
 
-  let build_pattern ?domain ?lexicons pattern_ast =
+  let build_pattern ?domain ?(lexicons=[]) pattern_ast =
     let n_pattern = Ast.normalize_pattern pattern_ast in
     let (pos, pos_table) =
-      try build_pos_basic ?domain ?lexicons n_pattern.Ast.pat_pos
+      try build_pos_basic ?domain lexicons n_pattern.Ast.pat_pos
       with P_fs.Fail_unif -> Error.build "feature structures declared in the \"match\" clause are inconsistent " in
     let negs =
       List_.try_map
         P_fs.Fail_unif (* Skip the without parts that are incompatible with the match part *)
-        (fun basic_ast -> build_neg_basic ?domain pos_table basic_ast)
+        (fun basic_ast -> build_neg_basic ?domain lexicons pos_table basic_ast)
         n_pattern.Ast.pat_negs in
     (pos, negs)
 

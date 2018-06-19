@@ -162,7 +162,7 @@ module P_feature = struct
 
     | _ -> Error.bug "[P_feature.to_string] multiple parameters are not handled"
 
-  let build ?domain ?pat_vars = function
+  let build ?domain ?pat_vars lexicons = function
     | ({Ast.kind=Ast.Absent; name=name}, loc) ->
       Domain.check_feature_name ~loc ?domain name;
       (name, {cst=Absent;in_param=[];})
@@ -170,8 +170,12 @@ module P_feature = struct
       let values = Feature_value.build_disj ~loc ?domain name unsorted_values in (name, {cst=Equal values;in_param=[];})
     | ({Ast.kind=Ast.Disequality unsorted_values; name=name}, loc) ->
       let values = Feature_value.build_disj ~loc ?domain name unsorted_values in (name, {cst=Different values;in_param=[];})
-    | ({Ast.kind=Ast.Equal_lex (lex,fn); name=name}, loc) -> (name, {cst=Equal_lex (lex,fn); in_param=[];})
-    | ({Ast.kind=Ast.Disequal_lex (lex,fn); name=name}, loc) -> (name, {cst=Different_lex (lex,fn); in_param=[];})
+    | ({Ast.kind=Ast.Equal_lex (lex,fn); name=name}, loc) ->
+      Lexicons.check ~loc lex fn lexicons;
+      (name, {cst=Equal_lex (lex,fn); in_param=[];})
+    | ({Ast.kind=Ast.Disequal_lex (lex,fn); name=name}, loc) ->
+      Lexicons.check ~loc lex fn lexicons;
+      (name, {cst=Different_lex (lex,fn); in_param=[];})
     | ({Ast.kind=Ast.Equal_param var; name=name}, loc) ->
         begin
           match pat_vars with
@@ -414,8 +418,8 @@ module P_fs = struct
       | _ -> Error.bug "Position can't be parametrized"
     with Not_found -> true
 
-  let build ?domain ?pat_vars ast_fs =
-    let unsorted = List.map (P_feature.build ?domain ?pat_vars) ast_fs in
+  let build ?domain ?pat_vars lexicons ast_fs =
+    let unsorted = List.map (P_feature.build lexicons ?domain ?pat_vars) ast_fs in
     List.sort P_feature.compare unsorted
 
   let feat_list t = List.map P_feature.get_name t
@@ -465,7 +469,7 @@ module P_fs = struct
               let new_acc = (lex_name, new_lexicon) :: (List.remove_assoc lex_name acc) in
               loop new_acc (t_pat, t)
           with
-          | Not_found -> failwith "TODO"
+          | Not_found -> failwith "TODO<123>"
         end
       | (_::p_tail, _::g_tail) -> loop acc (p_tail,g_tail) in
     loop lexicons (p_fs_wo_pos,g_fs)

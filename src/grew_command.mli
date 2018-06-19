@@ -66,7 +66,7 @@ module Command : sig
   val build:
       ?domain: Domain.t ->
       ?param: string list ->
-      string list -> (* lexicon names *)
+      Lexicons.t ->
       (Id.name list * string list) ->
       Id.table ->
       Ast.command ->

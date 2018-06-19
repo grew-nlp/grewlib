@@ -76,7 +76,7 @@ module P_fs: sig
 
   val empty: t
 
-  val build: ?domain:Domain.t -> ?pat_vars: string list -> Ast.feature list -> t
+  val build: ?domain:Domain.t -> ?pat_vars: string list -> Lexicons.t -> Ast.feature list -> t
 
   val to_string: t -> string
 

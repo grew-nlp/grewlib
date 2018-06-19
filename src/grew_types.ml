@@ -163,6 +163,7 @@ module Lexicon = struct
   type t = {
     header: string list;  (* ordered list of column headers *)
     lines: Line_set.t;
+    loc: Loc.t;
   }
 
   let rec transpose = function
@@ -199,7 +200,7 @@ module Lexicon = struct
           let sorted_tr = List.sort (fun l1 l2 -> strict_compare (List.hd l1) (List.hd l2)) tr in
           match transpose sorted_tr with
             | [] -> Error.bug ~loc "[Lexicon.build] inconsistent data"
-            | header :: lines_list -> { header; lines = List.fold_right Line_set.add lines_list Line_set.empty }
+            | header :: lines_list -> { header; lines = List.fold_right Line_set.add lines_list Line_set.empty; loc }
         with Equal v ->
           let loc = Loc.set_line linenum_h loc in
           Error.build ~loc "[Lexicon.build] the field name \"%s\" is used twice" v
@@ -221,15 +222,16 @@ module Lexicon = struct
       | _ -> Error.bug "[Lexicon.reduce] Inconsistent length" in
       loop (sorted_sub_list, lexicon.header, line) in
     let new_lines = Line_set.map reduce_line lexicon.lines in
-    { header = sorted_sub_list; lines = new_lines }
+    { lexicon with header = sorted_sub_list; lines = new_lines }
 
   let union lex1 lex2 =
-    if lex1.header <> lex2.header then Error.build "[Lexcion.union] different header";
-    { header = lex1.header; lines = Line_set.union lex1.lines lex2.lines }
+    if lex1.header <> lex2.header then Error.build "[Lexicon.union] different header";
+    { lex1 with lines = Line_set.union lex1.lines lex2.lines }
+    (* NOTE: the loc field of a union may be not accurate *)
 
   let select head value lex =
     match List_.index head lex.header with
-    | None -> Error.build "[Lexicon.select] cannot find %s in lexicon" head
+    | None -> Error.build ~loc:lex.loc "[Lexicon.select] cannot find %s in lexicon" head
     | Some index ->
       let new_set = Line_set.filter (fun line -> List.nth line index = value) lex.lines in
       if Line_set.is_empty new_set
@@ -238,7 +240,7 @@ module Lexicon = struct
 
   let unselect head value lex =
     match List_.index head lex.header with
-    | None -> Error.build "[Lexicon.unselect] cannot find %s in lexicon" head
+    | None -> Error.build ~loc:lex.loc "[Lexicon.unselect] cannot find the fiels \"%s\" in lexicon" head
     | Some index ->
       let new_set = Line_set.filter (fun line -> List.nth line index <> value) lex.lines in
       if Line_set.is_empty new_set
@@ -247,7 +249,7 @@ module Lexicon = struct
 
   let projection head lex =
     match List_.index head lex.header with
-    | None -> Error.build "[Lexicon.projection] cannot find %s in lexicon" head
+    | None -> Error.build ~loc:lex.loc "[Lexicon.projection] cannot find %s in lexicon" head
     | Some index -> Line_set.fold (fun line acc -> String_set.add (List.nth line index) acc) lex.lines String_set.empty
 
   exception Not_functional_lexicon
@@ -268,6 +270,14 @@ end (* module Lexicon *)
 (* ================================================================================ *)
 module Lexicons = struct
   type t = (string * Lexicon.t) list
+
+ let check ~loc lexicon_name field_name t =
+  try
+    let lexicon = List.assoc lexicon_name t in
+    if not (List.mem field_name lexicon.Lexicon.header)
+    then Error.build ~loc "Undefined field name \"%s\" in lexicon %s" field_name lexicon_name
+  with Not_found -> Error.build ~loc "Undefined lexicon name \"%s\"" lexicon_name
+
 end
 
 (* ================================================================================ *)

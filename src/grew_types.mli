@@ -148,6 +148,9 @@ end (* module Lexicon *)
 (* ================================================================================ *)
 module Lexicons : sig
   type t = (string * Lexicon.t) list
+
+  val check: loc:Loc.t -> string -> string -> t -> unit
+
 end
 
 (* ================================================================================ *)

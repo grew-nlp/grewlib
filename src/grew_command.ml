@@ -172,7 +172,7 @@ module Command  = struct
     | H_SHIFT_OUT of (Gid.t * Gid.t)
 
 
-  let build ?domain ?param lexicon_names (kni, kei) table ast_command =
+  let build ?domain ?param lexicons (kni, kei) table ast_command =
     (* kni stands for "known node idents", kei for "known edge idents" *)
 
     let cn_of_node_id node_id =
@@ -262,8 +262,12 @@ module Command  = struct
             (function
               (* TODO update code for new lexicon *)
               | Ast.Qfn_or_lex_item (node_id_or_lex,feature_name_or_lex_field) ->
-                if List.mem node_id_or_lex lexicon_names
-                then Lexical_field (node_id_or_lex, feature_name_or_lex_field)
+                if List.mem_assoc node_id_or_lex lexicons
+                then
+                  begin
+                    Lexicons.check ~loc node_id_or_lex feature_name_or_lex_field lexicons;
+                    Lexical_field (node_id_or_lex, feature_name_or_lex_field)
+                  end
                 else
                   begin
                     check_node_id_msg loc ("Unbound identifier %s (neither a node nor a lexicon)") node_id_or_lex kni;
