@@ -78,6 +78,7 @@ module P_feature = struct
     | Absent
     | Equal of value list     (* with Equal constr, the list MUST never be empty *)
     | Different of value list
+    | Else of (value * feature_name * value)
 
   (* NB: in the current version, |in_param| ≤ 1 *)
   type v = {
@@ -94,7 +95,9 @@ module P_feature = struct
       | Different [] -> "=*"
       | Different l -> "≠" ^ (String.concat "|" (List.map string_of_value l))
       | Equal l -> "=" ^ (String.concat "|" (List.map string_of_value l))
-      | Absent -> " must be Absent!");
+      | Absent -> " must be Absent!"
+      | Else (fv1,fn2,fv2) -> sprintf " = %s/%s = %s" (string_of_value fv1) fn2 (string_of_value fv2));
+
     printf "in_param=[%s]\n" (String.concat "," (List.map string_of_int in_param));
     printf "%!"
 
@@ -105,6 +108,8 @@ module P_feature = struct
         | Absent -> ("absent", `Null)
         | Equal val_list -> ("equal", `List (List.map (fun x -> `String (string_of_value x)) val_list))
         | Different val_list -> ("different", `List (List.map (fun x -> `String (string_of_value x)) val_list))
+        | Else (fv1,fn2,fv2) -> ("else", `List [`String (string_of_value fv1); `String fn2; `String (string_of_value fv2)]);
+
       )
     ]
 
@@ -164,6 +169,10 @@ module P_feature = struct
       let values = Feature_value.build_disj ~loc ?domain name unsorted_values in (name, {cst=Equal values;in_param=[];})
     | ({Ast.kind=Ast.Disequality unsorted_values; name=name}, loc) ->
       let values = Feature_value.build_disj ~loc ?domain name unsorted_values in (name, {cst=Different values;in_param=[];})
+    | ({Ast.kind=Ast.Else (fv1,fn2,fv2); name=name}, loc) ->
+      let v1 = match Feature_value.build_disj ~loc ?domain name [fv1] with [one] -> one | _ -> failwith "BUG Else" in
+      let v2 = match Feature_value.build_disj ~loc ?domain name [fv2] with [one] -> one | _ -> failwith "BUG Else" in
+      (name, {cst=Else (v1,fn2,v2);in_param=[];})
     | ({Ast.kind=Ast.Equal_param var; name=name}, loc) ->
         begin
           match pat_vars with
@@ -438,7 +447,19 @@ module P_fs = struct
       | ((fn_pat, {P_feature.cst=P_feature.Absent})::t_pat, []) -> loop acc (t_pat, [])
       | ((fn_pat, {P_feature.cst=P_feature.Absent})::t_pat, (fn, fa)::t) when fn_pat < fn -> loop acc (t_pat, (fn, fa)::t)
 
-      (* Two next cases: each feature_name present in p_fs must be in instance: [] means unif failure *)
+      (* look for the second part of an Else construction*)
+      | ((_, {P_feature.cst=P_feature.Else (_,fn2,fv2)})::t_pat,[]) ->
+        begin
+          try if (List.assoc fn2 g_fs) <> fv2 then raise Fail
+          with Not_found -> raise Fail
+        end; loop acc (t_pat, [])
+        | ((fn_pat, {P_feature.cst=P_feature.Else (_,fn2,fv2)})::t_pat,(fn, fv)::t) when fn_pat < fn ->
+        begin
+          try if (List.assoc fn2 g_fs) <> fv2 then raise Fail
+          with Not_found -> raise Fail
+        end; loop acc (t_pat, t)
+
+      (* Two next cases: each feature_name present in p_fs must be in instance *)
       | _, [] -> raise Fail
       | ((fn_pat, _)::_, (fn, _)::_) when fn_pat < fn -> raise Fail
 
@@ -450,6 +471,7 @@ module P_fs = struct
         | P_feature.Absent -> raise Fail
         | P_feature.Equal fv when not (List_.sort_mem atom fv) -> raise Fail
         | P_feature.Different fv when List_.sort_mem atom fv -> raise Fail
+        | P_feature.Else (fv1,_,_) when fv1 <> atom -> raise Fail
         | _ -> () in
 
         (* if constraint part don't fail, look for lexical parameters *)

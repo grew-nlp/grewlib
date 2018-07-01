@@ -126,6 +126,7 @@ and label_parser target = parse
 | '}'   { Global.label_flag := false; RACC }
 | ','   { COMA }
 | '|'   { PIPE }
+| '/'   { SLASH }
 
 | '@' general_ident as cmd_var     { AROBAS_ID cmd_var }
 | "@#" color as col        { COLOR col }
@@ -232,6 +233,8 @@ and standard target = parse
 | ">=" | "≥" { GE }
 
 | '|'        { PIPE }
+| '/'   { SLASH }
+
 | "->"       { EDGE }
 | "-[^"      { Global.label_flag := true; LTR_EDGE_LEFT_NEG }
 | "-["       { Global.label_flag := true; LTR_EDGE_LEFT }

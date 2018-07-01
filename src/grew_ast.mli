@@ -58,6 +58,7 @@ module Ast : sig
     | Disequality of feature_value list
     | Equal_param of string (* $ident *)
     | Absent
+    | Else of (feature_value * feature_name * feature_value)
 
   type u_feature = {
     name: feature_name;

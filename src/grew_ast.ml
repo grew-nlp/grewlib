@@ -94,6 +94,7 @@ module Ast = struct
     | Disequality of feature_value list
     | Equal_param of string (* $ident *)
     | Absent
+    | Else of (feature_value * feature_name * feature_value)
 
   let feature_kind_to_string = function
     | Equality fv_list -> sprintf " = %s" (String.concat "|" fv_list)
@@ -101,6 +102,7 @@ module Ast = struct
     | Disequality fv_list -> sprintf " <> %s" (String.concat "|" fv_list)
     | Equal_param param -> sprintf  " = $%s" param
     | Absent -> " <> *"
+    | Else (fv1, fn2, fv2) -> sprintf " = %s/%s = %s" fv1 fn2 fv2
 
   type u_feature = {
     name: feature_name;
