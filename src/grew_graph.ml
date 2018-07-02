@@ -212,8 +212,11 @@ end (* module P_graph *)
 
 (* ================================================================================ *)
 module G_deco = struct
+  (* value is (f, Some g) for combined request "f=v/g=u" and (j, None) else *)
+  type highlighted_feat = string * string option
+
   type t = {
-    nodes: (Gid.t * (string * string list)) list;  (* a list of (node, (pattern_id, features of nodes implied in the step)) *)
+    nodes: (Gid.t * (string * highlighted_feat list)) list;  (* a list of (node, (pattern_id, features of nodes implied in the step)) *)
     edges: (Gid.t * G_edge.t * Gid.t) list;        (* an edge list *)
   }
 

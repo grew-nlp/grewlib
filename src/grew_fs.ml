@@ -280,8 +280,18 @@ module G_fs = struct
 
   (* ---------------------------------------------------------------------- *)
   let to_dot ?(decorated_feat=("",[])) ?main_feat t =
+    let (pid_name, highlighted_feat_list) = decorated_feat in
+
+    let is_highlithed feat_name =
+      (List.mem_assoc feat_name highlighted_feat_list) ||
+      (List.exists (function
+        | (f, Some g) when g = feat_name && (not (List.mem_assoc f t)) && (List.mem_assoc g t) -> true
+        | _ -> false
+        ) highlighted_feat_list
+      ) in
+
     let buff = Buffer.create 32 in
-    let () = match (fst decorated_feat) with
+    let () = match pid_name with
       | "" -> ()
       | pid -> bprintf buff "<TR><TD COLSPAN=\"3\" BGCOLOR=\"yellow\"><B>[%s]</B></TD></TR>\n" pid in
 
@@ -289,7 +299,7 @@ module G_fs = struct
       match get_main ?main_feat t with
       | (None, sub) -> sub
       | (Some (feat_name,atom), sub) ->
-        if List.mem feat_name (snd decorated_feat)
+        if is_highlithed feat_name
         then bprintf buff "<TR><TD COLSPAN=\"3\" BGCOLOR=\"yellow\"><B>%s</B></TD></TR>\n" (string_of_value atom)
         else bprintf buff "<TR><TD COLSPAN=\"3\"><B>%s</B></TD></TR>\n" (string_of_value atom);
         sub in
@@ -321,7 +331,15 @@ module G_fs = struct
 
   (* ---------------------------------------------------------------------- *)
   let to_dep ?(decorated_feat=("",[])) ?position ?main_feat ?filter t =
-    let (pid_name, feat_list) = decorated_feat in
+    let (pid_name, highlighted_feat_list) = decorated_feat in
+
+    let is_highlithed feat_name =
+      (List.mem_assoc feat_name highlighted_feat_list) ||
+      (List.exists (function
+        | (f, Some g) when g = feat_name && (not (List.mem_assoc f t)) && (List.mem_assoc g t) -> true
+        | _ -> false
+        ) highlighted_feat_list
+      ) in
 
     let (main_opt, sub) = get_main ?main_feat t in
     let sub = List.sort G_feature.print_cmp sub in
@@ -330,10 +348,11 @@ module G_fs = struct
       | None -> []
       | Some (feat_name, atom) ->
         let esc_atom = escape_sharp (string_of_value atom) in
-        [ if List.mem feat_name (snd decorated_feat)
+        [ if is_highlithed feat_name
           then sprintf "%s:B:#8bf56e" esc_atom
           else esc_atom] in
 
+    (* add the pattern identifier *)
     let word_list = match pid_name with
       | "" -> main
       | _ -> (sprintf "[%s]:B:#8bf56e" pid_name)::main in
@@ -349,7 +368,7 @@ module G_fs = struct
     let lines = List.fold_left
       (fun acc (feat_name, atom) ->
         let esc_atom = escape_sharp (G_feature.to_string (decode_feat_name feat_name, atom)) in
-        if List.mem feat_name (snd decorated_feat)
+        if is_highlithed feat_name
         then (sprintf "%s:B:#8bf56e" esc_atom) :: acc
         else
           match filter with
@@ -419,7 +438,11 @@ module P_fs = struct
     let unsorted = List.map (P_feature.build ?domain ?pat_vars) ast_fs in
     List.sort P_feature.compare unsorted
 
-  let feat_list t = List.map P_feature.get_name t
+  let feat_list t =
+    List.map (function
+      | (fn, {P_feature.cst=P_feature.Else (_,fn2,_)}) -> (fn, Some fn2)
+      | (fn, _) -> (fn, None)
+      ) t
 
   let to_string t = List_.to_string P_feature.to_string "\\n" t
 

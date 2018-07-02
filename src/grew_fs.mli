@@ -47,9 +47,9 @@ module G_fs: sig
 
   val get_float_feat: string -> t -> float option
   val to_gr: t -> string
-  val to_dot: ?decorated_feat:(string * string list) -> ?main_feat: string -> t -> string
+  val to_dot: ?decorated_feat:(string * (string * string option) list) -> ?main_feat: string -> t -> string
   val to_word: t -> string option
-  val to_dep: ?decorated_feat:(string * string list) -> ?position:float -> ?main_feat: string -> ?filter: (string -> bool) -> t -> string
+  val to_dep: ?decorated_feat:(string * (string * string option) list) -> ?position:float -> ?main_feat: string -> ?filter: (string -> bool) -> t -> string
   val to_conll_string: ?exclude: string list -> t -> string
   val to_conll: ?exclude: string list -> t -> (string * string) list
   val to_json: t -> json
@@ -84,7 +84,7 @@ module P_fs: sig
 
   val to_dot: t -> string
 
-  val feat_list: t -> string list
+  val feat_list: t -> (string * string option) list
 
   exception Fail
 
