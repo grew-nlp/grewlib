@@ -270,7 +270,7 @@ module Command  = struct
                   end
                 else
                   begin
-                    check_node_id_msg loc ("Unbound identifier %s (neither a node nor a lexicon)") node_id_or_lex kni;
+                    check_node_id_msg loc ("Unbound identifier (neither a node nor a lexicon):") node_id_or_lex kni;
                     Domain.check_feature_name ~loc ?domain feature_name_or_lex_field;
                     Feat (cn_of_node_id node_id_or_lex, feature_name_or_lex_field)
                   end

@@ -512,44 +512,10 @@ module P_fs = struct
               let new_acc = (lex_name, new_lexicon) :: (List.remove_assoc lex_name acc) in
               loop new_acc (t_pat, t)
           with
-          | Not_found -> failwith "TODO<123>"
+          | Not_found -> Error.bug "[P_fs.match_] Cannot find lexicon. lex_name=\"%s\"" lex_name
         end
       | (_::p_tail, _::g_tail) -> loop acc (p_tail,g_tail) in
     loop lexicons (p_fs_wo_pos,g_fs)
-
-
-(* ------------------------------------------------------------------------------ *)
-(*
-      | ((_, {P_feature.cst=cst; P_feature.in_param=in_param})::t_pat, (_, atom)::t) ->
-
-        (* check for the constraint part and fail if needed *)
-        let () = match cst with
-        | P_feature.Absent -> raise Fail
-        | P_feature.Equal fv when not (List_.sort_mem atom fv) -> raise Fail
-        | P_feature.Different fv when List_.sort_mem atom fv -> raise Fail
-        | P_feature.Else (fv1,_,_) when fv1 <> atom -> raise Fail
-        | _ -> () in
-
-        (* if constraint part don't fail, look for lexical parameters *)
-        match (acc, in_param) with
-          | (_,[]) -> loop acc (t_pat,t)
-          | (None,_) -> Log.bug "[P_fs.match_] Parametrized constraint in a non-parametrized rule"; exit 2
-          | (Some param, [index]) ->
-            (match Lex_par.select index (string_of_value atom) param with
-              | None -> raise Fail
-              | Some new_param -> loop (Some new_param) (t_pat,t)
-            )
-          | _ -> Error.bug "[P_fs.match_] several different parameters contraints for the same feature is not implemented" in
-    loop param (p_fs_wo_pos,g_fs)
-*)
-(* ------------------------------------------------------------------------------ *)
-
-
-
-
-
-
-
 
   exception Fail_unif
   let unif fs1 fs2 =
