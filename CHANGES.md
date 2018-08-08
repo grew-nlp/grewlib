@@ -45,7 +45,7 @@
   * Fix bug “undefined domain”
 
 # 0.44.0 (2017/09/05)
-  * /!\ new grs syntax (with package and strategies), see [http://grew.loria.fr/grs](http://grew.loria.fr/grs)
+  * /!\ new grs syntax (with package and strategies), see [http://grew.fr/grs](http://grew.fr/grs)
   * /!\ remove function `Rewrite.write_annot`
   * adapt to libcaml-conll 0.14.0
 
