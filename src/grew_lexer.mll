@@ -171,7 +171,6 @@ and standard target = parse
 
 | "include"       { INCL }
 | "import"        { IMPORT }
-| "domain"        { DOMAIN }
 | "features"      { FEATURES }
 | "conll_fields"  { Log.fwarning "\"conll_fields\" is deprecated, ignored"; DUMMY }
 | "from"          { FROM }
@@ -193,14 +192,10 @@ and standard target = parse
 | "add_node"      { ADD_NODE }
 | "del_feat"      { DEL_FEAT }
 
-| "module"        { MODULE }
 | "package"       { PACKAGE }
-| "confluent"     { Log.fwarning "%s \"confluent\" is deprecated, please use \"deterministic\" instead" (Global.loc_string ()); DETERMINISTIC }
-| "deterministic" { DETERMINISTIC }
 | "rule"          { RULE }
 | "strat"         { STRAT }
 | "lex_rule"      { Log.fwarning "%s \"lex_rule\" is deprecated, please use \"rule\" instead" (Global.loc_string ()); RULE }
-| "sequences"     { SEQUENCES }
 
 | "Pick"          { PICK }
 | "Alt"           { ALT }

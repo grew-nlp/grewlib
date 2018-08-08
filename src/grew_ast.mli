@@ -188,19 +188,6 @@ module Ast : sig
       rule_dir: string option; (* the real folder where the file is defined *)
     }
 
-  type modul = {
-      module_id:Id.name;
-      rules: rule list;
-      deterministic: bool;
-      module_doc:string list;
-      mod_loc:Loc.t;
-      mod_dir: string; (* the directory where the module is defined (for lp file localisation) *)
-    }
-
-  type module_or_include =
-    | Modul of modul
-    | Includ of (string * Loc.t)
-
   type feature_spec =
     | Closed of feature_name * feature_atom list (* cat:V,N *)
     | Open of feature_name (* phon, lemma, ... *)
@@ -212,41 +199,6 @@ module Ast : sig
       feature_domain: feature_spec list;
       label_domain: (string * string list) list;
     }
-
-  type domain_wi = Dom of domain | Dom_file of string
-
-  type strat_def = (* /!\ The list must not be empty in the Seq or Plus constructor *)
-    | Ref of string            (* reference to a module name or to another strategy *)
-    | Seq of strat_def list    (* a sequence of strategies to apply one after the other *)
-    | Star of strat_def        (* a strategy to apply iteratively *)
-    | Pick of strat_def        (* pick one normal form a the given strategy; return 0 if nf *)
-    | Sequence of string list  (* compatibility mode with old code *)
-
-  val strat_def_to_string: strat_def -> string
-
-  val strat_def_flatten: strat_def -> strat_def
-
-  (* a strategy is given by its descrition in the grs file and the 4 fields: *)
-  type strategy = {
-    strat_name:string;       (* a unique name of the stratgy *)
-    strat_def:strat_def;     (* the definition itself *)
-    strat_doc:string list;   (* lines of docs (if any in the GRS file) *)
-    strat_loc:Loc.t;         (* the location of the [name] of the strategy *)
-  }
-
-  type grs_wi = {
-      domain_wi: domain_wi option;
-      modules_wi: module_or_include list;
-      strategies_wi: strategy list;
-    }
-
-  (* a GRS: graph rewriting system *)
-  type grs = {
-      domain: domain option;
-      modules: modul list;
-      strategies: strategy list;
-    }
-  val empty_grs: grs
 
   type gr = {
     meta: string list;
@@ -260,13 +212,9 @@ module Ast : sig
   | Leaf of (Loc.t * string) (* phon *)
   | T of (Loc.t * string * pst list)
   val word_list: pst -> string list
-end (* module Ast *)
 
-
-(* ================================================================================================ *)
-module New_ast : sig
   type strat =
-  | Ref of Ast.node_ident       (* reference to a rule name or to another strategy *)
+  | Ref of node_ident       (* reference to a rule name or to another strategy *)
   | Pick of strat               (* pick one normal form a the given strategy; return 0 if nf *)
   | Alt of strat list           (* a set of strategies to apply in parallel *)
   | Seq of strat list           (* a sequence of strategies to apply one after the other *)
@@ -277,11 +225,11 @@ module New_ast : sig
 
   type decl =
   | Conll_fields of string list
-  | Features of Ast.feature_spec list
+  | Features of feature_spec list
   | Labels of (string * string list) list
-  | Package of (Loc.t * Ast.simple_ident * decl list)
-  | Rule of Ast.rule
-  | Strategy of (Loc.t * Ast.simple_ident * strat)
+  | Package of (Loc.t * simple_ident * decl list)
+  | Rule of rule
+  | Strategy of (Loc.t * simple_ident * strat)
   | Import of string
   | Include of string
 
@@ -291,5 +239,4 @@ module New_ast : sig
 
   val strat_list: grs -> string list
 
-  val convert: Ast.grs -> grs
-end (* module New_ast *)
+end (* module Ast *)

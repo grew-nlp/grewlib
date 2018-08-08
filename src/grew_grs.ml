@@ -116,19 +116,19 @@ module Grs = struct
 
   type decl =
   | Rule of Rule.t
-  | Strategy of string * New_ast.strat
+  | Strategy of string * Ast.strat
   | Package of string * decl list
 
   type t = {
     filename: string;
     domain: Domain.t option;
     decls: decl list;
-    ast: New_ast.grs;
+    ast: Ast.grs;
   }
 
   let rec decl_to_json ?domain = function
     | Rule r -> Rule.to_json ?domain r
-    | Strategy (name, strat) -> `Assoc [("strat_name", `String name); ("strat_def", New_ast.strat_to_json strat)]
+    | Strategy (name, strat) -> `Assoc [("strat_name", `String name); ("strat_def", Ast.strat_to_json strat)]
     | Package (name, decl_list) -> `Assoc [("package_name", `String name); "decls", `List (List.map (decl_to_json ?domain) decl_list)]
 
   let to_json t =
@@ -144,7 +144,7 @@ module Grs = struct
     ]
 
 
-  let get_strat_list grs = Grew_ast.New_ast.strat_list grs.ast
+  let get_strat_list grs = Grew_ast.Ast.strat_list grs.ast
 
   let rec dump_decl indent = function
     | Rule r -> printf "%srule %s\n" (String.make indent ' ') (Rule.get_name r)
@@ -163,9 +163,9 @@ module Grs = struct
 
 
   let rec build_decl ?domain = function
-  | New_ast.Package (loc, name, decl_list) -> Package (name, List.map (build_decl ?domain) decl_list)
-  | New_ast.Rule ast_rule -> Rule (Rule.build ?domain "TODO: remove this arg (old grs)" ast_rule)
-  | New_ast.Strategy (loc, name, ast_strat) -> Strategy (name, ast_strat)
+  | Ast.Package (loc, name, decl_list) -> Package (name, List.map (build_decl ?domain) decl_list)
+  | Ast.Rule ast_rule -> Rule (Rule.build ?domain "TODO: remove this arg (old grs)" ast_rule)
+  | Ast.Strategy (loc, name, ast_strat) -> Strategy (name, ast_strat)
   | _ -> Error.bug "[build_decl] Inconsistent ast for new_grs"
 
   let domain t = t.domain
@@ -178,7 +178,7 @@ module Grs = struct
   let from_ast filename ast =
     let feature_domains = List_.opt_map
       (fun x -> match x with
-        | New_ast.Features desc -> Some desc
+        | Ast.Features desc -> Some desc
         | _ -> None
       ) ast in
 
@@ -188,7 +188,7 @@ module Grs = struct
 
     let label_domains = List_.opt_map
       (fun x -> match x with
-        | New_ast.Labels desc -> Some desc
+        | Ast.Labels desc -> Some desc
         | _ -> None
       ) ast in
     let label_domain = match label_domains with
@@ -203,11 +203,11 @@ module Grs = struct
 
     let decls = List_.opt_map
       (fun x -> match x with
-        | New_ast.Features _ -> None
-        | New_ast.Labels _ -> None
-        | New_ast.Conll_fields _ -> None
-        | New_ast.Import _ -> Error.bug "[load] Import: inconsistent ast for new_grs"
-        | New_ast.Include _ -> Error.bug "[load] Include: inconsistent ast for new_grs"
+        | Ast.Features _ -> None
+        | Ast.Labels _ -> None
+        | Ast.Conll_fields _ -> None
+        | Ast.Import _ -> Error.bug "[load] Import: inconsistent ast for new_grs"
+        | Ast.Include _ -> Error.bug "[load] Include: inconsistent ast for new_grs"
         | x -> Some (build_decl ?domain x)
       ) ast in
 
@@ -305,12 +305,12 @@ module Grs = struct
 
   and det_strat_simple_rewrite ?domain pointed strat instance =
     match strat with
-    | New_ast.Onf s -> det_strat_simple_rewrite ?domain pointed (New_ast.Pick (New_ast.Iter s)) instance
-    | New_ast.Ref subname -> det_intern_simple_rewrite ?domain pointed subname instance
-    | New_ast.Pick strat -> det_strat_simple_rewrite ?domain pointed strat instance
+    | Ast.Onf s -> det_strat_simple_rewrite ?domain pointed (Ast.Pick (Ast.Iter s)) instance
+    | Ast.Ref subname -> det_intern_simple_rewrite ?domain pointed subname instance
+    | Ast.Pick strat -> det_strat_simple_rewrite ?domain pointed strat instance
 
-    | New_ast.Alt [] -> None
-    | New_ast.Alt strat_list ->
+    | Ast.Alt [] -> None
+    | Ast.Alt strat_list ->
       let rec loop = function
         | [] -> None
         | head_strat :: tail_strat ->
@@ -319,29 +319,29 @@ module Grs = struct
           | Some x -> Some x in
         loop strat_list
 
-    | New_ast.Seq [] -> Some instance
-    | New_ast.Seq (head_strat :: tail_strat) ->
+    | Ast.Seq [] -> Some instance
+    | Ast.Seq (head_strat :: tail_strat) ->
       begin
         match det_strat_simple_rewrite ?domain pointed head_strat instance with
         | None -> None
-        | Some inst -> det_strat_simple_rewrite ?domain pointed (New_ast.Seq tail_strat) inst
+        | Some inst -> det_strat_simple_rewrite ?domain pointed (Ast.Seq tail_strat) inst
       end
 
-    | New_ast.Iter strat ->
+    | Ast.Iter strat ->
       begin
         match det_strat_simple_rewrite ?domain pointed strat instance with
         | None -> Some instance
-        | Some inst -> det_strat_simple_rewrite ?domain pointed (New_ast.Iter strat) inst
+        | Some inst -> det_strat_simple_rewrite ?domain pointed (Ast.Iter strat) inst
         end
 
-    | New_ast.Try strat ->
+    | Ast.Try strat ->
         begin
           match det_strat_simple_rewrite ?domain pointed strat instance with
           | None -> Some instance
           | Some i -> Some i
         end
 
-    | New_ast.If (s, s1, s2) ->
+    | Ast.If (s, s1, s2) ->
       begin
         match det_strat_simple_rewrite ?domain pointed s instance with
         | None -> det_strat_simple_rewrite ?domain pointed s1 instance
@@ -360,36 +360,36 @@ module Grs = struct
 
   and strat_simple_rewrite ?domain pointed strat instance =
     match strat with
-    | New_ast.Onf s -> strat_simple_rewrite ?domain pointed (New_ast.Pick (New_ast.Iter s)) instance
-    | New_ast.Ref subname -> intern_simple_rewrite ?domain pointed subname instance
-    | New_ast.Pick strat ->
+    | Ast.Onf s -> strat_simple_rewrite ?domain pointed (Ast.Pick (Ast.Iter s)) instance
+    | Ast.Ref subname -> intern_simple_rewrite ?domain pointed subname instance
+    | Ast.Pick strat ->
       begin
         match det_strat_simple_rewrite ?domain pointed strat instance with
         | None -> Grew_rule.Instance_set.empty
         | Some x -> Instance_set.singleton x
       end
 
-    | New_ast.Alt [] -> Grew_rule.Instance_set.empty
-    | New_ast.Alt strat_list -> List.fold_left
+    | Ast.Alt [] -> Grew_rule.Instance_set.empty
+    | Ast.Alt strat_list -> List.fold_left
       (fun acc strat -> Instance_set.union acc (strat_simple_rewrite ?domain pointed strat instance)
       ) Instance_set.empty strat_list
 
-    | New_ast.Seq [] -> Instance_set.singleton instance
-    | New_ast.Seq (head_strat :: tail_strat) ->
+    | Ast.Seq [] -> Instance_set.singleton instance
+    | Ast.Seq (head_strat :: tail_strat) ->
       let first_strat = strat_simple_rewrite ?domain pointed head_strat instance in
       Instance_set.fold
-        (fun instance acc -> Instance_set.union acc (strat_simple_rewrite ?domain pointed (New_ast.Seq tail_strat) instance)
+        (fun instance acc -> Instance_set.union acc (strat_simple_rewrite ?domain pointed (Ast.Seq tail_strat) instance)
         ) first_strat Instance_set.empty
 
-    | New_ast.Iter strat ->
+    | Ast.Iter strat ->
       let one_step = strat_simple_rewrite ?domain pointed strat instance in
       if Instance_set.is_empty one_step
       then Instance_set.singleton instance
       else Instance_set.fold
-        (fun instance acc -> Instance_set.union acc (strat_simple_rewrite ?domain pointed (New_ast.Iter strat) instance)
+        (fun instance acc -> Instance_set.union acc (strat_simple_rewrite ?domain pointed (Ast.Iter strat) instance)
         ) one_step Instance_set.empty
 
-    | New_ast.Try strat ->
+    | Ast.Try strat ->
       begin
         let one_step = strat_simple_rewrite ?domain pointed strat instance in
         if Instance_set.is_empty one_step
@@ -397,7 +397,7 @@ module Grs = struct
         else one_step
       end
 
-    | New_ast.If (s, s1, s2) ->
+    | Ast.If (s, s1, s2) ->
       begin
         match det_strat_simple_rewrite ?domain pointed s instance with
         | None -> strat_simple_rewrite ?domain pointed s1 instance
@@ -440,8 +440,8 @@ module Grs = struct
 
   let rec det_rew_display_tmp ?domain pointed strat instance =
     match strat with
-    | New_ast.Onf s -> det_rew_display_tmp ?domain pointed (New_ast.Pick (New_ast.Iter s)) instance
-    | New_ast.Ref subname ->
+    | Ast.Onf s -> det_rew_display_tmp ?domain pointed (Ast.Pick (Ast.Iter s)) instance
+    | Ast.Ref subname ->
       let path = Str.split (Str.regexp "\\.") subname in
       begin
         match search_from pointed path with
@@ -462,10 +462,10 @@ module Grs = struct
             det_rew_display_tmp ?domain new_pointed ast_strat instance
       end
 
-    | New_ast.Pick strat -> det_rew_display_tmp ?domain pointed strat instance
+    | Ast.Pick strat -> det_rew_display_tmp ?domain pointed strat instance
 
-    | New_ast.Alt [] -> None
-    | New_ast.Alt strat_list ->
+    | Ast.Alt [] -> None
+    | Ast.Alt strat_list ->
       let rec loop = function
         | [] -> None
         | head_strat :: tail_strat ->
@@ -474,21 +474,21 @@ module Grs = struct
           | Some x -> Some x in
         loop strat_list
 
-    | New_ast.Seq [] -> Some []
-    | New_ast.Seq (head_strat :: tail_strat) ->
+    | Ast.Seq [] -> Some []
+    | Ast.Seq (head_strat :: tail_strat) ->
       begin
         match det_rew_display_tmp ?domain pointed head_strat instance with
         | None -> None
-        | Some [] -> det_rew_display_tmp ?domain pointed (New_ast.Seq tail_strat) instance
+        | Some [] -> det_rew_display_tmp ?domain pointed (Ast.Seq tail_strat) instance
         | Some (((_,inst) :: _) as l) ->
           begin
-            match det_rew_display_tmp ?domain pointed (New_ast.Seq tail_strat) inst with
+            match det_rew_display_tmp ?domain pointed (Ast.Seq tail_strat) inst with
             | None -> None
             | Some l2 -> Some (l2 @ l)
           end
       end
 
-    | New_ast.Iter (New_ast.Ref subname) ->
+    | Ast.Iter (Ast.Ref subname) ->
       let path = Str.split (Str.regexp "\\.") subname in
         begin
           match search_from pointed path with
@@ -509,27 +509,27 @@ module Grs = struct
               det_rew_display_tmp ?domain new_pointed ast_strat instance
         end
 
-    | New_ast.Iter strat ->
+    | Ast.Iter strat ->
       begin
         match det_rew_display_tmp ?domain pointed strat instance with
         | None -> Some []
         | Some [] -> Some []
         | Some (((_,inst) :: _) as l) ->
           begin
-            match det_rew_display_tmp ?domain pointed (New_ast.Iter strat) inst with
+            match det_rew_display_tmp ?domain pointed (Ast.Iter strat) inst with
             | None -> Some l
             | Some l2 -> Some (l2 @ l)
           end
       end
 
-    | New_ast.Try strat ->
+    | Ast.Try strat ->
         begin
           match det_rew_display_tmp ?domain pointed strat instance with
           | None -> Some []
           | Some i -> Some i
         end
 
-    | New_ast.If (s, s1, s2) ->
+    | Ast.If (s, s1, s2) ->
       begin
         match det_strat_simple_rewrite ?domain pointed s instance with
         | None -> det_rew_display_tmp ?domain pointed s1 instance
@@ -579,7 +579,7 @@ module Grs = struct
   let at_least_one grs strat =
     let rec loop pointed strat =
       match strat with
-      | New_ast.Ref strat_name ->
+      | Ast.Ref strat_name ->
         begin
           let path = Str.split (Str.regexp "\\.") strat_name in
           match search_from pointed path with
@@ -588,20 +588,20 @@ module Grs = struct
           | Some (Package _, _) -> false
           | Some (Strategy (_,ast_strat), new_pointed) -> loop new_pointed ast_strat
         end
-      | New_ast.Pick s -> loop pointed s
-      | New_ast.Onf s -> true
-      | New_ast.Alt l -> List.exists (fun s -> loop pointed s) l
-      | New_ast.Seq l -> List.for_all (fun s -> loop pointed s) l
-      | New_ast.Iter _ -> true
-      | New_ast.If (_,s1, s2) -> (loop pointed s1) && (loop pointed s2)
-      | New_ast.Try (s) -> loop pointed s in
+      | Ast.Pick s -> loop pointed s
+      | Ast.Onf s -> true
+      | Ast.Alt l -> List.exists (fun s -> loop pointed s) l
+      | Ast.Seq l -> List.for_all (fun s -> loop pointed s) l
+      | Ast.Iter _ -> true
+      | Ast.If (_,s1, s2) -> (loop pointed s1) && (loop pointed s2)
+      | Ast.Try (s) -> loop pointed s in
     loop (top grs) (Parser.strategy strat)
 
   (* return true if strat always return at most one graph *)
   let at_most_one grs strat =
     let rec loop pointed strat =
       match strat with
-      | New_ast.Ref strat_name ->
+      | Ast.Ref strat_name ->
         begin
           let path = Str.split (Str.regexp "\\.") strat_name in
           match search_from pointed path with
@@ -610,14 +610,14 @@ module Grs = struct
           | Some (Package _, _) -> false
           | Some (Strategy (_,ast_strat), new_pointed) -> loop new_pointed ast_strat
         end
-      | New_ast.Pick s -> true
-      | New_ast.Onf s -> true
-      | New_ast.Alt [one] -> loop pointed one
-      | New_ast.Alt _ -> false
-      | New_ast.Seq l -> List.for_all (fun s -> loop pointed s) l
-      | New_ast.Iter s -> loop pointed s
-      | New_ast.If (_,s1, s2) -> (loop pointed s1) || (loop pointed s2)
-      | New_ast.Try (s) -> loop pointed s in
+      | Ast.Pick s -> true
+      | Ast.Onf s -> true
+      | Ast.Alt [one] -> loop pointed one
+      | Ast.Alt _ -> false
+      | Ast.Seq l -> List.for_all (fun s -> loop pointed s) l
+      | Ast.Iter s -> loop pointed s
+      | Ast.If (_,s1, s2) -> (loop pointed s1) || (loop pointed s2)
+      | Ast.Try (s) -> loop pointed s in
     loop (top grs) (Parser.strategy strat)
 
 
@@ -649,11 +649,11 @@ module Grs = struct
 
   and onf_strat_simple_rewrite ?domain pointed strat graph =
     match strat with
-    | New_ast.Ref subname -> onf_intern_simple_rewrite ?domain pointed subname graph
-    | New_ast.Pick strat -> onf_strat_simple_rewrite ?domain pointed strat graph
+    | Ast.Ref subname -> onf_intern_simple_rewrite ?domain pointed subname graph
+    | Ast.Pick strat -> onf_strat_simple_rewrite ?domain pointed strat graph
 
-    | New_ast.Alt [] -> None
-    | New_ast.Alt strat_list ->
+    | Ast.Alt [] -> None
+    | Ast.Alt strat_list ->
       let rec loop = function
         | [] -> None
         | head_strat :: tail_strat ->
@@ -662,36 +662,36 @@ module Grs = struct
           | Some x -> Some x in
         loop strat_list
 
-    | New_ast.Seq [] -> Some graph
-    | New_ast.Seq (head_strat :: tail_strat) ->
+    | Ast.Seq [] -> Some graph
+    | Ast.Seq (head_strat :: tail_strat) ->
       begin
         match onf_strat_simple_rewrite ?domain pointed head_strat graph with
         | None -> None
-        | Some inst -> onf_strat_simple_rewrite ?domain pointed (New_ast.Seq tail_strat) inst
+        | Some inst -> onf_strat_simple_rewrite ?domain pointed (Ast.Seq tail_strat) inst
       end
 
-    | New_ast.Iter sub_strat ->
+    | Ast.Iter sub_strat ->
       begin
         match onf_strat_simple_rewrite ?domain pointed sub_strat graph with
         | None -> Some graph
         | Some inst -> onf_strat_simple_rewrite ?domain pointed strat inst
         end
 
-    | New_ast.Try sub_strat ->
+    | Ast.Try sub_strat ->
         begin
           match onf_strat_simple_rewrite ?domain pointed sub_strat graph with
           | None -> Some graph
           | Some i -> Some i
         end
 
-    | New_ast.If (s, s1, s2) ->
+    | Ast.If (s, s1, s2) ->
       begin
         match onf_strat_simple_rewrite ?domain pointed s graph with
         | None   -> onf_strat_simple_rewrite ?domain pointed s1 graph
         | Some _ -> onf_strat_simple_rewrite ?domain pointed s2 graph
       end
 
-    | New_ast.Onf (s) -> onf_strat_simple_rewrite ?domain pointed s graph (* TODO check Onf (P) == 1 rule app ? *)
+    | Ast.Onf (s) -> onf_strat_simple_rewrite ?domain pointed s graph (* TODO check Onf (P) == 1 rule app ? *)
 
   (* ============================================================================================= *)
   (* Rewriting in the non-deterministic case with Graph_with_history.t type *)
@@ -716,8 +716,8 @@ module Grs = struct
 
   and gwh_strat_simple_rewrite ?domain pointed strat gwh =
     match strat with
-    | New_ast.Ref subname -> gwh_intern_simple_rewrite ?domain pointed subname gwh
-    | New_ast.Pick strat ->
+    | Ast.Ref subname -> gwh_intern_simple_rewrite ?domain pointed subname gwh
+    | Ast.Pick strat ->
       begin
         match Graph_with_history_set.choose_opt
           (gwh_strat_simple_rewrite ?domain pointed strat gwh) with
@@ -725,21 +725,21 @@ module Grs = struct
         | Some x -> Graph_with_history_set.singleton x
       end
 
-    | New_ast.Alt [] -> Graph_with_history_set.empty
-    | New_ast.Alt strat_list -> List.fold_left
+    | Ast.Alt [] -> Graph_with_history_set.empty
+    | Ast.Alt strat_list -> List.fold_left
       (fun acc strat -> Graph_with_history_set.union acc (gwh_strat_simple_rewrite ?domain pointed strat gwh)
       ) Graph_with_history_set.empty strat_list
 
-    | New_ast.Seq [] -> Graph_with_history_set.singleton gwh
-    | New_ast.Seq (head_strat :: tail_strat) ->
+    | Ast.Seq [] -> Graph_with_history_set.singleton gwh
+    | Ast.Seq (head_strat :: tail_strat) ->
       let first_strat = gwh_strat_simple_rewrite ?domain pointed head_strat gwh in
       Graph_with_history_set.fold
-        (fun gwh acc -> Graph_with_history_set.union acc (gwh_strat_simple_rewrite ?domain pointed (New_ast.Seq tail_strat) gwh)
+        (fun gwh acc -> Graph_with_history_set.union acc (gwh_strat_simple_rewrite ?domain pointed (Ast.Seq tail_strat) gwh)
         ) first_strat Graph_with_history_set.empty
 
-    | New_ast.Iter strat -> iter_gwh ?domain pointed strat gwh
+    | Ast.Iter strat -> iter_gwh ?domain pointed strat gwh
 
-    | New_ast.Try strat ->
+    | Ast.Try strat ->
       begin
         let one_step = gwh_strat_simple_rewrite ?domain pointed strat gwh in
         if Graph_with_history_set.is_empty one_step
@@ -747,7 +747,7 @@ module Grs = struct
         else one_step
       end
 
-    | New_ast.If (s, s1, s2) ->
+    | Ast.If (s, s1, s2) ->
       begin
         match (* TODO: is it correct to put onf_ ?*)
         onf_strat_simple_rewrite ?domain pointed s gwh.Graph_with_history.graph with
@@ -755,9 +755,9 @@ module Grs = struct
         | None   -> gwh_strat_simple_rewrite ?domain pointed s2 gwh
       end
 
-    | New_ast.Onf s ->
+    | Ast.Onf s ->
       begin
-        match onf_strat_simple_rewrite ?domain pointed (New_ast.Iter s) gwh.Graph_with_history.graph with
+        match onf_strat_simple_rewrite ?domain pointed (Ast.Iter s) gwh.Graph_with_history.graph with
         | None -> Graph_with_history_set.singleton gwh
         | Some new_g -> Graph_with_history_set.singleton (Graph_with_history.from_graph new_g)
       end
@@ -859,11 +859,11 @@ module Grs = struct
 
   and wrd_strat_simple_rewrite ?domain iter_flag pointed strat linear_rd  =
     match strat with
-    | New_ast.Ref subname -> wrd_intern_simple_rewrite iter_flag ?domain pointed subname linear_rd
-    | New_ast.Pick strat -> wrd_strat_simple_rewrite iter_flag ?domain pointed strat linear_rd
+    | Ast.Ref subname -> wrd_intern_simple_rewrite iter_flag ?domain pointed subname linear_rd
+    | Ast.Pick strat -> wrd_strat_simple_rewrite iter_flag ?domain pointed strat linear_rd
 
-    | New_ast.Alt [] -> None
-    | New_ast.Alt strat_list ->
+    | Ast.Alt [] -> None
+    | Ast.Alt strat_list ->
       let rec loop = function
         | [] -> None
         | head_strat :: tail_strat ->
@@ -872,30 +872,30 @@ module Grs = struct
           | Some x -> Some x in
         loop strat_list
 
-    | New_ast.Seq [] -> Some linear_rd
-    | New_ast.Seq (head_strat :: tail_strat) ->
+    | Ast.Seq [] -> Some linear_rd
+    | Ast.Seq (head_strat :: tail_strat) ->
       begin
         match wrd_strat_simple_rewrite ?domain false pointed head_strat linear_rd  with
         | None -> None
-        | Some gwrd -> wrd_strat_simple_rewrite iter_flag ?domain pointed (New_ast.Seq tail_strat) gwrd
+        | Some gwrd -> wrd_strat_simple_rewrite iter_flag ?domain pointed (Ast.Seq tail_strat) gwrd
       end
 
-    | New_ast.Iter sub_strat
-    | New_ast.Onf sub_strat ->
+    | Ast.Iter sub_strat
+    | Ast.Onf sub_strat ->
       begin
         match wrd_strat_simple_rewrite ?domain true pointed sub_strat linear_rd  with
         | None -> Some linear_rd
         | Some gwrd -> wrd_strat_simple_rewrite ?domain iter_flag pointed strat gwrd
       end
 
-    | New_ast.Try sub_strat ->
+    | Ast.Try sub_strat ->
         begin
           match wrd_strat_simple_rewrite ?domain false pointed sub_strat linear_rd  with
           | None -> Some linear_rd
           | Some i -> Some i
         end
 
-    | New_ast.If (s, s1, s2) ->
+    | Ast.If (s, s1, s2) ->
       begin
         match onf_strat_simple_rewrite ?domain pointed s linear_rd.graph with
         | Some _ -> wrd_strat_simple_rewrite iter_flag ?domain pointed s1 linear_rd

@@ -72,7 +72,6 @@ let localize t = (t,get_loc ())
 %token ARROW_LEFT_NEG              /* =[^ */
 %token ARROW_RIGHT                 /* ]=> */
 
-%token DOMAIN                      /* domain */
 %token INCL                        /* include */
 %token IMPORT                      /* import */
 %token FEATURES                    /* features */
@@ -81,12 +80,9 @@ let localize t = (t,get_loc ())
 %token PATTERN                     /* pattern */
 %token WITHOUT                     /* without */
 %token COMMANDS                    /* commands */
-%token MODULE                      /* module */
 %token STRAT                       /* strat */
 %token PACKAGE                     /* package */
-%token DETERMINISTIC               /* deterministic (or deprecated confluent) */
 %token RULE                        /* rule */
-%token SEQUENCES                   /* sequences */
 %token GRAPH                       /* graph */
 
 %token DEL_EDGE                    /* del_edge */
@@ -122,14 +118,12 @@ let localize t = (t,get_loc ())
 
 %token EOF                         /* end of file */
 
-%start <Grew_ast.Ast.grs_wi> grs_wi
 %start <Grew_ast.Ast.gr> gr
-%start <Grew_ast.Ast.module_or_include list> included
 %start <Grew_ast.Ast.pattern> pattern
 %start <Grew_ast.Ast.domain> domain
 
-%start <Grew_ast.New_ast.grs> new_grs
-%start <Grew_ast.New_ast.strat> strat_alone
+%start <Grew_ast.Ast.grs> new_grs
+%start <Grew_ast.Ast.strat> strat_alone
 
 /* parsing of the string representation of the constituent representation of Sequoia */
 /* EX: "( (SENT (NP (NC Amélioration) (PP (P de) (NP (DET la) (NC sécurité))))))"    */
@@ -238,35 +232,6 @@ domain:
             }
 
 /*=============================================================================================*/
-/*  GREW GRAPH REWRITING SYSTEM                                                                */
-/*=============================================================================================*/
-grs_wi:
-        | d=option(domain) m=module_or_include_list s=option(sequences) EOF
-            {
-             { Ast.domain_wi=(match d with Some dom -> Some (Ast.Dom dom) | None -> None);
-               modules_wi=m;
-               strategies_wi=match s with Some seq -> seq | None -> [];
-             }
-           }
-        | DOMAIN file=STRING m=module_or_include_list s=option(sequences) EOF
-            {
-             { Ast.domain_wi= Some (Ast.Dom_file file);
-               modules_wi=m;
-               strategies_wi=match s with Some seq -> seq | None -> [];
-             }
-           }
-
-module_or_include_list:
-        | x=list(module_or_include) { x }
-
-module_or_include:
-        | m=grew_module             { Ast.Modul m }
-        | INCL sub=subfile SEMIC { Ast.Includ sub }
-
-subfile:
-        | f=STRING  { localize f }
-
-/*=============================================================================================*/
 /* FEATURES DOMAIN DEFINITION                                                                  */
 /*=============================================================================================*/
 feature_group:
@@ -312,29 +277,8 @@ display:
         | col=COLOR       { col }
 
 /*=============================================================================================*/
-/* MODULE DEFINITION                                                                           */
-/*=============================================================================================*/
-included:
-        | x=list(module_or_include) EOF { x }
-
-grew_module:
-        | doc=option(COMMENT) MODULE det=boption(DETERMINISTIC) id_loc=simple_id_with_loc LACC l=option(labels) r=rules RACC
-           {
-            { Ast.module_id = fst id_loc;
-              rules = r;
-              deterministic = det;
-              module_doc = (match doc with Some d -> d | None -> []);
-              mod_loc = snd id_loc;
-              mod_dir = "";
-            }
-          }
-
-/*=============================================================================================*/
 /* RULES DEFINITION                                                                            */
 /*=============================================================================================*/
-rules:
-        | r = list(rule) { r }
-
 rule:
         | doc=option(COMMENT) RULE id_loc=simple_id_with_loc file_lexicons = option(external_lexicons) LACC p=pos_item n=list(neg_item) cmds=commands RACC final_lexicons=list(final_lexicon)
             {
@@ -724,23 +668,6 @@ concat_item:
         | f=FLOAT          { Ast.String_item (Printf.sprintf "%g" f) }
 
 
-/*=============================================================================================*/
-/* SEQUENCE DEFINITION                                                                         */
-/*=============================================================================================*/
-sequences:
-        | SEQUENCES seq=delimited(LACC,list(sequence),RACC) { seq }
-
-sequence:
-        /*   seq_name { ant; p7_to_p7p-mc}   */
-        | doc = option(COMMENT) id_loc=simple_id_with_loc mod_names=delimited(LACC,separated_list_final_opt(SEMIC,simple_id),RACC)
-            { let (strat_name,strat_loc) = id_loc in
-              {
-                Ast.strat_name;
-                strat_def = Ast.Sequence mod_names;
-                strat_doc = begin match doc with Some d -> d | None -> [] end;
-                strat_loc;
-              }
-            }
 
 /*=============================================================================================*/
 /* ISOLATED PATTERN (grep mode)                                                                */
@@ -776,24 +703,24 @@ new_grs:
   | decls = list(decl) EOF { decls }
 
 decl:
-  | f=feature_group                                          { New_ast.Features f                           }
-  | l=labels                                                  { New_ast.Labels l                             }
-  | r=rule                                                    { New_ast.Rule r                               }
-  | IMPORT f=STRING                                           { New_ast.Import f                             }
-  | INCL f=STRING                                             { New_ast.Include f                            }
-  | PACKAGE id_loc=simple_id_with_loc LACC l=list(decl) RACC  { New_ast.Package (snd id_loc, fst id_loc, l)  }
-  | STRAT id_loc=simple_id_with_loc LACC d = strat_desc RACC  { New_ast.Strategy (snd id_loc, fst id_loc, d) }
+  | f=feature_group                                          { Ast.Features f                           }
+  | l=labels                                                  { Ast.Labels l                             }
+  | r=rule                                                    { Ast.Rule r                               }
+  | IMPORT f=STRING                                           { Ast.Import f                             }
+  | INCL f=STRING                                             { Ast.Include f                            }
+  | PACKAGE id_loc=simple_id_with_loc LACC l=list(decl) RACC  { Ast.Package (snd id_loc, fst id_loc, l)  }
+  | STRAT id_loc=simple_id_with_loc LACC d = strat_desc RACC  { Ast.Strategy (snd id_loc, fst id_loc, d) }
 
 strat_desc:
-  | id = node_id                                                           { New_ast.Ref id }
-  | PICK LPAREN s=strat_desc RPAREN                                        { New_ast.Pick s }
-  | ALT LPAREN sl=separated_list_final_opt(COMA,strat_desc) RPAREN         { New_ast.Alt sl }
-  | SEQ LPAREN sl=separated_list_final_opt(COMA,strat_desc) RPAREN         { New_ast.Seq sl }
-  | ITER LPAREN s=strat_desc RPAREN                                        { New_ast.Iter s }
-  | IF LPAREN s1=strat_desc COMA s2=strat_desc COMA s3=strat_desc RPAREN   { New_ast.If (s1,s2,s3) }
-  | TRY LPAREN s=strat_desc RPAREN                                         { New_ast.Try s }
-  | ONF LPAREN s=strat_desc RPAREN                                         { New_ast.Onf s }
-  | EMPTY                                                                  { New_ast.Seq [] }
+  | id = node_id                                                           { Ast.Ref id }
+  | PICK LPAREN s=strat_desc RPAREN                                        { Ast.Pick s }
+  | ALT LPAREN sl=separated_list_final_opt(COMA,strat_desc) RPAREN         { Ast.Alt sl }
+  | SEQ LPAREN sl=separated_list_final_opt(COMA,strat_desc) RPAREN         { Ast.Seq sl }
+  | ITER LPAREN s=strat_desc RPAREN                                        { Ast.Iter s }
+  | IF LPAREN s1=strat_desc COMA s2=strat_desc COMA s3=strat_desc RPAREN   { Ast.If (s1,s2,s3) }
+  | TRY LPAREN s=strat_desc RPAREN                                         { Ast.Try s }
+  | ONF LPAREN s=strat_desc RPAREN                                         { Ast.Onf s }
+  | EMPTY                                                                  { Ast.Seq [] }
 
 strat_alone:
   | s = strat_desc EOF  { s }

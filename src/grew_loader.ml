@@ -26,28 +26,6 @@ module Loader = struct
 
 
   (* ------------------------------------------------------------------------------------------*)
-  let parse_file_to_grs_wi file =
-    try
-      Global.new_file file;
-      let in_ch = open_in file in
-      let lexbuf = Lexing.from_channel in_ch in
-      let grs = parse_handle "[Grew_loader.Loader.parse_file_to_grs_wi]" (Grew_parser.grs_wi Grew_lexer.global) lexbuf in
-      close_in in_ch;
-      grs
-    with Sys_error msg -> Error.parse ~loc:(Loc.file file) "[Grew_loader.Loader.parse_file_to_grs_wi] %s" msg
-
-  (* ------------------------------------------------------------------------------------------*)
-  let parse_file_to_module_list file =
-    try
-      Global.new_file file;
-      let in_ch = open_in file in
-      let lexbuf = Lexing.from_channel in_ch in
-      let module_list = parse_handle "[Grew_loader.Loader.parse_file_to_module_list]" (Grew_parser.included Grew_lexer.global) lexbuf in
-      close_in in_ch;
-      module_list
-    with Sys_error msg -> Error.parse ~loc:(Loc.file file) "[Grew_loader.Loader.parse_file_to_module_list] %s" msg
-
-  (* ------------------------------------------------------------------------------------------*)
   let domain file =
     try
       Global.new_file file;
@@ -58,65 +36,16 @@ module Loader = struct
       gr
     with Sys_error msg -> Error.parse ~loc:(Loc.file file) "[Grew_loader.Loader.domain] %s" msg
 
-  (* ------------------------------------------------------------------------------------------*)
-  (**
-     [parse_string file] where [file] is a file following the grew syntax
-     @param file the file to parse
-     @return a syntactic tree of the parsed file
-  *)
-  let grs main_file =
-    let real_dir =
-      match (Unix.lstat main_file).Unix.st_kind with
-      | Unix.S_LNK -> Filename.dirname (Unix.readlink main_file)
-      | _ -> Filename.dirname main_file in
-
-    let unlink file = Filename.concat real_dir (Filename.basename file) in
-
-    let grs_wi = parse_file_to_grs_wi (unlink main_file) in
-    let domain = match grs_wi.Ast.domain_wi with
-      | None -> None
-      | Some (Ast.Dom d) -> Some d
-      | Some (Ast.Dom_file file) -> Some (domain (unlink file)) in
-    let rec flatten_modules current_file = function
-      | [] -> []
-      | Ast.Modul m :: tail ->
-        let real_dir = Filename.dirname current_file in
-        {m with
-          Ast.mod_dir = real_dir;
-          rules = List.map (fun r -> {r with Ast.rule_dir = Some real_dir}) m.Ast.rules
-        }
-        :: (flatten_modules current_file tail)
-      | Ast.Includ (inc_file,loc) :: tail ->
-        let sub_file =
-          if Filename.is_relative inc_file
-          then Filename.concat (Filename.dirname current_file) inc_file
-          else inc_file in
-        (flatten_modules sub_file (parse_file_to_module_list sub_file))
-        @ (flatten_modules current_file tail) in
-    {
-      Ast.domain = domain;
-      Ast.modules = flatten_modules main_file grs_wi.Ast.modules_wi;
-      Ast.strategies = grs_wi.Ast.strategies_wi;
-    }
-
-
-
-
-
-
-
-
-
   let rec check_duplicate_id id = function
     | [] -> None
-    | New_ast.Rule r :: _ when r.Ast.rule_id = id -> Some r.Ast.rule_loc
-    | New_ast.Package (loc, name, _) :: _ when name = id -> Some loc
-    | New_ast.Strategy (loc, name, _) :: _ when name = id -> Some loc
+    | Ast.Rule r :: _ when r.Ast.rule_id = id -> Some r.Ast.rule_loc
+    | Ast.Package (loc, name, _) :: _ when name = id -> Some loc
+    | Ast.Strategy (loc, name, _) :: _ when name = id -> Some loc
     | _ -> None
 
   let rec check_grs = function
     | [] -> ()
-    | New_ast.Rule r :: tail ->
+    | Ast.Rule r :: tail ->
       begin
         match check_duplicate_id r.Ast.rule_id tail with
         | None -> ()
@@ -124,7 +53,7 @@ module Loader = struct
           r.Ast.rule_id (Loc.to_string r.Ast.rule_loc) (Loc.to_string loc)
       end;
       check_grs tail
-    | New_ast.Strategy (loc, name, _) :: tail ->
+    | Ast.Strategy (loc, name, _) :: tail ->
       begin
         match check_duplicate_id name tail with
         | None -> ()
@@ -132,7 +61,7 @@ module Loader = struct
           name (Loc.to_string loc) (Loc.to_string loc2)
       end;
       check_grs tail
-    | New_ast.Package (loc, name, sub) :: tail ->
+    | Ast.Package (loc, name, sub) :: tail ->
       begin
         match check_duplicate_id name tail with
         | None -> ()
@@ -161,25 +90,25 @@ module Loader = struct
   let rec unfold_new_grs dir top new_ast_grs =
   List.fold_left
     (fun acc decl -> match decl with
-      | New_ast.Import filename ->
+      | Ast.Import filename ->
         let real_file = Filename.concat dir filename in
         let pack_name = match CCString.chop_suffix ~suf:".grs" filename with
           | Some x -> x
           | None -> Error.build "Imported file must have the \".grs\" file extension" in
         let sub = loc_new_grs real_file in
         let unfolded_sub = unfold_new_grs (real_dir real_file) false sub in
-          New_ast.Package (Loc.file filename, pack_name, unfolded_sub) :: acc
-      | New_ast.Include filename ->
+          Ast.Package (Loc.file filename, pack_name, unfolded_sub) :: acc
+      | Ast.Include filename ->
         let real_file = Filename.concat dir filename in
         let sub = loc_new_grs real_file in
         let unfolded_sub = unfold_new_grs (real_dir real_file) top sub in
           unfolded_sub @ acc
-      | New_ast.Features _ when not top -> Error.build "Non top features declaration"
-      | New_ast.Labels _ when not top -> Error.build "Non top labels declaration"
-      | New_ast.Package (loc, name, decls) ->
-        New_ast.Package (loc, name, unfold_new_grs dir top decls) :: acc
-      | New_ast.Rule ast_rule ->
-        New_ast.Rule {ast_rule with Ast.rule_dir = Some dir} :: acc
+      | Ast.Features _ when not top -> Error.build "Non top features declaration"
+      | Ast.Labels _ when not top -> Error.build "Non top labels declaration"
+      | Ast.Package (loc, name, decls) ->
+        Ast.Package (loc, name, unfold_new_grs dir top decls) :: acc
+      | Ast.Rule ast_rule ->
+        Ast.Rule {ast_rule with Ast.rule_dir = Some dir} :: acc
       | x -> x :: acc
     ) [] new_ast_grs
 

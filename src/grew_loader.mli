@@ -16,9 +16,8 @@ open Grew_ast
 module Loader: sig
   val domain: string -> Ast.domain
 
-  val grs: string -> Ast.grs
 
-  val new_grs: string -> New_ast.grs
+  val new_grs: string -> Ast.grs
 
   val gr: string -> Ast.gr
 
@@ -34,5 +33,5 @@ module Parser : sig
 
   val pattern: string -> Ast.pattern
 
-  val strategy: string -> New_ast.strat
+  val strategy: string -> Ast.strat
 end
