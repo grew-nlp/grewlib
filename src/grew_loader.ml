@@ -23,8 +23,6 @@ let parse_handle fct_name fct lexbuf =
     | err ->                         Error.bug ~loc:(Global.get_loc ()) "%s, Unexpected error: %s" fct_name (Printexc.to_string err)
 
 module Loader = struct
-
-
   (* ------------------------------------------------------------------------------------------*)
   let domain file =
     try
@@ -190,6 +188,4 @@ module Parser = struct
       let strategy = parse_handle "[Grew_loader.Parser.strategy]" (Grew_parser.strat_alone Grew_lexer.global) lexbuf in
       strategy
     with Sys_error msg -> Error.parse "[Grew_loader.Parser.strategy] %s" msg
-
-
-end
+end (* module Parser *)

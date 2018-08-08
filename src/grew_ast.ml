@@ -332,15 +332,6 @@ module Ast = struct
     rule_dir: string option; (* the real folder where the file is defined *)
   }
 
-  type modul = {
-    module_id:Id.name;
-    rules: rule list;
-    deterministic: bool;
-    module_doc:string list;
-    mod_loc:Loc.t;
-    mod_dir: string; (* the directory where the module is defined (for lp file localisation) *)
-  }
-
   type feature_spec =
     | Closed of feature_name * feature_atom list (* cat:V,N *)
     | Open of feature_name (* phon, lemma, ... *)

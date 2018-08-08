@@ -8,11 +8,43 @@
 (*    Authors: see AUTHORS file                                                   *)
 (**********************************************************************************)
 
-module String_map : Map.S with type key = string
 module String_set : Set.S with type elt = string
+module String_map : Map.S with type key = string
 
 module Int_set : Set.S with type elt = int
 module Int_map : Map.S with type key = int
+
+(* ================================================================================ *)
+(* [Loc] general module to describe errors location: (file name, line number in file) *)
+module Loc: sig
+  type t
+
+  val empty: t
+
+  val file_line: string -> int -> t
+  val file_opt_line: string option -> int -> t
+  val file_opt_line_opt: string option -> int option -> t
+  val file: string -> t
+
+  val set_line: int -> t -> t
+
+  val to_string: t -> string
+end
+
+(* ================================================================================ *)
+module Error: sig
+  exception Build of (string * Loc.t option)
+  val build: ?loc: Loc.t -> ('a, unit, string, 'b) format4 -> 'a
+
+  exception Run of (string * Loc.t option)
+  val run: ?loc: Loc.t -> ('a, unit, string, 'b) format4 -> 'a
+
+  exception Bug of (string * Loc.t option)
+  val bug: ?loc: Loc.t -> ('a, unit, string, 'b) format4 -> 'a
+
+  exception Parse of (string * Loc.t option)
+  val parse: ?loc: Loc.t -> ('a, unit, string, 'b) format4 -> 'a
+end
 
 (* ================================================================================ *)
 (* [Pid_set] *)
@@ -40,25 +72,6 @@ end
 module Dot: sig
   val to_png_file: string -> string -> unit
 end
-
-
-(* ================================================================================ *)
-(* [Loc] general module to describe errors location: (file name, line number in file) *)
-module Loc: sig
-  type t
-
-  val empty: t
-
-  val file_line: string -> int -> t
-  val file_opt_line: string option -> int -> t
-  val file_opt_line_opt: string option -> int option -> t
-  val file: string -> t
-
-  val set_line: int -> t -> t
-
-  val to_string: t -> string
-end
-
 
 (* ================================================================================ *)
 (* [File] functions to read/write file *)
@@ -237,20 +250,6 @@ module type S =
 (* ================================================================================ *)
 module Massoc_make (Ord : OrderedType) : S with type key = Ord.t
 
-(* ================================================================================ *)
-module Error: sig
-  exception Build of (string * Loc.t option)
-  val build: ?loc: Loc.t -> ('a, unit, string, 'b) format4 -> 'a
-
-  exception Run of (string * Loc.t option)
-  val run: ?loc: Loc.t -> ('a, unit, string, 'b) format4 -> 'a
-
-  exception Bug of (string * Loc.t option)
-  val bug: ?loc: Loc.t -> ('a, unit, string, 'b) format4 -> 'a
-
-  exception Parse of (string * Loc.t option)
-  val parse: ?loc: Loc.t -> ('a, unit, string, 'b) format4 -> 'a
-end
 
 (* ================================================================================ *)
 module Id: sig

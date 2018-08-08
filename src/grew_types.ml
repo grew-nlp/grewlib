@@ -48,6 +48,9 @@ module Pid = struct
 end (* module Pid *)
 
 (* ================================================================================ *)
+module Pid_set = Set.Make (Pid)
+
+(* ================================================================================ *)
 module Pid_map =
   struct
     include Map.Make (Pid)
@@ -67,9 +70,6 @@ module Pid_map =
     (* union of two maps*)
     let union_map m m' = fold (fun k v m'' -> (add k v m'')) m m'
 end (* module Pid_map *)
-
-(* ================================================================================ *)
-module Pid_set = Set.Make (Pid)
 
 (* ================================================================================ *)
 module Gid = struct

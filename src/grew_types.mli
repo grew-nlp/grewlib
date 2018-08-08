@@ -32,6 +32,10 @@ module Pid : sig
 end (* module Pid *)
 
 (* ================================================================================ *)
+(* [Pid_set] *)
+module Pid_set : Set.S with type elt = Pid.t
+
+(* ================================================================================ *)
 (* [Pid_map] is the map used in pattern graphs *)
 module Pid_map : sig
   include Map.S with type key = Pid.t
@@ -39,9 +43,6 @@ module Pid_map : sig
   val exists: (key -> 'a -> bool) -> 'a t -> bool
 end (* module Pid_map *)
 
-(* ================================================================================ *)
-(* [Pid_set] *)
-module Pid_set : Set.S with type elt = Pid.t
 
 (* ================================================================================ *)
 (* [Gid] describes identifier used in full graphs *)
@@ -112,8 +113,7 @@ module Lexicons : sig
   type t = (string * Lexicon.t) list
 
   val check: loc:Loc.t -> string -> string -> t -> unit
-
-end
+end (* module Lexicons *)
 
 (* ================================================================================ *)
 module Concat_item : sig

@@ -585,7 +585,6 @@ module Id = struct
 end (* module Id *)
 
 (* ================================================================================ *)
-(* copy from leopar *)
 module Timeout = struct
   exception Stop
 
@@ -629,4 +628,4 @@ module Global = struct
 
   let debug = ref false
   let safe_commands = ref false
-end
+end (* module Global *)
