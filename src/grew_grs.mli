@@ -49,64 +49,18 @@ module Rewrite_history: sig
   val conll_dep_string: ?keep_empty_rh:bool -> t -> string option
 end (* module Rewrite_history *)
 
-(* ================================================================================ *)
-module Modul: sig
-  type t = {
-    name: string;
-    rules: Rule.t list;
-    deterministic: bool;
-    loc: Loc.t;
-  }
-
-  val to_json: ?domain:Domain.t -> t -> Yojson.Basic.json
-end (* module Modul *)
 
 (* ================================================================================ *)
-module Old_grs: sig
-  type t
-
-  val empty: t
-
-  val get_modules: t -> Modul.t list
-
-  val get_ast: t -> Ast.grs
-
-  val get_domain: t -> Domain.t option
-
-  val get_filename: t -> string
-
-  val sequence_names: t -> string list
-
-  val domain_build: Ast.domain -> Domain.t
-
-  (** [build filename] returns the GRS defined in the file [filename] *)
-  val build: string -> t
-
-  val rewrite: t -> string -> G_graph.t -> Rewrite_history.t
-
-  val simple_rewrite: t -> string -> G_graph.t -> G_graph.t list
-
-
-  (* only external structure is returned, each edge contains a "dummy" big_step *)
-  val build_rew_display: t -> string -> G_graph.t -> Libgrew_types.rew_display
-
-  val rule_iter: (string -> Rule.t -> unit) -> t -> unit
-
-(*  val modules_of_sequence: t -> string -> Modul.t list*)
-
-  val to_json: t -> Yojson.Basic.json
-end (* module Grs *)
-
 module Grs : sig
   type t
 
   val load: string  -> t
-  val load_old: string  -> t
 
   val dump: t -> unit
 
   val to_json: t -> Yojson.Basic.json
   val domain: t -> Domain.t option
+  val domain_build: Ast.domain -> Domain.t
 
   val simple_rewrite: t -> string -> G_graph.t -> G_graph.t list
   val det_rew_display: t -> string -> G_graph.t -> Libgrew_types.rew_display

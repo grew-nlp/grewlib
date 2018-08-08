@@ -113,29 +113,6 @@ module Graph : sig
   val node_matching: Pattern.t -> t -> Matching.t -> (string * float) list
 end
 
-(* OBSOLETE
-(* ==================================================================================================== *)
-(** {2 Graph Rewriting System} *)
-(* ==================================================================================================== *)
-module Old_grs: sig
-
-  type t
-  val empty: t
-
-  (** [load filename] loads a graph rewriting system from [filename]
-      @raise Parsing_err if libgrew can't parse the file
-      @raise File_not_found if the file doesn't exists *)
-  val load: string -> t
-
-  (** [get_sequence_names t] returns the list of sequence names defined in a GRS *)
-  val get_sequence_names: t -> string list
-
-  val get_domain: t -> Domain.t option
-
-  val to_json: t -> string
-end
-*)
-
 (* ==================================================================================================== *)
 (** {2 New Graph Rewriting System} *)
 (* ==================================================================================================== *)
@@ -143,7 +120,6 @@ module Grs : sig
   type t
 
   val load: string -> t
-  val load_old: string -> t
 
   val dump: t -> unit
 
@@ -160,7 +136,6 @@ end
 module Rewrite: sig
 
   type display = Libgrew_types.rew_display
-  type history
 
   val size: display -> int
   val set_max_depth_det: int -> unit
@@ -172,7 +147,6 @@ module Rewrite: sig
       @param gr the grapth to rewrite
       @param grs the graph rewriting system
       @param seq the name of the sequence to apply *)
-  val old_display: gr:Graph.t -> grs:Grs.t -> strat:string -> display
   val display: gr:Graph.t -> grs:Grs.t -> strat:string -> display
 
   val at_least_one: grs:Grs.t -> strat:string -> bool
@@ -182,30 +156,6 @@ module Rewrite: sig
 
   val simple_rewrite: gr:Graph.t -> grs:Grs.t -> strat:string -> Graph.t list
 
-  val is_empty: history -> bool
 
-  val num_sol: history -> int
 
-  val save_gr: string -> history -> unit
-
-  val save_conll: string -> history -> unit
-
-  (** [save_full_conll base_name rh] saves one conll_file for each normal form defined in [rh].
-      Output files are named according to [base_name] and a secondary index after "__".
-      The number of conll file produced is returned. *)
-  val save_full_conll: string -> history -> int
-
-  val save_det_gr: string -> history -> unit
-
-  val save_index: dirname:string -> base_names: string list -> unit
-
-  val save_index: dirname:string -> base_names: string list -> unit
-
-  val save_det_conll: ?header:string -> string -> history -> unit
-
-  val det_dep_string: history -> string option
-
-  val conll_dep_string: ?keep_empty_rh:bool -> history -> string option
-
-  val save_index: dirname:string -> base_names: string array -> unit
 end

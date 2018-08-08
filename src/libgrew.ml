@@ -64,7 +64,7 @@ module Domain = struct
     Libgrew.handle ~name:"Domain.load"
       (fun () ->
       let ast = Grew_loader.Loader.domain filename in
-      Grew_grs.Old_grs.domain_build ast
+      Grew_grs.Grs.domain_build ast
       ) ()
 
   let feature_names domain =
@@ -239,35 +239,6 @@ module Graph = struct
 end
 
 (* ==================================================================================================== *)
-(** {2 Graph Rewriting System} *)
-(* ==================================================================================================== *)
-module Old_grs = struct
-  type t = Grew_grs.Old_grs.t
-
-  let empty = Grew_grs.Old_grs.empty
-
-  let load file =
-    Libgrew.handle ~name:"Old_grs.load" ~file
-      (fun () ->
-        if not (Sys.file_exists file)
-        then raise (Libgrew.Error ("File_not_found: " ^ file))
-        else Grew_grs.Old_grs.build file
-      ) ()
-
-  let get_sequence_names grs =
-    Libgrew.handle ~name:"Old_grs.get_sequence_names"
-      (fun () ->
-        Grew_grs.Old_grs.sequence_names grs
-      ) ()
-
-  let get_domain grs = Grew_grs.Old_grs.get_domain grs
-
-  let to_json t =
-    let json = Grew_grs.Old_grs.to_json t in
-    Yojson.Basic.pretty_to_string json
-end
-
-(* ==================================================================================================== *)
 (** {2 New Graph Rewriting System} *)
 (* ==================================================================================================== *)
 module Grs = struct
@@ -277,12 +248,6 @@ module Grs = struct
     Libgrew.handle ~name:"Grs.load" ~file
       (fun () ->
         Grew_grs.Grs.load file
-      ) ()
-
-  let load_old file =
-    Libgrew.handle ~name:"Grs.load" ~file
-      (fun () ->
-        Grew_grs.Grs.load_old file
       ) ()
 
   let dump grs =
@@ -315,7 +280,6 @@ end
 (* ==================================================================================================== *)
 module Rewrite = struct
   type display = Libgrew_types.rew_display
-  type history = Grew_grs.Rewrite_history.t
 
   let size = Libgrew_types.rew_display_size
 
@@ -324,22 +288,10 @@ module Rewrite = struct
 
   let set_debug_loop () = Grew_rule.Rule.set_debug_loop ()
 
-  let old_old_display ~gr ~grs ~seq =
-    Libgrew.handle ~name:"Rewrite.old_old_display" (fun () -> Grew_grs.Old_grs.build_rew_display grs seq gr) ()
-
-  let old_display ~gr ~grs ~strat =
-    Libgrew.handle ~name:"Rewrite.old_display" (fun () -> Grew_grs.Grs.det_rew_display grs strat gr) ()
-
   let display ~gr ~grs ~strat =
     Libgrew.handle ~name:"Rewrite.display" (fun () -> Grew_grs.Grs.wrd_rewrite grs strat gr) ()
 
   let set_timeout t = Grew_base.Timeout.timeout := t
-
-  let rewrite ~gr ~grs ~seq =
-    Libgrew.handle ~name:"Rewrite.rewrite" (fun () -> Grew_grs.Old_grs.rewrite grs seq gr) ()
-
-  let old_simple_rewrite ~gr ~grs ~strat =
-    Libgrew.handle ~name:"Rewrite.old_simple_rewrite" (fun () -> Grew_grs.Old_grs.simple_rewrite grs strat gr) ()
 
   let simple_rewrite ~gr ~grs ~strat =
     Libgrew.handle ~name:"Rewrite.simple_rewrite" (fun () -> Grew_grs.Grs.gwh_simple_rewrite grs strat gr) ()
@@ -348,38 +300,4 @@ module Rewrite = struct
     Libgrew.handle ~name:"Rewrite.at_least_one" (fun () -> Grew_grs.Grs.at_least_one grs strat) ()
   let at_most_one ~grs ~strat =
     Libgrew.handle ~name:"Rewrite.at_most_one" (fun () -> Grew_grs.Grs.at_most_one grs strat) ()
-
-  let is_empty rh =
-    Libgrew.handle ~name:"Rewrite.is_empty" (fun () -> Grew_grs.Rewrite_history.is_empty rh) ()
-
-  let num_sol rh =
-    Libgrew.handle ~name:"Rewrite.num_sol" (fun () -> Grew_grs.Rewrite_history.num_sol rh) ()
-
-  let save_index ~dirname ~base_names =
-    Libgrew.handle ~name:"Rewrite.save_index" (fun () ->
-      let out_ch = open_out (Filename.concat dirname "index") in
-      Array.iter (fun f -> fprintf out_ch "%s\n" f) base_names;
-      close_out out_ch
-    ) ()
-
-  let save_gr base rew_hist =
-    Libgrew.handle ~name:"Rewrite.save_gr" (fun () -> Grew_grs.Rewrite_history.save_gr base rew_hist) ()
-
-  let save_conll base rew_hist =
-    Libgrew.handle ~name:"Rewrite.save_conll" (fun () -> Grew_grs.Rewrite_history.save_conll base rew_hist) ()
-
-  let save_full_conll base rew_hist =
-    Libgrew.handle ~name:"Rewrite.save_full_conll" (fun () -> Grew_grs.Rewrite_history.save_full_conll base rew_hist) ()
-
-  let save_det_gr base rew_hist =
-    Libgrew.handle ~name:"Rewrite.save_det_gr" (fun () -> Grew_grs.Rewrite_history.save_det_gr base rew_hist) ()
-
-  let save_det_conll ?header base rew_hist =
-    Libgrew.handle ~name:"Rewrite.save_det_conll" (fun () -> Grew_grs.Rewrite_history.save_det_conll ?header base rew_hist) ()
-
-  let det_dep_string rew_hist =
-    Libgrew.handle ~name:"Rewrite.det_dep_string" (fun () -> Grew_grs.Rewrite_history.det_dep_string rew_hist) ()
-
-  let conll_dep_string ?keep_empty_rh rew_hist =
-    Libgrew.handle ~name:"Rewrite.conll_dep_string" (fun () -> Grew_grs.Rewrite_history.conll_dep_string ?keep_empty_rh rew_hist) ()
 end

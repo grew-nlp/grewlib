@@ -112,349 +112,6 @@ module Rewrite_history = struct
 end (* module Rewrite_history *)
 
 (* ================================================================================ *)
-module Modul = struct
-  type t = {
-    name: string;
-    rules: Rule.t list;
-    deterministic: bool;
-    loc: Loc.t;
-  }
-
-  let to_json ?domain t =
-    `Assoc [
-      ("module_name", `String t.name);
-      ("deterministic", `Bool t.deterministic);
-      ("rules", `List (List.map (Rule.to_json ?domain) t.rules));
-    ]
-
-  let check t =
-    (* check for duplicate rules *)
-    let rec loop already_defined = function
-      | [] -> ()
-      | r::_ when List.mem (Rule.get_name r) already_defined ->
-        Error.build ~loc:(Rule.get_loc r) "Rule '%s' is defined twice in the same module" (Rule.get_name r)
-      | r::tail -> loop ((Rule.get_name r) :: already_defined) tail in
-    loop [] t.rules
-
-  let build ?domain ast_module =
-    let rules = List.map (Rule.build ?domain ast_module.Ast.mod_dir) ast_module.Ast.rules in
-    let modul =
-      {
-        name = ast_module.Ast.module_id;
-        rules;
-        deterministic = ast_module.Ast.deterministic;
-        loc = ast_module.Ast.mod_loc;
-      } in
-    check modul; modul
-end (* module Modul *)
-
-(* ================================================================================ *)
-module Old_grs = struct
-
-  type t = {
-    domain: Domain.t option;
-    modules: Modul.t list;       (* the ordered list of modules used from rewriting *)
-    strategies: Ast.strategy list;
-    filename: string;
-    ast: Ast.grs;
-  }
-
-  let to_json t = `List (List.map (Modul.to_json ?domain:t.domain) t.modules)
-
-  let get_modules t = t.modules
-  let get_ast t = t.ast
-  let get_filename t = t.filename
-
-  let get_domain t = t.domain
-
-  let sequence_names t = List.map (fun s -> s.Ast.strat_name) t.strategies
-
-  let empty = {domain=None; modules=[]; strategies=[]; ast=Ast.empty_grs; filename=""; }
-
-  let check_strategy strat t =
-    let rec loop = function
-    | Ast.Ref name ->
-      (if not (List.exists (fun m -> name = m.Modul.name) t.modules)
-      then Error.build ~loc:strat.Ast.strat_loc "In sequence '%s' definition, module '%s' undefined" strat.Ast.strat_name name)
-    | Ast.Seq sd_list -> List.iter loop sd_list
-    | Ast.Star sd -> loop sd
-    | Ast.Pick sd -> loop sd
-    | Ast.Sequence name_list ->
-      List.iter (fun name ->
-        if not (List.exists (fun m -> name = m.Modul.name) t.modules)
-        then Error.build ~loc:strat.Ast.strat_loc "In sequence '%s' definition, module '%s' undefined" strat.Ast.strat_name name
-      ) name_list
-    in loop strat.Ast.strat_def
-
-  let check t =
-    (* check for duplicate modules *)
-    let rec loop already_defined = function
-      | [] -> ()
-      | m::_ when List.mem m.Modul.name already_defined ->
-        Error.build ~loc:m.Modul.loc "Module '%s' is defined twice" m.Modul.name
-      | m::tail -> loop (m.Modul.name :: already_defined) tail in
-    loop [] t.modules;
-
-    (* check for duplicate strategies *)
-    let rec loop already_defined = function
-      | [] -> ()
-      | s::_ when List.mem s.Ast.strat_name already_defined ->
-        Error.build ~loc:s.Ast.strat_loc "Sequence '%s' is defined twice" s.Ast.strat_name
-      | s::tail -> loop (s.Ast.strat_name :: already_defined) tail in
-    loop [] t.strategies;
-
-    (* check for undefined module or strategy *)
-    List.iter (fun strat ->
-      check_strategy strat t
-    ) t.strategies
-
-  let domain_build ast_domain =
-    Domain.build
-      (Label_domain.build ast_domain.Ast.label_domain)
-      (Feature_domain.build ast_domain.Ast.feature_domain)
-
-  let build filename =
-    let ast = Loader.grs filename in
-    let domain = match ast.Ast.domain with None -> None | Some ast_dom -> Some (domain_build ast_dom) in
-    let modules = List.map (Modul.build ?domain) ast.Ast.modules in
-    let grs = {domain; strategies = ast.Ast.strategies; modules; ast; filename} in
-    check grs;
-    grs
-
-  (* ---------------------------------------------------------------------------------------------------- *)
-  let rewrite grs strategy_name graph =
-    let strategy =
-      try List.find (fun s -> s.Ast.strat_name = strategy_name) grs.strategies
-      with Not_found ->
-        Error.run "[rewrite] Undefined stategy \"%s\"\nAvailable stategies: %s"
-        strategy_name
-        (String.concat "; " (List.map (fun s -> s.Ast.strat_name) grs.strategies)) in
-
-    let rec old_loop instance module_list =
-      match module_list with
-      | [] -> {Rewrite_history.instance = instance; module_name = ""; good_nf = []; }
-      | module_name :: tail ->
-         let next =
-           try List.find (fun m -> m.Modul.name=module_name) grs.modules
-           with Not_found -> Log.fcritical "No module named '%s'" module_name in
-        let good_set =
-          Rule.normalize
-            ?domain: grs.domain
-            next.Modul.name
-            ~deterministic: next.Modul.deterministic
-            next.Modul.rules
-            (Instance.refresh instance) in
-        let good_list = Instance_set.elements good_set in
-        {
-          Rewrite_history.instance = instance;
-          module_name = next.Modul.name;
-          good_nf = List.map (fun i -> old_loop i tail) good_list;
-        } in
-
-    let loop instance def =
-      match def with
-
-      | Ast.Sequence module_list -> old_loop instance module_list
-      | _ -> failwith "Not yet implemented" in
-
-    loop (Instance.from_graph graph) (strategy.Ast.strat_def)
-
-  (* [new_style grs module_list] return an equivalent strategy expressed with Seq, Pick and Star *)
-  let new_style grs module_list =
-    Ast.Seq
-      (List.map
-        (fun module_name ->
-           let modul =
-           try List.find (fun m -> m.Modul.name=module_name) grs.modules
-           with Not_found -> Error.build "No module named '%s'" module_name in
-           if modul.Modul.deterministic
-           then Ast.Pick (Ast.Star (Ast.Ref module_name))
-           else Ast.Star (Ast.Ref module_name)
-        ) module_list
-      )
-
-  (* [one_rewrite grs strat inst] tries to rewrite deterministically [inst] with [strat] defined in [grs] *)
-  let one_rewrite grs strat inst =
-    let rec loop inst = function
-    (* name can refer to another strategy def or to a module *)
-    | Ast.Ref name ->
-      begin
-        try
-          let sub_strat = List.find (fun s -> s.Ast.strat_name = name) grs.strategies in
-          loop inst sub_strat.Ast.strat_def
-        with Not_found ->
-          let modul =
-            try List.find (fun m -> m.Modul.name=name) grs.modules
-            with Not_found -> Error.build "No module or strategy named '%s'" name in
-          Rule.conf_one_step ?domain: grs.domain inst modul.Modul.rules
-      end
-    (* Sequence of strategies *)
-    | Ast.Seq [] -> Log.fcritical "Empty sequence in strategy definition"
-    | Ast.Seq [one] -> loop inst one
-    | Ast.Seq (head::tail) ->
-      begin
-        match loop inst head with
-        | Some new_inst -> loop new_inst (Ast.Seq tail)
-        | None -> None
-      end
-    (* Interation of a strategy *)
-    | Ast.Star sub_strat ->
-      begin
-        match loop inst sub_strat with
-        | None -> Some inst
-        | Some new_inst -> loop new_inst (Ast.Star sub_strat)
-      end
-    (* Pick *)
-    | Ast.Pick sub_strat -> loop inst sub_strat
-    (* Old style seq definition *)
-    | Ast.Sequence module_list -> loop inst (new_style grs module_list) in
-    loop inst strat
-
-  let simple_rewrite grs strat_desc graph = failwith "OBSOLETE [Grs.simple_rewrite]"
-
-  (* ---------------------------------------------------------------------------------------------------- *)
-  (* construction of the rew_display *)
-  let rec pick = function
-    | Libgrew_types.Node (_, _, []) -> Log.bug "Empty node"; exit 12
-    | Libgrew_types.Node (graph, name, (bs,rd)::_) -> Libgrew_types.Node (graph, "pick(" ^ name^")", [(bs, pick rd)])
-    | x -> x
-
-  let rec try_ = function
-    | Libgrew_types.Node (_, _, []) -> Log.bug "Empty node"; exit 12
-    | Libgrew_types.Node (graph, name, (bs,rd)::_) -> Libgrew_types.Node (graph, "try(" ^ name^")", [(bs, pick rd)])
-    | x -> x
-
-  (* ---------------------------------------------------------------------------------------------------- *)
-  let rec clean = function
-    | Libgrew_types.Empty -> Libgrew_types.Empty
-    | Libgrew_types.Leaf graph -> Libgrew_types.Leaf graph
-    | Libgrew_types.Local_normal_form (graph, name, Libgrew_types.Empty) -> Libgrew_types.Empty
-    | Libgrew_types.Local_normal_form (graph, name, rd) -> Libgrew_types.Local_normal_form (graph, name, clean rd)
-    | Libgrew_types.Node (graph, name, bs_rd_list) ->
-        match
-          List.fold_left (fun acc (bs,rd) ->
-            match clean rd with
-              | Libgrew_types.Empty -> acc
-              | crd -> (bs, crd) :: acc
-          ) [] bs_rd_list
-        with
-        | [] -> Libgrew_types.Empty
-        | new_bs_rd_list -> Libgrew_types.Node (graph, name, new_bs_rd_list)
-
-
-  (* ---------------------------------------------------------------------------------------------------- *)
-  let build_rew_display grs strategy_name graph =
-    let strategy = List.find (fun s -> s.Ast.strat_name = strategy_name) grs.strategies in
-
-    let instance = Instance.from_graph graph in
-    let rec old_loop instance module_list =
-      match module_list with
-      | [] -> Libgrew_types.Leaf instance.Instance.graph
-      | next_name :: tail ->
-         let next =
-           try List.find (fun m -> m.Modul.name=next_name) grs.modules
-           with Not_found -> Log.fcritical "No module named '%s'" next_name in
-        let good_set =
-          Rule.normalize
-            ?domain: grs.domain
-            next.Modul.name
-            ~deterministic: next.Modul.deterministic
-            next.Modul.rules
-            (Instance.refresh instance) in
-        let inst_list = Instance_set.elements good_set in
-
-        match inst_list with
-          | [{Instance.big_step = None}] ->
-            Libgrew_types.Local_normal_form (instance.Instance.graph, next.Modul.name, old_loop instance tail)
-          | _ -> Libgrew_types.Node
-            (
-              instance.Instance.graph,
-              next.Modul.name,
-              List.map
-                (fun inst ->
-                  match inst.Instance.big_step with
-                    | None -> Error.bug "Cannot have no big_steps and more than one reducts at the same time"
-                    | Some bs -> (bs, old_loop inst tail)
-                ) inst_list
-            ) in
-
-    let indent = ref 10 in
-
-    let rec apply_leaf strat_def = function
-      | Libgrew_types.Empty -> Libgrew_types.Empty
-      | Libgrew_types.Leaf graph -> loop (Instance.from_graph graph) strat_def
-      | Libgrew_types.Local_normal_form (graph, name, rd) -> Libgrew_types.Local_normal_form (graph, name, apply_leaf strat_def rd)
-      | Libgrew_types.Node (graph, name, bs_rd_list) -> Libgrew_types.Node (graph, name, List.map (fun (bs,rd) -> (bs, apply_leaf strat_def rd)) bs_rd_list)
-
-    and loop instance strat_def =
-      printf "%s===> loop  strat_def=%s\n%!"
-        (String.make (2 * (max 0 !indent)) ' ')
-        (Ast.strat_def_to_string strat_def);
-      incr indent;
-
-      match strat_def with
-
-      | Ast.Sequence module_list -> old_loop instance module_list
-
-      (* ========> reference to a module or to another strategy <========= *)
-      | Ast.Ref name ->
-        begin
-          try
-            let strategy = List.find (fun s -> s.Ast.strat_name = name) grs.strategies in
-            loop instance strategy.Ast.strat_def
-          with Not_found ->
-            let modul =
-              try List.find (fun m -> m.Modul.name=name) grs.modules
-              with Not_found -> Log.fcritical "No [strategy or] module named '%s'" name in
-            begin
-              printf "%s one_step (module=%s)...%!" (String.make (2 * (max 0 !indent)) ' ') modul.Modul.name;
-              let domain = get_domain grs in
-              match Instance_set.elements (Rule.one_step ?domain instance modul.Modul.rules) with
-              | [] -> printf "0\n%!"; let res = Libgrew_types.Empty in decr indent; res
-              | instance_list -> printf "%d\n%!" (List.length instance_list);
-                Libgrew_types.Node
-                (instance.Instance.graph,
-                  name,
-                  List.map
-                    (fun inst -> match inst.Instance.big_step with
-                    | None -> Error.bug "Cannot have no big_steps and more than one reducts at the same time"
-                    | Some bs -> let res = (bs, Libgrew_types.Leaf inst.Instance.graph) in decr indent; res
-                    ) instance_list
-                )
-            end
-        end
-
-      (* ========> Strat defined as a sequence of sub-strategies <========= *)
-      | Ast.Seq [] -> Log.bug "[Grs.build_rew_display] Empty sequence!"; exit 2
-      | Ast.Seq [one] -> let res = loop instance one in decr indent; res
-      | Ast.Seq (head_strat :: tail_strat) ->
-        let one_step = loop instance head_strat in decr indent;
-        apply_leaf (Ast.Seq tail_strat) one_step
-
-      | Ast.Pick strat -> pick (loop instance strat)
-
-      | Ast.Star strat ->
-        begin
-          match clean (loop instance strat) with
-          | Libgrew_types.Empty -> Libgrew_types.Leaf instance.Instance.graph
-          | Libgrew_types.Local_normal_form _ -> Log.bug "dont know if 'Local_normal_form' in star should happen or not ???"; exit 1
-          | rd -> apply_leaf (Ast.Star strat) rd
-        end
-      in
-
-    loop instance (strategy.Ast.strat_def)
-
-  (* ---------------------------------------------------------------------------------------------------- *)
-  let rule_iter fct grs =
-    List.iter
-      (fun modul ->
-        List.iter (fun rule -> fct modul.Modul.name rule) modul.Modul.rules
-      ) grs.modules
-end (* module Old_grs *)
-
-
-
-
 module Grs = struct
 
   type decl =
@@ -513,6 +170,11 @@ module Grs = struct
 
   let domain t = t.domain
 
+  let domain_build ast_domain =
+    Domain.build
+      (Label_domain.build ast_domain.Ast.label_domain)
+      (Feature_domain.build ast_domain.Ast.feature_domain)
+
   let from_ast filename ast =
     let feature_domains = List_.opt_map
       (fun x -> match x with
@@ -556,7 +218,6 @@ module Grs = struct
     }
 
   let load filename = from_ast filename (Loader.new_grs filename)
-  let load_old filename = from_ast filename (New_ast.convert (Loader.grs filename))
 
   (* The type [pointed] is a zipper style data structure for resolving names x.y.z *)
   type pointed =
@@ -897,6 +558,23 @@ module Grs = struct
       (* Libgrew_types.Node (i2.Instance.graph,s2,[bs,rd])) tail *)
     | _ -> failwith "missing BS2"
 
+
+
+(* ============================================================================================= *)
+(* ============================================================================================= *)
+(* ============================================================================================= *)
+(* ============================================================================================= *)
+(* ============================================================================================= *)
+(* ============================================================================================= *)
+(* ============================================================================================= *)
+(* ============================================================================================= *)
+(* ============================================================================================= *)
+(* ============================================================================================= *)
+(* ============================================================================================= *)
+(* ============================================================================================= *)
+(* ============================================================================================= *)
+
+
   (* return true if strat always return at least one graph *)
   let at_least_one grs strat =
     let rec loop pointed strat =
@@ -941,22 +619,6 @@ module Grs = struct
       | New_ast.If (_,s1, s2) -> (loop pointed s1) || (loop pointed s2)
       | New_ast.Try (s) -> loop pointed s in
     loop (top grs) (Parser.strategy strat)
-
-
-(* ============================================================================================= *)
-(* ============================================================================================= *)
-(* ============================================================================================= *)
-(* ============================================================================================= *)
-(* ============================================================================================= *)
-(* ============================================================================================= *)
-(* ============================================================================================= *)
-(* ============================================================================================= *)
-(* ============================================================================================= *)
-(* ============================================================================================= *)
-(* ============================================================================================= *)
-(* ============================================================================================= *)
-(* ============================================================================================= *)
-
 
 
 
