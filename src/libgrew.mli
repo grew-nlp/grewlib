@@ -155,7 +155,4 @@ module Rewrite: sig
   val set_timeout: float option -> unit
 
   val simple_rewrite: gr:Graph.t -> grs:Grs.t -> strat:string -> Graph.t list
-
-
-
 end
