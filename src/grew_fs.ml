@@ -80,6 +80,7 @@ module P_feature = struct
     | Different of value list
     | Equal_lex of string * string
     | Different_lex of string * string
+    | Else of (value * feature_name * value)
 
   (* NB: in the current version, |in_param| ≤ 1 *)
   type v = {
@@ -98,7 +99,9 @@ module P_feature = struct
       | Equal l -> "=" ^ (String.concat "|" (List.map string_of_value l))
       | Equal_lex (lex,fn) -> sprintf "= %s.%s" lex fn
       | Different_lex (lex,fn) -> sprintf "≠ %s.%s" lex fn
-      | Absent -> " must be Absent!");
+      | Absent -> " must be Absent!"
+      | Else (fv1,fn2,fv2) -> sprintf " = %s/%s = %s" (string_of_value fv1) fn2 (string_of_value fv2));
+
     printf "in_param=[%s]\n" (String.concat "," (List.map string_of_int in_param));
     printf "%!"
 
@@ -111,6 +114,7 @@ module P_feature = struct
         | Different val_list -> ("different", `List (List.map (fun x -> `String (string_of_value x)) val_list))
         | Equal_lex (lex,fn) -> ("equal_lex", `String (sprintf "%s.%s" lex fn))
         | Different_lex (lex,fn) -> ("different_lex", `String (sprintf "%s.%s" lex fn))
+        | Else (fv1,fn2,fv2) -> ("else", `List [`String (string_of_value fv1); `String fn2; `String (string_of_value fv2)]);
       )
     ]
 
@@ -176,6 +180,10 @@ module P_feature = struct
     | ({Ast.kind=Ast.Disequal_lex (lex,fn); name=name}, loc) ->
       Lexicons.check ~loc lex fn lexicons;
       (name, {cst=Different_lex (lex,fn); in_param=[];})
+    | ({Ast.kind=Ast.Else (fv1,fn2,fv2); name=name}, loc) ->
+      let v1 = match Feature_value.build_disj ~loc ?domain name [fv1] with [one] -> one | _ -> failwith "BUG Else" in
+      let v2 = match Feature_value.build_disj ~loc ?domain name [fv2] with [one] -> one | _ -> failwith "BUG Else" in
+      (name, {cst=Else (v1,fn2,v2);in_param=[];})
     | ({Ast.kind=Ast.Equal_param var; name=name}, loc) ->
         begin
           match pat_vars with
@@ -283,8 +291,18 @@ module G_fs = struct
 
   (* ---------------------------------------------------------------------- *)
   let to_dot ?(decorated_feat=("",[])) ?main_feat t =
+    let (pid_name, highlighted_feat_list) = decorated_feat in
+
+    let is_highlithed feat_name =
+      (List.mem_assoc feat_name highlighted_feat_list) ||
+      (List.exists (function
+        | (f, Some g) when g = feat_name && (not (List.mem_assoc f t)) && (List.mem_assoc g t) -> true
+        | _ -> false
+        ) highlighted_feat_list
+      ) in
+
     let buff = Buffer.create 32 in
-    let () = match (fst decorated_feat) with
+    let () = match pid_name with
       | "" -> ()
       | pid -> bprintf buff "<TR><TD COLSPAN=\"3\" BGCOLOR=\"yellow\"><B>[%s]</B></TD></TR>\n" pid in
 
@@ -292,7 +310,7 @@ module G_fs = struct
       match get_main ?main_feat t with
       | (None, sub) -> sub
       | (Some (feat_name,atom), sub) ->
-        if List.mem feat_name (snd decorated_feat)
+        if is_highlithed feat_name
         then bprintf buff "<TR><TD COLSPAN=\"3\" BGCOLOR=\"yellow\"><B>%s</B></TD></TR>\n" (string_of_value atom)
         else bprintf buff "<TR><TD COLSPAN=\"3\"><B>%s</B></TD></TR>\n" (string_of_value atom);
         sub in
@@ -324,7 +342,15 @@ module G_fs = struct
 
   (* ---------------------------------------------------------------------- *)
   let to_dep ?(decorated_feat=("",[])) ?position ?main_feat ?filter t =
-    let (pid_name, feat_list) = decorated_feat in
+    let (pid_name, highlighted_feat_list) = decorated_feat in
+
+    let is_highlithed feat_name =
+      (List.mem_assoc feat_name highlighted_feat_list) ||
+      (List.exists (function
+        | (f, Some g) when g = feat_name && (not (List.mem_assoc f t)) && (List.mem_assoc g t) -> true
+        | _ -> false
+        ) highlighted_feat_list
+      ) in
 
     let (main_opt, sub) = get_main ?main_feat t in
     let sub = List.sort G_feature.print_cmp sub in
@@ -333,10 +359,11 @@ module G_fs = struct
       | None -> []
       | Some (feat_name, atom) ->
         let esc_atom = escape_sharp (string_of_value atom) in
-        [ if List.mem feat_name (snd decorated_feat)
+        [ if is_highlithed feat_name
           then sprintf "%s:B:#8bf56e" esc_atom
           else esc_atom] in
 
+    (* add the pattern identifier *)
     let word_list = match pid_name with
       | "" -> main
       | _ -> (sprintf "[%s]:B:#8bf56e" pid_name)::main in
@@ -352,7 +379,7 @@ module G_fs = struct
     let lines = List.fold_left
       (fun acc (feat_name, atom) ->
         let esc_atom = escape_sharp (G_feature.to_string (decode_feat_name feat_name, atom)) in
-        if List.mem feat_name (snd decorated_feat)
+        if is_highlithed feat_name
         then (sprintf "%s:B:#8bf56e" esc_atom) :: acc
         else
           match filter with
@@ -422,7 +449,11 @@ module P_fs = struct
     let unsorted = List.map (P_feature.build lexicons ?domain ?pat_vars) ast_fs in
     List.sort P_feature.compare unsorted
 
-  let feat_list t = List.map P_feature.get_name t
+  let feat_list t =
+    List.map (function
+      | (fn, {P_feature.cst=P_feature.Else (_,fn2,_)}) -> (fn, Some fn2)
+      | (fn, _) -> (fn, None)
+      ) t
 
   let to_string t = List_.to_string P_feature.to_string "\\n" t
 
@@ -450,7 +481,19 @@ module P_fs = struct
       | ((fn_pat, {P_feature.cst=P_feature.Absent})::t_pat, []) -> loop acc (t_pat, [])
       | ((fn_pat, {P_feature.cst=P_feature.Absent})::t_pat, (fn, fa)::t) when fn_pat < fn -> loop acc (t_pat, (fn, fa)::t)
 
-      (* Two next cases: each feature_name present in p_fs must be in instance: [] means unif failure *)
+      (* look for the second part of an Else construction*)
+      | ((_, {P_feature.cst=P_feature.Else (_,fn2,fv2)})::t_pat,[]) ->
+        begin
+          try if (List.assoc fn2 g_fs) <> fv2 then raise Fail
+          with Not_found -> raise Fail
+        end; loop acc (t_pat, [])
+        | ((fn_pat, {P_feature.cst=P_feature.Else (_,fn2,fv2)})::t_pat,(fn, fv)::t) when fn_pat < fn ->
+        begin
+          try if (List.assoc fn2 g_fs) <> fv2 then raise Fail
+          with Not_found -> raise Fail
+        end; loop acc (t_pat, t)
+
+      (* Two next cases: each feature_name present in p_fs must be in instance *)
       | _, [] -> raise Fail
       | ((fn_pat, _)::_, (fn, _)::_) when fn_pat < fn -> raise Fail
 
@@ -473,6 +516,40 @@ module P_fs = struct
         end
       | (_::p_tail, _::g_tail) -> loop acc (p_tail,g_tail) in
     loop lexicons (p_fs_wo_pos,g_fs)
+
+
+(* ------------------------------------------------------------------------------ *)
+(*
+      | ((_, {P_feature.cst=cst; P_feature.in_param=in_param})::t_pat, (_, atom)::t) ->
+
+        (* check for the constraint part and fail if needed *)
+        let () = match cst with
+        | P_feature.Absent -> raise Fail
+        | P_feature.Equal fv when not (List_.sort_mem atom fv) -> raise Fail
+        | P_feature.Different fv when List_.sort_mem atom fv -> raise Fail
+        | P_feature.Else (fv1,_,_) when fv1 <> atom -> raise Fail
+        | _ -> () in
+
+        (* if constraint part don't fail, look for lexical parameters *)
+        match (acc, in_param) with
+          | (_,[]) -> loop acc (t_pat,t)
+          | (None,_) -> Log.bug "[P_fs.match_] Parametrized constraint in a non-parametrized rule"; exit 2
+          | (Some param, [index]) ->
+            (match Lex_par.select index (string_of_value atom) param with
+              | None -> raise Fail
+              | Some new_param -> loop (Some new_param) (t_pat,t)
+            )
+          | _ -> Error.bug "[P_fs.match_] several different parameters contraints for the same feature is not implemented" in
+    loop param (p_fs_wo_pos,g_fs)
+*)
+(* ------------------------------------------------------------------------------ *)
+
+
+
+
+
+
+
 
   exception Fail_unif
   let unif fs1 fs2 =

@@ -48,6 +48,7 @@ let localize t = (t,get_loc ())
 %token EQUAL                       /* = */
 %token DISEQUAL                    /* <> */
 %token BANG                        /* ! */
+%token SLASH                       /* / */
 %token STAR                        /* * */
 %token LT                          /* < */
 %token GT                          /* > */
@@ -611,6 +612,11 @@ node_features:
         /*   !lemma   */
         | BANG name_loc=simple_id_with_loc
             { let (name,loc) = name_loc in ({Ast.kind = Ast.Absent; name=Ast.to_uname name}, loc) }
+
+        /*   mwepos=ADV/upos=ADV   */
+        | name1_loc=simple_id_with_loc EQUAL fv1=feature_value SLASH name2=simple_id EQUAL fv2=feature_value
+            { let (name1,loc) = name1_loc in ({Ast.kind = Ast.Else (fv1,name2,fv2); name=Ast.to_uname name1}, loc) }
+
 
 /*=============================================================================================*/
 /* COMMANDS DEFINITION                                                                         */

@@ -665,7 +665,8 @@ module Rule = struct
         Pid_map.fold
           (fun pid gid acc ->
             let pnode = P_graph.find pid (fst pattern).graph in
-            (gid, (P_node.get_name pnode, P_fs.feat_list (P_node.get_fs pnode))) ::acc
+            let pattern_feat_list = P_fs.feat_list (P_node.get_fs pnode) in
+            (gid, (P_node.get_name pnode, pattern_feat_list)) ::acc
           ) matching.n_match [];
       G_deco.edges = List.fold_left (fun acc (_,edge) -> edge::acc) [] matching.e_match;
     }
@@ -691,14 +692,15 @@ module Rule = struct
       ) Gid_map.empty commands in
 
     {
-     G_deco.nodes = List.map (fun (gid,feat_list) -> (gid, ("",feat_list))) (Gid_map.bindings feat_to_highlight);
-     G_deco.edges = List.fold_left
-       (fun acc -> function
-         | (Command.ADD_EDGE (src_cn,tar_cn,edge),loc) ->
-             (find src_cn (matching, created_nodes), edge, find tar_cn (matching, created_nodes)) :: acc
-         | _ -> acc
-       ) [] commands
-   }
+      G_deco.nodes = List.map (fun (gid,feat_list) ->
+        (gid, ("", (List.map (fun x -> (x,None)) feat_list)))
+      ) (Gid_map.bindings feat_to_highlight);
+      G_deco.edges = List.fold_left (fun acc -> function
+        | (Command.ADD_EDGE (src_cn,tar_cn,edge),loc) ->
+            (find src_cn (matching, created_nodes), edge, find tar_cn (matching, created_nodes)) :: acc
+        | _ -> acc
+      ) [] commands;
+    }
 
   exception Fail
   type partial = {

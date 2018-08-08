@@ -1,3 +1,6 @@
+# 0.49.0 (2018/07/05)
+  * Add new syntax in pattern node "f=u/g=v" (mainly for MWEPOS handling in relations consistency checks)
+
 # 0.48.0 (2018/06/19)
   * remove `conll_fields` mechanism (names of conll fields 2, 4 and 5 are `form`, `upos`, `xpos`)
 
