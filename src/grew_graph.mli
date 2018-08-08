@@ -202,6 +202,7 @@ module G_graph: sig
   val cast: ?domain:Domain.t -> t -> t
 end (* module G_graph *)
 
+(* ================================================================================ *)
 module Delta : sig
   type t
 
@@ -211,8 +212,9 @@ module Delta : sig
   val add_edge: Gid.t -> Label.t -> Gid.t -> t -> t
   val del_edge: Gid.t -> Label.t -> Gid.t -> t -> t
   val set_feat: G_graph.t -> Gid.t -> feature_name -> value option -> t -> t
-end
+end (* module Delta *)
 
+(* ================================================================================ *)
 module Graph_with_history : sig
   type t = {
     seed: G_graph.t;
@@ -224,6 +226,7 @@ module Graph_with_history : sig
   val from_graph: G_graph.t -> t
 
   val compare: t -> t -> int
-end
+end (* module Graph_with_history *)
 
+(* ================================================================================ *)
 module Graph_with_history_set : Set.S with type elt = Graph_with_history.t

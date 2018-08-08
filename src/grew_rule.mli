@@ -44,9 +44,8 @@ module Rule : sig
   (** [to_dep t] returns a string in the [dep] language describing the match basic of the rule *)
   val to_dep: ?domain:Domain.t -> t -> string
 
-  (** [build domain ?local dir ast_rule] returns the Rule.t value corresponding to [ast_rule].
-      [dir] is used for localisation of lp files *)
-  val build: ?domain:Domain.t -> string -> Ast.rule -> t
+  (** [build ?domain ast_rule] returns the Rule.t value corresponding to [ast_rule] *)
+  val build: ?domain:Domain.t -> Ast.rule -> t
 
 
   (** the type matching encodes the graph morphism from a pattern to a graph *)

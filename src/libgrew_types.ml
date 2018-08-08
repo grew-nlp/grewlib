@@ -10,10 +10,7 @@
 
 open Grew_graph
 
-type graph = G_graph.t
-type deco = G_deco.t
-
-type module_name = string
+type step_name = string
 
 type rule_app = {
     rule_name: string;
@@ -21,7 +18,6 @@ type rule_app = {
     down: G_deco.t;
   }
 
-(* the type for big edges which correspond to a module *)
 type big_step = {
     first: rule_app;
     small_step: (G_graph.t * rule_app) list;
@@ -33,8 +29,8 @@ let swap bs = {bs with small_step = List.rev bs.small_step}
 type rew_display =
   | Empty (* pour les besoin du dev *)
   | Leaf of G_graph.t
-  | Local_normal_form of G_graph.t * module_name * rew_display
-  | Node of G_graph.t * module_name * (big_step * rew_display) list
+  | Local_normal_form of G_graph.t * step_name * rew_display
+  | Node of G_graph.t * step_name * (big_step * rew_display) list
 
 let rec rew_display_size = function
   | Empty -> 0

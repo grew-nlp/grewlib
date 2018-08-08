@@ -387,7 +387,7 @@ module Ast = struct
     | T (_,_,l) -> List.flatten (List.map word_list l)
 
   type strat =
-  | Ref of node_ident       (* reference to a rule name or to another strategy *)
+  | Ref of node_ident           (* reference to a rule name or to another strategy *)
   | Pick of strat               (* pick one normal form a the given strategy; return 0 if nf *)
   | Alt of strat list           (* a set of strategies to apply in parallel *)
   | Seq of strat list           (* a sequence of strategies to apply one after the other *)
@@ -420,7 +420,7 @@ module Ast = struct
 
   let strat_list grs =
     let rec loop pref = function
-    [] -> []
+    | [] -> []
     | Strategy (_,name,_) :: tail -> name :: (loop pref tail)
     | Package (_,pack_name,decl_list) :: tail -> (loop (pref^"."^pack_name) decl_list) @  (loop pref tail)
     | _ :: tail -> loop pref tail

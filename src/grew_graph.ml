@@ -1032,15 +1032,17 @@ module G_graph = struct
 
   let cast ?domain graph = match (domain, graph.domain) with
     | (None, _) -> graph
-    | (Some new_domain, Some dom) when dom == new_domain -> (* ====== NO CAST NEEDED ====== *) graph
-    | _ -> (* ====== CASTING NEEDED ====== *) of_conll ?domain (to_conll graph)
+    | (Some new_domain, Some dom) when dom == new_domain ->
+      (* ====== NO CAST NEEDED ====== *) graph
+    | _ ->
+      (* ====== CASTING NEEDED ====== *) of_conll ?domain (to_conll graph)
 end (* module G_graph *)
 
 
 
 (* ================================================================================ *)
 (* The module [Delta] defines a type for recording the effect of a set of commands on a graph *)
-(* It is used a key to detect egal graphs based on rewriting history *)
+(* It is used as key to detect egal graphs based on rewriting history *)
 module Delta = struct
   type status = Add | Del
 
@@ -1098,6 +1100,7 @@ module Delta = struct
     { t with feats = loop t.feats }
 end (* module Delta *)
 
+(* ================================================================================ *)
 module Graph_with_history = struct
   type t = {
     seed: G_graph.t;
@@ -1112,4 +1115,5 @@ module Graph_with_history = struct
   let compare t1 t2 = Pervasives.compare (t1.delta,t1.added_gids) (t2.delta, t2.added_gids)
 end (* module Graph_with_history*)
 
+(* ================================================================================ *)
 module Graph_with_history_set = Set.Make (Graph_with_history)

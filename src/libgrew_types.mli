@@ -12,24 +12,17 @@
 
 open Grew_graph
 
-(**/**)
-type graph = G_graph.t
-type deco = G_deco.t
-(**/**)
+type step_name = string
 
-type module_name = string
-
-(** Rule app *)
 type rule_app = {
     rule_name: string;
-    up: deco;
-    down: deco;
+    up: G_deco.t;
+    down: G_deco.t;
 }
 
-(** the type for big edges which correspond the a module *)
 type big_step = {
     first: rule_app;
-    small_step: (graph * rule_app) list;
+    small_step: (G_graph.t * rule_app) list;
 }
 
 val swap : big_step -> big_step
@@ -37,8 +30,8 @@ val swap : big_step -> big_step
 (** the main type for display the result of a rewriting *)
 type rew_display =
   | Empty (* pour les besoin du dev *)
-  | Leaf of graph
-  | Local_normal_form of graph * module_name * rew_display
-  | Node of graph * module_name * (big_step * rew_display) list
+  | Leaf of G_graph.t
+  | Local_normal_form of G_graph.t * step_name * rew_display
+  | Node of G_graph.t * step_name * (big_step * rew_display) list
 
 val rew_display_size: rew_display -> int

@@ -498,7 +498,7 @@ module Rule = struct
 
 
   (* ====================================================================== *)
-  let build ?domain deprecated_dir rule_ast =
+  let build ?domain rule_ast =
     let lexicons =
       List.fold_left (fun acc (name,lex) ->
         try
@@ -545,11 +545,10 @@ module Rule = struct
 
   (* ====================================================================== *)
   type matching = {
-      n_match: Gid.t Pid_map.t;                     (* partial fct: pattern nodes |--> graph nodes *)
-      e_match: (string*(Gid.t*Label.t*Gid.t)) list; (* edge matching: edge ident  |--> (src,label,tar) *)
-      l_param: Lexicons.t;
-
-    }
+    n_match: Gid.t Pid_map.t;                     (* partial fct: pattern nodes |--> graph nodes *)
+    e_match: (string*(Gid.t*Label.t*Gid.t)) list; (* edge matching: edge ident  |--> (src,label,tar) *)
+    l_param: Lexicons.t;                          (* *)
+  }
 
   let to_python pattern graph m =
     let node_name gid = G_node.get_name gid (G_graph.find gid graph) in
@@ -560,7 +559,7 @@ module Rule = struct
     let edges = List.map (fun (id, (src,lab,tar)) ->
       (id, `String (sprintf "%s/%s/%s" (node_name src) (Label.to_string lab) (node_name tar)))
       ) m.e_match in
-    `Assoc ( nodes @ edges)
+    `Assoc (nodes @ edges)
 
   let node_matching pattern graph { n_match } =
     Pid_map.fold
@@ -647,8 +646,8 @@ module Rule = struct
         | true, false -> -1
         | false, true -> 1
         | _ -> 0) node_list in
-
-    { sub = empty_matching ?lexicons ();
+    {
+      sub = empty_matching ?lexicons ();
       unmatched_nodes = sorted_node_list;
       unmatched_edges = [];
       already_matched_gids = [];
@@ -1122,16 +1121,6 @@ module Rule = struct
             else None
           with Not_found -> (* raised by List.find, no matching apply *) None
 
-
-
-
-
-
-
-
-
-
-
   let rec wrd_apply ?domain rule (graph, big_step_opt) =
     let (pos,negs) = rule.pattern in
     (* get the list of partial matching for positive part of the pattern *)
@@ -1174,19 +1163,6 @@ module Rule = struct
             then Some (new_graph, new_big_step)
             else None
           with Not_found -> (* raised by List.find, no matching apply *) None
-
-
-
-
-
-
-
-
-
-
-
-
-
 
   let find cnode ?loc gwh matching =
     match cnode with

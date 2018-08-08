@@ -75,9 +75,9 @@ module Grs = struct
 
   let rec build_decl ?domain = function
   | Ast.Package (loc, name, decl_list) -> Package (name, List.map (build_decl ?domain) decl_list)
-  | Ast.Rule ast_rule -> Rule (Rule.build ?domain "TODO: remove this arg (old grs)" ast_rule)
+  | Ast.Rule ast_rule -> Rule (Rule.build ?domain ast_rule)
   | Ast.Strategy (loc, name, ast_strat) -> Strategy (name, ast_strat)
-  | _ -> Error.bug "[build_decl] Inconsistent ast for new_grs"
+  | _ -> Error.bug "[build_decl] Inconsistent ast for grs"
 
   let domain t = t.domain
 
@@ -117,8 +117,8 @@ module Grs = struct
         | Ast.Features _ -> None
         | Ast.Labels _ -> None
         | Ast.Conll_fields _ -> None
-        | Ast.Import _ -> Error.bug "[load] Import: inconsistent ast for new_grs"
-        | Ast.Include _ -> Error.bug "[load] Include: inconsistent ast for new_grs"
+        | Ast.Import _ -> Error.bug "[load] Import: inconsistent ast for grs"
+        | Ast.Include _ -> Error.bug "[load] Include: inconsistent ast for grs"
         | x -> Some (build_decl ?domain x)
       ) ast in
 
@@ -128,7 +128,7 @@ module Grs = struct
       decls;
     }
 
-  let load filename = from_ast filename (Loader.new_grs filename)
+  let load filename = from_ast filename (Loader.grs filename)
 
   (* The type [pointed] is a zipper style data structure for resolving names x.y.z *)
   type pointed =

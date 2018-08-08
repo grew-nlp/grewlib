@@ -16,9 +16,10 @@ open Grew_base
 type feature_name = string (* cat, num, ... *)
 type feature_atom = string (* V, N, inf, ... *)
 type feature_value = string (* V, 4, "free text", ... *)
-type suffix = string
 
-type value = String of string | Float of float
+type value =
+  | String of string
+  | Float of float
 
 let string_of_value = function
   | String s -> Str.global_replace (Str.regexp "\"") "\\\""
@@ -209,14 +210,13 @@ end (* module Lexicon *)
 module Lexicons = struct
   type t = (string * Lexicon.t) list
 
- let check ~loc lexicon_name field_name t =
-  try
-    let lexicon = List.assoc lexicon_name t in
-    if not (List.mem field_name lexicon.Lexicon.header)
-    then Error.build ~loc "Undefined field name \"%s\" in lexicon %s" field_name lexicon_name
-  with Not_found -> Error.build ~loc "Undefined lexicon name \"%s\"" lexicon_name
-
-end
+  let check ~loc lexicon_name field_name t =
+    try
+      let lexicon = List.assoc lexicon_name t in
+      if not (List.mem field_name lexicon.Lexicon.header)
+      then Error.build ~loc "Undefined field name \"%s\" in lexicon %s" field_name lexicon_name
+    with Not_found -> Error.build ~loc "Undefined lexicon name \"%s\"" lexicon_name
+end (* module Lexicons *)
 
 (* ================================================================================ *)
 module Concat_item = struct

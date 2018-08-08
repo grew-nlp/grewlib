@@ -22,6 +22,7 @@ let parse_handle fct_name fct lexbuf =
     | Failure msg ->                 Error.parse ~loc:(Global.get_loc ()) "%s, Failure: %s" fct_name msg
     | err ->                         Error.bug ~loc:(Global.get_loc ()) "%s, Unexpected error: %s" fct_name (Printexc.to_string err)
 
+(* ================================================================================ *)
 module Loader = struct
   (* ------------------------------------------------------------------------------------------*)
   let domain file =
@@ -75,17 +76,17 @@ module Loader = struct
     | Unix.S_LNK -> Filename.dirname (Unix.readlink file)
     | _ -> Filename.dirname file
 
-  let loc_new_grs file =
+  let loc_grs file =
     try
       Global.new_file file;
       let in_ch = open_in file in
       let lexbuf = Lexing.from_channel in_ch in
-      let grs = parse_handle "loc_new_grs" (Grew_parser.new_grs Grew_lexer.global) lexbuf in
+      let grs = parse_handle "loc_grs" (Grew_parser.grs Grew_lexer.global) lexbuf in
       close_in in_ch;
       grs
   with Sys_error msg -> Error.parse ~loc:(Loc.file file) "[Grew_loader.Loader.grs] %s" msg
 
-  let rec unfold_new_grs dir top new_ast_grs =
+  let rec unfold_grs dir top new_ast_grs =
   List.fold_left
     (fun acc decl -> match decl with
       | Ast.Import filename ->
@@ -93,28 +94,29 @@ module Loader = struct
         let pack_name = match CCString.chop_suffix ~suf:".grs" filename with
           | Some x -> x
           | None -> Error.build "Imported file must have the \".grs\" file extension" in
-        let sub = loc_new_grs real_file in
-        let unfolded_sub = unfold_new_grs (real_dir real_file) false sub in
+        let sub = loc_grs real_file in
+        let unfolded_sub = unfold_grs (real_dir real_file) false sub in
           Ast.Package (Loc.file filename, pack_name, unfolded_sub) :: acc
       | Ast.Include filename ->
         let real_file = Filename.concat dir filename in
-        let sub = loc_new_grs real_file in
-        let unfolded_sub = unfold_new_grs (real_dir real_file) top sub in
+        let sub = loc_grs real_file in
+        let unfolded_sub = unfold_grs (real_dir real_file) top sub in
           unfolded_sub @ acc
       | Ast.Features _ when not top -> Error.build "Non top features declaration"
       | Ast.Labels _ when not top -> Error.build "Non top labels declaration"
       | Ast.Package (loc, name, decls) ->
-        Ast.Package (loc, name, unfold_new_grs dir top decls) :: acc
+        Ast.Package (loc, name, unfold_grs dir top decls) :: acc
       | Ast.Rule ast_rule ->
         Ast.Rule {ast_rule with Ast.rule_dir = Some dir} :: acc
       | x -> x :: acc
     ) [] new_ast_grs
 
-  let new_grs file =
-    let final_grs = unfold_new_grs (real_dir file) true (loc_new_grs file) in
+  let grs file =
+    let final_grs = unfold_grs (real_dir file) true (loc_grs file) in
     check_grs final_grs;
     final_grs
 
+(* ================================================================================ *)
   (* ------------------------------------------------------------------------------------------*)
   let gr file =
     try

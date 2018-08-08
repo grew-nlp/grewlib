@@ -23,7 +23,6 @@ module Loc = struct
 
   let empty = (None, None)
   let file f = (Some f, None)
-  let file_line f l = (Some f, Some l)
   let file_opt_line fo l = (fo, Some l)
   let file_opt_line_opt fo lo = (fo, lo)
   let set_line l (x,_) = (x, Some l)
@@ -59,7 +58,6 @@ end (* module Error *)
 
 (* ================================================================================ *)
 module String_ = struct
-
   let to_float string =
     try float_of_string string
     with _ ->
@@ -78,15 +76,6 @@ module String_ = struct
   let re_match re s = (Str.string_match re s 0) && (Str.matched_string s = s)
 
 end (* module String_ *)
-
-(* ================================================================================ *)
-module Dot = struct
-  let to_png_file dot output_file =
-    let temp_file_name,out_ch = Filename.open_temp_file ~mode:[Open_rdonly;Open_wronly;Open_text] "grewui_" ".dot" in
-    fprintf out_ch "%s" dot;
-    close_out out_ch;
-    ignore(Sys.command(sprintf "dot -Tpng -o %s %s " output_file temp_file_name))
-end (* module Dot *)
 
 (* ================================================================================ *)
 module File = struct
@@ -217,11 +206,6 @@ module List_ = struct
     | h::t when h=x -> Some i
     | _::t -> loop (i+1) t in
     loop 0 l
-
-  let rec opt = function
-    | [] -> []
-    | None :: t -> opt t
-    | Some x :: t -> x :: (opt t)
 
   let rec opt_map f = function
     | [] -> []

@@ -14,7 +14,9 @@ type feature_name = string (* cat, num, ... *)
 type feature_atom = string (* V, N, inf, ... *)
 type feature_value = string (* V, 4, "free text", ... *)
 
-type value = String of string | Float of float
+type value =
+  | String of string
+  | Float of float
 
 val string_of_value : value -> string
 

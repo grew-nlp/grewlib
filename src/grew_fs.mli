@@ -21,7 +21,7 @@ module Feature_value: sig
   val build_disj: ?loc:Loc.t -> ?domain: Domain.t -> feature_name -> feature_atom list -> value list
 
   val build_value: ?loc:Loc.t -> ?domain: Domain.t -> feature_name -> feature_atom -> value
-end (* module Feature_domain *)
+end (* module Feature_value *)
 
 
 (* ================================================================================ *)

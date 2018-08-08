@@ -23,7 +23,6 @@ module G_node: sig
   | Ordered of float
   | Unordered of int
 
-
   type t
 
   val empty: t
@@ -75,15 +74,13 @@ module G_node: sig
   val fresh: ?prec:Gid.t -> ?succ:Gid.t -> float -> t
   val fresh_unordered: unit -> t
 
-
   val position_comp: t -> t -> int
 
   (* val build_neighbour: t -> t
   val build_new: t -> t *)
 
   val rename: (Gid.t * Gid.t) list -> t -> t
-end
-(* ================================================================================ *)
+end (* module G_node *)
 
 (* ================================================================================ *)
 module P_node: sig
@@ -109,5 +106,4 @@ module P_node: sig
   val match_: ?lexicons:Lexicons.t -> t -> G_node.t -> Lexicons.t
 
   val compare_pos: t -> t -> int
-end
-(* ================================================================================ *)
+end (* module P_node *)

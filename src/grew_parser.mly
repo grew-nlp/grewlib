@@ -122,7 +122,7 @@ let localize t = (t,get_loc ())
 %start <Grew_ast.Ast.pattern> pattern
 %start <Grew_ast.Ast.domain> domain
 
-%start <Grew_ast.Ast.grs> new_grs
+%start <Grew_ast.Ast.grs> grs
 %start <Grew_ast.Ast.strat> strat_alone
 
 /* parsing of the string representation of the constituent representation of Sequoia */
@@ -697,7 +697,7 @@ pst:
 /*=============================================================================================*/
 /*=============================================================================================*/
 
-new_grs:
+grs:
   | decls = list(decl) EOF { decls }
 
 decl:
