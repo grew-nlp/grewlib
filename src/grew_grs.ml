@@ -236,7 +236,7 @@ module Grs = struct
   (* Rewriting in the deterministic case with graph type *)
   (* ============================================================================================= *)
 
-  (* apply a package to an instance = apply only top level rules in the package *)
+  (* apply a package to an graph = apply only top level rules in the package *)
   let onf_pack_rewrite ?domain decl_list graph =
     let rec loop = function
       | [] -> None
@@ -307,7 +307,7 @@ module Grs = struct
   (* Rewriting in the non-deterministic case with Graph_with_history.t type *)
   (* ============================================================================================= *)
 
-  (* apply a package to an instance = apply only top level rules in the package *)
+  (* apply a package to an graph_with_history = apply only top level rules in the package *)
   let gwh_pack_rewrite ?domain decl_list gwh =
     List.fold_left
       (fun acc decl -> match decl with

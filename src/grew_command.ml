@@ -153,25 +153,6 @@ module Command  = struct
         ]
       )]
 
-  (* a item in the command history: command applied to a graph *)
-  type h =
-    | H_DEL_NODE of Gid.t
-    | H_DEL_EDGE_EXPL of (Gid.t * Gid.t * G_edge.t)
-    | H_DEL_EDGE_NAME of string
-    | H_ADD_EDGE of (Gid.t * Gid.t * G_edge.t)
-    | H_ADD_EDGE_EXPL of (Gid.t * Gid.t * string)
-    | H_DEL_FEAT of (Gid.t * string)
-    | H_UPDATE_FEAT of (Gid.t * string * string)
-
-    | H_NEW_NODE of string
-    | H_NEW_BEFORE of (string * Gid.t)
-    | H_NEW_AFTER of (string * Gid.t)
-
-    | H_SHIFT_EDGE of (Gid.t * Gid.t)
-    | H_SHIFT_IN of (Gid.t * Gid.t)
-    | H_SHIFT_OUT of (Gid.t * Gid.t)
-
-
   let build ?domain ?param lexicons (kni, kei) table ast_command =
     (* kni stands for "known node idents", kei for "known edge idents" *)
 

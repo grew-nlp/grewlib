@@ -18,40 +18,6 @@ open Grew_edge
 open Grew_fs
 open Grew_ast
 
-(* ================================================================================ *)
-module Instance : sig
-  type t = {
-    graph: G_graph.t;
-    history: Command.h list;
-    rules: string list;
-    big_step: Libgrew_types.big_step option;
-  }
-
-  val swap: t -> t
-
-  (** [from_graph graph] return a fresh instance based on the input [graph]. *)
-  val from_graph: G_graph.t -> t
-
-  (** [rev_steps t] reverses the small step list: during rewriting, the last rule
-      is in the head of the list and the reverse is needed for display. *)
-  val rev_steps: t -> t
-
-  (** [refresh t] returns a fresh representation of the graph.
-      Graphs are refreshed after each module. *)
-  val refresh: t -> t
-
-  (** [to_gr t] returns a string which contains the "gr" code of the current graph *)
-  val to_gr: t -> string
-
-  (** [to_conll_string t] returns a string which contains the "conll" code of the current graph *)
-  val to_conll_string: t -> string
-
-  (** [save_dot_png base t] writes a file "base.png" with the dot representation of [t] *)
-  val save_dot_png: ?filter: (string -> bool) -> ?main_feat: string -> string -> t -> unit
-end (* module Instance *)
-
-(* ================================================================================ *)
-module Instance_set : Set.S with type elt = Instance.t
 
 (* ================================================================================ *)
 module Rule : sig
@@ -82,18 +48,6 @@ module Rule : sig
       [dir] is used for localisation of lp files *)
   val build: ?domain:Domain.t -> string -> Ast.rule -> t
 
-  (** [normalize domain module_name ?deterministic rule_list instance] returns a set of normal forms *)
-  (* raise Stop if some command fails to apply *)
-  val normalize:
-    ?domain:Domain.t ->
-    string -> (* module name *)
-    ?deterministic:bool ->
-    t list -> (* rule list *)
-    Instance.t ->
-      Instance_set.t
-
-  val one_step: ?domain: Domain.t -> Instance.t -> t list -> Instance_set.t
-  val conf_one_step: ?domain: Domain.t -> Instance.t -> t list -> Instance.t option
 
   (** the type matching encodes the graph morphism from a pattern to a graph *)
   (* NB: it was made public for the grep mode *)
@@ -118,9 +72,6 @@ module Rule : sig
 
 
 
-
-  val apply: ?domain: Domain.t -> t -> Instance.t -> Instance_set.t
-  val det_apply: ?domain: Domain.t -> t -> Instance.t -> Instance.t option
 
   val wrd_apply: ?domain: Domain.t -> t -> (G_graph.t * Libgrew_types.big_step option) -> (G_graph.t * Libgrew_types.big_step) option
 
