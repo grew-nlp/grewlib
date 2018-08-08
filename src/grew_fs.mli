@@ -76,11 +76,11 @@ module P_fs: sig
 
   val empty: t
 
-  val build: ?domain:Domain.t -> ?pat_vars: string list -> Lexicons.t -> Ast.feature list -> t
+  val build: ?domain:Domain.t -> Lexicons.t -> Ast.feature list -> t
 
   val to_string: t -> string
 
-  val to_dep: ?filter: (string -> bool) -> string list -> t -> string
+  val to_dep: ?filter: (string -> bool) -> t -> string
 
   val to_dot: t -> string
 
@@ -93,7 +93,7 @@ module P_fs: sig
 
   (** [check_position ?parma position pfs] checks wheter [pfs] is compatible with a node at [position].
       It returns [true] iff [pfs] has no requirement about position ok if the requirement is satisfied. *)
-  val check_position: ?param:Lex_par.t -> float option -> t -> bool
+  val check_position: float option -> t -> bool
 
   exception Fail_unif
 

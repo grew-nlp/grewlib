@@ -62,7 +62,6 @@ module Ast : sig
     | Disequality of feature_value list
     | Equal_lex of string * string
     | Disequal_lex of string * string
-    | Equal_param of string (* $ident *)
     | Absent
     | Else of (feature_value * feature_name * feature_value)
 
@@ -146,7 +145,6 @@ module Ast : sig
   type concat_item =
     | Qfn_or_lex_item of (string * string)
     | String_item of string
-    | Param_item of string
 
   type u_command =
     | Del_edge_expl of (Id.name * Id.name * edge_label)
@@ -180,8 +178,6 @@ module Ast : sig
       rule_id:Id.name;
       pattern: pattern;
       commands: command list;
-      param: (string list * string list) option; (* (files, vars) *)
-      lex_par: string list option; (* lexical parameters in the file *)
       lexicon_info: lexicon_info;
       rule_doc:string list;
       rule_loc: Loc.t;

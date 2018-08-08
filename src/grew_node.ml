@@ -159,11 +159,11 @@ module P_node = struct
 
   let empty = { fs = P_fs.empty; next = Massoc_pid.empty; name = ""; loc=None   }
 
-  let build ?domain ?pat_vars lexicons (ast_node, loc) =
+  let build ?domain lexicons (ast_node, loc) =
     (ast_node.Ast.node_id,
      {
        name = ast_node.Ast.node_id;
-       fs = P_fs.build ?domain ?pat_vars lexicons ast_node.Ast.fs;
+       fs = P_fs.build ?domain lexicons ast_node.Ast.fs;
        next = Massoc_pid.empty;
        loc = Some loc;
      } )
@@ -175,7 +175,6 @@ module P_node = struct
 
 
   let match_ ?lexicons p_node g_node =
-    (* (match param with None -> printf "<None>" | Some p -> printf "<Some>"; Lex_par.dump p); *)
     match G_node.get_position g_node with
     | G_node.Unordered _ -> raise P_fs.Fail (* TOOO: check this return !! *)
     | G_node.Ordered p ->

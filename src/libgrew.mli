@@ -143,10 +143,10 @@ module Rewrite: sig
   val set_debug_loop: unit -> unit
 
   (** [display gr grs seq] builds the [display] (datatype used by the GUI) given by
-      the rewriting of graph [gr] with the sequence [seq] of [grs].
-      @param gr the grapth to rewrite
+      the rewriting of graph [gr] with the strategy [strat] of [grs].
+      @param gr the graph to rewrite
       @param grs the graph rewriting system
-      @param seq the name of the sequence to apply *)
+      @param strat the name of the strategy to apply *)
   val display: gr:Graph.t -> grs:Grs.t -> strat:string -> display
 
   val at_least_one: grs:Grs.t -> strat:string -> bool

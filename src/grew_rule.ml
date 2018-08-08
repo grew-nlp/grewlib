@@ -268,9 +268,9 @@ module Rule = struct
       ("constraints", `List (List.map (const_to_json ?domain) basic.constraints));
     ]
 
-  let build_pos_basic ?domain lexicons ?pat_vars basic_ast =
+  let build_pos_basic ?domain lexicons basic_ast =
     let (graph, pos_table) =
-      P_graph.build ?domain ?pat_vars lexicons basic_ast.Ast.pat_nodes basic_ast.Ast.pat_edges in
+      P_graph.build ?domain lexicons basic_ast.Ast.pat_nodes basic_ast.Ast.pat_edges in
     (
       {
         graph = graph;
@@ -367,9 +367,9 @@ module Rule = struct
 
 
   (* It may raise [P_fs.Fail_unif] in case of contradiction on constraints *)
-  let build_neg_basic ?domain ?pat_vars lexicons pos_table basic_ast =
+  let build_neg_basic ?domain lexicons pos_table basic_ast =
     let (extension, neg_table) =
-      P_graph.build_extension ?domain ?pat_vars lexicons pos_table basic_ast.Ast.pat_nodes basic_ast.Ast.pat_edges in
+      P_graph.build_extension ?domain lexicons pos_table basic_ast.Ast.pat_nodes basic_ast.Ast.pat_edges in
 
     let filters = Pid_map.fold (fun id node acc -> Filter (id, P_node.get_fs node) :: acc) extension.P_graph.old_map [] in
     {
@@ -394,7 +394,6 @@ module Rule = struct
       name: string;
       pattern: pattern;
       commands: Command.t list;
-      param: Lex_par.t * string list; (* ([],[]) if None *)
       lexicons: Lexicons.t;
       loc: Loc.t;
     }
@@ -404,19 +403,13 @@ module Rule = struct
   let get_loc t = t.loc
 
   let to_json ?domain t =
-    let param_json = match t.param with
-    | ([],[]) -> []
-    | (lex_par, param_names) -> [
-      ("pattern_param", `List (List.map (fun x -> `String x) (param_names)));
-      ("lex_par", Lex_par.to_json lex_par);
-    ] in
     `Assoc
     ([
       ("rule_name", `String t.name);
       ("match", basic_to_json ?domain (fst t.pattern));
       ("without", `List (List.map (basic_to_json ?domain) (snd t.pattern)));
       ("commands", `List (List.map (Command.to_json ?domain) t.commands))
-    ] @ param_json
+    ]
     )
 
   (* ====================================================================== *)
@@ -429,7 +422,7 @@ module Rule = struct
       Pid_map.fold
         (fun id node acc ->
           (node, sprintf "  N_%s { word=\"%s\"; subword=\"%s\"}"
-            (Pid.to_id id) (P_node.get_name node) (P_fs.to_dep (snd t.param) (P_node.get_fs node))
+            (Pid.to_id id) (P_node.get_name node) (P_fs.to_dep (P_node.get_fs node))
           )
           :: acc
         ) pos_basic.graph [] in
@@ -479,7 +472,7 @@ module Rule = struct
     Buffer.contents buff
 
   (* ====================================================================== *)
-  let build_commands ?domain ?param lexicons pos pos_table ast_commands =
+  let build_commands ?domain lexicons pos pos_table ast_commands =
     let known_node_ids = Array.to_list pos_table in
     let known_edge_ids = get_edge_ids pos in
 
@@ -489,7 +482,6 @@ module Rule = struct
           let (command, (new_kni, new_kei)) =
             Command.build
               ?domain
-              ?param
               lexicons
               (kni,kei)
               pos_table
@@ -507,11 +499,6 @@ module Rule = struct
 
   (* ====================================================================== *)
   let build ?domain deprecated_dir rule_ast =
-
-    let dir = match rule_ast.Ast.rule_dir with
-    | Some d -> d
-    | None -> deprecated_dir in
-
     let lexicons =
       List.fold_left (fun acc (name,lex) ->
         try
@@ -520,35 +507,9 @@ module Rule = struct
         with Not_found -> (name, build_lex rule_ast.Ast.rule_loc lex) :: acc
     ) [] rule_ast.Ast.lexicon_info in
 
-    let (param, pat_vars) =
-      match rule_ast.Ast.param with
-      | None -> ([],[])
-      | Some (files,vars) ->
-          let nb_var = List.length vars in
-
-          (* first: load lexical parameters given in the same file at the end of the rule definition *)
-          let local_param = match rule_ast.Ast.lex_par with
-          | None -> []
-          | Some lines -> Lex_par.from_lines ~loc:rule_ast.Ast.rule_loc nb_var lines in
-
-          (* second: load lexical parameters given in external files *)
-          let full_param = List.fold_left
-            (fun acc file ->
-              match acc with
-              | [] -> Lex_par.load ~loc:rule_ast.Ast.rule_loc dir nb_var file
-              | lp -> Lex_par.append (Lex_par.load ~loc:rule_ast.Ast.rule_loc dir nb_var file) lp
-            ) local_param files in
-
-          (full_param, vars) in
-
-    (match (param, pat_vars) with
-      | ([], _::_) -> Error.build ~loc:rule_ast.Ast.rule_loc "[Rule.build] Missing lexical parameters in rule \"%s\"" rule_ast.Ast.rule_id
-      | _ -> ()
-    );
-
     let pattern = Ast.normalize_pattern rule_ast.Ast.pattern in
     let (pos, pos_table) =
-      try build_pos_basic ?domain lexicons ~pat_vars pattern.Ast.pat_pos
+      try build_pos_basic ?domain lexicons pattern.Ast.pat_pos
       with P_fs.Fail_unif ->
         Error.build ~loc:rule_ast.Ast.rule_loc
           "[Rule.build] in rule \"%s\": feature structures declared in the \"match\" clause are inconsistent"
@@ -556,7 +517,7 @@ module Rule = struct
     let (negs,_) =
       List.fold_left
       (fun (acc,pos) basic_ast ->
-        try ((build_neg_basic ?domain ~pat_vars lexicons pos_table basic_ast) :: acc, pos+1)
+        try ((build_neg_basic ?domain lexicons pos_table basic_ast) :: acc, pos+1)
         with P_fs.Fail_unif ->
           Log.fwarning "In rule \"%s\" [%s], the wihtout number %d cannot be satisfied, it is skipped"
             rule_ast.Ast.rule_id (Loc.to_string rule_ast.Ast.rule_loc) pos;
@@ -565,10 +526,9 @@ module Rule = struct
     {
       name = rule_ast.Ast.rule_id;
       pattern = (pos, negs);
-      commands = build_commands ?domain ~param:pat_vars lexicons pos pos_table rule_ast.Ast.commands;
+      commands = build_commands ?domain lexicons pos pos_table rule_ast.Ast.commands;
       loc = rule_ast.Ast.rule_loc;
       lexicons;
-      param = (param, pat_vars);
     }
 
   let build_pattern ?domain ?(lexicons=[]) pattern_ast =
@@ -587,7 +547,6 @@ module Rule = struct
   type matching = {
       n_match: Gid.t Pid_map.t;                     (* partial fct: pattern nodes |--> graph nodes *)
       e_match: (string*(Gid.t*Label.t*Gid.t)) list; (* edge matching: edge ident  |--> (src,label,tar) *)
-      m_param: Lex_par.t option;
       l_param: Lexicons.t;
 
     }
@@ -611,7 +570,7 @@ module Rule = struct
         (P_node.get_name pnode, G_node.get_float gnode) :: acc
       ) n_match []
 
-  let empty_matching ?(lexicons=[]) param = { n_match = Pid_map.empty; e_match = []; m_param = param; l_param = lexicons;}
+  let empty_matching ?(lexicons=[]) () = { n_match = Pid_map.empty; e_match = []; l_param = lexicons;}
 
   let e_comp (e1,_) (e2,_) = compare e1 e2
 
@@ -676,7 +635,7 @@ module Rule = struct
            - the ?domain of the pattern P is the disjoint union of ?domain([sub]) and [unmatched_nodes]
          *)
   (*  ---------------------------------------------------------------------- *)
-  let init ?lexicons param basic =
+  let init ?lexicons basic =
     let roots = P_graph.roots basic.graph in
 
     let node_list = Pid_map.fold (fun pid _ acc -> pid::acc) basic.graph [] in
@@ -689,7 +648,7 @@ module Rule = struct
         | false, true -> 1
         | _ -> 0) node_list in
 
-    { sub = empty_matching ?lexicons param;
+    { sub = empty_matching ?lexicons ();
       unmatched_nodes = sorted_node_list;
       unmatched_edges = [];
       already_matched_gids = [];
@@ -977,7 +936,7 @@ module Rule = struct
     | _ -> false
 
   (*  ---------------------------------------------------------------------- *)
-  let match_in_graph ?domain ?lexicons ?param (pos, negs) graph =
+  let match_in_graph ?domain ?lexicons (pos, negs) graph =
     let casted_graph = G_graph.cast ?domain graph in
     let pos_graph = pos.graph in
 
@@ -988,7 +947,7 @@ module Rule = struct
         ?domain
         (pos_graph,P_graph.empty)
         casted_graph
-        (init ?lexicons param pos) in
+        (init ?lexicons pos) in
 
     let filtered_matching_list =
       List.filter
@@ -1085,10 +1044,6 @@ module Rule = struct
                    with
                     | Not_found -> Error.run ~loc "UPDATE_FEAT: the lexicon '%s' does not exist" lex_name
                     )
-              | Command.Param index ->
-                  (match matching.m_param with
-                  | None -> Error.bug "Cannot apply a UPDATE_FEAT command without parameter"
-                  | Some param -> Concat_item.String (Lex_par.get_param_value index param))
             ) item_list in
 
         let (new_graph, new_feature_value) =
@@ -1143,7 +1098,7 @@ module Rule = struct
           ?domain
           (pos.graph,P_graph.empty)
           graph
-          (init ~lexicons:rule.lexicons (Some (fst rule.param)) pos) in
+          (init ~lexicons:rule.lexicons pos) in
           try
             let (first_matching_where_all_witout_are_fulfilled,_) =
               List.find
@@ -1185,7 +1140,7 @@ module Rule = struct
           ?domain
           (pos.graph,P_graph.empty)
           graph
-          (init ~lexicons:rule.lexicons (Some (fst rule.param)) pos) in
+          (init ~lexicons:rule.lexicons pos) in
           try
             let (first_matching_where_all_witout_are_fulfilled,_) =
               List.find
@@ -1336,10 +1291,6 @@ module Rule = struct
                     | Lexicon.Not_functional_lexicon -> Error.run ~loc "UPDATE_FEAT: the lexicon is not functional" lex_name
                     )
 
-              | Command.Param index ->
-                  (match matching.m_param with
-                  | None -> Error.bug "Cannot apply a UPDATE_FEAT command without parameter"
-                  | Some param -> Concat_item.String (Lex_par.get_command_value index param))
             ) item_list in
 
         let (new_graph, new_feature_value) = (* TODO: take value type into account in update_feat *)
@@ -1447,7 +1398,7 @@ module Rule = struct
  *)
 
   let gwh_apply ?domain rule graph_with_history =
-    let matching_list = match_in_graph ?domain ~lexicons:rule.lexicons ?param:(Some (fst rule.param)) rule.pattern graph_with_history.Graph_with_history.graph in
+    let matching_list = match_in_graph ?domain ~lexicons:rule.lexicons rule.pattern graph_with_history.Graph_with_history.graph in
     List.fold_left
       (fun acc matching ->
         Graph_with_history_set.add (gwh_apply_rule ?domain graph_with_history matching rule) acc

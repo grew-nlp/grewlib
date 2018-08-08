@@ -33,7 +33,6 @@ module Command  = struct
     | Feat of (command_node * string)
     | String of string
     | Lexical_field of (string * string)
-    | Param of int
 
   let item_to_json = function
   | Feat (cn, feature_name) -> `Assoc [("copy_feat",
@@ -44,7 +43,6 @@ module Command  = struct
       )]
   | String s -> `Assoc [("string", `String s)]
   | Lexical_field (lex,field) -> `Assoc [("lexical_filed", `String (lex ^ "." ^ field))]
-  | Param i -> `Assoc [("param", `Int i)]
 
   (* the command in pattern *)
   type p =
@@ -153,7 +151,7 @@ module Command  = struct
         ]
       )]
 
-  let build ?domain ?param lexicons (kni, kei) table ast_command =
+  let build ?domain lexicons (kni, kei) table ast_command =
     (* kni stands for "known node idents", kei for "known edge idents" *)
 
     let cn_of_node_id node_id =
@@ -256,18 +254,10 @@ module Command  = struct
                     Feat (cn_of_node_id node_id_or_lex, feature_name_or_lex_field)
                   end
               | Ast.String_item s -> String s
-              | Ast.Param_item var ->
-                match param with
-                  | None -> Error.build ~loc "Unknown command variable '%s'" var
-                  | Some par ->
-                    match List_.index var par with
-                      | Some index -> Param index
-                      | _ -> Error.build ~loc "Unknown command variable '%s'" var
             ) ast_items in
             (* check for consistency *)
             (match items with
               | _ when Domain.is_open_feature ?domain feat_name -> ()
-              | [Param _] -> () (* TODO: check that lexical parameters are compatible with the feature domain *)
               | [String s] -> Domain.check_feature ~loc ?domain feat_name s
               | [Feat (_,fn)] -> ()
               | _ -> Error.build ~loc "[Update_feat] Only open features can be modified with the concat operator '+' but \"%s\" is not declared as an open feature" feat_name);

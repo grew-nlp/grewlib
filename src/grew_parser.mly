@@ -288,8 +288,6 @@ rule:
               { Ast.rule_id = fst id_loc;
                 pattern = Ast.complete_pattern { Ast.pat_pos = p; Ast.pat_negs = n };
                 commands = cmds;
-                param = None;
-                lex_par = None;
                 lexicon_info = lexicons;
                 rule_doc = begin match doc with Some d -> d | None -> [] end;
                 rule_loc = snd id_loc;

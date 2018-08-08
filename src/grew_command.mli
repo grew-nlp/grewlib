@@ -24,7 +24,6 @@ module Command : sig
     | Feat of (command_node * string)
     | String of string
     | Lexical_field of (string * string)
-    | Param of int
 
   type p =
     | DEL_NODE of command_node
@@ -49,7 +48,6 @@ module Command : sig
 
   val build:
       ?domain: Domain.t ->
-      ?param: string list ->
       Lexicons.t ->
       (Id.name list * string list) ->
       Id.table ->

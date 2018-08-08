@@ -82,14 +82,8 @@ module P_feature = struct
     | Different_lex of string * string
     | Else of (value * feature_name * value)
 
-  (* NB: in the current version, |in_param| ≤ 1 *)
-  type v = {
-    cst: cst;
-    in_param: int list;  (* the list of parameters to which the value must belong *)
-  }
-
-  type t = string * v
-  let dump (feature_name, {cst; in_param}) =
+  type t = string * cst
+  let dump (feature_name, cst) =
     printf "[P_feature.dump]\n";
     printf "%s%s\n"
       feature_name
@@ -102,10 +96,9 @@ module P_feature = struct
       | Absent -> " must be Absent!"
       | Else (fv1,fn2,fv2) -> sprintf " = %s/%s = %s" (string_of_value fv1) fn2 (string_of_value fv2));
 
-    printf "in_param=[%s]\n" (String.concat "," (List.map string_of_int in_param));
     printf "%!"
 
-  let to_json ?domain (feature_name, {cst}) =
+  let to_json ?domain (feature_name, cst) =
     `Assoc [
       ("feature_name", `String feature_name);
       ( match cst with
@@ -126,11 +119,11 @@ module P_feature = struct
 
   (** raise [P_feature.Fail_unif] *)
   let unif_value v1 v2 = match (v1, v2) with
-    | ({cst=Absent;in_param=[]},{cst=Absent;in_param=[]}) -> v1
-    | ({cst=Absent;in_param=[]},_)
-    | (_,{cst=Absent;in_param=[]}) -> raise Fail_unif
+    | (Absent, Absent) -> v1
+    | (Absent, _)
+    | (_, Absent) -> raise Fail_unif
 
-    | ({cst=cst1; in_param=in1}, {cst=cst2; in_param=in2}) ->
+    | (cst1, cst2) ->
       let cst =  match (cst1, cst2) with
         | (Equal l1, Equal l2) ->
             (match List_.sort_inter l1 l2 with
@@ -143,56 +136,36 @@ module P_feature = struct
             | l -> Equal l)
         | (Different l1, Different l2) -> Different (List_.sort_union l1 l2)
         | _ -> Error.bug "[P_feature.unif_value] inconsistent match case" in
-      let (in_) = match (in1,in2) with
-        | (_,[]) -> (in1)
-        | ([],_) -> (in2)
-        | _ -> Error.build "more than one parameter constraint for the same feature in not yet implemented" in
-      {cst; in_param=in_}
+      cst
 
-  let to_string ?param_names t =
-    let param_string index = match param_names with
-      | None -> sprintf "$%d" index
-      | Some l -> sprintf "%s" (List.nth l index) in
-
+  let to_string t =
     match t with
-    | (feat_name, {cst=Absent ;in_param=[]}) -> sprintf "!%s" feat_name
-    | (feat_name, {cst=Equal atoms;in_param=[]}) -> sprintf "%s=%s" feat_name (List_.to_string string_of_value "|" atoms)
-    | (feat_name, {cst=Different [];in_param=[]}) -> sprintf "%s=*" feat_name
-    | (feat_name, {cst=Different atoms;in_param=[]}) -> sprintf "%s≠%s" feat_name (List_.to_string string_of_value "|" atoms)
+    | (feat_name, Absent) -> sprintf "!%s" feat_name
+    | (feat_name, Equal atoms) -> sprintf "%s=%s" feat_name (List_.to_string string_of_value "|" atoms)
+    | (feat_name, Different []) -> sprintf "%s=*" feat_name
+    | (feat_name, Different atoms) -> sprintf "%s≠%s" feat_name (List_.to_string string_of_value "|" atoms)
+    | (feat_name, Equal_lex (lex,fn)) -> sprintf "%s=%s.%s" feat_name lex fn
+    | (feat_name, Different_lex (lex,fn)) -> sprintf "%s<>%s.%s" feat_name lex fn
+    | (feat_name, Else (fv1,fn2,fv2)) -> sprintf "%s=%s/%s=%s" feat_name (string_of_value fv1) fn2 (string_of_value fv2)
 
-    | (feat_name, {cst=Equal atoms;in_param=[one_in]}) -> sprintf "%s=%s=$%s" feat_name (List_.to_string string_of_value "|" atoms) (param_string one_in)
-    | (feat_name, {cst=Different [];in_param=[one_in]}) -> sprintf "%s=$%s" feat_name (param_string one_in)
-    | (feat_name, {cst=Different atoms;in_param=[one_in]}) -> sprintf "%s≠%s^%s=%s" feat_name (List_.to_string string_of_value "|" atoms) feat_name (param_string one_in)
-
-    | _ -> Error.bug "[P_feature.to_string] multiple parameters are not handled"
-
-  let build ?domain ?pat_vars lexicons = function
+  let build ?domain lexicons = function
     | ({Ast.kind=Ast.Absent; name=name}, loc) ->
       Domain.check_feature_name ~loc ?domain name;
-      (name, {cst=Absent;in_param=[];})
+      (name, Absent)
     | ({Ast.kind=Ast.Equality unsorted_values; name=name}, loc) ->
-      let values = Feature_value.build_disj ~loc ?domain name unsorted_values in (name, {cst=Equal values;in_param=[];})
+      let values = Feature_value.build_disj ~loc ?domain name unsorted_values in (name, Equal values)
     | ({Ast.kind=Ast.Disequality unsorted_values; name=name}, loc) ->
-      let values = Feature_value.build_disj ~loc ?domain name unsorted_values in (name, {cst=Different values;in_param=[];})
+      let values = Feature_value.build_disj ~loc ?domain name unsorted_values in (name, Different values)
     | ({Ast.kind=Ast.Equal_lex (lex,fn); name=name}, loc) ->
       Lexicons.check ~loc lex fn lexicons;
-      (name, {cst=Equal_lex (lex,fn); in_param=[];})
+      (name, Equal_lex (lex,fn) )
     | ({Ast.kind=Ast.Disequal_lex (lex,fn); name=name}, loc) ->
       Lexicons.check ~loc lex fn lexicons;
-      (name, {cst=Different_lex (lex,fn); in_param=[];})
+      (name, Different_lex (lex,fn) )
     | ({Ast.kind=Ast.Else (fv1,fn2,fv2); name=name}, loc) ->
       let v1 = match Feature_value.build_disj ~loc ?domain name [fv1] with [one] -> one | _ -> failwith "BUG Else" in
       let v2 = match Feature_value.build_disj ~loc ?domain name [fv2] with [one] -> one | _ -> failwith "BUG Else" in
-      (name, {cst=Else (v1,fn2,v2);in_param=[];})
-    | ({Ast.kind=Ast.Equal_param var; name=name}, loc) ->
-        begin
-          match pat_vars with
-          | None -> Error.bug ~loc "[P_feature.build] param '%s' in an unparametrized rule" var
-          | Some l ->
-              match List_.index var l with
-              | Some index -> (name, {cst=Different []; in_param = [index]})
-              | None -> Error.build ~loc "[P_feature.build] Unknown pattern variable '%s'" var
-        end
+      (name, Else (v1,fn2,v2))
 end (* module P_feature *)
 
 (* ================================================================================ *)
@@ -433,35 +406,35 @@ module P_fs = struct
 
   let to_json ?domain t = `List (List.map (P_feature.to_json ?domain) t)
 
-  let check_position ?param position t =
+  let check_position position t =
     try
       match (List.assoc "position" t, position) with
-      | ({P_feature.cst=P_feature.Equal pos_list; in_param=[]}, Some p) -> List.mem (Float p) pos_list
-      | ({P_feature.cst=P_feature.Equal pos_list; in_param=[]}, None) -> false
-      | ({P_feature.cst=P_feature.Different pos_list; in_param=[]}, Some p) -> not (List.mem (Float p) pos_list)
-      | ({P_feature.cst=P_feature.Different pos_list; in_param=[]}, None) -> false
-      | ({P_feature.cst=P_feature.Absent}, Some _) -> false
-      | ({P_feature.cst=P_feature.Absent}, None) -> true
-      | _ -> Error.bug "Position can't be parametrized"
+      | (P_feature.Equal pos_list, Some p) -> List.mem (Float p) pos_list
+      | (P_feature.Equal pos_list, None) -> false
+      | (P_feature.Different pos_list, Some p) -> not (List.mem (Float p) pos_list)
+      | (P_feature.Different pos_list, None) -> false
+      | (P_feature.Absent, Some _) -> false
+      | (P_feature.Absent, None) -> true
+      | _ -> true (* TODO : does positions in lexicons can be useful ??? *)
     with Not_found -> true
 
-  let build ?domain ?pat_vars lexicons ast_fs =
-    let unsorted = List.map (P_feature.build lexicons ?domain ?pat_vars) ast_fs in
+  let build ?domain lexicons ast_fs =
+    let unsorted = List.map (P_feature.build lexicons ?domain) ast_fs in
     List.sort P_feature.compare unsorted
 
   let feat_list t =
     List.map (function
-      | (fn, {P_feature.cst=P_feature.Else (_,fn2,_)}) -> (fn, Some fn2)
+      | (fn, P_feature.Else (_,fn2,_)) -> (fn, Some fn2)
       | (fn, _) -> (fn, None)
       ) t
 
   let to_string t = List_.to_string P_feature.to_string "\\n" t
 
-  let to_dep ?filter param_names t =
+  let to_dep ?filter t =
     let reduced = match filter with
       | None -> t
       | Some test -> List.filter (fun (fn,_) -> test fn) t in
-    List_.to_string (P_feature.to_string ~param_names) "#" reduced
+    List_.to_string (P_feature.to_string) "#" reduced
 
   let to_dot t = List_.to_string P_feature.to_string "\\n" t
 
@@ -478,16 +451,16 @@ module P_fs = struct
       | ((fn_pat, fv_pat)::t_pat, (fn, _)::t) when fn_pat > fn -> loop acc ((fn_pat, fv_pat)::t_pat, t)
 
       (* Two next cases: p_fs requires for the absence of a feature -> OK *)
-      | ((fn_pat, {P_feature.cst=P_feature.Absent})::t_pat, []) -> loop acc (t_pat, [])
-      | ((fn_pat, {P_feature.cst=P_feature.Absent})::t_pat, (fn, fa)::t) when fn_pat < fn -> loop acc (t_pat, (fn, fa)::t)
+      | ((fn_pat, P_feature.Absent)::t_pat, []) -> loop acc (t_pat, [])
+      | ((fn_pat, P_feature.Absent)::t_pat, (fn, fa)::t) when fn_pat < fn -> loop acc (t_pat, (fn, fa)::t)
 
       (* look for the second part of an Else construction*)
-      | ((_, {P_feature.cst=P_feature.Else (_,fn2,fv2)})::t_pat,[]) ->
+      | ((_, P_feature.Else (_,fn2,fv2))::t_pat,[]) ->
         begin
           try if (List.assoc fn2 g_fs) <> fv2 then raise Fail
           with Not_found -> raise Fail
         end; loop acc (t_pat, [])
-        | ((fn_pat, {P_feature.cst=P_feature.Else (_,fn2,fv2)})::t_pat,(fn, fv)::t) when fn_pat < fn ->
+        | ((fn_pat, P_feature.Else (_,fn2,fv2))::t_pat,(fn, fv)::t) when fn_pat < fn ->
         begin
           try if (List.assoc fn2 g_fs) <> fv2 then raise Fail
           with Not_found -> raise Fail
@@ -498,11 +471,11 @@ module P_fs = struct
       | ((fn_pat, _)::_, (fn, _)::_) when fn_pat < fn -> raise Fail
 
       (* Next cases: fn_pat = fn *)
-      | ((_, {P_feature.cst=P_feature.Absent})::_, (_, atom)::t) -> raise Fail
-      | ((_, {P_feature.cst=P_feature.Equal fv})::_, (_, atom)::t) when not (List_.sort_mem atom fv) -> raise Fail
-      | ((_, {P_feature.cst=P_feature.Different fv})::_, (_, atom)::t) when List_.sort_mem atom fv -> raise Fail
+      | ((_, P_feature.Absent)::_, (_, atom)::t) -> raise Fail
+      | ((_, P_feature.Equal fv)::_, (_, atom)::t) when not (List_.sort_mem atom fv) -> raise Fail
+      | ((_, P_feature.Different fv)::_, (_, atom)::t) when List_.sort_mem atom fv -> raise Fail
 
-      | ((_, {P_feature.cst=P_feature.Equal_lex (lex_name,field)})::t_pat, (_, atom)::t) ->
+      | ((_, P_feature.Equal_lex (lex_name,field))::t_pat, (_, atom)::t) ->
         begin
           try
             let lexicon = List.assoc lex_name acc in

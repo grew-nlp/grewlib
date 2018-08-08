@@ -102,7 +102,7 @@ module P_node: sig
       It raises [P_fs.Fail_unif] exception in case of Failure. *)
   val unif_fs: P_fs.t -> t -> t
 
-  val build: ?domain:Domain.t -> ?pat_vars: string list -> Lexicons.t -> Ast.node -> (Id.name * t)
+  val build: ?domain:Domain.t -> Lexicons.t -> Ast.node -> (Id.name * t)
 
   val add_edge: P_edge.t -> Pid.t -> t -> t option
 

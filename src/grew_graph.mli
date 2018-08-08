@@ -65,7 +65,6 @@ module P_graph: sig
   (** It raises [P_fs.Fail_unif] exception in case of inconsistent feature structures. *)
   val build:
       ?domain:Domain.t ->
-      ?pat_vars: string list ->
       Lexicons.t ->
       Ast.node list ->
       Ast.edge list ->
@@ -74,7 +73,6 @@ module P_graph: sig
   (** It raises [P_fs.Fail_unif] exception in case of inconsistent feature structures. *)
   val build_extension:
       ?domain:Domain.t ->
-      ?pat_vars: string list ->
       Lexicons.t ->
       Id.table ->
       Ast.node list ->

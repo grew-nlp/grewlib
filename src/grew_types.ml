@@ -93,68 +93,6 @@ module Massoc_pid = Massoc_make (Pid)
 module Massoc_string = Massoc_make (String)
 
 
-(* ================================================================================ *)
-(* This module defines a type for lexical parameter (i.e. one line in a lexical file) *)
-module Lex_par = struct
-
-  type item = string list
-
-  let item_to_string l = String.concat "#" l
-
-  type t = item list
-
-  let to_json t =
-    `List (List.map (fun item -> `String (item_to_string item)) t)
-
-  let size = List.length
-  let append = List.append
-
-  let signature = function
-    | [] -> Error.bug "[Lex_par.signature] empty data"
-    | v -> List.length v
-
-  let dump t =
-    printf "[Lex_par.dump] --> size = %d\n" (List.length t);
-    List.iter (fun il -> printf "%s\n" (String.concat "#" il)) t
-
-  let parse_line ?loc nb_var line =
-    let line = String_.rm_peripheral_white line in
-    if line = "" || line.[0] = '%'
-    then None
-    else
-      let line = Str.global_replace (Str.regexp "\\\\%") "%" line in
-      match Str.split (Str.regexp "##\\|#") line with
-        | args when List.length args = nb_var -> Some args
-        | args -> Error.build ?loc "Wrong param number: '%d instead of %d'" (List.length args) nb_var
-
-  let from_lines ?loc nb_var lines =
-    match List_.opt_map (parse_line ?loc nb_var) lines with
-    | [] -> Error.build ?loc "Empty lexical parameter list"
-    | l -> l
-
-  let load ?loc dir nb_var file =
-    try
-      let full_file =
-        if Filename.is_relative file
-        then Filename.concat dir file
-        else file in
-      let lines = File.read full_file in
-      match List_.opt_mapi (fun i line -> parse_line ~loc:(Loc.file_line full_file i) nb_var line) lines with
-      | [] -> Error.build ?loc "Empty lexical parameter file '%s'" file
-      | l -> l
-    with Sys_error _ -> Error.build ?loc "External lexical file '%s' not found" file
-
-  let select index atom t =  List.filter (fun par -> List.nth par index = atom) t
-
-  let get_param_value index = function
-    | [] -> Error.bug "[Lex_par.get_param_value] empty parameter"
-    | params::_ -> List.nth params index
-
-  let get_command_value index = function
-    | [] -> Error.bug "[Lex_par.get_command_value] empty parameter"
-    | [one] -> List.nth one index
-    | _ -> Error.run "Lexical parameter are not functional"
-end (* module Lex_par *)
 
 (* ================================================================================ *)
 module Lexicon = struct

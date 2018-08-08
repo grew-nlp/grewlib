@@ -98,7 +98,7 @@ and string_lex re target = parse
     string_lex re target lexbuf
   }
 
-(* a dedicated lexer for lexical parameter: read everything until "#END" *)
+(* a dedicated lexer for local lexicons: read everything until "#END" *)
 and lp_lex name target = parse
 | '\n'                    { (match Global.get_line () with
                               | None -> raise (Error "no loc in lexer")
