@@ -92,7 +92,7 @@ module Pattern = struct
   Libgrew.handle ~name:"Pattern.load" (fun () -> Grew_rule.Rule.build_pattern ?domain (Grew_loader.Parser.pattern desc)) ()
 
   let pid_name_list pattern =
-  Libgrew.handle ~name:"Pattern.pid_lits"
+  Libgrew.handle ~name:"Pattern.pid_list"
     (fun () -> List.map (fun x -> x) (Grew_rule.Rule.pid_name_list pattern)
     ) ()
 end
@@ -104,6 +104,12 @@ module Matching = struct
   type t = Grew_rule.Rule.matching
 
   let to_json pattern graph t = Grew_rule.Rule.to_python pattern graph t
+
+  let nodes pattern graph matching =
+    Libgrew.handle ~name:"Matching.nodes" (fun () ->
+      Grew_rule.Rule.node_matching pattern graph matching
+    ) ()
+
 end
 
 (* ==================================================================================================== *)
@@ -230,11 +236,6 @@ module Graph = struct
   let search_pattern ?domain pattern graph =
     Libgrew.handle ~name:"Graph.search_pattern" (fun () ->
       Grew_rule.Rule.match_in_graph ?domain pattern graph
-    ) ()
-
-  let node_matching pattern graph matching =
-    Libgrew.handle ~name:"Graph.node_matching" (fun () ->
-      Grew_rule.Rule.node_matching pattern graph matching
     ) ()
 end
 

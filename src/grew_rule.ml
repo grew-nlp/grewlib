@@ -566,7 +566,7 @@ module Rule = struct
       (fun pid gid acc ->
         let pnode = P_graph.find pid (fst pattern).graph in
         let gnode = G_graph.find gid graph in
-        (P_node.get_name pnode, G_node.get_float gnode) :: acc
+        (P_node.get_name pnode, G_node.get_name gid gnode) :: acc
       ) n_match []
 
   let empty_matching ?(lexicons=[]) () = { n_match = Pid_map.empty; e_match = []; l_param = lexicons;}
@@ -774,7 +774,6 @@ module Rule = struct
           else raise Fail
       | Feature_eq_lex (pid, feature_name, (lexicon,field)) ->
         begin
-          Printf.printf "### Feature_eq_lex\n%!";
           match get_string_feat pid feature_name with
           | None -> raise Fail
           | Some v ->

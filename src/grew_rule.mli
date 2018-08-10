@@ -59,8 +59,8 @@ module Rule : sig
 
   val build_pattern: ?domain:Domain.t -> ?lexicons: Lexicons.t -> Ast.pattern -> pattern
 
-  (** [node_matching pattern graph matching] return a assoc list (pid_name, gid.position) *)
-  val node_matching: pattern -> G_graph.t -> matching -> (string * float) list
+  (** [node_matching pattern graph matching] return a assoc list (pid_name, gid_name) *)
+  val node_matching: pattern -> G_graph.t -> matching -> (string * string) list
 
   (** [match_in_graph rule graph] returns the list of matching of the pattern of the rule into the graph *)
   val match_in_graph: ?domain:Domain.t -> ?lexicons: Lexicons.t -> pattern -> G_graph.t -> matching list
