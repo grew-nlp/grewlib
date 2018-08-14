@@ -16,12 +16,6 @@ open Grew_types
 (* ================================================================================ *)
 module Ast = struct
 
-  let to_uname = function
-    | "cat" -> "upos"
-    | "pos" -> "xpos"
-    | "phon" -> "form"
-    | x -> x
-
   (* general function for checking that an identifier is of the right kind *)
   (* allowed is a char list which is a sub set of ['#'; '.'; ':'; '*'] *)
   let check_special name allowed s =
@@ -88,7 +82,7 @@ module Ast = struct
     check_special "feature ident" ["."] s;
     match Str.split (Str.regexp "\\.") s with
     | [base] -> Simple base
-    | [s1; s2] -> Pointed (s1, s2)
+    | [s1; s2] -> Pointed (s1, to_uname s2)
     | _ -> Error.build "The identifier '%s' must be a feature identifier or a lexical reference (with at most one '.' symbol, like \"V\", \"V.cat\" or \"lex.cat\" for instance)" s
 
 

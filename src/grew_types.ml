@@ -32,6 +32,12 @@ let conll_string_of_value = function
 
 type disjunction = value list
 
+let to_uname = function
+  | "cat" -> "upos"
+  | "pos" -> "xpos"
+  | "phon" -> "form"
+  | x -> x
+
 (* ================================================================================ *)
 module Pid = struct
   (* type t = int *)
@@ -121,7 +127,7 @@ module Lexicon = struct
     match real_items with
       | [] | [_] -> Error.build ~loc "[Lexicon.build] a lexicon must not be empty"
       | (linenum_h, h)::t ->
-        let fields = Str.split (Str.regexp "\t") h in
+        let fields = List.map to_uname (Str.split (Str.regexp "\t") h) in
         let l = List.length fields in
         let rec loop = function
           | [] -> []

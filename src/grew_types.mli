@@ -24,6 +24,8 @@ val conll_string_of_value : value -> string
 
 type disjunction = value list
 
+val to_uname: feature_name -> feature_name
+
 (* ================================================================================ *)
 (* [Pid] describes identifier used in pattern graphs *)
 module Pid : sig

@@ -255,7 +255,7 @@ feature:
             { Ast.Open feature_name }
 
 feature_name:
-        | ci=ID { Ast.to_uname ci }
+        | ci=ID { to_uname ci }
 
 feature_values:
         | SHARP                                         { ["#"] }
@@ -393,7 +393,7 @@ pat_item:
               | Ast.Simple value ->
                 Pat_const (Ast.Feature_eq_cst (feat_id1, value), loc)
               | Ast.Pointed (s1, s2) ->
-                Pat_const (Ast.Feature_eq_lex_or_fs (feat_id1, (s1, Ast.to_uname s2)), loc)
+                Pat_const (Ast.Feature_eq_lex_or_fs (feat_id1, (s1, to_uname s2)), loc)
              }
 
         /*   X.cat = "value"   */
@@ -413,7 +413,7 @@ pat_item:
               | Ast.Simple value ->
                 Pat_const (Ast.Feature_diff_cst (feat_id1, value), loc)
               | Ast.Pointed (s1, s2) ->
-                Pat_const (Ast.Feature_diff_lex_or_fs (feat_id1, (s1, Ast.to_uname s2)), loc)
+                Pat_const (Ast.Feature_diff_lex_or_fs (feat_id1, (s1, to_uname s2)), loc)
              }
 
         /*   X.cat <> "value"   */
@@ -512,7 +512,7 @@ node_features:
         | name_loc=simple_id_with_loc EQUAL values=separated_nonempty_list(PIPE,pattern_feature_value)
             {
               let (name,loc) = name_loc in
-              let uname = Ast.to_uname name in
+              let uname = to_uname name in
               match values with
               | [Ast.Simple "*"] ->
                 ({Ast.kind = Ast.Disequality []; name=uname},loc)
@@ -528,18 +528,18 @@ node_features:
         /*   cat = *   */
         | name_loc=simple_id_with_loc EQUAL STAR
             { let (name,loc) = name_loc in
-              ({Ast.kind = Ast.Disequality []; name=Ast.to_uname name},loc) }
+              ({Ast.kind = Ast.Disequality []; name=to_uname name},loc) }
 
         /*   cat   */
         | name_loc=simple_id_with_loc
             { let (name,loc) = name_loc in
-              ({Ast.kind = Ast.Disequality []; name=Ast.to_uname name},loc) }
+              ({Ast.kind = Ast.Disequality []; name=to_uname name},loc) }
 
         /*    cat<>n|v|adj   */
         | name_loc=simple_id_with_loc DISEQUAL values=separated_nonempty_list(PIPE,pattern_feature_value)
             {
               let (name,loc) = name_loc in
-              let uname = Ast.to_uname name in
+              let uname = to_uname name in
               match values with
               | [Ast.Pointed (lex,fn)] ->
                 ({Ast.kind = Ast.Disequal_lex (lex,fn); name=uname }, loc)
@@ -553,11 +553,11 @@ node_features:
 
         /*   !lemma   */
         | BANG name_loc=simple_id_with_loc
-            { let (name,loc) = name_loc in ({Ast.kind = Ast.Absent; name=Ast.to_uname name}, loc) }
+            { let (name,loc) = name_loc in ({Ast.kind = Ast.Absent; name=to_uname name}, loc) }
 
         /*   mwepos=ADV/upos=ADV   */
         | name1_loc=simple_id_with_loc EQUAL fv1=feature_value SLASH name2=simple_id EQUAL fv2=feature_value
-            { let (name1,loc) = name1_loc in ({Ast.kind = Ast.Else (fv1,name2,fv2); name=Ast.to_uname name1}, loc) }
+            { let (name1,loc) = name1_loc in ({Ast.kind = Ast.Else (fv1,name2,fv2); name=to_uname name1}, loc) }
 
 
 /*=============================================================================================*/
@@ -660,7 +660,7 @@ concat_item:
           {
             match Ast.parse_simple_or_pointed gi with
             | Ast.Simple value -> Ast.String_item value
-            | Ast.Pointed (s1, s2) -> Ast.Qfn_or_lex_item (s1, Ast.to_uname s2)
+            | Ast.Pointed (s1, s2) -> Ast.Qfn_or_lex_item (s1, to_uname s2)
           }
         | s=STRING         { Ast.String_item s }
         | f=FLOAT          { Ast.String_item (Printf.sprintf "%g" f) }

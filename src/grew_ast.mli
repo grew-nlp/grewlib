@@ -13,8 +13,6 @@ open Grew_types
 
 module Ast : sig
 
-  val to_uname: feature_name -> feature_name
-
   (* ---------------------------------------------------------------------- *)
   (* simple_ident: cat or V *)
   type simple_ident = Id.name
