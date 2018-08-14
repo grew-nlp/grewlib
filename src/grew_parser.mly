@@ -220,6 +220,10 @@ gr_item:
         | n1_loc=node_id_with_loc label=delimited(LTR_EDGE_LEFT,label_ident,LTR_EDGE_RIGHT) n2=node_id
             { Graph_edge ({Ast.edge_id = None; src=fst n1_loc; edge_label_cst=Ast.Pos_list [label]; tar=n2}, snd n1_loc) }
 
+        /*   A -["x"]-> B   */
+        | n1_loc=node_id_with_loc label=delimited(LTR_EDGE_LEFT,STRING,LTR_EDGE_RIGHT) n2=node_id
+            { Graph_edge ({Ast.edge_id = None; src=fst n1_loc; edge_label_cst=Ast.Pos_list [label]; tar=n2}, snd n1_loc) }
+
 /*=============================================================================================*/
 /*  DOMAIN DEFINITION                                                                          */
 /*=============================================================================================*/
@@ -344,6 +348,10 @@ pat_item:
         | id_loc=simple_id_with_loc DDOT n1=simple_id LTR_EDGE_LEFT re=REGEXP LTR_EDGE_RIGHT n2=simple_id
             { let (id,loc) = id_loc in Pat_edge ({Ast.edge_id = Some id; src=n1; edge_label_cst=Ast.Regexp re; tar=n2}, loc) }
 
+        /*   e: A -["string"]-> B   */
+        | id_loc=simple_id_with_loc DDOT n1=simple_id LTR_EDGE_LEFT s=STRING LTR_EDGE_RIGHT n2=simple_id
+            { let (id,loc) = id_loc in Pat_edge ({Ast.edge_id = Some id; src=n1; edge_label_cst=Ast.Pos_list [s]; tar=n2}, loc) }
+
         /*   A -> B   */
         | n1_loc=simple_id_with_loc EDGE n2=simple_id
             { let (n1,loc) = n1_loc in Pat_edge ({Ast.edge_id = None; src=n1; edge_label_cst=Ast.Neg_list []; tar=n2}, loc) }
@@ -375,6 +383,10 @@ pat_item:
         /*   A -[re"regexp"]-> B   */
         | n1_loc=simple_id_with_loc LTR_EDGE_LEFT re=REGEXP LTR_EDGE_RIGHT n2=simple_id
             { let (n1,loc) = n1_loc in Pat_edge ({Ast.edge_id = None; src=n1; edge_label_cst=Ast.Regexp re; tar=n2}, loc) }
+
+        /*   A -["string"]-> B   */
+        | n1_loc=simple_id_with_loc LTR_EDGE_LEFT s=STRING LTR_EDGE_RIGHT n2=simple_id
+            { let (n1,loc) = n1_loc in Pat_edge ({Ast.edge_id = None; src=n1; edge_label_cst=Ast.Pos_list [s]; tar=n2}, loc) }
 
         /*   A -[^X|Y]-> *   */
         | n1_loc=simple_id_with_loc labels=delimited(LTR_EDGE_LEFT_NEG,separated_nonempty_list(PIPE,pattern_label_ident),LTR_EDGE_RIGHT) STAR
