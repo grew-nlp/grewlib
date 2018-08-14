@@ -132,7 +132,11 @@ module Lexicon = struct
         let rec loop = function
           | [] -> []
           | (linenum, line)::tail ->
-            let items = Str.split (Str.regexp "\t") line in
+            let norm_line =
+              if String.length line > 1 && line.[0] = '\\' && line.[1] = '%'
+              then String_.rm_first_char line
+              else line in
+            let items = Str.split (Str.regexp "\t") norm_line in
             if List.length items <> l then
               begin
                 let loc = Loc.set_line linenum loc in
