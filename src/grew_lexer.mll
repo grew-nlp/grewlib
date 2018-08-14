@@ -210,7 +210,7 @@ and standard target = parse
 
 | digit+ ('.' digit*)? as number  { FLOAT (float_of_string number) }
 
-| '$' general_ident      { raise (Error "Syntax of lexicon has changed! Please read grew.fr/lexicons for undating instructions") }
+| '$' general_ident      { raise (Error "Syntax of lexicon has changed! Please read grew.fr/lexicons_change for updating instructions") }
 | '@' general_ident as cmd_var     { AROBAS_ID cmd_var }
 | "@#" color as col        { COLOR col }
 

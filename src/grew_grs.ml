@@ -439,7 +439,7 @@ module Grs = struct
 
   (* functions [wrd_intern_simple_rewrite] and [wrd_strat_simple_rewrite] computes
      one normal form and output the data needed for rew_display production.
-     output = list of ... tranformed later into rew_display by [build_rew_display_from_linear_rd]
+     output = list of ... transformed later into rew_display by [build_rew_display_from_linear_rd]
      [iter_flag] is set to true when rules application should be put together (in the old modules style).
   *)
   let rec wrd_intern_simple_rewrite ?domain iter_flag pointed strat_name linear_rd =
