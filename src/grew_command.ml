@@ -239,7 +239,6 @@ module Command  = struct
           check_node_id loc node_id kni;
           let items = List.map
             (function
-              (* TODO update code for new lexicon *)
               | Ast.Qfn_or_lex_item (node_id_or_lex,feature_name_or_lex_field) ->
                 if List.mem_assoc node_id_or_lex lexicons
                 then
@@ -259,8 +258,7 @@ module Command  = struct
             (match items with
               | _ when Domain.is_open_feature ?domain feat_name -> ()
               | [String s] -> Domain.check_feature ~loc ?domain feat_name s
-              | [Feat (_,fn)] -> ()
-              | _ -> Error.build ~loc "[Update_feat] Only open features can be modified with the concat operator '+' but \"%s\" is not declared as an open feature" feat_name);
+              | _ -> ());
           ((UPDATE_FEAT (cn_of_node_id node_id, feat_name, items), loc), (kni, kei))
 
 end (* module Command *)
