@@ -1183,8 +1183,9 @@ module Rule = struct
           | None when !Global.safe_commands ->
             Error.run "ADD_EDGE: the edge '%s' already exists %s"
             (G_edge.to_string ?domain edge) (Loc.to_string loc)
-          | None -> gwh
+          | None -> Graph_with_history_set.singleton gwh
           | Some new_graph ->
+            Graph_with_history_set.singleton
               {gwh with
                 Graph_with_history.graph = new_graph;
                 delta = Delta.add_edge src_gid edge tar_gid gwh.Graph_with_history.delta;
@@ -1203,8 +1204,8 @@ module Rule = struct
           | None when !Global.safe_commands ->
             Error.run "ADD_EDGE_EXPL: the edge '%s' already exists %s"
             (G_edge.to_string ?domain edge) (Loc.to_string loc)
-          | None -> gwh
-          | Some new_graph ->
+          | None -> Graph_with_history_set.singleton gwh
+          | Some new_graph -> Graph_with_history_set.singleton
               {gwh with
                 Graph_with_history.graph = new_graph;
                 delta = Delta.add_edge src_gid edge tar_gid gwh.Graph_with_history.delta;
@@ -1218,8 +1219,8 @@ module Rule = struct
         | None when !Global.safe_commands ->
           Error.run "DEL_EDGE_EXPL: the edge '%s' does not exist %s"
           (G_edge.to_string ?domain edge) (Loc.to_string loc)
-        | None -> gwh
-        | Some new_graph ->
+        | None -> Graph_with_history_set.singleton gwh
+        | Some new_graph -> Graph_with_history_set.singleton
          {gwh with
             Graph_with_history.graph = new_graph;
             delta = Delta.del_edge src_gid edge tar_gid gwh.Graph_with_history.delta;
@@ -1231,8 +1232,8 @@ module Rule = struct
           with Not_found -> Error.bug "The edge identifier '%s' is undefined %s" edge_ident (Loc.to_string loc) in
           (match G_graph.del_edge ~edge_ident loc gwh.Graph_with_history.graph src_gid edge tar_gid with
         | None when !Global.safe_commands -> Error.run "DEL_EDGE_NAME: the edge '%s' does not exist %s" edge_ident (Loc.to_string loc)
-        | None -> gwh
-        | Some new_graph ->
+        | None -> Graph_with_history_set.singleton gwh
+        | Some new_graph -> Graph_with_history_set.singleton
          {gwh with
             Graph_with_history.graph = new_graph;
             delta = Delta.del_edge src_gid edge tar_gid gwh.Graph_with_history.delta;
@@ -1242,49 +1243,59 @@ module Rule = struct
         let node_gid = node_find node_cn in
         (match G_graph.del_node gwh.Graph_with_history.graph node_gid with
           | None when !Global.safe_commands -> Error.run "DEL_NODE the node does not exist %s" (Loc.to_string loc)
-          | None -> gwh
-          | Some new_graph ->
+          | None -> Graph_with_history_set.singleton gwh
+          | Some new_graph -> Graph_with_history_set.singleton
             { gwh with
               Graph_with_history.graph = new_graph;
               delta = Delta.del_node node_gid gwh.Graph_with_history.delta;
             }
         )
 
-    | Command.UPDATE_FEAT (tar_cn,tar_feat_name, item_list) ->
+    | Command.UPDATE_FEAT (tar_cn, tar_feat_name, item_list) ->
         let tar_gid = node_find tar_cn in
-        let rule_items = List.map
-            (function
-              | Command.Feat (cnode, feat_name) -> Concat_item.Feat (node_find cnode, feat_name)
-              | Command.String s -> Concat_item.String s
+
+        (* a list of possible rule_items is produced: there can be more than one in case of non functional lexicons *)
+        let rule_items_list =
+          List.fold_right
+            (fun item acc -> match item with
+              | Command.Feat (cnode, feat_name) -> List.map (fun x -> Concat_item.Feat (node_find cnode, feat_name)::x) acc
+              | Command.String s -> List.map (fun x -> (Concat_item.String s) :: x) acc
               | Command.Lexical_field (lex_name, field) ->
-                  (try
+                  try
                     let lexicon = List.assoc lex_name matching.l_param in
-                    let v = Lexicon.read field lexicon in
-                    Concat_item.String v
+                    let values = Lexicon.read_all field lexicon in
+                    List.fold_left
+                      (fun acc2 value ->
+                        (List.map (fun x -> (Concat_item.String value) :: x) acc) @ acc2
+                      ) [] values
                    with
                     | Not_found -> Error.run ~loc "UPDATE_FEAT: the lexicon '%s' does not exist" lex_name
                     | Lexicon.Not_functional_lexicon -> Error.run ~loc "UPDATE_FEAT: the lexicon is not functional" lex_name
-                    )
+            ) item_list [[]] in
 
-            ) item_list in
-
-        let (new_graph, new_feature_value) = (* TODO: take value type into account in update_feat *)
-          G_graph.update_feat ~loc gwh.Graph_with_history.graph tar_gid tar_feat_name rule_items in
-        let new_value =
-          if Domain.is_num ?domain tar_feat_name
-          then Float (float_of_string new_feature_value)
-          else String new_feature_value in
-          { gwh with
-            Graph_with_history.graph = new_graph;
-            delta = Delta.set_feat gwh.Graph_with_history.seed tar_gid tar_feat_name (Some new_value) gwh.Graph_with_history.delta;
-          }
+        let new_graphs = List.fold_left
+          (fun acc rule_items ->
+            let (new_graph, new_feature_value) = (* TODO: take value type into account in update_feat *)
+            G_graph.update_feat ~loc gwh.Graph_with_history.graph tar_gid tar_feat_name rule_items in
+            let new_value =
+              if Domain.is_num ?domain tar_feat_name
+              then Float (float_of_string new_feature_value)
+              else String new_feature_value in
+              Graph_with_history_set.add
+                { gwh with
+                  Graph_with_history.graph = new_graph;
+                  delta = Delta.set_feat gwh.Graph_with_history.seed tar_gid tar_feat_name (Some new_value) gwh.Graph_with_history.delta;
+                }
+              acc
+          ) Graph_with_history_set.empty rule_items_list in
+          new_graphs
 
     | Command.DEL_FEAT (tar_cn,feat_name) ->
         let tar_gid = node_find tar_cn in
         (match G_graph.del_feat gwh.Graph_with_history.graph tar_gid feat_name with
           | None when !Global.safe_commands -> Error.run "DEL_FEAT the feat does not exist %s" (Loc.to_string loc)
-          | None -> gwh
-          | Some new_graph -> { gwh with
+          | None -> Graph_with_history_set.singleton gwh
+          | Some new_graph -> Graph_with_history_set.singleton { gwh with
             Graph_with_history.graph = new_graph;
             delta = Delta.set_feat gwh.Graph_with_history.seed tar_gid feat_name None gwh.Graph_with_history.delta;
           }
@@ -1295,7 +1306,7 @@ module Rule = struct
         let tar_gid = node_find tar_cn in
         let (new_graph, del_edges, add_edges) =
         G_graph.shift_in loc src_gid tar_gid (test_locality matching []) label_cst gwh.Graph_with_history.graph in
-          { gwh with
+          Graph_with_history_set.singleton { gwh with
             Graph_with_history.graph = new_graph;
             delta = gwh.Graph_with_history.delta
             |> (List.fold_right (fun (s,e,t) -> Delta.del_edge s e t) del_edges)
@@ -1307,7 +1318,7 @@ module Rule = struct
         let tar_gid = node_find tar_cn in
         let (new_graph, del_edges, add_edges) =
         G_graph.shift_out loc src_gid tar_gid (test_locality matching []) label_cst gwh.Graph_with_history.graph in
-          { gwh with
+          Graph_with_history_set.singleton { gwh with
             Graph_with_history.graph = new_graph;
             delta = gwh.Graph_with_history.delta
             |> (List.fold_right (fun (s,e,t) -> Delta.del_edge s e t) del_edges)
@@ -1319,7 +1330,7 @@ module Rule = struct
         let tar_gid = node_find tar_cn in
         let (new_graph, del_edges, add_edges) =
         G_graph.shift_edges loc src_gid tar_gid (test_locality matching []) label_cst gwh.Graph_with_history.graph in
-          { gwh with
+          Graph_with_history_set.singleton { gwh with
             Graph_with_history.graph = new_graph;
             delta = gwh.Graph_with_history.delta
             |> (List.fold_right (fun (s,e,t) -> Delta.del_edge s e t) del_edges)
@@ -1329,7 +1340,7 @@ module Rule = struct
     | Command.NEW_AFTER (created_name,base_cn) ->
         let base_gid = node_find base_cn in
         let (new_gid,new_graph) = G_graph.add_after base_gid gwh.Graph_with_history.graph in
-          { gwh with
+          Graph_with_history_set.singleton { gwh with
             Graph_with_history.graph = new_graph;
             added_gids = (created_name, new_gid) :: gwh.Graph_with_history.added_gids
           }
@@ -1337,14 +1348,14 @@ module Rule = struct
     | Command.NEW_BEFORE (created_name,base_cn) ->
         let base_gid = node_find base_cn in
         let (new_gid,new_graph) = G_graph.add_before base_gid gwh.Graph_with_history.graph in
-          { gwh with
+          Graph_with_history_set.singleton { gwh with
             Graph_with_history.graph = new_graph;
             added_gids = (created_name, new_gid) :: gwh.Graph_with_history.added_gids
           }
 
     | Command.NEW_NODE (created_name) ->
         let (new_gid,new_graph) = G_graph.add_unordered gwh.Graph_with_history.graph in
-          { gwh with
+          Graph_with_history_set.singleton { gwh with
             Graph_with_history.graph = new_graph;
             added_gids = (created_name, new_gid) :: gwh.Graph_with_history.added_gids
           }
@@ -1356,27 +1367,20 @@ module Rule = struct
     (* Timeout check *)
     (try Timeout.check () with Timeout.Stop -> Error.run "Time out"); *)
 
-    let new_graph_with_history =
-      List.fold_left
-        (fun gwh command ->
-          gwh_apply_command ?domain command gwh matching
-        )
-        graph_with_history
-        rule.commands in
-      new_graph_with_history
-(*
-    let rule_app = {
-      Libgrew_types.rule_name = rule.name;
-      up = match_deco rule.pattern matching;
-      down = down_deco (matching,created_nodes) rule.commands
-    } in
- *)
+  let init = Graph_with_history_set.singleton graph_with_history in
+  List.fold_left
+    (fun gwh_set cmd ->
+        Graph_with_history_set.fold
+          (fun gwh acc ->
+            Graph_with_history_set.union (gwh_apply_command ?domain cmd gwh matching) acc
+          ) gwh_set Graph_with_history_set.empty
+    ) init rule.commands
 
   let gwh_apply ?domain rule graph_with_history =
     let matching_list = match_in_graph ?domain ~lexicons:rule.lexicons rule.pattern graph_with_history.Graph_with_history.graph in
     List.fold_left
       (fun acc matching ->
-        Graph_with_history_set.add (gwh_apply_rule ?domain graph_with_history matching rule) acc
+        Graph_with_history_set.union (gwh_apply_rule ?domain graph_with_history matching rule) acc
       ) Graph_with_history_set.empty matching_list
 
 end (* module Rule *)

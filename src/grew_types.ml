@@ -210,6 +210,11 @@ module Lexicon = struct
     | [one] -> one
     | _ -> raise Not_functional_lexicon
 
+  let read_all head lex =
+    match String_set.elements (projection head lex) with
+    | [] -> Error.bug "[Lexicon.read] a lexicon must not be empty"
+    | l -> l
+
   let get head lex = String_set.choose (projection head lex)
 
   let read_multi head lex =

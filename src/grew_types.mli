@@ -105,6 +105,9 @@ module Lexicon : sig
       * raise [Not_functional_lexicon] if several values are defined *)
   val read: string -> t -> string
 
+  (** [read head lexicon] return the list of [value] of all items having in the [head] column equals to [value] *)
+  val read_all: string -> t -> string list
+
   (** [get head lexicon] return [value] if one items have the [value] in the [head] field *)
   val get: string -> t -> string
 
