@@ -84,7 +84,7 @@ module Lexicon : sig
   (** [load file] build a lexicon from a file.
       The file should contain same data than the ones in the build function
       in separate lines, each line used tabulation as separator *)
-  val load: string -> t
+  val load: Loc.t -> string -> t
 
   (** [reduce headers lexicon] build a smaller lexicon restricted to a subset of columns (defined in [headers]) *)
   val reduce: string list -> t -> t

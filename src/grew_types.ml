@@ -154,10 +154,12 @@ module Lexicon = struct
           let loc = Loc.set_line linenum_h loc in
           Error.build ~loc "[Lexicon.build] the field name \"%s\" is used twice" v
 
-  let load file =
-    let lines = File.read_ln file in
-    let loc = Loc.file file in
-    build loc lines
+  let load loc file =
+    try
+      let lines = File.read_ln file in
+      let loc = Loc.file file in
+      build loc lines
+    with Sys_error _ -> Error.build ~loc "[Lexicon.load] unable to load file %s" file
 
   let reduce sub_list lexicon =
     let sorted_sub_list = List.sort Pervasives.compare sub_list in

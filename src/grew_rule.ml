@@ -492,8 +492,8 @@ module Rule = struct
   let build_lex loc = function
   | Ast.File filename ->
       if Filename.is_relative filename
-      then Lexicon.load (Filename.concat (Global.get_dir ()) filename)
-      else Lexicon.load filename
+      then Lexicon.load loc (Filename.concat (Global.get_dir ()) filename)
+      else Lexicon.load loc filename
   | Ast.Final (line_list) -> Lexicon.build loc line_list
 
 
