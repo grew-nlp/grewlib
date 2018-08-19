@@ -1146,6 +1146,7 @@ module Grs = struct
   type linear_rd = {
     graph: G_graph.t;
     steps: (string * G_graph.t * Libgrew_types.big_step) list;
+    know_normal_form: bool;
   }
 
   let wrd_pack_rewrite ?domain decl_list graph_with_big_step =
@@ -1178,19 +1179,31 @@ module Grs = struct
       begin
         match Rule.wrd_apply ?domain r (linear_rd.graph, None) with
           | None -> None
-          | Some (new_graph, big_step) -> Some {steps = (Rule.get_name r, linear_rd.graph, big_step) :: linear_rd.steps; graph = new_graph}
+          | Some (new_graph, big_step) -> Some {
+              steps = (Rule.get_name r, linear_rd.graph, big_step) :: linear_rd.steps;
+              graph = new_graph;
+              know_normal_form=false
+            }
       end
     | Some (Package (name, decl_list), _) when iter_flag ->
       begin
         match wrd_pack_iter_rewrite ?domain decl_list (linear_rd.graph, None) with
           | None -> None
-          | Some (new_graph, big_step) -> Some {steps = (name, linear_rd.graph, big_step) :: linear_rd.steps; graph = new_graph}
+          | Some (new_graph, big_step) -> Some {
+              steps = (name, linear_rd.graph, big_step) :: linear_rd.steps;
+              graph = new_graph;
+              know_normal_form = true;
+            }
       end
     | Some (Package (name, decl_list), _) ->
       begin
         match wrd_pack_rewrite ?domain decl_list (linear_rd.graph, None) with
           | None -> None
-          | Some (new_graph, big_step) -> Some {steps = (name, linear_rd.graph, big_step) :: linear_rd.steps; graph = new_graph}
+          | Some (new_graph, big_step) -> Some {
+            steps = (name, linear_rd.graph, big_step) :: linear_rd.steps;
+            graph = new_graph;
+            know_normal_form = true;
+          }
       end
     | Some (Strategy (_,ast_strat), new_pointed) ->
       wrd_strat_simple_rewrite ?domain iter_flag new_pointed ast_strat linear_rd
@@ -1222,7 +1235,8 @@ module Grs = struct
     | New_ast.Onf sub_strat ->
       begin
         match wrd_strat_simple_rewrite ?domain true pointed sub_strat linear_rd  with
-        | None -> Some linear_rd
+        | None -> Some {linear_rd with know_normal_form = true}
+        | Some gwrd when gwrd.know_normal_form -> Some gwrd
         | Some gwrd -> wrd_strat_simple_rewrite ?domain iter_flag pointed strat gwrd
       end
 
@@ -1247,12 +1261,11 @@ module Grs = struct
   let wrd_rewrite grs strat graph =
     let domain = domain grs in
     let casted_graph = G_graph.cast ?domain graph in
-    match wrd_strat_simple_rewrite ?domain false (top grs) (Parser.strategy strat) {graph=casted_graph; steps=[]} with
+    match wrd_strat_simple_rewrite ?domain false (top grs) (Parser.strategy strat) {graph=casted_graph; steps=[]; know_normal_form=false} with
     | None -> Libgrew_types.Leaf graph
     | Some linear_rd -> build_rew_display_from_linear_rd linear_rd
 
 end (* module Grs *)
-
 
 
 
