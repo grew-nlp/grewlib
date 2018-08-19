@@ -1,9 +1,9 @@
 (**********************************************************************************)
 (*    Libcaml-grew - a Graph Rewriting library dedicated to NLP applications      *)
 (*                                                                                *)
-(*    Copyright 2011-2013 Inria, Université de Lorraine                           *)
+(*    Copyright 2011-2018 Inria, Université de Lorraine                           *)
 (*                                                                                *)
-(*    Webpage: http://grew.loria.fr                                               *)
+(*    Webpage: http://grew.fr                                                     *)
 (*    License: CeCILL (see LICENSE folder or "http://www.cecill.info")            *)
 (*    Authors: see AUTHORS file                                                   *)
 (**********************************************************************************)
@@ -21,7 +21,7 @@ module Feature_value: sig
   val build_disj: ?loc:Loc.t -> ?domain: Domain.t -> feature_name -> feature_atom list -> value list
 
   val build_value: ?loc:Loc.t -> ?domain: Domain.t -> feature_name -> feature_atom -> value
-end (* module Feature_domain *)
+end (* module Feature_value *)
 
 
 (* ================================================================================ *)
@@ -76,11 +76,11 @@ module P_fs: sig
 
   val empty: t
 
-  val build: ?domain:Domain.t -> ?pat_vars: string list -> Ast.feature list -> t
+  val build: ?domain:Domain.t -> Lexicons.t -> Ast.feature list -> t
 
   val to_string: t -> string
 
-  val to_dep: ?filter: (string -> bool) -> (string list * string list) -> t -> string
+  val to_dep: ?filter: (string -> bool) -> t -> string
 
   val to_dot: t -> string
 
@@ -88,15 +88,12 @@ module P_fs: sig
 
   exception Fail
 
-  (** [match_ ?param p_fs g_fs] tries to match the pattern fs [p_fs] with the graph fs [g_fs].
-      If [param] is [None], it returns [None] if matching succeeds and else raise [Fail].
-      If [param] is [Some p], it returns [Some p'] if matching succeeds and else raise [Fail].
-   *)
-  val match_: ?param:Lex_par.t -> t -> G_fs.t -> Lex_par.t option
+  (** [match_ ?lexicons p_fs g_fs] tries to match the pattern fs [p_fs] with the graph fs [g_fs]. *)
+  val match_: ?lexicons:Lexicons.t -> t -> G_fs.t -> Lexicons.t
 
   (** [check_position ?parma position pfs] checks wheter [pfs] is compatible with a node at [position].
       It returns [true] iff [pfs] has no requirement about position ok if the requirement is satisfied. *)
-  val check_position: ?param:Lex_par.t -> float option -> t -> bool
+  val check_position: float option -> t -> bool
 
   exception Fail_unif
 

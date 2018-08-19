@@ -1,9 +1,9 @@
 (**********************************************************************************)
 (*    Libcaml-grew - a Graph Rewriting library dedicated to NLP applications      *)
 (*                                                                                *)
-(*    Copyright 2011-2013 Inria, Université de Lorraine                           *)
+(*    Copyright 2011-2018 Inria, Université de Lorraine                           *)
 (*                                                                                *)
-(*    Webpage: http://grew.loria.fr                                               *)
+(*    Webpage: http://grew.fr                                                     *)
 (*    License: CeCILL (see LICENSE folder or "http://www.cecill.info")            *)
 (*    Authors: see AUTHORS file                                                   *)
 (**********************************************************************************)
@@ -21,46 +21,6 @@ open Grew_node
 open Grew_command
 open Grew_graph
 
-(* ================================================================================ *)
-module Instance = struct
-  type t = {
-    graph: G_graph.t;
-    history: Command.h list;
-    rules: string list;
-    big_step: Libgrew_types.big_step option;
-  }
-
-  let swap t =
-    match t.big_step with
-    | None -> t
-    | Some bs -> {t with big_step = Some (Libgrew_types.swap bs) }
-
-  let empty = {graph = G_graph.empty; rules=[]; history=[]; big_step=None; }
-
-  let from_graph graph = {empty with graph}
-
-  let rev_steps t =
-    { t with big_step = match t.big_step with
-      | None -> None
-      | Some bs -> Some {bs with Libgrew_types.small_step = List.rev bs.Libgrew_types.small_step }
-    }
-
-  let refresh t = { empty with graph=t.graph }
-
-  (* comparison is done on the list of commands *)
-  (* only graph rewritten from the same init graph can be "compared" *)
-  let compare t1 t2 = Pervasives.compare t1.history t2.history
-
-  let to_gr t = G_graph.to_gr t.graph
-
-  let to_conll_string t = G_graph.to_conll_string t.graph
-
-  let save_dot_png ?filter ?main_feat base t =
-    ignore (Dot.to_png_file (G_graph.to_dot ?main_feat t.graph) (base^".png"))
-end (* module Instance *)
-
-(* ================================================================================ *)
-module Instance_set = Set.Make (Instance)
 
 (* ================================================================================ *)
 module Rule = struct
@@ -82,6 +42,9 @@ module Rule = struct
     (* *)
     | Feature_eq_cst of Pid.t * string * string
     | Feature_diff_cst of Pid.t * string * string
+    (* *)
+    | Feature_eq_lex of Pid.t * string * (string * string)
+    | Feature_diff_lex of Pid.t * string * (string * string)
     (* *)
     | Feature_eq_float of Pid.t * string * float
     | Feature_diff_float of Pid.t * string * float
@@ -133,6 +96,26 @@ module Rule = struct
         ("value", `String value);
       ]
     ]
+  | Feature_eq_lex (pid,fn,(lex,field)) ->
+    `Assoc ["feature_eq_lex",
+      `Assoc [
+        ("id", `String (Pid.to_string pid));
+        ("feature_name_", `String fn);
+        ("lexicon", `String lex);
+        ("field", `String field);
+      ]
+    ]
+  | Feature_diff_lex (pid,fn,(lex,field)) ->
+    `Assoc ["feature_diff_lex",
+      `Assoc [
+        ("id", `String (Pid.to_string pid));
+        ("feature_name_", `String fn);
+        ("lexicon", `String lex);
+        ("field", `String field);
+      ]
+    ]
+
+
   | Feature_eq_float (pid,fn,value) ->
     `Assoc ["feature_eq_float",
       `Assoc [
@@ -198,7 +181,7 @@ module Rule = struct
       ]
     ]
 
-  let build_pos_constraint ?domain pos_table const =
+  let build_pos_constraint ?domain lexicons pos_table const =
     let pid_of_name loc node_name = Pid.Pos (Id.build ~loc node_name pos_table) in
     match const with
       | (Ast.Cst_out (id,label_cst), loc) ->
@@ -236,6 +219,13 @@ module Rule = struct
         Domain.check_feature_name ?domain ~loc feat_name;
         Feature_diff_cst (pid_of_name loc node_name, feat_name, string)
 
+      | (Ast.Feature_eq_lex ((node_name, feat_name), lf), loc) ->
+        Domain.check_feature_name ?domain ~loc feat_name;
+        Feature_eq_lex (pid_of_name loc node_name, feat_name, lf)
+      | (Ast.Feature_diff_lex ((node_name, feat_name), lf), loc) ->
+        Domain.check_feature_name ?domain ~loc feat_name;
+        Feature_diff_lex (pid_of_name loc node_name, feat_name, lf)
+
       | (Ast.Feature_eq_float ((node_name, feat_name), float), loc) ->
         Domain.check_feature_name ?domain ~loc feat_name;
         Feature_eq_float (pid_of_name loc node_name, feat_name, float)
@@ -249,6 +239,24 @@ module Rule = struct
       | (Ast.Large_prec (id1, id2), loc) ->
         Large_prec (pid_of_name loc id1, pid_of_name loc id2)
 
+      | (Ast.Feature_eq_lex_or_fs ((node_name, feat_name),(node_or_lex, fn_or_field)), loc) ->
+          begin
+            match Id.build_opt node_or_lex pos_table with
+            | None ->
+              Lexicons.check ~loc node_or_lex fn_or_field lexicons;
+              Feature_eq_lex (pid_of_name loc node_name, feat_name, (node_or_lex, fn_or_field))
+            | _ ->  Features_eq (pid_of_name loc node_name, feat_name, pid_of_name loc node_or_lex, fn_or_field)
+          end
+      | (Ast.Feature_diff_lex_or_fs ((node_name, feat_name),(node_or_lex, fn_or_field)), loc) ->
+          begin
+            match Id.build_opt node_or_lex pos_table with
+            | None ->
+              Lexicons.check ~loc node_or_lex fn_or_field lexicons;
+              Feature_diff_lex (pid_of_name loc node_name, feat_name, (node_or_lex, fn_or_field))
+            | _ ->  Features_diseq (pid_of_name loc node_name, feat_name, pid_of_name loc node_or_lex, fn_or_field)
+          end
+
+
   type basic = {
     graph: P_graph.t;
     constraints: const list;
@@ -260,19 +268,19 @@ module Rule = struct
       ("constraints", `List (List.map (const_to_json ?domain) basic.constraints));
     ]
 
-  let build_pos_basic ?domain ?pat_vars basic_ast =
+  let build_pos_basic ?domain lexicons basic_ast =
     let (graph, pos_table) =
-      P_graph.build ?domain ?pat_vars basic_ast.Ast.pat_nodes basic_ast.Ast.pat_edges in
+      P_graph.build ?domain lexicons basic_ast.Ast.pat_nodes basic_ast.Ast.pat_edges in
     (
       {
         graph = graph;
-        constraints = List.map (build_pos_constraint ?domain pos_table) basic_ast.Ast.pat_const
+        constraints = List.map (build_pos_constraint ?domain lexicons pos_table) basic_ast.Ast.pat_const
       },
       pos_table
     )
 
   (* the neg part *)
-  let build_neg_constraint ?domain pos_table neg_table const =
+  let build_neg_constraint ?domain lexicons pos_table neg_table const =
     let pid_of_name loc node_name =
       match Id.build_opt node_name pos_table with
         | Some i -> Pid.Pos i
@@ -321,6 +329,13 @@ module Rule = struct
         Domain.check_feature_name ?domain ~loc feat_name;
         Feature_diff_cst (pid_of_name loc node_name, feat_name, string)
 
+      | (Ast.Feature_eq_lex ((node_name, feat_name), lf), loc) ->
+        Domain.check_feature_name ?domain ~loc feat_name;
+        Feature_eq_lex (pid_of_name loc node_name, feat_name, lf)
+      | (Ast.Feature_diff_lex ((node_name, feat_name), lf), loc) ->
+        Domain.check_feature_name ?domain ~loc feat_name;
+        Feature_diff_lex (pid_of_name loc node_name, feat_name, lf)
+
       | (Ast.Feature_eq_float ((node_name, feat_name), float), loc) ->
         Domain.check_feature_name ?domain ~loc feat_name;
         Feature_eq_float (pid_of_name loc node_name, feat_name, float)
@@ -328,22 +343,38 @@ module Rule = struct
         Domain.check_feature_name ?domain ~loc feat_name;
         Feature_diff_float (pid_of_name loc node_name, feat_name, float)
 
-
       | (Ast.Immediate_prec (id1, id2), loc) ->
         Immediate_prec (pid_of_name loc id1, pid_of_name loc id2)
 
       | (Ast.Large_prec (id1, id2), loc) ->
         Large_prec (pid_of_name loc id1, pid_of_name loc id2)
 
+      | (Ast.Feature_eq_lex_or_fs ((node_name, feat_name),(node_or_lex, fn_or_field)), loc) ->
+          begin
+            match (Id.build_opt node_or_lex pos_table, Id.build_opt node_or_lex neg_table) with
+            | (None, None) ->
+              Lexicons.check ~loc node_or_lex fn_or_field lexicons;
+              Feature_eq_lex (pid_of_name loc node_name, feat_name, (node_or_lex, fn_or_field))
+            | _ ->  Features_eq (pid_of_name loc node_name, feat_name, pid_of_name loc node_or_lex, fn_or_field)
+          end
+      | (Ast.Feature_diff_lex_or_fs ((node_name, feat_name),(node_or_lex, fn_or_field)), loc) ->
+          begin
+            match (Id.build_opt node_or_lex pos_table, Id.build_opt node_or_lex neg_table) with
+            | (None, None) -> Feature_diff_lex (pid_of_name loc node_name, feat_name, (node_or_lex, fn_or_field))
+            | _ ->  Features_diseq (pid_of_name loc node_name, feat_name, pid_of_name loc node_or_lex, fn_or_field)
+          end
+
+
+
   (* It may raise [P_fs.Fail_unif] in case of contradiction on constraints *)
-  let build_neg_basic ?domain ?pat_vars pos_table basic_ast =
+  let build_neg_basic ?domain lexicons pos_table basic_ast =
     let (extension, neg_table) =
-      P_graph.build_extension ?domain ?pat_vars pos_table basic_ast.Ast.pat_nodes basic_ast.Ast.pat_edges in
+      P_graph.build_extension ?domain lexicons pos_table basic_ast.Ast.pat_nodes basic_ast.Ast.pat_edges in
 
     let filters = Pid_map.fold (fun id node acc -> Filter (id, P_node.get_fs node) :: acc) extension.P_graph.old_map [] in
     {
       graph = extension.P_graph.ext_map;
-      constraints = filters @ List.map (build_neg_constraint ?domain pos_table neg_table) basic_ast.Ast.pat_const ;
+      constraints = filters @ List.map (build_neg_constraint ?domain lexicons pos_table neg_table) basic_ast.Ast.pat_const ;
     }
 
   let get_edge_ids basic =
@@ -363,8 +394,7 @@ module Rule = struct
       name: string;
       pattern: pattern;
       commands: Command.t list;
-      param: Lex_par.t option;
-      param_names: (string list * string list);
+      lexicons: Lexicons.t;
       loc: Loc.t;
     }
 
@@ -373,20 +403,13 @@ module Rule = struct
   let get_loc t = t.loc
 
   let to_json ?domain t =
-    let param_json = match t.param with
-    | None -> []
-    | Some lex_par -> [
-      ("pattern_param", `List (List.map (fun x -> `String x) (fst t.param_names)));
-      ("command_param", `List (List.map (fun x -> `String x) (snd t.param_names)));
-      ("lex_par", Lex_par.to_json lex_par);
-    ] in
     `Assoc
     ([
       ("rule_name", `String t.name);
       ("match", basic_to_json ?domain (fst t.pattern));
       ("without", `List (List.map (basic_to_json ?domain) (snd t.pattern)));
       ("commands", `List (List.map (Command.to_json ?domain) t.commands))
-    ] @ param_json
+    ]
     )
 
   (* ====================================================================== *)
@@ -399,7 +422,7 @@ module Rule = struct
       Pid_map.fold
         (fun id node acc ->
           (node, sprintf "  N_%s { word=\"%s\"; subword=\"%s\"}"
-            (Pid.to_id id) (P_node.get_name node) (P_fs.to_dep t.param_names (P_node.get_fs node))
+            (Pid.to_id id) (P_node.get_name node) (P_fs.to_dep (P_node.get_fs node))
           )
           :: acc
         ) pos_basic.graph [] in
@@ -449,7 +472,7 @@ module Rule = struct
     Buffer.contents buff
 
   (* ====================================================================== *)
-  let build_commands ?domain ?param pos pos_table ast_commands =
+  let build_commands ?domain lexicons pos pos_table ast_commands =
     let known_node_ids = Array.to_list pos_table in
     let known_edge_ids = get_edge_ids pos in
 
@@ -459,64 +482,34 @@ module Rule = struct
           let (command, (new_kni, new_kei)) =
             Command.build
               ?domain
-              ?param
+              lexicons
               (kni,kei)
               pos_table
               ast_command in
           command :: (loop (new_kni,new_kei) tail) in
     loop (known_node_ids, known_edge_ids) ast_commands
 
-  (* ====================================================================== *)
-  let parse_vars loc vars =
-    let rec parse_cmd_vars = function
-      | [] -> []
-      | x::t when x.[0] = '@' -> x :: parse_cmd_vars t
-      | x::t -> Error.bug ~loc "Illegal feature definition '%s' in the lexical rule" x in
-    let rec parse_pat_vars = function
-      | [] -> ([],[])
-      | x::t when x.[0] = '@' -> ([],parse_cmd_vars (x::t))
-      | x::t when x.[0] = '$' -> let (pv,cv) = parse_pat_vars t in (x::pv, cv)
-      | x::t -> Error.bug ~loc "Illegal feature definition '%s' in the lexical rule" x in
-    parse_pat_vars vars
+  let build_lex loc = function
+  | Ast.File filename ->
+      if Filename.is_relative filename
+      then Lexicon.load loc (Filename.concat (Global.get_dir ()) filename)
+      else Lexicon.load loc filename
+  | Ast.Final (line_list) -> Lexicon.build loc line_list
+
 
   (* ====================================================================== *)
-  let build ?domain deprecated_dir rule_ast =
-
-    let dir = match rule_ast.Ast.rule_dir with
-    | Some d -> d
-    | None -> deprecated_dir in
-
-    let (param, pat_vars, cmd_vars) =
-      match rule_ast.Ast.param with
-      | None -> (None,[],[])
-      | Some (files,vars) ->
-          let (pat_vars, cmd_vars) = parse_vars rule_ast.Ast.rule_loc vars in
-          let nb_pv = List.length pat_vars in
-          let nb_cv = List.length cmd_vars in
-
-          (* first: load lexical parameters given in the same file at the end of the rule definition *)
-          let local_param = match rule_ast.Ast.lex_par with
-          | None -> None
-          | Some lines -> Some (Lex_par.from_lines ~loc:rule_ast.Ast.rule_loc nb_pv nb_cv lines) in
-
-          (* second: load lexical parameters given in external files *)
-          let full_param = List.fold_left
-            (fun acc file ->
-              match acc with
-              | None -> Some (Lex_par.load ~loc:rule_ast.Ast.rule_loc dir nb_pv nb_cv file)
-              | Some lp -> Some (Lex_par.append (Lex_par.load ~loc:rule_ast.Ast.rule_loc dir nb_pv nb_cv file) lp)
-            ) local_param files in
-
-          (full_param, pat_vars, cmd_vars) in
-
-    (match (param, pat_vars) with
-      | (None, _::_) -> Error.build ~loc:rule_ast.Ast.rule_loc "[Rule.build] Missing lexical parameters in rule \"%s\"" rule_ast.Ast.rule_id
-      | _ -> ()
-    );
+  let build ?domain rule_ast =
+    let lexicons =
+      List.fold_left (fun acc (name,lex) ->
+        try
+          let prev = List.assoc name acc in
+          (name, (Lexicon.union prev (build_lex rule_ast.Ast.rule_loc lex))) :: (List.remove_assoc name acc)
+        with Not_found -> (name, build_lex rule_ast.Ast.rule_loc lex) :: acc
+    ) [] rule_ast.Ast.lexicon_info in
 
     let pattern = Ast.normalize_pattern rule_ast.Ast.pattern in
     let (pos, pos_table) =
-      try build_pos_basic ?domain ~pat_vars pattern.Ast.pat_pos
+      try build_pos_basic ?domain lexicons pattern.Ast.pat_pos
       with P_fs.Fail_unif ->
         Error.build ~loc:rule_ast.Ast.rule_loc
           "[Rule.build] in rule \"%s\": feature structures declared in the \"match\" clause are inconsistent"
@@ -524,7 +517,7 @@ module Rule = struct
     let (negs,_) =
       List.fold_left
       (fun (acc,pos) basic_ast ->
-        try ((build_neg_basic ?domain ~pat_vars pos_table basic_ast) :: acc, pos+1)
+        try ((build_neg_basic ?domain lexicons pos_table basic_ast) :: acc, pos+1)
         with P_fs.Fail_unif ->
           Log.fwarning "In rule \"%s\" [%s], the wihtout number %d cannot be satisfied, it is skipped"
             rule_ast.Ast.rule_id (Loc.to_string rule_ast.Ast.rule_loc) pos;
@@ -533,30 +526,29 @@ module Rule = struct
     {
       name = rule_ast.Ast.rule_id;
       pattern = (pos, negs);
-      commands = build_commands ?domain ~param:(pat_vars,cmd_vars) pos pos_table rule_ast.Ast.commands;
+      commands = build_commands ?domain lexicons pos pos_table rule_ast.Ast.commands;
       loc = rule_ast.Ast.rule_loc;
-      param = param;
-      param_names = (pat_vars,cmd_vars)
+      lexicons;
     }
 
-  let build_pattern ?domain pattern_ast =
+  let build_pattern ?domain ?(lexicons=[]) pattern_ast =
     let n_pattern = Ast.normalize_pattern pattern_ast in
     let (pos, pos_table) =
-      try build_pos_basic ?domain n_pattern.Ast.pat_pos
+      try build_pos_basic ?domain lexicons n_pattern.Ast.pat_pos
       with P_fs.Fail_unif -> Error.build "feature structures declared in the \"match\" clause are inconsistent " in
     let negs =
       List_.try_map
         P_fs.Fail_unif (* Skip the without parts that are incompatible with the match part *)
-        (fun basic_ast -> build_neg_basic ?domain pos_table basic_ast)
+        (fun basic_ast -> build_neg_basic ?domain lexicons pos_table basic_ast)
         n_pattern.Ast.pat_negs in
     (pos, negs)
 
   (* ====================================================================== *)
   type matching = {
-      n_match: Gid.t Pid_map.t;                     (* partial fct: pattern nodes |--> graph nodes *)
-      e_match: (string*(Gid.t*Label.t*Gid.t)) list; (* edge matching: edge ident  |--> (src,label,tar) *)
-      m_param: Lex_par.t option;
-    }
+    n_match: Gid.t Pid_map.t;                     (* partial fct: pattern nodes |--> graph nodes *)
+    e_match: (string*(Gid.t*Label.t*Gid.t)) list; (* edge matching: edge ident  |--> (src,label,tar) *)
+    l_param: Lexicons.t;                          (* *)
+  }
 
   let to_python pattern graph m =
     let node_name gid = G_node.get_name gid (G_graph.find gid graph) in
@@ -567,17 +559,17 @@ module Rule = struct
     let edges = List.map (fun (id, (src,lab,tar)) ->
       (id, `String (sprintf "%s/%s/%s" (node_name src) (Label.to_string lab) (node_name tar)))
       ) m.e_match in
-    `Assoc ( nodes @ edges)
+    `Assoc (nodes @ edges)
 
   let node_matching pattern graph { n_match } =
     Pid_map.fold
       (fun pid gid acc ->
         let pnode = P_graph.find pid (fst pattern).graph in
         let gnode = G_graph.find gid graph in
-        (P_node.get_name pnode, G_node.get_float gnode) :: acc
+        (P_node.get_name pnode, G_node.get_name gid gnode) :: acc
       ) n_match []
 
-  let empty_matching param = { n_match = Pid_map.empty; e_match = []; m_param = param;}
+  let empty_matching ?(lexicons=[]) () = { n_match = Pid_map.empty; e_match = []; l_param = lexicons;}
 
   let e_comp (e1,_) (e2,_) = compare e1 e2
 
@@ -642,7 +634,7 @@ module Rule = struct
            - the ?domain of the pattern P is the disjoint union of ?domain([sub]) and [unmatched_nodes]
          *)
   (*  ---------------------------------------------------------------------- *)
-  let init param basic =
+  let init ?lexicons basic =
     let roots = P_graph.roots basic.graph in
 
     let node_list = Pid_map.fold (fun pid _ acc -> pid::acc) basic.graph [] in
@@ -654,8 +646,8 @@ module Rule = struct
         | true, false -> -1
         | false, true -> 1
         | _ -> 0) node_list in
-
-    { sub = empty_matching param;
+    {
+      sub = empty_matching ?lexicons ();
       unmatched_nodes = sorted_node_list;
       unmatched_edges = [];
       already_matched_gids = [];
@@ -701,8 +693,8 @@ module Rule = struct
           try
             let gid = Pid_map.find pid matching.n_match in
             let gnode = G_graph.find gid graph in
-            let new_param = P_fs.match_ ?param:matching.m_param fs (G_node.get_fs gnode) in
-            {matching with m_param = new_param }
+            let new_param = P_fs.match_ ~lexicons:(matching.l_param) fs (G_node.get_fs gnode) in
+            {matching with l_param = new_param }
           with P_fs.Fail -> raise Fail
         end
       | Features_eq (pid1, feat_name1, pid2, feat_name2) ->
@@ -780,6 +772,28 @@ module Rule = struct
           if G_node.get_position gnode1 < G_node.get_position gnode2
           then matching
           else raise Fail
+      | Feature_eq_lex (pid, feature_name, (lexicon,field)) ->
+        begin
+          match get_string_feat pid feature_name with
+          | None -> raise Fail
+          | Some v ->
+              let old_lex = List.assoc lexicon matching.l_param in
+              match Lexicon.select field v old_lex with
+              | None -> raise Fail
+              | Some new_lex -> {matching with l_param = (lexicon, new_lex) :: (List.remove_assoc lexicon matching.l_param) }
+        end
+
+      | Feature_diff_lex (pid, feature_name, (lexicon,field)) ->
+        begin
+          match get_string_feat pid feature_name with
+          | None -> raise Fail
+          | Some v ->
+              let old_lex = List.assoc lexicon matching.l_param in
+              match Lexicon.unselect field v old_lex with
+              | None -> raise Fail
+              | Some new_lex -> {matching with l_param = (lexicon, new_lex) :: (List.remove_assoc lexicon matching.l_param) }
+        end
+
 
   (*  ---------------------------------------------------------------------- *)
   (* returns all extension of the partial input matching *)
@@ -857,7 +871,7 @@ module Rule = struct
       let g_node = try G_graph.find gid graph with Not_found -> Error.bug "[extend_matching_from] cannot find gid in graph" in
 
       try
-        let new_param = P_node.match_ ?param: partial.sub.m_param p_node g_node in
+        let new_lex_set = P_node.match_ ~lexicons:partial.sub.l_param p_node g_node in
         (* add all out-edges from pid in pattern *)
         let new_unmatched_edges =
           Massoc_pid.fold
@@ -869,7 +883,7 @@ module Rule = struct
             unmatched_nodes = (try List_.rm pid partial.unmatched_nodes with Not_found -> Error.bug "[extend_matching_from] cannot find pid in unmatched_nodes");
             unmatched_edges = new_unmatched_edges;
             already_matched_gids = gid :: partial.already_matched_gids;
-            sub = {partial.sub with n_match = Pid_map.add pid gid partial.sub.n_match; m_param = new_param};
+            sub = {partial.sub with n_match = Pid_map.add pid gid partial.sub.n_match; l_param = new_lex_set};
           } in
         extend_matching ?domain (positive,neg) graph new_partial
       with P_fs.Fail -> []
@@ -879,235 +893,6 @@ module Rule = struct
   let test_locality matching created_nodes gid =
     (Pid_map.exists (fun _ id -> id=gid) matching.n_match) || (List.exists (fun (_,id) -> id=gid) created_nodes)
 
-  (*  ---------------------------------------------------------------------- *)
-  (** [apply_command instance matching created_nodes command] returns [(new_instance, new_created_nodes)] *)
-  let apply_command ?domain (command,loc) instance matching created_nodes =
-    let node_find cnode = find ~loc cnode (matching, created_nodes) in
-
-    match command with
-    | Command.ADD_EDGE (src_cn,tar_cn,edge) ->
-        let src_gid = node_find src_cn in
-        let tar_gid = node_find tar_cn in
-        begin
-          match G_graph.add_edge instance.Instance.graph src_gid edge tar_gid with
-          | Some new_graph ->
-              (
-               {instance with
-                Instance.graph = new_graph;
-                history = List_.sort_insert (Command.H_ADD_EDGE (src_gid,tar_gid,edge)) instance.Instance.history
-              },
-               created_nodes
-              )
-          | None when !Global.safe_commands ->
-              Error.run "ADD_EDGE: the edge '%s' already exists %s" (G_edge.to_string ?domain edge) (Loc.to_string loc)
-          | None -> (instance, created_nodes)
-        end
-
-    | Command.ADD_EDGE_EXPL (src_cn,tar_cn,edge_ident) ->
-        let src_gid = node_find src_cn in
-        let tar_gid = node_find tar_cn in
-        let (_,edge,_) =
-          try List.assoc edge_ident matching.e_match
-          with Not_found -> Error.bug "The edge identifier '%s' is undefined %s" edge_ident (Loc.to_string loc) in
-
-        begin
-          match G_graph.add_edge instance.Instance.graph src_gid edge tar_gid with
-          | Some new_graph ->
-              (
-               {instance with
-                Instance.graph = new_graph;
-                history = List_.sort_insert (Command.H_ADD_EDGE_EXPL (src_gid,tar_gid,edge_ident)) instance.Instance.history
-              },
-               created_nodes
-              )
-          | None when !Global.safe_commands ->
-              Error.run "ADD_EDGE_EXPL: the edge '%s' already exists %s" (G_edge.to_string ?domain edge) (Loc.to_string loc)
-          | None -> (instance, created_nodes)
-
-        end
-
-    | Command.DEL_EDGE_EXPL (src_cn,tar_cn,edge) ->
-        let src_gid = node_find src_cn in
-        let tar_gid = node_find tar_cn in
-        (match G_graph.del_edge loc instance.Instance.graph src_gid edge tar_gid with
-          | None when !Global.safe_commands -> Error.run "DEL_EDGE_EXPL: the edge '%s' does not exist %s" (G_edge.to_string ?domain edge) (Loc.to_string loc)
-          | None -> (instance, created_nodes)
-          | Some new_graph ->
-          (
-            {instance with
-              Instance.graph = new_graph;
-              history = List_.sort_insert (Command.H_DEL_EDGE_EXPL (src_gid,tar_gid,edge)) instance.Instance.history
-              },
-              created_nodes
-              )
-        )
-
-    | Command.DEL_EDGE_NAME edge_ident ->
-        let (src_gid,edge,tar_gid) =
-          try List.assoc edge_ident matching.e_match
-          with Not_found -> Error.bug "The edge identifier '%s' is undefined %s" edge_ident (Loc.to_string loc) in
-          (match G_graph.del_edge ~edge_ident loc instance.Instance.graph src_gid edge tar_gid with
-          | None -> Error.bug "DEL_EDGE_NAME"
-          | Some new_graph ->
-        (
-         {instance with
-          Instance.graph = new_graph;
-          history = List_.sort_insert (Command.H_DEL_EDGE_EXPL (src_gid,tar_gid,edge)) instance.Instance.history
-        },
-         created_nodes
-        ))
-
-    | Command.DEL_NODE node_cn ->
-        let node_gid = node_find node_cn in
-        (match G_graph.del_node instance.Instance.graph node_gid with
-        | None when !Global.safe_commands -> Error.run "DEL_NODE: the node does not exist %s" (Loc.to_string loc)
-        | None -> (instance, created_nodes)
-        | Some new_graph ->
-        (
-         {instance with
-          Instance.graph = new_graph;
-          history = List_.sort_insert (Command.H_DEL_NODE node_gid) instance.Instance.history
-        },
-         created_nodes
-        )
-        )
-    | Command.UPDATE_FEAT (tar_cn,tar_feat_name, item_list) ->
-        let tar_gid = node_find tar_cn in
-        let rule_items = List.map
-            (function
-              | Command.Feat (cnode, feat_name) -> Concat_item.Feat (node_find cnode, feat_name)
-              | Command.String s -> Concat_item.String s
-              | Command.Param_out index ->
-                  (match matching.m_param with
-                  | None -> Error.bug "Cannot apply a UPDATE_FEAT command without parameter"
-                  | Some param -> Concat_item.String (Lex_par.get_command_value index param))
-              | Command.Param_in index ->
-                  (match matching.m_param with
-                  | None -> Error.bug "Cannot apply a UPDATE_FEAT command without parameter"
-                  | Some param -> Concat_item.String (Lex_par.get_param_value index param))
-            ) item_list in
-
-        let (new_graph, new_feature_value) =
-          G_graph.update_feat ~loc instance.Instance.graph tar_gid tar_feat_name rule_items in
-        (
-         {instance with
-          Instance.graph = new_graph;
-          history = List_.sort_insert (Command.H_UPDATE_FEAT (tar_gid,tar_feat_name,new_feature_value)) instance.Instance.history
-        },
-         created_nodes
-        )
-
-    | Command.DEL_FEAT (tar_cn,feat_name) ->
-        let tar_gid = node_find tar_cn in
-        (match G_graph.del_feat instance.Instance.graph tar_gid feat_name with
-        | None when !Global.safe_commands -> Error.run "DEL_FEAT: the feat does not exist %s" (Loc.to_string loc)
-        | None ->
-          Log.fwarning "DEL_FEAT: the feat does not exist %s" (Loc.to_string loc);
-          (instance, created_nodes)
-        | Some new_graph ->
-        (
-         {instance with
-          Instance.graph = new_graph;
-          history = List_.sort_insert (Command.H_DEL_FEAT (tar_gid,feat_name)) instance.Instance.history
-        },
-         created_nodes
-        ))
-
-    | Command.NEW_AFTER (created_name,base_cn) ->
-        let base_gid = node_find base_cn in
-        let (new_gid,new_graph) = G_graph.add_after base_gid instance.Instance.graph in
-        (
-         {instance with
-          Instance.graph = new_graph;
-          history = List_.sort_insert (Command.H_NEW_AFTER (created_name,base_gid)) instance.Instance.history;
-        },
-         (created_name,new_gid) :: created_nodes
-        )
-
-    | Command.NEW_NODE (created_name) ->
-        let (new_gid,new_graph) = G_graph.add_unordered instance.Instance.graph in
-        (
-         {instance with
-          Instance.graph = new_graph;
-          history = List_.sort_insert (Command.H_NEW_NODE created_name) instance.Instance.history;
-        },
-         (created_name,new_gid) :: created_nodes
-        )
-
-    | Command.NEW_BEFORE (created_name,base_cn) ->
-        let base_gid = node_find base_cn in
-        let (new_gid,new_graph) = G_graph.add_before base_gid instance.Instance.graph in
-        (
-         {instance with
-          Instance.graph = new_graph;
-          history = List_.sort_insert (Command.H_NEW_BEFORE (created_name,base_gid)) instance.Instance.history;
-        },
-         (created_name,new_gid) :: created_nodes
-        )
-
-    | Command.SHIFT_IN (src_cn,tar_cn,label_cst) ->
-        let src_gid = node_find src_cn in
-        let tar_gid = node_find tar_cn in
-        let (new_graph, _, _) = G_graph.shift_in loc src_gid tar_gid (test_locality matching created_nodes) label_cst instance.Instance.graph in
-        (
-         {instance with
-          Instance.graph = new_graph;
-          history = List_.sort_insert (Command.H_SHIFT_IN (src_gid,tar_gid)) instance.Instance.history
-        },
-         created_nodes
-        )
-
-    | Command.SHIFT_OUT (src_cn,tar_cn,label_cst) ->
-        let src_gid = node_find src_cn in
-        let tar_gid = node_find tar_cn in
-        let (new_graph, _, _) = G_graph.shift_out loc src_gid tar_gid (test_locality matching created_nodes) label_cst instance.Instance.graph in
-        (
-         {instance with
-          Instance.graph = new_graph;
-          history = List_.sort_insert (Command.H_SHIFT_OUT (src_gid,tar_gid)) instance.Instance.history
-        },
-         created_nodes
-        )
-
-    | Command.SHIFT_EDGE (src_cn,tar_cn,label_cst) ->
-        let src_gid = node_find src_cn in
-        let tar_gid = node_find tar_cn in
-        let (new_graph, _, _) = G_graph.shift_edges loc src_gid tar_gid (test_locality matching created_nodes) label_cst instance.Instance.graph in
-        (
-          {instance with
-            Instance.graph = new_graph;
-            history = List_.sort_insert (Command.H_SHIFT_EDGE (src_gid,tar_gid)) instance.Instance.history
-          },
-          created_nodes
-        )
-
-  (*  ---------------------------------------------------------------------- *)
-  (** [apply_rule instance matching rule] returns a new instance after the application of the rule *)
-  let apply_rule ?domain instance matching rule =
-
-    (* Timeout check *)
-    (try Timeout.check () with Timeout.Stop -> Error.run "Time out");
-
-    let (new_instance, created_nodes) =
-      List.fold_left
-        (fun (instance, created_nodes) command ->
-          apply_command ?domain command instance matching created_nodes
-        )
-        (instance, [])
-        rule.commands in
-
-    let rule_app = {
-      Libgrew_types.rule_name = rule.name;
-      up = match_deco rule.pattern matching;
-      down = down_deco (matching,created_nodes) rule.commands
-    } in
-
-    {new_instance with
-      Instance.rules = rule.name :: new_instance.Instance.rules;
-      big_step = match new_instance.Instance.big_step with
-        | None -> Some { Libgrew_types.first = rule_app; small_step = [] }
-        | Some bs -> Some { bs with Libgrew_types.small_step = (instance.Instance.graph, rule_app) :: bs.Libgrew_types.small_step }
-    }
 
   (*  ---------------------------------------------------------------------- *)
   let update_partial pos_graph without (sub, already_matched_gids) =
@@ -1149,17 +934,18 @@ module Rule = struct
     | _ -> false
 
   (*  ---------------------------------------------------------------------- *)
-  let match_in_graph ?domain ?param (pos, negs) graph =
+  let match_in_graph ?domain ?lexicons (pos, negs) graph =
     let casted_graph = G_graph.cast ?domain graph in
     let pos_graph = pos.graph in
 
     (* get the list of partial matching for positive part of the pattern *)
     let matching_list =
+
       extend_matching
         ?domain
         (pos_graph,P_graph.empty)
         casted_graph
-        (init param pos) in
+        (init ?lexicons pos) in
 
     let filtered_matching_list =
       List.filter
@@ -1173,194 +959,6 @@ module Rule = struct
         ) matching_list in
 
     List.map fst filtered_matching_list
-
-  (*  ---------------------------------------------------------------------- *)
-  (** [one_step ?domain instance rules] computes the list of one-step reduct with rules *)
-  let one_step ?domain instance rules =
-
-    (* limit the rewriting depth to avoid looping rewriting *)
-    if List.length instance.Instance.rules >= !max_depth_non_det
-    then
-      if !debug_loop
-      then Instance_set.empty
-      else Error.run "max depth %d reached, last rules applied: …, %s"
-           !max_depth_non_det (List_.rev_to_string (fun x->x) ", " (List_.cut 5 instance.Instance.rules))
-    else
-      List.fold_left
-        (fun acc rule ->
-          let matching_list = match_in_graph ?domain ?param:rule.param rule.pattern instance.Instance.graph in
-          List.fold_left
-            (fun acc1 matching ->
-              Instance_set.add (apply_rule ?domain instance matching rule) acc1
-            ) acc matching_list
-        ) Instance_set.empty rules
-
-
-
-
-
-  (*  ---------------------------------------------------------------------- *)
-  (** [conf_one_step ?domain modul_name instance rules] computes one Some (one-step reduct) with rules, None if no rule apply *)
-  let rec conf_one_step ?domain (instance : Instance.t) rules =
-
-    (* limit the rewriting depth to avoid looping rewriting *)
-    if List.length instance.Instance.rules >= !max_depth_det
-    then
-      if !debug_loop
-      then None
-      else Error.run "max depth %d reached, last rules applied: …, %s"
-           !max_depth_det (List_.rev_to_string (fun x->x) ", " (List_.cut 5 instance.Instance.rules))
-    else
-    match rules with
-      | [] -> None
-      | rule::rule_tail ->
-        let (pos,negs) = rule.pattern in
-        (* get the list of partial matching for positive part of the pattern *)
-        let matching_list =
-          extend_matching
-            ?domain
-            (pos.graph,P_graph.empty)
-            instance.Instance.graph
-            (init rule.param pos) in
-        try
-          let (first_matching_where_all_witout_are_fulfilled,_) =
-            List.find
-              (fun (sub, already_matched_gids) ->
-                List.for_all
-                  (fun neg ->
-                    let new_partial_matching = update_partial pos.graph neg (sub, already_matched_gids) in
-                    fulfill ?domain (pos.graph,neg.graph) instance.Instance.graph new_partial_matching
-                  ) negs
-              ) matching_list in
-          Some (apply_rule ?domain instance first_matching_where_all_witout_are_fulfilled rule)
-        with Not_found -> (* try another rule *) conf_one_step ?domain instance rule_tail
-
-  (* ---------------------------------------------------------------------- *)
-  (** filter nfs being equal *)
-  let rec filter_equal_nfs nfs =
-    Instance_set.fold
-      (fun nf acc ->
-        if Instance_set.exists (fun e -> G_graph.equals e.Instance.graph nf.Instance.graph) acc
-        then acc
-        else Instance_set.add nf acc
-      ) nfs Instance_set.empty
-
-  (* ---------------------------------------------------------------------- *)
-  (** normalize [t] according to the [rules]. [t] is a raw graph
-    Info about the commands applied on [t] are kept *)
-  (* type: Instance.t -> t list -> Instance_set.t *)
-  let normalize_instance ?domain modul_name instance rules =
-    let rec loop to_do_set nf_set =
-      if to_do_set = Instance_set.empty
-      then nf_set
-      else
-        let (new_to_do_set,new_nf_set) =
-          Instance_set.fold
-            (fun v (to_do_set_acc,nf_set_acc) ->
-              match Instance_set.elements (one_step ?domain v rules) with
-                | [] -> (to_do_set_acc,Instance_set.add (Instance.rev_steps v) nf_set_acc)
-                | step_of_v -> (List.fold_left (fun acc v1 -> Instance_set.add v1 acc) to_do_set_acc step_of_v, nf_set_acc)
-            )
-            to_do_set (Instance_set.empty,nf_set) in
-        loop new_to_do_set new_nf_set in
-
-    let nfs = loop (Instance_set.singleton instance) Instance_set.empty in
-    let reduced_nfs = filter_equal_nfs nfs in
-
-    let reduced_nfs_card = Instance_set.cardinal reduced_nfs in
-    let nfs_card = Instance_set.cardinal nfs in
-    if reduced_nfs_card < nfs_card
-    then Log.fwarning "In module \"%s\", %d nf are produced, only %d different ones" modul_name nfs_card reduced_nfs_card;
-    reduced_nfs
-
-  (* ---------------------------------------------------------------------- *)
-  let rec conf_normalize ?domain instance rules =
-    match conf_one_step ?domain instance rules with
-    | Some new_instance -> conf_normalize ?domain new_instance rules
-    | None -> Instance.rev_steps instance
-
-  (* ---------------------------------------------------------------------- *)
-  let normalize ?domain modul_name ?(deterministic=false) rules instance =
-    if deterministic
-    then Instance_set.singleton (conf_normalize ?domain instance rules)
-    else normalize_instance ?domain modul_name instance rules
-
-
-
-  let apply ?domain rule instance =
-  (* limit the rewriting depth to avoid looping rewriting *)
-  if List.length instance.Instance.rules >= !max_depth_non_det
-  then
-    if !debug_loop
-    then Instance_set.empty
-    else Error.run "max depth %d reached, last rules applied: …, %s"
-      !max_depth_non_det (List_.rev_to_string (fun x->x) ", " (List_.cut 5 instance.Instance.rules))
-  else
-    let matching_list = match_in_graph ?domain ?param:rule.param rule.pattern instance.Instance.graph in
-    List.fold_left
-      (fun acc matching ->
-        Instance_set.add (apply_rule ?domain instance matching rule) acc
-      ) Instance_set.empty matching_list
-
-
-  let rec det_apply ?domain rule instance =
-    (* limit the rewriting depth to avoid looping rewriting *)
-    if List.length instance.Instance.rules >= !max_depth_det
-      then
-        if !debug_loop
-        then None
-        else Error.run "max depth %d reached, last rules applied: …, %s"
-          !max_depth_det (List_.rev_to_string (fun x->x) ", " (List_.cut 5 instance.Instance.rules))
-        else
-          let (pos,negs) = rule.pattern in
-          (* get the list of partial matching for positive part of the pattern *)
-          let matching_list =
-            extend_matching
-              ?domain
-              (pos.graph,P_graph.empty)
-              instance.Instance.graph
-              (init rule.param pos) in
-          try
-            let (first_matching_where_all_witout_are_fulfilled,_) =
-              List.find
-                (fun (sub, already_matched_gids) ->
-                  List.for_all
-                    (fun neg ->
-                      let new_partial_matching = update_partial pos.graph neg (sub, already_matched_gids) in
-                      fulfill ?domain (pos.graph,neg.graph) instance.Instance.graph new_partial_matching
-                    ) negs
-                ) matching_list in
-            Some (apply_rule ?domain instance first_matching_where_all_witout_are_fulfilled rule)
-          with Not_found -> None
-
-
-
-
-
-
-  (*  ---------------------------------------------------------------------- *)
-  (*  ---------------------------------------------------------------------- *)
-  (*  ---------------------------------------------------------------------- *)
-  (*  ---------------------------------------------------------------------- *)
-  (*  ---------------------------------------------------------------------- *)
-  (*  ---------------------------------------------------------------------- *)
-  (*  ---------------------------------------------------------------------- *)
-  (*  ---------------------------------------------------------------------- *)
-  (*  ---------------------------------------------------------------------- *)
-  (*  ---------------------------------------------------------------------- *)
-  (*  ---------------------------------------------------------------------- *)
-  (*  ---------------------------------------------------------------------- *)
-  (*  ---------------------------------------------------------------------- *)
-  (*  ---------------------------------------------------------------------- *)
-
-
-
-
-
-
-
-
-
 
   let onf_find cnode ?loc (matching, created_nodes) =
     match cnode with
@@ -1436,14 +1034,14 @@ module Rule = struct
             (function
               | Command.Feat (cnode, feat_name) -> Concat_item.Feat (node_find cnode, feat_name)
               | Command.String s -> Concat_item.String s
-              | Command.Param_out index ->
-                  (match matching.m_param with
-                  | None -> Error.bug "Cannot apply a UPDATE_FEAT command without parameter"
-                  | Some param -> Concat_item.String (Lex_par.get_command_value index param))
-              | Command.Param_in index ->
-                  (match matching.m_param with
-                  | None -> Error.bug "Cannot apply a UPDATE_FEAT command without parameter"
-                  | Some param -> Concat_item.String (Lex_par.get_param_value index param))
+              | Command.Lexical_field (lex_name, field) ->
+                  (try
+                    let lexicon = List.assoc lex_name matching.l_param in
+                    let v = Lexicon.get field lexicon in
+                    Concat_item.String v
+                   with
+                    | Not_found -> Error.run ~loc "UPDATE_FEAT: the lexicon '%s' does not exist" lex_name
+                    )
             ) item_list in
 
         let (new_graph, new_feature_value) =
@@ -1498,7 +1096,7 @@ module Rule = struct
           ?domain
           (pos.graph,P_graph.empty)
           graph
-          (init rule.param pos) in
+          (init ~lexicons:rule.lexicons pos) in
           try
             let (first_matching_where_all_witout_are_fulfilled,_) =
               List.find
@@ -1522,17 +1120,6 @@ module Rule = struct
             else None
           with Not_found -> (* raised by List.find, no matching apply *) None
 
-
-
-
-
-
-
-
-
-
-
-
   let rec wrd_apply ?domain rule (graph, big_step_opt) =
     let (pos,negs) = rule.pattern in
     (* get the list of partial matching for positive part of the pattern *)
@@ -1541,7 +1128,7 @@ module Rule = struct
           ?domain
           (pos.graph,P_graph.empty)
           graph
-          (init rule.param pos) in
+          (init ~lexicons:rule.lexicons pos) in
           try
             let (first_matching_where_all_witout_are_fulfilled,_) =
               List.find
@@ -1575,19 +1162,6 @@ module Rule = struct
             then Some (new_graph, new_big_step)
             else None
           with Not_found -> (* raised by List.find, no matching apply *) None
-
-
-
-
-
-
-
-
-
-
-
-
-
 
   let find cnode ?loc gwh matching =
     match cnode with
@@ -1682,14 +1256,16 @@ module Rule = struct
             (function
               | Command.Feat (cnode, feat_name) -> Concat_item.Feat (node_find cnode, feat_name)
               | Command.String s -> Concat_item.String s
-              | Command.Param_out index ->
-                  (match matching.m_param with
-                  | None -> Error.bug "Cannot apply a UPDATE_FEAT command without parameter"
-                  | Some param -> Concat_item.String (Lex_par.get_command_value index param))
-              | Command.Param_in index ->
-                  (match matching.m_param with
-                  | None -> Error.bug "Cannot apply a UPDATE_FEAT command without parameter"
-                  | Some param -> Concat_item.String (Lex_par.get_param_value index param))
+              | Command.Lexical_field (lex_name, field) ->
+                  (try
+                    let lexicon = List.assoc lex_name matching.l_param in
+                    let v = Lexicon.read field lexicon in
+                    Concat_item.String v
+                   with
+                    | Not_found -> Error.run ~loc "UPDATE_FEAT: the lexicon '%s' does not exist" lex_name
+                    | Lexicon.Not_functional_lexicon -> Error.run ~loc "UPDATE_FEAT: the lexicon is not functional" lex_name
+                    )
+
             ) item_list in
 
         let (new_graph, new_feature_value) = (* TODO: take value type into account in update_feat *)
@@ -1796,39 +1372,11 @@ module Rule = struct
     } in
  *)
 
-
-
-
-
-
-
-
-
-
-
-
   let gwh_apply ?domain rule graph_with_history =
-(*
-  (* limit the rewriting depth to avoid looping rewriting *)
-  if List.length instance.Instance.rules >= !max_depth_non_det
-  then
-    if !debug_loop
-    then Instance_set.empty
-    else Error.run "max depth %d reached, last rules applied: …, %s"
-      !max_depth_non_det (List_.rev_to_string (fun x->x) ", " (List_.cut 5 instance.Instance.rules))
-  else
-*)
-    let matching_list = match_in_graph ?domain ?param:rule.param rule.pattern graph_with_history.Graph_with_history.graph in
+    let matching_list = match_in_graph ?domain ~lexicons:rule.lexicons rule.pattern graph_with_history.Graph_with_history.graph in
     List.fold_left
       (fun acc matching ->
         Graph_with_history_set.add (gwh_apply_rule ?domain graph_with_history matching rule) acc
       ) Graph_with_history_set.empty matching_list
-
-
-
-
-
-
-
 
 end (* module Rule *)

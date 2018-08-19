@@ -1,9 +1,9 @@
 (**********************************************************************************)
 (*    Libcaml-grew - a Graph Rewriting library dedicated to NLP applications      *)
 (*                                                                                *)
-(*    Copyright 2011-2013 Inria, Université de Lorraine                           *)
+(*    Copyright 2011-2018 Inria, Université de Lorraine                           *)
 (*                                                                                *)
-(*    Webpage: http://grew.loria.fr                                               *)
+(*    Webpage: http://grew.fr                                                     *)
 (*    License: CeCILL (see LICENSE folder or "http://www.cecill.info")            *)
 (*    Authors: see AUTHORS file                                                   *)
 (**********************************************************************************)
@@ -23,8 +23,7 @@ module Command : sig
   type item =
     | Feat of (command_node * string)
     | String of string
-    | Param_in of int
-    | Param_out of int
+    | Lexical_field of (string * string)
 
   type p =
     | DEL_NODE of command_node
@@ -46,26 +45,10 @@ module Command : sig
   type t = (p * Loc.t)
   val to_json: ?domain:Domain.t -> t -> Yojson.Basic.json
 
-  type h =
-    | H_DEL_NODE of Gid.t
-    | H_DEL_EDGE_EXPL of (Gid.t * Gid.t *G_edge.t)
-    | H_DEL_EDGE_NAME of string
-    | H_ADD_EDGE of (Gid.t * Gid.t * G_edge.t)
-    | H_ADD_EDGE_EXPL of (Gid.t * Gid.t * string)
-    | H_DEL_FEAT of (Gid.t *string)
-    | H_UPDATE_FEAT of (Gid.t * string * string)
-
-    | H_NEW_NODE of string
-    | H_NEW_BEFORE of (string * Gid.t)
-    | H_NEW_AFTER of (string * Gid.t)
-
-    | H_SHIFT_EDGE of (Gid.t * Gid.t)
-    | H_SHIFT_IN of (Gid.t * Gid.t)
-    | H_SHIFT_OUT of (Gid.t * Gid.t)
 
   val build:
       ?domain: Domain.t ->
-      ?param: (string list * string list) ->
+      Lexicons.t ->
       (Id.name list * string list) ->
       Id.table ->
       Ast.command ->

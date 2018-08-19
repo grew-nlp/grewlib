@@ -1,9 +1,9 @@
 (**********************************************************************************)
 (*    Libcaml-grew - a Graph Rewriting library dedicated to NLP applications      *)
 (*                                                                                *)
-(*    Copyright 2011-2013 Inria, Université de Lorraine                           *)
+(*    Copyright 2011-2018 Inria, Université de Lorraine                           *)
 (*                                                                                *)
-(*    Webpage: http://grew.loria.fr                                               *)
+(*    Webpage: http://grew.fr                                                     *)
 (*    License: CeCILL (see LICENSE folder or "http://www.cecill.info")            *)
 (*    Authors: see AUTHORS file                                                   *)
 (**********************************************************************************)
@@ -16,9 +16,10 @@ open Grew_base
 type feature_name = string (* cat, num, ... *)
 type feature_atom = string (* V, N, inf, ... *)
 type feature_value = string (* V, 4, "free text", ... *)
-type suffix = string
 
-type value = String of string | Float of float
+type value =
+  | String of string
+  | Float of float
 
 let string_of_value = function
   | String s -> Str.global_replace (Str.regexp "\"") "\\\""
@@ -30,6 +31,12 @@ let conll_string_of_value = function
   | Float i -> String_.of_float i
 
 type disjunction = value list
+
+let to_uname = function
+  | "cat" -> "upos"
+  | "pos" -> "xpos"
+  | "phon" -> "form"
+  | x -> x
 
 (* ================================================================================ *)
 module Pid = struct
@@ -46,6 +53,9 @@ module Pid = struct
     | Pos i -> sprintf "Pos %d" i
     | Neg i -> sprintf "Neg %d" i
 end (* module Pid *)
+
+(* ================================================================================ *)
+module Pid_set = Set.Make (Pid)
 
 (* ================================================================================ *)
 module Pid_map =
@@ -69,9 +79,6 @@ module Pid_map =
 end (* module Pid_map *)
 
 (* ================================================================================ *)
-module Pid_set = Set.Make (Pid)
-
-(* ================================================================================ *)
 module Gid = struct
   type t = int
 
@@ -89,110 +96,139 @@ module Massoc_gid = Massoc_make (Gid)
 (* ================================================================================ *)
 module Massoc_pid = Massoc_make (Pid)
 
+(* ================================================================================ *)
+module Massoc_string = Massoc_make (String)
+
 
 
 (* ================================================================================ *)
-(* This module defines a type for lexical parameter (i.e. one line in a lexical file) *)
-module Lex_par = struct
+module Lexicon = struct
+  module Line_set = Set.Make (struct type t=string list let compare = Pervasives.compare end)
 
-  type item = string list * string list (* first list: pattern parameters $id , second list command parameters @id *)
+  type t = {
+    header: string list;  (* ordered list of column headers *)
+    lines: Line_set.t;
+    loc: Loc.t;
+  }
 
-  let item_to_string = function
-  | (l,[]) -> String.concat "#" l
-  | (pat,com) -> (String.concat "#" pat) ^ "##" ^ (String.concat "#" com)
+  let rec transpose = function
+  | []             -> []
+  | []   :: xss    -> transpose xss
+  | (x::xs) :: xss -> (x :: List.map List.hd xss) :: transpose (xs :: List.map List.tl xss)
 
-  type t = item list
+  exception Equal of string
+  let strict_compare x y =
+    match Pervasives.compare x y with
+    | 0 -> raise (Equal x)
+    | x -> x
 
-  let to_json t =
-    `List (List.map (fun item -> `String (item_to_string item)) t)
+  let build loc items =
+    let real_items = List.filter (fun (_,x) -> x <> "" && x.[0] <> '%') items in
+    match real_items with
+      | [] | [_] -> Error.build ~loc "[Lexicon.build] a lexicon must not be empty"
+      | (linenum_h, h)::t ->
+        let fields = List.map to_uname (Str.split (Str.regexp "\t") h) in
+        let l = List.length fields in
+        let rec loop = function
+          | [] -> []
+          | (linenum, line)::tail ->
+            let norm_line =
+              if String.length line > 1 && line.[0] = '\\' && line.[1] = '%'
+              then String_.rm_first_char line
+              else line in
+            let items = Str.split (Str.regexp "\t") norm_line in
+            if List.length items <> l then
+              begin
+                let loc = Loc.set_line linenum loc in
+                Error.build ~loc "[Lexicon.build] line with %d items (%d expected!!)" (List.length items) l
+              end;
+             items :: (loop tail) in
+        let items_list = fields ::(loop t) in
+        let tr = transpose items_list in
+        try
+          let sorted_tr = List.sort (fun l1 l2 -> strict_compare (List.hd l1) (List.hd l2)) tr in
+          match transpose sorted_tr with
+            | [] -> Error.bug ~loc "[Lexicon.build] inconsistent data"
+            | header :: lines_list -> { header; lines = List.fold_right Line_set.add lines_list Line_set.empty; loc }
+        with Equal v ->
+          let loc = Loc.set_line linenum_h loc in
+          Error.build ~loc "[Lexicon.build] the field name \"%s\" is used twice" v
 
-  let size = List.length
-  let append = List.append
-
-  let signature = function
-    | [] -> Error.bug "[Lex_par.signature] empty data"
-    | (pp,cp)::_ -> (List.length pp,List.length cp)
-
-  let dump t =
-    printf "[Lex_par.dump] --> size = %d\n" (List.length t);
-    List.iter (fun (pp,cp) ->
-      printf "%s##%s\n"
-        (String.concat "#" pp)
-        (String.concat "#" cp)
-    ) t
-
-  let parse_line ?loc nb_p nb_c line =
-    let line = String_.rm_peripheral_white line in
-    if line = "" || line.[0] = '%'
-    then None
-    else
-      let line = Str.global_replace (Str.regexp "\\\\%") "%" line in
-      match Str.split (Str.regexp "##") line with
-        | [args] when nb_c = 0 ->
-          (match Str.split (Str.regexp "#") args with
-            | l when List.length l = nb_p -> Some (l,[])
-            | _ -> Error.build ?loc
-              "Illegal lexical parameter line: \"%s\" doesn't contain %d args"
-              line nb_p)
-        | [args; values] ->
-          (match (Str.split (Str.regexp "#") args, Str.split (Str.regexp "#") values) with
-            | (lp,lc) when List.length lp = nb_p && List.length lc = nb_c -> Some (lp,lc)
-            | _ -> Error.build ?loc
-              "Illegal lexical parameter line: \"%s\" doesn't contain %d args and %d values"
-              line nb_p nb_c)
-        | _ -> Error.build ?loc "Illegal param line: '%s'" line
-
-  let from_lines ?loc nb_p nb_c lines =
-    match List_.opt_map (parse_line ?loc nb_p nb_c) lines with
-    | [] -> Error.build ?loc "Empty lexical parameter list"
-    | l -> l
-
-  let load ?loc dir nb_p nb_c file =
+  let load loc file =
     try
-      let full_file =
-        if Filename.is_relative file
-        then Filename.concat dir file
-        else file in
-      let lines = File.read full_file in
-      match List_.opt_mapi (fun i line -> parse_line ~loc:(Loc.file_line full_file i) nb_p nb_c line) lines with
-      | [] -> Error.build ?loc "Empty lexical parameter file '%s'" file
-      | l -> l
-    with Sys_error _ -> Error.build ?loc "External lexical file '%s' not found" file
+      let lines = File.read_ln file in
+      let loc = Loc.file file in
+      build loc lines
+    with Sys_error _ -> Error.build ~loc "[Lexicon.load] unable to load file %s" file
 
-  let select index atom t =
-    match
-      List_.opt_map
-        (fun (p_par, c_par) ->
-          let par = List.nth p_par index in
-          if atom = par
-          then Some (p_par, c_par)
-          else None
-        ) t
-    with
-    | [] -> None
-    | t -> Some t
+  let reduce sub_list lexicon =
+    let sorted_sub_list = List.sort Pervasives.compare sub_list in
+    let reduce_line line =
+      let rec loop = function
+      | ([],_,_) -> []
+      | (hs::ts, hh::th, hl::tl)    when hs=hh    -> hl::(loop (ts,th,tl))
+      | (hs::ts, hh::th, hl::tl)    when hs>hh    -> loop (hs::ts, th, tl)
+      | (hs::ts, hh::th, hl::tl) (* when hs<hh *) -> Error.bug "[Lexicon.reduce] Field '%s' not in lexicon" hs
+      | (hs::ts, [], []) -> Error.bug "[Lexicon.reduce] Field '%s' not in lexicon" hs
+      | _ -> Error.bug "[Lexicon.reduce] Inconsistent length" in
+      loop (sorted_sub_list, lexicon.header, line) in
+    let new_lines = Line_set.map reduce_line lexicon.lines in
+    { lexicon with header = sorted_sub_list; lines = new_lines }
 
-  let get_param_value index = function
-    | [] -> Error.bug "[Lex_par.get_param_value] empty parameter"
-    | (params,_)::_ -> List.nth params index
+  let union lex1 lex2 =
+    if lex1.header <> lex2.header then Error.build "[Lexicon.union] different header";
+    { lex1 with lines = Line_set.union lex1.lines lex2.lines }
+    (* NOTE: the loc field of a union may be not accurate *)
 
-  let get_command_value index = function
-    | [(_,one)] -> List.nth one index
-    | [] -> Error.bug "[Lex_par.get_command_value] empty parameter"
-    | (_,[sing])::tail when index=0 ->
-        Printf.sprintf "%s/%s"
-          sing
-          (List_.to_string
-             (function
-               | (_,[s]) -> s
-               | _ -> Error.bug "[Lex_par.get_command_value] inconsistent param"
-             ) "/" tail
-          )
-    | (left,_)::_ ->
-      Error.run "Lexical parameter are not functional, input parameter%s: %s"
-        (if (List.length left) > 1 then "s" else "")
-        (String.concat ", " left)
-end (* module Lex_par *)
+  let select head value lex =
+    match List_.index head lex.header with
+    | None -> Error.build ~loc:lex.loc "[Lexicon.select] cannot find %s in lexicon" head
+    | Some index ->
+      let new_set = Line_set.filter (fun line -> List.nth line index = value) lex.lines in
+      if Line_set.is_empty new_set
+      then None
+      else Some { lex with lines = new_set }
+
+  let unselect head value lex =
+    match List_.index head lex.header with
+    | None -> Error.build ~loc:lex.loc "[Lexicon.unselect] cannot find the fiels \"%s\" in lexicon" head
+    | Some index ->
+      let new_set = Line_set.filter (fun line -> List.nth line index <> value) lex.lines in
+      if Line_set.is_empty new_set
+      then None
+      else Some { lex with lines = new_set }
+
+  let projection head lex =
+    match List_.index head lex.header with
+    | None -> Error.build ~loc:lex.loc "[Lexicon.projection] cannot find %s in lexicon" head
+    | Some index -> Line_set.fold (fun line acc -> String_set.add (List.nth line index) acc) lex.lines String_set.empty
+
+  exception Not_functional_lexicon
+  let read head lex =
+    match String_set.elements (projection head lex) with
+    | [] -> Error.bug "[Lexicon.read] a lexicon must not be empty"
+    | [one] -> one
+    | _ -> raise Not_functional_lexicon
+
+  let get head lex = String_set.choose (projection head lex)
+
+  let read_multi head lex =
+    match String_set.elements (projection head lex) with
+    | [] -> Error.bug "[Lexicon.read] a lexicon must not be empty"
+    | l -> String.concat "/" l
+end (* module Lexicon *)
+
+(* ================================================================================ *)
+module Lexicons = struct
+  type t = (string * Lexicon.t) list
+
+  let check ~loc lexicon_name field_name t =
+    try
+      let lexicon = List.assoc lexicon_name t in
+      if not (List.mem field_name lexicon.Lexicon.header)
+      then Error.build ~loc "Undefined field name \"%s\" in lexicon %s" field_name lexicon_name
+    with Not_found -> Error.build ~loc "Undefined lexicon name \"%s\"" lexicon_name
+end (* module Lexicons *)
 
 (* ================================================================================ *)
 module Concat_item = struct

@@ -1,9 +1,9 @@
 (**********************************************************************************)
 (*    Libcaml-grew - a Graph Rewriting library dedicated to NLP applications      *)
 (*                                                                                *)
-(*    Copyright 2011-2013 Inria, Université de Lorraine                           *)
+(*    Copyright 2011-2018 Inria, Université de Lorraine                           *)
 (*                                                                                *)
-(*    Webpage: http://grew.loria.fr                                               *)
+(*    Webpage: http://grew.fr                                                     *)
 (*    License: CeCILL (see LICENSE folder or "http://www.cecill.info")            *)
 (*    Authors: see AUTHORS file                                                   *)
 (**********************************************************************************)
@@ -12,8 +12,6 @@ open Grew_base
 open Grew_types
 
 module Ast : sig
-
-  val to_uname: feature_name -> feature_name
 
   (* ---------------------------------------------------------------------- *)
   (* simple_ident: cat or V *)
@@ -49,14 +47,19 @@ module Ast : sig
   (* ---------------------------------------------------------------------- *)
   (* simple_or_feature_ident: union of simple_ident and feature_ident *)
   (* Note: used for parsing of "X < Y" and "X.feat < Y.feat" without conflicts *)
-  type simple_or_feature_ident = Id.name * feature_name option
-  val parse_simple_or_feature_ident: string -> simple_or_feature_ident
+  type pointed = string * string
+  type simple_or_pointed =
+    | Simple of Id.name
+    | Pointed of pointed
+
+  val parse_simple_or_pointed: string -> simple_or_pointed
 
   (* ---------------------------------------------------------------------- *)
   type feature_kind =
     | Equality of feature_value list
     | Disequality of feature_value list
-    | Equal_param of string (* $ident *)
+    | Equal_lex of string * string
+    | Disequal_lex of string * string
     | Absent
     | Else of (feature_value * feature_name * feature_value)
 
@@ -106,11 +109,16 @@ module Ast : sig
     | Feature_ineq_cst of ineq * feature_ident * float
     | Feature_eq_float of feature_ident * float
     | Feature_diff_float of feature_ident * float
-
+    (* ambiguous case, context needed to make difference "N.cat = M.cat" VS "N.cat = lex.cat" *)
+    | Feature_eq_lex_or_fs of feature_ident * (string * string)
+    | Feature_diff_lex_or_fs of feature_ident * (string * string)
+    (* *)
     | Feature_eq_regexp of feature_ident * string
     | Feature_eq_cst of feature_ident * string
+    | Feature_eq_lex of feature_ident * (string * string)
     | Feature_diff_cst of feature_ident * string
-
+    | Feature_diff_lex of feature_ident * (string * string)
+    (* *)
     | Immediate_prec of Id.name * Id.name
     | Large_prec of Id.name * Id.name
   type const = u_const * Loc.t
@@ -133,9 +141,8 @@ module Ast : sig
   val complete_pattern : pattern -> pattern
 
   type concat_item =
-    | Qfn_item of feature_ident
+    | Qfn_or_lex_item of (string * string)
     | String_item of string
-    | Param_item of string
 
   type u_command =
     | Del_edge_expl of (Id.name * Id.name * edge_label)
@@ -159,29 +166,21 @@ module Ast : sig
   val string_of_u_command:  u_command -> string
   type command = u_command * Loc.t
 
+  type lexicon =
+  | File of string
+  | Final of (int * string) list
+
+  type lexicon_info = (string * lexicon) list
+
   type rule = {
       rule_id:Id.name;
       pattern: pattern;
       commands: command list;
-      param: (string list * string list) option; (* (files, vars) *)
-      lex_par: string list option; (* lexical parameters in the file *)
+      lexicon_info: lexicon_info;
       rule_doc:string list;
       rule_loc: Loc.t;
       rule_dir: string option; (* the real folder where the file is defined *)
     }
-
-  type modul = {
-      module_id:Id.name;
-      rules: rule list;
-      deterministic: bool;
-      module_doc:string list;
-      mod_loc:Loc.t;
-      mod_dir: string; (* the directory where the module is defined (for lp file localisation) *)
-    }
-
-  type module_or_include =
-    | Modul of modul
-    | Includ of (string * Loc.t)
 
   type feature_spec =
     | Closed of feature_name * feature_atom list (* cat:V,N *)
@@ -195,41 +194,6 @@ module Ast : sig
       label_domain: (string * string list) list;
     }
 
-  type domain_wi = Dom of domain | Dom_file of string
-
-  type strat_def = (* /!\ The list must not be empty in the Seq or Plus constructor *)
-    | Ref of string            (* reference to a module name or to another strategy *)
-    | Seq of strat_def list    (* a sequence of strategies to apply one after the other *)
-    | Star of strat_def        (* a strategy to apply iteratively *)
-    | Pick of strat_def        (* pick one normal form a the given strategy; return 0 if nf *)
-    | Sequence of string list  (* compatibility mode with old code *)
-
-  val strat_def_to_string: strat_def -> string
-
-  val strat_def_flatten: strat_def -> strat_def
-
-  (* a strategy is given by its descrition in the grs file and the 4 fields: *)
-  type strategy = {
-    strat_name:string;       (* a unique name of the stratgy *)
-    strat_def:strat_def;     (* the definition itself *)
-    strat_doc:string list;   (* lines of docs (if any in the GRS file) *)
-    strat_loc:Loc.t;         (* the location of the [name] of the strategy *)
-  }
-
-  type grs_wi = {
-      domain_wi: domain_wi option;
-      modules_wi: module_or_include list;
-      strategies_wi: strategy list;
-    }
-
-  (* a GRS: graph rewriting system *)
-  type grs = {
-      domain: domain option;
-      modules: modul list;
-      strategies: strategy list;
-    }
-  val empty_grs: grs
-
   type gr = {
     meta: string list;
     nodes: node list;
@@ -242,13 +206,9 @@ module Ast : sig
   | Leaf of (Loc.t * string) (* phon *)
   | T of (Loc.t * string * pst list)
   val word_list: pst -> string list
-end (* module Ast *)
 
-
-(* ================================================================================================ *)
-module New_ast : sig
   type strat =
-  | Ref of Ast.node_ident       (* reference to a rule name or to another strategy *)
+  | Ref of node_ident       (* reference to a rule name or to another strategy *)
   | Pick of strat               (* pick one normal form a the given strategy; return 0 if nf *)
   | Alt of strat list           (* a set of strategies to apply in parallel *)
   | Seq of strat list           (* a sequence of strategies to apply one after the other *)
@@ -259,11 +219,11 @@ module New_ast : sig
 
   type decl =
   | Conll_fields of string list
-  | Features of Ast.feature_spec list
+  | Features of feature_spec list
   | Labels of (string * string list) list
-  | Package of (Loc.t * Ast.simple_ident * decl list)
-  | Rule of Ast.rule
-  | Strategy of (Loc.t * Ast.simple_ident * strat)
+  | Package of (Loc.t * simple_ident * decl list)
+  | Rule of rule
+  | Strategy of (Loc.t * simple_ident * strat)
   | Import of string
   | Include of string
 
@@ -273,5 +233,4 @@ module New_ast : sig
 
   val strat_list: grs -> string list
 
-  val convert: Ast.grs -> grs
-end (* module New_ast *)
+end (* module Ast *)

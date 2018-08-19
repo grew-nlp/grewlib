@@ -1,46 +1,18 @@
 (**********************************************************************************)
 (*    Libcaml-grew - a Graph Rewriting library dedicated to NLP applications      *)
 (*                                                                                *)
-(*    Copyright 2011-2013 Inria, Université de Lorraine                           *)
+(*    Copyright 2011-2018 Inria, Université de Lorraine                           *)
 (*                                                                                *)
-(*    Webpage: http://grew.loria.fr                                               *)
+(*    Webpage: http://grew.fr                                                     *)
 (*    License: CeCILL (see LICENSE folder or "http://www.cecill.info")            *)
 (*    Authors: see AUTHORS file                                                   *)
 (**********************************************************************************)
 
-module String_map : Map.S with type key = string
 module String_set : Set.S with type elt = string
+module String_map : Map.S with type key = string
 
 module Int_set : Set.S with type elt = int
 module Int_map : Map.S with type key = int
-
-(* ================================================================================ *)
-(* [Pid_set] *)
-module String_: sig
-  (* [to_float]: robust conversion of string to float whatever is the locale *)
-  val to_float: string -> float
-
-  (* [to_float]: robust conversion of float to string whatever is the locale *)
-  val of_float: float -> string
-
-  val re_match: Str.regexp -> string -> bool
-
-  (* [rm_first_char s] returns the string [s] without the first charater if s is not empty.
-     If s in empty, the empty string is returned  *)
-  val rm_first_char: string -> string
-
-  (* [rm_peripheral_white s] returns the string [s] without any white space ot tab
-    at the beginning or at the end of the string. *)
-  val rm_peripheral_white: string -> string
-end
-
-
-(* ================================================================================ *)
-(* [Dot] function to manipulate the dot format *)
-module Dot: sig
-  val to_png_file: string -> string -> unit
-end
-
 
 (* ================================================================================ *)
 (* [Loc] general module to describe errors location: (file name, line number in file) *)
@@ -49,19 +21,55 @@ module Loc: sig
 
   val empty: t
 
-  val file_line: string -> int -> t
   val file_opt_line: string option -> int -> t
   val file_opt_line_opt: string option -> int option -> t
   val file: string -> t
 
+  val set_line: int -> t -> t
+
   val to_string: t -> string
 end
 
+(* ================================================================================ *)
+module Error: sig
+  exception Build of (string * Loc.t option)
+  val build: ?loc: Loc.t -> ('a, unit, string, 'b) format4 -> 'a
+
+  exception Run of (string * Loc.t option)
+  val run: ?loc: Loc.t -> ('a, unit, string, 'b) format4 -> 'a
+
+  exception Bug of (string * Loc.t option)
+  val bug: ?loc: Loc.t -> ('a, unit, string, 'b) format4 -> 'a
+
+  exception Parse of (string * Loc.t option)
+  val parse: ?loc: Loc.t -> ('a, unit, string, 'b) format4 -> 'a
+end
+
+(* ================================================================================ *)
+(* [Pid_set] *)
+module String_: sig
+  (* [to_float]: robust conversion of string to float whatever is the locale *)
+  val to_float: string -> float
+
+  (* [of_float]: robust conversion of string to float (both . and , is accepted as separator) *)
+  val of_float: float -> string
+
+  (* [re_match regexp s] returns true iff the full string [s] matches with [regexp] *)
+  val re_match: Str.regexp -> string -> bool
+
+  (* [rm_first_char s] returns the string [s] without the first charater if s is not empty.
+     If [s] in empty, the empty string is returned  *)
+  val rm_first_char: string -> string
+
+  (* [rm_peripheral_white s] returns the string [s] without any white space or tab
+    at the beginning or at the end of the string. *)
+  val rm_peripheral_white: string -> string
+end (* module String_ *)
 
 (* ================================================================================ *)
 (* [File] functions to read/write file *)
 module File: sig
-  (** [write data file_name] write [data] in file named [file_name] *)
+  (** [write data file_name] write [data] in [file_name] *)
   val write: string -> string -> unit
 
   (** [read file_name] read the content of [file_name] line by line.
@@ -99,15 +107,14 @@ module Array_: sig
   (* [dicho_find_assoc key array] returns the value associated with [key] in the assoc [array].
      [Not found] is raised if [key] is not defined in [array].
      Warning: the array MUST be sorted (with respect to the first component) and without duplicates. *)
-  val dicho_find_assoc: 'a -> ('a*'b) array -> int
-end
+  val dicho_find_assoc: 'a -> ('a * 'b) array -> int
+end (* module Array_ *)
 
 (* ================================================================================ *)
 (* [List_] contains additional functions on the caml [list] type. *)
 module List_: sig
   (** [rm elt list] removes the first occurence of [elt] in [list]. [Not_found] can be raised. *)
   val rm: 'a -> 'a list -> 'a list
-  val opt: 'a option list -> 'a list
 
   val set: int -> 'a -> 'a list -> 'a list
 
@@ -126,7 +133,9 @@ module List_: sig
   val opt_mapi: (int -> 'a -> 'b option) -> 'a list -> 'b list
 
   val flat_map: ('a -> 'b list) -> 'a list -> 'b list
-  (* remove [elt] from [list]. raise Not_found if [elt] is not in [list] *)
+
+  (** [remove elt list] remove the first occurence od [elt] in [list].
+      raise Not_found if [elt] is not in [list] *)
   val remove: 'a -> 'a list -> 'a list
 
   val foldi_left: (int -> 'a -> 'b -> 'a) -> 'a -> 'b list -> 'a
@@ -135,6 +144,7 @@ module List_: sig
   val sort_disjoint: 'a list -> 'a list -> bool
 
   val to_string: ('a -> string) -> string -> 'a list -> string
+
   val rev_to_string: ('a -> string) -> string -> 'a list -> string
 
   val sort_mem: 'a -> 'a list -> bool
@@ -209,6 +219,8 @@ module type S =
 
     val fold: ('b -> key -> 'a -> 'b) -> 'b -> 'a t -> 'b
 
+    val fold_on_list: ('b -> key -> 'a list -> 'b) -> 'b -> 'a t -> 'b
+
     (* raise Not_found if no (key,elt) *)
     val remove: key -> 'a -> 'a t -> 'a t
     val remove_opt: key -> 'a -> 'a t -> 'a t option
@@ -233,20 +245,6 @@ module type S =
 (* ================================================================================ *)
 module Massoc_make (Ord : OrderedType) : S with type key = Ord.t
 
-(* ================================================================================ *)
-module Error: sig
-  exception Build of (string * Loc.t option)
-  val build: ?loc: Loc.t -> ('a, unit, string, 'b) format4 -> 'a
-
-  exception Run of (string * Loc.t option)
-  val run: ?loc: Loc.t -> ('a, unit, string, 'b) format4 -> 'a
-
-  exception Bug of (string * Loc.t option)
-  val bug: ?loc: Loc.t -> ('a, unit, string, 'b) format4 -> 'a
-
-  exception Parse of (string * Loc.t option)
-  val parse: ?loc: Loc.t -> ('a, unit, string, 'b) format4 -> 'a
-end
 
 (* ================================================================================ *)
 module Id: sig
@@ -287,6 +285,8 @@ module Global: sig
   val new_line: unit -> unit
 
   val get_loc: unit -> Loc.t
+  val get_line: unit -> int option
+  val get_dir: unit -> string
   val loc_string: unit -> string
   val label_flag: bool ref
 

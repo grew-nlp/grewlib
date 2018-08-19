@@ -1,9 +1,9 @@
 (**********************************************************************************)
 (*    Libcaml-grew - a Graph Rewriting library dedicated to NLP applications      *)
 (*                                                                                *)
-(*    Copyright 2011-2013 Inria, Université de Lorraine                           *)
+(*    Copyright 2011-2018 Inria, Université de Lorraine                           *)
 (*                                                                                *)
-(*    Webpage: http://grew.loria.fr                                               *)
+(*    Webpage: http://grew.fr                                                     *)
 (*    License: CeCILL (see LICENSE folder or "http://www.cecill.info")            *)
 (*    Authors: see AUTHORS file                                                   *)
 (**********************************************************************************)
@@ -23,9 +23,9 @@ module Loc = struct
 
   let empty = (None, None)
   let file f = (Some f, None)
-  let file_line f l = (Some f, Some l)
   let file_opt_line fo l = (fo, Some l)
   let file_opt_line_opt fo lo = (fo, lo)
+  let set_line l (x,_) = (x, Some l)
 
   let to_string = function
   | (Some file, Some line) -> sprintf "[file: %s, line: %d]" (Filename.basename file) line
@@ -58,7 +58,6 @@ end (* module Error *)
 
 (* ================================================================================ *)
 module String_ = struct
-
   let to_float string =
     try float_of_string string
     with _ ->
@@ -77,15 +76,6 @@ module String_ = struct
   let re_match re s = (Str.string_match re s 0) && (Str.matched_string s = s)
 
 end (* module String_ *)
-
-(* ================================================================================ *)
-module Dot = struct
-  let to_png_file dot output_file =
-    let temp_file_name,out_ch = Filename.open_temp_file ~mode:[Open_rdonly;Open_wronly;Open_text] "grewui_" ".dot" in
-    fprintf out_ch "%s" dot;
-    close_out out_ch;
-    ignore(Sys.command(sprintf "dot -Tpng -o %s %s " output_file temp_file_name))
-end (* module Dot *)
 
 (* ================================================================================ *)
 module File = struct
@@ -216,11 +206,6 @@ module List_ = struct
     | h::t when h=x -> Some i
     | _::t -> loop (i+1) t in
     loop 0 l
-
-  let rec opt = function
-    | [] -> []
-    | None :: t -> opt t
-    | Some x :: t -> x :: (opt t)
 
   let rec opt_map f = function
     | [] -> []
@@ -426,6 +411,8 @@ module type S = sig
 
   val fold: ('b -> key -> 'a -> 'b) -> 'b -> 'a t -> 'b
 
+  val fold_on_list: ('b -> key -> 'a list -> 'b) -> 'b -> 'a t -> 'b
+
   (* raise Not_found if no (key,elt) *)
   val remove: key -> 'a -> 'a t -> 'a t
   val remove_opt: key -> 'a -> 'a t -> 'a t option
@@ -489,6 +476,8 @@ module Massoc_make (Ord: OrderedType) = struct
             fct acc2 key elt)
           acc list)
       t init
+
+  let fold_on_list fct init t = M.fold (fun key list acc -> fct acc key list) t init
 
   (* Not found raised in the value is not defined *)
   let remove key value t =
@@ -580,7 +569,6 @@ module Id = struct
 end (* module Id *)
 
 (* ================================================================================ *)
-(* copy from leopar *)
 module Timeout = struct
   exception Stop
 
@@ -601,11 +589,16 @@ end (* module Timeout *)
 module Global = struct
   let current_loc = ref Loc.empty
   let label_flag = ref false
+  let current_dir = ref "."
 
   let get_loc () = !current_loc
   let loc_string () = Loc.to_string !current_loc
 
+  let get_line () = snd (get_loc ())
+
+  let get_dir () = !current_dir
   let new_file filename =
+    current_dir := Filename.dirname filename;
     current_loc := (Some filename, Some 1);
     label_flag := false
 
@@ -619,4 +612,4 @@ module Global = struct
 
   let debug = ref false
   let safe_commands = ref false
-end
+end (* module Global *)

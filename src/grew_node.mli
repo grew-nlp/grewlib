@@ -1,9 +1,9 @@
 (**********************************************************************************)
 (*    Libcaml-grew - a Graph Rewriting library dedicated to NLP applications      *)
 (*                                                                                *)
-(*    Copyright 2011-2013 Inria, Université de Lorraine                           *)
+(*    Copyright 2011-2018 Inria, Université de Lorraine                           *)
 (*                                                                                *)
-(*    Webpage: http://grew.loria.fr                                               *)
+(*    Webpage: http://grew.fr                                                     *)
 (*    License: CeCILL (see LICENSE folder or "http://www.cecill.info")            *)
 (*    Authors: see AUTHORS file                                                   *)
 (**********************************************************************************)
@@ -22,7 +22,6 @@ module G_node: sig
   type position =
   | Ordered of float
   | Unordered of int
-
 
   type t
 
@@ -75,15 +74,13 @@ module G_node: sig
   val fresh: ?prec:Gid.t -> ?succ:Gid.t -> float -> t
   val fresh_unordered: unit -> t
 
-
   val position_comp: t -> t -> int
 
   (* val build_neighbour: t -> t
   val build_new: t -> t *)
 
   val rename: (Gid.t * Gid.t) list -> t -> t
-end
-(* ================================================================================ *)
+end (* module G_node *)
 
 (* ================================================================================ *)
 module P_node: sig
@@ -102,12 +99,11 @@ module P_node: sig
       It raises [P_fs.Fail_unif] exception in case of Failure. *)
   val unif_fs: P_fs.t -> t -> t
 
-  val build: ?domain:Domain.t -> ?pat_vars: string list -> Ast.node -> (Id.name * t)
+  val build: ?domain:Domain.t -> Lexicons.t -> Ast.node -> (Id.name * t)
 
   val add_edge: P_edge.t -> Pid.t -> t -> t option
 
-  val match_: ?param: Lex_par.t -> t -> G_node.t -> Lex_par.t option
+  val match_: ?lexicons:Lexicons.t -> t -> G_node.t -> Lexicons.t
 
   val compare_pos: t -> t -> int
-end
-(* ================================================================================ *)
+end (* module P_node *)
