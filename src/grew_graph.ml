@@ -426,11 +426,11 @@ module G_graph = struct
       (fun i item -> match Str.full_split re item with
         | [Str.Text form; Str.Delim pos; Str.Text lemma] ->
         let pos = String.sub pos 1 ((String.length pos)-2) in
-        Conll.build_line ~id:(i+1,None) ~form ~lemma ~xpos:pos ~feats:[] ~deps:([(i, "SUC")]) ()
+        Conll.build_line ~id:(i+1,None) ~form ~lemma ~xpos:pos ~feats:[] ~deps:([((i,None), "SUC")]) ()
         | _ -> Error.build "[Graph.of_brown] Cannot parse Brown item >>>%s<<< (expected \"phon/POS/lemma\") in >>>%s<<<" item brown
       ) units in
       let meta = match sentid with Some id -> ["# sent_id = "^id] | None -> [] in
-    of_conll ?domain { Conll.file=None; meta; lines=conll_lines; multiwords=[] }
+    of_conll ?domain { Conll.file=None; meta; lines=conll_lines; multiwords=[]; mwes=Conll_types.Int_map.empty; }
 
   (* -------------------------------------------------------------------------------- *)
   let of_pst ?domain pst =
@@ -979,6 +979,7 @@ module G_graph = struct
       Conll.meta = graph.meta;
       lines;
       multiwords = []; (* multiwords are handled by _UD_* features *)
+      mwes=Conll_types.Int_map.empty;
     }
 
   let to_conll_string graph =
