@@ -358,9 +358,9 @@ module G_graph = struct
 
   (* -------------------------------------------------------------------------------- *)
   let of_conll ?domain conll =
-
     let sorted_lines = Conll.root :: (List.sort Conll.compare conll.Conll.lines) in
 
+    (* [gtable] maps *)
     let gtable = (Array.of_list (List.map (fun line -> line.Conll.id) sorted_lines), Conll.Id.to_dot) in
 
     let rec loop index prec = function
@@ -407,12 +407,44 @@ module G_graph = struct
               )
           ) conll.Conll.multiwords in
 
+      let (map_with_nl_nodes, free_index) =
+        Conll_types.Int_map.fold
+          (fun key mwe (acc, free_index) ->
+            let (feature_name, edge_name) = match mwe.Mwe.label with
+            | s when String.length s >= 2 && String.sub s 0 2 = "EN" -> ("ne_kind", "_EN_")
+            | _ -> ("mwe_kind", "_MWE_") in
+            let new_node =
+              (G_node.fresh_unordered ())
+              |> G_node.set_fs (G_fs.set_feat ?domain feature_name mwe.Mwe.label G_fs.empty) in
+            (* add a new node *)
+            let new_map_1 = (Gid_map.add free_index new_node acc) in
+            (* add a link to the first component *)
+            let new_map_2 = map_add_edge new_map_1 free_index (G_edge.make edge_name) (Id.gbuild mwe.Mwe.first gtable) in
+            (* add a link to each other component *)
+            let new_map_3 =
+              Conll_types.Id_set.fold (
+                fun item acc2 ->
+                  map_add_edge acc2 free_index (G_edge.make edge_name) (Id.gbuild item gtable)
+              ) mwe.Mwe.items new_map_2 in
+
+              (* (match map_add_edge_opt acc2 gov_id edge dep_id with
+                | Some g -> g
+                | None -> Error.build "[GRS] [Graph.of_conll] try to build a graph with twice the same edge %s %s"
+                  (G_edge.to_string ?domain edge)
+                  (Loc.to_string loc)
+              ) *)
+
+
+
+            (new_map_3, free_index+1)
+          ) conll.Conll.mwes (map_with_edges, List.length sorted_lines) in
+
     {
       domain;
       meta = conll.Conll.meta;
-      map=map_with_edges;
+      map = map_with_nl_nodes;
       fusion;
-      highest_index= (List.length sorted_lines) -1
+      highest_index = free_index -1
     }
 
   (* -------------------------------------------------------------------------------- *)
@@ -835,11 +867,35 @@ module G_graph = struct
     Sentence.fr_clean_spaces (loop None snodes)
 
   (* -------------------------------------------------------------------------------- *)
+  let is_non_lexical_node node =
+    let fs = G_node.get_fs node in
+    (G_fs.get_string_atom "mwe_kind" fs <> None) || (G_fs.get_string_atom "ne_kind" fs <> None)
+
   let to_dep ?filter ?main_feat ?(deco=G_deco.empty) graph =
     let domain = get_domain graph in
 
-    let nodes = Gid_map.fold (fun id elt acc -> (id,elt)::acc) graph.map [] in
+    (* split lexical // non-lexical nodes *)
+    let (nodes, nl_nodes) = Gid_map.fold
+      (fun id elt (acc1, acc2) ->
+        if is_non_lexical_node elt
+        then (acc1, (id,elt)::acc2)
+        else ((id,elt)::acc1, acc2)
+      ) graph.map ([],[]) in
+
     let snodes = List.sort (fun (_,n1) (_,n2) -> G_node.position_comp n1 n2) nodes in
+
+    let insert (mid,mwe) nodes =
+      let next_ids = Massoc_gid.fold (fun acc gid _ -> gid::acc) [] (G_node.get_next mwe) in
+      let rec loop = function
+      | [] -> [(mid,mwe)]
+      | (h,n)::t when List.mem h next_ids -> (mid,mwe)::(h,n)::t
+      | h::t -> h :: (loop t) in
+      loop nodes in
+
+    let all_nodes = List.fold_left (
+      fun acc mwe -> insert mwe acc
+      ) snodes nl_nodes
+      in
 
     let buff = Buffer.create 32 in
     bprintf buff "[GRAPH] { opacity=0; scale = 200; fontname=\"Arial\"; }\n";
@@ -863,7 +919,7 @@ module G_graph = struct
           (Gid.to_string id)
           dep_fs
           style
-      ) snodes;
+      ) all_nodes;
     bprintf buff "} \n";
 
     (* edges *)
@@ -911,9 +967,13 @@ module G_graph = struct
   let to_conll graph =
     let domain = get_domain graph in
 
-    let nodes = Gid_map.fold
-      (fun gid node acc -> (gid,node)::acc)
-      graph.map [] in
+    (* split lexical // non-lexical nodes *)
+    let (nodes, nl_nodes) = Gid_map.fold
+      (fun id elt (acc1, acc2) ->
+        if is_non_lexical_node elt
+        then (acc1, (id,elt)::acc2)
+        else ((id,elt)::acc1, acc2)
+      ) graph.map ([],[]) in
 
     (* sort nodes wrt position *)
     let snodes = List.sort (fun (_,n1) (_,n2) -> G_node.position_comp n1 n2) nodes in
@@ -931,15 +991,15 @@ module G_graph = struct
 
     (* Warning: [govs_labs] maps [gid]s to [num]s *)
     let govs_labs =
-      Gid_map.fold
-        (fun src_gid node acc ->
+      List.fold_right
+        (fun (src_gid, node) acc ->
           let src_num = get_num src_gid in
           Massoc_gid.fold
             (fun acc2 tar_gid edge  ->
               let old = try Gid_map.find tar_gid acc2 with Not_found -> [] in
               Gid_map.add tar_gid ((sprintf "%g" src_num, G_edge.to_string ?domain edge)::old) acc2
             ) acc (G_node.get_next node)
-        ) graph.map Gid_map.empty in
+        ) nodes Gid_map.empty in
 
     let lines = List_.opt_map
     (fun (gid,node) ->
@@ -974,12 +1034,46 @@ module G_graph = struct
       deps = List.map (fun (gov,lab) -> ( Conll.Id.of_string gov, lab)) sorted_gov_labs;
       efs = G_node.get_efs node;
     } ) snodes in
+
+    let snl_nodes = List.sort (fun (gid1,_) (gid2,_) -> Pervasives.compare gid1 gid2) nl_nodes in
+
+    let mwes = List_.foldi_left
+      (fun i acc (_,nl_node) ->
+        let fs = G_node.get_fs nl_node in
+        let label =
+          match (G_fs.get_string_atom "ne_kind" fs, G_fs.get_string_atom "mwe_kind" fs) with
+          | (Some l, None)
+          | (None, Some l) -> l
+          | _ -> Error.run "[G_graph.to_conll] Inconsistent fs in mwe node" in
+        let nexts = G_node.get_next nl_node in
+        let next_list = List.sort Pervasives.compare (Massoc_gid.fold (fun acc2 k _ -> k::acc2) [] nexts) in
+        match next_list with
+        | [] -> Error.bug "[G_graph.to_conll] mwe node with no next node"
+        | head_gid::tail_gids ->
+          let head_pos = match G_node.get_position (List.assoc head_gid snodes) with
+          | Ordered f -> int_of_float f
+          | _ -> Error.run "[G_graph.to_conll] nl_node going to Unordered node" in
+          let items = List.fold_left
+            (fun acc gid ->
+              let pos = match G_node.get_position (List.assoc gid snodes) with
+              | Ordered f -> int_of_float f
+              | _ -> Error.run "[G_graph.to_conll] nl_node going to Unordered node" in
+              Conll_types.Id_set.add (pos,None) acc
+            ) Conll_types.Id_set.empty tail_gids in
+          let mwe = {
+            Mwe.label;
+            first = (head_pos, None);
+            items;
+          } in
+        Conll_types.Int_map.add (i+1) mwe acc
+      ) Conll_types.Int_map.empty snl_nodes in
+
     {
       Conll.file = None;
       Conll.meta = graph.meta;
       lines;
       multiwords = []; (* multiwords are handled by _UD_* features *)
-      mwes=Conll_types.Int_map.empty;
+      mwes;
     }
 
   let to_conll_string graph =

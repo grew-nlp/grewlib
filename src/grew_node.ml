@@ -176,7 +176,7 @@ module P_node = struct
   let match_ ?param p_node g_node =
     (* (match param with None -> printf "<None>" | Some p -> printf "<Some>"; Lex_par.dump p); *)
     match G_node.get_position g_node with
-    | G_node.Unordered _ -> None
+    | G_node.Unordered _ -> P_fs.match_ ?param p_node.fs (G_node.get_fs g_node)
     | G_node.Ordered p ->
       if P_fs.check_position ?param (Some p) p_node.fs
       then P_fs.match_ ?param p_node.fs (G_node.get_fs g_node)
