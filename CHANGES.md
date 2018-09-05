@@ -2,7 +2,7 @@
   * Add new syntax in pattern node "f=u/g=v" (mainly for MWEPOS handling in relations consistency checks)
 
 # 0.48.0 (2018/06/19)
-  * remove `conll_fields` mechanism (names of conll fields 2, 4 and 5 are fomr, upos, xpos)
+  * remove `conll_fields` mechanism (names of conll fields 2, 4 and 5 are `form`, `upos`, `xpos`)
 
 ## 0.47.2 (2018/05/04)
   * Deal with increasing Grs
@@ -45,7 +45,7 @@
   * Fix bug “undefined domain”
 
 # 0.44.0 (2017/09/05)
-  * /!\ new grs syntax (with package and strategies), see [http://grew.loria.fr/grs](http://grew.loria.fr/grs)
+  * /!\ new grs syntax (with package and strategies), see [http://grew.fr/grs](http://grew.fr/grs)
   * /!\ remove function `Rewrite.write_annot`
   * adapt to libcaml-conll 0.14.0
 

@@ -1,9 +1,9 @@
 (**********************************************************************************)
 (*    Libcaml-grew - a Graph Rewriting library dedicated to NLP applications      *)
 (*                                                                                *)
-(*    Copyright 2011-2013 Inria, Université de Lorraine                           *)
+(*    Copyright 2011-2018 Inria, Université de Lorraine                           *)
 (*                                                                                *)
-(*    Webpage: http://grew.loria.fr                                               *)
+(*    Webpage: http://grew.fr                                                     *)
 (*    License: CeCILL (see LICENSE folder or "http://www.cecill.info")            *)
 (*    Authors: see AUTHORS file                                                   *)
 (**********************************************************************************)
@@ -25,7 +25,7 @@ type graph_item =
   | Graph_edge of Ast.edge
 
 type ineq_item =
-  | Ineq_sofi of Ast.simple_or_feature_ident
+  | Ineq_sofi of Ast.simple_or_pointed
   | Ineq_float of float
 
 let get_loc () = Global.get_loc ()
@@ -72,22 +72,17 @@ let localize t = (t,get_loc ())
 %token ARROW_LEFT_NEG              /* =[^ */
 %token ARROW_RIGHT                 /* ]=> */
 
-%token DOMAIN                      /* domain */
 %token INCL                        /* include */
 %token IMPORT                      /* import */
 %token FEATURES                    /* features */
-%token FEATURE                     /* feature */
-%token FILE                        /* file */
+%token FROM                        /* from */
 %token LABELS                      /* labels */
 %token PATTERN                     /* pattern */
 %token WITHOUT                     /* without */
 %token COMMANDS                    /* commands */
-%token MODULE                      /* module */
 %token STRAT                       /* strat */
 %token PACKAGE                     /* package */
-%token DETERMINISTIC               /* deterministic (or deprecated confluent) */
 %token RULE                        /* rule */
-%token SEQUENCES                   /* sequences */
 %token GRAPH                       /* graph */
 
 %token DEL_EDGE                    /* del_edge */
@@ -108,7 +103,6 @@ let localize t = (t,get_loc ())
 %token EMPTY                       /* Empty */
 %token TRY                         /* Try */
 
-%token <string> DOLLAR_ID          /* $id */
 %token <string> AROBAS_ID          /* @id */
 %token <string> COLOR              /* @#89abCD */
 
@@ -116,22 +110,20 @@ let localize t = (t,get_loc ())
 
 /* %token <Grew_ast.Ast.complex_id>   COMPLEX_ID*/
 
-%token <string>           STRING
-%token <string>           REGEXP
-%token <float>            FLOAT
-%token <string list>      COMMENT
-%token <string list>      LEX_PAR
+%token <string>                STRING
+%token <string>                REGEXP
+%token <float>                 FLOAT
+%token <string list>           COMMENT
+%token <string * (int *string) list>  LEX_PAR
 
 %token EOF                         /* end of file */
 
-%start <Grew_ast.Ast.grs_wi> grs_wi
 %start <Grew_ast.Ast.gr> gr
-%start <Grew_ast.Ast.module_or_include list> included
 %start <Grew_ast.Ast.pattern> pattern
 %start <Grew_ast.Ast.domain> domain
 
-%start <Grew_ast.New_ast.grs> new_grs
-%start <Grew_ast.New_ast.strat> strat_alone
+%start <Grew_ast.Ast.grs> grs
+%start <Grew_ast.Ast.strat> strat_alone
 
 /* parsing of the string representation of the constituent representation of Sequoia */
 /* EX: "( (SENT (NP (NC Amélioration) (PP (P de) (NP (DET la) (NC sécurité))))))"    */
@@ -178,16 +170,21 @@ feature_ident_with_loc :
         | id=ID      { localize (Ast.parse_feature_ident id) }
 
 feature_value:
-        | v=ID        { v }
+        | v=ID        { Ast.parse_simple_ident v }
         | v=STRING    { v }
         | v=FLOAT     { Printf.sprintf "%g" v }
 
+pattern_feature_value:
+        | v=ID        { Ast.parse_simple_or_pointed v }
+        | v=STRING    { Ast.Simple v }
+        | v=FLOAT     { Ast.Simple (Printf.sprintf "%g" v) }
+
 ineq_value:
-        | v=ID    { Ineq_sofi (Ast.parse_simple_or_feature_ident v) }
+        | v=ID    { Ineq_sofi (Ast.parse_simple_or_pointed v) }
         | v=FLOAT { Ineq_float v }
 
 ineq_value_with_loc:
-        | v=ID    { localize (Ineq_sofi (Ast.parse_simple_or_feature_ident v)) }
+        | v=ID    { localize (Ineq_sofi (Ast.parse_simple_or_pointed v)) }
         | v=FLOAT { localize (Ineq_float v) }
 
 /*=============================================================================================*/
@@ -223,11 +220,15 @@ gr_item:
         | n1_loc=node_id_with_loc label=delimited(LTR_EDGE_LEFT,label_ident,LTR_EDGE_RIGHT) n2=node_id
             { Graph_edge ({Ast.edge_id = None; src=fst n1_loc; edge_label_cst=Ast.Pos_list [label]; tar=n2}, snd n1_loc) }
 
+        /*   A -["x"]-> B   */
+        | n1_loc=node_id_with_loc label=delimited(LTR_EDGE_LEFT,STRING,LTR_EDGE_RIGHT) n2=node_id
+            { Graph_edge ({Ast.edge_id = None; src=fst n1_loc; edge_label_cst=Ast.Pos_list [label]; tar=n2}, snd n1_loc) }
+
 /*=============================================================================================*/
 /*  DOMAIN DEFINITION                                                                          */
 /*=============================================================================================*/
 domain:
-        | c=option(DUMMY) f=features_group g=labels EOF
+        | c=option(DUMMY) f=feature_group g=labels EOF
             {
               {  Ast.feature_domain = f;
                  label_domain = g;
@@ -235,38 +236,9 @@ domain:
             }
 
 /*=============================================================================================*/
-/*  GREW GRAPH REWRITING SYSTEM                                                                */
-/*=============================================================================================*/
-grs_wi:
-        | d=option(domain) m=module_or_include_list s=option(sequences) EOF
-            {
-             { Ast.domain_wi=(match d with Some dom -> Some (Ast.Dom dom) | None -> None);
-               modules_wi=m;
-               strategies_wi=match s with Some seq -> seq | None -> [];
-             }
-           }
-        | DOMAIN file=STRING m=module_or_include_list s=option(sequences) EOF
-            {
-             { Ast.domain_wi= Some (Ast.Dom_file file);
-               modules_wi=m;
-               strategies_wi=match s with Some seq -> seq | None -> [];
-             }
-           }
-
-module_or_include_list:
-        | x=list(module_or_include) { x }
-
-module_or_include:
-        | m=grew_module             { Ast.Modul m }
-        | INCL sub=subfile SEMIC { Ast.Includ sub }
-
-subfile:
-        | f=STRING  { localize f }
-
-/*=============================================================================================*/
 /* FEATURES DOMAIN DEFINITION                                                                  */
 /*=============================================================================================*/
-features_group:
+feature_group:
         | FEATURES x=features { x }
 
 features:
@@ -275,7 +247,7 @@ features:
 feature:
         /*   pos=#   */
         /*   m: ind,inf,part,subj,imp   */
-        | feature_name=feature_name DDOT feature_values=features_values
+        | feature_name=feature_name DDOT feature_values=feature_values
             {
               match feature_values with
                 | ["#"] -> Ast.Num feature_name
@@ -287,9 +259,9 @@ feature:
             { Ast.Open feature_name }
 
 feature_name:
-        | ci=ID { Ast.to_uname ci }
+        | ci=ID { to_uname ci }
 
-features_values:
+feature_values:
         | SHARP                                         { ["#"] }
         | x=separated_nonempty_list(COMA,feature_value) { x }
 
@@ -309,67 +281,32 @@ display:
         | col=COLOR       { col }
 
 /*=============================================================================================*/
-/* MODULE DEFINITION                                                                           */
-/*=============================================================================================*/
-included:
-        | x=list(module_or_include) EOF { x }
-
-grew_module:
-        | doc=option(COMMENT) MODULE det=boption(DETERMINISTIC) id_loc=simple_id_with_loc LACC l=option(labels) r=rules RACC
-           {
-            { Ast.module_id = fst id_loc;
-              rules = r;
-              deterministic = det;
-              module_doc = (match doc with Some d -> d | None -> []);
-              mod_loc = snd id_loc;
-              mod_dir = "";
-            }
-          }
-
-/*=============================================================================================*/
 /* RULES DEFINITION                                                                            */
 /*=============================================================================================*/
-rules:
-        | r = list(rule) { r }
-
 rule:
-        | doc=option(COMMENT) RULE id_loc=simple_id_with_loc LACC p=pos_item n=list(neg_item) cmds=commands RACC
+        | doc=option(COMMENT) RULE id_loc=simple_id_with_loc file_lexicons = option(external_lexicons) LACC p=pos_item n=list(neg_item) cmds=commands RACC final_lexicons=list(final_lexicon)
             {
+              let lexicons = match file_lexicons with
+              | Some l -> l @ final_lexicons
+              | None -> final_lexicons in
               { Ast.rule_id = fst id_loc;
                 pattern = Ast.complete_pattern { Ast.pat_pos = p; Ast.pat_negs = n };
                 commands = cmds;
-                param = None;
-                lex_par = None;
-                rule_doc = begin match doc with Some d -> d | None -> [] end;
-                rule_loc = snd id_loc;
-                rule_dir = None;
-              }
-            }
-        | doc=option(COMMENT) RULE id_loc=simple_id_with_loc param=param LACC p=pos_item n=list(neg_item) cmds=commands RACC lex_par=option(lex_par)
-            {
-              { Ast.rule_id = fst id_loc;
-                pattern = Ast.complete_pattern { Ast.pat_pos = p; Ast.pat_negs = n };
-                commands = cmds;
-                param = Some param;
-                lex_par = lex_par;
+                lexicon_info = lexicons;
                 rule_doc = begin match doc with Some d -> d | None -> [] end;
                 rule_loc = snd id_loc;
                 rule_dir = None;
               }
             }
 
-lex_par:
-        | lex_par = LEX_PAR  { lex_par }
+external_lexicons:
+        | LPAREN external_lexicons= separated_nonempty_list_final_opt(COMA, external_lexicon) RPAREN       { external_lexicons }
 
-param:
-        | LPAREN FEATURE vars=separated_nonempty_list(COMA,var) RPAREN                                       { ([],vars) }
-        | LPAREN FEATURE vars=separated_nonempty_list(COMA,var) SEMIC files=separated_list(COMA,file) RPAREN { (files,vars) }
+external_lexicon:
+        | lex_name=simple_id FROM file=STRING { (lex_name, Ast.File file)}
 
-file:
-        | FILE f=STRING     { f }
-var:
-        | i=DOLLAR_ID       { i }
-        | i=AROBAS_ID       { i }
+final_lexicon:
+        | final_lexicon = LEX_PAR  { (fst final_lexicon, Ast.Final (snd final_lexicon)) }
 
 pos_item:
         | PATTERN i=pn_item   { i }
@@ -411,6 +348,10 @@ pat_item:
         | id_loc=simple_id_with_loc DDOT n1=simple_id LTR_EDGE_LEFT re=REGEXP LTR_EDGE_RIGHT n2=simple_id
             { let (id,loc) = id_loc in Pat_edge ({Ast.edge_id = Some id; src=n1; edge_label_cst=Ast.Regexp re; tar=n2}, loc) }
 
+        /*   e: A -["string"]-> B   */
+        | id_loc=simple_id_with_loc DDOT n1=simple_id LTR_EDGE_LEFT s=STRING LTR_EDGE_RIGHT n2=simple_id
+            { let (id,loc) = id_loc in Pat_edge ({Ast.edge_id = Some id; src=n1; edge_label_cst=Ast.Pos_list [s]; tar=n2}, loc) }
+
         /*   A -> B   */
         | n1_loc=simple_id_with_loc EDGE n2=simple_id
             { let (n1,loc) = n1_loc in Pat_edge ({Ast.edge_id = None; src=n1; edge_label_cst=Ast.Neg_list []; tar=n2}, loc) }
@@ -443,6 +384,10 @@ pat_item:
         | n1_loc=simple_id_with_loc LTR_EDGE_LEFT re=REGEXP LTR_EDGE_RIGHT n2=simple_id
             { let (n1,loc) = n1_loc in Pat_edge ({Ast.edge_id = None; src=n1; edge_label_cst=Ast.Regexp re; tar=n2}, loc) }
 
+        /*   A -["string"]-> B   */
+        | n1_loc=simple_id_with_loc LTR_EDGE_LEFT s=STRING LTR_EDGE_RIGHT n2=simple_id
+            { let (n1,loc) = n1_loc in Pat_edge ({Ast.edge_id = None; src=n1; edge_label_cst=Ast.Pos_list [s]; tar=n2}, loc) }
+
         /*   A -[^X|Y]-> *   */
         | n1_loc=simple_id_with_loc labels=delimited(LTR_EDGE_LEFT_NEG,separated_nonempty_list(PIPE,pattern_label_ident),LTR_EDGE_RIGHT) STAR
             { let (n1,loc) = n1_loc in Pat_const (Ast.Cst_out (n1,Ast.Neg_list labels), loc) }
@@ -453,12 +398,15 @@ pat_item:
 
         /*   X.cat = Y.cat   */
         /*   X.cat = value   */
+        /*   X.cat = lex.value   */
         | feat_id1_loc=feature_ident_with_loc EQUAL rhs=ID
-            { let (feat_id1,loc)=feat_id1_loc in
-              match Ast.parse_simple_or_feature_ident rhs with
-              | (node_id, Some feat_name) -> Pat_const (Ast.Features_eq (feat_id1, (node_id,feat_name)), loc)
-              | (value, None) -> Pat_const (Ast.Feature_eq_cst (feat_id1, value), loc)
-            }
+             { let (feat_id1,loc)=feat_id1_loc in
+              match Ast.parse_simple_or_pointed rhs with
+              | Ast.Simple value ->
+                Pat_const (Ast.Feature_eq_cst (feat_id1, value), loc)
+              | Ast.Pointed (s1, s2) ->
+                Pat_const (Ast.Feature_eq_lex_or_fs (feat_id1, (s1, to_uname s2)), loc)
+             }
 
         /*   X.cat = "value"   */
         | feat_id1_loc=feature_ident_with_loc EQUAL rhs=STRING
@@ -470,12 +418,15 @@ pat_item:
 
         /*   X.cat <> Y.cat   */
         /*   X.cat <> value   */
+        /*   X.cat <> lex.value   */
         | feat_id1_loc=feature_ident_with_loc DISEQUAL rhs=ID
-            { let (feat_id1,loc)=feat_id1_loc in
-              match Ast.parse_simple_or_feature_ident rhs with
-              | (node_id, Some feat_name) -> Pat_const (Ast.Features_diseq (feat_id1, (node_id,feat_name)), loc)
-              | (value, None) -> Pat_const (Ast.Feature_diff_cst (feat_id1, value), loc)
-            }
+             { let (feat_id1,loc)=feat_id1_loc in
+              match Ast.parse_simple_or_pointed rhs with
+              | Ast.Simple value ->
+                Pat_const (Ast.Feature_diff_cst (feat_id1, value), loc)
+              | Ast.Pointed (s1, s2) ->
+                Pat_const (Ast.Feature_diff_lex_or_fs (feat_id1, (s1, to_uname s2)), loc)
+             }
 
         /*   X.cat <> "value"   */
         | feat_id1_loc=feature_ident_with_loc DISEQUAL rhs=STRING
@@ -494,13 +445,24 @@ pat_item:
             { let (id1,loc)=id1_loc in
               match (id1, id2) with
               (*   X.feat < Y.feat   *)
-              | (Ineq_sofi (n1, Some f1), Ineq_sofi (n2, Some f2)) -> Pat_const (Ast.Features_ineq (Ast.Lt, (n1,f1), (n2,f2)), loc)
+              | (Ineq_sofi (Ast.Pointed (n1, f1)), Ineq_sofi (Ast.Pointed (n2, f2))) ->
+                Pat_const (Ast.Features_ineq (Ast.Lt, (n1,f1), (n2,f2)), loc)
+
               (*   X.feat < 12.34   *)
-              | (Ineq_sofi (n1, Some f1), Ineq_float num) -> Pat_const (Ast.Feature_ineq_cst (Ast.Lt, (n1,f1), num), loc)
+              | (Ineq_sofi (Ast.Pointed (n1, f1)), Ineq_float num) ->
+                Pat_const (Ast.Feature_ineq_cst (Ast.Lt, (n1,f1), num), loc)
+
               (*   12.34 < Y.feat   *)
-              | (Ineq_float num, Ineq_sofi (n1, Some f1)) -> Pat_const (Ast.Feature_ineq_cst (Ast.Gt, (n1,f1), num), loc)
+              | (Ineq_float num, Ineq_sofi (Ast.Pointed (n1, f1))) ->
+                Pat_const (Ast.Feature_ineq_cst (Ast.Gt, (n1,f1), num), loc)
+
               (*   X < Y   *)
-              | (Ineq_sofi (n1, None), Ineq_sofi (n2, None)) -> Pat_const (Ast.Immediate_prec (n1,n2), loc)
+              | (Ineq_sofi (Ast.Simple n1), Ineq_sofi (Ast.Simple n2)) ->
+                Pat_const (Ast.Immediate_prec (n1,n2), loc)
+
+(* TODO : axe lex_field *)
+
+              (*  __ERRORS__   *)
               | (Ineq_float _, Ineq_float _) -> Error.build "the '<' symbol can be used with 2 constants"
               | _ -> Error.build "the '<' symbol can be used with 2 nodes or with 2 features but not in a mix inequality"
             }
@@ -509,13 +471,24 @@ pat_item:
             { let (id1,loc)=id1_loc in
               match (id1, id2) with
               (*   X.feat > Y.feat   *)
-              | (Ineq_sofi (n1, Some f1), Ineq_sofi (n2, Some f2)) -> Pat_const (Ast.Features_ineq (Ast.Gt, (n1,f1), (n2,f2)), loc)
+              | (Ineq_sofi (Ast.Pointed (n1, f1)), Ineq_sofi (Ast.Pointed (n2, f2))) ->
+                Pat_const (Ast.Features_ineq (Ast.Gt, (n1,f1), (n2,f2)), loc)
+
               (*   X.feat > 12.34   *)
-              | (Ineq_sofi (n1, Some f1), Ineq_float num) -> Pat_const (Ast.Feature_ineq_cst (Ast.Gt, (n1,f1), num), loc)
+              | (Ineq_sofi (Ast.Pointed (n1, f1)), Ineq_float num) ->
+                Pat_const (Ast.Feature_ineq_cst (Ast.Gt, (n1,f1), num), loc)
+
               (*   12.34 > Y.feat   *)
-              | (Ineq_float num, Ineq_sofi (n1, Some f1)) -> Pat_const (Ast.Feature_ineq_cst (Ast.Lt, (n1,f1), num), loc)
+              | (Ineq_float num, Ineq_sofi (Ast.Pointed (n1, f1))) ->
+                Pat_const (Ast.Feature_ineq_cst (Ast.Lt, (n1,f1), num), loc)
+
               (*   X > Y   *)
-              | (Ineq_sofi (n1, None), Ineq_sofi (n2, None)) -> Pat_const (Ast.Immediate_prec (n2,n1), loc)
+              | (Ineq_sofi (Ast.Simple n1), Ineq_sofi (Ast.Simple n2)) ->
+                Pat_const (Ast.Immediate_prec (n2,n1), loc)
+
+(* TODO : axe lex_field *)
+
+              (*  __ERRORS__   *)
               | (Ineq_float _, Ineq_float _) -> Error.build "the '>' symbol can be used with 2 constants"
               | _ -> Error.build "the '>' symbol can be used with 2 nodes or with 2 features but not in a mix inequality"
             }
@@ -548,36 +521,55 @@ pat_item:
 
 node_features:
         /*   cat = n|v|adj   */
-        | name_loc=simple_id_with_loc EQUAL values=separated_nonempty_list(PIPE,feature_value)
-            { let (name,loc) = name_loc in
-              let uname = Ast.to_uname name in
+        | name_loc=simple_id_with_loc EQUAL values=separated_nonempty_list(PIPE,pattern_feature_value)
+            {
+              let (name,loc) = name_loc in
+              let uname = to_uname name in
               match values with
-              | ["*"] -> ({Ast.kind = Ast.Disequality []; name=uname},loc)
-              | _ -> ({Ast.kind = Ast.Equality values; name=uname }, loc) }
+              | [Ast.Simple "*"] ->
+                ({Ast.kind = Ast.Disequality []; name=uname},loc)
+              | [Ast.Pointed (lex,fn)] ->
+                ({Ast.kind = Ast.Equal_lex (lex,fn); name=uname }, loc)
+              | l ->
+                let value_list = List.map (function
+                  | Ast.Simple x -> x
+                  | Ast.Pointed (lex,fn) -> Error.build "Lexical reference '%s.%s' cannot be used in a disjunction" lex fn
+                ) l in ({Ast.kind = Ast.Equality value_list; name=uname }, loc)
+            }
 
         /*   cat = *   */
         | name_loc=simple_id_with_loc EQUAL STAR
-            { let (name,loc) = name_loc in ({Ast.kind = Ast.Disequality []; name=Ast.to_uname name},loc) }
+            { let (name,loc) = name_loc in
+              ({Ast.kind = Ast.Disequality []; name=to_uname name},loc) }
 
         /*   cat   */
         | name_loc=simple_id_with_loc
-            { let (name,loc) = name_loc in ({Ast.kind = Ast.Disequality []; name=Ast.to_uname name},loc) }
+            { let (name,loc) = name_loc in
+              ({Ast.kind = Ast.Disequality []; name=to_uname name},loc) }
 
         /*    cat<>n|v|adj   */
-        | name_loc=simple_id_with_loc DISEQUAL values=separated_nonempty_list(PIPE,feature_value)
-            { let (name,loc) = name_loc in ( {Ast.kind = Ast.Disequality values; name=Ast.to_uname name}, loc) }
+        | name_loc=simple_id_with_loc DISEQUAL values=separated_nonempty_list(PIPE,pattern_feature_value)
+            {
+              let (name,loc) = name_loc in
+              let uname = to_uname name in
+              match values with
+              | [Ast.Pointed (lex,fn)] ->
+                ({Ast.kind = Ast.Disequal_lex (lex,fn); name=uname }, loc)
+              | l ->
+                let value_list = List.map (function
+                  | Ast.Simple x -> x
+                  | Ast.Pointed (lex,fn) -> Error.build "Lexical reference '%s.%s' cannot be used in a disjunction" lex fn
+                ) l in ({Ast.kind = Ast.Disequality value_list; name=uname }, loc)
+            }
 
-        /*    lemma=$lem   */
-        | name_loc=simple_id_with_loc EQUAL p=DOLLAR_ID
-            { let (name,loc) = name_loc in ( {Ast.kind = Ast.Equal_param p; name=Ast.to_uname name }, loc) }
 
         /*   !lemma   */
         | BANG name_loc=simple_id_with_loc
-            { let (name,loc) = name_loc in ({Ast.kind = Ast.Absent; name=Ast.to_uname name}, loc) }
+            { let (name,loc) = name_loc in ({Ast.kind = Ast.Absent; name=to_uname name}, loc) }
 
         /*   mwepos=ADV/upos=ADV   */
         | name1_loc=simple_id_with_loc EQUAL fv1=feature_value SLASH name2=simple_id EQUAL fv2=feature_value
-            { let (name1,loc) = name1_loc in ({Ast.kind = Ast.Else (fv1,name2,fv2); name=Ast.to_uname name1}, loc) }
+            { let (name1,loc) = name1_loc in ({Ast.kind = Ast.Else (fv1,name2,fv2); name=to_uname name1}, loc) }
 
 
 /*=============================================================================================*/
@@ -676,30 +668,16 @@ command:
             { let (com_fead_id,loc) = com_fead_id_loc in (Ast.Update_feat (com_fead_id, items), loc) }
 
 concat_item:
-        | gi=ID            { if Ast.is_simple_ident gi then Ast.String_item gi else Ast.Qfn_item (Ast.parse_feature_ident gi) }
+        | gi=ID
+          {
+            match Ast.parse_simple_or_pointed gi with
+            | Ast.Simple value -> Ast.String_item value
+            | Ast.Pointed (s1, s2) -> Ast.Qfn_or_lex_item (s1, to_uname s2)
+          }
         | s=STRING         { Ast.String_item s }
         | f=FLOAT          { Ast.String_item (Printf.sprintf "%g" f) }
-        | p=AROBAS_ID      { Ast.Param_item p }
-        | p=DOLLAR_ID      { Ast.Param_item p }
 
 
-/*=============================================================================================*/
-/* SEQUENCE DEFINITION                                                                         */
-/*=============================================================================================*/
-sequences:
-        | SEQUENCES seq=delimited(LACC,list(sequence),RACC) { seq }
-
-sequence:
-        /*   seq_name { ant; p7_to_p7p-mc}   */
-        | doc = option(COMMENT) id_loc=simple_id_with_loc mod_names=delimited(LACC,separated_list_final_opt(SEMIC,simple_id),RACC)
-            { let (strat_name,strat_loc) = id_loc in
-              {
-                Ast.strat_name;
-                strat_def = Ast.Sequence mod_names;
-                strat_doc = begin match doc with Some d -> d | None -> [] end;
-                strat_loc;
-              }
-            }
 
 /*=============================================================================================*/
 /* ISOLATED PATTERN (grep mode)                                                                */
@@ -731,28 +709,28 @@ pst:
 /*=============================================================================================*/
 /*=============================================================================================*/
 
-new_grs:
+grs:
   | decls = list(decl) EOF { decls }
 
 decl:
-  | f=features_group                                          { New_ast.Features f                           }
-  | l=labels                                                  { New_ast.Labels l                             }
-  | r=rule                                                    { New_ast.Rule r                               }
-  | IMPORT f=STRING                                           { New_ast.Import f                             }
-  | INCL f=STRING                                             { New_ast.Include f                            }
-  | PACKAGE id_loc=simple_id_with_loc LACC l=list(decl) RACC  { New_ast.Package (snd id_loc, fst id_loc, l)  }
-  | STRAT id_loc=simple_id_with_loc LACC d = strat_desc RACC  { New_ast.Strategy (snd id_loc, fst id_loc, d) }
+  | f=feature_group                                          { Ast.Features f                           }
+  | l=labels                                                  { Ast.Labels l                             }
+  | r=rule                                                    { Ast.Rule r                               }
+  | IMPORT f=STRING                                           { Ast.Import f                             }
+  | INCL f=STRING                                             { Ast.Include f                            }
+  | PACKAGE id_loc=simple_id_with_loc LACC l=list(decl) RACC  { Ast.Package (snd id_loc, fst id_loc, l)  }
+  | STRAT id_loc=simple_id_with_loc LACC d = strat_desc RACC  { Ast.Strategy (snd id_loc, fst id_loc, d) }
 
 strat_desc:
-  | id = node_id                                                           { New_ast.Ref id }
-  | PICK LPAREN s=strat_desc RPAREN                                        { New_ast.Pick s }
-  | ALT LPAREN sl=separated_list_final_opt(COMA,strat_desc) RPAREN         { New_ast.Alt sl }
-  | SEQ LPAREN sl=separated_list_final_opt(COMA,strat_desc) RPAREN         { New_ast.Seq sl }
-  | ITER LPAREN s=strat_desc RPAREN                                        { New_ast.Iter s }
-  | IF LPAREN s1=strat_desc COMA s2=strat_desc COMA s3=strat_desc RPAREN   { New_ast.If (s1,s2,s3) }
-  | TRY LPAREN s=strat_desc RPAREN                                         { New_ast.Try s }
-  | ONF LPAREN s=strat_desc RPAREN                                         { New_ast.Onf s }
-  | EMPTY                                                                  { New_ast.Seq [] }
+  | id = node_id                                                           { Ast.Ref id }
+  | PICK LPAREN s=strat_desc RPAREN                                        { Ast.Pick s }
+  | ALT LPAREN sl=separated_list_final_opt(COMA,strat_desc) RPAREN         { Ast.Alt sl }
+  | SEQ LPAREN sl=separated_list_final_opt(COMA,strat_desc) RPAREN         { Ast.Seq sl }
+  | ITER LPAREN s=strat_desc RPAREN                                        { Ast.Iter s }
+  | IF LPAREN s1=strat_desc COMA s2=strat_desc COMA s3=strat_desc RPAREN   { Ast.If (s1,s2,s3) }
+  | TRY LPAREN s=strat_desc RPAREN                                         { Ast.Try s }
+  | ONF LPAREN s=strat_desc RPAREN                                         { Ast.Onf s }
+  | EMPTY                                                                  { Ast.Seq [] }
 
 strat_alone:
   | s = strat_desc EOF  { s }

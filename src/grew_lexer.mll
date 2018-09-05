@@ -1,9 +1,9 @@
 (**********************************************************************************)
 (*    Libcaml-grew - a Graph Rewriting library dedicated to NLP applications      *)
 (*                                                                                *)
-(*    Copyright 2011-2013 Inria, Université de Lorraine                           *)
+(*    Copyright 2011-2018 Inria, Université de Lorraine                           *)
 (*                                                                                *)
-(*    Webpage: http://grew.loria.fr                                               *)
+(*    Webpage: http://grew.fr                                                     *)
 (*    License: CeCILL (see LICENSE folder or "http://www.cecill.info")            *)
 (*    Authors: see AUTHORS file                                                   *)
 (**********************************************************************************)
@@ -18,6 +18,8 @@
   exception Error of string
 
   let escaped = ref false
+
+  let lexicon_lines = ref []
 
   let split_comment com =
     let raw = Str.split (Str.regexp "\n") com in
@@ -96,11 +98,22 @@ and string_lex re target = parse
     string_lex re target lexbuf
   }
 
-(* a dedicated lexer for lexical parameter: read everything until "#END" *)
-and lp_lex target = parse
-| '\n'                    { Global.new_line (); Lexing.new_line lexbuf; bprintf buff "\n"; lp_lex target lexbuf }
-| _ as c                  { bprintf buff "%c" c; lp_lex target lexbuf }
-| "#END" [' ' '\t']* '\n' { Global.new_line (); LEX_PAR (Str.split (Str.regexp "\n") (Buffer.contents buff)) }
+(* a dedicated lexer for local lexicons: read everything until "#END" *)
+and lp_lex name target = parse
+| '\n'                    { (match Global.get_line () with
+                              | None -> raise (Error "no loc in lexer")
+                              | Some l -> lexicon_lines := (l, Buffer.contents buff) :: !lexicon_lines
+                            );
+                            Global.new_line ();
+                            Lexing.new_line lexbuf;
+                            Buffer.clear buff;
+                            lp_lex name target lexbuf
+                          }
+| _ as c                  { bprintf buff "%c" c; lp_lex name target lexbuf }
+| "#END" [' ' '\t']* '\n' { Global.new_line ();
+                            let lines= List.rev !lexicon_lines in
+                            LEX_PAR (name, lines)
+                          }
 
 (* The lexer must be different when label_ident are parsed. The [global] lexer calls either
    [label_parser] or [standard] depending on the flag [Global.label_flag].
@@ -147,17 +160,20 @@ and standard target = parse
 | "/*"       { comment_multi global lexbuf }
 | '%'        { comment global lexbuf }
 
-| "#BEGIN" [' ' '\t']* '\n' { Global.new_line (); Buffer.clear buff; lp_lex global lexbuf}
+| "#BEGIN" [' ' '\t']* (label_ident as li) [' ' '\t']* '\n'
+             { Global.new_line ();
+               Buffer.clear buff;
+               lexicon_lines := [];
+               lp_lex li global lexbuf
+             }
 
 | '\n'       { Global.new_line (); Lexing.new_line lexbuf; global lexbuf}
 
 | "include"       { INCL }
 | "import"        { IMPORT }
-| "domain"        { DOMAIN }
 | "features"      { FEATURES }
 | "conll_fields"  { Log.fwarning "\"conll_fields\" is deprecated, ignored"; DUMMY }
-| "feature"       { FEATURE }
-| "file"          { FILE }
+| "from"          { FROM }
 | "labels"        { Global.label_flag := true; LABELS }
 
 | "match"         { Log.fwarning "%s \"match\" is deprecated, please use \"pattern\" instead" (Global.loc_string ()); PATTERN }
@@ -176,14 +192,10 @@ and standard target = parse
 | "add_node"      { ADD_NODE }
 | "del_feat"      { DEL_FEAT }
 
-| "module"        { MODULE }
 | "package"       { PACKAGE }
-| "confluent"     { Log.fwarning "%s \"confluent\" is deprecated, please use \"deterministic\" instead" (Global.loc_string ()); DETERMINISTIC }
-| "deterministic" { DETERMINISTIC }
 | "rule"          { RULE }
 | "strat"         { STRAT }
 | "lex_rule"      { Log.fwarning "%s \"lex_rule\" is deprecated, please use \"rule\" instead" (Global.loc_string ()); RULE }
-| "sequences"     { SEQUENCES }
 
 | "Pick"          { PICK }
 | "Alt"           { ALT }
@@ -198,7 +210,7 @@ and standard target = parse
 
 | digit+ ('.' digit*)? as number  { FLOAT (float_of_string number) }
 
-| '$' general_ident as pat_var     { DOLLAR_ID pat_var}
+| '$' general_ident      { raise (Error "Syntax of lexicon has changed! Please read grew.fr/lexicons_change for updating instructions") }
 | '@' general_ident as cmd_var     { AROBAS_ID cmd_var }
 | "@#" color as col        { COLOR col }
 

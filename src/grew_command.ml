@@ -1,9 +1,9 @@
 (**********************************************************************************)
 (*    Libcaml-grew - a Graph Rewriting library dedicated to NLP applications      *)
 (*                                                                                *)
-(*    Copyright 2011-2013 Inria, Université de Lorraine                           *)
+(*    Copyright 2011-2018 Inria, Université de Lorraine                           *)
 (*                                                                                *)
-(*    Webpage: http://grew.loria.fr                                               *)
+(*    Webpage: http://grew.fr                                                     *)
 (*    License: CeCILL (see LICENSE folder or "http://www.cecill.info")            *)
 (*    Authors: see AUTHORS file                                                   *)
 (**********************************************************************************)
@@ -32,8 +32,7 @@ module Command  = struct
   type item =
     | Feat of (command_node * string)
     | String of string
-    | Param_in of int
-    | Param_out of int
+    | Lexical_field of (string * string)
 
   let item_to_json = function
   | Feat (cn, feature_name) -> `Assoc [("copy_feat",
@@ -43,8 +42,7 @@ module Command  = struct
         ]
       )]
   | String s -> `Assoc [("string", `String s)]
-  | Param_in i -> `Assoc [("param_in", `Int i)]
-  | Param_out i -> `Assoc [("param_out", `Int i)]
+  | Lexical_field (lex,field) -> `Assoc [("lexical_filed", `String (lex ^ "." ^ field))]
 
   (* the command in pattern *)
   type p =
@@ -153,26 +151,7 @@ module Command  = struct
         ]
       )]
 
-  (* a item in the command history: command applied to a graph *)
-  type h =
-    | H_DEL_NODE of Gid.t
-    | H_DEL_EDGE_EXPL of (Gid.t * Gid.t * G_edge.t)
-    | H_DEL_EDGE_NAME of string
-    | H_ADD_EDGE of (Gid.t * Gid.t * G_edge.t)
-    | H_ADD_EDGE_EXPL of (Gid.t * Gid.t * string)
-    | H_DEL_FEAT of (Gid.t * string)
-    | H_UPDATE_FEAT of (Gid.t * string * string)
-
-    | H_NEW_NODE of string
-    | H_NEW_BEFORE of (string * Gid.t)
-    | H_NEW_AFTER of (string * Gid.t)
-
-    | H_SHIFT_EDGE of (Gid.t * Gid.t)
-    | H_SHIFT_IN of (Gid.t * Gid.t)
-    | H_SHIFT_OUT of (Gid.t * Gid.t)
-
-
-  let build ?domain ?param (kni, kei) table ast_command =
+  let build ?domain lexicons (kni, kei) table ast_command =
     (* kni stands for "known node idents", kei for "known edge idents" *)
 
     let cn_of_node_id node_id =
@@ -180,9 +159,11 @@ module Command  = struct
       | Some x -> Pat (Pid.Pos x)
       | None   -> New node_id in
 
-    let check_node_id loc node_id kni =
+    let check_node_id_msg loc msg node_id kni =
       if not (List.mem node_id kni)
-      then Error.build ~loc "Unbound node identifier \"%s\"" node_id in
+      then Error.build ~loc "%s \"%s\"" msg node_id in
+
+    let check_node_id loc node_id kni = check_node_id_msg loc "Unbound node identifier" node_id kni in
 
     (* check that the edge_id is defined in the pattern *)
     let check_edge loc edge_id kei =
@@ -258,27 +239,26 @@ module Command  = struct
           check_node_id loc node_id kni;
           let items = List.map
             (function
-              | Ast.Qfn_item (node_id,feature_name) ->
-                check_node_id loc node_id kni;
-                Domain.check_feature_name ~loc ?domain feature_name;
-                Feat (cn_of_node_id node_id, feature_name)
+              | Ast.Qfn_or_lex_item (node_id_or_lex,feature_name_or_lex_field) ->
+                if List.mem_assoc node_id_or_lex lexicons
+                then
+                  begin
+                    Lexicons.check ~loc node_id_or_lex feature_name_or_lex_field lexicons;
+                    Lexical_field (node_id_or_lex, feature_name_or_lex_field)
+                  end
+                else
+                  begin
+                    check_node_id_msg loc ("Unbound identifier (neither a node nor a lexicon):") node_id_or_lex kni;
+                    Domain.check_feature_name ~loc ?domain feature_name_or_lex_field;
+                    Feat (cn_of_node_id node_id_or_lex, feature_name_or_lex_field)
+                  end
               | Ast.String_item s -> String s
-              | Ast.Param_item var ->
-                match param with
-                  | None -> Error.build ~loc "Unknown command variable '%s'" var
-                  | Some (par,cmd) ->
-                    match (List_.index var par, List_.index var cmd) with
-                      | (_,Some index) -> Param_out index
-                      | (Some index,_) -> Param_in index
-                      | _ -> Error.build ~loc "Unknown command variable '%s'" var
             ) ast_items in
             (* check for consistency *)
             (match items with
               | _ when Domain.is_open_feature ?domain feat_name -> ()
-              | [Param_out _] -> () (* TODO: check that lexical parameters are compatible with the feature domain *)
               | [String s] -> Domain.check_feature ~loc ?domain feat_name s
-              | [Feat (_,fn)] -> ()
-              | _ -> Error.build ~loc "[Update_feat] Only open features can be modified with the concat operator '+' but \"%s\" is not declared as an open feature" feat_name);
+              | _ -> ());
           ((UPDATE_FEAT (cn_of_node_id node_id, feat_name, items), loc), (kni, kei))
 
 end (* module Command *)

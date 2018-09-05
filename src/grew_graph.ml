@@ -1,9 +1,9 @@
 (**********************************************************************************)
 (*    Libcaml-grew - a Graph Rewriting library dedicated to NLP applications      *)
 (*                                                                                *)
-(*    Copyright 2011-2013 Inria, Université de Lorraine                           *)
+(*    Copyright 2011-2018 Inria, Université de Lorraine                           *)
 (*                                                                                *)
-(*    Webpage: http://grew.loria.fr                                               *)
+(*    Webpage: http://grew.fr                                                     *)
 (*    License: CeCILL (see LICENSE folder or "http://www.cecill.info")            *)
 (*    Authors: see AUTHORS file                                                   *)
 (**********************************************************************************)
@@ -62,21 +62,15 @@ module P_graph = struct
       | Some new_node -> Some (Pid_map.add id_src new_node map)
 
   (* -------------------------------------------------------------------------------- *)
-  let build_filter ?domain table (ast_node, loc) =
-    let pid = Id.build ~loc ast_node.Ast.node_id table in
-    let fs = P_fs.build ?domain ast_node.Ast.fs in
-    (pid, fs)
-
-  (* -------------------------------------------------------------------------------- *)
-  let build ?domain ?pat_vars (full_node_list : Ast.node list) full_edge_list =
+  let build ?domain lexicons (full_node_list : Ast.node list) full_edge_list =
 
     (* NB: insert searches for a previous node with the Same name and uses unification rather than constraint *)
     (* NB: insertion of new node at the end of the list: not efficient but graph building is not the hard part. *)
     let rec insert (ast_node, loc) = function
-      | [] -> [P_node.build ?domain ?pat_vars (ast_node, loc)]
+      | [] -> [P_node.build ?domain lexicons (ast_node, loc)]
       | (node_id,fs)::tail when ast_node.Ast.node_id = node_id ->
         begin
-          try (node_id, P_node.unif_fs (P_fs.build ?domain ?pat_vars ast_node.Ast.fs) fs) :: tail
+          try (node_id, P_node.unif_fs (P_fs.build ?domain lexicons ast_node.Ast.fs) fs) :: tail
           with Error.Build (msg,_) -> raise (Error.Build (msg,Some loc))
         end
       | head :: tail -> head :: (insert (ast_node, loc) tail) in
@@ -123,9 +117,9 @@ module P_graph = struct
 
   (* -------------------------------------------------------------------------------- *)
   (* It may raise [P_fs.Fail_unif] in case of contradiction on constraints *)
-  let build_extension ?domain ?pat_vars pos_table full_node_list full_edge_list =
+  let build_extension ?domain lexicons pos_table full_node_list full_edge_list =
 
-    let built_nodes = List.map (P_node.build ?domain ?pat_vars) full_node_list in
+    let built_nodes = List.map (P_node.build ?domain lexicons) full_node_list in
 
     let (old_nodes, new_nodes) =
       List.partition
@@ -1133,15 +1127,17 @@ module G_graph = struct
 
   let cast ?domain graph = match (domain, graph.domain) with
     | (None, _) -> graph
-    | (Some new_domain, Some dom) when dom == new_domain -> (* ====== NO CAST NEEDED ====== *) graph
-    | _ -> (* ====== CASTING NEEDED ====== *) of_conll ?domain (to_conll graph)
+    | (Some new_domain, Some dom) when dom == new_domain ->
+      (* ====== NO CAST NEEDED ====== *) graph
+    | _ ->
+      (* ====== CASTING NEEDED ====== *) of_conll ?domain (to_conll graph)
 end (* module G_graph *)
 
 
 
 (* ================================================================================ *)
 (* The module [Delta] defines a type for recording the effect of a set of commands on a graph *)
-(* It is used a key to detect egal graphs based on rewriting history *)
+(* It is used as key to detect egal graphs based on rewriting history *)
 module Delta = struct
   type status = Add | Del
 
@@ -1199,6 +1195,7 @@ module Delta = struct
     { t with feats = loop t.feats }
 end (* module Delta *)
 
+(* ================================================================================ *)
 module Graph_with_history = struct
   type t = {
     seed: G_graph.t;
@@ -1213,4 +1210,5 @@ module Graph_with_history = struct
   let compare t1 t2 = Pervasives.compare (t1.delta,t1.added_gids) (t2.delta, t2.added_gids)
 end (* module Graph_with_history*)
 
+(* ================================================================================ *)
 module Graph_with_history_set = Set.Make (Graph_with_history)

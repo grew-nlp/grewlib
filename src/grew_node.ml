@@ -1,9 +1,9 @@
 (**********************************************************************************)
 (*    Libcaml-grew - a Graph Rewriting library dedicated to NLP applications      *)
 (*                                                                                *)
-(*    Copyright 2011-2013 Inria, Université de Lorraine                           *)
+(*    Copyright 2011-2018 Inria, Université de Lorraine                           *)
 (*                                                                                *)
-(*    Webpage: http://grew.loria.fr                                               *)
+(*    Webpage: http://grew.fr                                                     *)
 (*    License: CeCILL (see LICENSE folder or "http://www.cecill.info")            *)
 (*    Authors: see AUTHORS file                                                   *)
 (**********************************************************************************)
@@ -159,11 +159,11 @@ module P_node = struct
 
   let empty = { fs = P_fs.empty; next = Massoc_pid.empty; name = ""; loc=None   }
 
-  let build ?domain ?pat_vars (ast_node, loc) =
+  let build ?domain lexicons (ast_node, loc) =
     (ast_node.Ast.node_id,
      {
        name = ast_node.Ast.node_id;
-       fs = P_fs.build ?domain ?pat_vars ast_node.Ast.fs;
+       fs = P_fs.build ?domain lexicons ast_node.Ast.fs;
        next = Massoc_pid.empty;
        loc = Some loc;
      } )
@@ -173,13 +173,13 @@ module P_node = struct
     | Some l -> Some {t with next = l}
     | None -> None
 
-  let match_ ?param p_node g_node =
-    (* (match param with None -> printf "<None>" | Some p -> printf "<Some>"; Lex_par.dump p); *)
+
+  let match_ ?lexicons p_node g_node =
     match G_node.get_position g_node with
     | G_node.Unordered _ -> P_fs.match_ ?param p_node.fs (G_node.get_fs g_node)
     | G_node.Ordered p ->
-      if P_fs.check_position ?param (Some p) p_node.fs
-      then P_fs.match_ ?param p_node.fs (G_node.get_fs g_node)
+      if P_fs.check_position (Some p) p_node.fs
+      then P_fs.match_ ?lexicons p_node.fs (G_node.get_fs g_node)
       else raise P_fs.Fail
 
   let compare_pos t1 t2 = Pervasives.compare t1.loc t2.loc

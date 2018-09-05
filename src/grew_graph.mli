@@ -1,9 +1,9 @@
 (**********************************************************************************)
 (*    Libcaml-grew - a Graph Rewriting library dedicated to NLP applications      *)
 (*                                                                                *)
-(*    Copyright 2011-2013 Inria, Université de Lorraine                           *)
+(*    Copyright 2011-2018 Inria, Université de Lorraine                           *)
 (*                                                                                *)
-(*    Webpage: http://grew.loria.fr                                               *)
+(*    Webpage: http://grew.fr                                                     *)
 (*    License: CeCILL (see LICENSE folder or "http://www.cecill.info")            *)
 (*    Authors: see AUTHORS file                                                   *)
 (**********************************************************************************)
@@ -65,7 +65,7 @@ module P_graph: sig
   (** It raises [P_fs.Fail_unif] exception in case of inconsistent feature structures. *)
   val build:
       ?domain:Domain.t ->
-      ?pat_vars: string list ->
+      Lexicons.t ->
       Ast.node list ->
       Ast.edge list ->
       (t * Id.table)
@@ -73,7 +73,7 @@ module P_graph: sig
   (** It raises [P_fs.Fail_unif] exception in case of inconsistent feature structures. *)
   val build_extension:
       ?domain:Domain.t ->
-      ?pat_vars: string list ->
+      Lexicons.t ->
       Id.table ->
       Ast.node list ->
       Ast.edge list ->
@@ -202,6 +202,7 @@ module G_graph: sig
   val cast: ?domain:Domain.t -> t -> t
 end (* module G_graph *)
 
+(* ================================================================================ *)
 module Delta : sig
   type t
 
@@ -211,8 +212,9 @@ module Delta : sig
   val add_edge: Gid.t -> Label.t -> Gid.t -> t -> t
   val del_edge: Gid.t -> Label.t -> Gid.t -> t -> t
   val set_feat: G_graph.t -> Gid.t -> feature_name -> value option -> t -> t
-end
+end (* module Delta *)
 
+(* ================================================================================ *)
 module Graph_with_history : sig
   type t = {
     seed: G_graph.t;
@@ -224,6 +226,7 @@ module Graph_with_history : sig
   val from_graph: G_graph.t -> t
 
   val compare: t -> t -> int
-end
+end (* module Graph_with_history *)
 
+(* ================================================================================ *)
 module Graph_with_history_set : Set.S with type elt = Graph_with_history.t

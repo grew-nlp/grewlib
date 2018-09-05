@@ -1,9 +1,9 @@
 (**********************************************************************************)
 (*    Libcaml-grew - a Graph Rewriting library dedicated to NLP applications      *)
 (*                                                                                *)
-(*    Copyright 2011-2013 Inria, Université de Lorraine                           *)
+(*    Copyright 2011-2018 Inria, Université de Lorraine                           *)
 (*                                                                                *)
-(*    Webpage: http://grew.loria.fr                                               *)
+(*    Webpage: http://grew.fr                                                     *)
 (*    License: CeCILL (see LICENSE folder or "http://www.cecill.info")            *)
 (*    Authors: see AUTHORS file                                                   *)
 (**********************************************************************************)
@@ -13,20 +13,20 @@ open Grew_base
 open Grew_types
 open Grew_ast
 
+(* ================================================================================ *)
 module Loader: sig
   val domain: string -> Ast.domain
 
   val grs: string -> Ast.grs
-
-  val new_grs: string -> New_ast.grs
 
   val gr: string -> Ast.gr
 
   val pattern: string -> Ast.pattern
 
   val phrase_structure_tree: string -> Ast.pst
-end
+end (* module Loader *)
 
+(* ================================================================================ *)
 module Parser : sig
   val gr: string -> Ast.gr
 
@@ -34,5 +34,5 @@ module Parser : sig
 
   val pattern: string -> Ast.pattern
 
-  val strategy: string -> New_ast.strat
-end
+  val strategy: string -> Ast.strat
+end (* module Parser *)

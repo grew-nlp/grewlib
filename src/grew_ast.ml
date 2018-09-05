@@ -1,9 +1,9 @@
 (**********************************************************************************)
 (*    Libcaml-grew - a Graph Rewriting library dedicated to NLP applications      *)
 (*                                                                                *)
-(*    Copyright 2011-2013 Inria, Université de Lorraine                           *)
+(*    Copyright 2011-2018 Inria, Université de Lorraine                           *)
 (*                                                                                *)
-(*    Webpage: http://grew.loria.fr                                               *)
+(*    Webpage: http://grew.fr                                                     *)
 (*    License: CeCILL (see LICENSE folder or "http://www.cecill.info")            *)
 (*    Authors: see AUTHORS file                                                   *)
 (**********************************************************************************)
@@ -15,12 +15,6 @@ open Grew_types
 
 (* ================================================================================ *)
 module Ast = struct
-
-  let to_uname = function
-    | "cat" -> "upos"
-    | "pos" -> "xpos"
-    | "phon" -> "form"
-    | x -> x
 
   (* general function for checking that an identifier is of the right kind *)
   (* allowed is a char list which is a sub set of ['#'; '.'; ':'; '*'] *)
@@ -76,23 +70,28 @@ module Ast = struct
     | _ -> Error.build "The identifier '%s' must be a feature identifier (with exactly one '.' symbol, like \"V.cat\" for instance)" s
 
   (* ---------------------------------------------------------------------- *)
-  (* simple_or_feature_ident: union of simple_ident and feature_ident *)
+  (* simple_or_pointed: union of simple_ident, feature_ident and lex field *)
   (* Note: used for parsing of "X < Y" and "X.feat < Y.feat" without conflicts *)
-  type simple_or_feature_ident = Id.name * feature_name option
+  type pointed = string * string
+  let dump_pointed (s1,s2) = sprintf "%s.%s" s1 s2
+  type simple_or_pointed =
+    | Simple of Id.name
+    | Pointed of pointed
 
-  let parse_simple_or_feature_ident s =
+  let parse_simple_or_pointed s =
     check_special "feature ident" ["."] s;
-    match Str.full_split (Str.regexp "\\.") s with
-    | [Str.Text base; ] -> (base, None)
-    | [Str.Text base; Str.Delim "."; Str.Text fn] -> (base, Some (to_uname fn))
-    | _ -> Error.build "The identifier '%s' must be a feature identifier (with at most one '.' symbol, like \"V\" or \"V.cat\" for instance)" s
+    match Str.split (Str.regexp "\\.") s with
+    | [base] -> Simple base
+    | [s1; s2] -> Pointed (s1, to_uname s2)
+    | _ -> Error.build "The identifier '%s' must be a feature identifier or a lexical reference (with at most one '.' symbol, like \"V\", \"V.cat\" or \"lex.cat\" for instance)" s
 
 
   (* ---------------------------------------------------------------------- *)
   type feature_kind =
     | Equality of feature_value list
     | Disequality of feature_value list
-    | Equal_param of string (* $ident *)
+    | Equal_lex of string * string
+    | Disequal_lex of string * string
     | Absent
     | Else of (feature_value * feature_name * feature_value)
 
@@ -100,7 +99,8 @@ module Ast = struct
     | Equality fv_list -> sprintf " = %s" (String.concat "|" fv_list)
     | Disequality [] -> ""
     | Disequality fv_list -> sprintf " <> %s" (String.concat "|" fv_list)
-    | Equal_param param -> sprintf  " = $%s" param
+    | Equal_lex (lex,fn) -> sprintf " = %s.%s" lex fn
+    | Disequal_lex (lex,fn) -> sprintf " <> %s.%s" lex fn
     | Absent -> " <> *"
     | Else (fv1, fn2, fv2) -> sprintf " = %s/%s = %s" fv1 fn2 fv2
 
@@ -160,10 +160,15 @@ module Ast = struct
     | Feature_ineq_cst of ineq * feature_ident * float
     | Feature_eq_float of feature_ident * float
     | Feature_diff_float of feature_ident * float
-
+    (* ambiguous case, context needed to make difference "N.cat = M.cat" VS "N.cat = lex.cat" *)
+    | Feature_eq_lex_or_fs of feature_ident * (string * string)
+    | Feature_diff_lex_or_fs of feature_ident * (string * string)
+    (* *)
     | Feature_eq_regexp of feature_ident * string
     | Feature_eq_cst of feature_ident * string
+    | Feature_eq_lex of feature_ident * (string * string)
     | Feature_diff_cst of feature_ident * string
+    | Feature_diff_lex of feature_ident * (string * string)
 
     | Immediate_prec of Id.name * Id.name
     | Large_prec of Id.name * Id.name
@@ -231,14 +236,12 @@ module Ast = struct
     { pat_pos = new_pat_pos; pat_negs = new_pat_negs;}
 
   type concat_item =
-    | Qfn_item of feature_ident
+    | Qfn_or_lex_item of pointed
     | String_item of string
-    | Param_item of string
 
   let string_of_concat_item = function
-    | Qfn_item id -> sprintf "%s" (dump_feature_ident id)
+    | Qfn_or_lex_item pointed -> sprintf "%s.%s" (fst pointed) (snd pointed)
     | String_item s -> sprintf "\"%s\"" s
-    | Param_item var -> sprintf "%s" var
 
   type u_command =
     | Del_edge_expl of (Id.name * Id.name * edge_label)
@@ -307,69 +310,21 @@ module Ast = struct
     | Del_feat (act_id, feat_name) ->
       sprintf "del_feat %s.%s" act_id feat_name
 
-  (* the [rule] type is used for 3 kinds of module items:
-     - rule     { param=None; ... }
-     - lex_rule
-  *)
+  type lexicon =
+  | File of string
+  | Final of (int * string) list
+
+  type lexicon_info = (string * lexicon) list
+
   type rule = {
-    rule_id:Id.name;
+    rule_id: Id.name;
     pattern: pattern;
     commands: command list;
-    param: (string list * string list) option; (* (files, vars) *)
-    lex_par: string list option; (* lexical parameters in the file *)
-    rule_doc:string list;
+    lexicon_info: lexicon_info;
+    rule_doc: string list;
     rule_loc: Loc.t;
     rule_dir: string option; (* the real folder where the file is defined *)
   }
-
-  type modul = {
-    module_id:Id.name;
-    rules: rule list;
-    deterministic: bool;
-    module_doc:string list;
-    mod_loc:Loc.t;
-    mod_dir: string; (* the directory where the module is defined (for lp file localisation) *)
-  }
-
-  type strat_def = (* /!\ The list must not be empty in the Seq constructor *)
-    | Ref of string            (* reference to a module name or to another strategy *)
-    | Seq of strat_def list    (* a sequence of strategies to apply one after the other *)
-    | Star of strat_def        (* a strategy to apply iteratively *)
-    | Pick of strat_def        (* pick one normal form a the given strategy; return 0 if nf *)
-    | Sequence of string list  (* compatibility mode with old code *)
-
-  let rec strat_def_to_string = function
-  | Ref m -> m
-  | Seq l -> "(" ^ (String.concat "; " (List.map strat_def_to_string l)) ^ ")"
-  | Star s -> "(" ^ (strat_def_to_string s) ^")" ^ "*"
-  | Pick s -> "pick" ^ "(" ^(strat_def_to_string s)^")"
-  | Sequence names -> "{" ^ (String.concat ";" names) ^ "}"
-
-  (* invariant: Seq list and Plus list are not empty in the input and so not empty in the output *)
-  let rec strat_def_flatten = function
-  | Sequence l -> Sequence l
-  | Ref m -> Ref m
-  | Star s -> Star (strat_def_flatten s)
-  | Pick s -> Pick (strat_def_flatten s)
-  | Seq l ->
-    let fl = List.map strat_def_flatten l in
-    let rec loop = function
-    | [] -> []
-    | (Seq l) :: tail -> l @ (loop tail)
-    | x :: tail -> x :: (loop tail)
-    in Seq (loop fl)
-
-  type strategy = {
-    strat_name: string;
-    strat_def: strat_def;
-    strat_doc: string list;
-    strat_loc: Loc.t;
-  }
-
-  (** a GRS: graph rewriting system *)
-  type module_or_include =
-    | Modul of modul
-    | Includ of (string * Loc.t)
 
   type feature_spec =
     | Closed of feature_name * feature_atom list (* cat:V,N *)
@@ -391,20 +346,6 @@ module Ast = struct
   type domain = {
     feature_domain: feature_spec list;
     label_domain: (string * string list) list;
-  }
-
-  type domain_wi = Dom of domain | Dom_file of string
-
-  type grs_wi = {
-    domain_wi: domain_wi option;
-    modules_wi: module_or_include list;
-    strategies_wi: strategy list;
-  }
-
-  type grs = {
-    domain: domain option;
-    modules: modul list;
-    strategies: strategy list;
   }
 
   type gr = {
@@ -430,8 +371,6 @@ module Ast = struct
         ) gr.nodes gr.edges in
     { gr with nodes = new_nodes }
 
-  let empty_grs = { domain = None; modules = []; strategies= [] }
-
   (* phrase structure tree *)
   type pst =
   | Leaf of (Loc.t * string) (* phon *)
@@ -440,14 +379,9 @@ module Ast = struct
   let rec word_list = function
     | Leaf (_, p) -> [p]
     | T (_,_,l) -> List.flatten (List.map word_list l)
-end (* module Ast *)
 
-
-
-(* ================================================================================================ *)
-module New_ast = struct
   type strat =
-  | Ref of Ast.node_ident       (* reference to a rule name or to another strategy *)
+  | Ref of node_ident           (* reference to a rule name or to another strategy *)
   | Pick of strat               (* pick one normal form a the given strategy; return 0 if nf *)
   | Alt of strat list           (* a set of strategies to apply in parallel *)
   | Seq of strat list           (* a sequence of strategies to apply one after the other *)
@@ -458,11 +392,11 @@ module New_ast = struct
 
   type decl =
   | Conll_fields of string list
-  | Features of Ast.feature_spec list
+  | Features of feature_spec list
   | Labels of (string * string list) list
-  | Package of (Loc.t * Ast.simple_ident * decl list)
-  | Rule of Ast.rule
-  | Strategy of (Loc.t * Ast.simple_ident * strat)
+  | Package of (Loc.t * simple_ident * decl list)
+  | Rule of rule
+  | Strategy of (Loc.t * simple_ident * strat)
   | Import of string
   | Include of string
 
@@ -480,43 +414,13 @@ module New_ast = struct
 
   let strat_list grs =
     let rec loop pref = function
-    [] -> []
+    | [] -> []
     | Strategy (_,name,_) :: tail -> name :: (loop pref tail)
     | Package (_,pack_name,decl_list) :: tail -> (loop (pref^"."^pack_name) decl_list) @  (loop pref tail)
     | _ :: tail -> loop pref tail
     in loop "" grs
 
-  (* conversion from old grs to new ones *)
-  let modul2package modul =
-    let decl_list = List.map (fun rule -> Rule rule) modul.Ast.rules in
-    Package (modul.Ast.mod_loc, modul.Ast.module_id, decl_list)
-
-  let convert_strat det_modules old_strat =
-    let new_strat_list =
-      match old_strat.Ast.strat_def with
-      | Ast.Sequence module_list ->
-        Seq (List.map
-          (fun name ->
-            if List.mem name det_modules
-            then Pick (Iter (Ref name))
-            else Iter (Ref name)
-          ) module_list
-        )
-      | _ -> failwith "No translation of old strat ≠ Sequence" in
-    let strat_name = old_strat.Ast.strat_name in
-    let loc = old_strat.Ast.strat_loc in
-    Strategy (loc, strat_name, new_strat_list)
-
-  let convert old_grs =
-    let new_domain =
-      match old_grs.Ast.domain with
-      | None -> []
-      | Some { Ast.feature_domain; label_domain } -> [Features feature_domain; Labels label_domain] in
-    let packages = List.map modul2package old_grs.Ast.modules in
-    let det_modules = List.fold_left (fun acc modul -> if modul.Ast.deterministic then modul.Ast.module_id::acc else acc) [] old_grs.Ast.modules in
-    let new_strat_list = List.map (convert_strat det_modules) old_grs.Ast.strategies in
-    new_domain @ packages @ new_strat_list
-  end (* module New_ast *)
+  end (* module Ast *)
 
 
 
