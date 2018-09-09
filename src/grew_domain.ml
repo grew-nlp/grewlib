@@ -55,8 +55,8 @@ module Label_domain = struct
   (** Computes the style of a label from its options and maybe its shape (like I:...). *)
   let parse_option string_label options =
     let init_style = match Str.bounded_split (Str.regexp ":") string_label 2 with
-      | ["_MWE_"] -> {default with text="MWE"; color=Some "#1d7df2"; bottom=true;}
-      | ["_EN_"] -> {default with text="EN"; color=Some "#ff760b"; bottom=true;}
+      | ["MWE"] -> {default with text="MWE"; color=Some "#1d7df2"; bottom=true;}
+      | ["NE"] -> {default with text="NE"; color=Some "#ff760b"; bottom=true;}
       | ["S"; l] -> {default with text=l; color=Some "red"}
       | ["D"; l] | ["E"; l] -> {default with text=l; color=Some "blue"; bottom=true}
       | ["I"; l] -> {default with text=l; color=Some "grey"}

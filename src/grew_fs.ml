@@ -250,7 +250,7 @@ module G_fs = struct
 
   (* ---------------------------------------------------------------------- *)
   let get_main ?main_feat t =
-    let default_list = ["mwe_kind"; "ne_kind"; "phon"; "form"; "label"; "cat"; "upos"] in
+    let default_list = ["kind"; "phon"; "form"; "label"; "cat"; "upos"] in
     let main_list = match main_feat with
     | None -> default_list
     | Some string -> (Str.split (Str.regexp "\\( *; *\\)\\|#") string) @ default_list in
@@ -328,14 +328,16 @@ module G_fs = struct
     let (main_opt, sub) = get_main ?main_feat t in
     let sub = List.sort G_feature.print_cmp sub in
 
+    let color = match get_string_atom "kind" t with
+    | Some "NE" -> ":C:#ff760b"
+    | Some "MWE" -> ":C:#1d7df2"
+    | _ -> "" in
+
     let main = match main_opt with
       | None -> []
       | Some (feat_name, atom) ->
         let esc_atom = escape_sharp (string_of_value atom) in
-        let text = match feat_name with
-        | "mwe_kind" -> sprintf "%s:C:#1d7df2" esc_atom
-        | "ne_kind" -> sprintf "%s:C:#ff760b" esc_atom
-        | _ -> esc_atom in
+        let text = esc_atom ^ color in
         [ if is_highlithed feat_name
           then sprintf "%s:B:#8bf56e" text
           else text] in
@@ -356,10 +358,7 @@ module G_fs = struct
     let lines = List.fold_left
       (fun acc (feat_name, atom) ->
         let esc_atom = escape_sharp (G_feature.to_string (decode_feat_name feat_name, atom)) in
-        let text = match feat_name with
-        | "mwe_kind" -> sprintf "%s:C:#1d7df2" esc_atom
-        | "ne_kind" -> sprintf "%s:C:#ff760b" esc_atom
-        | _ -> esc_atom in
+        let text = esc_atom ^ color in
         if is_highlithed feat_name
         then (sprintf "%s:B:#8bf56e" text) :: acc
         else

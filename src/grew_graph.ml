@@ -404,21 +404,25 @@ module G_graph = struct
       let (map_with_nl_nodes, free_index) =
         Conll_types.Int_map.fold
           (fun key mwe (acc, free_index) ->
-            let (feature_name, edge_name) = match mwe.Mwe.label with
-            | s when String.length s >= 2 && String.sub s 0 2 = "EN" -> ("ne_kind", "_EN_")
-            | _ -> ("mwe_kind", "_MWE_") in
+            let kind = match mwe.Mwe.kind with Mwe.Ne -> "NE" | Mwe.Mwe -> "MWE" in
+            let fs1 = G_fs.set_feat ?domain "kind" kind G_fs.empty in
+            let fs2 = match mwe.Mwe.label with None -> fs1 | Some p -> G_fs.set_feat ?domain "label" p fs1 in
+            let fs3 = match mwe.Mwe.mwepos with None -> fs2 | Some p -> G_fs.set_feat ?domain "mwepos" p fs2 in
+            let fs4 = match mwe.Mwe.criterion with None -> fs3 | Some c -> G_fs.set_feat ?domain "criterion" c fs3 in
+
             let new_node =
               (G_node.fresh_unordered ())
-              |> G_node.set_fs (G_fs.set_feat ?domain feature_name mwe.Mwe.label G_fs.empty) in
+              |> G_node.set_fs fs4 in
+
             (* add a new node *)
             let new_map_1 = (Gid_map.add free_index new_node acc) in
             (* add a link to the first component *)
-            let new_map_2 = map_add_edge new_map_1 free_index (G_edge.make edge_name) (Id.gbuild mwe.Mwe.first gtable) in
+            let new_map_2 = map_add_edge new_map_1 free_index (G_edge.make kind) (Id.gbuild mwe.Mwe.first gtable) in
             (* add a link to each other component *)
             let new_map_3 =
               Conll_types.Id_set.fold (
                 fun item acc2 ->
-                  map_add_edge acc2 free_index (G_edge.make edge_name) (Id.gbuild item gtable)
+                  map_add_edge acc2 free_index (G_edge.make kind) (Id.gbuild item gtable)
               ) mwe.Mwe.items new_map_2 in
 
               (* (match map_add_edge_opt acc2 gov_id edge dep_id with
@@ -862,8 +866,7 @@ module G_graph = struct
 
   (* -------------------------------------------------------------------------------- *)
   let is_non_lexical_node node =
-    let fs = G_node.get_fs node in
-    (G_fs.get_string_atom "mwe_kind" fs <> None) || (G_fs.get_string_atom "ne_kind" fs <> None)
+    let fs = G_node.get_fs node in G_fs.get_string_atom "kind" fs <> None
 
   let to_dep ?filter ?main_feat ?(deco=G_deco.empty) graph =
     let domain = get_domain graph in
@@ -1034,11 +1037,10 @@ module G_graph = struct
     let mwes = List_.foldi_left
       (fun i acc (_,nl_node) ->
         let fs = G_node.get_fs nl_node in
-        let label =
-          match (G_fs.get_string_atom "ne_kind" fs, G_fs.get_string_atom "mwe_kind" fs) with
-          | (Some l, None)
-          | (None, Some l) -> l
-          | _ -> Error.run "[G_graph.to_conll] Inconsistent fs in mwe node" in
+        let kind = match G_fs.get_string_atom "kind" fs with
+          | Some "NE" -> Mwe.Ne
+          | Some "MWE" -> Mwe.Mwe
+          | _ -> Error.run "[G_graph.to_conll] cannot interpreted kind" in
         let nexts = G_node.get_next nl_node in
         let next_list = List.sort Pervasives.compare (Massoc_gid.fold (fun acc2 k _ -> k::acc2) [] nexts) in
         match next_list with
@@ -1055,7 +1057,10 @@ module G_graph = struct
               Conll_types.Id_set.add (pos,None) acc
             ) Conll_types.Id_set.empty tail_gids in
           let mwe = {
-            Mwe.label;
+            Mwe.kind;
+            Mwe.mwepos = G_fs.get_string_atom "mwepos" fs;
+            Mwe.label = G_fs.get_string_atom "label" fs;
+            Mwe.criterion = G_fs.get_string_atom "criterion" fs;
             first = (head_pos, None);
             items;
           } in
