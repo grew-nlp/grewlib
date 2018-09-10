@@ -417,7 +417,7 @@ module G_graph = struct
             (* add a new node *)
             let new_map_1 = (Gid_map.add free_index new_node acc) in
             (* add a link to the first component *)
-            let new_map_2 = map_add_edge new_map_1 free_index (G_edge.make kind) (Id.gbuild mwe.Mwe.first gtable) in
+            let new_map_2 = map_add_edge new_map_1 free_index (G_edge.make ?domain kind) (Id.gbuild mwe.Mwe.first gtable) in
             (* add a link to each other component *)
             let new_map_3 =
               Conll_types.Id_set.fold (
