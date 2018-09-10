@@ -50,7 +50,6 @@ module G_fs: sig
   val to_dot: ?decorated_feat:(string * (string * string option) list) -> ?main_feat: string -> t -> string
   val to_word: t -> string option
   val to_dep: ?decorated_feat:(string * (string * string option) list) -> ?position:float -> ?main_feat: string -> ?filter: (string -> bool) -> t -> string
-  val to_conll_string: ?exclude: string list -> t -> string
   val to_conll: ?exclude: string list -> t -> (string * string) list
   val to_json: t -> json
   val to_string: t -> string
