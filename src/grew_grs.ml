@@ -447,6 +447,16 @@ module Grs = struct
     let path = Str.split (Str.regexp "\\.") strat_name in
     match search_from pointed path with
     | None -> Error.build "Simple rewrite, cannot find strat %s" strat_name
+    | Some (Rule r,_) when iter_flag ->
+      begin (* pack iterations on one rule as one "package" *)
+        match wrd_pack_iter_rewrite ?domain [Rule r] (linear_rd.graph, None) with
+          | None -> None
+          | Some (new_graph, big_step) -> Some {
+              steps = (sprintf "Onf(%s)" (Rule.get_name r), linear_rd.graph, big_step) :: linear_rd.steps;
+              graph = new_graph;
+              know_normal_form = true;
+            }
+      end
     | Some (Rule r,_) ->
       begin
         match Rule.wrd_apply ?domain r (linear_rd.graph, None) with
