@@ -139,7 +139,6 @@ module Rewrite: sig
 
   val size: display -> int
   val set_max_rules: int -> unit
-  val set_debug_loop: unit -> unit
 
   (** [display gr grs seq] builds the [display] (datatype used by the GUI) given by
       the rewriting of graph [gr] with the strategy [strat] of [grs].

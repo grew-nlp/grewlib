@@ -287,8 +287,6 @@ module Rewrite = struct
 
   let set_max_rules bound = Grew_rule.Rule.set_max_rules bound
 
-  let set_debug_loop () = Grew_rule.Rule.set_debug_loop ()
-
   let display ~gr ~grs ~strat =
     Libgrew.handle ~name:"Rewrite.display" (fun () -> Grew_grs.Grs.wrd_rewrite grs strat gr) ()
 

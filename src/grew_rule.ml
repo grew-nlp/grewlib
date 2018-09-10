@@ -36,9 +36,6 @@ module Rule = struct
     if !current_rules > !max_rules
     then Error.run "More than %d rewriting steps: ckeck for loops or increase max_rules value" !max_rules
 
-  let debug_loop = ref false
-  let set_debug_loop () = debug_loop := true
-
   type const =
     | Cst_out of Pid.t * Label_cst.t
     | Cst_in of Pid.t * Label_cst.t
