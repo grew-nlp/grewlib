@@ -1,3 +1,9 @@
+# 1.0.0 (2018/09/10)
+  * /!\ Change lexical rules syntax and lexicon representation
+  * Handling of Parseme's column 11
+  * Large code cleaning
+  * Fix https://gitlab.inria.fr/grew/grew/issues/4
+
 # 0.49.0 (2018/07/05)
   * Add new syntax in pattern node "f=u/g=v" (mainly for MWEPOS handling in relations consistency checks)
 
