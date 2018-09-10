@@ -23,11 +23,11 @@ open Grew_ast
 module Rule : sig
   type t
 
-  (** [set_max_depth_det value] set the maximum rewriting depth in deterministic application of a module. *)
-  val set_max_depth_det: int -> unit
+  val reset_rules: unit -> unit
 
-  (** [set_max_depth_non_det value] set the maximum rewriting depth in non-deterministic application of a module. *)
-  val set_max_depth_non_det: int -> unit
+  val incr_rules: unit -> unit
+
+  val set_max_rules: int -> unit
 
   (** [set_debug_loop ()] turns the debug mode on for loop: when the bound is reached, the graph is considered as a normal form.
       This is a kind of hack to be able to explore loops in GUI. *)

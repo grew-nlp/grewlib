@@ -570,19 +570,19 @@ end (* module Id *)
 
 (* ================================================================================ *)
 module Timeout = struct
-  exception Stop
+  exception Stop of float
 
   let counter = ref 0.
   let timeout = ref None
 
-  let start () = counter := Unix.time ()
+  let start () = counter := Unix.gettimeofday ()
 
   let check () =
     match !timeout with
     | None -> ()
     | Some delay ->
-        if Unix.time () -. !counter > delay
-        then raise Stop
+        if Unix.gettimeofday () -. !counter > delay
+        then raise (Stop delay)
 end (* module Timeout *)
 
 (* ================================================================================ *)

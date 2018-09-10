@@ -25,13 +25,18 @@ open Grew_graph
 (* ================================================================================ *)
 module Rule = struct
 
-  (* the rewriting depth is bounded to stop rewriting when the system is not terminating *)
-  let max_depth_det = ref 2000
-  let max_depth_non_det = ref 100
-  let debug_loop = ref false
+  (* the number of rewriting steps is bounded to stop rewriting when the system is not terminating *)
+  let max_rules = ref 10000
+  let current_rules = ref 0
 
-  let set_max_depth_det value = max_depth_det := value
-  let set_max_depth_non_det value = max_depth_non_det := value
+  let set_max_rules n = max_rules := n
+  let reset_rules () = current_rules := 0
+  let incr_rules () =
+    incr current_rules;
+    if !current_rules > !max_rules
+    then Error.run "More than %d rewriting steps: ckeck for loops or increase max_rules value" !max_rules
+
+  let debug_loop = ref false
   let set_debug_loop () = debug_loop := true
 
   type const =
@@ -1116,7 +1121,7 @@ module Rule = struct
                 (graph, [], false)
                 rule.commands in
             if eff
-            then Some new_graph
+            then (Timeout.check (); incr_rules(); Some new_graph)
             else None
           with Not_found -> (* raised by List.find, no matching apply *) None
 
@@ -1159,7 +1164,7 @@ module Rule = struct
               | Some {Libgrew_types.small_step; first} -> {Libgrew_types.small_step = (graph,rule_app) :: small_step; first} in
 
             if eff
-            then Some (new_graph, new_big_step)
+            then (Timeout.check (); incr_rules(); Some (new_graph, new_big_step))
             else None
           with Not_found -> (* raised by List.find, no matching apply *) None
 
@@ -1363,18 +1368,15 @@ module Rule = struct
   (*  ---------------------------------------------------------------------- *)
   (** [apply_rule graph_with_history matching rule] returns a new graph_with_history after the application of the rule *)
   let gwh_apply_rule ?domain graph_with_history matching rule =
-(*
-    (* Timeout check *)
-    (try Timeout.check () with Timeout.Stop -> Error.run "Time out"); *)
-
-  let init = Graph_with_history_set.singleton graph_with_history in
-  List.fold_left
-    (fun gwh_set cmd ->
-        Graph_with_history_set.fold
-          (fun gwh acc ->
-            Graph_with_history_set.union (gwh_apply_command ?domain cmd gwh matching) acc
-          ) gwh_set Graph_with_history_set.empty
-    ) init rule.commands
+    Timeout.check (); incr_rules ();
+    let init = Graph_with_history_set.singleton graph_with_history in
+    List.fold_left
+      (fun gwh_set cmd ->
+          Graph_with_history_set.fold
+            (fun gwh acc ->
+              Graph_with_history_set.union (gwh_apply_command ?domain cmd gwh matching) acc
+            ) gwh_set Graph_with_history_set.empty
+      ) init rule.commands
 
   let gwh_apply ?domain rule graph_with_history =
     let matching_list = match_in_graph ?domain ~lexicons:rule.lexicons rule.pattern graph_with_history.Graph_with_history.graph in

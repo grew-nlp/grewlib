@@ -270,7 +270,7 @@ end
 
 (* ================================================================================ *)
 module Timeout: sig
-  exception Stop
+  exception Stop of float
 
   val timeout: float option ref
   val start: unit -> unit

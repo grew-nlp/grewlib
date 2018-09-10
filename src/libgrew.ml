@@ -51,6 +51,7 @@ module Libgrew = struct
 
       | Grew_base.Error.Bug (msg, Some loc) -> raise (Bug (sprintf "%s %s" (Grew_base.Loc.to_string loc) msg))
       | Grew_base.Error.Bug (msg, None) -> raise (Bug (sprintf "%s" msg))
+      | Grew_base.Timeout.Stop bound -> raise (Error (sprintf "Timeout (running time execeeds %g seconds)" bound))
       | exc -> raise (Bug (sprintf "[Libgrew.%s] UNCAUGHT EXCEPTION: %s" name (Printexc.to_string exc)))
 end
 
@@ -284,8 +285,7 @@ module Rewrite = struct
 
   let size = Libgrew_types.rew_display_size
 
-  let set_max_depth_det value = Grew_rule.Rule.set_max_depth_det value
-  let set_max_depth_non_det value = Grew_rule.Rule.set_max_depth_non_det value
+  let set_max_rules bound = Grew_rule.Rule.set_max_rules bound
 
   let set_debug_loop () = Grew_rule.Rule.set_debug_loop ()
 

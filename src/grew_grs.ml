@@ -402,6 +402,8 @@ module Grs = struct
 
 
   let gwh_simple_rewrite grs strat_string graph =
+    Rule.reset_rules ();
+    Timeout.start ();
     let domain = domain grs in
     let casted_graph = G_graph.cast ?domain graph in
     let strat = Parser.strategy strat_string in
@@ -541,6 +543,8 @@ module Grs = struct
       (fun acc (n,g,bs) -> Libgrew_types.Node (g, n, [Libgrew_types.swap bs, acc])) (Libgrew_types.Leaf linear_rd.graph) linear_rd.steps
 
   let wrd_rewrite grs strat graph =
+    Rule.reset_rules ();
+    Timeout.start ();
     let domain = domain grs in
     let casted_graph = G_graph.cast ?domain graph in
     match wrd_strat_simple_rewrite ?domain false (top grs) (Parser.strategy strat) {graph=casted_graph; steps=[]; know_normal_form=false} with

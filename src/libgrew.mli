@@ -138,8 +138,7 @@ module Rewrite: sig
   type display = Libgrew_types.rew_display
 
   val size: display -> int
-  val set_max_depth_det: int -> unit
-  val set_max_depth_non_det: int -> unit
+  val set_max_rules: int -> unit
   val set_debug_loop: unit -> unit
 
   (** [display gr grs seq] builds the [display] (datatype used by the GUI) given by
