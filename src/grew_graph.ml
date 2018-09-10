@@ -422,7 +422,7 @@ module G_graph = struct
             let new_map_3 =
               Conll_types.Id_set.fold (
                 fun item acc2 ->
-                  map_add_edge acc2 free_index (G_edge.make kind) (Id.gbuild item gtable)
+                  map_add_edge acc2 free_index (G_edge.make ?domain kind) (Id.gbuild item gtable)
               ) mwe.Mwe.items new_map_2 in
 
               (* (match map_add_edge_opt acc2 gov_id edge dep_id with
