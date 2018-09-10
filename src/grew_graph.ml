@@ -1075,9 +1075,9 @@ module G_graph = struct
       mwes;
     }
 
-  let to_conll_string graph =
+  let to_conll_string ?cupt graph =
     let conll = to_conll graph in
-    Conll.to_string (Conll.normalize_multiwords conll)
+    Conll.to_string ?cupt (Conll.normalize_multiwords conll)
 
   (* -------------------------------------------------------------------------------- *)
   let to_dot ?main_feat ?(deco=G_deco.empty) graph =

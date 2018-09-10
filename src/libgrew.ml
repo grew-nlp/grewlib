@@ -217,8 +217,8 @@ module Graph = struct
   let to_conll graph =
     Libgrew.handle ~name:"Graph.to_conll" (fun () -> Grew_graph.G_graph.to_conll graph) ()
 
-  let to_conll_string graph =
-    Libgrew.handle ~name:"Graph.to_conll_string" (fun () -> Grew_graph.G_graph.to_conll_string graph) ()
+  let to_conll_string ?cupt graph =
+    Libgrew.handle ~name:"Graph.to_conll_string" (fun () -> Grew_graph.G_graph.to_conll_string ?cupt graph) ()
 
   let to_sentence ?main_feat ?deco gr =
     Libgrew.handle ~name:"Graph.to_sentence"

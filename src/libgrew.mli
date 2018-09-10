@@ -107,7 +107,7 @@ module Graph : sig
 
   val to_conll: t -> Conll.t
 
-  val to_conll_string: t -> string
+  val to_conll_string: ?cupt:bool -> t -> string
 
   (** [search_pattern pattern graph] returns the list of the possible matching of [pattern] in [graph] *)
   val search_pattern: ?domain:Domain.t -> Pattern.t -> t -> Matching.t list
