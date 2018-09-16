@@ -1,5 +1,8 @@
+## 1.0.2 (2018/09/16)
+  * Fix problem with nodes names in “grew grep”
+
 ## 1.0.1 (2018/09/10)
-  * Fix error in MWE node contruction
+  * Fix error in MWE node construction
 
 # 1.0.0 (2018/09/10)
   * /!\ Change lexical rules syntax and lexicon representation

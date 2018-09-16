@@ -96,8 +96,20 @@ module G_node = struct
 
   let of_conll ?loc ?prec ?succ ?domain line =
     if line = Conll.root
-    then { empty with conll_root=true; succ; position = Ordered 0.}
-    else { empty with fs = G_fs.of_conll ?loc ?domain line; position = Ordered (float_of_conll_id line.Conll.id); prec; succ; efs=line.Conll.efs }
+    then { empty with
+      conll_root=true;
+      succ;
+      position = Ordered 0.;
+      name= Some "ROOT";
+    }
+    else { empty with
+      fs = G_fs.of_conll ?loc ?domain line;
+      position = Ordered (float_of_conll_id line.Conll.id);
+      prec;
+      succ;
+      efs=line.Conll.efs;
+      name = Some (Conll_types.Id.to_string line.Conll.id)
+    }
 
   let pst_leaf ?loc ?domain phon position =
     { empty with fs = G_fs.pst_leaf ?loc ?domain phon; position = Ordered (float position) }
