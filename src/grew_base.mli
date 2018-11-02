@@ -266,6 +266,9 @@ module Id: sig
   val build_opt: name -> table -> t option
 
   val grewpy_compare: name -> name -> int
+
+  (* [get_pos id] returns Some v (float) iff id is "Wv" else None *)
+  val get_pos: name -> float option
 end
 
 (* ================================================================================ *)

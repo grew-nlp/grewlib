@@ -279,29 +279,51 @@ module G_graph = struct
 
   (* -------------------------------------------------------------------------------- *)
   let build ?domain ?(grewpy=false) gr_ast =
-    let full_node_list =
+
+    let (ordered_nodes, unordered_nodes) = List.fold_left
+      (fun (orderd_acc, unordered_acc) (node,loc) ->
+        match Id.get_pos node.Ast.node_id with
+        | Some p -> ((p,(node,loc)) :: orderd_acc, unordered_acc)
+        | None -> (orderd_acc, (node,loc) :: unordered_acc)
+      ) ([],[]) gr_ast.Ast.nodes in
+
+    let sorted_nodes = List.sort (fun (p1,_) (p2,_) -> Pervasives.compare p1 p2) ordered_nodes in
+
+    (* let full_node_list =
       if grewpy
       then List.sort (Ast.grewpy_compare) gr_ast.Ast.nodes
       else gr_ast.Ast.nodes
-    and full_edge_list = gr_ast.Ast.edges in
+    and full_edge_list = gr_ast.Ast.edges in *)
 
     let rec loop already_bound index prec = function
       | [] -> (Gid_map.empty,[])
-
-      | (ast_node, loc)::tail ->
+      | (position, (ast_node, loc))::tail ->
         let node_id = ast_node.Ast.node_id in
         if List.mem node_id already_bound
         then Error.build ~loc "[GRS] [Graph.build] try to build a graph with twice the same node id '%s'" node_id
         else
           let (new_tail, table) = loop (node_id :: already_bound) (index+1) (Some index) tail in
           let succ = if tail = [] then None else Some (index+1) in
-          let new_node = G_node.build ?domain ?prec ?succ ~position:(float index) (ast_node, loc) in
+          let new_node = G_node.build ?domain ?prec ?succ ~position (ast_node, loc) in
             (
               Gid_map.add index new_node new_tail,
               (node_id,index)::table
             ) in
 
-    let (map_without_edges, table) = loop [] 0 None full_node_list in
+    let (map_with_ordered_nodes, table_ordered) = loop [] 0 None sorted_nodes in
+
+    let (map_without_edges, table, final_index) =
+      List.fold_left
+        (fun (acc_map, acc_table, acc_index) (ast_node,loc) ->
+          let node_id = ast_node.Ast.node_id in
+          let new_node = G_node.build ?domain (ast_node,loc) in
+          (
+            Gid_map.add acc_index new_node acc_map,
+            (node_id,acc_index)::acc_table,
+            acc_index + 1
+          )
+      ) (map_with_ordered_nodes, table_ordered, List.length sorted_nodes) unordered_nodes in
+
 
     let map =
       List.fold_left
@@ -315,14 +337,14 @@ module G_graph = struct
               (G_edge.to_string ?domain edge)
               (Loc.to_string loc)
           )
-        ) map_without_edges full_edge_list in
+        ) map_without_edges gr_ast.Ast.edges in
 
     {
       domain;
       meta=gr_ast.Ast.meta;
       map;
       fusion = [];
-      highest_index = (List.length full_node_list) -1
+      highest_index = final_index - 1
     }
 
   (* -------------------------------------------------------------------------------- *)
@@ -1086,8 +1108,6 @@ module G_graph = struct
 
     bprintf buff "digraph G {\n";
     bprintf buff "  node [shape=Mrecord];\n";
-    (* bprintf buff "  rankdir=LR;\n"; *)
-    (* bprintf buff "  node [shape=none];\n"; *)
 
     (* nodes *)
     Gid_map.iter

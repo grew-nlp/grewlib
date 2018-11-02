@@ -566,6 +566,17 @@ module Id = struct
     | Some f1, Some f2 -> Pervasives.compare f1 f2
     | _ -> Pervasives.compare name1 name2
 
+  (* [get_pos id] returns Some v (float) iff id is "Wv" else None *)
+  let get_pos name =
+    let len = String.length name in
+    if len > 0 && name.[0] = 'W'
+    then
+      begin
+        let sub = String.sub name 1 (len-1) in
+        float_of_string_opt sub
+      end
+    else None
+
 end (* module Id *)
 
 (* ================================================================================ *)
