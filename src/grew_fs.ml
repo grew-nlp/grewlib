@@ -277,14 +277,14 @@ module G_fs = struct
     let buff = Buffer.create 32 in
     let () = match pid_name with
       | "" -> ()
-      | pid -> bprintf buff "<TR><TD COLSPAN=\"3\" BGCOLOR=\"yellow\"><B>[%s]</B></TD></TR>\n" pid in
+      | pid -> bprintf buff "<TR><TD COLSPAN=\"3\" BGCOLOR=\"green\"><B>[%s]</B></TD></TR>\n" pid in
 
     let next =
       match get_main ?main_feat t with
       | (None, sub) -> sub
       | (Some (feat_name,atom), sub) ->
         if is_highlithed feat_name
-        then bprintf buff "<TR><TD COLSPAN=\"3\" BGCOLOR=\"yellow\"><B>%s</B></TD></TR>\n" (string_of_value atom)
+        then bprintf buff "<TR><TD COLSPAN=\"3\" BGCOLOR=\"green\"><B>%s</B></TD></TR>\n" (string_of_value atom)
         else bprintf buff "<TR><TD COLSPAN=\"3\"><B>%s</B></TD></TR>\n" (string_of_value atom);
         sub in
     let next = List.sort G_feature.print_cmp next in

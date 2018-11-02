@@ -107,9 +107,12 @@ module Label_domain = struct
       @ (match style.line with
         | Dot -> ["style=dotted"]
         | Dash -> ["style=dashed"]
-        | Solid when deco -> ["style=dotted"]
         | Solid -> []) in
-      sprintf "[label=\"%s\", %s]" style.text (String.concat ", " dot_items)
+      let label = match (deco,style.bgcolor) with
+      | (true, _) -> sprintf "<<TABLE BORDER=\"0\" CELLBORDER=\"0\"> <TR> <TD BGCOLOR=\"green\">%s</TD> </TR> </TABLE>>" style.text
+      | (false, Some c) -> sprintf "<<TABLE BORDER=\"0\" CELLBORDER=\"0\"> <TR> <TD BGCOLOR=\"%s\">%s</TD> </TR> </TABLE>>" c style.text
+      | _ -> sprintf "\"%s\"" style.text in
+      sprintf "[label=%s, %s]" label (String.concat ", " dot_items)
 
 end
 
