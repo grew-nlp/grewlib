@@ -27,12 +27,6 @@ module Ast : sig
   val dump_label_ident: label_ident -> string
 
   (* ---------------------------------------------------------------------- *)
-  (* pattern_label_ident: D:mod.* *)
-  type pattern_label_ident = string
-  val parse_pattern_label_ident: string -> pattern_label_ident
-  val dump_pattern_label_ident: pattern_label_ident -> string
-
-  (* ---------------------------------------------------------------------- *)
   (* node_ident: W0.5 *)
   type node_ident = string
   val parse_node_ident: string -> node_ident

@@ -47,12 +47,6 @@ module Ast = struct
   let dump_label_ident name = name
 
   (* ---------------------------------------------------------------------- *)
-  (* pattern_label_ident: D:mod.* *)
-  type pattern_label_ident = string
-  let parse_pattern_label_ident s = check_special "label ident" [":"; "."; "*"] s; s
-  let dump_pattern_label_ident name = name
-
-  (* ---------------------------------------------------------------------- *)
   (* node_ident: W0.5 *)
   type node_ident = string
   let parse_node_ident s = check_special "node ident" ["."] s; s
