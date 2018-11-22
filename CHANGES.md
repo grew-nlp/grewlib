@@ -1,3 +1,7 @@
+# 1.1.0 (2018/11/22)
+  * More general label_ident in parser (String are available everywhere)
+  * Update to new MWE types from libcaml-conll
+
 ## 1.0.2 (2018/09/16)
   * Fix problem with nodes names in “grew grep”
 
