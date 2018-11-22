@@ -439,13 +439,20 @@ module G_graph = struct
             (* add a new node *)
             let new_map_1 = (Gid_map.add free_index new_node acc) in
             (* add a link to the first component *)
-            let new_map_2 = map_add_edge new_map_1 free_index (G_edge.make ?domain kind) (Id.gbuild mwe.Mwe.first gtable) in
+            let new_map_2 = map_add_edge new_map_1 free_index (G_edge.make ?domain kind) (Id.gbuild (fst mwe.Mwe.first) gtable) in
+            let new_map_3 = match snd mwe.Mwe.first with
+            | None -> new_map_2
+            | Some i -> map_add_edge new_map_2 free_index (G_edge.make ?domain (sprintf "%d" i)) (Id.gbuild (fst mwe.Mwe.first) gtable) in
+
             (* add a link to each other component *)
-            let new_map_3 =
-              Conll_types.Id_set.fold (
+            let new_map_4 =
+              Id_with_proj_set.fold (
                 fun item acc2 ->
-                  map_add_edge acc2 free_index (G_edge.make ?domain kind) (Id.gbuild item gtable)
-              ) mwe.Mwe.items new_map_2 in
+                  let tmp = map_add_edge acc2 free_index (G_edge.make ?domain kind) (Id.gbuild (fst item) gtable) in
+                  match snd item with
+                  | None -> tmp
+                  | Some i -> map_add_edge tmp free_index (G_edge.make ?domain (sprintf "%d" i)) (Id.gbuild (fst item) gtable)
+              ) mwe.Mwe.items new_map_3 in
 
               (* (match map_add_edge_opt acc2 gov_id edge dep_id with
                 | Some g -> g
@@ -456,7 +463,7 @@ module G_graph = struct
 
 
 
-            (new_map_3, free_index+1)
+            (new_map_4, free_index+1)
           ) conll.Conll.mwes (map_with_edges, List.length sorted_lines) in
 
     {
@@ -998,6 +1005,7 @@ module G_graph = struct
     let snodes = List.sort (fun (_,n1) (_,n2) -> G_node.position_comp n1 n2) nodes in
 
     (* renumbering of nodes to have a consecutive sequence of int 1 --> n, in case of node deletion or addition *)
+    (* TODO: take into account empty nodes *)
     let snodes = List.mapi
       (fun i (gid,node) -> (gid, G_node.set_position (float i) node)
       ) snodes in
@@ -1056,6 +1064,7 @@ module G_graph = struct
 
     let snl_nodes = List.sort (fun (gid1,_) (gid2,_) -> Pervasives.compare gid1 gid2) nl_nodes in
 
+
     let mwes = List_.foldi_left
       (fun i acc (_,nl_node) ->
         let fs = G_node.get_fs nl_node in
@@ -1064,26 +1073,41 @@ module G_graph = struct
           | Some "MWE" -> Mwe.Mwe
           | _ -> Error.run "[G_graph.to_conll] cannot interpreted kind" in
         let nexts = G_node.get_next nl_node in
-        let next_list = List.sort Pervasives.compare (Massoc_gid.fold (fun acc2 k _ -> k::acc2) [] nexts) in
+        let next_list =
+          List.sort_uniq
+            (fun gid1 gid2 ->
+              let n1 = List.assoc gid1 nodes
+              and n2 = List.assoc gid2 nodes in
+              match (G_node.get_position n1, G_node.get_position n2) with
+              | (Ordered i, Ordered j) -> Pervasives.compare i j
+              | _ -> 0
+            )
+            (Massoc_gid.fold (fun acc2 k _ -> k::acc2) [] nexts) in
         match next_list with
         | [] -> Error.bug "[G_graph.to_conll] mwe node with no next node"
         | head_gid::tail_gids ->
           let head_pos = match G_node.get_position (List.assoc head_gid snodes) with
           | Ordered f -> int_of_float f
           | _ -> Error.run "[G_graph.to_conll] nl_node going to Unordered node" in
+          let head_proj = CCList.find_map
+            (fun e -> int_of_string_opt (G_edge.to_string ?domain e))
+            (Massoc_gid.assoc head_gid nexts) in
           let items = List.fold_left
             (fun acc gid ->
               let pos = match G_node.get_position (List.assoc gid snodes) with
               | Ordered f -> int_of_float f
               | _ -> Error.run "[G_graph.to_conll] nl_node going to Unordered node" in
-              Conll_types.Id_set.add (pos,None) acc
-            ) Conll_types.Id_set.empty tail_gids in
+                let proj = CCList.find_map
+                  (fun e -> int_of_string_opt (G_edge.to_string ?domain e))
+                  (Massoc_gid.assoc gid nexts) in
+              Id_with_proj_set.add ((pos,None), proj) acc
+            ) Id_with_proj_set.empty tail_gids in
           let mwe = {
             Mwe.kind;
             Mwe.mwepos = G_fs.get_string_atom "mwepos" fs;
             Mwe.label = G_fs.get_string_atom "label" fs;
             Mwe.criterion = G_fs.get_string_atom "criterion" fs;
-            first = (head_pos, None);
+            first = ((head_pos, None),head_proj);
             items;
           } in
         Conll_types.Int_map.add (i+1) mwe acc
