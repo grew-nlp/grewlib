@@ -1,3 +1,6 @@
+# 1.1.1 (2018/11/23)
+  * style for projection edges
+
 # 1.1.0 (2018/11/22)
   * More general label_ident in parser (String are available everywhere)
   * Update to new MWE types from libcaml-conll
