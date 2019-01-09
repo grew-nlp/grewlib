@@ -1126,7 +1126,7 @@ module G_graph = struct
     Conll.to_string ?cupt (Conll.normalize_multiwords conll)
 
   (* -------------------------------------------------------------------------------- *)
-  let to_dot ?main_feat ?(deco=G_deco.empty) graph =
+  let to_dot ?main_feat ?(get_url = fun _ -> None) ?(deco=G_deco.empty) graph =
     let domain = get_domain graph in
     let buff = Buffer.create 32 in
 
@@ -1139,11 +1139,18 @@ module G_graph = struct
         let decorated_feat =
           try List.assoc id deco.G_deco.nodes
           with Not_found -> ("",[]) in
-        bprintf buff "  N_%s [label=<%s>, color=%s]\n"
+        let fs = G_node.get_fs node in
+        let lab_url = match G_fs.get_string_atom "label" fs with
+        | None -> None
+        | Some lab ->
+          match get_url lab with
+            | None -> None
+            | Some url -> Some (lab,url)
+            in
+        bprintf buff "  N_%s [label=<%s>%s]\n"
           (Gid.to_string id)
-          (G_fs.to_dot ~decorated_feat ?main_feat (G_node.get_fs node))
-          (* TODO: add bgcolor in dot output *)
-          (if List.mem_assoc id deco.G_deco.nodes then "red" else "black")
+          (G_fs.to_dot ~decorated_feat ?main_feat fs)
+          (match lab_url with None -> "" | Some (lab,url) -> sprintf ", URL=\"%s\", target=_blank, tooltip=\"%s\", shape=record" url lab)
       ) graph.map;
 
     (* edges *)

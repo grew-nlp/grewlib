@@ -192,7 +192,7 @@ module G_graph: sig
   (* Output functions *)
   (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
   val to_gr: t -> string
-  val to_dot: ?main_feat:string -> ?deco:G_deco.t -> t -> string
+  val to_dot: ?main_feat:string -> ?get_url:(string -> string option) -> ?deco:G_deco.t -> t -> string
   val to_sentence: ?main_feat:string -> ?deco:G_deco.t -> t -> string
   val to_dep: ?filter: (string -> bool) -> ?main_feat:string -> ?deco:G_deco.t -> t -> string
   val to_conll: t -> Conll.t
