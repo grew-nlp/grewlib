@@ -17,6 +17,8 @@ module String_map = Map.Make (String)
 module Int_set = Set.Make (struct type t = int let compare = Pervasives.compare end)
 module Int_map = Map.Make (struct type t = int let compare = Pervasives.compare end)
 
+module Float_map = Map.Make (struct type t = float let compare = Pervasives.compare end)
+
 (* ================================================================================ *)
 module Loc = struct
   type t = string option * int option
@@ -624,3 +626,33 @@ module Global = struct
   let debug = ref false
   let safe_commands = ref false
 end (* module Global *)
+
+module Dependencies = struct
+  let lex_cmp (i1, j1) (i2,j2) = match Pervasives.compare i1 i2 with 0 -> Pervasives.compare j1 j2 | x -> x
+
+  let rec insert_sorted i = function
+    | h::t when h < i -> h :: (insert_sorted i t)
+    | l -> i::l
+
+  let is_projective edge_list =
+    let rec loop position from_here from_before = function
+    | [] ->
+    (* Printf.printf "=N=> pos=%d H=[%s] B=[%s]\n" position (String.concat "," (List.map string_of_int from_here)) (String.concat "," (List.map string_of_int from_before)); *)
+    None
+    | (i,j) :: tail ->
+    (* Printf.printf "=S=> (%d, %d) pos=%d H=[%s] B=[%s]\n" i j position (String.concat "," (List.map string_of_int from_here)) (String.concat "," (List.map string_of_int from_before)); *)
+    let rec reduce_from_before = function
+    | h::t when h <= i -> reduce_from_before t
+    | l -> l in
+    let (new_from_here, new_from_before) =
+    if i > position
+    then ([], reduce_from_before (from_here @ from_before))
+    else (from_here, reduce_from_before from_before) in
+    (* Printf.printf "   ...> NH=[%s] NB=[%s]\n" (String.concat "," (List.map string_of_int new_from_here)) (String.concat "," (List.map string_of_int new_from_before)); *)
+    match new_from_before with
+    | h::t when j > h -> Some (i,j)
+    | h::t when j = h -> loop i new_from_here new_from_before tail
+    | _ -> loop i (insert_sorted j new_from_here) new_from_before tail in
+    loop 0. [] [] edge_list
+
+end

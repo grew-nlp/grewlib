@@ -14,6 +14,8 @@ module String_map : Map.S with type key = string
 module Int_set : Set.S with type elt = int
 module Int_map : Map.S with type key = int
 
+module Float_map : Map.S with type key = float
+
 (* ================================================================================ *)
 (* [Loc] general module to describe errors location: (file name, line number in file) *)
 module Loc: sig
@@ -295,4 +297,15 @@ module Global: sig
 
   val debug: bool ref
   val safe_commands: bool ref
+end
+
+(* ================================================================================ *)
+module Dependencies : sig
+
+  (* [lex_cmp pair1 pair2] is the lexicographic ordering. This function can be used to sort data for [is_projective] function. *)
+  val lex_cmp: ('a * 'b) -> ('a * 'b) -> int
+
+  (* [is_projective arcs] returns [None] if the structure is projective and [Some arc] where [arc] is one of the edge implied in non-projectivity.
+  Input: a list of arcs represented by couples (smallest position, highest position) and lexicographically ordered *)
+  val is_projective: (float * float) list -> (float * float) option
 end

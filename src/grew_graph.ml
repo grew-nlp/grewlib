@@ -1187,6 +1187,25 @@ module G_graph = struct
       (* ====== NO CAST NEEDED ====== *) graph
     | _ ->
       (* ====== CASTING NEEDED ====== *) of_conll ?domain (to_conll graph)
+
+  let is_projective t =
+    let (arc_positions, pos_to_gid_map) =
+      Gid_map.fold (fun src_gid src_node (acc, acc_map) ->
+        match G_node.get_position src_node with
+        | G_node.Unordered _ -> (acc, acc_map)
+        | G_node.Ordered src_pos ->
+          let new_acc = Massoc_gid.fold (fun acc2 tar_gid edge ->
+            let tar_node = find tar_gid t in
+              match G_node.get_position tar_node with
+              | G_node.Unordered _ -> acc2
+              | G_node.Ordered tar_pos -> (min src_pos tar_pos, max src_pos tar_pos) :: acc2
+          ) acc (G_node.get_next src_node) in
+      (new_acc, Float_map.add src_pos src_gid acc_map)
+    ) t.map ([], Float_map.empty) in
+    let sorted_arc_positions = List.sort Dependencies.lex_cmp arc_positions in
+    match Dependencies.is_projective sorted_arc_positions with
+    | Some (p1, p2) -> Some (Float_map.find p1 pos_to_gid_map, Float_map.find p1 pos_to_gid_map)
+    | None -> None
 end (* module G_graph *)
 
 

@@ -200,6 +200,8 @@ module G_graph: sig
   val to_json: t -> json
 
   val cast: ?domain:Domain.t -> t -> t
+
+  val is_projective: t -> (Gid.t * Gid.t) option
 end (* module G_graph *)
 
 (* ================================================================================ *)
