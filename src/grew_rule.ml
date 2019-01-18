@@ -408,7 +408,7 @@ module Rule = struct
     `Assoc
     ([
       ("rule_name", `String t.name);
-      ("match", basic_to_json ?domain (fst t.pattern));
+      ("pattern", basic_to_json ?domain (fst t.pattern));
       ("without", `List (List.map (basic_to_json ?domain) (snd t.pattern)));
       ("commands", `List (List.map (Command.to_json ?domain) t.commands))
     ]
