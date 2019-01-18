@@ -388,9 +388,12 @@ module Rule = struct
       ) basic.graph []
 
   (* a [pattern] is described by the positive basic and a list of negative basics. *)
-  type pattern = basic * basic list
+  type pattern = {
+    pos: basic;
+    negs: basic list;
+  }
 
-  let pid_name_list (pos,_) = P_graph.pid_name_list pos.graph
+  let pid_name_list pattern = P_graph.pid_name_list pattern.pos.graph
 
   type t = {
       name: string;
@@ -408,15 +411,15 @@ module Rule = struct
     `Assoc
     ([
       ("rule_name", `String t.name);
-      ("pattern", basic_to_json ?domain (fst t.pattern));
-      ("without", `List (List.map (basic_to_json ?domain) (snd t.pattern)));
+      ("pattern", basic_to_json ?domain t.pattern.pos);
+      ("without", `List (List.map (basic_to_json ?domain) t.pattern.negs));
       ("commands", `List (List.map (Command.to_json ?domain) t.commands))
     ]
     )
 
   (* ====================================================================== *)
   let to_dep ?domain t =
-    let pos_basic = fst t.pattern in
+    let pos_basic = t.pattern.pos in
     let buff = Buffer.create 32 in
     bprintf buff "[GRAPH] { scale = 200; }\n";
 
@@ -527,7 +530,7 @@ module Rule = struct
       ) ([],1) pattern.Ast.pat_negs in
     {
       name = rule_ast.Ast.rule_id;
-      pattern = (pos, negs);
+      pattern = { pos; negs; };
       commands = build_commands ?domain lexicons pos pos_table rule_ast.Ast.commands;
       loc = rule_ast.Ast.rule_loc;
       lexicons;
@@ -543,7 +546,7 @@ module Rule = struct
         P_fs.Fail_unif (* Skip the without parts that are incompatible with the match part *)
         (fun basic_ast -> build_neg_basic ?domain lexicons pos_table basic_ast)
         n_pattern.Ast.pat_negs in
-    (pos, negs)
+    { pos; negs; }
 
   (* ====================================================================== *)
   type matching = {
@@ -555,7 +558,7 @@ module Rule = struct
   let to_python pattern graph m =
     let node_name gid = G_node.get_name gid (G_graph.find gid graph) in
     let nodes = Pid_map.fold (fun pid gid acc ->
-      let pnode = P_graph.find pid (fst pattern).graph in
+      let pnode = P_graph.find pid pattern.pos.graph in
         (P_node.get_name pnode, `String (node_name gid))::acc
       ) m.n_match [] in
     let edges = List.map (fun (id, (src,lab,tar)) ->
@@ -566,7 +569,7 @@ module Rule = struct
   let node_matching pattern graph { n_match } =
     Pid_map.fold
       (fun pid gid acc ->
-        let pnode = P_graph.find pid (fst pattern).graph in
+        let pnode = P_graph.find pid pattern.pos.graph in
         let gnode = G_graph.find gid graph in
         (P_node.get_name pnode, G_node.get_name gid gnode) :: acc
       ) n_match []
@@ -584,7 +587,7 @@ module Rule = struct
     { G_deco.nodes =
         Pid_map.fold
           (fun pid gid acc ->
-            let pnode = P_graph.find pid (fst pattern).graph in
+            let pnode = P_graph.find pid pattern.pos.graph in
             let pattern_feat_list = P_fs.feat_list (P_node.get_fs pnode) in
             (gid, (P_node.get_name pnode, pattern_feat_list)) ::acc
           ) matching.n_match [];
@@ -936,7 +939,7 @@ module Rule = struct
     | _ -> false
 
   (*  ---------------------------------------------------------------------- *)
-  let match_in_graph ?domain ?lexicons (pos, negs) graph =
+  let match_in_graph ?domain ?lexicons {pos; negs} graph =
     let casted_graph = G_graph.cast ?domain graph in
     let pos_graph = pos.graph in
 
@@ -1091,7 +1094,7 @@ module Rule = struct
         (new_graph, (created_name,new_gid) :: created_nodes, true)
 
   let onf_apply ?domain rule graph =
-    let (pos,negs) = rule.pattern in
+    let {pos; negs} = rule.pattern in
     (* get the list of partial matching for positive part of the pattern *)
       let matching_list =
         extend_matching
@@ -1123,7 +1126,7 @@ module Rule = struct
           with Not_found -> (* raised by List.find, no matching apply *) None
 
   let rec wrd_apply ?domain rule (graph, big_step_opt) =
-    let (pos,negs) = rule.pattern in
+    let {pos; negs} = rule.pattern in
     (* get the list of partial matching for positive part of the pattern *)
       let matching_list =
         extend_matching
