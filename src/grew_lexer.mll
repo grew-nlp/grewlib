@@ -181,6 +181,7 @@ and standard target = parse
 
 | "without"       { WITHOUT }
 | "commands"      { COMMANDS }
+| "global"        { GLOBAL }
 
 | "add_edge"      { ADD_EDGE }
 | "del_edge"      { DEL_EDGE }

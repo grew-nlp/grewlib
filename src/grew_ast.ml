@@ -174,7 +174,10 @@ module Ast = struct
     pat_const: const list;
   }
 
+  let empty_basic = { pat_nodes=[]; pat_edges=[]; pat_const=[]; }
+
   type pattern = {
+    pat_glob: string list;
     pat_pos: basic;
     pat_negs: basic list;
   }
@@ -227,7 +230,7 @@ module Ast = struct
     let new_pat_pos = complete_basic [] pattern.pat_pos in
     let aux = new_pat_pos.pat_nodes in
     let new_pat_negs = List.map (complete_basic aux) pattern.pat_negs in
-    { pat_pos = new_pat_pos; pat_negs = new_pat_negs;}
+    { pattern with pat_pos = new_pat_pos; pat_negs = new_pat_negs;}
 
   type concat_item =
     | Qfn_or_lex_item of pointed

@@ -80,6 +80,7 @@ let localize t = (t,get_loc ())
 %token PATTERN                     /* pattern */
 %token WITHOUT                     /* without */
 %token COMMANDS                    /* commands */
+%token GLOBAL                      /* global */
 %token STRAT                       /* strat */
 %token PACKAGE                     /* package */
 %token RULE                        /* rule */
@@ -283,7 +284,7 @@ rule:
               | Some l -> l @ final_lexicons
               | None -> final_lexicons in
               { Ast.rule_id = fst id_loc;
-                pattern = Ast.complete_pattern { Ast.pat_pos = p; Ast.pat_negs = n };
+                pattern = Ast.complete_pattern { Ast.pat_glob = ["TODO"]; Ast.pat_pos = p; Ast.pat_negs = n };
                 commands = cmds;
                 lexicon_info = lexicons;
                 rule_doc = begin match doc with Some d -> d | None -> [] end;
@@ -300,6 +301,12 @@ external_lexicon:
 
 final_lexicon:
         | final_lexicon = LEX_PAR  { (fst final_lexicon, Ast.Final (snd final_lexicon)) }
+
+glob_decl:
+        | GLOBAL l=delimited(LACC, separated_list_final_opt(SEMIC,glob_item),RACC) { l }
+
+glob_item:
+        | item = ID { item }
 
 pos_item:
         | PATTERN i=pn_item   { i }
@@ -668,7 +675,14 @@ concat_item:
 /* ISOLATED PATTERN (grep mode)                                                                */
 /*=============================================================================================*/
 pattern:
-        | p=pos_item n=list(neg_item) EOF { Ast.complete_pattern {Ast.pat_pos=p; pat_negs=n} }
+        | g=option (glob_decl) p=option(pos_item) n=list(neg_item) EOF
+          { Ast.complete_pattern {
+              Ast.pat_glob = (match g with None -> [] | Some x -> x);
+              Ast.pat_pos = (match p with None -> Ast.empty_basic | Some x -> x);
+              Ast.pat_negs = n;
+            }
+          }
+
 
 /*=============================================================================================*/
 /* Constituent tree (à la Sequoia)                                                             */
@@ -679,7 +693,6 @@ phrase_structure_tree:
 pst:
         | LPAREN pos=ID ff=ID RPAREN  { Grew_ast.Ast.T (get_loc(), pos, [Grew_ast.Ast.Leaf (get_loc(), ff)])  }
         | LPAREN cat=ID daugthers=nonempty_list (pst) RPAREN { Grew_ast.Ast.T (get_loc(), cat, daugthers) }
-
 
 /*=============================================================================================*/
 /*=============================================================================================*/

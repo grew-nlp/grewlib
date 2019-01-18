@@ -123,7 +123,10 @@ module Ast : sig
       pat_const: const list;
     }
 
+  val empty_basic: basic
+
   type pattern = {
+      pat_glob: string list;
       pat_pos: basic;
       pat_negs: basic list;
     }
