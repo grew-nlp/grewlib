@@ -389,6 +389,7 @@ module Rule = struct
 
   (* a [pattern] is described by the positive basic and a list of negative basics. *)
   type pattern = {
+    global: string list;
     pos: basic;
     negs: basic list;
   }
@@ -530,7 +531,7 @@ module Rule = struct
       ) ([],1) pattern.Ast.pat_negs in
     {
       name = rule_ast.Ast.rule_id;
-      pattern = { pos; negs; };
+      pattern = { pos; negs; global=pattern.Ast.pat_glob; };
       commands = build_commands ?domain lexicons pos pos_table rule_ast.Ast.commands;
       loc = rule_ast.Ast.rule_loc;
       lexicons;
@@ -546,7 +547,7 @@ module Rule = struct
         P_fs.Fail_unif (* Skip the without parts that are incompatible with the match part *)
         (fun basic_ast -> build_neg_basic ?domain lexicons pos_table basic_ast)
         n_pattern.Ast.pat_negs in
-    { pos; negs; }
+    { pos; negs; global=pattern_ast.pat_glob; }
 
   (* ====================================================================== *)
   type matching = {
@@ -939,31 +940,49 @@ module Rule = struct
     | _ -> false
 
   (*  ---------------------------------------------------------------------- *)
-  let match_in_graph ?domain ?lexicons {pos; negs} graph =
+  let match_in_graph ?domain ?lexicons { global; pos; negs } graph =
     let casted_graph = G_graph.cast ?domain graph in
-    let pos_graph = pos.graph in
 
-    (* get the list of partial matching for positive part of the pattern *)
-    let matching_list =
+    let rec match_global = function
+    | [] -> true
+    | "is_projective" :: tail ->
+      begin
+        match G_graph.is_projective graph with
+        | Some _ -> false
+        | None -> match_global tail
+      end
+    | "is_not_projective" :: tail ->
+      begin
+        match G_graph.is_projective graph with
+        | Some _ -> match_global tail
+        | None -> false
+      end
+    | x :: tail -> Error.build "Unknown global requirement \"%s\"" x in
 
-      extend_matching
-        ?domain
-        (pos_graph,P_graph.empty)
-        casted_graph
-        (init ?lexicons pos) in
+    if not (match_global global)
+    then []
+    else
+      let pos_graph = pos.graph in
 
-    let filtered_matching_list =
-      List.filter
-        (fun (sub, already_matched_gids) ->
-          List.for_all
-            (fun without ->
-              let neg_graph = without.graph in
-              let new_partial_matching = update_partial pos_graph without (sub, already_matched_gids) in
-              fulfill ?domain (pos_graph,neg_graph) graph new_partial_matching
-            ) negs
-        ) matching_list in
+      (* get the list of partial matching for positive part of the pattern *)
+      let matching_list =
+        extend_matching
+          ?domain
+          (pos_graph,P_graph.empty)
+          casted_graph
+          (init ?lexicons pos) in
 
-    List.map fst filtered_matching_list
+      let filtered_matching_list =
+        List.filter
+          (fun (sub, already_matched_gids) ->
+            List.for_all
+              (fun without ->
+                let neg_graph = without.graph in
+                let new_partial_matching = update_partial pos_graph without (sub, already_matched_gids) in
+                fulfill ?domain (pos_graph,neg_graph) graph new_partial_matching
+              ) negs
+          ) matching_list in
+      List.map fst filtered_matching_list
 
   let onf_find cnode ?loc (matching, created_nodes) =
     match cnode with
