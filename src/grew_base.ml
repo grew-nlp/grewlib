@@ -77,6 +77,13 @@ module String_ = struct
 
   let re_match re s = (Str.string_match re s 0) && (Str.matched_string s = s)
 
+  let rev_concat sep l =
+    let rec loop = function
+    | [] -> ""
+    | [one] -> one
+    | h :: tail -> (loop tail) ^ sep ^ h in
+  loop l
+
 end (* module String_ *)
 
 (* ================================================================================ *)

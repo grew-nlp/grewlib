@@ -984,6 +984,7 @@ module Rule = struct
           ) matching_list in
       List.map fst filtered_matching_list
 
+  (*  ---------------------------------------------------------------------- *)
   let onf_find cnode ?loc (matching, created_nodes) =
     match cnode with
     | Command.Pat pid ->
@@ -1140,7 +1141,7 @@ module Rule = struct
                 (graph, [], false)
                 rule.commands in
             if eff
-            then (Timeout.check (); incr_rules(); Some new_graph)
+            then (Timeout.check (); incr_rules(); Some (G_graph.push_rule (get_name rule) new_graph ))
             else None
           with Not_found -> (* raised by List.find, no matching apply *) None
 

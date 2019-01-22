@@ -66,6 +66,8 @@ module String_: sig
   (* [rm_peripheral_white s] returns the string [s] without any white space or tab
     at the beginning or at the end of the string. *)
   val rm_peripheral_white: string -> string
+
+  val rev_concat: string -> string list -> string
 end (* module String_ *)
 
 (* ================================================================================ *)

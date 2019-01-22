@@ -86,7 +86,7 @@ module Loader = struct
       grs
   with Sys_error msg -> Error.parse ~loc:(Loc.file file) "[Grew_loader.Loader.grs] %s" msg
 
-  let rec unfold_grs dir top new_ast_grs =
+  let rec unfold_grs dir top address new_ast_grs =
   List.fold_left
     (fun acc decl -> match decl with
       | Ast.Import filename ->
@@ -95,24 +95,24 @@ module Loader = struct
           | Some x -> x
           | None -> Error.build "Imported file must have the \".grs\" file extension" in
         let sub = loc_grs real_file in
-        let unfolded_sub = unfold_grs (real_dir real_file) false sub in
+        let unfolded_sub = unfold_grs (real_dir real_file) false (address ^ pack_name ^ ".") sub in
           Ast.Package (Loc.file filename, pack_name, unfolded_sub) :: acc
       | Ast.Include filename ->
         let real_file = Filename.concat dir filename in
         let sub = loc_grs real_file in
-        let unfolded_sub = unfold_grs (real_dir real_file) top sub in
+        let unfolded_sub = unfold_grs (real_dir real_file) top address sub in
           unfolded_sub @ acc
       | Ast.Features _ when not top -> Error.build "Non top features declaration"
       | Ast.Labels _ when not top -> Error.build "Non top labels declaration"
       | Ast.Package (loc, name, decls) ->
-        Ast.Package (loc, name, unfold_grs dir top decls) :: acc
+        Ast.Package (loc, name, unfold_grs dir top (address ^ name ^ ".") decls) :: acc
       | Ast.Rule ast_rule ->
-        Ast.Rule {ast_rule with Ast.rule_dir = Some dir} :: acc
+        Ast.Rule {ast_rule with Ast.rule_dir = Some dir; Ast.rule_id = address ^ ast_rule.Ast.rule_id} :: acc
       | x -> x :: acc
     ) [] new_ast_grs
 
   let grs file =
-    let final_grs = unfold_grs (real_dir file) true (loc_grs file) in
+    let final_grs = unfold_grs (real_dir file) true "" (loc_grs file) in
     check_grs final_grs;
     final_grs
 

@@ -232,9 +232,10 @@ module G_graph = struct
     map: G_node.t Gid_map.t;      (* node description *)
     fusion: fusion_item list;     (* the list of fusion word considered in UD conll *)
     highest_index: int;           (* the next free integer index *)
+    rules: string list;
   }
 
-  let empty = { domain=None; meta=[]; map=Gid_map.empty; fusion=[]; highest_index=0; }
+  let empty = { domain=None; meta=[]; map=Gid_map.empty; fusion=[]; highest_index=0; rules=[]; }
 
   let get_domain t = t.domain
 
@@ -248,6 +249,10 @@ module G_graph = struct
 
   let fold_gid fct t init =
     Gid_map.fold (fun gid _ acc -> fct gid acc) t.map init
+
+  let push_rule rule_name t = { t with rules = rule_name :: t.rules }
+
+  let get_rules t = t.rules
 
   (* is there an edge e out of node i ? *)
   let edge_out graph node_id label_cst =
@@ -344,7 +349,8 @@ module G_graph = struct
       meta=gr_ast.Ast.meta;
       map;
       fusion = [];
-      highest_index = final_index - 1
+      highest_index = final_index - 1;
+      rules = [];
     }
 
   (* -------------------------------------------------------------------------------- *)
@@ -471,7 +477,8 @@ module G_graph = struct
       meta = conll.Conll.meta;
       map = map_with_nl_nodes;
       fusion;
-      highest_index = free_index -1
+      highest_index = free_index -1;
+      rules = [];
     }
 
   (* -------------------------------------------------------------------------------- *)
@@ -534,7 +541,8 @@ module G_graph = struct
       meta=[];
       map=prec_loop map (List.rev !leaf_list);
       fusion = [];
-      highest_index = !cpt
+      highest_index = !cpt;
+      rules = [];
     }
 
   (* -------------------------------------------------------------------------------- *)
@@ -1113,9 +1121,11 @@ module G_graph = struct
         Conll_types.Int_map.add (i+1) mwe acc
       ) Conll_types.Int_map.empty snl_nodes in
 
+    let rules = "# rules " ^ (String_.rev_concat "," graph.rules) in
+
     {
       Conll.file = None;
-      Conll.meta = graph.meta;
+      Conll.meta = graph.meta @ [rules];
       lines;
       multiwords = []; (* multiwords are handled by _UD_* features *)
       mwes;
