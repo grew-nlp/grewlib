@@ -299,6 +299,7 @@ module Global: sig
 
   val debug: bool ref
   val safe_commands: bool ref
+  val track_rules: bool ref
 end
 
 (* ================================================================================ *)

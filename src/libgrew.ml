@@ -31,6 +31,8 @@ module Libgrew = struct
 
   let set_safe_commands flag = Grew_base.Global.safe_commands := flag
 
+  let set_track_rules flag = Grew_base.Global.track_rules := flag
+
   exception Error of string
   exception Bug of string
 

@@ -632,6 +632,8 @@ module Global = struct
 
   let debug = ref false
   let safe_commands = ref false
+
+  let track_rules = ref false
 end (* module Global *)
 
 module Dependencies = struct
