@@ -552,7 +552,7 @@ module Rule = struct
   (* ====================================================================== *)
   type matching = {
     n_match: Gid.t Pid_map.t;                     (* partial fct: pattern nodes |--> graph nodes *)
-    e_match: (string*(Gid.t*Label.t*Gid.t)) list; (* edge matching: edge ident  |--> (src,label,tar) *)
+    e_match: (string*(Gid.t*G_edge.t*Gid.t)) list; (* edge matching: edge ident  |--> (src,label,tar) *)
     l_param: Lexicons.t;                          (* *)
   }
 
@@ -563,7 +563,7 @@ module Rule = struct
         (P_node.get_name pnode, `String (node_name gid))::acc
       ) m.n_match [] in
     let edges = List.map (fun (id, (src,lab,tar)) ->
-      (id, `String (sprintf "%s/%s/%s" (node_name src) (Label.to_string lab) (node_name tar)))
+      (id, `String (sprintf "%s/%s/%s" (node_name src) (G_edge.to_string lab) (node_name tar)))
       ) m.e_match in
     `Assoc (nodes @ edges)
 

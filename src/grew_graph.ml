@@ -410,7 +410,7 @@ module G_graph = struct
           List.fold_left
             (fun acc2 (gov, dep_lab) ->
               let gov_id = Id.gbuild ~loc gov gtable in
-              let edge = G_edge.make ?domain ~loc dep_lab in
+              let edge = G_edge.from_string ?domain ~loc dep_lab in
               (match map_add_edge_opt acc2 gov_id edge dep_id with
                 | Some g -> g
                 | None -> Error.build "[GRS] [Graph.of_conll] try to build a graph with twice the same edge %s %s"
@@ -450,19 +450,19 @@ module G_graph = struct
             (* add a new node *)
             let new_map_1 = (Gid_map.add free_index new_node acc) in
             (* add a link to the first component *)
-            let new_map_2 = map_add_edge new_map_1 free_index (G_edge.make ?domain kind) (Id.gbuild (fst mwe.Mwe.first) gtable) in
+            let new_map_2 = map_add_edge new_map_1 free_index (G_edge.from_string ?domain kind) (Id.gbuild (fst mwe.Mwe.first) gtable) in
             let new_map_3 = match snd mwe.Mwe.first with
             | None -> new_map_2
-            | Some i -> map_add_edge new_map_2 free_index (G_edge.make ?domain (sprintf "%d" i)) (Id.gbuild (fst mwe.Mwe.first) gtable) in
+            | Some i -> map_add_edge new_map_2 free_index (G_edge.from_string ?domain (sprintf "%d" i)) (Id.gbuild (fst mwe.Mwe.first) gtable) in
 
             (* add a link to each other component *)
             let new_map_4 =
               Id_with_proj_set.fold (
                 fun item acc2 ->
-                  let tmp = map_add_edge acc2 free_index (G_edge.make ?domain kind) (Id.gbuild (fst item) gtable) in
+                  let tmp = map_add_edge acc2 free_index (G_edge.from_string ?domain kind) (Id.gbuild (fst item) gtable) in
                   match snd item with
                   | None -> tmp
-                  | Some i -> map_add_edge tmp free_index (G_edge.make ?domain (sprintf "%d" i)) (Id.gbuild (fst item) gtable)
+                  | Some i -> map_add_edge tmp free_index (G_edge.from_string ?domain (sprintf "%d" i)) (Id.gbuild (fst item) gtable)
               ) mwe.Mwe.items new_map_3 in
 
               (* (match map_add_edge_opt acc2 gov_id edge dep_id with
@@ -675,7 +675,7 @@ module G_graph = struct
         if Label_cst.match_ ?domain label_cst edge && not (is_gid_local next_gid)
         then
           match Massoc_gid.add_opt next_gid edge acc_tar_next with
-          | None when !Global.safe_commands -> Error.run ~loc "The [shift_out] command tries to build a duplicate edge (with label \"%s\")" (Label.to_string ?domain edge)
+          | None when !Global.safe_commands -> Error.run ~loc "The [shift_out] command tries to build a duplicate edge (with label \"%s\")" (G_edge.to_string ?domain edge)
           | None ->
             del_edges := (src_gid,edge,next_gid) :: !del_edges;
             (Massoc_gid.remove next_gid edge acc_src_next, acc_tar_next)
@@ -717,7 +717,7 @@ module G_graph = struct
                 then
                   match List_.usort_insert edge acc_node_tar_edges with
                   | None when !Global.safe_commands ->
-                    Error.run ~loc "The [shift_in] command tries to build a duplicate edge (with label \"%s\")" (Label.to_string ?domain edge)
+                    Error.run ~loc "The [shift_in] command tries to build a duplicate edge (with label \"%s\")" (G_edge.to_string ?domain edge)
                   | None ->
                     del_edges := (node_id,edge,src_gid) :: !del_edges;
                     (List_.usort_remove edge acc_node_src_edges, acc_node_tar_edges)
@@ -1327,7 +1327,7 @@ module Delta = struct
   (* the three list are ordered *)
   type t = {
     del_nodes: Gid.t list;
-    edges: ((Gid.t * Label.t * Gid.t) * status) list;
+    edges: ((Gid.t * G_edge.t * Gid.t) * status) list;
     feats: ((Gid.t * feature_name) * (value option)) list;
   }
 

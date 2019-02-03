@@ -7,7 +7,7 @@ digraph grew {
   grew_domain [label="grew_domain|Label_domain\nFeature_domain\nDomain"]
   grew_loader [label="grew_loader|Loader\nParser"]
   grew_fs [label="grew_fs|Feature_value\nG_feature\nP_feature\nG_fs\nP_fs"]
-  grew_edge [label="grew_edge|Label\nLabel_cst\nG_edge\nP_edge"]
+  grew_edge [label="grew_edge|G_edge\nLabel_cst\nP_edge"]
   grew_node [label="grew_node|G_node\nP_node"]
   grew_command [label="grew_command|Command"]
   grew_graph [label="grew_graph|P_deco\nP_graph\nG_deco\nG_graph\nDelta\nGraph_with_history\nGraph_with_history_set"]
