@@ -204,6 +204,8 @@ module G_graph: sig
   val cast: ?domain:Domain.t -> t -> t
 
   val is_projective: t -> (Gid.t * Gid.t) option
+
+  val depth_first_search: t -> unit
 end (* module G_graph *)
 
 (* ================================================================================ *)

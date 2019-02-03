@@ -1228,6 +1228,90 @@ module G_graph = struct
     match Dependencies.is_projective sorted_arc_positions with
     | Some (p1, p2) -> Some (Float_map.find p1 pos_to_gid_map, Float_map.find p1 pos_to_gid_map)
     | None -> None
+
+(* --------------------------------------------------------------- *)
+(* Detection of graph structure: cycle, tree, …
+function [depth_first_search] implemented following:
+http://algorithmics.lsi.upc.edu/docs/Dasgupta-Papadimitriou-Vazirani.pdf (chap 3, pp 87-107)
+The algorithm is modified:
+- first search the roots
+- then apply the depth_first_search starting from these roots
+Tree detection is easier (is_tree <=> back_edges=0 and nontree_edges=0
+*)
+(* --------------------------------------------------------------- *)
+  let get_roots graph =
+    let non_roots =
+      Gid_map.fold
+        (fun gid node acc ->
+          Massoc_gid.fold_on_list (
+            fun acc2 next_gid _ -> Gid_set.add next_gid acc2
+            ) acc (G_node.get_next node)
+        ) graph.map Gid_set.empty in
+    let roots =
+      Gid_map.fold
+        (fun gid _ acc ->
+          if Gid_set.mem gid non_roots
+          then acc
+          else Gid_set.add gid acc
+        ) graph.map Gid_set.empty in
+    roots
+
+  type dfs_node =
+    | Pre of int
+    | Pre_post of int * int
+
+  type dfs_info = {
+    intervals: dfs_node Gid_map.t;
+    back_edges: (Gid.t * Gid.t) list;
+    nontree_edges: (Gid.t * Gid.t) list;
+  }
+
+  let depth_first_search graph =
+    let info = ref {intervals=Gid_map.empty; back_edges=[]; nontree_edges=[];} in
+    let clock = ref 0 in
+
+    let rec explore gid =
+      info := {!info with intervals = Gid_map.add gid (Pre !clock) !info.intervals};
+      incr clock;
+      let node = Gid_map.find gid graph.map in
+      Massoc_gid.iter (fun next_gid edge ->
+        try
+          match Gid_map.find next_gid !info.intervals with
+          | Pre _ -> info := {!info with back_edges = (gid, next_gid) :: !info.back_edges};
+          | Pre_post _ -> info := {!info with nontree_edges = (gid, next_gid) :: !info.nontree_edges};
+        with
+        | Not_found -> explore next_gid
+      ) (G_node.get_next node);
+      match Gid_map.find_opt gid !info.intervals with
+      | Some (Pre i) -> info := {!info with intervals = Gid_map.add gid (Pre_post (i,!clock)) !info.intervals}; incr clock;
+      | _ -> assert false in
+
+    let roots = get_roots graph in
+    Printf.printf "|roots| = %d\n" (Gid_set.cardinal roots);
+    Gid_set.iter (fun gid ->
+      Printf.printf "  -----> explore %s\n" (Gid.to_string gid);
+      explore gid
+    ) roots;
+
+    Printf.printf "======== Intervals =======\n";
+    Gid_map.iter (fun gid node ->
+      match Gid_map.find_opt gid !info.intervals with
+      | None -> Printf.printf "None! %s" (Gid.to_string gid)
+      | Some (Pre _) -> Printf.printf "Pre! %s" (Gid.to_string gid)
+      | Some (Pre_post (i,j)) ->
+          Printf.printf "%s --> [%d,%d] --> %s\n" (Gid.to_string gid) i j
+          (G_fs.to_string (G_node.get_fs node))
+    ) graph.map;
+
+    Printf.printf "======== Back_edges =======\n";
+    List.iter (fun (gid1, gid2) ->
+      Printf.printf "%s --> %s\n" (Gid.to_string gid1) (Gid.to_string gid2)
+    ) !info.back_edges;
+
+    Printf.printf "======== nontree_edges =======\n";
+    List.iter (fun (gid1, gid2) ->
+      Printf.printf "%s --> %s\n" (Gid.to_string gid1) (Gid.to_string gid2)
+    ) !info.nontree_edges
 end (* module G_graph *)
 
 

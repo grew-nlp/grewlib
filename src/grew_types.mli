@@ -62,6 +62,8 @@ end (* module Gid *)
 (* [Gid_map] is the map used in full graphs *)
 module Gid_map : Map.S with type key = Gid.t
 
+module Gid_set : Set.S with type elt = Gid.t
+
 (* ================================================================================ *)
 module Massoc_gid : S with type key = Gid.t
 
