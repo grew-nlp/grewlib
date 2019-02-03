@@ -41,7 +41,7 @@ let localize t = (t,get_loc ())
 %token LPAREN                      /* ( */
 %token RPAREN                      /* ) */
 %token DDOT                        /* : */
-%token COMA                        /* , */
+%token COMMA                       /* , */
 %token SEMIC                       /* ; */
 %token SHARP                       /* # */
 %token PLUS                        /* + */
@@ -156,6 +156,10 @@ simple_id:
 simple_id_with_loc:
         | id=ID       { localize (Ast.parse_simple_ident id) }
 
+simple_id_or_float:
+        | id=ID       { Ast.parse_simple_ident id }
+        | v=FLOAT     { Printf.sprintf "%g" v }
+
 node_id:
         | id=ID       { Ast.parse_node_ident id }
 
@@ -207,7 +211,7 @@ gr_item:
 
         /*  B (1) [phon="pense", lemma="penser", cat=v, mood=ind ]   */
         /*  B [phon="pense", lemma="penser", cat=v, mood=ind ]   */
-        | id_loc=node_id_with_loc position=option(delimited(LPAREN, FLOAT ,RPAREN)) feats=delimited(LBRACKET,separated_list_final_opt(COMA,node_features),RBRACKET)
+        | id_loc=node_id_with_loc position=option(delimited(LPAREN, FLOAT ,RPAREN)) feats=delimited(LBRACKET,separated_list_final_opt(COMMA,node_features),RBRACKET)
             { let (id,loc) = id_loc in
               Graph_node ({Ast.node_id = id; position=position; fs=feats}, loc) }
         /*   A   */
@@ -258,14 +262,14 @@ feature_name:
 
 feature_values:
         | SHARP                                         { ["#"] }
-        | x=separated_nonempty_list(COMA,feature_value) { x }
+        | x=separated_nonempty_list(COMMA,feature_value) { x }
 
 /*=============================================================================================*/
 /* GLOBAL LABELS DEFINITION                                                                    */
 /*=============================================================================================*/
 labels:
         /*   labels { OBJ, SUBJ, DE_OBJ, ANT }   */
-        | LABELS x=delimited(LACC,separated_nonempty_list_final_opt(COMA,label),RACC) { x }
+        | LABELS x=delimited(LACC,separated_nonempty_list_final_opt(COMMA,label),RACC) { x }
 
 label:
         | x=label_ident display_list=list(display)  { (x, display_list) }
@@ -294,7 +298,7 @@ rule:
             }
 
 external_lexicons:
-        | LPAREN external_lexicons= separated_nonempty_list_final_opt(COMA, external_lexicon) RPAREN       { external_lexicons }
+        | LPAREN external_lexicons= separated_nonempty_list_final_opt(COMMA, external_lexicon) RPAREN       { external_lexicons }
 
 external_lexicon:
         | lex_name=simple_id FROM file=STRING { (lex_name, Ast.File file)}
@@ -327,10 +331,50 @@ pn_item:
 /*=============================================================================================*/
 /* PATTERN DEFINITION                                                                            */
 /*=============================================================================================*/
+
+edge_item:
+        | id=ID       { Ast.parse_node_ident id }
+        | v=FLOAT     { Printf.sprintf "%g" v }
+
+label_atom:
+        | name=simple_id_or_float EQUAL l=separated_nonempty_list(PIPE,edge_item) { Ast.Atom_eq (name, l)}
+        | name=simple_id_or_float DISEQUAL l=separated_nonempty_list(PIPE,edge_item) { Ast.Atom_diseq (name, l)}
+        | BANG name=simple_id_or_float { Ast.Atom_absent name }
+
 pat_item:
+        /* =================================== */
+        /* node                                */
+        /* =================================== */
         /*   R [cat=V, lemma=$lemma]   */
-        | id_loc=simple_id_with_loc feats=delimited(LBRACKET,separated_list_final_opt(COMA,node_features),RBRACKET)
+        | id_loc=simple_id_with_loc feats=delimited(LBRACKET,separated_list_final_opt(COMMA,node_features),RBRACKET)
             { Pat_node ({Ast.node_id = fst id_loc; position=None; fs= feats}, snd id_loc) }
+
+        /* =================================== */
+        /* edge                                */
+        /* =================================== */
+        /*   A -> B   */
+        | n1_loc=simple_id_with_loc EDGE n2=simple_id
+            { let (n1,loc) = n1_loc in Pat_edge ({Ast.edge_id = None; src=n1; edge_label_cst=Ast.Neg_list []; tar=n2}, loc) }
+
+        /*   A -[X|Y]-> B   */
+        | n1_loc=simple_id_with_loc labels=delimited(LTR_EDGE_LEFT,separated_nonempty_list(PIPE,label_ident),LTR_EDGE_RIGHT) n2=simple_id
+            { let (n1,loc) = n1_loc in Pat_edge ({Ast.edge_id = None; src=n1; edge_label_cst=Ast.Pos_list labels; tar=n2}, loc) }
+
+        /*   A -[^X|Y]-> B   */
+        | n1_loc=simple_id_with_loc labels=delimited(LTR_EDGE_LEFT_NEG,separated_nonempty_list(PIPE,label_ident),LTR_EDGE_RIGHT) n2=simple_id
+            { let (n1,loc) = n1_loc in Pat_edge ({Ast.edge_id = None; src=n1; edge_label_cst=Ast.Neg_list labels; tar=n2}, loc) }
+
+        /*   A -[re"regexp"]-> B   */
+        | n1_loc=simple_id_with_loc LTR_EDGE_LEFT re=REGEXP LTR_EDGE_RIGHT n2=simple_id
+            { let (n1,loc) = n1_loc in Pat_edge ({Ast.edge_id = None; src=n1; edge_label_cst=Ast.Regexp re; tar=n2}, loc) }
+
+        /*   A -[1=subj, 2]-> B   */
+        | n1_loc=simple_id_with_loc LTR_EDGE_LEFT atom_list = separated_nonempty_list(COMMA, label_atom) LTR_EDGE_RIGHT n2=simple_id
+            { let (n1,loc) = n1_loc in Pat_edge ({Ast.edge_id = None; src=n1; edge_label_cst=Ast.Atom_list atom_list; tar=n2}, loc) }
+
+        /*   e:A -[1=subj, 2]-> B   */
+        | id_loc=simple_id_with_loc DDOT n1=simple_id LTR_EDGE_LEFT atom_list = separated_nonempty_list(COMMA, label_atom) LTR_EDGE_RIGHT n2=simple_id
+            { let (id,loc) = id_loc in Pat_edge ({Ast.edge_id = Some id; src=n1; edge_label_cst=Ast.Atom_list atom_list; tar=n2}, loc) }
 
         /*   e: A -> B   */
         | id_loc=simple_id_with_loc DDOT n1=simple_id EDGE n2=simple_id
@@ -348,21 +392,9 @@ pat_item:
         | id_loc=simple_id_with_loc DDOT n1=simple_id LTR_EDGE_LEFT re=REGEXP LTR_EDGE_RIGHT n2=simple_id
             { let (id,loc) = id_loc in Pat_edge ({Ast.edge_id = Some id; src=n1; edge_label_cst=Ast.Regexp re; tar=n2}, loc) }
 
-        /*   A -> B   */
-        | n1_loc=simple_id_with_loc EDGE n2=simple_id
-            { let (n1,loc) = n1_loc in Pat_edge ({Ast.edge_id = None; src=n1; edge_label_cst=Ast.Neg_list []; tar=n2}, loc) }
-
-        /*   A -> *   */
-        | n1_loc=simple_id_with_loc EDGE STAR
-            { let (n1,loc) = n1_loc in Pat_const (Ast.Cst_out (n1,Ast.Neg_list []), loc) }
-
-        /*   * -> B   */
-        | STAR EDGE n2_loc=simple_id_with_loc
-            { let (n2,loc) = n2_loc in Pat_const (Ast.Cst_in (n2,Ast.Neg_list []), loc) }
-
-        /*   A -[X|Y]-> B   */
-        | n1_loc=simple_id_with_loc labels=delimited(LTR_EDGE_LEFT,separated_nonempty_list(PIPE,label_ident),LTR_EDGE_RIGHT) n2=simple_id
-            { let (n1,loc) = n1_loc in Pat_edge ({Ast.edge_id = None; src=n1; edge_label_cst=Ast.Pos_list labels; tar=n2}, loc) }
+        /* =================================== */
+        /* edge constraints                    */
+        /* =================================== */
 
         /*   A -[X|Y]-> *   */
         | n1_loc=simple_id_with_loc labels=delimited(LTR_EDGE_LEFT,separated_nonempty_list(PIPE,label_ident),LTR_EDGE_RIGHT) STAR
@@ -372,13 +404,13 @@ pat_item:
         | STAR labels=delimited(LTR_EDGE_LEFT,separated_nonempty_list(PIPE,label_ident),LTR_EDGE_RIGHT) n2_loc=simple_id_with_loc
             { let (n2,loc) = n2_loc in Pat_const (Ast.Cst_in (n2,Ast.Pos_list labels), loc) }
 
-        /*   A -[^X|Y]-> B   */
-        | n1_loc=simple_id_with_loc labels=delimited(LTR_EDGE_LEFT_NEG,separated_nonempty_list(PIPE,label_ident),LTR_EDGE_RIGHT) n2=simple_id
-            { let (n1,loc) = n1_loc in Pat_edge ({Ast.edge_id = None; src=n1; edge_label_cst=Ast.Neg_list labels; tar=n2}, loc) }
+        /*   A -> *   */
+        | n1_loc=simple_id_with_loc EDGE STAR
+            { let (n1,loc) = n1_loc in Pat_const (Ast.Cst_out (n1,Ast.Neg_list []), loc) }
 
-        /*   A -[re"regexp"]-> B   */
-        | n1_loc=simple_id_with_loc LTR_EDGE_LEFT re=REGEXP LTR_EDGE_RIGHT n2=simple_id
-            { let (n1,loc) = n1_loc in Pat_edge ({Ast.edge_id = None; src=n1; edge_label_cst=Ast.Regexp re; tar=n2}, loc) }
+        /*   * -> B   */
+        | STAR EDGE n2_loc=simple_id_with_loc
+            { let (n2,loc) = n2_loc in Pat_const (Ast.Cst_in (n2,Ast.Neg_list []), loc) }
 
         /*   A -[^X|Y]-> *   */
         | n1_loc=simple_id_with_loc labels=delimited(LTR_EDGE_LEFT_NEG,separated_nonempty_list(PIPE,label_ident),LTR_EDGE_RIGHT) STAR
@@ -387,6 +419,10 @@ pat_item:
         /*   * -[^X|Y]-> B   */
         | STAR labels=delimited(LTR_EDGE_LEFT_NEG,separated_nonempty_list(PIPE,label_ident),LTR_EDGE_RIGHT) n2_loc=simple_id_with_loc
             { let (n2,loc) = n2_loc in Pat_const (Ast.Cst_in (n2,Ast.Neg_list labels), loc) }
+
+        /* =================================== */
+        /* other constraints                   */
+        /* =================================== */
 
         /*   X.cat = Y.cat   */
         /*   X.cat = value   */
@@ -433,6 +469,8 @@ pat_item:
         | feat_id_loc=feature_ident_with_loc EQUAL regexp=REGEXP
             { let (feat_id,loc)=feat_id_loc in Pat_const (Ast.Feature_eq_regexp (feat_id, regexp), loc) }
 
+        /*   X.feat < Y.feat    */
+        /*   X < Y     */
         | id1_loc=ineq_value_with_loc LT id2=ineq_value
             { let (id1,loc)=id1_loc in
               match (id1, id2) with
@@ -452,13 +490,15 @@ pat_item:
               | (Ineq_sofi (Ast.Simple n1), Ineq_sofi (Ast.Simple n2)) ->
                 Pat_const (Ast.Immediate_prec (n1,n2), loc)
 
-(* TODO : axe lex_field *)
+ (* TODO : axe lex_field *)
 
               (*  __ERRORS__   *)
               | (Ineq_float _, Ineq_float _) -> Error.build "the '<' symbol can be used with 2 constants"
               | _ -> Error.build "the '<' symbol can be used with 2 nodes or with 2 features but not in a mix inequality"
             }
 
+        /*   X.feat > Y.feat    */
+        /*   X > Y     */
         | id1_loc=ineq_value_with_loc GT id2=ineq_value
             { let (id1,loc)=id1_loc in
               match (id1, id2) with
@@ -711,7 +751,7 @@ grs:
   | decls = list(decl) EOF { decls }
 
 decl:
-  | f=feature_group                                          { Ast.Features f                           }
+  | f=feature_group                                           { Ast.Features f                           }
   | l=labels                                                  { Ast.Labels l                             }
   | r=rule                                                    { Ast.Rule r                               }
   | IMPORT f=STRING                                           { Ast.Import f                             }
@@ -720,15 +760,15 @@ decl:
   | STRAT id_loc=simple_id_with_loc LACC d = strat_desc RACC  { Ast.Strategy (snd id_loc, fst id_loc, d) }
 
 strat_desc:
-  | id = node_id                                                           { Ast.Ref id }
-  | PICK LPAREN s=strat_desc RPAREN                                        { Ast.Pick s }
-  | ALT LPAREN sl=separated_list_final_opt(COMA,strat_desc) RPAREN         { Ast.Alt sl }
-  | SEQ LPAREN sl=separated_list_final_opt(COMA,strat_desc) RPAREN         { Ast.Seq sl }
-  | ITER LPAREN s=strat_desc RPAREN                                        { Ast.Iter s }
-  | IF LPAREN s1=strat_desc COMA s2=strat_desc COMA s3=strat_desc RPAREN   { Ast.If (s1,s2,s3) }
-  | TRY LPAREN s=strat_desc RPAREN                                         { Ast.Try s }
-  | ONF LPAREN s=strat_desc RPAREN                                         { Ast.Onf s }
-  | EMPTY                                                                  { Ast.Seq [] }
+  | id = node_id                                                           { Ast.Ref id        }
+  | PICK LPAREN s=strat_desc RPAREN                                        { Ast.Pick s        }
+  | ALT LPAREN sl=separated_list_final_opt(COMMA,strat_desc) RPAREN        { Ast.Alt sl        }
+  | SEQ LPAREN sl=separated_list_final_opt(COMMA,strat_desc) RPAREN        { Ast.Seq sl        }
+  | ITER LPAREN s=strat_desc RPAREN                                        { Ast.Iter s        }
+  | IF LPAREN s1=strat_desc COMMA s2=strat_desc COMMA s3=strat_desc RPAREN { Ast.If (s1,s2,s3) }
+  | TRY LPAREN s=strat_desc RPAREN                                         { Ast.Try s         }
+  | ONF LPAREN s=strat_desc RPAREN                                         { Ast.Onf s         }
+  | EMPTY                                                                  { Ast.Seq []        }
 
 strat_alone:
   | s = strat_desc EOF  { s }

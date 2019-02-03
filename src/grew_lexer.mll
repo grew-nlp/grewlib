@@ -43,7 +43,7 @@ let letter = ['a'-'z' 'A'-'Z']
   The first characted cannot be a digit, or a colon (to avoid confusion).
  *)
 let label_ident =
-  (letter | '_' | '-' | '.' | '*') (letter | digit | '_' | '\'' | '-' | '.' | ':' | '*')*
+  (letter | digit | '_' | '-' | '.' | '*') (letter | digit | '_' | '\'' | '-' | '.' | ':' | '*')*
 
 let general_ident =
   (letter | '_' ) |
@@ -137,9 +137,13 @@ and label_parser target = parse
 
 | '{'   { LACC }
 | '}'   { Global.label_flag := false; RACC }
-| ','   { COMA }
+| ','   { COMMA }
 | '|'   { PIPE }
 | '/'   { SLASH }
+
+| '='   { EQUAL }
+| "!"   { BANG }
+| "<>"  { DISEQUAL }
 
 | '@' general_ident as cmd_var     { AROBAS_ID cmd_var }
 | "@#" color as col        { COLOR col }
@@ -226,7 +230,7 @@ and standard target = parse
 | ')'   { RPAREN }
 | ':'   { DDOT }
 | ';'   { SEMIC }
-| ','   { COMA }
+| ','   { COMMA }
 | '+'   { PLUS }
 | '#'   { SHARP }
 | '='   { EQUAL }

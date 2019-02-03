@@ -282,6 +282,12 @@ module List_ = struct
     | (k,_)::t when key>k -> sort_assoc key t
     | (_,v)::_ -> Some v
 
+  let rec sort_mem_assoc key = function
+    | [] -> false
+    | (k,_)::_ when key<k -> false
+    | (k,_)::t when key>k -> sort_mem_assoc key t
+    | (_,v)::_ -> true
+
   let rec sort_remove_assoc key = function
     | [] -> []
     | (k,_)::_ as t when key<k -> t

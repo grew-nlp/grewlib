@@ -18,24 +18,14 @@ open Grew_domain
 
 (* ================================================================================ *)
 module G_edge = struct
-  (** Internal representation of labels *)
-  type t = Dom of int | Local of string
+  type t = (string * string) list
 
-  let to_string ?domain = function
-    | Local s -> s
-    | Dom i ->
-      match Domain.get_label_name ?domain i with
-      | Some s -> s
-      | None -> Log.bug "Inconsistency in [G_edge.to_string]"; exit 1
+  let to_string ?domain edge =
+    String.concat "," (List.map (fun (x,y) -> x^"="^y) edge)
 
-  let get_style ?domain = function
-    | Local s -> Label_domain.parse_option s []
-    | Dom i ->
-      match Domain.get_label_style ?domain i with
-      | Some s -> s
-      | None -> Log.bug "Inconsistency in [G_edge.get_style]"; exit 1
+  let is_void ?domain edge = failwith "TODO [G_edge.is_void]"
 
-  let is_void ?domain t = Label_domain.is_void (get_style ?domain t)
+  let get_style ?domain edge = Label_domain.default
 
   let to_dep ?domain ?(deco=false) t =
     let style = get_style ?domain t in
@@ -45,10 +35,17 @@ module G_edge = struct
     let style = get_style ?domain t in
     Label_domain.to_dot ~deco style
 
+  let split l = CCList.mapi
+    (fun i elt -> (string_of_int (i+1), elt)) l
+
   let from_string ?loc ?domain str =
-    match Domain.edge_id_from_string ?loc ?domain str with
-    | Some id -> Dom id
-    | None -> Local str
+    let unsorted =
+      match Str.split (Str.regexp_string ":") str with
+      | "S" :: l -> ("kind","surf") :: (split l)
+      | "D" :: l -> ("kind","deep") :: (split l)
+      | "E" :: l -> ("kind","enhanced") :: (split l)
+      | l -> split l in
+    List.sort (Pervasives.compare) unsorted
 
   let to_json ?domain t = `String (to_string ?domain t)
 
@@ -60,25 +57,38 @@ module G_edge = struct
     | Ast.Neg_list _ -> Error.build "Negative edge spec are forbidden in graphs%s" (Loc.to_string loc)
     | Ast.Pos_list _ -> Error.build "Only atomic edge values are allowed in graphs%s" (Loc.to_string loc)
     | Ast.Regexp _ -> Error.build "Regexp are not allowed in graphs%s" (Loc.to_string loc)
+    | Ast.Atom_list _ -> Error.build "Non atomic edge are not allowed in graphs%s" (Loc.to_string loc)
 
-  let color_of_option = function
-    | [] -> None
-    | c::_ -> Some (String_.rm_first_char c)
 end (* module G_edge *)
 
 
 (* ================================================================================ *)
 (** The module [Label_cst] defines contraints on label edges *)
 module Label_cst = struct
+  type atom_cst =
+  | Eq of (string * string list)
+  | Diseq of (string * string list)
+  | Absent of string
+
   type t =
   | Pos of G_edge.t list
   | Neg of G_edge.t list
   | Regexp of (Str.regexp * string)
+  | Atom_list of atom_cst list
 
   let to_string ?domain = function
     | Pos l -> (List_.to_string (G_edge.to_string ?domain) "|" l)
     | Neg l -> "^"^(List_.to_string (G_edge.to_string ?domain) "|" l)
     | Regexp (_,re) -> "re\""^re^"\""
+    | Atom_list l ->
+      String.concat ","
+        (List.map
+          (function
+            | Eq (name,al) -> sprintf "%s=%s" name (String.concat "|" al)
+            | Diseq (name,al) -> sprintf "%s<>%s" name (String.concat "|" al)
+            | Absent name -> sprintf "!%s" name
+          ) l
+        )
 
   let to_json ?domain = function
   | Pos l -> `Assoc
@@ -91,18 +101,41 @@ module Label_cst = struct
       ]
   | Regexp (_,re) -> `Assoc
       ["regexp", `String re]
+  | Atom_list l -> failwith "TODO json"
 
   let all = Neg []
+
+  let match_atom g_label = function
+    | Eq (name, l) ->
+      begin
+        match List_.sort_assoc name g_label with
+        | None -> false
+        | Some v -> List_.sort_mem v l
+      end
+    | Diseq (name, l) ->
+      begin
+        match List_.sort_assoc name g_label with
+        | None -> false
+        | Some v -> not (List_.sort_mem v l)
+      end
+    | Absent name -> not (List_.sort_mem_assoc name g_label)
 
   let match_ ?domain cst g_label = match cst with
     | Pos labels -> List.exists (fun p_label -> p_label = g_label) labels
     | Neg labels -> not (List.exists (fun p_label -> p_label = g_label) labels)
     | Regexp (re,_) -> String_.re_match re (G_edge.to_string ?domain g_label)
+    | Atom_list l -> List.for_all (match_atom g_label) l
+
+  let build_atom = function
+    | Ast.Atom_eq (name, atoms) -> Eq (name, atoms)
+    | Ast.Atom_diseq (name, atoms) -> Diseq (name, atoms)
+    | Ast.Atom_absent name -> Absent name
 
   let build ?loc ?domain = function
     | Ast.Neg_list p_labels -> Neg (List.sort compare (List.map (G_edge.from_string ?loc ?domain) p_labels))
     | Ast.Pos_list p_labels -> Pos (List.sort compare (List.map (G_edge.from_string ?loc ?domain) p_labels))
     | Ast.Regexp re -> Regexp (Str.regexp re, re)
+    | Ast.Atom_list l -> Atom_list (List.map build_atom l)
 end (* module Label_cst *)
 
 (* ================================================================================ *)

@@ -122,12 +122,30 @@ module Ast = struct
 
   let grewpy_compare (n1,_) (n2,_) = Id.grewpy_compare n1.node_id n2.node_id
 
+  type atom_edge_label_cst =
+    | Atom_eq of string * string list      (* 1=subj|obj  *)
+    | Atom_diseq of string * string list   (* 1<>subj|obj *)
+    | Atom_absent of string                (* !2          *)
+
+  let string_of_atom_edge_label_cst = function
+    | Atom_eq (lfeat, values) -> sprintf "%s=%s" lfeat (String.concat "|" values)
+    | Atom_diseq (lfeat, values) -> sprintf "%s<>%s" lfeat (String.concat "|" values)
+    | Atom_absent name -> sprintf "!%s" name
+
   type edge_label = string
 
   type edge_label_cst =
-    | Pos_list of edge_label list (*  X|Y|Z    *)
-    | Neg_list of edge_label list (*  ^X|Y|Z   *)
-    | Regexp of string            (*  re"a.*"  *)
+    | Pos_list of edge_label list           (*  X|Y|Z    *)
+    | Neg_list of edge_label list           (*  ^X|Y|Z   *)
+    | Regexp of string                      (*  re"a.*"  *)
+    | Atom_list of atom_edge_label_cst list (* 1=subj, 2 *)
+
+  let string_of_edge_label_cst = function
+    | Neg_list [] -> ""
+    | Pos_list labels -> sprintf "[%s]" (List_.to_string (fun x->x) "|" labels)
+    | Neg_list labels -> sprintf "[^%s]" (List_.to_string (fun x->x) "|" labels)
+    | Regexp re -> sprintf "[re\"%s\"]" re
+    | Atom_list l -> String.concat "," (List.map string_of_atom_edge_label_cst l)
 
   type u_edge = {
     edge_id: Id.name option;
@@ -268,35 +286,14 @@ module Ast = struct
     | Add_edge (n1,n2,label) ->
       sprintf "add_edge %s -[%s]-> %s" n1 label n2
     | Add_edge_expl (n1,n2,name) ->
-        sprintf "add_edge %s: %s -> %s" name n1 n2
+      sprintf "add_edge %s: %s -> %s" name n1 n2
 
-    | Shift_in (n1,n2,Neg_list []) ->
-      sprintf "shift_in %s ==> %s" n1 n2
-    | Shift_in (n1,n2,Pos_list labels) ->
-      sprintf "shift_in %s =[%s]=> %s" n1 n2 (List_.to_string (fun x->x) "|" labels)
-    | Shift_in (n1,n2,Neg_list labels) ->
-      sprintf "shift_in %s =[^%s]=> %s" n1 n2 (List_.to_string (fun x->x) "|" labels)
-    | Shift_in (n1,n2,Regexp re) ->
-      sprintf "shift_in %s =[re\"%s\"]=> %s" n1 re n2
-
-    | Shift_out (n1,n2,Neg_list []) ->
-      sprintf "shift_out %s ==> %s" n1 n2
-    | Shift_out (n1,n2,Pos_list labels) ->
-      sprintf "shift_out %s =[%s]=> %s" n1 n2 (List_.to_string (fun x->x) "|" labels)
-    | Shift_out (n1,n2,Neg_list labels) ->
-      sprintf "shift_out %s =[^%s]=> %s" n1 n2 (List_.to_string (fun x->x) "|" labels)
-    | Shift_out (n1,n2,Regexp re) ->
-      sprintf "shift_out %s =[re\"%s\"]=> %s" n1 re n2
-
-
-    | Shift_edge (n1,n2,Neg_list []) ->
-      sprintf "shift %s ==> %s" n1 n2
-    | Shift_edge (n1,n2,Pos_list labels) ->
-      sprintf "shift %s =[%s]=> %s" n1 n2 (List_.to_string (fun x->x) "|" labels)
-    | Shift_edge (n1,n2,Neg_list labels) ->
-      sprintf "shift %s =[^%s]=> %s" n1 n2 (List_.to_string (fun x->x) "|" labels)
-    | Shift_edge (n1,n2,Regexp re) ->
-      sprintf "shift %s =[re\"%s\"]=> %s" n1 re n2
+    | Shift_in (n1,n2,edge_label_cst) ->
+      sprintf "shift_in %s =%s=> %s" n1 (string_of_edge_label_cst edge_label_cst) n2
+    | Shift_out (n1,n2,edge_label_cst) ->
+      sprintf "shift_out %s =%s=> %s" n1 (string_of_edge_label_cst edge_label_cst) n2
+    | Shift_edge (n1,n2,edge_label_cst) ->
+      sprintf "shift %s =%s=> %s" n1 (string_of_edge_label_cst edge_label_cst) n2
 
     | New_node (n) -> sprintf "add_node %s" n
     | New_before (n1,n2) -> sprintf "add_node %s :< %s" n1 n2

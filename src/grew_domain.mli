@@ -21,6 +21,7 @@ module Label_domain : sig
   val to_dep: ?deco:bool -> style -> string
   val to_dot: ?deco:bool -> style -> string
 
+  val default: style
   type t
 
   (* [decl] is the type for a label declaration: the name and a list of display options *)

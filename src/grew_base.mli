@@ -171,6 +171,7 @@ module List_: sig
   val sort_diff: 'a list -> 'a list -> 'a list
 
   val sort_assoc: 'a -> ('a * 'b) list -> 'b option
+  val sort_mem_assoc: 'a -> ('a * 'b) list -> bool
 
    (* [sort_remove_assoc k ass_list] returns the input list without the [key] element,
       if [key] not found, the unchanged input list is returned *)

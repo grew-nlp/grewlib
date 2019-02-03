@@ -76,12 +76,18 @@ module Ast : sig
 
   val grewpy_compare: node -> node -> int
 
-  type edge_label = string (* p_obj.agt:suj *)
+  type atom_edge_label_cst =
+    | Atom_eq of string * string list      (* 1=subj|obj  *)
+    | Atom_diseq of string * string list   (* 1<>subj|obj *)
+    | Atom_absent of string                (* !2          *)
+
+  type edge_label = string
 
   type edge_label_cst =
-    | Pos_list of edge_label list (*  X|Y|Z    *)
-    | Neg_list of edge_label list (*  ^X|Y|Z   *)
-    | Regexp of string            (*  re"a.*"  *)
+    | Pos_list of edge_label list           (*  X|Y|Z    *)
+    | Neg_list of edge_label list           (*  ^X|Y|Z   *)
+    | Regexp of string                      (*  re"a.*"  *)
+    | Atom_list of atom_edge_label_cst list (* 1=subj, 2 *)
 
   type u_edge = {
       edge_id: Id.name option;
