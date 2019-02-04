@@ -27,19 +27,25 @@ module Label_domain = struct
     line: line;
   }
 
-  let is_void style = (style.text = "void")
-
-  type t = string array * style array
-
-  let dump (label_array, _) =
-  Printf.printf "========= Label domain =========\n";
-  Array.iter (function label -> Printf.printf " - %s\n" label) label_array;
-  Printf.printf "==================================\n%!"
-
-  let to_json (labels,_) = `List (List.map (fun x -> `String x) (Array.to_list labels))
-
   (** The [default] style value *)
   let default = { text="UNSET"; bottom=false; color=None; bgcolor=None; line=Solid }
+
+
+  type t = style String_map.t
+
+  let get_style t str =
+    try
+      String_map.find str t
+    with
+    | Not_found -> {default with text = str}
+
+  let dump label_domain =
+  Printf.printf "========= Label domain =========\n";
+  String_map.iter (fun label _ -> Printf.printf " - %s\n" label) label_domain;
+  Printf.printf "==================================\n%!"
+
+  let to_json label_domain = `List (String_map.fold (fun k _ acc -> (`String k) :: acc) label_domain [])
+
 
   (** [decl] is the type for a label declaration: the name and a list of display styles *)
   type decl = string * string list
@@ -76,12 +82,9 @@ module Label_domain = struct
 
   (* [build decl_list] returns a label_domain *)
   let build decl_list =
-    let slist = List.sort (fun (x,_) (y,_) -> compare x y) decl_list in
-    let (labels, opts) = List.split slist in
-    let labels_array = Array.of_list labels in
-    (labels_array,
-      Array.mapi (fun i opt -> parse_option labels_array.(i) opt) (Array.of_list opts)
-    )
+      List.fold_left
+        (fun acc (label, opts) -> String_map.add label (parse_option label opts) acc
+        ) String_map.empty decl_list
 
   let to_dep ?(deco=false) style =
     let dep_items =
@@ -276,20 +279,8 @@ module Domain = struct
    | Feature feature_domain | Both (_, feature_domain) -> Feature_domain.feature_names feature_domain
    | _ -> []
 
-  let get_label_name ?domain index = match domain with
-  | Some (Both ((names,_),_)) | Some (Label (names,_)) -> Some names.(index)
-  | _ -> None
-
-  let get_label_style ?domain index = match domain with
-  | Some (Both ((_,styles),_)) | Some (Label (_,styles))-> Some styles.(index)
-  | _ -> None
-
-  let edge_id_from_string ?loc ?domain str = match domain with
-  | Some (Both ((names,_),_)) | Some (Label (names,_)) ->
-    begin
-      try Some (Id.build ?loc str names)
-      with Not_found -> Error.build "[Domain.edge_id_from_string] unknown edge label '%s'" str
-    end
+  let get_label_style ?domain str = match domain with
+  | Some (Both (label_domain,_)) | Some (Label label_domain) -> Some (Label_domain.get_style label_domain str)
   | _ -> None
 
   let is_open_feature ?domain name = match domain with
@@ -309,4 +300,14 @@ module Domain = struct
       if not (Feature_domain.is_defined name feature_domain.decls)
       then Error.build ?loc "The feature name \"%s\" in not defined in the domain" name
   | _ -> ()
+
+  let label_to_dot ?domain ?deco label = match domain with
+  | Some (Both (label_domain,_))
+  | Some (Label label_domain) -> Label_domain.to_dot ?deco (Label_domain.get_style label_domain label)
+  | _ -> Label_domain.to_dot ?deco { Label_domain.default with text = label }
+
+  let label_to_dep ?domain ?deco label = match domain with
+  | Some (Both (label_domain,_))
+  | Some (Label label_domain) -> Label_domain.to_dep ?deco (Label_domain.get_style label_domain label)
+  | _ -> Label_domain.to_dep ?deco { Label_domain.default with text = label }
 end

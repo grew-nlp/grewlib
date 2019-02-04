@@ -984,10 +984,8 @@ module G_graph = struct
       (fun gid elt ->
         Massoc_gid.iter
           (fun tar g_edge ->
-            if not (G_edge.is_void ?domain g_edge)
-            then
-              let deco = List.mem (gid,g_edge,tar) deco.G_deco.edges in
-              bprintf buff "N_%s -> N_%s %s\n" (Gid.to_string gid) (Gid.to_string tar) (G_edge.to_dep ?domain ~deco g_edge)
+            let deco = List.mem (gid,g_edge,tar) deco.G_deco.edges in
+            bprintf buff "N_%s -> N_%s %s\n" (Gid.to_string gid) (Gid.to_string tar) (G_edge.to_dep ?domain ~deco g_edge)
           ) (G_node.get_next elt)
       ) graph.map;
 
@@ -1037,7 +1035,7 @@ module G_graph = struct
           Massoc_gid.fold
             (fun acc2 tar_gid edge  ->
               let old = try Gid_map.find tar_gid acc2 with Not_found -> [] in
-              Gid_map.add tar_gid ((sprintf "%g" src_num, G_edge.to_conll ?domain edge)::old) acc2
+              Gid_map.add tar_gid ((sprintf "%g" src_num, G_edge.to_string ?domain edge)::old) acc2
             ) acc (G_node.get_next node)
         ) nodes Gid_map.empty in
 
@@ -1103,7 +1101,7 @@ module G_graph = struct
           | Ordered f -> int_of_float f
           | _ -> Error.run "[G_graph.to_conll] nl_node going to Unordered node" in
           let head_proj = CCList.find_map
-            (fun e -> int_of_string_opt (G_edge.to_conll ?domain e))
+            (fun e -> int_of_string_opt (G_edge.to_string ?domain e))
             (Massoc_gid.assoc head_gid nexts) in
           let items = List.fold_left
             (fun acc gid ->
@@ -1111,7 +1109,7 @@ module G_graph = struct
               | Ordered f -> int_of_float f
               | _ -> Error.run "[G_graph.to_conll] nl_node going to Unordered node" in
                 let proj = CCList.find_map
-                  (fun e -> int_of_string_opt (G_edge.to_conll ?domain e))
+                  (fun e -> int_of_string_opt (G_edge.to_string ?domain e))
                   (Massoc_gid.assoc gid nexts) in
               Id_with_proj_set.add ((pos,None), proj) acc
             ) Id_with_proj_set.empty tail_gids in

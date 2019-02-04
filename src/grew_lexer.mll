@@ -40,7 +40,7 @@ let letter = ['a'-'z' 'A'-'Z']
    - dot '.'
    - colon ':'
    - star '*'
-  The first characted cannot be a digit, or a colon (to avoid confusion).
+  The first characted cannot be a colon (to avoid confusion).
  *)
 let label_ident =
   (letter | digit | '_' | '-' | '.' | '*') (letter | digit | '_' | '\'' | '-' | '.' | ':' | '*')*
@@ -115,12 +115,11 @@ and lp_lex name target = parse
                             LEX_PAR (name, lines)
                           }
 
-(* The lexer must be different when label_ident are parsed. The [global] lexer calls either
-   [label_parser] or [standard] depending on the flag [Global.label_flag].
+(* The lexer must be different when label_ident are parsed.
+   The [global] lexer calls either [label_parser] or [standard] depending on the flag [Global.label_flag].
    Difference are:
    - a label_ident may contain ':' (like in D:suj:obj) and ':' is a token elsewhere
    - a label_ident may contain '-' anywhere (like "--" in Tiger) but '-' is fordiden as the first or last character elsewhere
-   - the string "*" is lexed as ID by [label_parser] and as STAR by [standard]
 *)
 and global = parse
 | ""   {  if !Global.label_flag
@@ -251,7 +250,7 @@ and standard target = parse
 | ">=" | "≥" { GE }
 
 | '|'        { PIPE }
-| '/'   { SLASH }
+| '/'        { SLASH }
 
 | "->"       { EDGE }
 | "-[^"      { Global.label_flag := true; LTR_EDGE_LEFT_NEG }

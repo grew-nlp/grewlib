@@ -14,23 +14,11 @@ open Grew_ast
 
 (* ================================================================================ *)
 module Label_domain : sig
-  type style
-  val parse_option: string -> string list -> style
-  val is_void: style -> bool
-
-  val to_dep: ?deco:bool -> style -> string
-  val to_dot: ?deco:bool -> style -> string
-
-  val default: style
   type t
 
-  (* [decl] is the type for a label declaration: the name and a list of display options *)
-  type decl = string * string list
+  val build: Ast.label_spec list -> t
 
-  val merge: decl list -> decl list -> decl list
-
-  val build: decl list -> t
-
+  val merge: Ast.label_spec list -> Ast.label_spec list -> Ast.label_spec list
 end
 
 (* ================================================================================ *)
@@ -62,13 +50,7 @@ module Domain : sig
            feature_name ->
            feature_atom list -> value list
 
-
   val feature_names: t -> string list
-
-  val get_label_name: ?domain:t -> int -> string option
-  val get_label_style: ?domain:t -> int -> Label_domain.style option
-
-  val edge_id_from_string: ?loc:Loc.t -> ?domain:t -> string -> int option
 
   (** [is_open_feature domain feature_name] returns [true] iff no domain is set or if [feature_name] is defined to be open in the current domain. *)
   val is_open_feature: ?domain: t -> feature_name -> bool
@@ -81,4 +63,8 @@ module Domain : sig
 
   (** [check_feature_name ~loc domain feature_name] fails iff a domain is set and [feature_name] is not defined in the current domain. *)
   val check_feature_name: ?loc:Loc.t -> ?domain:t -> feature_name -> unit
+
+  val label_to_dot: ?domain:t -> ?deco:bool -> string -> string
+  val label_to_dep: ?domain:t -> ?deco:bool -> string -> string
+
 end

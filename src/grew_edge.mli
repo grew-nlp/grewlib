@@ -26,8 +26,6 @@ module G_edge: sig
 
   val get_sub: string -> t -> string option
 
-  val is_void: ?domain: Domain.t -> t -> bool
-
   val to_dep: ?domain: Domain.t -> ?deco:bool -> t -> string
 
   val to_dot: ?domain: Domain.t -> ?deco:bool -> t -> string
@@ -39,8 +37,6 @@ module G_edge: sig
   val sub: t
 
   val build: ?domain:Domain.t -> Ast.edge -> t
-
-  val is_void: ?domain:Domain.t -> t -> bool
 end (* module G_edge *)
 
 

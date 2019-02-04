@@ -24,10 +24,8 @@ module G_edge = struct
 
   let get_sub = List_.sort_assoc
 
-  let to_string ?domain edge =
-    String.concat "," (List.map (fun (x,y) -> x^"="^y) edge)
-
   exception Not_conll of string
+
   let to_conll ?domain edge =
     let rec loop i acc = function
       | [] -> acc
@@ -37,26 +35,22 @@ module G_edge = struct
       | (n,v)::t ->
         if n = string_of_int i
         then loop (i+1) (acc @ [v]) t
-        else raise (Not_conll (to_string ?domain edge)) in
-    try String.concat ":" (loop 1 [] edge)
+        else raise (Not_conll (String.concat "," (List.map (fun (x,y) -> x^"="^y) edge))) in
+    String.concat ":" (loop 1 [] edge)
+
+  let to_string ?domain edge =
+    try to_conll ?domain edge
     with Not_conll s ->
       Log.fwarning "[G_edge.to_conll] cannot write conll edge from \"%s\"" s;
       s
 
-  (* TODO check if useful or remove *)
-  let is_void ?domain edge = false
-
-  let get_style ?domain edge = Label_domain.default
-
   let to_dep ?domain ?(deco=false) t =
-    let style = get_style ?domain t in
-    Label_domain.to_dep ~deco style
+    let conll = to_conll t in
+    Domain.label_to_dep ?domain ~deco conll
 
   let to_dot ?domain ?(deco=false) t =
-    let style = get_style ?domain t in
-    Label_domain.to_dot ~deco style
-
-  let to_dep ?domain ?(deco=false) t = sprintf "{ label=\"%s\" }" (to_conll t)
+    let conll = to_conll t in
+    Domain.label_to_dot ?domain ~deco conll
 
   let split l = CCList.mapi
     (fun i elt -> (string_of_int (i+1), elt)) l
@@ -146,8 +140,11 @@ module Label_cst = struct
   let match_ ?domain cst g_label = match cst with
     | Pos labels -> List.exists (fun p_label -> p_label = g_label) labels
     | Neg labels -> not (List.exists (fun p_label -> p_label = g_label) labels)
-    | Regexp (re,_) -> String_.re_match re (G_edge.to_string ?domain g_label)
     | Atom_list l -> List.for_all (match_atom g_label) l
+    | Regexp (re,_) ->
+      try String_.re_match re (G_edge.to_conll ?domain g_label)
+      with G_edge.Not_conll s ->
+        Error.run "Cannot ckeck for regexp constraint on the edge \"%s\"" s
 
   let build_atom = function
     | Ast.Atom_eq (name, atoms) -> Eq (name, List.sort Pervasives.compare atoms)

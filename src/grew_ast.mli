@@ -186,6 +186,8 @@ module Ast : sig
       rule_dir: string option; (* the real folder where the file is defined *)
     }
 
+  type label_spec = string * string list
+
   type feature_spec =
     | Closed of feature_name * feature_atom list (* cat:V,N *)
     | Open of feature_name (* phon, lemma, ... *)
@@ -195,7 +197,7 @@ module Ast : sig
 
   type domain = {
       feature_domain: feature_spec list;
-      label_domain: (string * string list) list;
+      label_domain: label_spec list;
     }
 
   type gr = {
