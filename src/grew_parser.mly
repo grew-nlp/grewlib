@@ -338,6 +338,7 @@ edge_item:
 
 label_atom:
         | name=simple_id_or_float EQUAL l=separated_nonempty_list(PIPE,edge_item) { Ast.Atom_eq (name, l)}
+        | name=simple_id_or_float EQUAL STAR { Ast.Atom_diseq (name, [])}
         | name=simple_id_or_float DISEQUAL l=separated_nonempty_list(PIPE,edge_item) { Ast.Atom_diseq (name, l)}
         | BANG name=simple_id_or_float { Ast.Atom_absent name }
 
@@ -610,6 +611,9 @@ node_features:
 commands:
         | COMMANDS x=delimited(LACC,separated_nonempty_list_final_opt(SEMIC,command),RACC) { x }
 
+sub_edges:
+        | name=simple_id_or_float EQUAL value=edge_item { (name, value) }
+
 command:
         /*   del_edge e   */
         | DEL_EDGE n_loc=simple_id_with_loc
@@ -626,6 +630,10 @@ command:
         /*   add_edge e: m -> n   */
         | ADD_EDGE id_loc=simple_id_with_loc DDOT src=simple_id EDGE tar=simple_id
             { let (id,loc) = id_loc in (Ast.Add_edge_expl (src, tar, id), loc) }
+
+        /*   add_edge m -[1=obj, 2=e.2]-> n   */
+        | ADD_EDGE src_loc=simple_id_with_loc label=delimited(LTR_EDGE_LEFT,separated_list_final_opt(COMMA,sub_edges),LTR_EDGE_RIGHT) tar=simple_id
+            { let (src,loc) = src_loc in (Ast.Add_edge_items (src, tar, label), loc) }
 
         /*   shift_in m ==> n   */
         | SHIFT_IN src_loc=simple_id_with_loc ARROW tar=simple_id

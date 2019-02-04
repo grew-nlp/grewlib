@@ -18,7 +18,13 @@ open Grew_domain
 module G_edge: sig
   type t
 
+  val from_items: (string * string) list -> t
+
   val to_string: ?domain:Domain.t -> t -> string
+
+  val to_conll: ?domain:Domain.t -> t -> string
+
+  val get_sub: string -> t -> string option
 
   val is_void: ?domain: Domain.t -> t -> bool
 

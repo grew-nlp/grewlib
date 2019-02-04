@@ -51,6 +51,7 @@ module Command  = struct
     | DEL_EDGE_NAME of string
     | ADD_EDGE of (command_node * command_node * G_edge.t)
     | ADD_EDGE_EXPL of (command_node * command_node * string)
+    | ADD_EDGE_ITEMS of (command_node * command_node * (string * string) list)
     | DEL_FEAT of (command_node * string)
     | UPDATE_FEAT of (command_node * string * item list)
     (* *)
@@ -93,6 +94,7 @@ module Command  = struct
         ]
       )]
 
+  | ADD_EDGE_ITEMS _ -> failwith "TODO"
   | DEL_FEAT (cn, feature_name) ->
     `Assoc [("del_feat",
       `Assoc [
@@ -191,6 +193,11 @@ module Command  = struct
           check_node_id loc node_i kni;
           check_node_id loc node_j kni;
           ((ADD_EDGE_EXPL (cn_of_node_id node_i, cn_of_node_id node_j, name), loc), (kni, kei))
+
+      | (Ast.Add_edge_items (node_i, node_j, items), loc) ->
+          check_node_id loc node_i kni;
+          check_node_id loc node_j kni;
+          ((ADD_EDGE_ITEMS (cn_of_node_id node_i, cn_of_node_id node_j, items), loc), (kni, kei))
 
       | (Ast.Shift_edge (node_i, node_j, label_cst), loc) ->
           check_node_id loc node_i kni;

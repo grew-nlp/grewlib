@@ -140,6 +140,7 @@ and label_parser target = parse
 | ','   { COMMA }
 | '|'   { PIPE }
 | '/'   { SLASH }
+| '*'   { STAR }
 
 | '='   { EQUAL }
 | "!"   { BANG }

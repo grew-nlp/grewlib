@@ -20,10 +20,31 @@ open Grew_domain
 module G_edge = struct
   type t = (string * string) list
 
+  let from_items l = List.sort (fun (x,_) (y,_) -> Pervasives.compare x y) l
+
+  let get_sub = List_.sort_assoc
+
   let to_string ?domain edge =
     String.concat "," (List.map (fun (x,y) -> x^"="^y) edge)
 
-  let is_void ?domain edge = failwith "TODO [G_edge.is_void]"
+  exception Not_conll of string
+  let to_conll ?domain edge =
+    let rec loop i acc = function
+      | [] -> acc
+      | [("kind","surf")] -> "S" :: acc
+      | [("kind","deep")] -> "D" :: acc
+      | [("kind","enhanced")] -> "E" :: acc
+      | (n,v)::t ->
+        if n = string_of_int i
+        then loop (i+1) (acc @ [v]) t
+        else raise (Not_conll (to_string ?domain edge)) in
+    try String.concat ":" (loop 1 [] edge)
+    with Not_conll s ->
+      Log.fwarning "[G_edge.to_conll] cannot write conll edge from \"%s\"" s;
+      s
+
+  (* TODO check if useful or remove *)
+  let is_void ?domain edge = false
 
   let get_style ?domain edge = Label_domain.default
 
@@ -34,6 +55,8 @@ module G_edge = struct
   let to_dot ?domain ?(deco=false) t =
     let style = get_style ?domain t in
     Label_domain.to_dot ~deco style
+
+  let to_dep ?domain ?(deco=false) t = sprintf "{ label=\"%s\" }" (to_conll t)
 
   let split l = CCList.mapi
     (fun i elt -> (string_of_int (i+1), elt)) l
@@ -127,8 +150,8 @@ module Label_cst = struct
     | Atom_list l -> List.for_all (match_atom g_label) l
 
   let build_atom = function
-    | Ast.Atom_eq (name, atoms) -> Eq (name, atoms)
-    | Ast.Atom_diseq (name, atoms) -> Diseq (name, atoms)
+    | Ast.Atom_eq (name, atoms) -> Eq (name, List.sort Pervasives.compare atoms)
+    | Ast.Atom_diseq (name, atoms) -> Diseq (name, List.sort Pervasives.compare atoms)
     | Ast.Atom_absent name -> Absent name
 
   let build ?loc ?domain = function

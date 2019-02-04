@@ -152,6 +152,7 @@ module Ast : sig
     | Del_edge_name of string
     | Add_edge of (Id.name * Id.name * edge_label)
     | Add_edge_expl of (Id.name * Id.name * string)
+    | Add_edge_items of (Id.name * Id.name * (string * string) list)
 
     (* 4 args: source, target, labels, flag true iff negative cst *)
     | Shift_in of (Id.name * Id.name * edge_label_cst)

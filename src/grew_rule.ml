@@ -1026,6 +1026,32 @@ module Rule = struct
           | Some new_graph -> (new_graph, created_nodes, true)
         end
 
+    | Command.ADD_EDGE_ITEMS (src_cn,tar_cn,items) ->
+        let src_gid = node_find src_cn in
+        let tar_gid = node_find tar_cn in
+        let direct_items = List.map (fun (name, value) ->
+          match Str.bounded_split (Str.regexp_string ".") value 2
+          with
+            | [id; nam] ->
+                begin
+                  match List.assoc_opt id matching.e_match with
+                  | None -> (name, value)
+                  | Some (_,matched_edge,_) ->
+                    match G_edge.get_sub nam matched_edge with
+                      | Some new_value -> (name, new_value)
+                      | None -> Error.run "ADD_EDGE_ITEMS: no items named '%s' in matched node '%s'" nam id
+                end
+            | _ -> (name, value)
+        ) items in
+        let edge = G_edge.from_items direct_items in
+        begin
+          match G_graph.add_edge graph src_gid edge tar_gid with
+          | None when !Global.safe_commands ->
+              Error.run "ADD_EDGE_EXPL: the edge '%s' already exists %s" (G_edge.to_string ?domain edge) (Loc.to_string loc)
+          | None -> (graph, created_nodes, eff)
+          | Some new_graph -> (new_graph, created_nodes, true)
+        end
+
     | Command.DEL_EDGE_EXPL (src_cn,tar_cn,edge) ->
         let src_gid = node_find src_cn in
         let tar_gid = node_find tar_cn in
@@ -1229,6 +1255,36 @@ module Rule = struct
           | None when !Global.safe_commands ->
             Error.run "ADD_EDGE_EXPL: the edge '%s' already exists %s"
             (G_edge.to_string ?domain edge) (Loc.to_string loc)
+          | None -> Graph_with_history_set.singleton gwh
+          | Some new_graph -> Graph_with_history_set.singleton
+              {gwh with
+                Graph_with_history.graph = new_graph;
+                delta = Delta.add_edge src_gid edge tar_gid gwh.Graph_with_history.delta;
+              }
+        end
+
+    | Command.ADD_EDGE_ITEMS (src_cn,tar_cn,items) ->
+        let src_gid = node_find src_cn in
+        let tar_gid = node_find tar_cn in
+        let direct_items = List.map (fun (name, value) ->
+          match Str.bounded_split (Str.regexp_string ".") value 2
+          with
+            | [id; nam] ->
+                begin
+                  match List.assoc_opt id matching.e_match with
+                  | None -> (name, value)
+                  | Some (_,matched_edge,_) ->
+                    match G_edge.get_sub nam matched_edge with
+                      | Some new_value -> (name, new_value)
+                      | None -> Error.run "ADD_EDGE_ITEMS: no items named '%s' in matched node '%s'" nam id
+                end
+            | _ -> (name, value)
+        ) items in
+        let edge = G_edge.from_items direct_items in
+        begin
+          match G_graph.add_edge gwh.Graph_with_history.graph src_gid edge tar_gid with
+          | None when !Global.safe_commands ->
+              Error.run "ADD_EDGE_EXPL: the edge '%s' already exists %s" (G_edge.to_string ?domain edge) (Loc.to_string loc)
           | None -> Graph_with_history_set.singleton gwh
           | Some new_graph -> Graph_with_history_set.singleton
               {gwh with
