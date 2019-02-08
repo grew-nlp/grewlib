@@ -33,13 +33,18 @@ end (* module P_deco *)
 
 (* ================================================================================ *)
 module P_graph = struct
-  type t = P_node.t Pid_map.t
+  type map = P_node.t Pid_map.t
 
-  let empty = Pid_map.empty
+  type t = {
+    map: map;
+    pivot: Pid.t option;
+  }
 
-  let find = Pid_map.find
+  let empty = { map = Pid_map.empty; pivot = None }
 
-  let pid_name_list t = Pid_map.fold (fun _ node acc -> (P_node.get_name node)::acc) t []
+  let find pid t = Pid_map.find pid t.map
+
+  let pid_name_list t = Pid_map.fold (fun _ node acc -> (P_node.get_name node)::acc) t.map []
 
   let to_json ?domain t =
     `List (
@@ -49,7 +54,7 @@ module P_graph = struct
             ("id", `String (Pid.to_string pid));
             ("node", P_node.to_json ?domain p_node)
           ]) :: acc
-        ) t []
+        ) t.map []
       )
 
   (* -------------------------------------------------------------------------------- *)
@@ -62,7 +67,9 @@ module P_graph = struct
       | Some new_node -> Some (Pid_map.add id_src new_node map)
 
   (* -------------------------------------------------------------------------------- *)
-  let build ?domain lexicons (full_node_list : Ast.node list) full_edge_list =
+  let build ?domain lexicons pivot basic_ast =
+      let (full_node_list : Ast.node list) = basic_ast.Ast.pat_nodes
+      and full_edge_list = basic_ast.Ast.pat_edges in
 
     (* NB: insert searches for a previous node with the Same name and uses unification rather than constraint *)
     (* NB: insertion of new node at the end of the list: not efficient but graph building is not the hard part. *)
@@ -91,7 +98,7 @@ module P_graph = struct
       (fun i acc elt -> Pid_map.add (Pid.Pos i) elt acc)
       Pid_map.empty node_list in
 
-    let (map : t) =
+    let (map : map) =
       List.fold_left
         (fun acc (ast_edge, loc) ->
           let i1 = Id.build ~loc ast_edge.Ast.src pos_table in
@@ -104,15 +111,16 @@ module P_graph = struct
               (Loc.to_string loc)
           )
         ) map_without_edges full_edge_list in
-    (map, pos_table)
+        let pivot = CCOpt.map (fun x -> Pid.Pos (Id.build x pos_table)) pivot in
+    ({map; pivot}, pos_table)
 
 
   (* -------------------------------------------------------------------------------- *)
   (* a type for extension of graph (a former graph exists):
      in grew the former is a positive basic and an extension is a negative basic ("without") *)
   type extension = {
-    ext_map: P_node.t Pid_map.t; (* node description for new nodes and for edge "Old -> New"  *)
-    old_map: P_node.t Pid_map.t; (* a partial map for new constraints on old nodes "Old [...]" *)
+    ext_map: map; (* node description for new nodes and for edge "Old -> New"  *)
+    old_map: map; (* a partial map for new constraints on old nodes "Old [...]" *)
   }
 
   (* -------------------------------------------------------------------------------- *)
@@ -188,7 +196,7 @@ module P_graph = struct
                 else Pid_set.add tar acc2
               else Pid_set.add tar acc2
             ) acc (P_node.get_next node)
-        ) graph Pid_set.empty in
+        ) graph.map Pid_set.empty in
 
     let roots =
       Pid_map.fold
@@ -196,7 +204,7 @@ module P_graph = struct
           if Pid_set.mem id not_root
           then acc
           else id::acc
-        ) graph [] in
+        ) graph.map [] in
 
     (!tree_prop, roots)
 
@@ -210,11 +218,14 @@ module G_deco = struct
   type highlighted_feat = string * string option
 
   type t = {
-    nodes: (Gid.t * (string * highlighted_feat list)) list;  (* a list of (node, (pattern_id, features of nodes implied in the step)) *)
-    edges: (Gid.t * G_edge.t * Gid.t) list;        (* an edge list *)
+    (* a list of (node, (pattern_id, features of nodes implied in the step)) *)
+    nodes: (Gid.t * (string * highlighted_feat list)) list;
+    (* an edge list *)
+    edges: (Gid.t * G_edge.t * Gid.t) list;
+    pivot: Gid.t option;
   }
 
-  let empty = {nodes=[]; edges=[]}
+  let empty = {nodes=[]; edges=[]; pivot=None;}
 end (* module G_deco *)
 
 (* ================================================================================ *)
@@ -862,9 +873,14 @@ module G_graph = struct
 
   let esc s = Str.global_replace (Str.regexp "<") "&lt;" s
 
-  let to_sentence ?main_feat ?(deco=G_deco.empty) graph =
+  exception No_pivot
+  let to_sentence ?(only_pivot=false) ?main_feat ?(deco=G_deco.empty) graph =
+    let high_list = match (only_pivot, deco.pivot) with
+      | (true, None) -> raise No_pivot
+      | (true, Some i) -> [i,("pivot", [])]
+      | (false, _) -> deco.nodes in
 
-    let is_highlighted_gid gid = List.mem_assoc gid deco.nodes in
+    let is_highlighted_gid gid = List.mem_assoc gid high_list in
 
     let inside fusion_item gid =
       let first = Gid_map.find fusion_item.first graph.map in
@@ -875,7 +891,7 @@ module G_graph = struct
       | _ -> false in
 
     let is_highlighted_fusion_item fusion_item =
-      List.exists (fun (gid,_) -> inside fusion_item gid) deco.nodes in
+      List.exists (fun (gid,_) -> inside fusion_item gid) high_list in
 
     let nodes = Gid_map.fold (fun id elt acc -> (id,elt)::acc) graph.map [] in
     let snodes = List.sort (fun (_,n1) (_,n2) -> G_node.position_comp n1 n2) nodes in

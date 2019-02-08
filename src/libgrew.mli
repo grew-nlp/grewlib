@@ -98,7 +98,7 @@ module Graph : sig
 
   val sentence_of_pst: ?domain:Domain.t -> string -> string
 
-  val to_sentence: ?main_feat:string -> ?deco:Deco.t -> t -> string
+  val to_sentence: ?only_pivot: bool -> ?main_feat:string -> ?deco:Deco.t -> t -> string
 
   val to_dot : ?main_feat:string -> ?deco:Deco.t -> ?get_url:(string -> string option) -> t -> string
 

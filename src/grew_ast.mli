@@ -132,6 +132,7 @@ module Ast : sig
   val empty_basic: basic
 
   type pattern = {
+      pivot: Id.name option;
       pat_glob: string list;
       pat_pos: basic;
       pat_negs: basic list;

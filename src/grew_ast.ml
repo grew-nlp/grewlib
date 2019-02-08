@@ -195,6 +195,7 @@ module Ast = struct
   let empty_basic = { pat_nodes=[]; pat_edges=[]; pat_const=[]; }
 
   type pattern = {
+    pivot: Id.name option;
     pat_glob: string list;
     pat_pos: basic;
     pat_negs: basic list;
@@ -245,10 +246,16 @@ module Ast = struct
     {basic with pat_nodes=new_pat_nodes}
 
   let complete_pattern pattern =
+    let pivot = match pattern.pat_pos.pat_nodes with
+    | (first_node,_) :: _ -> Some (first_node.node_id)
+    | [] ->
+      match pattern.pat_pos.pat_edges with
+      | (first_edge,_) :: _ -> Some (first_edge.src)
+      | [] -> None in
     let new_pat_pos = complete_basic [] pattern.pat_pos in
     let aux = new_pat_pos.pat_nodes in
     let new_pat_negs = List.map (complete_basic aux) pattern.pat_negs in
-    { pattern with pat_pos = new_pat_pos; pat_negs = new_pat_negs;}
+    { pattern with pivot; pat_pos = new_pat_pos; pat_negs = new_pat_negs;}
 
   type concat_item =
     | Qfn_or_lex_item of pointed

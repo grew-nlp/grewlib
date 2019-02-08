@@ -223,10 +223,10 @@ module Graph = struct
   let to_conll_string ?cupt graph =
     Libgrew.handle ~name:"Graph.to_conll_string" (fun () -> Grew_graph.G_graph.to_conll_string ?cupt graph) ()
 
-  let to_sentence ?main_feat ?deco gr =
+  let to_sentence ?only_pivot ?main_feat ?deco gr =
     Libgrew.handle ~name:"Graph.to_sentence"
       (fun () ->
-        Grew_graph.G_graph.to_sentence ?main_feat ?deco gr
+        Grew_graph.G_graph.to_sentence ?only_pivot ?main_feat ?deco gr
       ) ()
 
   let save_conll filename graph =

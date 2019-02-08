@@ -36,8 +36,11 @@ module G_deco: sig
   type highlighted_feat = string * string option
 
   type t = {
-    nodes: (Gid.t * (string * highlighted_feat list)) list;  (* a list of (node, (pattern_id, features of nodes implied in the step)) *)
-    edges: (Gid.t * G_edge.t * Gid.t) list;        (* an edge list *)
+    (* a list of (node, (pattern_id, features of nodes implied in the step)) *)
+    nodes: (Gid.t * (string * highlighted_feat list)) list;
+    (* an edge list *)
+    edges: (Gid.t * G_edge.t * Gid.t) list;
+    pivot: Gid.t option;
   }
 
   val empty:t
@@ -45,7 +48,12 @@ end (* module G_deco *)
 
 (* ================================================================================ *)
 module P_graph: sig
-  type t = P_node.t Pid_map.t
+  type map = P_node.t Pid_map.t
+
+  type t = {
+    map: map;
+    pivot: Pid.t option;
+  }
 
   val empty: t
 
@@ -66,8 +74,8 @@ module P_graph: sig
   val build:
       ?domain:Domain.t ->
       Lexicons.t ->
-      Ast.node list ->
-      Ast.edge list ->
+      Id.name option ->
+      Ast.basic ->
       (t * Id.table)
 
   (** It raises [P_fs.Fail_unif] exception in case of inconsistent feature structures. *)
@@ -195,7 +203,7 @@ module G_graph: sig
   (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
   val to_gr: t -> string
   val to_dot: ?main_feat:string -> ?get_url:(string -> string option) -> ?deco:G_deco.t -> t -> string
-  val to_sentence: ?main_feat:string -> ?deco:G_deco.t -> t -> string
+  val to_sentence: ?only_pivot: bool -> ?main_feat:string -> ?deco:G_deco.t -> t -> string
   val to_dep: ?filter: (string -> bool) -> ?main_feat:string -> ?deco:G_deco.t -> t -> string
   val to_conll: t -> Conll.t
   val to_conll_string: ?cupt:bool -> t -> string
