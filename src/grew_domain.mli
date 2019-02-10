@@ -40,7 +40,7 @@ module Domain : sig
 
   val dump: t option -> unit
 
-  val to_json: t -> Yojson.Basic.json
+  val to_json: t -> Yojson.Basic.t
 
   val build: Label_domain.t -> Feature_domain.t -> t
   val build_features_only: Feature_domain.t -> t

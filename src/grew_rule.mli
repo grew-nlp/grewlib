@@ -8,7 +8,6 @@
 (*    Authors: see AUTHORS file                                                   *)
 (**********************************************************************************)
 
-open Yojson.Basic
 open Grew_base
 open Grew_types
 open Grew_domain
@@ -35,7 +34,7 @@ module Rule : sig
   (** [get_loc t] returns the file location of the rule [t]. *)
   val get_loc: t -> Loc.t
 
-  val to_json: ?domain:Domain.t -> t -> Yojson.Basic.json
+  val to_json: ?domain:Domain.t -> t -> Yojson.Basic.t
 
   (** [to_dep t] returns a string in the [dep] language describing the match basic of the rule *)
   val to_dep: ?domain:Domain.t -> t -> string
@@ -51,7 +50,7 @@ module Rule : sig
 
   val pid_name_list: pattern -> Id.name list
 
-  val to_python: pattern -> G_graph.t -> matching -> json
+  val to_python: pattern -> G_graph.t -> matching -> Yojson.Basic.t
 
   val build_pattern: ?domain:Domain.t -> ?lexicons: Lexicons.t -> Ast.pattern -> pattern
 

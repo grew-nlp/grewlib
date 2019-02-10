@@ -371,7 +371,7 @@ module G_graph = struct
 
   (* -------------------------------------------------------------------------------- *)
   let of_json = function
-  | `Assoc (l : (string * Yojson.Basic.json) list) ->
+  | `Assoc (l : (string * Yojson.Basic.t) list) ->
     let (ast_node_list, ast_edge_list) = List.fold_left
       (fun (acc_node, acc_edge) -> function
         | (id, `List [`Assoc feat_json_list; `List succ]) ->

@@ -88,7 +88,7 @@ module P_node: sig
 
   val empty: t
 
-  val to_json: ?domain:Domain.t -> t -> Yojson.Basic.json
+  val to_json: ?domain:Domain.t -> t -> Yojson.Basic.t
 
   val get_name: t -> Id.name
   val get_fs: t -> P_fs.t

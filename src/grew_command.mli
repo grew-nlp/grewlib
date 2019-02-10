@@ -44,7 +44,7 @@ module Command : sig
     | SHIFT_OUT of (command_node * command_node * Label_cst.t)
 
   type t = (p * Loc.t)
-  val to_json: ?domain:Domain.t -> t -> Yojson.Basic.json
+  val to_json: ?domain:Domain.t -> t -> Yojson.Basic.t
 
 
   val build:
