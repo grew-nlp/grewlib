@@ -24,7 +24,7 @@ module Grs : sig
 
   val dump: t -> unit
 
-  val to_json: t -> Yojson.Basic.json
+  val to_json: t -> Yojson.Basic.t
   val domain: t -> Domain.t option
   val domain_build: Ast.domain -> Domain.t
 

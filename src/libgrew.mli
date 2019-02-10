@@ -9,7 +9,6 @@
 (**********************************************************************************)
 
 open Conll
-open Yojson.Basic
 
 (* ==================================================================================================== *)
 (** {2 General definitions} *)
@@ -55,7 +54,7 @@ end
 module Matching: sig
   type t
 
-  val to_json: Pattern.t -> Grew_graph.G_graph.t -> t -> json
+  val to_json: Pattern.t -> Grew_graph.G_graph.t -> t -> Yojson.Basic.t
 
   val nodes: Pattern.t -> Grew_graph.G_graph.t -> t -> (string * string) list
 end
@@ -88,8 +87,8 @@ module Graph : sig
 
   val of_conll: ?domain:Domain.t -> Conll.t -> t
 
-  val of_json: json -> t
-  val to_json: t -> json
+  val of_json: Yojson.Basic.t -> t
+  val to_json: t -> Yojson.Basic.t
 
   val of_brown: ?domain:Domain.t -> ?sentid:string -> string -> t
 
@@ -125,7 +124,7 @@ module Grs : sig
 
   val domain: t -> Domain.t option
 
-  val to_json: t -> json
+  val to_json: t -> Yojson.Basic.t
 
   val get_strat_list: t -> string list
 end

@@ -42,7 +42,7 @@ module Label_cst : sig
   | Regexp of (Str.regexp * string)
 
   val to_string: ?domain:Domain.t -> t -> string
-  val to_json: ?domain:Domain.t -> t -> Yojson.Basic.json
+  val to_json: ?domain:Domain.t -> t -> Yojson.Basic.t
   val all: t
   val match_: ?domain:Domain.t -> t -> Label.t -> bool
   val build: ?loc:Loc.t -> ?domain:Domain.t -> Ast.edge_label_cst -> t
@@ -56,7 +56,7 @@ module G_edge: sig
 
   val to_string: ?domain:Domain.t -> t -> string
 
-  val to_json: ?domain:Domain.t -> t -> Yojson.Basic.json
+  val to_json: ?domain:Domain.t -> t -> Yojson.Basic.t
 
   val make: ?loc:Loc.t -> ?domain:Domain.t -> string -> t
 
@@ -77,7 +77,7 @@ module P_edge: sig
   (* [all] is the joker pattern edge *)
   val all: t
 
-  val to_json: ?domain:Domain.t -> t -> Yojson.Basic.json
+  val to_json: ?domain:Domain.t -> t -> Yojson.Basic.t
 
   val get_id: t -> string
 
