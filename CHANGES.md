@@ -1,3 +1,7 @@
+# 1.1.2 (2019/02/10)
+  * change json type
+  * add cmxs target
+
 # 1.1.1 (2018/11/23)
   * style for projection edges
 
