@@ -1,3 +1,6 @@
+# 1.1.3 (2019/03/04)
+  * Fix bug in strategies implementation
+
 # 1.1.2 (2019/02/10)
   * change json type
   * add cmxs target
