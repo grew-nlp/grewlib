@@ -347,7 +347,8 @@ module Grs = struct
         (fun gwh acc -> Graph_with_history_set.union acc (gwh_strat_simple_rewrite ?domain pointed (Ast.Seq tail_strat) gwh)
         ) first_strat Graph_with_history_set.empty
 
-    | Ast.Iter strat -> iter_gwh ?domain pointed strat gwh
+    | Ast.Iter s
+    | Ast.Onf s -> iter_gwh ?domain pointed s gwh
 
     | Ast.Try strat ->
       begin
@@ -363,13 +364,6 @@ module Grs = struct
         onf_strat_simple_rewrite ?domain pointed s gwh.Graph_with_history.graph with
         | Some _ -> gwh_strat_simple_rewrite ?domain pointed s1 gwh
         | None   -> gwh_strat_simple_rewrite ?domain pointed s2 gwh
-      end
-
-    | Ast.Onf s ->
-      begin
-        match onf_strat_simple_rewrite ?domain pointed (Ast.Iter s) gwh.Graph_with_history.graph with
-        | None -> Graph_with_history_set.singleton gwh
-        | Some new_g -> Graph_with_history_set.singleton (Graph_with_history.from_graph new_g)
       end
 
   and iter_gwh ?domain pointed strat gwh =
