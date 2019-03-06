@@ -1467,7 +1467,7 @@ module Rule = struct
       ) Graph_with_history_set.empty matching_list
 
   let owh_apply ?domain rule gwh =
-    let (pos,negs) = rule.pattern in
+    let {pos; negs} = rule.pattern in
     (* get the list of partial matching for positive part of the pattern *)
       let graph = gwh.Graph_with_history.graph in
       let matching_list =
