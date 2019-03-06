@@ -73,6 +73,8 @@ module Rule : sig
 
   val gwh_apply: ?domain: Domain.t -> t -> Graph_with_history.t -> Graph_with_history_set.t
 
+  val owh_apply: ?domain: Domain.t -> t -> Graph_with_history.t -> Graph_with_history.t option
+
 
 
 

@@ -1106,10 +1106,11 @@ module Rule = struct
     | Command.DEL_FEAT (tar_cn,feat_name) ->
         let tar_gid = node_find tar_cn in
         (match G_graph.del_feat graph tar_gid feat_name with
-          | None when !Global.safe_commands -> Error.run "XXX"
+          | None when !Global.safe_commands -> Error.run "DEL_FEAT the feat does not exist %s" (Loc.to_string loc)
           | None -> (graph, created_nodes, eff)
           | Some new_graph -> (new_graph, created_nodes, true)
         )
+        (* TODO: an update feat is always considered as effective! is it OK? *)
 
     | Command.SHIFT_IN (src_cn,tar_cn,label_cst) ->
         let src_gid = node_find src_cn in
@@ -1464,5 +1465,42 @@ module Rule = struct
       (fun acc matching ->
         Graph_with_history_set.union (gwh_apply_rule ?domain graph_with_history matching rule) acc
       ) Graph_with_history_set.empty matching_list
+
+  let owh_apply ?domain rule gwh =
+    let (pos,negs) = rule.pattern in
+    (* get the list of partial matching for positive part of the pattern *)
+      let graph = gwh.Graph_with_history.graph in
+      let matching_list =
+        extend_matching
+          ?domain
+          (pos.graph,P_graph.empty)
+          graph
+          (init ~lexicons:rule.lexicons pos) in
+          try
+            let (first_matching_where_all_witout_are_fulfilled,_) =
+              List.find
+                (fun (sub, already_matched_gids) ->
+                  List.for_all
+                    (fun neg ->
+                      let new_partial_matching = update_partial pos.graph neg (sub, already_matched_gids) in
+                      fulfill ?domain (pos.graph,neg.graph) graph new_partial_matching
+                    ) negs
+                ) matching_list in
+
+            let new_gwh =
+              List.fold_left
+                (fun acc_gwh command ->
+                  let set = gwh_apply_command ?domain command acc_gwh first_matching_where_all_witout_are_fulfilled in
+                  Graph_with_history_set.choose set
+                )
+                gwh
+                rule.commands in
+            Timeout.check (); incr_rules(); Some new_gwh
+          with Not_found ->
+          (* raised by List.find, no matching apply or
+             in Graph_with_history_set.choose.
+             TODO: in the second case, we should find another matching ???
+          *)
+          None
 
 end (* module Rule *)
