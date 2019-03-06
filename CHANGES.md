@@ -1,3 +1,6 @@
+# 1.1.4 (2019/03/06)
+  * Fix bug introduced in previous version
+
 # 1.1.3 (2019/03/04)
   * Fix bug in strategies implementation
 

@@ -303,6 +303,85 @@ module Grs = struct
 
     | Ast.Onf (s) -> onf_strat_simple_rewrite ?domain pointed s graph (* TODO check Onf (P) == 1 rule app ? *)
 
+  (* TODO: unused function, should be used for some cases like Seq (Onf(p1), Onf(p2)) *)
+  (* iter until normal form *)
+  let onf_rewrite ?domain pointed strat graph =
+    let rec loop graph2 =
+      match onf_strat_simple_rewrite ?domain pointed strat graph2 with
+      | None -> graph2
+      | Some x -> loop x in
+    loop graph
+
+  (* ============================================================================================= *)
+  (* Rewriting in the deterministic case with Graph_with_history.t type *)
+  (* ============================================================================================= *)
+
+  (* NB: the next 3 functions compute one step (with option output) for correct recusice call in case of Alt *)
+  (* the function [owh_rewrite] handle the iteration until normal_form *)
+  let owh_pack_rewrite ?domain decl_list gwh =
+    let rec loop = function
+      | [] -> None
+      | Rule r :: tail_decl ->
+        (match Rule.owh_apply ?domain r gwh with
+        | Some x -> Some x
+        | None -> loop tail_decl
+        )
+      | _ :: tail_decl -> loop tail_decl in
+      loop decl_list
+
+  let rec owh_intern_simple_rewrite ?domain pointed strat_name gwh =
+    let path = Str.split (Str.regexp "\\.") strat_name in
+    match search_from pointed path with
+    | None -> Error.build "Simple rewrite, cannot find strat %s" strat_name
+    | Some (Rule r,_) -> Rule.owh_apply ?domain r gwh
+    | Some (Package (_, decl_list), _) -> owh_pack_rewrite ?domain decl_list gwh
+    | Some (Strategy (_,ast_strat), new_pointed) ->
+      owh_strat_simple_rewrite ?domain new_pointed ast_strat gwh
+
+  and owh_strat_simple_rewrite ?domain pointed strat gwh =
+    match strat with
+    | Ast.Ref subname -> owh_intern_simple_rewrite ?domain pointed subname gwh
+    | Ast.Pick strat -> owh_strat_simple_rewrite ?domain pointed strat gwh
+
+    | Ast.Alt [] -> None
+    | Ast.Alt strat_list ->
+      let rec loop = function
+        | [] -> None
+        | head_strat :: tail_strat ->
+          match owh_strat_simple_rewrite ?domain pointed head_strat gwh with
+          | None -> loop tail_strat
+          | Some x -> Some x in
+        loop strat_list
+
+    | Ast.Seq [] -> Some gwh
+    | Ast.Seq (head_strat :: tail_strat) ->
+      begin
+        match owh_strat_simple_rewrite ?domain pointed head_strat gwh with
+        | None -> None
+        | Some gwh2 -> owh_strat_simple_rewrite ?domain pointed (Ast.Seq tail_strat) gwh2
+      end
+
+    | Ast.Try sub_strat
+    | Ast.Onf sub_strat
+    | Ast.Iter sub_strat -> owh_strat_simple_rewrite ?domain pointed sub_strat gwh
+
+    | Ast.If (s, s1, s2) ->
+      begin
+        (* NB: checking one real step is enough to decide… *)
+        match onf_strat_simple_rewrite ?domain pointed s gwh.Graph_with_history.graph with
+        | None   -> owh_strat_simple_rewrite ?domain pointed s1 gwh
+        | Some _ -> owh_strat_simple_rewrite ?domain pointed s2 gwh
+      end
+
+
+  (* iter until normal form *)
+  let owh_rewrite ?domain pointed strat gwh =
+    let rec loop gwh2 =
+      match owh_strat_simple_rewrite ?domain pointed strat gwh2 with
+      | None -> gwh2
+      | Some x -> loop x in
+    loop gwh
+
   (* ============================================================================================= *)
   (* Rewriting in the non-deterministic case with Graph_with_history.t type *)
   (* ============================================================================================= *)
@@ -347,8 +426,8 @@ module Grs = struct
         (fun gwh acc -> Graph_with_history_set.union acc (gwh_strat_simple_rewrite ?domain pointed (Ast.Seq tail_strat) gwh)
         ) first_strat Graph_with_history_set.empty
 
-    | Ast.Iter s
-    | Ast.Onf s -> iter_gwh ?domain pointed s gwh
+    | Ast.Iter s -> iter_gwh ?domain pointed s gwh
+    | Ast.Onf s -> Graph_with_history_set.singleton (owh_rewrite ?domain pointed strat gwh)
 
     | Ast.Try strat ->
       begin
@@ -394,7 +473,7 @@ module Grs = struct
         ) in
       loop (Graph_with_history_set.singleton gwh, Graph_with_history_set.empty, Graph_with_history_set.empty)
 
-
+  (* ============================================================================================= *)
   let gwh_simple_rewrite grs strat_string graph =
     Rule.reset_rules ();
     Timeout.start ();
