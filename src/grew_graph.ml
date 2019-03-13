@@ -922,6 +922,39 @@ module G_graph = struct
 
     Sentence.fr_clean_spaces (loop None snodes)
 
+
+  let start_dur gnode =
+    let fs = G_node.get_fs gnode in
+    match (G_fs.get_string_atom "_start" fs, G_fs.get_string_atom "_stop" fs) with (Some _start, Some _stop) ->
+      let start = float_of_string _start
+      and stop = float_of_string _stop in
+    (start, stop -. start)
+    | _ -> (-1., -1.)
+
+
+  let to_orfeo ?(deco=G_deco.empty) graph =
+    let is_highlighted_gid gid = List.mem_assoc gid deco.nodes in
+
+    let nodes = Gid_map.fold (fun id elt acc -> (id,elt)::acc) graph.map [] in
+    let snodes = List.sort (fun (_,n1) (_,n2) -> G_node.position_comp n1 n2) nodes in
+
+    let buff = Buffer.create 32 in
+    CCList.iteri (fun i (gid, gnode) ->
+      match G_fs.to_word (G_node.get_fs gnode) with
+        | None -> ()
+        | Some word ->
+      let (start, dur) = start_dur gnode in
+      Printf.bprintf buff
+        "<span id=\"tok%d\" data-dur=\"%g\" data-begin=\"%g\" tabindex=\"0\" data-index=\"%d\" %s%s>%s </span>"
+        i dur start i
+        (if i=1 then "class=\"speaking highlight\"" else "")
+        (if is_highlighted_gid gid then "class=\"highlight\"" else "")
+        word
+    ) snodes;
+
+  Buffer.contents buff
+
+
   (* -------------------------------------------------------------------------------- *)
   let is_non_lexical_node node =
     let fs = G_node.get_fs node in G_fs.get_string_atom "kind" fs <> None

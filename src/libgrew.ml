@@ -229,6 +229,12 @@ module Graph = struct
         Grew_graph.G_graph.to_sentence ?only_pivot ?main_feat ?deco gr
       ) ()
 
+  let to_orfeo ?deco gr =
+    Libgrew.handle ~name:"Graph.to_orfeo"
+      (fun () ->
+        Grew_graph.G_graph.to_orfeo ?deco gr
+      ) ()
+
   let save_conll filename graph =
     Libgrew.handle ~name:"Graph.save_conll" (fun () ->
       let out_ch = open_out filename in
