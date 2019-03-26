@@ -19,3 +19,6 @@ depends: [
   "libcaml-log"
   "libcaml-conll"
 ]
+url {
+  src: "http://opam.grew.fr/tgz/libcaml-grew.##VERSION##.tgz"
+}
