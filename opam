@@ -1,4 +1,4 @@
-opam-version: "1.2"
+opam-version: "2.0"
 maintainer: "Bruno.Guillaume@loria.fr"
 homepage: "http://grew.fr"
 build: [
@@ -19,6 +19,8 @@ depends: [
   "libcaml-log"
   "libcaml-conll"
 ]
+synopsis: "A graph rewriting library for NLP applications (see http://grew.fr)
+"
 url {
   src: "http://opam.grew.fr/tgz/libcaml-grew.##VERSION##.tgz"
 }
