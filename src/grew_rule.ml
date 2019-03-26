@@ -1521,7 +1521,8 @@ module Rule = struct
                 )
                 gwh
                 rule.commands in
-            Timeout.check (); incr_rules(); Some new_gwh
+            Timeout.check (); incr_rules();
+            Some {new_gwh with graph = G_graph.push_rule (get_name rule) new_gwh.graph }
           with Not_found ->
           (* raised by List.find, no matching apply or
              in Graph_with_history_set.choose.
