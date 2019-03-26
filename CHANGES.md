@@ -1,3 +1,6 @@
+# 1.1.5 (2019/03/26)
+  * move to opam2
+
 # 1.1.4 (2019/03/06)
   * Fix bug introduced in previous version
 
