@@ -1286,12 +1286,16 @@ The algorithm is modified:
 Tree detection is easier (is_tree <=> back_edges=0 and nontree_edges=0
 *)
 (* --------------------------------------------------------------- *)
+  let dfs_debug = false
+
   let get_roots graph =
     let non_roots =
       Gid_map.fold
         (fun gid node acc ->
           Massoc_gid.fold_on_list (
-            fun acc2 next_gid _ -> Gid_set.add next_gid acc2
+            fun acc2 next_gid _ ->
+              if dfs_debug then printf " %s ---> %s\n%!" (Gid.to_string gid) (Gid.to_string next_gid);
+              Gid_set.add next_gid acc2
             ) acc (G_node.get_next node)
         ) graph.map Gid_set.empty in
     let roots =
@@ -1311,6 +1315,12 @@ Tree detection is easier (is_tree <=> back_edges=0 and nontree_edges=0
     intervals: dfs_node Gid_map.t;
     back_edges: (Gid.t * Gid.t) list;
     nontree_edges: (Gid.t * Gid.t) list;
+  }
+
+  type dfs_output = {
+    forest: bool;
+    tree: bool;
+    cyclic: bool;
   }
 
   let depth_first_search graph =
@@ -1334,31 +1344,48 @@ Tree detection is easier (is_tree <=> back_edges=0 and nontree_edges=0
       | _ -> assert false in
 
     let roots = get_roots graph in
-    Printf.printf "|roots| = %d\n" (Gid_set.cardinal roots);
+    let nb_roots = Gid_set.cardinal roots in
+    if dfs_debug then Printf.printf "|roots| = %d\n" nb_roots;
     Gid_set.iter (fun gid ->
-      Printf.printf "  -----> explore %s\n" (Gid.to_string gid);
+      if dfs_debug then Printf.printf "  -----> explore %s\n" (Gid.to_string gid);
       explore gid
     ) roots;
 
-    Printf.printf "======== Intervals =======\n";
-    Gid_map.iter (fun gid node ->
-      match Gid_map.find_opt gid !info.intervals with
-      | None -> Printf.printf "None! %s" (Gid.to_string gid)
-      | Some (Pre _) -> Printf.printf "Pre! %s" (Gid.to_string gid)
-      | Some (Pre_post (i,j)) ->
+    if dfs_debug then
+    begin
+      Printf.printf "======== Intervals =======\n";
+      Gid_map.iter (fun gid node ->
+        match Gid_map.find_opt gid !info.intervals with
+        | None -> Printf.printf "None! %s" (Gid.to_string gid)
+        | Some (Pre _) -> Printf.printf "Pre! %s" (Gid.to_string gid)
+        | Some (Pre_post (i,j)) ->
           Printf.printf "%s --> [%d,%d] --> %s\n" (Gid.to_string gid) i j
           (G_fs.to_string (G_node.get_fs node))
-    ) graph.map;
+      ) graph.map;
 
-    Printf.printf "======== Back_edges =======\n";
-    List.iter (fun (gid1, gid2) ->
-      Printf.printf "%s --> %s\n" (Gid.to_string gid1) (Gid.to_string gid2)
-    ) !info.back_edges;
+      Printf.printf "======== Back_edges =======\n";
+      List.iter (fun (gid1, gid2) ->
+        Printf.printf "%s --> %s\n" (Gid.to_string gid1) (Gid.to_string gid2)
+      ) !info.back_edges;
 
-    Printf.printf "======== nontree_edges =======\n";
-    List.iter (fun (gid1, gid2) ->
-      Printf.printf "%s --> %s\n" (Gid.to_string gid1) (Gid.to_string gid2)
-    ) !info.nontree_edges
+      Printf.printf "======== nontree_edges =======\n";
+      List.iter (fun (gid1, gid2) ->
+        Printf.printf "%s --> %s\n" (Gid.to_string gid1) (Gid.to_string gid2)
+      ) !info.nontree_edges
+    end;
+
+    if Gid_map.cardinal !info.intervals < Gid_map.cardinal graph.map
+    then
+      begin
+        if dfs_debug then printf "Not covered\n%!";
+        { forest = false; tree = false; cyclic = true}
+      end
+    else
+      {
+        forest = !info.nontree_edges = [] && !info.back_edges = [];
+        tree = !info.nontree_edges = [] && !info.back_edges = [] && nb_roots = 1;
+        cyclic = !info.back_edges <> [];
+      }
 end (* module G_graph *)
 
 

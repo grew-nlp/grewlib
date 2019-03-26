@@ -213,7 +213,13 @@ module G_graph: sig
 
   val is_projective: t -> (Gid.t * Gid.t) option
 
-  val depth_first_search: t -> unit
+  type dfs_output = {
+    forest: bool;
+    tree: bool;
+    cyclic: bool;
+  }
+
+  val depth_first_search: t -> dfs_output
 end (* module G_graph *)
 
 (* ================================================================================ *)

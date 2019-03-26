@@ -947,21 +947,47 @@ module Rule = struct
   let match_in_graph ?domain ?lexicons { global; pos; negs } graph =
     let casted_graph = G_graph.cast ?domain graph in
 
-    let rec match_global = function
+    let match_global = function
     | [] -> true
-    | "is_projective" :: tail ->
-      begin
-        match G_graph.is_projective graph with
-        | Some _ -> false
-        | None -> match_global tail
-      end
-    | "is_not_projective" :: tail ->
-      begin
-        match G_graph.is_projective graph with
-        | Some _ -> match_global tail
-        | None -> false
-      end
-    | x :: tail -> Error.build "Unknown global requirement \"%s\"" x in
+    | ["is_projective"] -> G_graph.is_projective graph = None
+    | ["is_not_projective"] -> G_graph.is_projective graph <> None
+    | l ->
+      let dfs = G_graph.depth_first_search graph in
+      let rec loop = function
+      | [] -> true
+      | "is_projective" :: tail ->
+        begin
+          match G_graph.is_projective graph with
+          | Some _ -> false
+          | None -> loop tail
+        end
+      | "is_not_projective" :: tail ->
+        begin
+          match G_graph.is_projective graph with
+          | Some _ -> loop tail
+          | None -> false
+          end
+
+      | "is_tree" :: tail when dfs.tree -> loop tail
+      | "is_tree" :: _ -> false
+
+      | "is_not_tree" :: tail when not dfs.tree -> loop tail
+      | "is_not_tree" :: _ -> false
+
+      | "is_forest" :: tail when dfs.forest -> loop tail
+      | "is_forest" :: _ -> false
+
+      | "is_not_forest" :: tail when not dfs.forest -> loop tail
+      | "is_not_forest" :: _ -> false
+
+      | "is_cyclic" :: tail when dfs.cyclic -> loop tail
+      | "is_cyclic" :: _ -> false
+
+      | "is_not_cyclic" :: tail when not dfs.cyclic -> loop tail
+      | "is_not_cyclic" :: _ -> false
+
+      | x :: tail -> Error.build "Unknown global requirement \"%s\"" x in
+    loop l in
 
     if not (match_global global)
     then []
