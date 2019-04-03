@@ -873,10 +873,9 @@ module G_graph = struct
 
   let esc s = Str.global_replace (Str.regexp "<") "&lt;" s
 
-  exception No_pivot
   let to_sentence ?(only_pivot=false) ?main_feat ?(deco=G_deco.empty) graph =
     let high_list = match (only_pivot, deco.pivot) with
-      | (true, None) -> raise No_pivot
+      | (true, None) -> []
       | (true, Some i) -> [i,("pivot", [])]
       | (false, _) -> deco.nodes in
 
