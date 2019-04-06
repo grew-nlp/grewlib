@@ -293,7 +293,7 @@ rule:
                   Ast.pat_glob = (match g with None -> [] | Some x -> x);
                   Ast.pat_pos = (match p with None -> Ast.empty_basic | Some x -> x);
                   Ast.pat_negs = n;
-                }
+                };
                 commands = cmds;
                 lexicon_info = lexicons;
                 rule_doc = begin match doc with Some d -> d | None -> [] end;
