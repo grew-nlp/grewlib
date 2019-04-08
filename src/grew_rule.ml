@@ -62,6 +62,11 @@ module Rule = struct
     | Large_prec of Pid.t * Pid.t
     (* *)
     | Id_prec of Pid.t * Pid.t
+    (* *)
+    | Label_equal of string * string
+    | Label_disequal of string * string
+
+
 
   let const_to_json ?domain = function
   | Cst_out (pid, label_cst) -> `Assoc ["cst_out", Label_cst.to_json ?domain label_cst]
@@ -191,6 +196,20 @@ module Rule = struct
         ("id2", `String (Pid.to_string pid2));
       ]
     ]
+  | Label_equal (eid1, eid2) ->
+    `Assoc ["label_equal",
+      `Assoc [
+        ("id1", `String eid1);
+        ("id2", `String eid2);
+      ]
+    ]
+  | Label_disequal (eid1, eid2) ->
+    `Assoc ["label_disequal",
+      `Assoc [
+        ("id1", `String eid1);
+        ("id2", `String eid2);
+      ]
+    ]
 
   let build_pos_constraint ?domain lexicons pos_table const =
     let pid_of_name loc node_name = Pid.Pos (Id.build ~loc node_name pos_table) in
@@ -249,6 +268,12 @@ module Rule = struct
 
       | (Ast.Large_prec (id1, id2), loc) ->
         Large_prec (pid_of_name loc id1, pid_of_name loc id2)
+
+      | (Ast.Label_equal (eid1, eid2), loc) ->
+        Label_equal (eid1, eid2)
+
+      | (Ast.Label_disequal (eid1, eid2), loc) ->
+        Label_disequal (eid1, eid2)
 
       | (Ast.Feature_eq_lex_or_fs ((node_name, feat_name),(node_or_lex, fn_or_field)), loc) ->
           begin
@@ -362,6 +387,12 @@ module Rule = struct
 
       | (Ast.Large_prec (id1, id2), loc) ->
         Large_prec (pid_of_name loc id1, pid_of_name loc id2)
+
+      | (Ast.Label_equal (eid1, eid2), loc) ->
+        Label_equal (eid1, eid2)
+
+      | (Ast.Label_disequal (eid1, eid2), loc) ->
+        Label_disequal (eid1, eid2)
 
       | (Ast.Feature_eq_lex_or_fs ((node_name, feat_name),(node_or_lex, fn_or_field)), loc) ->
           begin
@@ -804,6 +835,26 @@ module Rule = struct
           if gid1 < gid2
           then matching
           else raise Fail
+
+      | Label_equal (eid1, eid2) ->
+        begin
+          match (List.assoc_opt eid1 matching.e_match, List.assoc_opt eid2 matching.e_match) with
+          | (Some (_,e1,_), Some (_,e2,_)) when e1 = e2 -> matching
+          | (Some (_,e1,_), Some (_,e2,_)) -> raise Fail
+          | (None, Some _) -> Error.build "Edge identifier '%s' not found" eid1;
+          | (Some _, None) -> Error.build "Edge identifier '%s' not found" eid2;
+          | (None, None) -> Error.build "Edge identifiers '%s' and '%s' not found" eid1 eid2;
+        end
+
+      | Label_disequal (eid1, eid2) ->
+        begin
+          match (List.assoc_opt eid1 matching.e_match, List.assoc_opt eid2 matching.e_match) with
+          | (Some (_,e1,_), Some (_,e2,_)) when e1 <> e2 -> matching
+          | (Some (_,e1,_), Some (_,e2,_)) -> raise Fail
+          | (None, Some _) -> Error.build "Edge identifier '%s' not found" eid1;
+          | (Some _, None) -> Error.build "Edge identifier '%s' not found" eid2;
+          | (None, None) -> Error.build "Edge identifiers '%s' and '%s' not found" eid1 eid2;
+        end
 
       | Feature_eq_lex (pid, feature_name, (lexicon,field)) ->
         begin

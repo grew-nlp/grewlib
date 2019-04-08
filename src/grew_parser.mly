@@ -563,8 +563,8 @@ pat_item:
             { let (id1,loc) = id1_loc in
               match (id1, id2) with
               | ("id", "id") -> Pat_const (Ast.Id_prec (n1, n2), loc)
-              | ("id", n) | (n, "id") -> Error.build ~loc "Unknown operator '%s'" n
-              | (n, m) -> Error.build ~loc "Unknown operators '%s' and '%s'" n m
+              | ("id", n) | (n, "id") -> Error.build ~loc "Unexpected operator '%s'" n
+              | (n, m) -> Error.build ~loc "Unexpected operators '%s' and '%s'" n m
             }
 
         /*   id(N) > id(M)   */
@@ -573,10 +573,29 @@ pat_item:
             { let (id1,loc) = id1_loc in
               match (id1, id2) with
               | ("id", "id") -> Pat_const (Ast.Id_prec (n2, n1), loc)
-              | ("id", n) | (n, "id") -> Error.build ~loc "Unknown operator '%s'" n
-              | (n, m) -> Error.build ~loc "Unknown operators '%s' and '%s'" n m
+              | ("id", n) | (n, "id") -> Error.build ~loc "Unexpected operator '%s'" n
+              | (n, m) -> Error.build ~loc "Unexpected operators '%s' and '%s'" n m
             }
 
+        /*   label(e1) = label(e2)   */
+        /* don't want to make "label" a keyword, matched as a ident and control the value */
+        | id1_loc=simple_id_with_loc LPAREN n1=simple_id RPAREN EQUAL id2=simple_id LPAREN n2=simple_id RPAREN
+            { let (id1,loc) = id1_loc in
+              match (id1, id2) with
+              | ("label", "label") -> Pat_const (Ast.Label_equal (n2, n1), loc)
+              | ("label", n) | (n, "id") -> Error.build ~loc "Unexpected operator '%s'" n
+              | (n, m) -> Error.build ~loc "Unexpected operators '%s' and '%s'" n m
+            }
+
+        /*   label(e1) <> label(e2)   */
+        /* don't want to make "label" a keyword, matched as a ident and control the value */
+        | id1_loc=simple_id_with_loc LPAREN n1=simple_id RPAREN DISEQUAL id2=simple_id LPAREN n2=simple_id RPAREN
+            { let (id1,loc) = id1_loc in
+              match (id1, id2) with
+              | ("label", "label") -> Pat_const (Ast.Label_disequal (n2, n1), loc)
+              | ("label", n) | (n, "id") -> Error.build ~loc "Unexpected operator '%s'" n
+              | (n, m) -> Error.build ~loc "Unexpected operators '%s' and '%s'" n m
+            }
 
 node_features:
         /*   cat = n|v|adj   */

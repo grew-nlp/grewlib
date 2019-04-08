@@ -186,6 +186,9 @@ module Ast = struct
     | Large_prec of Id.name * Id.name
     (* *)
     | Id_prec of Id.name * Id.name
+    (* *)
+    | Label_equal of Id.name * Id.name
+    | Label_disequal of Id.name * Id.name
 
 
   type const = u_const * Loc.t
