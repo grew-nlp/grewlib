@@ -106,7 +106,7 @@ end
 module Matching = struct
   type t = Grew_rule.Rule.matching
 
-  let to_json pattern graph t = Grew_rule.Rule.to_python pattern graph t
+  let to_json ?(all_edges=false) pattern graph t = Grew_rule.Rule.matching_to_json ~all_edges pattern graph t
 
   let nodes pattern graph matching =
     Libgrew.handle ~name:"Matching.nodes" (fun () ->

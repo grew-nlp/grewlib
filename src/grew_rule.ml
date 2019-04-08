@@ -602,16 +602,27 @@ module Rule = struct
     l_param: Lexicons.t;                           (* *)
   }
 
-  let to_python pattern graph m =
+  let intern s = String_.re_match (Str.regexp "__.*__") s
+
+  let matching_to_json ?(all_edges=false) pattern graph m =
     let node_name gid = G_node.get_name gid (G_graph.find gid graph) in
     let nodes = Pid_map.fold (fun pid gid acc ->
       let pnode = P_graph.find pid pattern.pos.graph in
         (P_node.get_name pnode, `String (node_name gid))::acc
       ) m.n_match [] in
-    let edges = List.map (fun (id, (src,lab,tar)) ->
-      (id, `String (sprintf "%s/%s/%s" (node_name src) (G_edge.to_string lab) (node_name tar)))
+    let edges = CCList.filter_map (fun (id, (src,lab,tar)) ->
+      if all_edges || not (intern id)
+      then Some (id, `Assoc [
+          ("source", `String (node_name src));
+          ("label", `String (G_edge.to_string lab));
+          ("target", `String (node_name tar));
+        ])
+      else None
       ) m.e_match in
-    `Assoc (nodes @ edges)
+    `Assoc [
+      ("nodes", `Assoc nodes);
+      ("edges", `Assoc edges)
+    ]
 
   let node_matching pattern graph { n_match } =
     Pid_map.fold

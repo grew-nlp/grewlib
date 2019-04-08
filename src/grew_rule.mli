@@ -50,7 +50,7 @@ module Rule : sig
 
   val pid_name_list: pattern -> Id.name list
 
-  val to_python: pattern -> G_graph.t -> matching -> Yojson.Basic.t
+  val matching_to_json: ?all_edges: bool -> pattern -> G_graph.t -> matching -> Yojson.Basic.t
 
   val build_pattern: ?domain:Domain.t -> ?lexicons: Lexicons.t -> Ast.pattern -> pattern
 

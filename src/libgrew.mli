@@ -55,7 +55,7 @@ end
 module Matching: sig
   type t
 
-  val to_json: Pattern.t -> Grew_graph.G_graph.t -> t -> Yojson.Basic.t
+  val to_json: ?all_edges:bool -> Pattern.t -> Grew_graph.G_graph.t -> t -> Yojson.Basic.t
 
   val nodes: Pattern.t -> Grew_graph.G_graph.t -> t -> (string * string) list
 end
