@@ -20,6 +20,8 @@ open Grew_fs
 
 (* ================================================================================ *)
 module G_node = struct
+  type kind = No | Conll_root | Skeleton
+
   type position =
   | Ordered of float
   | Unordered of int
@@ -31,9 +33,17 @@ module G_node = struct
       succ: Gid.t option;
       prec: Gid.t option;
       position: position;
-      conll_root: bool;
+      kind: kind;
       efs: (string * string) list;
     }
+
+  let shift n t =
+    let sh i = i + n in
+    { t with
+    next = Massoc_gid.map_key sh t.next;
+    prec = CCOpt.map sh t.prec;
+    succ = CCOpt.map sh t.succ;
+  }
 
   let get_fs t = t.fs
   let set_fs fs t = {t with fs }
@@ -59,9 +69,10 @@ module G_node = struct
     | Some n -> n
     | None -> sprintf "_%s_" (Gid.to_string gid)
 
-  let empty = { name=None; fs = G_fs.empty; next = Massoc_gid.empty; succ = None; prec = None; position = Unordered 0; conll_root=false; efs=[] }
+  let empty = { name=None; fs = G_fs.empty; next = Massoc_gid.empty; succ = None; prec = None; position = Unordered 0; kind=No; efs=[] }
 
-  let is_conll_root t = t.conll_root
+  let is_conll_root t = t.kind = Conll_root
+  let is_skeleton t = t.kind = Skeleton
 
   let to_string ?domain t =
     Printf.sprintf "  fs=[%s]\n  next=%s\n"
@@ -97,7 +108,7 @@ module G_node = struct
   let of_conll ?loc ?prec ?succ ?domain line =
     if line = Conll.root
     then { empty with
-      conll_root=true;
+      kind = Conll_root;
       succ;
       position = Ordered 0.;
       name= Some "ROOT";
@@ -136,6 +147,9 @@ module G_node = struct
   let position_comp n1 n2 = Pervasives.compare n1.position n2.position
 
   let rename mapping n = {n with next = Massoc_gid.rename mapping n.next}
+
+  let skeleton n = { n with name = None; fs=G_fs.empty; next=Massoc_gid.empty; kind = Skeleton; efs=[]; }
+
 end (* module G_node *)
 
 (* ================================================================================ *)

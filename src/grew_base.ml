@@ -448,6 +448,9 @@ module type S = sig
   val exists: (key -> 'a -> bool) -> 'a t -> bool
 
   val rename: (key * key) list -> 'a t -> 'a t
+
+  val map_key: (key -> key) -> 'a t -> 'a t
+
 end (* module type S *)
 
 (* ================================================================================ *)
@@ -542,6 +545,9 @@ module Massoc_make (Ord: OrderedType) = struct
         let new_key = try List.assoc key mapping with Not_found -> key in
         M.add new_key value acc
       ) t M.empty
+
+  let map_key fct t = M.fold (fun key value acc -> M.add (fct key) value acc) t M.empty
+
 end (* module Massoc_make *)
 
 (* ================================================================================ *)

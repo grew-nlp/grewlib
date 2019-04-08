@@ -237,6 +237,11 @@ module G_graph = struct
     efs: (string * string) list;
   }
 
+  let shift_fusion_item n fusion_item = { fusion_item with
+    first = fusion_item.first + n;
+    last = fusion_item.last + n;
+  }
+
   type t = {
     domain: Domain.t option;
     meta: string list;            (* meta-informations *)
@@ -246,11 +251,15 @@ module G_graph = struct
     rules: int String_map.t;
   }
 
+  let shift n graph = { graph with
+    fusion = List.map (shift_fusion_item n) graph.fusion;
+    map = Gid_map.map_key_value (fun i -> i+n) (fun node -> G_node.shift n node) graph.map;
+    highest_index = graph.highest_index + n;
+  }
+
   let empty = { domain=None; meta=[]; map=Gid_map.empty; fusion=[]; highest_index=0; rules=String_map.empty; }
 
   let get_domain t = t.domain
-
-  let get_highest g = g.highest_index
 
   let find node_id graph = Gid_map.find node_id graph.map
 
@@ -821,40 +830,26 @@ module G_graph = struct
   (* -------------------------------------------------------------------------------- *)
   let to_gr graph =
     let domain = get_domain graph in
-
-    let gr_id id = G_node.get_name id (Gid_map.find id graph.map) in
-
     let buff = Buffer.create 32 in
-
     bprintf buff "graph {\n";
 
     (* meta data *)
-    List.iter
-      (fun (s) ->
-        bprintf buff "  %s;\n" s
-      ) graph.meta;
+    List.iter (bprintf buff "  %s;\n") graph.meta;
 
-    (* nodes *)
-    let nodes = Gid_map.fold
-      (fun id node acc ->
-        if G_node.is_conll_root node
-        then acc
-        else (id,node)::acc
-      ) graph.map [] in
-
+    (* node_list *)
+    let nodes = Gid_map.fold (fun gid node acc -> (gid,node)::acc) graph.map [] in
     let sorted_nodes = List.sort (fun (_,n1) (_,n2) -> G_node.position_comp n1 n2) nodes in
-
     List.iter
-      (fun (id,node) ->
-        bprintf buff "  %s %s;\n" (gr_id id) (G_node.to_gr node)
+      (fun (gid,node) ->
+        bprintf buff "  N_%d %s;\n" gid (G_node.to_gr node)
       ) sorted_nodes;
 
     (* edges *)
     List.iter
-      (fun (id,node) ->
+      (fun (src_gid,node) ->
         Massoc_gid.iter
-          (fun tar edge ->
-            bprintf buff "  %s -[%s]-> %s;\n" (gr_id id) (G_edge.to_string ?domain edge) (gr_id tar)
+          (fun tar_gid edge ->
+            bprintf buff "  N_%d -[%s]-> N_%d;\n" src_gid (G_edge.to_string ?domain edge) tar_gid
           ) (G_node.get_next node)
       ) sorted_nodes;
 
@@ -1466,3 +1461,48 @@ end (* module Graph_with_history*)
 
 (* ================================================================================ *)
 module Graph_with_history_set = Set.Make (Graph_with_history)
+
+
+
+module Multigraph = struct
+  type t = G_graph.t
+
+  let empty = G_graph.empty
+
+  let to_graph t = t
+
+  let build_skeleton graph =
+    { graph with
+      G_graph.map = Gid_map.map (fun node -> G_node.skeleton node) graph.G_graph.map
+    }
+
+  let add_layer user_id graph init_multigraph =
+    (* if first layer, build the skeleton *)
+    let multigraph =
+    if Gid_map.is_empty init_multigraph.G_graph.map
+    then build_skeleton graph
+    else init_multigraph in
+
+    (* Shift the new layer to new gids *)
+    let shifted_graph = G_graph.shift (multigraph.G_graph.highest_index + 1) graph in
+
+    let map_with_links = Gid_map.map
+      (fun node ->
+        if G_node.is_skeleton node
+        then
+          let position = G_node.get_position node in
+          match Gid_map.search_key (fun n -> G_node.get_position n = position) shifted_graph.map with
+            | None -> failwith "No aligment"
+            | Some tar ->
+            match G_node.add_edge (G_edge.from_items [("user",user_id)]) tar node with
+            | None -> failwith "Already the edge!"
+            | Some new_node -> new_node
+        else node
+      ) multigraph.map in
+
+    let union_map = Gid_map.union (fun _ _ _ -> failwith "overlap") map_with_links shifted_graph.G_graph.map in
+
+    ignore (union_map);
+
+    { multigraph with map = union_map; highest_index = shifted_graph.highest_index }
+end

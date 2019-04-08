@@ -40,9 +40,7 @@ module G_edge = struct
 
   let to_string ?domain edge =
     try to_conll ?domain edge
-    with Not_conll s ->
-      Log.fwarning "[G_edge.to_conll] cannot write conll edge from \"%s\"" s;
-      s
+    with Not_conll s -> s
 
   let to_dep ?domain ?(deco=false) t =
     let conll = to_conll t in

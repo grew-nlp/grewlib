@@ -245,6 +245,8 @@ module type S =
     val exists: (key -> 'a -> bool) -> 'a t -> bool
 
     val rename: (key * key) list -> 'a t -> 'a t
+
+    val map_key: (key -> key) -> 'a t -> 'a t
   end
 
 (* ================================================================================ *)

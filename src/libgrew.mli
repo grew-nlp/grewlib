@@ -155,3 +155,13 @@ module Rewrite: sig
 
   val simple_rewrite: gr:Graph.t -> grs:Grs.t -> strat:string -> Graph.t list
 end
+
+module Multigraph: sig
+  type t = Grew_graph.Multigraph.t
+
+  val empty: t
+
+  val to_graph: t -> Graph.t
+
+  val add_layer: string -> Graph.t -> t -> t
+end

@@ -103,8 +103,6 @@ module G_graph: sig
 
   val fold_gid: (Gid.t -> 'a -> 'a) -> t -> 'a -> 'a
 
-  val get_highest: t -> int
-
   val push_rule: string -> t -> t
 
   (** [edge_out t id label_cst] returns true iff there is an out-edge from the node [id] with a label compatible with [label_cst] *)
@@ -250,3 +248,13 @@ end (* module Graph_with_history *)
 
 (* ================================================================================ *)
 module Graph_with_history_set : Set.S with type elt = Graph_with_history.t
+
+module Multigraph : sig
+  type t = G_graph.t
+
+  val empty: t
+
+  val to_graph: t -> G_graph.t
+
+  val add_layer: string -> G_graph.t -> t -> t
+end

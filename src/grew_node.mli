@@ -25,6 +25,8 @@ module G_node: sig
 
   type t
 
+  val shift: int -> t -> t
+
   val empty: t
 
   val to_string: ?domain:Domain.t -> t -> string
@@ -55,6 +57,7 @@ module G_node: sig
   val get_efs: t -> (string * string) list
   val string_efs: t -> string
   val is_conll_root: t -> bool
+  val is_skeleton: t -> bool
 
   val remove_opt: Gid.t -> G_edge.t -> t -> t option
 
@@ -63,6 +66,7 @@ module G_node: sig
 
   val rm_out_edges: t -> t
 
+  (* None is returned if the edge already exists *)
   val add_edge: G_edge.t -> Gid.t -> t -> t option
 
 
@@ -80,6 +84,8 @@ module G_node: sig
   val build_new: t -> t *)
 
   val rename: (Gid.t * Gid.t) list -> t -> t
+
+  val skeleton: t -> t
 end (* module G_node *)
 
 (* ================================================================================ *)

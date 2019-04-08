@@ -308,3 +308,12 @@ module Rewrite = struct
   let at_most_one ~grs ~strat =
     Libgrew.handle ~name:"Rewrite.at_most_one" (fun () -> Grew_grs.Grs.at_most_one grs strat) ()
 end
+
+
+module Multigraph = struct
+  type t = Grew_graph.Multigraph.t
+
+  let empty = Grew_graph.Multigraph.empty
+  let to_graph = Grew_graph.Multigraph.to_graph
+  let add_layer = Grew_graph.Multigraph.add_layer (*TODO handle errors*)
+end

@@ -88,7 +88,20 @@ module Gid = struct
 end (* module Gid *)
 
 (* ================================================================================ *)
-module Gid_map = Map.Make (Gid)
+module Gid_map = struct
+  include Map.Make (Gid)
+
+  let map_key_value fct_key fct_value t =
+    fold (fun key value acc -> add (fct_key key) (fct_value value) acc) t empty
+
+  exception Found of Gid.t
+  let search_key fct t =
+  try
+    iter (fun k v -> if fct v then raise (Found k)) t;
+    None
+  with
+  | Found k -> Some k
+end
 
 (* ================================================================================ *)
 module Gid_set = Set.Make (Gid)

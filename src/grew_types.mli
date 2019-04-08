@@ -60,7 +60,14 @@ end (* module Gid *)
 
 (* ================================================================================ *)
 (* [Gid_map] is the map used in full graphs *)
-module Gid_map : Map.S with type key = Gid.t
+module Gid_map : sig
+  include Map.S with type key = Gid.t
+
+  val map_key_value: (key -> key) -> ('a -> 'a) -> 'a t -> 'a t
+
+  (* return the first key where the test is true *)
+  val search_key: ('a -> bool) -> 'a t -> key option
+end
 
 module Gid_set : Set.S with type elt = Gid.t
 
