@@ -181,9 +181,13 @@ module Ast = struct
     | Feature_eq_lex of feature_ident * (string * string)
     | Feature_diff_cst of feature_ident * string
     | Feature_diff_lex of feature_ident * (string * string)
-
+    (* *)
     | Immediate_prec of Id.name * Id.name
     | Large_prec of Id.name * Id.name
+    (* *)
+    | Id_prec of Id.name * Id.name
+
+
   type const = u_const * Loc.t
 
   type basic = {

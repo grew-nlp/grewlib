@@ -60,6 +60,8 @@ module Rule = struct
     (* *)
     | Immediate_prec of Pid.t * Pid.t
     | Large_prec of Pid.t * Pid.t
+    (* *)
+    | Id_prec of Pid.t * Pid.t
 
   let const_to_json ?domain = function
   | Cst_out (pid, label_cst) -> `Assoc ["cst_out", Label_cst.to_json ?domain label_cst]
@@ -182,6 +184,13 @@ module Rule = struct
         ("id2", `String (Pid.to_string pid2));
       ]
     ]
+  | Id_prec (pid1, pid2) ->
+    `Assoc ["id_prec",
+      `Assoc [
+        ("id1", `String (Pid.to_string pid1));
+        ("id2", `String (Pid.to_string pid2));
+      ]
+    ]
 
   let build_pos_constraint ?domain lexicons pos_table const =
     let pid_of_name loc node_name = Pid.Pos (Id.build ~loc node_name pos_table) in
@@ -257,6 +266,9 @@ module Rule = struct
               Feature_diff_lex (pid_of_name loc node_name, feat_name, (node_or_lex, fn_or_field))
             | _ ->  Features_diseq (pid_of_name loc node_name, feat_name, pid_of_name loc node_or_lex, fn_or_field)
           end
+      | (Ast.Id_prec (id1, id2), loc) ->
+        Id_prec (pid_of_name loc id1, pid_of_name loc id2)
+
 
 
   type basic = {
@@ -365,6 +377,9 @@ module Rule = struct
             | (None, None) -> Feature_diff_lex (pid_of_name loc node_name, feat_name, (node_or_lex, fn_or_field))
             | _ ->  Features_diseq (pid_of_name loc node_name, feat_name, pid_of_name loc node_or_lex, fn_or_field)
           end
+
+      | (Ast.Id_prec (id1, id2), loc) ->
+        Id_prec (pid_of_name loc id1, pid_of_name loc id2)
 
 
 
@@ -782,6 +797,14 @@ module Rule = struct
           if G_node.get_position gnode1 < G_node.get_position gnode2
           then matching
           else raise Fail
+
+      | Id_prec (pid1, pid2) ->
+          let gid1 = Pid_map.find pid1 matching.n_match in
+          let gid2 = Pid_map.find pid2 matching.n_match in
+          if gid1 < gid2
+          then matching
+          else raise Fail
+
       | Feature_eq_lex (pid, feature_name, (lexicon,field)) ->
         begin
           match get_string_feat pid feature_name with

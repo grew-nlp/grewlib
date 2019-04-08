@@ -121,6 +121,9 @@ module Ast : sig
     (* *)
     | Immediate_prec of Id.name * Id.name
     | Large_prec of Id.name * Id.name
+    (* *)
+    | Id_prec of Id.name * Id.name
+
   type const = u_const * Loc.t
 
   type basic = {
