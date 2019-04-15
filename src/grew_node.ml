@@ -37,9 +37,10 @@ module G_node = struct
       efs: (string * string) list;
     }
 
-  let shift n t =
+  let shift user_id n t =
     let sh i = i + n in
     { t with
+    name = CCOpt.map (fun n -> user_id ^ "_" ^ n) t.name;
     next = Massoc_gid.map_key sh t.next;
     prec = CCOpt.map sh t.prec;
     succ = CCOpt.map sh t.succ;

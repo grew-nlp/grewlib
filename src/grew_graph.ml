@@ -251,11 +251,12 @@ module G_graph = struct
     rules: int String_map.t;
   }
 
-  let shift n graph = { graph with
-    fusion = List.map (shift_fusion_item n) graph.fusion;
-    map = Gid_map.map_key_value (fun i -> i+n) (fun node -> G_node.shift n node) graph.map;
-    highest_index = graph.highest_index + n;
-  }
+  let shift user_id n graph =
+    { graph with
+      fusion = List.map (shift_fusion_item n) graph.fusion;
+      map = Gid_map.map_key_value (fun i -> i+n) (fun node -> G_node.shift user_id n node) graph.map;
+      highest_index = graph.highest_index + n;
+    }
 
   let empty = { domain=None; meta=[]; map=Gid_map.empty; fusion=[]; highest_index=0; rules=String_map.empty; }
 
@@ -1484,7 +1485,7 @@ module Multigraph = struct
     else init_multigraph in
 
     (* Shift the new layer to new gids *)
-    let shifted_graph = G_graph.shift (multigraph.G_graph.highest_index + 1) graph in
+    let shifted_graph = G_graph.shift user_id (multigraph.G_graph.highest_index + 1) graph in
 
     let map_with_links = Gid_map.map
       (fun node ->

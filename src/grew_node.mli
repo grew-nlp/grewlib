@@ -25,7 +25,7 @@ module G_node: sig
 
   type t
 
-  val shift: int -> t -> t
+  val shift: string -> int -> t -> t
 
   val empty: t
 
