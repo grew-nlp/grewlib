@@ -1,3 +1,6 @@
+## 1.2.1 (2019/04/24)
+  * Fix error in global pattern
+
 # 1.2.0 (2019/03/26)
   * Edge label can be viewed as feature structure "x:y" <=> "1=x, 2=y"
   * Add global section in pattern (is_projective, is_cyclic, is_tree, is_forest)
