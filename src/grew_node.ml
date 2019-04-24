@@ -41,6 +41,7 @@ module G_node = struct
     let sh i = i + n in
     { t with
     name = CCOpt.map (fun n -> user_id ^ "_" ^ n) t.name;
+    fs = G_fs.set_feat "user" user_id t.fs;
     next = Massoc_gid.map_key sh t.next;
     prec = CCOpt.map sh t.prec;
     succ = CCOpt.map sh t.succ;

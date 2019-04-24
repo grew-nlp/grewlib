@@ -1463,9 +1463,27 @@ end (* module Graph_with_history*)
 (* ================================================================================ *)
 module Graph_with_history_set = Set.Make (Graph_with_history)
 
-
-
+(* ================================================================================ *)
 module Multigraph = struct
+    type t = G_graph.t
+
+    let empty = G_graph.empty
+
+    let to_graph t = t
+
+    let add_layer user_id graph multigraph =
+
+      (* Shift the new layer to new gids *)
+      let shifted_graph = G_graph.shift user_id (multigraph.G_graph.highest_index + 1) graph in
+
+      let union_map = Gid_map.union (fun _ _ _ -> failwith "overlap") multigraph.map shifted_graph.G_graph.map in
+
+      { multigraph with map = union_map; highest_index = shifted_graph.highest_index }
+
+end
+
+(* ================================================================================ *)
+module Multigraph_skel = struct
   type t = G_graph.t
 
   let empty = G_graph.empty
@@ -1502,8 +1520,6 @@ module Multigraph = struct
       ) multigraph.map in
 
     let union_map = Gid_map.union (fun _ _ _ -> failwith "overlap") map_with_links shifted_graph.G_graph.map in
-
-    ignore (union_map);
 
     { multigraph with map = union_map; highest_index = shifted_graph.highest_index }
 end

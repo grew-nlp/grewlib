@@ -249,7 +249,19 @@ end (* module Graph_with_history *)
 (* ================================================================================ *)
 module Graph_with_history_set : Set.S with type elt = Graph_with_history.t
 
+(* ================================================================================ *)
 module Multigraph : sig
+  type t = G_graph.t
+
+  val empty: t
+
+  val to_graph: t -> G_graph.t
+
+  val add_layer: string -> G_graph.t -> t -> t
+end
+
+(* ================================================================================ *)
+module Multigraph_skel : sig
   type t = G_graph.t
 
   val empty: t
