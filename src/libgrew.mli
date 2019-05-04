@@ -159,9 +159,11 @@ end
 module Multigraph: sig
   type t = Grew_graph.Multigraph.t
 
-  val empty: t
+  val init: Graph.t -> t
 
   val to_graph: t -> Graph.t
 
   val add_layer: string -> Graph.t -> t -> t
+
+  val get_users: t -> Set.Make(String).t
 end

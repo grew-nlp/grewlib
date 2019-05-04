@@ -1465,61 +1465,28 @@ module Graph_with_history_set = Set.Make (Graph_with_history)
 
 (* ================================================================================ *)
 module Multigraph = struct
-    type t = G_graph.t
+  module String_set = Set.Make(String)
 
-    let empty = G_graph.empty
+  type t = {
+    graph: G_graph.t;
+    users: String_set.t;
+  }
 
-    let to_graph t = t
+  let empty = { graph = G_graph.empty; users = String_set.empty }
 
-    let add_layer user_id graph multigraph =
+  let to_graph t = t.graph
 
+  let init graph = { graph; users = String_set.empty }
+
+  let add_layer user_id layer t =
+    if String_set.mem user_id t.users
+    then failwith "Not implemented: replace"
+    else
       (* Shift the new layer to new gids *)
-      let shifted_graph = G_graph.shift user_id (multigraph.G_graph.highest_index + 1) graph in
+      let shifted_layer = G_graph.shift user_id (t.graph.G_graph.highest_index + 1) layer in
+      let union_map = Gid_map.union (fun _ _ _ -> failwith "overlap") t.graph.map shifted_layer.G_graph.map in
+      let new_graph = { t.graph with map = union_map; highest_index = shifted_layer .highest_index } in
+      { graph = new_graph; users = String_set.add user_id t.users }
 
-      let union_map = Gid_map.union (fun _ _ _ -> failwith "overlap") multigraph.map shifted_graph.G_graph.map in
-
-      { multigraph with map = union_map; highest_index = shifted_graph.highest_index }
-
-end
-
-(* ================================================================================ *)
-module Multigraph_skel = struct
-  type t = G_graph.t
-
-  let empty = G_graph.empty
-
-  let to_graph t = t
-
-  let build_skeleton graph =
-    { graph with
-      G_graph.map = Gid_map.map (fun node -> G_node.skeleton node) graph.G_graph.map
-    }
-
-  let add_layer user_id graph init_multigraph =
-    (* if first layer, build the skeleton *)
-    let multigraph =
-    if Gid_map.is_empty init_multigraph.G_graph.map
-    then build_skeleton graph
-    else init_multigraph in
-
-    (* Shift the new layer to new gids *)
-    let shifted_graph = G_graph.shift user_id (multigraph.G_graph.highest_index + 1) graph in
-
-    let map_with_links = Gid_map.map
-      (fun node ->
-        if G_node.is_skeleton node
-        then
-          let position = G_node.get_position node in
-          match Gid_map.search_key (fun n -> G_node.get_position n = position) shifted_graph.map with
-            | None -> failwith "No aligment"
-            | Some tar ->
-            match G_node.add_edge (G_edge.from_items [("user",user_id)]) tar node with
-            | None -> failwith "Already the edge!"
-            | Some new_node -> new_node
-        else node
-      ) multigraph.map in
-
-    let union_map = Gid_map.union (fun _ _ _ -> failwith "overlap") map_with_links shifted_graph.G_graph.map in
-
-    { multigraph with map = union_map; highest_index = shifted_graph.highest_index }
+  let get_users t = t.users
 end

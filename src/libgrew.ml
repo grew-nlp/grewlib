@@ -12,7 +12,6 @@ open Printf
 open Log
 open Conll
 
-
 (* ==================================================================================================== *)
 (** {2 Location} *)
 (* ==================================================================================================== *)
@@ -309,11 +308,15 @@ module Rewrite = struct
     Libgrew.handle ~name:"Rewrite.at_most_one" (fun () -> Grew_grs.Grs.at_most_one grs strat) ()
 end
 
-
+(* ==================================================================================================== *)
+(** {2 Multigraph} *)
+(* ==================================================================================================== *)
 module Multigraph = struct
   type t = Grew_graph.Multigraph.t
 
   let empty = Grew_graph.Multigraph.empty
+  let init = Grew_graph.Multigraph.init
   let to_graph = Grew_graph.Multigraph.to_graph
   let add_layer = Grew_graph.Multigraph.add_layer (*TODO handle errors*)
+  let get_users = Grew_graph.Multigraph.get_users
 end
