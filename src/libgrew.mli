@@ -84,7 +84,7 @@ module Graph : sig
       @raise File_not_found if the file doesn't exists. *)
   val load: ?domain:Domain.t -> string -> t
 
-  val of_gr: ?domain:Domain.t -> ?grewpy:bool -> string -> t
+  val of_gr: ?domain:Domain.t -> string -> t
 
   val of_conll: ?domain:Domain.t -> Conll.t -> t
 

@@ -112,7 +112,7 @@ module G_graph: sig
   (* Build functions *)
   (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
 
-  val build: ?domain:Domain.t -> ?grewpy: bool -> Ast.gr -> t
+  val build: ?domain:Domain.t -> Ast.gr -> t
 
   val of_conll: ?domain:Domain.t -> Conll.t -> t
   val of_json: Yojson.Basic.t -> t

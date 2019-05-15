@@ -120,8 +120,6 @@ module Ast = struct
   }
   type node = u_node * Loc.t
 
-  let grewpy_compare (n1,_) (n2,_) = Id.grewpy_compare n1.node_id n2.node_id
-
   type atom_edge_label_cst =
     | Atom_eq of string * string list      (* 1=subj|obj  *)
     | Atom_diseq of string * string list   (* 1<>subj|obj *)

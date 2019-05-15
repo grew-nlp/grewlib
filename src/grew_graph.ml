@@ -309,7 +309,7 @@ module G_graph = struct
       | None -> None
 
   (* -------------------------------------------------------------------------------- *)
-  let build ?domain ?(grewpy=false) gr_ast =
+  let build ?domain gr_ast =
 
     let (ordered_nodes, unordered_nodes) = List.fold_left
       (fun (orderd_acc, unordered_acc) (node,loc) ->
@@ -319,12 +319,6 @@ module G_graph = struct
       ) ([],[]) gr_ast.Ast.nodes in
 
     let sorted_nodes = List.sort (fun (p1,_) (p2,_) -> Pervasives.compare p1 p2) ordered_nodes in
-
-    (* let full_node_list =
-      if grewpy
-      then List.sort (Ast.grewpy_compare) gr_ast.Ast.nodes
-      else gr_ast.Ast.nodes
-    and full_edge_list = gr_ast.Ast.edges in *)
 
     let rec loop already_bound index prec = function
       | [] -> (Gid_map.empty,[])
@@ -401,7 +395,7 @@ module G_graph = struct
         | _ -> Error.build "[Graph.of_json] not an assoc list"
       ) ([],[]) l in
       let graph_ast = { Ast.meta=[]; nodes=ast_node_list; edges=ast_edge_list}
-      in build ~grewpy:true graph_ast
+      in build graph_ast
   | _ -> Error.build "[Graph.of_json] not an assoc list"
 
   (* -------------------------------------------------------------------------------- *)

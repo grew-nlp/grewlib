@@ -74,8 +74,6 @@ module Ast : sig
     }
   type node = u_node * Loc.t
 
-  val grewpy_compare: node -> node -> int
-
   type atom_edge_label_cst =
     | Atom_eq of string * string list      (* 1=subj|obj  *)
     | Atom_diseq of string * string list   (* 1<>subj|obj *)
