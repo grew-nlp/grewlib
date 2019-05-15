@@ -574,14 +574,6 @@ module Id = struct
     try Some (Array_.dicho_find key table)
     with Not_found -> None
 
-  let get_float name =
-    try
-      let len = String.length name in
-      let index = Str.search_forward (Str.regexp "[0-9]") name 0 in
-      let sub = String.sub name index (len-index) in
-      try Some (float_of_string sub) with _ -> None
-    with Not_found -> None
-
   (* [get_pos id] returns Some v (float) iff id is "Wv" else None *)
   let get_pos name =
     let len = String.length name in
