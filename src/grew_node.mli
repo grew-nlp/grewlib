@@ -57,7 +57,6 @@ module G_node: sig
   val get_efs: t -> (string * string) list
   val string_efs: t -> string
   val is_conll_root: t -> bool
-  val is_skeleton: t -> bool
 
   val remove_opt: Gid.t -> G_edge.t -> t -> t option
 
@@ -85,7 +84,6 @@ module G_node: sig
 
   val rename: (Gid.t * Gid.t) list -> t -> t
 
-  val skeleton: t -> t
 end (* module G_node *)
 
 (* ================================================================================ *)

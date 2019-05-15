@@ -20,7 +20,7 @@ open Grew_fs
 
 (* ================================================================================ *)
 module G_node = struct
-  type kind = No | Conll_root | Skeleton
+  type kind = No | Conll_root
 
   type position =
   | Ordered of float
@@ -36,6 +36,17 @@ module G_node = struct
       kind: kind;
       efs: (string * string) list;
     }
+
+  let empty = {
+    name=None;
+    fs = G_fs.empty;
+    next = Massoc_gid.empty;
+    succ = None;
+    prec = None;
+    position = Unordered 0;
+    kind=No;
+    efs=[]
+  }
 
   let shift user_id n t =
     let sh i = i + n in
@@ -71,10 +82,8 @@ module G_node = struct
     | Some n -> n
     | None -> sprintf "_%s_" (Gid.to_string gid)
 
-  let empty = { name=None; fs = G_fs.empty; next = Massoc_gid.empty; succ = None; prec = None; position = Unordered 0; kind=No; efs=[] }
 
   let is_conll_root t = t.kind = Conll_root
-  let is_skeleton t = t.kind = Skeleton
 
   let to_string ?domain t =
     Printf.sprintf "  fs=[%s]\n  next=%s\n"
@@ -142,15 +151,9 @@ module G_node = struct
 
   let rm_out_edges t = {t with next = Massoc_gid.empty}
 
-  (* let build_neighbour t = { empty with position = (get_position t) +. 0.01 }
-
-  let build_new t = { empty with position = (get_position t) +. 0.01 } *)
-
   let position_comp n1 n2 = Pervasives.compare n1.position n2.position
 
   let rename mapping n = {n with next = Massoc_gid.rename mapping n.next}
-
-  let skeleton n = { n with name = None; fs=G_fs.empty; next=Massoc_gid.empty; kind = Skeleton; efs=[]; }
 
 end (* module G_node *)
 
