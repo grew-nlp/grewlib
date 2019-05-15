@@ -319,4 +319,6 @@ module Multigraph = struct
   let to_graph = Grew_graph.Multigraph.to_graph
   let add_layer = Grew_graph.Multigraph.add_layer (*TODO handle errors*)
   let get_users = Grew_graph.Multigraph.get_users
+  let user_graph = Grew_graph.Multigraph.user_graph
+  let base_graph = Grew_graph.Multigraph.base_graph
 end

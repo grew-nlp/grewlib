@@ -261,4 +261,7 @@ module Multigraph : sig
   val add_layer: string -> G_graph.t -> t -> t
 
   val get_users: t -> Set.Make(String).t
+
+  val user_graph: string -> t -> G_graph.t option
+  val base_graph: t -> G_graph.t
 end

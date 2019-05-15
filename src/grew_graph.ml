@@ -1489,4 +1489,22 @@ module Multigraph = struct
       { graph = new_graph; users = String_set.add user_id t.users }
 
   let get_users t = t.users
+
+  let user_graph user_id t =
+    if not (String_set.mem user_id t.users)
+    then None
+    else
+      let full_graph = t.graph in
+      let new_map = Gid_map.filter
+        (fun gid node ->
+          G_fs.get_string_atom "user" (G_node.get_fs node) = Some user_id
+        ) full_graph.G_graph.map in
+      Some { full_graph with G_graph.map = new_map}
+
+  let base_graph t =
+    let new_map = Gid_map.filter
+      (fun gid node ->
+        G_fs.get_string_atom "user" (G_node.get_fs node) = None
+        ) t.graph.G_graph.map in
+      { t.graph with G_graph.map = new_map}
 end
