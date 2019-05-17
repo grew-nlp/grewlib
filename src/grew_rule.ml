@@ -728,16 +728,16 @@ module Rule = struct
       | "position" ->
         begin
           match G_node.get_position (get_node pid) with
-          | G_node.Ordered f -> Some (sprintf "%g" f)
-          | _ -> Error.run "Cannot read position of an unordered node"
+          | Some f -> Some (sprintf "%g" f)
+          | None -> Error.run "Cannot read position of an unordered node"
         end
       | feat_name -> G_fs.get_string_atom feat_name (G_node.get_fs (get_node pid)) in
     let get_float_feat pid = function
       | "position" ->
         begin
           match G_node.get_position (get_node pid) with
-          | G_node.Ordered f -> Some f
-          | _ -> Error.run "Cannot read position of an unordered node"
+          | Some f -> Some f
+          | None -> Error.run "Cannot read position of an unordered node"
         end
       | feat_name -> G_fs.get_float_feat feat_name (G_node.get_fs (get_node pid)) in
 

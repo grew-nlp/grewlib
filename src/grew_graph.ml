@@ -458,9 +458,7 @@ module G_graph = struct
             let fs3 = match mwe.Mwe.mwepos with None -> fs2 | Some p -> G_fs.set_feat ?domain "mwepos" p fs2 in
             let fs4 = match mwe.Mwe.criterion with None -> fs3 | Some c -> G_fs.set_feat ?domain "criterion" c fs3 in
 
-            let new_node =
-              (G_node.fresh_unordered ())
-              |> G_node.set_fs fs4 in
+            let new_node = G_node.set_fs fs4 G_node.empty in
 
             (* add a new node *)
             let new_map_1 = (Gid_map.add free_index new_node acc) in
@@ -573,7 +571,7 @@ module G_graph = struct
         match edge_ident with
           | None -> Log.fcritical "[RUN] Some edge refers to a dead node, please report"
           | Some id -> Error.run ~loc "[Graph.del_edge] cannot find source node of edge \"%s\"" id in
-    match G_node.remove_opt id_tar label node_src with
+    match G_node.remove_edge id_tar label node_src with
     | None -> None
     | Some new_node -> Some {graph with map = Gid_map.add id_src new_node graph.map}
 
@@ -619,7 +617,7 @@ module G_graph = struct
     let node1 = Gid_map.find id1 graph.map in
     let node2 = Gid_map.find id2 graph.map in
     let new_pos = match (G_node.get_position node1, G_node.get_position node2) with
-    | (G_node.Ordered pos1, G_node.Ordered pos2) -> (pos1 +. pos2) /. 2.
+    | (Some pos1, Some pos2) -> (pos1 +. pos2) /. 2.
     | _ -> Error.run "Try to insert into non ordered nodes" in
     let new_gid = graph.highest_index + 1 in
     let map = graph.map
@@ -632,7 +630,7 @@ module G_graph = struct
   let append id graph =
     let node = Gid_map.find id graph.map in
     let new_pos = match G_node.get_position node with
-    | G_node.Ordered pos -> pos +. 1.
+    | Some pos -> pos +. 1.
     | _ -> Error.run "Try to append into non ordered nodes" in
     let new_gid = graph.highest_index + 1 in
     let map = graph.map
@@ -644,7 +642,7 @@ module G_graph = struct
   let prepend id graph =
     let node = Gid_map.find id graph.map in
     let new_pos = match G_node.get_position node with
-    | G_node.Ordered pos -> pos -. 1.
+    | Some pos -> pos /. 2. (* build a smaller position but still > 0 *)
     | _ -> Error.run "Try to prepend into non ordered nodes" in
     let new_gid = graph.highest_index + 1 in
     let map = graph.map
@@ -669,7 +667,7 @@ module G_graph = struct
   (* -------------------------------------------------------------------------------- *)
   let add_unordered graph =
     let new_gid = graph.highest_index + 1 in
-    let map = Gid_map.add new_gid (G_node.fresh_unordered ()) graph.map in
+    let map = Gid_map.add new_gid G_node.empty graph.map in
     (new_gid, { graph with map; highest_index = new_gid })
 
   (* -------------------------------------------------------------------------------- *)
@@ -781,7 +779,7 @@ module G_graph = struct
             let node = Gid_map.find node_gid graph.map in
             begin
               match G_node.get_position node with
-              | G_node.Ordered p -> sprintf "%g" p
+              | Some p -> sprintf "%g" p
               | _ -> Error.run ?loc "Try to read position of an unordered node"
             end
           | Concat_item.Feat (node_gid, feat_name) ->
@@ -876,7 +874,7 @@ module G_graph = struct
       let last = Gid_map.find fusion_item.last graph.map in
       let node = Gid_map.find gid graph.map in
       match (G_node.get_position first, G_node.get_position node, G_node.get_position last) with
-      | (Ordered f, Ordered n, Ordered l) when f <=n && n <= l -> true
+      | (Some f, Some n, Some l) when f <= n && n <= l -> true
       | _ -> false in
 
     let is_highlighted_fusion_item fusion_item =
@@ -983,7 +981,7 @@ module G_graph = struct
       (fun (id, node) ->
         let decorated_feat = try List.assoc id deco.G_deco.nodes with Not_found -> ("",[]) in
         let fs = G_node.get_fs node in
-        let pos= match G_node.get_position node with G_node.Ordered x -> Some x | _ -> None in
+        let pos = G_node.get_position node in
         let dep_fs = G_fs.to_dep ~decorated_feat ?position:pos ?filter ?main_feat fs in
 
         let style = match G_fs.get_string_atom "void" fs with
@@ -1039,7 +1037,130 @@ module G_graph = struct
     in loop 0
 
   (* -------------------------------------------------------------------------------- *)
+  exception Skip
+
   let to_conll graph =
+    let domain = get_domain graph in
+
+    let ordered_nodes = Gid_map.fold
+      (fun id node acc ->
+        if (G_node.get_position node <> None) || (G_node.is_conll_root node)
+        then (id,node)::acc
+        else acc
+      ) graph.map [] in
+
+    (* sort nodes wrt position *)
+    let sorted_nodes = List.sort (fun (_,n1) (_,n2) -> G_node.position_comp n1 n2) ordered_nodes in
+
+    (* [mapping] associated gid to Conll.Id.t *)
+    let (_,_,mapping) = List.fold_left
+      (fun (acc_pos, acc_empty, acc) (gid,node) ->
+        if G_node.is_conll_root node
+        then (acc_pos, acc_empty, Gid_map.add gid (0,None) acc)
+        else
+          if G_node.is_empty node
+          then
+            let new_empty = match acc_empty with
+              | None -> Some 1
+              | Some 9 -> Error.run ("Too much empty nodes")
+              | Some i -> Some (i+1) in
+          (acc_pos, new_empty, Gid_map.add gid (acc_pos,new_empty) acc)
+          else
+          (acc_pos+1, None, Gid_map.add gid (acc_pos+1,None) acc)
+      ) (0, None, Gid_map.empty) sorted_nodes in
+
+    let all_govs = List.fold_left
+      (fun acc (src_gid, node) ->
+        Massoc_gid.fold
+          (fun acc2 tar_gid edge ->
+            let old = try Gid_map.find tar_gid acc2 with Not_found -> [] in
+            Gid_map.add tar_gid ((Gid_map.find src_gid mapping, G_edge.to_string ?domain edge) :: old) acc2
+          ) acc (G_node.get_next node)
+      ) Gid_map.empty sorted_nodes in
+
+    let lines = List.map
+      (fun (gid,node) ->
+        let fs = G_node.get_fs node in
+        let deps = try Gid_map.find gid all_govs with Not_found -> [] in
+
+        Conll.build_line
+          ~id: (Gid_map.find gid mapping)
+          ~form: (match G_fs.get_string_atom "form" fs with Some p -> p | None -> "_")
+          ~lemma: (match G_fs.get_string_atom "lemma" fs with Some p -> p | None -> "_")
+          ~upos: (match G_fs.get_string_atom "upos" fs with Some p -> p | None -> "_")
+          ~xpos: (match G_fs.get_string_atom "xpos" fs with Some p -> p | None -> "_")
+          ~feats: (G_fs.to_conll ~exclude: ["form"; "lemma"; "upos"; "xpos"; "position"] fs)
+          ~deps
+          ()
+     ) (List.tl sorted_nodes) in (* the first element in the Conll_root which must not be displayed *)
+
+    let (_,mwes) = Gid_map.fold
+      (fun _ node (num,acc) ->
+        try
+        let fs = G_node.get_fs node in
+        let kind = match G_fs.get_string_atom "kind" fs with
+          | Some "NE" -> Mwe.Ne
+          | Some "MWE" -> Mwe.Mwe
+          | _ -> raise Skip in
+        let nexts = G_node.get_next node in
+        let next_list =
+          List.sort_uniq
+            (fun gid1 gid2 ->
+              let n1 = List.assoc gid1 sorted_nodes
+              and n2 = List.assoc gid2 sorted_nodes in
+              match (G_node.get_position n1, G_node.get_position n2) with
+              | (Some i, Some j) -> Pervasives.compare i j
+              | _ -> 0
+            )
+            (Massoc_gid.fold (fun acc2 k _ -> k::acc2) [] nexts) in
+        match next_list with
+        | [] -> Error.bug "[G_graph.to_conll] mwe node with no next node"
+        | head_gid::tail_gids ->
+          let head_conll_id = Gid_map.find head_gid mapping in
+          let head_proj = CCList.find_map
+            (fun e -> int_of_string_opt (G_edge.to_string ?domain e))
+            (Massoc_gid.assoc head_gid nexts) in
+          let items = List.fold_left
+            (fun acc gid ->
+              let conll_id = Gid_map.find gid mapping in
+                let proj = CCList.find_map
+                  (fun e -> int_of_string_opt (G_edge.to_string ?domain e))
+                  (Massoc_gid.assoc gid nexts) in
+              Id_with_proj_set.add (conll_id, proj) acc
+            ) Id_with_proj_set.empty tail_gids in
+          let mwe = {
+            Mwe.kind;
+            Mwe.mwepos = G_fs.get_string_atom "mwepos" fs;
+            Mwe.label = G_fs.get_string_atom "label" fs;
+            Mwe.criterion = G_fs.get_string_atom "criterion" fs;
+            first = (head_conll_id,head_proj);
+            items;
+          } in
+        (num+1, Conll_types.Int_map.add num mwe acc)
+        with Skip -> (num,acc)
+      ) graph.map (1,Conll_types.Int_map.empty) in
+
+    { Conll.void with Conll.meta = graph.meta; lines; mwes; }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+(*
+
+
+  (* -------------------------------------------------------------------------------- *)
+  let to_conll_old graph =
     let domain = get_domain graph in
 
     (* split lexical // non-lexical nodes *)
@@ -1128,7 +1249,7 @@ module G_graph = struct
               let n1 = List.assoc gid1 nodes
               and n2 = List.assoc gid2 nodes in
               match (G_node.get_position n1, G_node.get_position n2) with
-              | (Ordered i, Ordered j) -> Pervasives.compare i j
+              | (Some i, Some j) -> Pervasives.compare i j
               | _ -> 0
             )
             (Massoc_gid.fold (fun acc2 k _ -> k::acc2) [] nexts) in
@@ -1136,16 +1257,16 @@ module G_graph = struct
         | [] -> Error.bug "[G_graph.to_conll] mwe node with no next node"
         | head_gid::tail_gids ->
           let head_pos = match G_node.get_position (List.assoc head_gid snodes) with
-          | Ordered f -> int_of_float f
-          | _ -> Error.run "[G_graph.to_conll] nl_node going to Unordered node" in
+          | Some f -> int_of_float f
+          | None -> Error.run "[G_graph.to_conll] nl_node going to Unordered node" in
           let head_proj = CCList.find_map
             (fun e -> int_of_string_opt (G_edge.to_string ?domain e))
             (Massoc_gid.assoc head_gid nexts) in
           let items = List.fold_left
             (fun acc gid ->
               let pos = match G_node.get_position (List.assoc gid snodes) with
-              | Ordered f -> int_of_float f
-              | _ -> Error.run "[G_graph.to_conll] nl_node going to Unordered node" in
+              | Some f -> int_of_float f
+              | None -> Error.run "[G_graph.to_conll] nl_node going to Unordered node" in
                 let proj = CCList.find_map
                   (fun e -> int_of_string_opt (G_edge.to_string ?domain e))
                   (Massoc_gid.assoc gid nexts) in
@@ -1179,6 +1300,7 @@ module G_graph = struct
       mwes;
     }
 
+*)
   let to_conll_string ?cupt graph =
     let conll = to_conll graph in
     Conll.to_string ?cupt (Conll.normalize_multiwords conll)
@@ -1250,13 +1372,13 @@ module G_graph = struct
     let (arc_positions, pos_to_gid_map) =
       Gid_map.fold (fun src_gid src_node (acc, acc_map) ->
         match G_node.get_position src_node with
-        | G_node.Unordered _ -> (acc, acc_map)
-        | G_node.Ordered src_pos ->
+        | None -> (acc, acc_map)
+        | Some src_pos ->
           let new_acc = Massoc_gid.fold (fun acc2 tar_gid edge ->
             let tar_node = find tar_gid t in
               match G_node.get_position tar_node with
-              | G_node.Unordered _ -> acc2
-              | G_node.Ordered tar_pos -> (min src_pos tar_pos, max src_pos tar_pos) :: acc2
+              | None -> acc2
+              | Some tar_pos -> (min src_pos tar_pos, max src_pos tar_pos) :: acc2
           ) acc (G_node.get_next src_node) in
       (new_acc, Float_map.add src_pos src_gid acc_map)
     ) t.map ([], Float_map.empty) in
