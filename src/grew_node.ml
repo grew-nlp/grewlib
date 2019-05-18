@@ -21,7 +21,6 @@ open Grew_fs
 (* ================================================================================ *)
 module G_node = struct
   type sort =
-    | Conll_root
     | Ordered of float
     | Misc
 
@@ -68,7 +67,7 @@ module G_node = struct
   let set_prec id t = { t with prec = Some id }
   let remove_prec t = { t with prec = None }
 
-  let is_conll_root t = t.sort = Conll_root
+  let is_conll_root t = t.sort = Ordered 0.
 
   let shift user_id delta t =
     { t with
@@ -113,7 +112,7 @@ module G_node = struct
 
   let of_conll ?loc ?prec ?succ ?domain line =
     if line = Conll.root
-    then { empty with sort = Conll_root; succ; name = Some "ROOT" }
+    then { empty with sort = Ordered 0.; succ; name = Some "ROOT" }
     else { empty with
       fs = G_fs.of_conll ?loc ?domain line;
       sort = Ordered (float_of_conll_id line.Conll.id);
@@ -141,8 +140,6 @@ module G_node = struct
   let rm_out_edges t = {t with next = Massoc_gid.empty}
 
   let position_comp n1 n2 = match (n1.sort, n2.sort) with
-  | (Conll_root, Ordered _) -> -1
-  | (Ordered _, Conll_root) -> 1
   | (Ordered i, Ordered j) -> Pervasives.compare i j
   | _ -> 0
 
