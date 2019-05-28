@@ -37,6 +37,13 @@ module Grs = struct
     ast: Ast.grs;
   }
 
+  let empty = {
+    filename = "";
+    domain = None;
+    decls = [Strategy ("main", Ast.Seq [])];
+    ast = [];
+  }
+
   let rec decl_to_json ?domain = function
     | Rule r -> Rule.to_json ?domain r
     | Strategy (name, strat) -> `Assoc [("strat_name", `String name); ("strat_def", Ast.strat_to_json strat)]
@@ -71,7 +78,6 @@ module Grs = struct
     List.iter (dump_decl 0) t.decls;
     printf "================ Grs ================\n%!";
     ()
-
 
   let rec build_decl ?domain = function
   | Ast.Package (loc, name, decl_list) -> Package (name, List.map (build_decl ?domain) decl_list)

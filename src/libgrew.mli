@@ -120,6 +120,8 @@ end
 module Grs : sig
   type t
 
+  val empty: t
+
   val load: string -> t
 
   val dump: t -> unit

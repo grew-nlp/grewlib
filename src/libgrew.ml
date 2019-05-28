@@ -253,6 +253,8 @@ end
 module Grs = struct
   type t = Grew_grs.Grs.t
 
+  let empty = Grew_grs.Grs.empty
+
   let load file =
     Libgrew.handle ~name:"Grs.load" ~file
       (fun () ->

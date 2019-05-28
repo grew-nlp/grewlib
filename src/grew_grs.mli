@@ -20,6 +20,8 @@ open Grew_rule
 module Grs : sig
   type t
 
+  val empty: t
+
   val load: string  -> t
 
   val dump: t -> unit
@@ -27,7 +29,6 @@ module Grs : sig
   val to_json: t -> Yojson.Basic.t
   val domain: t -> Domain.t option
   val domain_build: Ast.domain -> Domain.t
-
 
   val get_strat_list: t -> string list
   val at_least_one: t -> string -> bool
