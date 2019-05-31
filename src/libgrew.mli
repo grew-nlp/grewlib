@@ -172,4 +172,5 @@ module Multigraph: sig
   val user_graph: string -> t -> Graph.t option
   val base_graph: t -> Graph.t
 
+  val graphs: t -> (string option * Graph.t) list
 end

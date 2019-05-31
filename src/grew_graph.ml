@@ -1611,10 +1611,14 @@ module Multigraph = struct
     then None
     else
       let full_graph = t.graph in
-      let new_map = Gid_map.filter
-        (fun gid node ->
-          G_fs.get_string_atom "user" (G_node.get_fs node) = Some user_id
-        ) full_graph.G_graph.map in
+      let new_map = Gid_map.fold
+        (fun gid node acc ->
+          let fs = G_node.get_fs node in
+          match (G_fs.get_string_atom "user" fs, G_fs.del_feat "user" fs) with
+          | (Some u, Some new_fs) when u = user_id -> Gid_map.add gid (G_node.set_fs new_fs node) acc
+          | _ -> acc
+        ) full_graph.G_graph.map Gid_map.empty in
+
       Some { full_graph with G_graph.map = new_map}
 
   let base_graph t =
@@ -1623,4 +1627,16 @@ module Multigraph = struct
         G_fs.get_string_atom "user" (G_node.get_fs node) = None
         ) t.graph.G_graph.map in
       { t.graph with G_graph.map = new_map}
+
+  let graphs t =
+    let base = base_graph t in
+    let user_graphs  = String_set.fold
+      (fun user_id acc ->
+        match user_graph user_id t with
+        | None -> acc
+        | Some g -> (Some user_id, g) :: acc
+      ) t.users [] in
+    if Gid_map.is_empty base.map
+    then user_graphs
+    else (None, base) :: user_graphs
 end

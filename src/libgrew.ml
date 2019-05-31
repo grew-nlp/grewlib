@@ -323,4 +323,6 @@ module Multigraph = struct
   let get_users = Grew_graph.Multigraph.get_users
   let user_graph = Grew_graph.Multigraph.user_graph
   let base_graph = Grew_graph.Multigraph.base_graph
+  let graphs = Grew_graph.Multigraph.graphs
+
 end

@@ -262,6 +262,15 @@ module Multigraph : sig
 
   val get_users: t -> Set.Make(String).t
 
+  (** [user_graph user_id t] returns the subgraph corresponding to the user *)
   val user_graph: string -> t -> G_graph.t option
+
   val base_graph: t -> G_graph.t
+
+  (** [graps t] returns the list of subgraphs: a subgraph can be:
+      (None, g) for nodes without "user" feature
+      (Some user_id, g) for other nodes, split by user_id *)
+  val graphs: t -> (string option * G_graph.t) list
+
+
 end
