@@ -163,7 +163,6 @@ module Multigraph: sig
 
   val empty: t
 
-  val init: Graph.t -> t
 
   val to_graph: t -> Graph.t
 
@@ -174,7 +173,6 @@ module Multigraph: sig
   val get_users: t -> Set.Make(String).t
 
   val user_graph: string -> t -> Graph.t option
-  val base_graph: t -> Graph.t
 
-  val graphs: t -> (string option * Graph.t) list
+  val graphs: t -> (string * Graph.t) list
 end

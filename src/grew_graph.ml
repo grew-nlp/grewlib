@@ -1592,8 +1592,6 @@ module Multigraph = struct
 
   let to_graph t = t.graph
 
-  let init graph = { graph; users = String_set.empty }
-
   let remove_layer user_id t =
     let new_map = Gid_map.filter
       (fun gid node ->
@@ -1632,22 +1630,12 @@ module Multigraph = struct
 
       Some { full_graph with G_graph.map = new_map}
 
-  let base_graph t =
-    let new_map = Gid_map.filter
-      (fun gid node ->
-        G_fs.get_string_atom "user" (G_node.get_fs node) = None
-        ) t.graph.G_graph.map in
-      { t.graph with G_graph.map = new_map}
-
   let graphs t =
-    let base = base_graph t in
-    let user_graphs  = String_set.fold
+    String_set.fold
       (fun user_id acc ->
         match user_graph user_id t with
         | None -> acc
-        | Some g -> (Some user_id, g) :: acc
-      ) t.users [] in
-    if Gid_map.is_empty base.map
-    then user_graphs
-    else (None, base) :: user_graphs
+        | Some g -> (user_id, g) :: acc
+      ) t.users []
+
 end

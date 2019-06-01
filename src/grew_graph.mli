@@ -254,7 +254,6 @@ module Multigraph : sig
   type t
 
   val empty: t
-  val init: G_graph.t -> t
 
   val to_graph: t -> G_graph.t
 
@@ -267,12 +266,7 @@ module Multigraph : sig
   (** [user_graph user_id t] returns the subgraph corresponding to the user *)
   val user_graph: string -> t -> G_graph.t option
 
-  val base_graph: t -> G_graph.t
-
-  (** [graps t] returns the list of subgraphs: a subgraph can be:
-      (None, g) for nodes without "user" feature
-      (Some user_id, g) for other nodes, split by user_id *)
-  val graphs: t -> (string option * G_graph.t) list
-
-
+  (** [graphs t] returns the list of subgraphs: a subgraph is:
+      (user_id, graph) split by user_id *)
+  val graphs: t -> (string * G_graph.t) list
 end

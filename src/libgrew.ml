@@ -317,13 +317,11 @@ module Multigraph = struct
   type t = Grew_graph.Multigraph.t
 
   let empty = Grew_graph.Multigraph.empty
-  let init = Grew_graph.Multigraph.init
   let to_graph = Grew_graph.Multigraph.to_graph
   let remove_layer = Grew_graph.Multigraph.remove_layer
   let add_layer = Grew_graph.Multigraph.add_layer
   let get_users = Grew_graph.Multigraph.get_users
   let user_graph = Grew_graph.Multigraph.user_graph
-  let base_graph = Grew_graph.Multigraph.base_graph
   let graphs = Grew_graph.Multigraph.graphs
 
 end
