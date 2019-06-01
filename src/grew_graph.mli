@@ -258,6 +258,8 @@ module Multigraph : sig
 
   val to_graph: t -> G_graph.t
 
+  val remove_layer: string -> t -> t
+
   val add_layer: string -> G_graph.t -> t -> t
 
   val get_users: t -> Set.Make(String).t

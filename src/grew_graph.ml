@@ -1594,15 +1594,26 @@ module Multigraph = struct
 
   let init graph = { graph; users = String_set.empty }
 
+  let remove_layer user_id t =
+    let new_map = Gid_map.filter
+      (fun gid node ->
+        G_fs.get_string_atom "user" (G_node.get_fs node) <> Some user_id
+      ) t.graph.map in
+    let new_graph = { t.graph with map = new_map } in
+    { graph = new_graph; users = String_set.remove user_id t.users }
+
   let add_layer user_id layer t =
-    if String_set.mem user_id t.users
-    then failwith "Not implemented: replace"
-    else
-      (* Shift the new layer to new gids *)
-      let shifted_layer = G_graph.shift user_id (t.graph.G_graph.highest_index + 1) layer in
-      let union_map = Gid_map.union (fun _ _ _ -> failwith "overlap") t.graph.map shifted_layer.G_graph.map in
-      let new_graph = { t.graph with map = union_map; highest_index = shifted_layer .highest_index } in
-      { graph = new_graph; users = String_set.add user_id t.users }
+    (* first remove old binding if any *)
+    let new_t =
+      if String_set.mem user_id t.users
+      then remove_layer user_id t
+      else t in
+
+    (* Shift the new layer to new gids *)
+    let shifted_layer = G_graph.shift user_id (new_t.graph.G_graph.highest_index + 1) layer in
+    let union_map = Gid_map.union (fun _ _ _ -> failwith "overlap") new_t.graph.map shifted_layer.G_graph.map in
+    let new_graph = { new_t.graph with map = union_map; highest_index = shifted_layer.highest_index } in
+    { graph = new_graph; users = String_set.add user_id new_t.users }
 
   let get_users t = t.users
 
