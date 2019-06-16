@@ -1147,14 +1147,14 @@ module Rule = struct
         let direct_items = List.map (fun (name, value) ->
           match Str.bounded_split (Str.regexp_string ".") value 2
           with
-            | [id; nam] ->
+            | [edge_id; efeat_name] ->
                 begin
-                  match List.assoc_opt id matching.e_match with
+                  match List.assoc_opt edge_id matching.e_match with
                   | None -> (name, value)
                   | Some (_,matched_edge,_) ->
-                    match G_edge.get_sub nam matched_edge with
+                    match G_edge.get_sub efeat_name matched_edge with
                       | Some new_value -> (name, new_value)
-                      | None -> Error.run "ADD_EDGE_ITEMS: no items named '%s' in matched node '%s'" nam id
+                      | None -> Error.run "ADD_EDGE_ITEMS: no items edge feature name '%s' in matched edge '%s'" efeat_name edge_id
                 end
             | _ -> (name, value)
         ) items in
@@ -1385,14 +1385,14 @@ module Rule = struct
         let direct_items = List.map (fun (name, value) ->
           match Str.bounded_split (Str.regexp_string ".") value 2
           with
-            | [id; nam] ->
+            | [edge_id; efeat_name] ->
                 begin
-                  match List.assoc_opt id matching.e_match with
+                  match List.assoc_opt edge_id matching.e_match with
                   | None -> (name, value)
                   | Some (_,matched_edge,_) ->
-                    match G_edge.get_sub nam matched_edge with
+                    match G_edge.get_sub efeat_name matched_edge with
                       | Some new_value -> (name, new_value)
-                      | None -> Error.run "ADD_EDGE_ITEMS: no items named '%s' in matched node '%s'" nam id
+                      | None -> Error.run "ADD_EDGE_ITEMS: no items edge feature name '%s' in matched edge '%s'" efeat_name edge_id
                 end
             | _ -> (name, value)
         ) items in

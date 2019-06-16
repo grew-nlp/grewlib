@@ -43,7 +43,7 @@ let letter = ['a'-'z' 'A'-'Z']
   The first characted cannot be a colon (to avoid confusion).
  *)
 let label_ident =
-  (letter | digit | '_' | '-' | '.' | '*') (letter | digit | '_' | '\'' | '-' | '.' | ':' | '*')*
+  (letter | digit | '_' | '-' | '.' | '*') (letter | digit | '_' | '\'' | '-' | '.' | ':' | '@' | '*')*
 
 let general_ident =
   (letter | '_' ) |

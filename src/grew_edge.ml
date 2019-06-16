@@ -26,17 +26,29 @@ module G_edge = struct
 
   exception Not_conll of string
 
+  let to_string_long edge = String.concat "," (List.map (fun (x,y) -> x^"="^y) edge)
+
+
   let to_conll ?domain edge =
-    let rec loop i acc = function
-      | [] -> acc
-      | [("kind","surf")] -> "S" :: acc
-      | [("kind","deep")] -> "D" :: acc
-      | [("kind","enhanced")] -> "E" :: acc
-      | (n,v)::t ->
-        if n = string_of_int i
-        then loop (i+1) (acc @ [v]) t
-        else raise (Not_conll (String.concat "," (List.map (fun (x,y) -> x^"="^y) edge))) in
-    String.concat ":" (loop 1 [] edge)
+    let prefix = match get_sub "kind" edge with
+    | None -> ""
+    | Some "surf" -> "S:"
+    | Some "deep" -> "D:"
+    | Some "enhanced" -> "E:"
+    | _ -> raise (Not_conll (to_string_long edge)) in
+    let suffix = match get_sub "deep" edge with
+    | Some s -> "@"^s
+    | None -> "" in
+    let infix_items = edge
+     |> (List_.sort_remove_assoc "kind")
+     |> (List_.sort_remove_assoc "deep") in
+    let core = CCList.mapi
+      (fun i (n,v) ->
+        if string_of_int(i+1) = n
+        then v
+        else raise (Not_conll (to_string_long edge))
+      ) infix_items in
+    prefix ^ (String.concat ":" core) ^ suffix
 
   let to_string ?domain edge =
     try to_conll ?domain edge
@@ -54,13 +66,17 @@ module G_edge = struct
     (fun i elt -> (string_of_int (i+1), elt)) l
 
   let from_string ?loc ?domain str =
-    let unsorted =
-      match Str.split (Str.regexp_string ":") str with
+    let (init, deep) = match Str.bounded_split (Str.regexp_string "@") str 2 with
+    | [i] -> (i, None)
+    | [i;d] -> (i, Some ("deep",d))
+    | _ -> assert false in
+    let before_deep =
+      match Str.split (Str.regexp_string ":") init with
       | "S" :: l -> ("kind","surf") :: (split l)
       | "D" :: l -> ("kind","deep") :: (split l)
       | "E" :: l -> ("kind","enhanced") :: (split l)
       | l -> split l in
-    List.sort (Pervasives.compare) unsorted
+    List.sort (Pervasives.compare) (CCList.cons_maybe deep before_deep)
 
   let to_json ?domain t = `String (to_string ?domain t)
 
