@@ -58,17 +58,20 @@ module Label_domain = struct
       else (name, styles) :: acc
     ) l1 l2
 
+  let no_domain_style string_label =
+    match Str.bounded_split (Str.regexp ":") string_label 2 with
+    | ["MWE"] -> {default with text="MWE"; color=Some "#1d7df2"; bottom=true;}
+    | ["1"] -> {default with text="1"; color=Some "#1d7df2"; bottom=true; line=Dot; }
+    | ["2"] -> {default with text="2"; color=Some "#1d7df2"; bottom=true; line=Dot; }
+    | ["NE"] -> {default with text="NE"; color=Some "#ff760b"; bottom=true;}
+    | ["S"; l] -> {default with text=l; color=Some "red"}
+    | ["D"; l] | ["E"; l] -> {default with text=l; color=Some "blue"; bottom=true}
+    | ["I"; l] -> {default with text=l; color=Some "grey"}
+    | _ -> {default with text=string_label}
+
   (** Computes the style of a label from its options and maybe its shape (like I:...). *)
   let parse_option string_label options =
-    let init_style = match Str.bounded_split (Str.regexp ":") string_label 2 with
-      | ["MWE"] -> {default with text="MWE"; color=Some "#1d7df2"; bottom=true;}
-      | ["1"] -> {default with text="1"; color=Some "#1d7df2"; bottom=true; line=Dot; }
-      | ["2"] -> {default with text="2"; color=Some "#1d7df2"; bottom=true; line=Dot; }
-      | ["NE"] -> {default with text="NE"; color=Some "#ff760b"; bottom=true;}
-      | ["S"; l] -> {default with text=l; color=Some "red"}
-      | ["D"; l] | ["E"; l] -> {default with text=l; color=Some "blue"; bottom=true}
-      | ["I"; l] -> {default with text=l; color=Some "grey"}
-      | _ -> {default with text=string_label} in
+    let init_style = no_domain_style string_label in
       List.fold_left
         (fun acc_style -> function
             | "@bottom" -> {acc_style with bottom=true}
@@ -309,5 +312,5 @@ module Domain = struct
   let label_to_dep ?domain ?deco label = match domain with
   | Some (Both (label_domain,_))
   | Some (Label label_domain) -> Label_domain.to_dep ?deco (Label_domain.get_style label_domain label)
-  | _ -> Label_domain.to_dep ?deco { Label_domain.default with text = label }
+  | _ -> Label_domain.to_dep (Label_domain.no_domain_style label)
 end
