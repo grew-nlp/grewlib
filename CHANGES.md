@@ -1,3 +1,9 @@
+# 1.3.0 (2019/06/24)
+  * Add support of "@alpha" extention in edges
+  * Add a default “empty.grs”
+  * Review ordering of node
+  * Add Multigraph management (for grew_server)
+
 ## 1.2.1 (2019/04/24)
   * Fix error in global pattern
 
