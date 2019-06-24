@@ -934,13 +934,16 @@ module G_graph = struct
         | Some word ->
       let (start, dur) = start_dur gnode in
       Printf.bprintf buff
-        "<span id=\"tok%d\" data-dur=\"%g\" data-begin=\"%g\" tabindex=\"0\" data-index=\"%d\" %s%s>%s </span>"
+        "<span id=\"tok%d\" data-dur=\"%g\" data-begin=\"%g\" tabindex=\"0\" data-index=\"%d\" %s>%s </span>"
         i dur start i
-        (if i=1 then "class=\"speaking highlight\"" else "")
-        (if is_highlighted_gid gid then "class=\"highlight\"" else "")
+        (match i, is_highlighted_gid gid with
+          | (1, true) -> "class=\"speaking highlight\""
+          | (1, false) -> "class=\"speaking\""
+          | (_, true) -> "class=\"highlight\""
+          | (_, false) -> ""
+        )
         word
     ) snodes;
-
   Buffer.contents buff
 
 
