@@ -35,7 +35,7 @@ module G_edge = struct
     | Some "surf" -> "S:"
     | Some "deep" -> "D:"
     | Some "enhanced" -> "E:"
-    | _ -> raise (Not_conll (to_string_long edge)) in
+    | Some c -> raise (Not_conll (sprintf "unknown kind '%s' in edge '%s'" c (to_string_long edge))) in
     let suffix = match get_sub "deep" edge with
     | Some s -> "@"^s
     | None -> "" in
@@ -46,7 +46,7 @@ module G_edge = struct
       (fun i (n,v) ->
         if string_of_int(i+1) = n
         then v
-        else raise (Not_conll (to_string_long edge))
+        else raise (Not_conll (sprintf "Cannot convert '%s'" (to_string_long edge)))
       ) infix_items in
     prefix ^ (String.concat ":" core) ^ suffix
 
