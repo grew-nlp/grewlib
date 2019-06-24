@@ -48,7 +48,7 @@ module Libgrew = struct
       | Grew_base.Error.Build (msg, None) -> raise (Error (sprintf "%s" msg))
       | Grew_base.Error.Run (msg, Some loc) -> raise (Error (sprintf "%s %s" (Grew_base.Loc.to_string loc) msg))
       | Grew_base.Error.Run (msg, None) -> raise (Error (sprintf "%s" msg))
-      | Conll_types.Error msg -> raise (Error (sprintf "Conll error: %s" (Yojson.Basic.to_string msg)))
+      | Conll_error msg -> raise (Error (sprintf "Conll error: %s" (Yojson.Basic.to_string msg)))
 
       | Grew_base.Error.Bug (msg, Some loc) -> raise (Bug (sprintf "%s %s" (Grew_base.Loc.to_string loc) msg))
       | Grew_base.Error.Bug (msg, None) -> raise (Bug (sprintf "%s" msg))
