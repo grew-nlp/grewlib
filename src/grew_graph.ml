@@ -260,6 +260,8 @@ module G_graph = struct
 
   let empty = { domain=None; meta=[]; map=Gid_map.empty; fusion=[]; highest_index=0; rules=String_map.empty; }
 
+  let is_empty t = Gid_map.is_empty t.map
+
   let get_domain t = t.domain
 
   let find node_id graph = Gid_map.find node_id graph.map
@@ -1040,6 +1042,7 @@ module G_graph = struct
   exception Skip
 
   let to_conll graph =
+
     let domain = get_domain graph in
 
     let ordered_nodes = Gid_map.fold
@@ -1141,20 +1144,6 @@ module G_graph = struct
       ) graph.map (1,Conll_types.Int_map.empty) in
 
     { Conll.void with Conll.meta = graph.meta; lines; mwes; }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 (*
 
@@ -1589,6 +1578,7 @@ module Multigraph = struct
   }
 
   let empty = { graph = G_graph.empty; users = String_set.empty }
+  let is_empty t = G_graph.is_empty t.graph
 
   let to_graph t = t.graph
 
@@ -1610,7 +1600,10 @@ module Multigraph = struct
     (* Shift the new layer to new gids *)
     let shifted_layer = G_graph.shift user_id (new_t.graph.G_graph.highest_index + 1) layer in
     let union_map = Gid_map.union (fun _ _ _ -> failwith "overlap") new_t.graph.map shifted_layer.G_graph.map in
-    let new_graph = { new_t.graph with map = union_map; highest_index = shifted_layer.highest_index } in
+    let new_graph =
+      if is_empty t
+      then { new_t.graph with map = union_map; highest_index = shifted_layer.highest_index; meta=layer.meta;  }
+      else { new_t.graph with map = union_map; highest_index = shifted_layer.highest_index } in
     { graph = new_graph; users = String_set.add user_id new_t.users }
 
   let get_users t = t.users
@@ -1638,4 +1631,14 @@ module Multigraph = struct
         | Some g -> (user_id, g) :: acc
       ) t.users []
 
+  let save out_ch t =
+    String_set.iter
+      (fun user_id ->
+        match user_graph user_id t with
+        | None -> ()
+        | Some g ->
+          fprintf out_ch "# user_id = %s\n%s\n"
+            user_id
+            (G_graph.to_conll_string g)
+      ) t.users
 end

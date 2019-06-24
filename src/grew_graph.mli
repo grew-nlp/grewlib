@@ -269,4 +269,6 @@ module Multigraph : sig
   (** [graphs t] returns the list of subgraphs: a subgraph is:
       (user_id, graph) split by user_id *)
   val graphs: t -> (string * G_graph.t) list
+
+  val save: out_channel -> t -> unit
 end

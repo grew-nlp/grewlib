@@ -175,4 +175,6 @@ module Multigraph: sig
   val user_graph: string -> t -> Graph.t option
 
   val graphs: t -> (string * Graph.t) list
+
+  val save: out_channel -> t -> unit
 end
