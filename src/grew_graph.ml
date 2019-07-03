@@ -1098,7 +1098,11 @@ module G_graph = struct
           ~feats: (G_fs.to_conll ~exclude: ["form"; "lemma"; "upos"; "xpos"; "position"] fs)
           ~deps
           ()
-     ) (List.tl sorted_nodes) in (* the first element in the Conll_root which must not be displayed *)
+      )
+      (match sorted_nodes with
+        | (_,h)::t when G_node.is_conll_root h -> t (* the first element in the Conll_root which must not be displayed *)
+        | l -> l
+      ) in
 
     let (_,mwes) = Gid_map.fold
       (fun _ node (num,acc) ->
