@@ -374,11 +374,11 @@ pat_item:
         | n1_loc=simple_id_with_loc LTR_EDGE_LEFT re=REGEXP LTR_EDGE_RIGHT n2=simple_id
             { let (n1,loc) = n1_loc in Pat_edge ({Ast.edge_id = None; src=n1; edge_label_cst=Ast.Regexp re; tar=n2}, loc) }
 
-        /*   A -[1=subj, 2]-> B   */
+        /*   A -[1=subj, 2=*, !3]-> B   */
         | n1_loc=simple_id_with_loc LTR_EDGE_LEFT atom_list = separated_nonempty_list(COMMA, label_atom) LTR_EDGE_RIGHT n2=simple_id
             { let (n1,loc) = n1_loc in Pat_edge ({Ast.edge_id = None; src=n1; edge_label_cst=Ast.Atom_list atom_list; tar=n2}, loc) }
 
-        /*   e:A -[1=subj, 2]-> B   */
+        /*   e:A -[1=subj, 2=*, !3]-> B   */
         | id_loc=simple_id_with_loc DDOT n1=simple_id LTR_EDGE_LEFT atom_list = separated_nonempty_list(COMMA, label_atom) LTR_EDGE_RIGHT n2=simple_id
             { let (id,loc) = id_loc in Pat_edge ({Ast.edge_id = Some id; src=n1; edge_label_cst=Ast.Atom_list atom_list; tar=n2}, loc) }
 
@@ -696,6 +696,10 @@ command:
           tar=simple_id
             { let (src,loc) = src_loc in (Ast.Shift_in (src, tar, Ast.Neg_list labels), loc) }
 
+        /*   shift_in m =[1=subj, 2=*, !3]=> n   */
+        | SHIFT_IN src_loc=simple_id_with_loc atom_list=delimited(ARROW_LEFT, separated_nonempty_list(COMMA, label_atom), ARROW_RIGHT) tar=simple_id
+            { let (src,loc) = src_loc in (Ast.Shift_in (src, tar, Ast.Atom_list atom_list), loc) }
+
         /*   shift_out m ==> n   */
         | SHIFT_OUT src_loc=simple_id_with_loc ARROW tar=simple_id
             { let (src,loc) = src_loc in (Ast.Shift_out (src, tar, Ast.Neg_list []), loc) }
@@ -712,6 +716,10 @@ command:
           tar=simple_id
             { let (src,loc) = src_loc in (Ast.Shift_out (src, tar, Ast.Neg_list labels), loc) }
 
+        /*   shift_out m =[1=subj, 2=*, !3]=> n   */
+        | SHIFT_OUT src_loc=simple_id_with_loc atom_list=delimited(ARROW_LEFT, separated_nonempty_list(COMMA, label_atom), ARROW_RIGHT) tar=simple_id
+            { let (src,loc) = src_loc in (Ast.Shift_out (src, tar, Ast.Atom_list atom_list), loc) }
+
         /*   shift m ==> n   */
         | SHIFT src_loc=simple_id_with_loc ARROW tar=simple_id
             { let (src,loc) = src_loc in (Ast.Shift_edge (src, tar, Ast.Neg_list []), loc) }
@@ -727,6 +735,10 @@ command:
           labels=delimited(ARROW_LEFT_NEG,separated_nonempty_list(PIPE,label_ident),ARROW_RIGHT)
           tar=simple_id
             { let (src,loc) = src_loc in (Ast.Shift_edge (src, tar, Ast.Neg_list labels), loc) }
+
+        /*   shift m =[1=subj, 2=*, !3]=> n   */
+        | SHIFT src_loc=simple_id_with_loc atom_list=delimited(ARROW_LEFT, separated_nonempty_list(COMMA, label_atom), ARROW_RIGHT) tar=simple_id
+            { let (src,loc) = src_loc in (Ast.Shift_edge (src, tar, Ast.Atom_list atom_list), loc) }
 
         /*   del_node n   */
         | DEL_NODE ci_loc=simple_id_with_loc
