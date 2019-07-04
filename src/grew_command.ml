@@ -48,12 +48,14 @@ module Command  = struct
   type p =
     | DEL_NODE of command_node
     | DEL_EDGE_EXPL of (command_node * command_node * G_edge.t)
-    | DEL_EDGE_NAME of string
+    | DEL_EDGE_NAME of string (* edge identifier *)
     | ADD_EDGE of (command_node * command_node * G_edge.t)
     | ADD_EDGE_EXPL of (command_node * command_node * string)
     | ADD_EDGE_ITEMS of (command_node * command_node * (string * string) list)
     | DEL_FEAT of (command_node * string)
+    | DEL_EDGE_FEAT of string (* edge identifier *)
     | UPDATE_FEAT of (command_node * string * item list)
+    | UPDATE_EDGE_FEAT of (string * string * string) (* edge identifier, feat_name, new_value *)
     (* *)
     | NEW_NODE of string
     | NEW_BEFORE of (string * command_node)
@@ -152,6 +154,8 @@ module Command  = struct
           ("label_cst", Label_cst.to_json ?domain label_cst);
         ]
       )]
+  | UPDATE_EDGE_FEAT (edge_id, feat_name, s) -> failwith "TODO"
+  | DEL_EDGE_FEAT _ -> failwith "TODO"
 
   let build ?domain lexicons (kni, kei) table ast_command =
     (* kni stands for "known node idents", kei for "known edge idents" *)
@@ -235,37 +239,56 @@ module Command  = struct
           check_node_id loc node_n kni;
           ((DEL_NODE (cn_of_node_id node_n), loc), (List_.rm node_n kni, kei))
 
-      | (Ast.Del_feat (node_id, feat_name), loc) ->
+      | (Ast.Del_feat (node_or_edge_id, feat_name), loc) ->
           if feat_name = "position"
           then Error.build ~loc "Illegal del_feat command: the 'position' feature cannot be deleted";
-          check_node_id loc node_id kni;
-          Domain.check_feature_name ~loc ?domain feat_name;
-          ((DEL_FEAT (cn_of_node_id node_id, feat_name), loc), (kni, kei))
+          begin
+            match (List.mem node_or_edge_id kni, List.mem node_or_edge_id kei) with
+            | (true, false) ->
+              Domain.check_feature_name ~loc ?domain feat_name;
+              ((DEL_FEAT (cn_of_node_id node_or_edge_id, feat_name), loc), (kni, kei))
+            | (false, true) ->
+              ((DEL_EDGE_FEAT node_or_edge_id, loc), (kni, kei))
+            | _ -> Error.build ~loc "Unknwon identifier \"%s\"" node_or_edge_id
+          end
 
-      | (Ast.Update_feat ((node_id, feat_name), ast_items), loc) ->
-          check_node_id loc node_id kni;
-          let items = List.map
-            (function
-              | Ast.Qfn_or_lex_item (node_id_or_lex,feature_name_or_lex_field) ->
-                if List.mem_assoc node_id_or_lex lexicons
-                then
-                  begin
-                    Lexicons.check ~loc node_id_or_lex feature_name_or_lex_field lexicons;
-                    Lexical_field (node_id_or_lex, feature_name_or_lex_field)
-                  end
-                else
-                  begin
-                    check_node_id_msg loc ("Unbound identifier (neither a node nor a lexicon):") node_id_or_lex kni;
-                    Domain.check_feature_name ~loc ?domain feature_name_or_lex_field;
-                    Feat (cn_of_node_id node_id_or_lex, feature_name_or_lex_field)
-                  end
-              | Ast.String_item s -> String s
-            ) ast_items in
-            (* check for consistency *)
-            (match items with
-              | _ when Domain.is_open_feature ?domain feat_name -> ()
-              | [String s] -> Domain.check_feature ~loc ?domain feat_name s
-              | _ -> ());
-          ((UPDATE_FEAT (cn_of_node_id node_id, feat_name, items), loc), (kni, kei))
+      | (Ast.Update_feat ((node_or_edge_id, feat_name), ast_items), loc) ->
+          begin
+            match (List.mem node_or_edge_id kni, List.mem node_or_edge_id kei) with
+            | (true, false) ->
+              let items = List.map
+                (function
+                  | Ast.Qfn_or_lex_item (node_id_or_lex,feature_name_or_lex_field) ->
+                  if List.mem_assoc node_id_or_lex lexicons
+                  then
+                    begin
+                      Lexicons.check ~loc node_id_or_lex feature_name_or_lex_field lexicons;
+                      Lexical_field (node_id_or_lex, feature_name_or_lex_field)
+                    end
+                  else
+                    begin
+                      check_node_id_msg loc ("Unbound identifier (neither a node nor a lexicon):") node_id_or_lex kni;
+                      Domain.check_feature_name ~loc ?domain feature_name_or_lex_field;
+                      Feat (cn_of_node_id node_id_or_lex, feature_name_or_lex_field)
+                    end
+                  | Ast.String_item s -> String s
+                ) ast_items in
+                (* check for consistency *)
+                begin
+                  match items with
+                    | _ when Domain.is_open_feature ?domain feat_name -> ()
+                    | [String s] -> Domain.check_feature ~loc ?domain feat_name s
+                    | _ -> ()
+                  end;
+                  ((UPDATE_FEAT (cn_of_node_id node_or_edge_id, feat_name, items), loc), (kni, kei))
+            | ( false, true) ->
+              begin
+                match ast_items with
+                | [Ast.String_item s] -> ((UPDATE_EDGE_FEAT (node_or_edge_id, feat_name, s), loc), (kni, kei))
+                | _ -> Error.build ~loc "Unknwon identifier \"%s\"" node_or_edge_id
+              end
+            | _ -> Error.build ~loc "Unknwon identifier \"%s\"" node_or_edge_id
+          end
+
 
 end (* module Command *)

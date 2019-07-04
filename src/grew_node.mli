@@ -56,6 +56,7 @@ module G_node: sig
   val is_conll_root: t -> bool
 
   val remove_edge: Gid.t -> G_edge.t -> t -> t option
+  val update_edge: Gid.t -> G_edge.t -> string -> string -> t -> (t * G_edge.t) option
 
   val remove_key: Gid.t -> t -> t
 

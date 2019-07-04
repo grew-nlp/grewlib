@@ -1186,6 +1186,18 @@ module Rule = struct
             | Some new_graph -> (new_graph, created_nodes, true)
           )
 
+    | Command.DEL_EDGE_FEAT _ -> failwith "Not implemented DEL_EDGE_FEAT in [onf_apply_command]"
+
+    | Command.UPDATE_EDGE_FEAT (edge_ident, feat_name, new_value) ->
+        let (src_gid,edge,tar_gid) =
+          try List.assoc edge_ident matching.e_match
+          with Not_found -> Error.bug "The edge identifier '%s' is undefined %s" edge_ident (Loc.to_string loc) in
+          (match G_graph.update_edge ~edge_ident loc graph (src_gid,edge,tar_gid) feat_name new_value with
+            | None when !Global.safe_commands -> Error.run "UPDATE_EDGE_FEAT: no changes %s" edge_ident (Loc.to_string loc)
+            | None -> (graph, created_nodes, eff)
+            | Some (new_graph,_) -> (new_graph, created_nodes, true)
+          )
+
     | Command.DEL_NODE node_cn ->
         let node_gid = node_find node_cn in
         (match G_graph.del_node graph node_gid with
@@ -1498,6 +1510,23 @@ module Rule = struct
           }
         )
 
+    | Command.UPDATE_EDGE_FEAT (edge_ident, feat_name, new_value) ->
+        let (src_gid,old_edge,tar_gid) =
+          try List.assoc edge_ident matching.e_match
+          with Not_found -> Error.bug "The edge identifier '%s' is undefined %s" edge_ident (Loc.to_string loc) in
+          (match G_graph.update_edge ~edge_ident loc gwh.Graph_with_history.graph (src_gid,old_edge,tar_gid) feat_name new_value with
+            | None when !Global.safe_commands -> Error.run ~loc "UPDATE_EDGE_FEAT: no changes %s" edge_ident
+            | None -> Graph_with_history_set.singleton gwh
+            | Some (new_graph, new_edge) ->
+            Graph_with_history_set.singleton { gwh with
+              Graph_with_history.graph = new_graph;
+              delta = gwh.Graph_with_history.delta
+              |> Delta.del_edge src_gid old_edge tar_gid
+              |> Delta.add_edge src_gid new_edge tar_gid
+            }
+          )
+
+
     | Command.SHIFT_IN (src_cn,tar_cn,label_cst) ->
         let src_gid = node_find src_cn in
         let tar_gid = node_find tar_cn in
@@ -1556,6 +1585,7 @@ module Rule = struct
             Graph_with_history.graph = new_graph;
             added_gids = (created_name, new_gid) :: gwh.Graph_with_history.added_gids
           }
+    | Command.DEL_EDGE_FEAT _ -> failwith "Not implemented DEL_EDGE_FEAT in [gwh_apply_command]"
 
   (*  ---------------------------------------------------------------------- *)
   (** [apply_rule graph_with_history matching rule] returns a new graph_with_history after the application of the rule *)

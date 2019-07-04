@@ -302,7 +302,7 @@ module Rewrite = struct
   let set_timeout t = Grew_base.Timeout.timeout := t
 
   let simple_rewrite ~gr ~grs ~strat =
-    Libgrew.handle ~name:"Rewrite.simple_rewrite" (fun () -> Grew_grs.Grs.gwh_simple_rewrite grs strat gr) ()
+    Libgrew.handle ~name:"Rewrite.simple_rewrite" (fun () -> Grew_grs.Grs.simple_rewrite grs strat gr) ()
 
   let at_least_one ~grs ~strat =
     Libgrew.handle ~name:"Rewrite.at_least_one" (fun () -> Grew_grs.Grs.at_least_one grs strat) ()

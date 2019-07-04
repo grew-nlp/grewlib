@@ -192,7 +192,7 @@ module Grs = struct
 
 
   (* return true if strat always return at least one graph *)
-  let at_least_one grs strat =
+  let at_least_one grs strat_string =
     let rec loop pointed strat =
       match strat with
       | Ast.Ref strat_name ->
@@ -211,10 +211,10 @@ module Grs = struct
       | Ast.Iter _ -> true
       | Ast.If (_,s1, s2) -> (loop pointed s1) && (loop pointed s2)
       | Ast.Try (s) -> loop pointed s in
-    loop (top grs) (Parser.strategy strat)
+    loop (top grs) (Parser.strategy strat_string)
 
   (* return true if strat always return at most one graph *)
-  let at_most_one grs strat =
+  let at_most_one grs strat_string =
     let rec loop pointed strat =
       match strat with
       | Ast.Ref strat_name ->
@@ -234,7 +234,38 @@ module Grs = struct
       | Ast.Iter s -> loop pointed s
       | Ast.If (_,s1, s2) -> (loop pointed s1) || (loop pointed s2)
       | Ast.Try (s) -> loop pointed s in
-    loop (top grs) (Parser.strategy strat)
+    loop (top grs) (Parser.strategy strat_string)
+
+  let is_without_history grs strat_string =
+    let rec loop pointed strat =
+      match strat with
+      | Ast.Onf (Ast.Ref strat_name) ->
+        begin
+          let path = Str.split (Str.regexp "\\.") strat_name in
+          match search_from pointed path with
+          | None -> Error.build "cannot find strat %s" strat_name
+          | Some (Rule _,_)
+          | Some (Package _, _) -> true
+          | Some (Strategy (_,ast_strat), new_pointed) -> loop new_pointed ast_strat
+        end
+      | Ast.Ref strat_name ->
+        begin
+          let path = Str.split (Str.regexp "\\.") strat_name in
+          match search_from pointed path with
+          | None -> Error.build "cannot find strat %s" strat_name
+          | Some (Rule _,_)
+          | Some (Package _, _) -> false
+          | Some (Strategy (_,ast_strat), new_pointed) -> loop new_pointed ast_strat
+        end
+      | Ast.Pick s -> loop pointed s
+      | Ast.Onf s -> loop pointed s
+      | Ast.Alt [one] -> loop pointed one
+      | Ast.Alt _ -> false
+      | Ast.Seq l -> List.for_all (fun s -> loop pointed s) l
+      | Ast.Iter s -> false
+      | Ast.If (_,s1, s2) -> (loop pointed s1) || (loop pointed s2)
+      | Ast.Try (s) -> loop pointed s in
+    loop (top grs) (Parser.strategy strat_string)
 
 
 
@@ -242,7 +273,7 @@ module Grs = struct
   (* Rewriting in the deterministic case with graph type *)
   (* ============================================================================================= *)
 
-  (* apply a package to an graph = apply only top level rules in the package *)
+  (* apply a package to a graph = apply only top level rules in the package *)
   let onf_pack_rewrite ?domain decl_list graph =
     let rec loop = function
       | [] -> None
@@ -254,9 +285,13 @@ module Grs = struct
       | _ :: tail_decl -> loop tail_decl in
       loop decl_list
 
+      (* one step or until normal_form *)
+      (* 3 values: Zero | Id | New_graph g *)
+
   let rec onf_intern_simple_rewrite ?domain pointed strat_name graph =
+    (* printf "===== onf_intern_simple_rewrite ==== %s\n%!" strat_name; *)
     let path = Str.split (Str.regexp "\\.") strat_name in
-    match search_from pointed path with
+      match search_from pointed path with
     | None -> Error.build "Simple rewrite, cannot find strat %s" strat_name
     | Some (Rule r,_) -> Rule.onf_apply ?domain r graph
     | Some (Package (_, decl_list), _) -> onf_pack_rewrite ?domain decl_list graph
@@ -433,7 +468,7 @@ module Grs = struct
         ) first_strat Graph_with_history_set.empty
 
     | Ast.Iter s -> iter_gwh ?domain pointed s gwh
-    | Ast.Onf s -> Graph_with_history_set.singleton (owh_rewrite ?domain pointed strat gwh)
+    | Ast.Onf s ->  Graph_with_history_set.singleton (owh_rewrite ?domain pointed strat gwh)
 
     | Ast.Try strat ->
       begin
@@ -480,17 +515,25 @@ module Grs = struct
       loop (Graph_with_history_set.singleton gwh, Graph_with_history_set.empty, Graph_with_history_set.empty)
 
   (* ============================================================================================= *)
-  let gwh_simple_rewrite grs strat_string graph =
+  let gwh_simple_rewrite grs strat graph =
     Rule.reset_rules ();
     Timeout.start ();
     let domain = domain grs in
     let casted_graph = G_graph.cast ?domain graph in
-    let strat = Parser.strategy strat_string in
     let gwh = Graph_with_history.from_graph casted_graph in
     let set = gwh_strat_simple_rewrite ?domain (top grs) strat gwh in
     List.map
       (fun gwh -> gwh.Graph_with_history.graph)
       (Graph_with_history_set.elements set)
+
+  (* ============================================================================================= *)
+  let simple_rewrite grs strat_string graph =
+    let strat = Parser.strategy strat_string in
+    if (* is_without_history grs strat_string *) false
+    then (printf "ONF\n%!"; [onf_rewrite (top grs) strat graph])
+    else (printf "RWH\n%!"; gwh_simple_rewrite grs strat graph)
+
+
 
 
   (* ============================================================================================= *)

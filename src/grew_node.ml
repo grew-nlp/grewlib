@@ -134,6 +134,15 @@ module G_node = struct
     | Some new_next -> Some {t with next = new_next}
     | None -> None
 
+  let update_edge gid_tar old_edge feat_name new_value t =
+    let new_edge = G_edge.update feat_name new_value old_edge in
+    if new_edge = old_edge
+    then None
+    else
+      match Massoc_gid.add_opt gid_tar new_edge (Massoc_gid.remove gid_tar old_edge t.next) with
+      | Some new_next -> Some ({t with next = new_next }, new_edge)
+      | None -> None
+
   let remove_key node_id t =
     try {t with next = Massoc_gid.remove_key node_id t.next} with Not_found -> t
 

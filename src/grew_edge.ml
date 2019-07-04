@@ -28,6 +28,11 @@ module G_edge = struct
 
   let to_string_long edge = String.concat "," (List.map (fun (x,y) -> x^"="^y) edge)
 
+  let rec update feat_name new_value = function
+  | [] -> [(feat_name, new_value)]
+  | (fn,fv)::t when feat_name < fn -> (feat_name, new_value) :: (fn,fv) :: t
+  | (fn,fv)::t when feat_name = fn -> (feat_name, new_value) :: t
+  | x::t -> x :: (update feat_name new_value t)
 
   let to_conll ?domain edge =
     let prefix = match get_sub "kind" edge with
