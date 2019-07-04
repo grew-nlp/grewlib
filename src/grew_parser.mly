@@ -426,6 +426,15 @@ pat_item:
         | STAR labels=delimited(LTR_EDGE_LEFT_NEG,separated_nonempty_list(PIPE,label_ident),LTR_EDGE_RIGHT) n2_loc=simple_id_with_loc
             { let (n2,loc) = n2_loc in Pat_const (Ast.Cst_in (n2,Ast.Neg_list labels), loc) }
 
+        /*   A -[1=subj, 2=*, !3]-> *   */
+        | n1_loc=simple_id_with_loc atom_list = delimited(LTR_EDGE_LEFT, separated_nonempty_list(COMMA, label_atom), LTR_EDGE_RIGHT) STAR
+            { let (n1,loc) = n1_loc in Pat_const (Ast.Cst_out (n1,Ast.Atom_list atom_list), loc) }
+
+        /*   * -[1=subj, 2=*, !3]-> B   */
+        | STAR atom_list=delimited(LTR_EDGE_LEFT,separated_nonempty_list(COMMA, label_atom),LTR_EDGE_RIGHT) n2_loc=simple_id_with_loc
+            { let (n2,loc) = n2_loc in Pat_const (Ast.Cst_in (n2,Ast.Atom_list atom_list), loc) }
+
+
         /* =================================== */
         /* other constraints                   */
         /* =================================== */
