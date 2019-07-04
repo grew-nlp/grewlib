@@ -1,3 +1,8 @@
+## 1.3.1 (2019/07/04)
+  * add constraints with features in edges
+  * add shift commands with features in edges
+  * add UPDATE_EDGE_FEAT handling
+
 # 1.3.0 (2019/06/24)
   * Add support of "@alpha" extention in edges
   * Add a default “empty.grs”
