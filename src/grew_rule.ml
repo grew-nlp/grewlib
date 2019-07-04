@@ -524,6 +524,24 @@ module Rule = struct
     Buffer.contents buff
 
   (* ====================================================================== *)
+  (* NOTE: if there is more than one command e.x1=y1 and e.x2=y2 in the same rule,
+  the second one does not apply properly. All commands "update_feat_edge" refering to
+  the same identifier are merge into one with the following function *)
+  let merge_update_feat_edge command_list =
+    let rec loop = function
+    | [] -> []
+    | (Command.UPDATE_EDGE_FEAT (id, update_list), loc) :: tail ->
+      let rec harvest = function
+      | [] -> ([], [])
+      | (Command.UPDATE_EDGE_FEAT (id2, update_list2), _) :: tail2 when id = id2 ->
+        let (ul, tt) = harvest tail2 in
+        (update_list2 @ ul, tt)
+      | x::t -> let (ul, tt) = harvest t in (ul, x::tt) in
+      let (new_update_list, new_tail) = harvest tail in
+      (Command.UPDATE_EDGE_FEAT (id, update_list @ new_update_list), loc) :: new_tail
+    | x::t -> x::(loop t)
+    in loop command_list
+
   let build_commands ?domain lexicons pos pos_table ast_commands =
     let known_node_ids = Array.to_list pos_table in
     let known_edge_ids = get_edge_ids pos in
@@ -539,7 +557,7 @@ module Rule = struct
               pos_table
               ast_command in
           command :: (loop (new_kni,new_kei) tail) in
-    loop (known_node_ids, known_edge_ids) ast_commands
+    merge_update_feat_edge (loop (known_node_ids, known_edge_ids) ast_commands)
 
   let build_lex loc = function
   | Ast.File filename ->
@@ -636,7 +654,7 @@ module Rule = struct
 
   let e_comp (e1,_) (e2,_) = compare e1 e2
 
-  let e_match_add ?pos edge_id matching =
+  let e_match_add edge_id matching =
     match List_.usort_insert ~compare:e_comp edge_id matching.e_match with
     | Some new_e_match -> { matching with e_match = new_e_match }
     | None -> Error.bug "The edge identifier '%s' is binded twice in the same pattern" (fst edge_id)
@@ -1188,11 +1206,11 @@ module Rule = struct
 
     | Command.DEL_EDGE_FEAT _ -> failwith "Not implemented DEL_EDGE_FEAT in [onf_apply_command]"
 
-    | Command.UPDATE_EDGE_FEAT (edge_ident, feat_name, new_value) ->
+    | Command.UPDATE_EDGE_FEAT (edge_ident, update_list) ->
         let (src_gid,edge,tar_gid) =
           try List.assoc edge_ident matching.e_match
           with Not_found -> Error.bug "The edge identifier '%s' is undefined %s" edge_ident (Loc.to_string loc) in
-          (match G_graph.update_edge ~edge_ident loc graph (src_gid,edge,tar_gid) feat_name new_value with
+          (match G_graph.update_edge ~edge_ident loc graph (src_gid,edge,tar_gid) update_list with
             | None when !Global.safe_commands -> Error.run "UPDATE_EDGE_FEAT: no changes %s" edge_ident (Loc.to_string loc)
             | None -> (graph, created_nodes, eff)
             | Some (new_graph,_) -> (new_graph, created_nodes, true)
@@ -1510,11 +1528,11 @@ module Rule = struct
           }
         )
 
-    | Command.UPDATE_EDGE_FEAT (edge_ident, feat_name, new_value) ->
+    | Command.UPDATE_EDGE_FEAT (edge_ident, update_list) ->
         let (src_gid,old_edge,tar_gid) =
           try List.assoc edge_ident matching.e_match
           with Not_found -> Error.bug "The edge identifier '%s' is undefined %s" edge_ident (Loc.to_string loc) in
-          (match G_graph.update_edge ~edge_ident loc gwh.Graph_with_history.graph (src_gid,old_edge,tar_gid) feat_name new_value with
+          (match G_graph.update_edge ~edge_ident loc gwh.Graph_with_history.graph (src_gid,old_edge,tar_gid) update_list with
             | None when !Global.safe_commands -> Error.run ~loc "UPDATE_EDGE_FEAT: no changes %s" edge_ident
             | None -> Graph_with_history_set.singleton gwh
             | Some (new_graph, new_edge) ->
@@ -1525,7 +1543,6 @@ module Rule = struct
               |> Delta.add_edge src_gid new_edge tar_gid
             }
           )
-
 
     | Command.SHIFT_IN (src_cn,tar_cn,label_cst) ->
         let src_gid = node_find src_cn in

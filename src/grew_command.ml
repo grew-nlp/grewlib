@@ -55,7 +55,7 @@ module Command  = struct
     | DEL_FEAT of (command_node * string)
     | DEL_EDGE_FEAT of string (* edge identifier *)
     | UPDATE_FEAT of (command_node * string * item list)
-    | UPDATE_EDGE_FEAT of (string * string * string) (* edge identifier, feat_name, new_value *)
+    | UPDATE_EDGE_FEAT of (string * (string * string) list) (* edge_identifier, (feat_name, new_value) list *)
     (* *)
     | NEW_NODE of string
     | NEW_BEFORE of (string * command_node)
@@ -154,7 +154,7 @@ module Command  = struct
           ("label_cst", Label_cst.to_json ?domain label_cst);
         ]
       )]
-  | UPDATE_EDGE_FEAT (edge_id, feat_name, s) -> failwith "TODO"
+  | UPDATE_EDGE_FEAT _ -> failwith "TODO"
   | DEL_EDGE_FEAT _ -> failwith "TODO"
 
   let build ?domain lexicons (kni, kei) table ast_command =
@@ -281,10 +281,10 @@ module Command  = struct
                     | _ -> ()
                   end;
                   ((UPDATE_FEAT (cn_of_node_id node_or_edge_id, feat_name, items), loc), (kni, kei))
-            | ( false, true) ->
+            | (false, true) ->
               begin
                 match ast_items with
-                | [Ast.String_item s] -> ((UPDATE_EDGE_FEAT (node_or_edge_id, feat_name, s), loc), (kni, kei))
+                | [Ast.String_item s] -> ((UPDATE_EDGE_FEAT (node_or_edge_id, [feat_name, s]), loc), (kni, kei))
                 | _ -> Error.build ~loc "Unknwon identifier \"%s\"" node_or_edge_id
               end
             | _ -> Error.build ~loc "Unknwon identifier \"%s\"" node_or_edge_id

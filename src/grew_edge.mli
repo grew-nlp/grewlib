@@ -38,7 +38,8 @@ module G_edge: sig
 
   val build: ?domain:Domain.t -> Ast.edge -> t
 
-  val update: string -> string -> t -> t
+  (** apply a list of updates of the shape (feat_name, new_feat_value). *)
+  val update: (string * string) list -> t -> t
 end (* module G_edge *)
 
 

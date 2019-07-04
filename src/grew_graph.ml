@@ -566,14 +566,14 @@ module G_graph = struct
     }
 
 
-  let update_edge ?edge_ident loc graph (src_gid,edge,tar_gid) feat_name new_value =
+  let update_edge ?edge_ident loc graph (src_gid,edge,tar_gid) update_list =
     let node_src =
       try Gid_map.find src_gid graph.map
         with Not_found ->
           match edge_ident with
             | None -> Log.fcritical "[RUN] Some edge refers to a dead node, please report"
             | Some id -> Error.run ~loc "[Graph.update_edge] cannot find source node of edge \"%s\"" id in
-    match G_node.update_edge tar_gid edge feat_name new_value node_src with
+    match G_node.update_edge tar_gid edge update_list node_src with
     | Some (new_node, new_edge) -> Some ({graph with map = Gid_map.add src_gid new_node graph.map}, new_edge)
     | None -> None
 
