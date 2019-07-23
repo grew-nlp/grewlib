@@ -96,7 +96,15 @@ module Command  = struct
         ]
       )]
 
-  | ADD_EDGE_ITEMS _ -> failwith "TODO"
+  | ADD_EDGE_ITEMS (src, tar, items) ->
+      `Assoc [("add_edge_items",
+        `Assoc [
+          ("src",command_node_to_json src);
+          ("tar",command_node_to_json tar);
+          ("items", `List (List.map (fun (efn,efv) -> `Assoc [("edge_feature_name",`String efn); ("edge_feature_value", `String efv)]) items));
+        ]
+      )]
+
   | DEL_FEAT (cn, feature_name) ->
     `Assoc [("del_feat",
       `Assoc [
@@ -154,8 +162,20 @@ module Command  = struct
           ("label_cst", Label_cst.to_json ?domain label_cst);
         ]
       )]
-  | UPDATE_EDGE_FEAT (edge_id, feat_name, s) -> failwith "TODO"
-  | DEL_EDGE_FEAT _ -> failwith "TODO"
+  | UPDATE_EDGE_FEAT (edge_id, feat_name, s) ->
+      `Assoc [("update_edge_feat",
+        `Assoc [
+          ("edge_id", `String edge_id);
+          ("feat_name", `String feat_name);
+          ("feat_value", `String s);
+        ]
+      )]
+  | DEL_EDGE_FEAT edge_id ->
+      `Assoc [("del_edge_feat",
+        `Assoc [
+          ("edge_id", `String edge_id)
+        ]
+      )]
 
   let build ?domain lexicons (kni, kei) table ast_command =
     (* kni stands for "known node idents", kei for "known edge idents" *)

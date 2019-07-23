@@ -530,11 +530,8 @@ module Grs = struct
   let simple_rewrite grs strat_string graph =
     let strat = Parser.strategy strat_string in
     if (* is_without_history grs strat_string *) false
-    then (printf "ONF\n%!"; [onf_rewrite (top grs) strat graph])
-    else (printf "RWH\n%!"; gwh_simple_rewrite grs strat graph)
-
-
-
+    then [onf_rewrite (top grs) strat graph]
+    else gwh_simple_rewrite grs strat graph
 
   (* ============================================================================================= *)
   (* production of rew_display of linear rewriting history for GUI *)

@@ -243,9 +243,12 @@ module Graph_with_history : sig
     delta: Delta.t;
     graph: G_graph.t;
     added_gids: (string * Gid.t) list;
+    e_mapping: (Gid.t * G_edge.t * Gid.t) String_map.t;
   }
 
   val from_graph: G_graph.t -> t
+
+  val init_e_mapping: (string * (Gid.t * G_edge.t * Gid.t)) list -> t -> t
 
   val compare: t -> t -> int
 end (* module Graph_with_history *)
