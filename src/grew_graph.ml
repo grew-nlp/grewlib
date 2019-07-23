@@ -565,17 +565,13 @@ module G_graph = struct
       rules = String_map.empty;
     }
 
-
-  let update_edge ?edge_ident loc graph (src_gid,edge,tar_gid) feat_name new_value =
-    let node_src =
-      try Gid_map.find src_gid graph.map
-        with Not_found ->
-          match edge_ident with
-            | None -> Log.fcritical "[RUN] Some edge refers to a dead node, please report"
-            | Some id -> Error.run ~loc "[Graph.update_edge] cannot find source node of edge \"%s\"" id in
-    match G_node.update_edge tar_gid edge feat_name new_value node_src with
-    | Some (new_node, new_edge) -> Some ({graph with map = Gid_map.add src_gid new_node graph.map}, new_edge)
-    | None -> None
+  let update_edge_feature ?loc edge_id feat_name new_value (src_gid,edge,tar_gid) graph =
+    match Gid_map.find_opt src_gid graph.map with
+    | None -> Error.run ?loc "[Graph.update_edge_feature] cannot find source node of edge \"%s\"" edge_id
+    | Some src_node ->
+      match G_node.update_edge tar_gid edge feat_name new_value src_node with
+      | Some (new_node, new_edge) -> Some ({graph with map = Gid_map.add src_gid new_node graph.map}, new_edge)
+      | None -> None
 
   let del_edge_feature ?loc edge_id feat_name (src_gid,edge,tar_gid) graph =
     match Gid_map.find_opt src_gid graph.map with
@@ -586,16 +582,14 @@ module G_graph = struct
       | None -> None
 
   (* -------------------------------------------------------------------------------- *)
-  let del_edge ?edge_ident loc graph id_src label id_tar =
-    let node_src =
-      try Gid_map.find id_src graph.map
-      with Not_found ->
-        match edge_ident with
-          | None -> Log.fcritical "[RUN] Some edge refers to a dead node, please report"
-          | Some id -> Error.run ~loc "[Graph.del_edge] cannot find source node of edge \"%s\"" id in
-    match G_node.remove_edge id_tar label node_src with
-    | None -> None
-    | Some new_node -> Some {graph with map = Gid_map.add id_src new_node graph.map}
+  let del_edge ?loc src_gid label tar_gid graph =
+    match Gid_map.find_opt src_gid graph.map with
+    | None -> Log.fcritical ?loc "[RUN] Some edge refers to a dead node, please report"
+    | Some src_node ->
+      match G_node.remove_edge tar_gid label src_node with
+      | None -> None
+      | Some new_node -> Some {graph with map = Gid_map.add src_gid new_node graph.map}
+
 
   (* -------------------------------------------------------------------------------- *)
   let del_node graph node_id =
