@@ -248,8 +248,6 @@ module Graph_with_history : sig
 
   val from_graph: G_graph.t -> t
 
-  val init_e_mapping: (string * (Gid.t * G_edge.t * Gid.t)) list -> t -> t
-
   val compare: t -> t -> int
 end (* module Graph_with_history *)
 

@@ -598,7 +598,7 @@ module Rule = struct
   (* ====================================================================== *)
   type matching = {
     n_match: Gid.t Pid_map.t;                      (* partial fct: pattern nodes |--> graph nodes *)
-    e_match: (string*(Gid.t*G_edge.t*Gid.t)) list; (* edge matching: edge ident  |--> (src,label,tar) *)
+    e_match: (Gid.t*G_edge.t*Gid.t) String_map.t;  (* edge matching: edge ident  |--> (src,label,tar) *)
     l_param: Lexicons.t;                           (* *)
   }
 
@@ -610,15 +610,15 @@ module Rule = struct
       let pnode = P_graph.find pid pattern.pos.graph in
         (P_node.get_name pnode, `String (node_name gid))::acc
       ) m.n_match [] in
-    let edges = CCList.filter_map (fun (id, (src,lab,tar)) ->
+    let edges = String_map.fold (fun id (src,lab,tar) acc ->
       if all_edges || not (intern id)
-      then Some (id, `Assoc [
+      then (id, `Assoc [
           ("source", `String (node_name src));
           ("label", `String (G_edge.to_string lab));
           ("target", `String (node_name tar));
-        ])
-      else None
-      ) m.e_match in
+        ]) :: acc
+      else acc
+      ) m.e_match [] in
     `Assoc [
       ("nodes", `Assoc nodes);
       ("edges", `Assoc edges)
@@ -632,14 +632,12 @@ module Rule = struct
         (P_node.get_name pnode, G_node.get_name gid gnode) :: acc
       ) n_match []
 
-  let empty_matching ?(lexicons=[]) () = { n_match = Pid_map.empty; e_match = []; l_param = lexicons;}
+  let empty_matching ?(lexicons=[]) () = { n_match = Pid_map.empty; e_match = String_map.empty; l_param = lexicons;}
 
-  let e_comp (e1,_) (e2,_) = compare e1 e2
-
-  let e_match_add ?pos edge_id matching =
-    match List_.usort_insert ~compare:e_comp edge_id matching.e_match with
-    | Some new_e_match -> { matching with e_match = new_e_match }
-    | None -> Error.bug "The edge identifier '%s' is binded twice in the same pattern" (fst edge_id)
+  let e_match_add ?pos edge_id new_edge matching =
+    if String_map.mem edge_id matching.e_match
+    then Error.bug "The edge identifier '%s' is binded twice in the same pattern" edge_id
+    else { matching with e_match = String_map.add edge_id new_edge matching.e_match }
 
   let match_deco pattern matching =
     { G_deco.nodes =
@@ -649,7 +647,7 @@ module Rule = struct
             let pattern_feat_list = P_fs.feat_list (P_node.get_fs pnode) in
             (gid, (P_node.get_name pnode, pattern_feat_list)) :: acc
           ) matching.n_match [];
-      G_deco.edges = List.fold_left (fun acc (_,edge) -> edge::acc) [] matching.e_match;
+      G_deco.edges = String_map.fold (fun _ edge acc -> edge::acc) matching.e_match [];
       G_deco.pivot = match pattern.pos.graph.pivot with
         | None -> None
         | Some pid -> try Some (Pid_map.find pid matching.n_match) with Not_found -> None
@@ -849,7 +847,7 @@ module Rule = struct
 
       | Label_equal (eid1, eid2) ->
         begin
-          match (List.assoc_opt eid1 matching.e_match, List.assoc_opt eid2 matching.e_match) with
+          match (String_map.find_opt eid1 matching.e_match, String_map.find_opt eid2 matching.e_match) with
           | (Some (_,e1,_), Some (_,e2,_)) when e1 = e2 -> matching
           | (Some (_,e1,_), Some (_,e2,_)) -> raise Fail
           | (None, Some _) -> Error.build "Edge identifier '%s' not found" eid1;
@@ -859,7 +857,7 @@ module Rule = struct
 
       | Label_disequal (eid1, eid2) ->
         begin
-          match (List.assoc_opt eid1 matching.e_match, List.assoc_opt eid2 matching.e_match) with
+          match (String_map.find_opt eid1 matching.e_match, String_map.find_opt eid2 matching.e_match) with
           | (Some (_,e1,_), Some (_,e2,_)) when e1 <> e2 -> matching
           | (Some (_,e1,_), Some (_,e2,_)) -> raise Fail
           | (None, Some _) -> Error.build "Edge identifier '%s' not found" eid1;
@@ -920,7 +918,7 @@ module Rule = struct
               | P_edge.Binds (id,labels) -> (* n edges in the graph match the identified p_edge -> make copies of the [k] matchings (and returns n*k matchings) *)
                   List.map
                     (fun label ->
-                      {partial with sub = e_match_add (id,(src_gid,label,tar_gid)) partial.sub; unmatched_edges = tail_ue }
+                      {partial with sub = e_match_add id (src_gid,label,tar_gid) partial.sub; unmatched_edges = tail_ue }
                     ) labels
             in List_.flat_map (extend_matching ?domain (positive,neg) graph) new_partials
           with Not_found -> (* p_edge goes to an unmatched node *)
@@ -933,7 +931,7 @@ module Rule = struct
                   | P_edge.Fail -> (* g_edge does not fit, no new candidate *)
                       acc
                   | P_edge.Binds (id,[label]) -> (* g_edge fits with an extended matching *)
-                      (gid_next, e_match_add (id, (src_gid, label, gid_next)) partial.sub) :: acc
+                      (gid_next, e_match_add id (src_gid, label, gid_next) partial.sub) :: acc
                   | _ -> Error.bug "P_edge.match_ must return exactly one label"
                 ) [] (G_node.get_next src_gnode) in
             List_.flat_map
@@ -1327,7 +1325,7 @@ module Rule = struct
                 { graph;
                   created_nodes = [];
                   effective = false;
-                  e_mapping= List.fold_left (fun acc (k,v) -> String_map.add k v acc) String_map.empty first_matching_where_all_witout_are_fulfilled.e_match;
+                  e_mapping = first_matching_where_all_witout_are_fulfilled.e_match;
                 }
                 rule.commands in
             if final_state.effective
@@ -1363,7 +1361,7 @@ module Rule = struct
                 { graph;
                   created_nodes = [];
                   effective = false;
-                  e_mapping= List.fold_left (fun acc (k,v) -> String_map.add k v acc) String_map.empty first_matching_where_all_witout_are_fulfilled.e_match;
+                  e_mapping = first_matching_where_all_witout_are_fulfilled.e_match;
                 }
                 rule.commands in
 
@@ -1633,8 +1631,8 @@ module Rule = struct
   (** [apply_rule graph_with_history matching rule] returns a new graph_with_history after the application of the rule *)
   let gwh_apply_rule ?domain graph_with_history matching rule =
     Timeout.check (); incr_rules ();
-    let init = Graph_with_history_set.singleton
-      (Graph_with_history.init_e_mapping matching.e_match graph_with_history) in
+    let init = Graph_with_history_set.singleton { graph_with_history with e_mapping = matching.e_match } in
+
     List.fold_left
       (fun gwh_set cmd ->
           Graph_with_history_set.fold
@@ -1677,7 +1675,7 @@ module Rule = struct
                   let set = gwh_apply_command ?domain command first_matching_where_all_witout_are_fulfilled acc_gwh in
                   Graph_with_history_set.choose set
                 )
-                (Graph_with_history.init_e_mapping first_matching_where_all_witout_are_fulfilled.e_match gwh)
+                { gwh with e_mapping = first_matching_where_all_witout_are_fulfilled.e_match }
                 rule.commands in
             Timeout.check (); incr_rules();
             Some {new_gwh with graph = G_graph.push_rule (get_name rule) new_gwh.graph }

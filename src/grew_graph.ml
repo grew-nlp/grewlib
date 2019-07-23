@@ -1581,10 +1581,6 @@ module Graph_with_history = struct
 
   let from_graph graph = { graph; seed=graph; delta = Delta.empty; added_gids = []; e_mapping = String_map.empty }
 
-  let init_e_mapping assoc_list t =
-    let strmap = List.fold_left (fun acc (k,v) -> String_map.add k v acc) String_map.empty assoc_list in
-    { t with e_mapping = strmap }
-
   (* WARNING: compare is correct only on data with the same seed! *)
   let compare t1 t2 = Pervasives.compare (t1.delta,t1.added_gids) (t2.delta, t2.added_gids)
 end (* module Graph_with_history*)
