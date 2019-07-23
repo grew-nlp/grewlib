@@ -138,7 +138,7 @@ module G_graph: sig
   val del_edge: ?edge_ident: string -> Loc.t -> t -> Gid.t -> G_edge.t -> Gid.t -> t option
 
 
-  val update_edge: ?edge_ident:string -> Loc.t -> t -> (Gid.t * G_edge.t * Gid.t ) -> (string * string) list -> (t * G_edge.t) option
+  val update_edge: ?edge_ident:string -> Loc.t -> t -> (Gid.t * G_edge.t * Gid.t ) -> string -> string -> (t * G_edge.t) option
 
 
   (** [del_node graph id] remove node [id] from [graph], with all its incoming and outcoming edges.

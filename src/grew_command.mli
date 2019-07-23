@@ -35,12 +35,12 @@ module Command : sig
     | DEL_FEAT of (command_node * string)
     | DEL_EDGE_FEAT of string (* edge identifier *)
     | UPDATE_FEAT of (command_node * string * item list)
-    | UPDATE_EDGE_FEAT of (string * (string * string) list) (* edge_identifier, (feat_name, new_value) list *)
-    (* *)
+    | UPDATE_EDGE_FEAT of (string * string * string) (* edge identifier, feat_name, new_value *)
+
     | NEW_NODE of string
     | NEW_BEFORE of (string * command_node)
     | NEW_AFTER of (string * command_node)
-    (* *)
+
     | SHIFT_EDGE of (command_node * command_node * Label_cst.t)
     | SHIFT_IN of (command_node * command_node * Label_cst.t)
     | SHIFT_OUT of (command_node * command_node * Label_cst.t)

@@ -134,8 +134,8 @@ module G_node = struct
     | Some new_next -> Some {t with next = new_next}
     | None -> None
 
-  let update_edge gid_tar old_edge update_list t =
-    let new_edge = G_edge.update update_list old_edge in
+  let update_edge gid_tar old_edge feat_name new_value t =
+    let new_edge = G_edge.update feat_name new_value old_edge in
     if new_edge = old_edge
     then None
     else
