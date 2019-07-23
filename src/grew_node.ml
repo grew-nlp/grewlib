@@ -143,6 +143,14 @@ module G_node = struct
       | Some new_next -> Some ({t with next = new_next }, new_edge)
       | None -> None
 
+  let del_edge_feature gid_tar old_edge feat_name t =
+    match G_edge.remove feat_name old_edge with
+    | None -> None
+    | Some new_edge ->
+      match Massoc_gid.add_opt gid_tar new_edge (Massoc_gid.remove gid_tar old_edge t.next) with
+      | Some new_next -> Some ({t with next = new_next }, new_edge)
+      | None -> None
+
   let remove_key node_id t =
     try {t with next = Massoc_gid.remove_key node_id t.next} with Not_found -> t
 

@@ -577,6 +577,14 @@ module G_graph = struct
     | Some (new_node, new_edge) -> Some ({graph with map = Gid_map.add src_gid new_node graph.map}, new_edge)
     | None -> None
 
+  let del_edge_feature ?loc edge_id feat_name (src_gid,edge,tar_gid) graph =
+    match Gid_map.find_opt src_gid graph.map with
+    | None -> Error.run ?loc "[Graph.del_edge_feature] cannot find source node of edge \"%s\"" edge_id
+    | Some src_node ->
+      match G_node.del_edge_feature tar_gid edge feat_name src_node with
+      | Some (new_node, new_edge) -> Some ({graph with map = Gid_map.add src_gid new_node graph.map}, new_edge)
+      | None -> None
+
   (* -------------------------------------------------------------------------------- *)
   let del_edge ?edge_ident loc graph id_src label id_tar =
     let node_src =

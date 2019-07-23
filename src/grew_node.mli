@@ -57,6 +57,7 @@ module G_node: sig
 
   val remove_edge: Gid.t -> G_edge.t -> t -> t option
   val update_edge: Gid.t -> G_edge.t -> string -> string -> t -> (t * G_edge.t) option
+  val del_edge_feature: Gid.t -> G_edge.t -> string -> t -> (t * G_edge.t) option
 
   val remove_key: Gid.t -> t -> t
 

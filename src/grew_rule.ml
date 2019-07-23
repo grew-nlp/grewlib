@@ -1150,14 +1150,14 @@ module Rule = struct
         let direct_items = List.map (fun (name, value) ->
           match Str.bounded_split (Str.regexp_string ".") value 2
           with
-            | [edge_id; efeat_name] ->
+            | [edge_id; feat_name] ->
                 begin
                   match String_map.find_opt edge_id state.e_mapping with
                   | None -> (name, value)
                   | Some (_,matched_edge,_) ->
-                    match G_edge.get_sub efeat_name matched_edge with
+                    match G_edge.get_sub feat_name matched_edge with
                       | Some new_value -> (name, new_value)
-                      | None -> Error.run "ADD_EDGE_ITEMS: no items edge feature name '%s' in matched edge '%s'" efeat_name edge_id
+                      | None -> Error.run "ADD_EDGE_ITEMS: no items edge feature name '%s' in matched edge '%s'" feat_name edge_id
                 end
             | _ -> (name, value)
         ) items in
@@ -1165,7 +1165,7 @@ module Rule = struct
         begin
           match G_graph.add_edge state.graph src_gid edge tar_gid with
           | None when !Global.safe_commands ->
-              Error.run "ADD_EDGE_EXPL: the edge '%s' already exists %s" (G_edge.to_string ?domain edge) (Loc.to_string loc)
+              Error.run "ADD_EDGE_ITEMS: the edge '%s' already exists %s" (G_edge.to_string ?domain edge) (Loc.to_string loc)
           | None -> state
           | Some new_graph -> {state with graph = new_graph; effective = true}
         end
@@ -1194,7 +1194,23 @@ module Rule = struct
               }
           )
 
-    | Command.DEL_EDGE_FEAT _ -> failwith "Not implemented DEL_EDGE_FEAT in [onf_apply_command]"
+    | Command.DEL_EDGE_FEAT (edge_id, feat_name) ->
+        begin
+          match String_map.find_opt edge_id state.e_mapping with
+          | None -> Error.bug ~loc "The edge identifier '%s'" edge_id
+          | Some (src_gid,old_edge,tar_gid) ->
+            begin
+              match G_graph.del_edge_feature ~loc edge_id feat_name (src_gid,old_edge,tar_gid) state.graph with
+              | None when !Global.safe_commands -> Error.run ~loc "DEL_EDGE_FEAT: the edge feature name '%s' does not exist" feat_name
+              | None -> state
+              | Some (new_graph, new_edge) ->
+                  {state with
+                    graph = new_graph;
+                    effective = true;
+                    e_mapping = String_map.add edge_id (src_gid,new_edge,tar_gid) state.e_mapping;
+                  }
+            end
+        end
 
     | Command.UPDATE_EDGE_FEAT (edge_ident, feat_name, new_value) ->
         let (src_gid,edge,tar_gid) =
@@ -1413,7 +1429,7 @@ module Rule = struct
         let tar_gid = node_find tar_cn in
         let (_,edge,_) =
           try String_map.find edge_ident gwh.e_mapping
-          with Not_found -> Error.bug "The edge identifier '%s' is undefined %s" edge_ident (Loc.to_string loc) in
+          with Not_found -> Error.bug "ADD_EDGE_EXPL: the edge identifier '%s' is undefined %s" edge_ident (Loc.to_string loc) in
 
         begin
           match G_graph.add_edge gwh.Graph_with_history.graph src_gid edge tar_gid with
@@ -1434,14 +1450,14 @@ module Rule = struct
         let direct_items = List.map (fun (name, value) ->
           match Str.bounded_split (Str.regexp_string ".") value 2
           with
-            | [edge_id; efeat_name] ->
+            | [edge_id; feat_name] ->
                 begin
                   match String_map.find_opt edge_id gwh.e_mapping with
                   | None -> (name, value)
                   | Some (_,matched_edge,_) ->
-                    match G_edge.get_sub efeat_name matched_edge with
+                    match G_edge.get_sub feat_name matched_edge with
                       | Some new_value -> (name, new_value)
-                      | None -> Error.run "ADD_EDGE_ITEMS: no items edge feature name '%s' in matched edge '%s'" efeat_name edge_id
+                      | None -> Error.run "ADD_EDGE_ITEMS: no items edge feature name '%s' in matched edge '%s'" feat_name edge_id
                 end
             | _ -> (name, value)
         ) items in
@@ -1449,7 +1465,7 @@ module Rule = struct
         begin
           match G_graph.add_edge gwh.Graph_with_history.graph src_gid edge tar_gid with
           | None when !Global.safe_commands ->
-              Error.run "ADD_EDGE_EXPL: the edge '%s' already exists %s" (G_edge.to_string ?domain edge) (Loc.to_string loc)
+              Error.run "ADD_EDGE_ITEMS: the edge '%s' already exists %s" (G_edge.to_string ?domain edge) (Loc.to_string loc)
           | None -> Graph_with_history_set.singleton gwh
           | Some new_graph -> Graph_with_history_set.singleton
               {gwh with
@@ -1625,7 +1641,23 @@ module Rule = struct
             Graph_with_history.graph = new_graph;
             added_gids = (created_name, new_gid) :: gwh.Graph_with_history.added_gids
           }
-    | Command.DEL_EDGE_FEAT _ -> failwith "Not implemented DEL_EDGE_FEAT in [gwh_apply_command]"
+
+    | Command.DEL_EDGE_FEAT (edge_id, feat_name) ->
+        begin
+          match String_map.find_opt edge_id gwh.e_mapping with
+          | None -> Error.bug ~loc "The edge identifier '%s'" edge_id
+          | Some (src_gid,old_edge,tar_gid) ->
+            begin
+              match G_graph.del_edge_feature ~loc edge_id feat_name (src_gid,old_edge,tar_gid) gwh.Graph_with_history.graph with
+              | None when !Global.safe_commands -> Error.run ~loc "DEL_EDGE_FEAT: the edge feature name '%s' does not exist" feat_name
+              | None -> Graph_with_history_set.singleton gwh
+              | Some (new_graph, new_edge) -> Graph_with_history_set.singleton
+                  {gwh with
+                    Graph_with_history.graph = new_graph;
+                    e_mapping = String_map.add edge_id (src_gid,new_edge,tar_gid) gwh.e_mapping;
+                  }
+            end
+        end
 
   (*  ---------------------------------------------------------------------- *)
   (** [apply_rule graph_with_history matching rule] returns a new graph_with_history after the application of the rule *)

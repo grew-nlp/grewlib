@@ -34,6 +34,12 @@ module G_edge = struct
   | (fn,fv)::t when feat_name = fn -> (feat_name, new_value) :: t
   | x::t -> x :: (update feat_name new_value t)
 
+  let rec remove feat_name = function
+  | [] -> None
+  | (fn,fv)::t when feat_name < fn -> None
+  | (fn,fv)::t when feat_name = fn -> Some t
+  | x::t -> (match remove feat_name t with Some new_t -> Some (x::new_t) | None -> None)
+
   let to_conll ?domain edge =
     let prefix = match get_sub "kind" edge with
     | None -> ""

@@ -39,6 +39,8 @@ module G_edge: sig
   val build: ?domain:Domain.t -> Ast.edge -> t
 
   val update: string -> string -> t -> t
+
+  val remove: string -> t -> t option
 end (* module G_edge *)
 
 

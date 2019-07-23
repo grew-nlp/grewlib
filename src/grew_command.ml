@@ -53,7 +53,7 @@ module Command  = struct
     | ADD_EDGE_EXPL of (command_node * command_node * string)
     | ADD_EDGE_ITEMS of (command_node * command_node * (string * string) list)
     | DEL_FEAT of (command_node * string)
-    | DEL_EDGE_FEAT of string (* edge identifier *)
+    | DEL_EDGE_FEAT of (string * string) (* (edge identifier, feature_name) *)
     | UPDATE_FEAT of (command_node * string * item list)
     | UPDATE_EDGE_FEAT of (string * string * string) (* edge identifier, feat_name, new_value *)
     (* *)
@@ -170,10 +170,11 @@ module Command  = struct
           ("feat_value", `String s);
         ]
       )]
-  | DEL_EDGE_FEAT edge_id ->
+  | DEL_EDGE_FEAT (edge_id, feat_name) ->
       `Assoc [("del_edge_feat",
         `Assoc [
-          ("edge_id", `String edge_id)
+          ("edge_id", `String edge_id);
+          ("feat_name", `String feat_name)
         ]
       )]
 
@@ -268,7 +269,7 @@ module Command  = struct
               Domain.check_feature_name ~loc ?domain feat_name;
               ((DEL_FEAT (cn_of_node_id node_or_edge_id, feat_name), loc), (kni, kei))
             | (false, true) ->
-              ((DEL_EDGE_FEAT node_or_edge_id, loc), (kni, kei))
+              ((DEL_EDGE_FEAT (node_or_edge_id, feat_name), loc), (kni, kei))
             | _ -> Error.build ~loc "Unknwon identifier \"%s\"" node_or_edge_id
           end
 
