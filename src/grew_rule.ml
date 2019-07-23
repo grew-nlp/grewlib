@@ -1114,6 +1114,7 @@ module Rule = struct
     graph: G_graph.t;
     effective: bool;
     created_nodes: (string * Gid.t) list;
+    e_mapping: (Gid.t * G_edge.t * Gid.t) String_map.t;
   }
 
   let onf_apply_command ?domain matching (command,loc) state =
@@ -1135,7 +1136,7 @@ module Rule = struct
         let src_gid = node_find src_cn in
         let tar_gid = node_find tar_cn in
         let (_,edge,_) =
-          try List.assoc edge_ident matching.e_match
+          try String_map.find edge_ident state.e_mapping
           with Not_found -> Error.bug "The edge identifier '%s' is undefined %s" edge_ident (Loc.to_string loc) in
         begin
           match G_graph.add_edge state.graph src_gid edge tar_gid with
@@ -1153,7 +1154,7 @@ module Rule = struct
           with
             | [edge_id; efeat_name] ->
                 begin
-                  match List.assoc_opt edge_id matching.e_match with
+                  match String_map.find_opt edge_id state.e_mapping with
                   | None -> (name, value)
                   | Some (_,matched_edge,_) ->
                     match G_edge.get_sub efeat_name matched_edge with
@@ -1182,24 +1183,34 @@ module Rule = struct
 
     | Command.DEL_EDGE_NAME edge_ident ->
         let (src_gid,edge,tar_gid) =
-          try List.assoc edge_ident matching.e_match
+          try String_map.find edge_ident state.e_mapping
           with Not_found -> Error.bug "The edge identifier '%s' is undefined %s" edge_ident (Loc.to_string loc) in
           (match G_graph.del_edge ~edge_ident loc state.graph src_gid edge tar_gid with
             | None when !Global.safe_commands -> Error.run "DEL_EDGE_NAME: the edge '%s' does not exist %s" edge_ident (Loc.to_string loc)
             | None -> state
-            | Some new_graph -> {state with graph = new_graph; effective = true}
+            | Some new_graph ->
+              {state with
+                graph = new_graph;
+                effective = true;
+                e_mapping = String_map.remove edge_ident state.e_mapping;
+              }
           )
 
     | Command.DEL_EDGE_FEAT _ -> failwith "Not implemented DEL_EDGE_FEAT in [onf_apply_command]"
 
     | Command.UPDATE_EDGE_FEAT (edge_ident, feat_name, new_value) ->
         let (src_gid,edge,tar_gid) =
-          try List.assoc edge_ident matching.e_match
+          try String_map.find edge_ident state.e_mapping
           with Not_found -> Error.bug "The edge identifier '%s' is undefined %s" edge_ident (Loc.to_string loc) in
           (match G_graph.update_edge ~edge_ident loc state.graph (src_gid,edge,tar_gid) feat_name new_value with
             | None when !Global.safe_commands -> Error.run "UPDATE_EDGE_FEAT: no changes %s" edge_ident (Loc.to_string loc)
             | None -> state
-            | Some (new_graph, _) -> {state with graph = new_graph; effective = true}
+            | Some (new_graph, new_edge) ->
+              { state with
+                graph = new_graph;
+                effective = true;
+                e_mapping = String_map.add edge_ident (src_gid,new_edge,tar_gid) state.e_mapping;
+              }
           )
 
     | Command.DEL_NODE node_cn ->
@@ -1207,7 +1218,12 @@ module Rule = struct
         (match G_graph.del_node state.graph node_gid with
           | None when !Global.safe_commands -> Error.run "DEL_NODE: the node does not exist %s" (Loc.to_string loc)
           | None -> state
-          | Some new_graph -> {state with graph = new_graph; effective = true}
+          | Some new_graph ->
+          { state with
+            graph = new_graph;
+            effective = true;
+            e_mapping = String_map.filter (fun _ (s,_,t) -> s=node_gid || t=node_gid) state.e_mapping;
+          }
         )
 
     | Command.UPDATE_FEAT (tar_cn,tar_feat_name, item_list) ->
@@ -1260,7 +1276,7 @@ module Rule = struct
     | Command.NEW_AFTER (created_name,base_cn) ->
         let base_gid = node_find base_cn in
         let (new_gid,new_graph) = G_graph.add_after base_gid state.graph in
-        {
+        { state with
           graph=new_graph;
           created_nodes = (created_name,new_gid) :: state.created_nodes;
           effective = true;
@@ -1269,7 +1285,7 @@ module Rule = struct
     | Command.NEW_BEFORE (created_name,base_cn) ->
         let base_gid = node_find base_cn in
         let (new_gid,new_graph) = G_graph.add_before base_gid state.graph in
-        {
+        { state with
           graph=new_graph;
           created_nodes = (created_name,new_gid) :: state.created_nodes;
           effective = true;
@@ -1277,7 +1293,7 @@ module Rule = struct
 
     | Command.NEW_NODE (created_name) ->
         let (new_gid,new_graph) = G_graph.add_unordered state.graph in
-        {
+        { state with
           graph=new_graph;
           created_nodes = (created_name,new_gid) :: state.created_nodes;
           effective = true;
@@ -1308,7 +1324,11 @@ module Rule = struct
                 (fun state command ->
                   onf_apply_command ?domain first_matching_where_all_witout_are_fulfilled command state
                 )
-                { graph; created_nodes = []; effective = false}
+                { graph;
+                  created_nodes = [];
+                  effective = false;
+                  e_mapping= List.fold_left (fun acc (k,v) -> String_map.add k v acc) String_map.empty first_matching_where_all_witout_are_fulfilled.e_match;
+                }
                 rule.commands in
             if final_state.effective
             then (Timeout.check (); incr_rules(); Some (G_graph.push_rule (get_name rule) final_state.graph ))
@@ -1340,7 +1360,11 @@ module Rule = struct
                 (fun state command ->
                   onf_apply_command ?domain first_matching_where_all_witout_are_fulfilled command state
                 )
-                { graph; created_nodes = []; effective = false}
+                { graph;
+                  created_nodes = [];
+                  effective = false;
+                  e_mapping= List.fold_left (fun acc (k,v) -> String_map.add k v acc) String_map.empty first_matching_where_all_witout_are_fulfilled.e_match;
+                }
                 rule.commands in
 
             let rule_app = {
