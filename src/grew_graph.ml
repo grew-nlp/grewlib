@@ -106,9 +106,8 @@ module P_graph = struct
           let edge = P_edge.build ?domain (ast_edge, loc) in
           (match map_add_edge acc (Pid.Pos i1) edge (Pid.Pos i2) with
             | Some g -> g
-            | None -> Error.build "[GRS] [Graph.build] try to build a graph with twice the same edge %s %s"
+            | None -> Error.build ~loc "[Graph.build] try to build a graph with twice the same edge %s"
               (P_edge.to_string ?domain edge)
-              (Loc.to_string loc)
           )
         ) map_without_edges full_edge_list in
         let pivot = CCOpt.map (fun x -> Pid.Pos (Id.build x pos_table)) pivot in
@@ -360,9 +359,8 @@ module G_graph = struct
           let edge = G_edge.build ?domain (ast_edge, loc) in
           (match map_add_edge_opt acc i1 edge i2 with
             | Some g -> g
-            | None -> Error.build "[GRS] [Graph.build] try to build a graph with twice the same edge %s %s"
+            | None -> Error.build ~loc "[Graph.build] try to build a graph with twice the same edge %s"
               (G_edge.to_string ?domain edge)
-              (Loc.to_string loc)
           )
         ) map_without_edges gr_ast.Ast.edges in
 
@@ -430,9 +428,8 @@ module G_graph = struct
               let edge = G_edge.from_string ?domain ~loc dep_lab in
               (match map_add_edge_opt acc2 gov_id edge dep_id with
                 | Some g -> g
-                | None -> Error.build "[GRS] [Graph.of_conll] try to build a graph with twice the same edge %s %s"
+                | None -> Error.build ~loc "[Graph.of_conll] try to build a graph with twice the same edge %s"
                   (G_edge.to_string ?domain edge)
-                  (Loc.to_string loc)
               )
             ) acc line.Conll.deps
         ) map_without_edges conll.Conll.lines in
@@ -479,15 +476,6 @@ module G_graph = struct
                   | None -> tmp
                   | Some i -> map_add_edge tmp free_index (G_edge.from_string ?domain (sprintf "%d" i)) (Id.gbuild (fst item) gtable)
               ) mwe.Mwe.items new_map_3 in
-
-              (* (match map_add_edge_opt acc2 gov_id edge dep_id with
-                | Some g -> g
-                | None -> Error.build "[GRS] [Graph.of_conll] try to build a graph with twice the same edge %s %s"
-                  (G_edge.to_string ?domain edge)
-                  (Loc.to_string loc)
-              ) *)
-
-
 
             (new_map_4, free_index+1)
           ) conll.Conll.mwes (map_with_edges, List.length sorted_lines) in

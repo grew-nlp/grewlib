@@ -96,10 +96,10 @@ module G_edge = struct
   let build ?domain (ast_edge, loc) =
     match ast_edge.Ast.edge_label_cst with
     | Ast.Pos_list [one] -> from_string ~loc ?domain one
-    | Ast.Neg_list _ -> Error.build "Negative edge spec are forbidden in graphs%s" (Loc.to_string loc)
-    | Ast.Pos_list _ -> Error.build "Only atomic edge values are allowed in graphs%s" (Loc.to_string loc)
-    | Ast.Regexp _ -> Error.build "Regexp are not allowed in graphs%s" (Loc.to_string loc)
-    | Ast.Atom_list _ -> Error.build "Non atomic edge are not allowed in graphs%s" (Loc.to_string loc)
+    | Ast.Neg_list _ -> Error.build ~loc "Negative edge spec are forbidden in graphs"
+    | Ast.Pos_list _ -> Error.build ~loc "Only atomic edge values are allowed in graphs"
+    | Ast.Regexp _ -> Error.build ~loc "Regexp are not allowed in graphs"
+    | Ast.Atom_list _ -> Error.build ~loc "Non atomic edge are not allowed in graphs"
 
 end (* module G_edge *)
 
