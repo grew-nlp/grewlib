@@ -176,11 +176,11 @@ and standard target = parse
 | "include"       { INCL }
 | "import"        { IMPORT }
 | "features"      { FEATURES }
-| "conll_fields"  { Log.fwarning "\"conll_fields\" is deprecated, ignored"; DUMMY }
+| "conll_fields"  { Error.warning ~loc:(Global.get_loc ()) "\"conll_fields\" is deprecated, ignored"; DUMMY }
 | "from"          { FROM }
 | "labels"        { Global.label_flag := true; LABELS }
 
-| "match"         { Log.fwarning "%s \"match\" is deprecated, please use \"pattern\" instead" (Global.loc_string ()); PATTERN }
+| "match"         { Error.warning ~loc:(Global.get_loc ()) "%s \"match\" is deprecated, please use \"pattern\" instead" (Global.loc_string ()); PATTERN }
 | "pattern"       { PATTERN }
 
 | "without"       { WITHOUT }
@@ -200,7 +200,7 @@ and standard target = parse
 | "package"       { PACKAGE }
 | "rule"          { RULE }
 | "strat"         { STRAT }
-| "lex_rule"      { Log.fwarning "%s \"lex_rule\" is deprecated, please use \"rule\" instead" (Global.loc_string ()); RULE }
+| "lex_rule"      { Error.warning ~loc:(Global.get_loc ()) "\"lex_rule\" is deprecated, please use \"rule\" instead"; RULE }
 
 | "Pick"          { PICK }
 | "Alt"           { ALT }

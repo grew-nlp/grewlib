@@ -571,8 +571,8 @@ module Rule = struct
       (fun (acc,pos) basic_ast ->
         try ((build_neg_basic ?domain lexicons pos_table basic_ast) :: acc, pos+1)
         with P_fs.Fail_unif ->
-          Log.fwarning "In rule \"%s\" [%s], the wihtout number %d cannot be satisfied, it is skipped"
-            rule_ast.Ast.rule_id (Loc.to_string rule_ast.Ast.rule_loc) pos;
+          Error.warning ~loc:rule_ast.Ast.rule_loc "In rule \"%s\", the wihtout number %d cannot be satisfied, it is skipped"
+            rule_ast.Ast.rule_id pos;
           (acc, pos+1)
       ) ([],1) pattern.Ast.pat_negs in
     {

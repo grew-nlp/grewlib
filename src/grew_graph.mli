@@ -133,8 +133,7 @@ module G_graph: sig
   *)
   val add_edge: t -> Gid.t -> G_edge.t -> Gid.t -> t option
 
-  (** [del_edge ?loc src_gid label tar_gid graph] removes the edge (src_gid -[label]-> tar_gid) from graph.
-     Log.critical if the edge is not in graph *)
+  (** [del_edge ?loc src_gid label tar_gid graph] removes the edge (src_gid -[label]-> tar_gid) from graph. *)
   val del_edge: ?loc:Loc.t -> Gid.t -> G_edge.t -> Gid.t -> t -> t option
 
 

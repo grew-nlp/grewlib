@@ -54,7 +54,7 @@ module Label_domain = struct
     List.fold_left
     (fun acc (name, styles) ->
       if List.mem_assoc name acc
-      then (Log.fwarning "duplicate label definition \"%s\"" name; acc)
+      then (Error.warning "duplicate label definition \"%s\"" name; acc)
       else (name, styles) :: acc
     ) l1 l2
 
@@ -187,9 +187,9 @@ module Feature_domain = struct
         let new_item = match (one, item) with
         | (Ast.Open _, Ast.Open _) | (Ast.Num _, Ast.Num _) -> item
         | (Ast.Open fn, Ast.Closed _) | (Ast.Closed _, Ast.Open fn) ->
-          Log.fwarning "Feature name \"%s\" is declared twice as open and close; it is consider as open" fn; Ast.Open fn
+          Error.warning "Feature name \"%s\" is declared twice as open and close; it is considered as open" fn; Ast.Open fn
         | (Ast.Closed (fn, l1), (Ast.Closed (_, l2))) -> Ast.Closed (fn , l1 @ l2)
-        | _ -> Error.build "Cannot merge numerical ans non numerical feature \"%s\"" (get_name item) in
+        | _ -> Error.build "Cannot merge numerical ans non numerical features \"%s\"" (get_name item) in
         new_item :: acc
       | _ -> Error.bug "Duplicate in Feature_domain.merge"
        acc)

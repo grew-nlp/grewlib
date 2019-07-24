@@ -228,7 +228,7 @@ module Ast = struct
                   match u_edge.edge_id with
                   | None -> (u_edge,loc)
                   | Some id ->
-                    Log.fwarning "[%s] identifier \"%s\" is useless in without part" (Loc.to_string loc) id;
+                    Error.warning ~loc "identifier \"%s\" is useless in without part" id;
                     ({u_edge with edge_id=None},loc)
                 ) pat_neg.pat_edges
             }
@@ -349,7 +349,7 @@ module Ast = struct
       let rec loop = function
         | [] -> []
         | x::y::tail when x=y ->
-          Log.fwarning "In the declaration of the feature name \"%s\", the value \"%s\" appears more than once" feature_name x;
+          Error.warning "In the declaration of the feature name \"%s\", the value \"%s\" appears more than once" feature_name x;
           loop (y::tail)
         | x::tail -> x:: (loop tail)
       in loop sorted_list in

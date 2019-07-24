@@ -45,6 +45,8 @@ module Error: sig
 
   exception Parse of (string * Loc.t option)
   val parse: ?loc: Loc.t -> ('a, unit, string, 'b) format4 -> 'a
+
+  val warning: ?loc: Loc.t -> ('a, unit, string, unit) format4 -> 'a
 end
 
 (* ================================================================================ *)

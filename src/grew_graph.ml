@@ -174,7 +174,7 @@ module P_graph = struct
           let edge = P_edge.build ?domain (ast_edge, loc) in
           match map_add_edge acc i1 edge i2 with
             | Some map -> map
-            | None -> Log.fbug "[GRS] [Graph.build_extension] add_edge cannot fail in pattern extension"; exit 2
+            | None -> Error.bug "[Graph.build_extension] add_edge cannot fail in pattern extension"
         ) ext_map_without_edges full_edge_list in
     ({ext_map = ext_map_with_all_edges; old_map = old_map_without_edges}, new_table)
 
@@ -302,7 +302,7 @@ module G_graph = struct
     let node_src = Gid_map.find id_src map in
     match G_node.add_edge label id_tar node_src with
       | Some new_node -> Gid_map.add id_src new_node map
-      | None -> Log.fbug "[Graph.map_add_edge] duplicate"; exit 2
+      | None -> Error.bug "[Graph.map_add_edge] duplicate edge"
 
   (* -------------------------------------------------------------------------------- *)
   let add_edge graph id_src label id_tar =
@@ -584,7 +584,7 @@ module G_graph = struct
   (* -------------------------------------------------------------------------------- *)
   let del_edge ?loc src_gid label tar_gid graph =
     match Gid_map.find_opt src_gid graph.map with
-    | None -> Log.fcritical ?loc "[RUN] Some edge refers to a dead node, please report"
+    | None -> Error.bug ?loc "[Graph.del_edge] Some edge refers to a dead node"
     | Some src_node ->
       match G_node.remove_edge tar_gid label src_node with
       | None -> None

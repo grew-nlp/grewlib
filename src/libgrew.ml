@@ -166,13 +166,13 @@ module Graph = struct
       (fun () ->
         match Grew_base.File.get_suffix file with
         | Some ".gr" -> load_gr ?domain file
-        | Some ".conll" -> load_conll ?domain file
+        | Some ".conll" | Some ".conllu" -> load_conll ?domain file
         | Some ".br" | Some ".melt" -> load_brown ?domain file
         | Some ".cst" -> load_pst ?domain file
         | _ ->
-            Log.fwarning "Unknown file format for input graph '%s', try to guess..." file;
+            Grew_base.Error.warning "Unknown file format for input graph '%s', try to guess..." file;
             let rec loop = function
-            | [] -> Log.fcritical "[Libgrew.load_graph] Cannot guess input file format of file '%s'. Use .gr or .conll file extension" file
+            | [] -> Grew_base.Error.bug "[Libgrew.load_graph] Cannot guess input file format of file '%s'." file
             | load_fct :: tail -> try load_fct ?domain file with _ -> loop tail in
             loop [load_gr; load_conll; load_brown; load_pst]
       ) ()
