@@ -244,11 +244,12 @@ module Lexicons = struct
   type t = (string * Lexicon.t) list
 
   let check ~loc lexicon_name field_name t =
-    try
-      let lexicon = List.assoc lexicon_name t in
-      if not (List.mem field_name lexicon.Lexicon.header)
-      then Error.build ~loc "Undefined field name \"%s\" in lexicon %s" field_name lexicon_name
-    with Not_found -> Error.build ~loc "Undefined lexicon name \"%s\"" lexicon_name
+    match List.assoc_opt lexicon_name t with
+    | None ->
+      Error.build ~loc "Undefined lexicon name \"%s\"" lexicon_name
+    | Some lexicon when not (List.mem field_name lexicon.Lexicon.header) ->
+      Error.build ~loc "Undefined field name \"%s\" in lexicon %s" field_name lexicon_name
+    | _ -> ()
 end (* module Lexicons *)
 
 (* ================================================================================ *)

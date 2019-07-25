@@ -44,14 +44,7 @@ module Loader = struct
 
   let rec check_grs = function
     | [] -> ()
-    | Ast.Rule r :: tail ->
-      begin
-        match check_duplicate_id r.Ast.rule_id tail with
-        | None -> ()
-        | Some loc -> Error.build "Identifier \"%s\" is used twice in the same package (%s and %s)"
-          r.Ast.rule_id (Loc.to_string r.Ast.rule_loc) (Loc.to_string loc)
-      end;
-      check_grs tail
+    | Ast.Rule {Ast.rule_loc = loc; rule_id = name} :: tail
     | Ast.Strategy (loc, name, _) :: tail ->
       begin
         match check_duplicate_id name tail with

@@ -163,18 +163,17 @@ module Grs = struct
   let rec search_at pointed path = match path with
     | [] -> None
     | [one] ->
-      (
-        try
-          let item = List.find (* ?? rule and strategy with the same name ?? *)
-            (function
-              | Strategy (s,_) when s=one -> true
-              | Rule r when Rule.get_name r = one -> true
-              | Package (p,_) when p=one -> true
-              | _ -> false
-            ) (decl_list pointed) in
-          Some (item, pointed)
-        with Not_found -> None
-      )
+      begin
+        match List.find_opt
+          (function
+            | Strategy (s,_) when s=one -> true
+            | Rule r when Rule.get_name r = one -> true
+            | Package (p,_) when p=one -> true
+            | _ -> false
+          ) (decl_list pointed) with
+        | Some item -> Some (item, pointed)
+        | None -> None
+      end
     | head::tail ->
       match down pointed head with
       | None -> None

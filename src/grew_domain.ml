@@ -34,10 +34,9 @@ module Label_domain = struct
   type t = style String_map.t
 
   let get_style t str =
-    try
-      String_map.find str t
-    with
-    | Not_found -> {default with text = str}
+    match String_map.find_opt str t with
+    | Some v -> v
+    | None -> {default with text = str}
 
   let dump label_domain =
   Printf.printf "========= Label domain =========\n";
@@ -195,26 +194,11 @@ module Feature_domain = struct
        acc)
     list1 list2
 
-  let get feature_name feature_domain =
-    List.find (function
-      | Ast.Closed (fn,_) when fn = feature_name -> true
-      | Ast.Open fn when fn = feature_name -> true
-      | Ast.Num fn when fn = feature_name -> true
-      | _ -> false
-    ) feature_domain.decls
-
   let is_num feature_domain feature_name =
     List.exists (function
       | Ast.Num fn when fn = feature_name -> true
       | _ -> false
     ) feature_domain.decls
-
-  let sub feature_domain name1 name2 =
-    match (get name1 feature_domain, get name2 feature_domain) with
-        | (_, Ast.Open _) -> true
-        | (Ast.Closed (_,l1), Ast.Closed (_,l2)) -> List_.sort_include l1 l2
-        | (Ast.Num _, Ast.Num _) -> true
-        | _ -> false
 
   let is_open feature_domain name =
     List.exists (function Ast.Open n when n=name -> true | _ -> false) feature_domain.decls

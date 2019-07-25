@@ -1313,6 +1313,7 @@ module Rule = struct
           effective = true;
         }
 
+
   let onf_apply ?domain rule graph =
     let {pos; negs} = rule.pattern in
     (* get the list of partial matching for positive part of the pattern *)
@@ -1322,32 +1323,28 @@ module Rule = struct
           (pos.graph,P_graph.empty)
           graph
           (init ~lexicons:rule.lexicons pos) in
-          try
-            let (first_matching_where_all_witout_are_fulfilled,_) =
-              List.find
-                (fun (sub, already_matched_gids) ->
-                  List.for_all
-                    (fun neg ->
-                      let new_partial_matching = update_partial pos.graph neg (sub, already_matched_gids) in
-                      fulfill ?domain (pos.graph,neg.graph) graph new_partial_matching
-                    ) negs
-                ) matching_list in
-
-            let final_state =
-              List.fold_left
-                (fun state command ->
-                  onf_apply_command ?domain first_matching_where_all_witout_are_fulfilled command state
-                )
-                { graph;
-                  created_nodes = [];
-                  effective = false;
-                  e_mapping = first_matching_where_all_witout_are_fulfilled.e_match;
-                }
-                rule.commands in
+      match List.find_opt
+        (fun (sub, already_matched_gids) ->
+          List.for_all
+            (fun neg ->
+              let new_partial_matching = update_partial pos.graph neg (sub, already_matched_gids) in
+              fulfill ?domain (pos.graph,neg.graph) graph new_partial_matching
+            ) negs
+        ) matching_list with
+        | None -> None
+        | Some (first_matching_where_all_witout_are_fulfilled,_) ->
+          let final_state =
+            List.fold_left
+              (fun state command -> onf_apply_command ?domain first_matching_where_all_witout_are_fulfilled command state)
+              { graph;
+                created_nodes = [];
+                effective = false;
+                e_mapping = first_matching_where_all_witout_are_fulfilled.e_match;
+              }
+              rule.commands in
             if final_state.effective
-            then (Timeout.check (); incr_rules(); Some (G_graph.push_rule (get_name rule) final_state.graph ))
+            then (Timeout.check (); incr_rules(); Some (G_graph.push_rule (get_name rule) final_state.graph))
             else None
-          with Not_found -> (* raised by List.find, no matching apply *) None
 
   let rec wrd_apply ?domain rule (graph, big_step_opt) =
     let {pos; negs} = rule.pattern in
@@ -1358,43 +1355,47 @@ module Rule = struct
           (pos.graph,P_graph.empty)
           graph
           (init ~lexicons:rule.lexicons pos) in
-          try
-            let (first_matching_where_all_witout_are_fulfilled,_) =
-              List.find
-                (fun (sub, already_matched_gids) ->
-                  List.for_all
-                    (fun neg ->
-                      let new_partial_matching = update_partial pos.graph neg (sub, already_matched_gids) in
-                      fulfill ?domain (pos.graph,neg.graph) graph new_partial_matching
-                    ) negs
-                ) matching_list in
+      match List.find_opt
+        (fun (sub, already_matched_gids) ->
+          List.for_all
+            (fun neg ->
+              let new_partial_matching = update_partial pos.graph neg (sub, already_matched_gids) in
+              fulfill ?domain (pos.graph,neg.graph) graph new_partial_matching
+            ) negs
+        ) matching_list with
+      | None -> None
+      | Some (first_matching_where_all_witout_are_fulfilled,_) ->
+          let final_state =
+            List.fold_left
+              (fun state command -> onf_apply_command ?domain first_matching_where_all_witout_are_fulfilled command state)
+              { graph;
+                created_nodes = [];
+                effective = false;
+                e_mapping = first_matching_where_all_witout_are_fulfilled.e_match;
+              }
+              rule.commands in
 
-            let final_state =
-              List.fold_left
-                (fun state command ->
-                  onf_apply_command ?domain first_matching_where_all_witout_are_fulfilled command state
-                )
-                { graph;
-                  created_nodes = [];
-                  effective = false;
-                  e_mapping = first_matching_where_all_witout_are_fulfilled.e_match;
-                }
-                rule.commands in
+          let rule_app = {
+            Libgrew_types.rule_name = rule.name;
+            up = match_deco rule.pattern first_matching_where_all_witout_are_fulfilled;
+            down = down_deco (first_matching_where_all_witout_are_fulfilled,final_state.created_nodes) rule.commands
+          } in
 
-            let rule_app = {
-              Libgrew_types.rule_name = rule.name;
-              up = match_deco rule.pattern first_matching_where_all_witout_are_fulfilled;
-              down = down_deco (first_matching_where_all_witout_are_fulfilled,final_state.created_nodes) rule.commands
-            } in
+          let new_big_step = match big_step_opt with
+            | None -> {Libgrew_types.small_step = []; first=rule_app}
+            | Some {Libgrew_types.small_step; first} -> {Libgrew_types.small_step = (graph,rule_app) :: small_step; first} in
 
-            let new_big_step = match big_step_opt with
-              | None -> {Libgrew_types.small_step = []; first=rule_app}
-              | Some {Libgrew_types.small_step; first} -> {Libgrew_types.small_step = (graph,rule_app) :: small_step; first} in
+          if final_state.effective
+          then (Timeout.check (); incr_rules(); Some (final_state.graph, new_big_step))
+          else None
 
-            if final_state.effective
-            then (Timeout.check (); incr_rules(); Some (final_state.graph, new_big_step))
-            else None
-          with Not_found -> (* raised by List.find, no matching apply *) None
+
+
+
+
+
+
+
 
   let find cnode ?loc gwh matching =
     match cnode with
@@ -1677,42 +1678,36 @@ module Rule = struct
         Graph_with_history_set.union (gwh_apply_rule ?domain graph_with_history matching rule) acc
       ) Graph_with_history_set.empty matching_list
 
+  exception Dead_lock
   let owh_apply ?domain rule gwh =
+    let graph = gwh.Graph_with_history.graph in
     let {pos; negs} = rule.pattern in
-    (* get the list of partial matching for positive part of the pattern *)
-      let graph = gwh.Graph_with_history.graph in
-      let matching_list =
-        extend_matching
-          ?domain
-          (pos.graph,P_graph.empty)
-          graph
-          (init ~lexicons:rule.lexicons pos) in
-          try
-            let (first_matching_where_all_witout_are_fulfilled,_) =
-              List.find
-                (fun (sub, already_matched_gids) ->
-                  List.for_all
-                    (fun neg ->
-                      let new_partial_matching = update_partial pos.graph neg (sub, already_matched_gids) in
-                      fulfill ?domain (pos.graph,neg.graph) graph new_partial_matching
-                    ) negs
-                ) matching_list in
 
-            let new_gwh =
-              List.fold_left
-                (fun acc_gwh command ->
-                  let set = gwh_apply_command ?domain command first_matching_where_all_witout_are_fulfilled acc_gwh in
-                  Graph_with_history_set.choose set
-                )
-                { gwh with e_mapping = first_matching_where_all_witout_are_fulfilled.e_match }
-                rule.commands in
-            Timeout.check (); incr_rules();
-            Some {new_gwh with graph = G_graph.push_rule (get_name rule) new_gwh.graph }
-          with Not_found -> (* XXX *)
-          (* raised by List.find, no matching apply or
-             in Graph_with_history_set.choose.
-             TODO: in the second case, we should find another matching ???
-          *)
-          None
+    (* get the list of matching for positive part of the pattern *)
+    let matching_list = extend_matching ?domain (pos.graph,P_graph.empty) graph (init ~lexicons:rule.lexicons pos) in
 
+    let rec loop_matching = function
+    | [] -> None
+    | (sub, already_matched_gids) :: tail ->
+      if List.for_all
+        (fun neg ->
+          let new_partial_matching = update_partial pos.graph neg (sub, already_matched_gids) in
+          fulfill ?domain (pos.graph,neg.graph) graph new_partial_matching
+        ) negs
+      then (* all negs part are fulfilled *)
+        let init_gwh = { gwh with e_mapping = sub.e_match } in
+        let rec loop_command acc_gwh = function
+          | [] -> acc_gwh
+          | command :: tail_commands ->
+              let set = gwh_apply_command ?domain command sub acc_gwh in
+              match Graph_with_history_set.choose_opt set with
+              | None -> raise Dead_lock
+              | Some next_gwh -> loop_command next_gwh tail_commands in
+        try
+          let new_gwh = loop_command init_gwh rule.commands in
+          Timeout.check (); incr_rules();
+          Some {new_gwh with graph = G_graph.push_rule (get_name rule) new_gwh.graph }
+        with Dead_lock -> loop_matching tail (* failed to apply all commands -> move to the next matching *)
+      else loop_matching tail (* some neg part prevents rule app -> move to the next matching *)
+    in loop_matching matching_list
 end (* module Rule *)

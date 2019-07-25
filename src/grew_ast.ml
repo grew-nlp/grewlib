@@ -19,19 +19,12 @@ module Ast = struct
   (* general function for checking that an identifier is of the right kind *)
   (* allowed is a char list which is a sub set of ['#'; '.'; ':'; '*'] *)
   let check_special name allowed s =
-    let sp = Str.full_split (Str.regexp "#\\|\\.\\|:\\|\\*") s in
-    try
-      match List.find
-      (function
-        | Str.Delim d when not (List.mem d allowed) -> true
-        | _ -> false
-      ) sp
-      with
-      | Str.Delim wrong_char ->
-       Error.build "The identifier '%s' is not a valid %s, the character '%s' is illegal" s name wrong_char
-      | Str.Text _ -> Error.bug "[Grew_ast.check_special]"
-    with
-    | Not_found -> ()
+    let rec loop = function
+    | [] -> ()
+    | Str.Delim wrong_char :: _ when not (List.mem wrong_char allowed) ->
+      Error.build "The identifier '%s' is not a valid %s, the character '%s' is illegal" s name wrong_char
+    | _::t -> loop t in
+    loop (Str.full_split (Str.regexp "#\\|\\.\\|:\\|\\*") s)
 
   (* ---------------------------------------------------------------------- *)
   (* simple_ident: cat *)
