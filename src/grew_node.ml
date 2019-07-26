@@ -137,11 +137,13 @@ module G_node = struct
   let update_edge gid_tar old_edge feat_name new_value t =
     let new_edge = G_edge.update feat_name new_value old_edge in
     if new_edge = old_edge
-    then None
+    then None (* the edge is not modified --> not safe *)
     else
-      match Massoc_gid.add_opt gid_tar new_edge (Massoc_gid.remove gid_tar old_edge t.next) with
+      let without_edge = Massoc_gid.remove gid_tar old_edge t.next in
+      match Massoc_gid.add_opt gid_tar new_edge without_edge with
       | Some new_next -> Some ({t with next = new_next }, new_edge)
-      | None -> None
+      | None -> (* the produced edge already exists, just remove the old one *)
+      Some ({t with next = without_edge }, new_edge)
 
   let del_edge_feature gid_tar old_edge feat_name t =
     match G_edge.remove feat_name old_edge with
