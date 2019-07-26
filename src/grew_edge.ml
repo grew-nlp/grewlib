@@ -57,13 +57,13 @@ module G_edge = struct
       (fun i (n,v) ->
         if string_of_int(i+1) = n
         then v
-        else raise (Not_conll (sprintf "Cannot convert '%s'" (to_string_long edge)))
+        else raise (Not_conll (to_string_long edge))
       ) infix_items in
     prefix ^ (String.concat ":" core) ^ suffix
 
   let to_string ?domain edge =
     try to_conll ?domain edge
-    with Not_conll s -> s
+    with Not_conll s -> sprintf "[%s]" s
 
   let to_dep ?domain ?(deco=false) t =
     let conll = to_conll t in
