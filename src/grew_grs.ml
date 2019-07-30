@@ -49,6 +49,11 @@ module Grs = struct
     | Strategy (name, strat) -> `Assoc [("strat_name", `String name); ("strat_def", Ast.strat_to_json strat)]
     | Package (name, decl_list) -> `Assoc [("package_name", `String name); "decls", `List (List.map (decl_to_json ?domain) decl_list)]
 
+  let decl_to_string ?domain = function
+    | Rule r -> sprintf "RULE: %s" (Rule.get_name r)
+    | Strategy (name, strat) -> sprintf "STRAT: %s" (name)
+    | Package (name, decl_list) -> sprintf "PACK: %s" (name)
+
   let to_json t =
     match t.domain with
     | None -> `Assoc [
@@ -141,7 +146,11 @@ module Grs = struct
   | Top of decl list
   | Pack of (decl list * pointed)  (* (content, mother package) *)
 
-
+  let rec dump_pointed = function
+  | Top l -> printf "TOP: %s\n" (String.concat "+" (List.map decl_to_string l))
+  | Pack (l, pointed)  ->
+    printf "PACK: %s\nMOTHER --> " (String.concat "+" (List.map decl_to_string l));
+    dump_pointed pointed
 
 
 

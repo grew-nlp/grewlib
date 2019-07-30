@@ -189,6 +189,7 @@ module Ast : sig
       rule_doc:string list;
       rule_loc: Loc.t;
       rule_dir: string option; (* the real folder where the file is defined *)
+      rule_path: string;
     }
 
   type label_spec = string * string list

@@ -448,9 +448,12 @@ module Rule = struct
       commands: Command.t list;
       lexicons: Lexicons.t;
       loc: Loc.t;
+      path: string;
     }
 
   let get_name t = t.name
+
+  let get_long_name t = t.path ^ t.name
 
   let get_loc t = t.loc
 
@@ -581,6 +584,7 @@ module Rule = struct
       commands = build_commands ?domain lexicons pos pos_table rule_ast.Ast.commands;
       loc = rule_ast.Ast.rule_loc;
       lexicons;
+      path = rule_ast.Ast.rule_path;
     }
 
   let build_pattern ?domain ?(lexicons=[]) pattern_ast =
@@ -1343,7 +1347,7 @@ module Rule = struct
               }
               rule.commands in
             if final_state.effective
-            then (Timeout.check (); incr_rules(); Some (G_graph.push_rule (get_name rule) final_state.graph))
+            then (Timeout.check (); incr_rules(); Some (G_graph.push_rule (get_long_name rule) final_state.graph))
             else None
 
   let rec wrd_apply ?domain rule (graph, big_step_opt) =
@@ -1706,7 +1710,7 @@ module Rule = struct
         try
           let new_gwh = loop_command init_gwh rule.commands in
           Timeout.check (); incr_rules();
-          Some {new_gwh with graph = G_graph.push_rule (get_name rule) new_gwh.graph }
+          Some {new_gwh with graph = G_graph.push_rule (get_long_name rule) new_gwh.graph }
         with Dead_lock -> loop_matching tail (* failed to apply all commands -> move to the next matching *)
       else loop_matching tail (* some neg part prevents rule app -> move to the next matching *)
     in loop_matching matching_list

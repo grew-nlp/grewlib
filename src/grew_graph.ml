@@ -279,7 +279,11 @@ module G_graph = struct
       { t with rules = String_map.add rule_name (old+1) t.rules }
     else t
 
-  let get_rules t = t.rules
+  let string_rules t =
+    String_map.fold
+      (fun k v acc ->
+        sprintf "%s:%d; %s" k v acc
+      ) t.rules ""
 
   (* is there an edge e out of node i ? *)
   let edge_out graph node_id label_cst =
@@ -1152,153 +1156,13 @@ module G_graph = struct
         with Skip -> (num,acc)
       ) graph.map (1,Conll_types.Int_map.empty) in
 
-    { Conll.void with Conll.meta = graph.meta; lines; mwes; }
+    let meta =
+      if !Global.track_rules
+      then graph.meta @ ["# rules = " ^ (string_rules graph)]
+      else graph.meta in
 
-(*
+    { Conll.void with Conll.meta = meta; lines; mwes; }
 
-
-  (* -------------------------------------------------------------------------------- *)
-  let to_conll_old graph =
-    let domain = get_domain graph in
-
-    (* split lexical // non-lexical nodes *)
-    let (nodes, nl_nodes) = Gid_map.fold
-      (fun id elt (acc1, acc2) ->
-        if is_non_lexical_node elt
-        then (acc1, (id,elt)::acc2)
-        else ((id,elt)::acc1, acc2)
-      ) graph.map ([],[]) in
-
-    (* sort nodes wrt position *)
-    let snodes = List.sort (fun (_,n1) (_,n2) -> G_node.position_comp n1 n2) nodes in
-
-    (* renumbering of nodes to have a consecutive sequence of int 1 --> n, in case of node deletion or addition *)
-    (* TODO: take into account empty nodes *)
-    let snodes = List.mapi
-      (fun i (gid,node) -> (gid, G_node.set_position (float i) node)
-      ) snodes in
-
-    let get_num gid =
-      let gnode = List.assoc gid snodes in
-      if G_node.is_conll_root gnode
-      then 0.
-      else G_node.get_float (List.assoc gid snodes) in
-
-    (* Warning: [govs_labs] maps [gid]s to [num]s *)
-    let govs_labs =
-      List.fold_right
-        (fun (src_gid, node) acc ->
-          let src_num = get_num src_gid in
-          Massoc_gid.fold
-            (fun acc2 tar_gid edge  ->
-              let old = try Gid_map.find tar_gid acc2 with Not_found -> [] in
-              Gid_map.add tar_gid ((sprintf "%g" src_num, G_edge.to_string ?domain edge)::old) acc2
-            ) acc (G_node.get_next node)
-        ) nodes Gid_map.empty in
-
-    let lines = List_.opt_map
-    (fun (gid,node) ->
-      if G_node.is_conll_root node
-      then None
-      else
-      let gov_labs = try Gid_map.find gid govs_labs with Not_found -> [] in
-
-      let sorted_gov_labs =
-        List.sort
-          (fun (g1,l1) (g2,l2) ->
-            if l1 <> "" && l1.[0] <> 'I' && l1.[0] <> 'D' && l1.[0] <> 'E'
-            then -1
-            else if l2 <> "" && l2.[0] <> 'I' && l2.[0] <> 'D' && l2.[0] <> 'E'
-            then 1
-            else
-              match compare (String_.to_float g1) (String_.to_float g2) with
-                | 0 -> compare l1 l2
-                | x -> x
-          ) gov_labs in
-
-    let id_of_gid gid = Conll.Id.of_string (string_of_float (get_num gid)) in
-    let fs = G_node.get_fs node in
-      Some {
-      Conll.line_num = 0;
-      id = id_of_gid gid;
-      form = (match G_fs.get_string_atom "form" fs with Some p -> p | None -> "_");
-      lemma = (match G_fs.get_string_atom "lemma" fs with Some p -> p | None -> "_");
-      upos = (match G_fs.get_string_atom "upos" fs with Some p -> p | None -> "_");
-      xpos = (match G_fs.get_string_atom "xpos" fs with Some p -> p | None -> "_");
-      feats = (G_fs.to_conll ~exclude: ["form"; "lemma"; "upos"; "xpos"; "position"] fs);
-      deps = List.map (fun (gov,lab) -> ( Conll.Id.of_string gov, lab)) sorted_gov_labs;
-      efs = G_node.get_efs node;
-    } ) snodes in
-
-    let snl_nodes = List.sort (fun (gid1,_) (gid2,_) -> Pervasives.compare gid1 gid2) nl_nodes in
-
-
-    let mwes = List_.foldi_left
-      (fun i acc (_,nl_node) ->
-        let fs = G_node.get_fs nl_node in
-        let kind = match G_fs.get_string_atom "kind" fs with
-          | Some "NE" -> Mwe.Ne
-          | Some "MWE" -> Mwe.Mwe
-          | _ -> Error.run "[G_graph.to_conll] cannot interpreted kind" in
-        let nexts = G_node.get_next nl_node in
-        let next_list =
-          List.sort_uniq
-            (fun gid1 gid2 ->
-              let n1 = List.assoc gid1 nodes
-              and n2 = List.assoc gid2 nodes in
-              match (G_node.get_position n1, G_node.get_position n2) with
-              | (Some i, Some j) -> Pervasives.compare i j
-              | _ -> 0
-            )
-            (Massoc_gid.fold (fun acc2 k _ -> k::acc2) [] nexts) in
-        match next_list with
-        | [] -> Error.bug "[G_graph.to_conll] mwe node with no next node"
-        | head_gid::tail_gids ->
-          let head_pos = match G_node.get_position (List.assoc head_gid snodes) with
-          | Some f -> int_of_float f
-          | None -> Error.run "[G_graph.to_conll] nl_node going to Unordered node" in
-          let head_proj = CCList.find_map
-            (fun e -> int_of_string_opt (G_edge.to_string ?domain e))
-            (Massoc_gid.assoc head_gid nexts) in
-          let items = List.fold_left
-            (fun acc gid ->
-              let pos = match G_node.get_position (List.assoc gid snodes) with
-              | Some f -> int_of_float f
-              | None -> Error.run "[G_graph.to_conll] nl_node going to Unordered node" in
-                let proj = CCList.find_map
-                  (fun e -> int_of_string_opt (G_edge.to_string ?domain e))
-                  (Massoc_gid.assoc gid nexts) in
-              Id_with_proj_set.add ((pos,None), proj) acc
-            ) Id_with_proj_set.empty tail_gids in
-          let mwe = {
-            Mwe.kind;
-            Mwe.mwepos = G_fs.get_string_atom "mwepos" fs;
-            Mwe.label = G_fs.get_string_atom "label" fs;
-            Mwe.criterion = G_fs.get_string_atom "criterion" fs;
-            first = ((head_pos, None),head_proj);
-            items;
-          } in
-        Conll_types.Int_map.add (i+1) mwe acc
-      ) Conll_types.Int_map.empty snl_nodes in
-
-    let text_rules = String_map.fold (fun rule_name occurrences acc ->
-      match acc with
-      | "" -> Printf.sprintf "%s[%d]" rule_name occurrences
-      | _ -> Printf.sprintf "%s[%d];%s" rule_name occurrences acc
-      ) graph.rules "" in
-    let rules = match text_rules with
-    | "" -> []
-    | _ -> ["# rules " ^ text_rules] in
-
-    {
-      Conll.file = None;
-      Conll.meta = graph.meta @ rules;
-      lines;
-      multiwords = []; (* multiwords are handled by _UD_* features *)
-      mwes;
-    }
-
-*)
   let to_conll_string ?cupt graph =
     let conll = to_conll graph in
     Conll.to_string ?cupt (Conll.normalize_multiwords conll)

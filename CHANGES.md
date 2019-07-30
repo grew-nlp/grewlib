@@ -4,7 +4,7 @@
   * add UPDATE_EDGE_FEAT handling
 
 # 1.3.0 (2019/06/24)
-  * Add support of "@alpha" extention in edges
+  * Add support of "@alpha" extension in edges
   * Add a default “empty.grs”
   * Review ordering of node
   * Add Multigraph management (for grew_server)

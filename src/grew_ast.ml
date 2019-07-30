@@ -326,6 +326,7 @@ module Ast = struct
     rule_doc: string list;
     rule_loc: Loc.t;
     rule_dir: string option; (* the real folder where the file is defined *)
+    rule_path: string;
   }
 
   (* [label_spec] is the type for a label declaration: the name and a list of display options *)

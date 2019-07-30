@@ -299,6 +299,7 @@ rule:
                 rule_doc = begin match doc with Some d -> d | None -> [] end;
                 rule_loc = snd id_loc;
                 rule_dir = None;
+                rule_path = "";
               }
             }
 
