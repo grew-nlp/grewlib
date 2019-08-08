@@ -1589,7 +1589,7 @@ module Rule = struct
         let src_gid = node_find src_cn in
         let tar_gid = node_find tar_cn in
         let (new_graph, del_edges, add_edges) =
-        G_graph.shift_in loc src_gid tar_gid (test_locality matching []) label_cst gwh.Graph_with_history.graph in
+        G_graph.shift_in loc src_gid tar_gid (test_locality matching gwh.added_gids_in_rule) label_cst gwh.Graph_with_history.graph in
           Graph_with_history_set.singleton { gwh with
             Graph_with_history.graph = new_graph;
             delta = gwh.Graph_with_history.delta
@@ -1601,7 +1601,7 @@ module Rule = struct
         let src_gid = node_find src_cn in
         let tar_gid = node_find tar_cn in
         let (new_graph, del_edges, add_edges) =
-        G_graph.shift_out loc src_gid tar_gid (test_locality matching []) label_cst gwh.Graph_with_history.graph in
+        G_graph.shift_out loc src_gid tar_gid (test_locality matching gwh.added_gids_in_rule) label_cst gwh.Graph_with_history.graph in
           Graph_with_history_set.singleton { gwh with
             Graph_with_history.graph = new_graph;
             delta = gwh.Graph_with_history.delta
@@ -1613,7 +1613,7 @@ module Rule = struct
         let src_gid = node_find src_cn in
         let tar_gid = node_find tar_cn in
         let (new_graph, del_edges, add_edges) =
-        G_graph.shift_edges loc src_gid tar_gid (test_locality matching []) label_cst gwh.Graph_with_history.graph in
+        G_graph.shift_edges loc src_gid tar_gid (test_locality matching gwh.added_gids_in_rule) label_cst gwh.Graph_with_history.graph in
           Graph_with_history_set.singleton { gwh with
             Graph_with_history.graph = new_graph;
             delta = gwh.Graph_with_history.delta
@@ -1626,7 +1626,8 @@ module Rule = struct
         let (new_gid,new_graph) = G_graph.add_after base_gid gwh.Graph_with_history.graph in
           Graph_with_history_set.singleton { gwh with
             Graph_with_history.graph = new_graph;
-            added_gids = (created_name, new_gid) :: gwh.Graph_with_history.added_gids
+            added_gids = (created_name, new_gid) :: gwh.Graph_with_history.added_gids;
+            added_gids_in_rule = (created_name,new_gid) :: gwh.added_gids_in_rule;
           }
 
     | Command.NEW_BEFORE (created_name,base_cn) ->
@@ -1634,14 +1635,16 @@ module Rule = struct
         let (new_gid,new_graph) = G_graph.add_before base_gid gwh.Graph_with_history.graph in
           Graph_with_history_set.singleton { gwh with
             Graph_with_history.graph = new_graph;
-            added_gids = (created_name, new_gid) :: gwh.Graph_with_history.added_gids
+            added_gids = (created_name, new_gid) :: gwh.Graph_with_history.added_gids;
+            added_gids_in_rule = (created_name,new_gid) :: gwh.added_gids_in_rule;
           }
 
     | Command.NEW_NODE (created_name) ->
         let (new_gid,new_graph) = G_graph.add_unordered gwh.Graph_with_history.graph in
           Graph_with_history_set.singleton { gwh with
             Graph_with_history.graph = new_graph;
-            added_gids = (created_name, new_gid) :: gwh.Graph_with_history.added_gids
+            added_gids = (created_name, new_gid) :: gwh.Graph_with_history.added_gids;
+            added_gids_in_rule = (created_name,new_gid) :: gwh.added_gids_in_rule;
           }
 
     | Command.DEL_EDGE_FEAT (edge_id, feat_name) ->
@@ -1665,7 +1668,11 @@ module Rule = struct
   (** [apply_rule graph_with_history matching rule] returns a new graph_with_history after the application of the rule *)
   let gwh_apply_rule ?domain graph_with_history matching rule =
     Timeout.check (); incr_rules ();
-    let init = Graph_with_history_set.singleton { graph_with_history with e_mapping = matching.e_match } in
+    let init = Graph_with_history_set.singleton
+      { graph_with_history with
+        e_mapping = matching.e_match;
+        added_gids_in_rule = [];
+      } in
 
     List.fold_left
       (fun gwh_set cmd ->
@@ -1699,7 +1706,7 @@ module Rule = struct
           fulfill ?domain (pos.graph,neg.graph) graph new_partial_matching
         ) negs
       then (* all negs part are fulfilled *)
-        let init_gwh = { gwh with e_mapping = sub.e_match } in
+        let init_gwh = { gwh with e_mapping = sub.e_match; added_gids_in_rule = []; } in
         let rec loop_command acc_gwh = function
           | [] -> acc_gwh
           | command :: tail_commands ->
