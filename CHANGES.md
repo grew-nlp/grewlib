@@ -1,3 +1,7 @@
+## 1.3.2 (2019/08/27)
+  * implement edge_del_feat
+  * Fix various bugs
+
 ## 1.3.1 (2019/07/04)
   * add constraints with features in edges
   * add shift commands with features in edges
