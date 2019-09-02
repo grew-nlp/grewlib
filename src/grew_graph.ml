@@ -261,6 +261,8 @@ module G_graph = struct
 
   let is_empty t = Gid_map.is_empty t.map
 
+  let size t = Gid_map.cardinal (t.map)
+
   let get_domain t = t.domain
 
   let find node_id graph = Gid_map.find node_id graph.map

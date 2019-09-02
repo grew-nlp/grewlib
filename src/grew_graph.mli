@@ -93,6 +93,9 @@ module G_graph: sig
 
   val empty: t
 
+  (** Number of nodes *)
+  val size: t -> int
+
   (** [find gid graph] return the g_node associated with [gid] in [graph].
       [Not_found] is raised if [gid] is not defined in [graph]. *)
   val find: Gid.t -> t -> G_node.t

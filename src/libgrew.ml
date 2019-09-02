@@ -128,6 +128,8 @@ end
 module Graph = struct
   type t = Grew_graph.G_graph.t
 
+  let size t = Grew_graph.G_graph.size t
+
   let load_gr ?domain file =
     if not (Sys.file_exists file)
     then raise (Libgrew.Error ("File_not_found: " ^ file))

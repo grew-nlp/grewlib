@@ -78,6 +78,10 @@ end
 module Graph : sig
 
   type t = Grew_graph.G_graph.t
+
+  (** number of nodes *)
+  val size: t -> int
+
   (** get a graph from a file either in 'gr' or 'conll' format.
       File extension should be '.gr' or '.conll'.
       @raise Parsing_err if libgrew can't parse the file
