@@ -77,6 +77,13 @@ module Rule : sig
 
   val owh_apply: ?domain: Domain.t -> t -> Graph_with_history.t -> Graph_with_history.t option
 
+  (* [get value request pattern graph matching] returns the value corresponding to the request in the result of a previou result of match
+    [request] can be:
+    * the name of a edge declared in the positive part of the pattern
+    * the name of a feature value [N.feat] where [N] is a node declared in the positive part of the pattern
+    * the name of an edge featue [E.feat] where [e] is a edge declared in the positive part of the pattern
+  *)
+  val get_value: string -> pattern -> G_graph.t -> matching -> string option
 
 
 

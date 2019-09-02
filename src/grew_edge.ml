@@ -29,36 +29,36 @@ module G_edge = struct
   let to_string_long edge = String.concat "," (List.map (fun (x,y) -> x^"="^y) edge)
 
   let rec update feat_name new_value = function
-  | [] -> [(feat_name, new_value)]
-  | (fn,fv)::t when feat_name < fn -> (feat_name, new_value) :: (fn,fv) :: t
-  | (fn,fv)::t when feat_name = fn -> (feat_name, new_value) :: t
-  | x::t -> x :: (update feat_name new_value t)
+    | [] -> [(feat_name, new_value)]
+    | (fn,fv)::t when feat_name < fn -> (feat_name, new_value) :: (fn,fv) :: t
+    | (fn,fv)::t when feat_name = fn -> (feat_name, new_value) :: t
+    | x::t -> x :: (update feat_name new_value t)
 
   let rec remove feat_name = function
-  | [] -> None
-  | (fn,fv)::t when feat_name < fn -> None
-  | (fn,fv)::t when feat_name = fn -> Some t
-  | x::t -> (match remove feat_name t with Some new_t -> Some (x::new_t) | None -> None)
+    | [] -> None
+    | (fn,fv)::t when feat_name < fn -> None
+    | (fn,fv)::t when feat_name = fn -> Some t
+    | x::t -> (match remove feat_name t with Some new_t -> Some (x::new_t) | None -> None)
 
   let to_conll ?domain edge =
     let prefix = match get_sub "kind" edge with
-    | None -> ""
-    | Some "surf" -> "S:"
-    | Some "deep" -> "D:"
-    | Some "enhanced" -> "E:"
-    | Some c -> raise (Not_conll (sprintf "unknown kind '%s' in edge '%s'" c (to_string_long edge))) in
+      | None -> ""
+      | Some "surf" -> "S:"
+      | Some "deep" -> "D:"
+      | Some "enhanced" -> "E:"
+      | Some c -> raise (Not_conll (sprintf "unknown kind '%s' in edge '%s'" c (to_string_long edge))) in
     let suffix = match get_sub "deep" edge with
-    | Some s -> "@"^s
-    | None -> "" in
+      | Some s -> "@"^s
+      | None -> "" in
     let infix_items = edge
-     |> (List_.sort_remove_assoc "kind")
-     |> (List_.sort_remove_assoc "deep") in
+                      |> (List_.sort_remove_assoc "kind")
+                      |> (List_.sort_remove_assoc "deep") in
     let core = CCList.mapi
-      (fun i (n,v) ->
-        if string_of_int(i+1) = n
-        then v
-        else raise (Not_conll (to_string_long edge))
-      ) infix_items in
+        (fun i (n,v) ->
+           if string_of_int(i+1) = n
+           then v
+           else raise (Not_conll (to_string_long edge))
+        ) infix_items in
     prefix ^ (String.concat ":" core) ^ suffix
 
   let to_string ?domain edge =
@@ -74,13 +74,13 @@ module G_edge = struct
     Domain.label_to_dot ?domain ~deco conll
 
   let split l = CCList.mapi
-    (fun i elt -> (string_of_int (i+1), elt)) l
+      (fun i elt -> (string_of_int (i+1), elt)) l
 
   let from_string ?loc ?domain str =
     let (init, deep) = match Str.bounded_split (Str.regexp_string "@") str 2 with
-    | [i] -> (i, None)
-    | [i;d] -> (i, Some ("deep",d))
-    | _ -> assert false in
+      | [i] -> (i, None)
+      | [i;d] -> (i, Some ("deep",d))
+      | _ -> assert false in
     let before_deep =
       match Str.split (Str.regexp_string ":") init with
       | "S" :: l -> ("kind","surf") :: (split l)
@@ -108,15 +108,15 @@ end (* module G_edge *)
 (** The module [Label_cst] defines contraints on label edges *)
 module Label_cst = struct
   type atom_cst =
-  | Eq of (string * string list)
-  | Diseq of (string * string list)
-  | Absent of string
+    | Eq of (string * string list)
+    | Diseq of (string * string list)
+    | Absent of string
 
   type t =
-  | Pos of G_edge.t list
-  | Neg of G_edge.t list
-  | Regexp of (Str.regexp * string)
-  | Atom_list of atom_cst list
+    | Pos of G_edge.t list
+    | Neg of G_edge.t list
+    | Regexp of (Str.regexp * string)
+    | Atom_list of atom_cst list
 
   let to_string ?domain = function
     | Pos l -> (List_.to_string (G_edge.to_string ?domain) "|" l)
@@ -125,25 +125,25 @@ module Label_cst = struct
     | Atom_list l ->
       String.concat ","
         (List.map
-          (function
-            | Eq (name,al) -> sprintf "%s=%s" name (String.concat "|" al)
-            | Diseq (name,al) -> sprintf "%s<>%s" name (String.concat "|" al)
-            | Absent name -> sprintf "!%s" name
-          ) l
+           (function
+             | Eq (name,al) -> sprintf "%s=%s" name (String.concat "|" al)
+             | Diseq (name,al) -> sprintf "%s<>%s" name (String.concat "|" al)
+             | Absent name -> sprintf "!%s" name
+           ) l
         )
 
   let to_json ?domain = function
-  | Pos l -> `Assoc
-    ["pos",
-      `List (List.map (fun lab -> `String (G_edge.to_string ?domain lab)) l)
-    ]
-  | Neg l -> `Assoc
-      ["neg",
-        `List (List.map (fun lab -> `String (G_edge.to_string ?domain lab)) l)
-      ]
-  | Regexp (_,re) -> `Assoc
-      ["regexp", `String re]
-  | Atom_list l -> failwith "TODO json"
+    | Pos l -> `Assoc
+                 ["pos",
+                  `List (List.map (fun lab -> `String (G_edge.to_string ?domain lab)) l)
+                 ]
+    | Neg l -> `Assoc
+                 ["neg",
+                  `List (List.map (fun lab -> `String (G_edge.to_string ?domain lab)) l)
+                 ]
+    | Regexp (_,re) -> `Assoc
+                         ["regexp", `String re]
+    | Atom_list l -> failwith "TODO json"
 
   let all = Neg []
 
@@ -224,7 +224,7 @@ module P_edge = struct
 
   let match_list ?domain p_edge g_edge_list =
     match p_edge with
-      | {id; label_cst } ->
+    | {id; label_cst } ->
       ( match List.filter (fun g_edge -> Label_cst.match_ ?domain label_cst g_edge) g_edge_list with
         | [] -> Fail
         | list -> Binds (id, list)

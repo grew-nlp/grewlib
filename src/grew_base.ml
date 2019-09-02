@@ -19,6 +19,8 @@ module Int_map = Map.Make (struct type t = int let compare = Pervasives.compare 
 
 module Float_map = Map.Make (struct type t = float let compare = Pervasives.compare end)
 
+module String_opt_map = Map.Make (struct type t = string option let compare = Pervasives.compare end)
+
 (* ================================================================================ *)
 module Loc = struct
   type t = string option * int option

@@ -636,6 +636,47 @@ module Rule = struct
         (P_node.get_name pnode, G_node.get_name gid gnode) :: acc
       ) n_match []
 
+  exception Found of Pid.t
+  let get_pid_by_name pattern name n_match =
+    try
+      Pid_map.iter
+        (fun pid _ ->
+          if P_node.get_name (P_graph.find pid pattern.pos.graph) = name
+          then raise (Found pid)
+        ) n_match;
+        None
+    with Found pid -> Some pid
+
+  (* return the value of a feature or an edge label *)
+  let get_value request pattern graph matching =
+    match Str.split (Str.regexp "\\.") request with
+    | [edge_id] ->
+      begin
+        match String_map.find_opt edge_id matching.e_match with
+        | None -> Error.run "[Rule.get_value] unknown edge_id %s" edge_id
+        | Some (_,edge,_) -> Some (G_edge.to_conll edge)
+      end
+    | [node_or_edge_id; feature_name] ->
+      begin
+        match String_map.find_opt node_or_edge_id matching.e_match with
+        | Some (_,edge,_) -> G_edge.get_sub feature_name edge
+        | None ->
+        begin
+          match get_pid_by_name pattern node_or_edge_id matching.n_match with (* TODO: edge feature "e.deep" *)
+          | None -> Error.run "[Rule.get_value] unknown id %s" node_or_edge_id
+          | Some pid ->
+            let gid = Pid_map.find pid matching.n_match in
+            let node = G_graph.find gid graph in
+            let fs = G_node.get_fs node in
+            G_fs.get_string_atom feature_name fs
+        end
+
+
+
+      end
+    | _ -> Error.run "[Rule.get_value] unable to handled request %s" request
+
+
   let empty_matching ?(lexicons=[]) () = { n_match = Pid_map.empty; e_match = String_map.empty; l_param = lexicons;}
 
   let e_match_add ?pos edge_id new_edge matching =
