@@ -40,7 +40,7 @@ module Loader = struct
     | Ast.Rule r :: _ when r.Ast.rule_id = id -> Some r.Ast.rule_loc
     | Ast.Package (loc, name, _) :: _ when name = id -> Some loc
     | Ast.Strategy (loc, name, _) :: _ when name = id -> Some loc
-    | _ -> None
+    | _::tail -> check_duplicate_id id tail
 
   let rec check_grs = function
     | [] -> ()
