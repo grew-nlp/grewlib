@@ -44,6 +44,7 @@ module G_node: sig
   (* val get_float: t -> float *)
 
   val shift: string -> int -> t -> t
+  val unshift: string -> t -> t
 
   val is_empty: t -> bool
 

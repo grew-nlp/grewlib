@@ -78,6 +78,15 @@ module G_node = struct
     succ = CCOpt.map ((+) delta) t.succ;
   }
 
+  let unshift user_id t =
+    match (
+      CCOpt.map (fun x -> CCString.chop_prefix ~pre:(user_id^"_") x) t.name,
+      G_fs.del_feat "user" t.fs
+    ) with
+    | (Some name, Some fs) -> { t with name; fs }
+    | (Some name, None) -> { t with name }
+    | _ -> Error.run "[G_node.unshift] Inconsistent data"
+
   let is_empty t = match G_fs.get_string_atom "_UD_empty" t.fs with
     | Some "Yes" -> true
     | _ -> false

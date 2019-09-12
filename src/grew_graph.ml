@@ -257,6 +257,11 @@ module G_graph = struct
       highest_index = graph.highest_index + n;
     }
 
+  let unshift user_id graph =
+      { graph with
+        map = Gid_map.map (fun node -> G_node.unshift user_id node) graph.map;
+      }
+
   let empty = { domain=None; meta=[]; map=Gid_map.empty; fusion=[]; highest_index=0; rules=String_map.empty; }
 
   let is_empty t = Gid_map.is_empty t.map
@@ -1506,7 +1511,7 @@ module Multigraph = struct
       (fun user_id acc ->
         match user_graph user_id t with
         | None -> acc
-        | Some g -> (user_id, g) :: acc
+        | Some g -> (user_id, G_graph.unshift user_id g) :: acc
       ) t.users []
 
   let save out_ch t =
