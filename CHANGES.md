@@ -1,3 +1,7 @@
+## 1.3.3 (2019/10/22)
+  * Various new functions from grew-match and grew_server
+  * fix bug on checking duplicate definition in packages
+
 ## 1.3.2 (2019/08/27)
   * implement edge_del_feat
   * Fix various bugs
