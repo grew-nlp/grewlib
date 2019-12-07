@@ -43,7 +43,7 @@ module Pid = struct
   (* type t = int *)
   type t = Pos of int | Neg of int
 
-  let compare = Pervasives.compare
+  let compare = Stdlib.compare
 
   let to_id = function
     | Pos i -> sprintf "p_%d" i
@@ -82,7 +82,7 @@ end (* module Pid_map *)
 module Gid = struct
   type t = int
 
-  let compare = Pervasives.compare
+  let compare = Stdlib.compare
 
   let to_string i = sprintf "%d" i
 end (* module Gid *)
@@ -119,7 +119,7 @@ module Massoc_string = Massoc_make (String)
 
 (* ================================================================================ *)
 module Lexicon = struct
-  module Line_set = Set.Make (struct type t=string list let compare = Pervasives.compare end)
+  module Line_set = Set.Make (struct type t=string list let compare = Stdlib.compare end)
 
   type t = {
     header: string list;  (* ordered list of column headers *)
@@ -134,7 +134,7 @@ module Lexicon = struct
 
   exception Equal of string
   let strict_compare x y =
-    match Pervasives.compare x y with
+    match Stdlib.compare x y with
     | 0 -> raise (Equal x)
     | x -> x
 
@@ -178,7 +178,7 @@ module Lexicon = struct
     with Sys_error _ -> Error.build ~loc "[Lexicon.load] unable to load file %s" file
 
   let reduce sub_list lexicon =
-    let sorted_sub_list = List.sort Pervasives.compare sub_list in
+    let sorted_sub_list = List.sort Stdlib.compare sub_list in
     let reduce_line line =
       let rec loop = function
       | ([],_,_) -> []

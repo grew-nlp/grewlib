@@ -20,7 +20,7 @@ open Grew_domain
 module G_edge = struct
   type t = (string * string) list
 
-  let from_items l = List.sort (fun (x,_) (y,_) -> Pervasives.compare x y) l
+  let from_items l = List.sort (fun (x,_) (y,_) -> Stdlib.compare x y) l
 
   let get_sub = List_.sort_assoc
 
@@ -87,7 +87,7 @@ module G_edge = struct
       | "D" :: l -> ("kind","deep") :: (split l)
       | "E" :: l -> ("kind","enhanced") :: (split l)
       | l -> split l in
-    List.sort (Pervasives.compare) (CCList.cons_maybe deep before_deep)
+    List.sort (Stdlib.compare) (CCList.cons_maybe deep before_deep)
 
   let to_json ?domain t = `String (to_string ?domain t)
 
@@ -172,8 +172,8 @@ module Label_cst = struct
         Error.run "Cannot ckeck for regexp constraint on the edge \"%s\"" s
 
   let build_atom = function
-    | Ast.Atom_eq (name, atoms) -> Eq (name, List.sort Pervasives.compare atoms)
-    | Ast.Atom_diseq (name, atoms) -> Diseq (name, List.sort Pervasives.compare atoms)
+    | Ast.Atom_eq (name, atoms) -> Eq (name, List.sort Stdlib.compare atoms)
+    | Ast.Atom_diseq (name, atoms) -> Diseq (name, List.sort Stdlib.compare atoms)
     | Ast.Atom_absent name -> Absent name
 
   let build ?loc ?domain = function

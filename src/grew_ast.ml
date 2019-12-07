@@ -338,7 +338,7 @@ module Ast = struct
     | Num of feature_name (* position *)
 
   let build_closed feature_name feature_values =
-    let sorted_list = List.sort Pervasives.compare feature_values in
+    let sorted_list = List.sort Stdlib.compare feature_values in
     let without_duplicate =
       let rec loop = function
         | [] -> []

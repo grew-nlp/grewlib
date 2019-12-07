@@ -205,7 +205,7 @@ module Feature_domain = struct
 
   (* This function is defined here because it is used by check_feature *)
   let build_disj ?loc ?feature_domain name unsorted_values =
-    let values = List.sort Pervasives.compare unsorted_values in
+    let values = List.sort Stdlib.compare unsorted_values in
     match (feature_domain, name.[0]) with
       | (None, _)
       | (Some _, '_') -> List.map (fun s -> String s) values (* no check on feat_name starting with '_' *)

@@ -37,16 +37,16 @@ module G_feature = struct
 
   let get_name = fst
 
-  let compare feat1 feat2 = Pervasives.compare (get_name feat1) (get_name feat2)
+  let compare feat1 feat2 = Stdlib.compare (get_name feat1) (get_name feat2)
 
   (* another order used for printing purpose only *)
   let print_order = ["phon"; "form"; "cat"; "upos"; "lemma"; "pos"; "xpos"]
   let print_cmp (name1,_) (name2,_) =
     match (List_.index name1 print_order, List_.index name2 print_order) with
-    | (Some i, Some j) -> Pervasives.compare i j
+    | (Some i, Some j) -> Stdlib.compare i j
     | (Some i, None) -> -1
     | (None, Some j) -> 1
-    | (None, None) -> Pervasives.compare name1 name2
+    | (None, None) -> Stdlib.compare name1 name2
 
   let build ?domain = function
     | ({Ast.kind=Ast.Equality [atom]; name=name},loc) ->
@@ -113,7 +113,7 @@ module P_feature = struct
 
   let get_name = fst
 
-  let compare feat1 feat2 = Pervasives.compare (get_name feat1) (get_name feat2)
+  let compare feat1 feat2 = Stdlib.compare (get_name feat1) (get_name feat2)
 
   exception Fail_unif
 
@@ -377,7 +377,7 @@ module G_fs = struct
       | Some list -> List.filter (fun (fn,_) -> not (List.mem fn list)) t in
     let ud_ordering = (* In UD CoNLL-U format, features are sorted wrt lowercase form *)
       List.sort
-        (fun feat1 feat2 -> Pervasives.compare (String.lowercase_ascii (G_feature.get_name feat1)) (String.lowercase_ascii (G_feature.get_name feat2)))
+        (fun feat1 feat2 -> Stdlib.compare (String.lowercase_ascii (G_feature.get_name feat1)) (String.lowercase_ascii (G_feature.get_name feat2)))
         reduced_t in
     List.map (fun (fn, fv) -> (fn, string_of_value fv)) ud_ordering
 

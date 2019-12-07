@@ -168,7 +168,7 @@ module G_node = struct
   let rm_out_edges t = {t with next = Massoc_gid.empty}
 
   let position_comp n1 n2 = match (n1.sort, n2.sort) with
-  | (Ordered i, Ordered j) -> Pervasives.compare i j
+  | (Ordered i, Ordered j) -> Stdlib.compare i j
   | _ -> 0
 
   let rename mapping n = {n with next = Massoc_gid.rename mapping n.next}
@@ -231,5 +231,5 @@ module P_node = struct
       then P_fs.match_ ?lexicons p_node.fs (G_node.get_fs g_node)
       else raise P_fs.Fail
 
-  let compare_pos t1 t2 = Pervasives.compare t1.loc t2.loc
+  let compare_pos t1 t2 = Stdlib.compare t1.loc t2.loc
 end (* module P_node *)

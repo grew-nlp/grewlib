@@ -14,12 +14,12 @@ open Printf
 module String_set = Set.Make (String)
 module String_map = Map.Make (String)
 
-module Int_set = Set.Make (struct type t = int let compare = Pervasives.compare end)
-module Int_map = Map.Make (struct type t = int let compare = Pervasives.compare end)
+module Int_set = Set.Make (struct type t = int let compare = Stdlib.compare end)
+module Int_map = Map.Make (struct type t = int let compare = Stdlib.compare end)
 
-module Float_map = Map.Make (struct type t = float let compare = Pervasives.compare end)
+module Float_map = Map.Make (struct type t = float let compare = Stdlib.compare end)
 
-module String_opt_map = Map.Make (struct type t = string option let compare = Pervasives.compare end)
+module String_opt_map = Map.Make (struct type t = string option let compare = Stdlib.compare end)
 
 (* ================================================================================ *)
 module Loc = struct
@@ -319,7 +319,7 @@ module List_ = struct
     | x::t when key = x -> t
     | x::t -> x::(usort_remove key t)
 
-  let usort_insert ?(compare=Pervasives.compare) elt l =
+  let usort_insert ?(compare=Stdlib.compare) elt l =
     let rec loop = function
       | [] -> [elt]
       | x::t when compare elt x < 0 -> elt :: x :: t
@@ -360,7 +360,7 @@ module List_ = struct
 
 
   exception Not_disjoint
-  let sort_disjoint_union ?(compare=Pervasives.compare) l1 l2 =
+  let sort_disjoint_union ?(compare=Stdlib.compare) l1 l2 =
     let rec loop = function
       | [], l | l, [] -> l
       | x1::t1, x2::t2 when (compare x1 x2) < 0 -> x1 :: loop (t1, x2::t2)
@@ -643,7 +643,7 @@ module Global = struct
 end (* module Global *)
 
 module Dependencies = struct
-  let lex_cmp (i1, j1) (i2,j2) = match Pervasives.compare i1 i2 with 0 -> Pervasives.compare j1 j2 | x -> x
+  let lex_cmp (i1, j1) (i2,j2) = match Stdlib.compare i1 i2 with 0 -> Stdlib.compare j1 j2 | x -> x
 
   let rec insert_sorted i = function
     | h::t when h < i -> h :: (insert_sorted i t)

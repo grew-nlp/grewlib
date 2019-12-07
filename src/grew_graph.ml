@@ -87,7 +87,7 @@ module P_graph = struct
         (fun acc ast_node -> insert ast_node acc)
         [] full_node_list in
 
-    let sorted_nodes = List.sort (fun (id1,_) (id2,_) -> Pervasives.compare id1 id2) named_nodes in
+    let sorted_nodes = List.sort (fun (id1,_) (id2,_) -> Stdlib.compare id1 id2) named_nodes in
     let (sorted_ids, node_list) = List.split sorted_nodes in
 
     (* [pos_table] contains the sorted list of node ids *)
@@ -133,7 +133,7 @@ module P_graph = struct
         (function (id,_) when Array_.dicho_mem id pos_table -> true | _ -> false)
         built_nodes in
 
-    let new_sorted_nodes = List.sort (fun (id1,_) (id2,_) -> Pervasives.compare id1 id2) new_nodes in
+    let new_sorted_nodes = List.sort (fun (id1,_) (id2,_) -> Stdlib.compare id1 id2) new_nodes in
 
     let (new_sorted_ids, new_node_list) = List.split new_sorted_nodes in
 
@@ -330,7 +330,7 @@ module G_graph = struct
         | None -> (orderd_acc, (node,loc) :: unordered_acc)
       ) ([],[]) gr_ast.Ast.nodes in
 
-    let sorted_nodes = List.sort (fun (p1,_) (p2,_) -> Pervasives.compare p1 p2) ordered_nodes in
+    let sorted_nodes = List.sort (fun (p1,_) (p2,_) -> Stdlib.compare p1 p2) ordered_nodes in
 
     let rec loop already_bound index prec = function
       | [] -> (Gid_map.empty,[])
@@ -1132,7 +1132,7 @@ module G_graph = struct
               let n1 = List.assoc gid1 sorted_nodes
               and n2 = List.assoc gid2 sorted_nodes in
               match (G_node.get_position n1, G_node.get_position n2) with
-              | (Some i, Some j) -> Pervasives.compare i j
+              | (Some i, Some j) -> Stdlib.compare i j
               | _ -> 0
             )
             (Massoc_gid.fold (fun acc2 k _ -> k::acc2) [] nexts) in
@@ -1445,7 +1445,7 @@ module Graph_with_history = struct
   let from_graph graph = { graph; seed=graph; delta = Delta.empty; added_gids = []; e_mapping = String_map.empty; added_gids_in_rule =[]; }
 
   (* WARNING: compare is correct only on data with the same seed! *)
-  let compare t1 t2 = Pervasives.compare (t1.delta,t1.added_gids) (t2.delta, t2.added_gids)
+  let compare t1 t2 = Stdlib.compare (t1.delta,t1.added_gids) (t2.delta, t2.added_gids)
 end (* module Graph_with_history*)
 
 (* ================================================================================ *)
