@@ -435,7 +435,7 @@ module Rule = struct
 
   (* a [pattern] is described by the positive basic and a list of negative basics. *)
   type pattern = {
-    global: string list;
+    global: Ast.glob list;
     pos: basic;
     negs: basic list;
   }
@@ -1071,11 +1071,8 @@ module Rule = struct
     | [] -> true (* the without pattern in not found -> OK *)
     | _ -> false
 
-  (*  ---------------------------------------------------------------------- *)
-  let match_in_graph ?domain ?lexicons { global; pos; negs } graph =
-    let casted_graph = G_graph.cast ?domain graph in
-
-    let match_global = function
+  (* returns true iff the graph verify all structure constraints give in the list *)
+  let test_stucture_constraints graph = function
     | [] -> true
     | ["is_projective"] -> G_graph.is_projective graph = None
     | ["is_not_projective"] -> G_graph.is_projective graph <> None
@@ -1115,9 +1112,48 @@ module Rule = struct
       | "is_not_cyclic" :: _ -> false
 
       | x :: tail -> Error.build "Unknown global requirement \"%s\"" x in
-    loop l in
+    loop l
 
-    if not (match_global global)
+
+  let check_global_constraint glob_list graph =
+    let stuct_cst_list = List.fold_left (fun acc (glob,_) -> match glob with Ast.Glob_cst s -> s::acc | _ -> acc) [] glob_list in
+    if test_stucture_constraints graph stuct_cst_list
+    then
+      List.for_all
+        (function
+          | (Ast.Glob_cst _, _) -> true (* these constraints are alredy checked in [test_stucture_constraints] function *)
+          | (Ast.Glob_eq_list (key, value_list), _) ->
+          begin
+            match G_graph.get_meta_opt key graph with
+            | Some v -> List.mem v value_list
+            | None -> false
+          end
+          | (Ast.Glob_diff_list (key, value_list), _) ->
+          begin
+            match G_graph.get_meta_opt key graph with
+            | Some v -> not (List.mem v value_list)
+            | None -> false
+          end
+          | (Ast.Glob_absent key, _) ->
+          begin
+            match G_graph.get_meta_opt key graph with
+            | Some v -> false
+            | None -> true
+          end
+          | (Ast.Glob_regexp (key, re), _) ->
+          begin
+            match G_graph.get_meta_opt key graph with
+            | Some v -> String_.re_match (Str.regexp re) v
+            | None -> false
+          end
+        ) glob_list
+    else false
+
+  (*  ---------------------------------------------------------------------- *)
+  let match_in_graph ?domain ?lexicons { global; pos; negs } graph =
+    let casted_graph = G_graph.cast ?domain graph in
+
+    if not (check_global_constraint global graph)
     then []
     else
       let pos_graph = pos.graph in

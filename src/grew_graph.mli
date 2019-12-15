@@ -226,6 +226,8 @@ module G_graph: sig
   }
 
   val depth_first_search: t -> dfs_output
+
+  val get_meta_opt: string -> t -> string option
 end (* module G_graph *)
 
 (* ================================================================================ *)

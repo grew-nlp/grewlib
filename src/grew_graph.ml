@@ -250,6 +250,16 @@ module G_graph = struct
     rules: int String_map.t;
   }
 
+  let get_meta_opt key t =
+    let rec loop = function
+    | [] -> None
+    | line::tail ->
+    begin
+      match Str.bounded_full_split (Str.regexp "[#=\t ]+") line 3 with
+      | [Str.Delim _; Str.Text k; Str.Delim _; Str.Text value] when k = key -> Some value
+      | s -> loop tail
+    end in loop t.meta
+
   let shift user_id n graph =
     { graph with
       fusion = List.map (shift_fusion_item n) graph.fusion;

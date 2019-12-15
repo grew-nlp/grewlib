@@ -192,9 +192,18 @@ module Ast = struct
 
   let empty_basic = { pat_nodes=[]; pat_edges=[]; pat_const=[]; }
 
+  type u_glob =
+    | Glob_cst of string
+    | Glob_eq_list of string * string list
+    | Glob_diff_list of string * string list
+    | Glob_absent of string
+    | Glob_regexp of string * string
+
+  type glob = u_glob * Loc.t
+
   type pattern = {
     pivot: Id.name option;
-    pat_glob: string list;
+    pat_glob: glob list;
     pat_pos: basic;
     pat_negs: basic list;
   }

@@ -316,7 +316,24 @@ glob_decl:
         | GLOBAL l=delimited(LACC, separated_list_final_opt(SEMIC,glob_item),RACC) { l }
 
 glob_item:
-        | item = ID { item }
+        /*   is_projective   */
+        | item_loc = simple_id_with_loc { let (item,loc)=item_loc in (Ast.Glob_cst item, loc) }
+        /*   text = v1|v2   */
+        | meta_loc=simple_id_with_loc EQUAL values=separated_nonempty_list(PIPE,feature_value)
+          { let (meta_id,loc)=meta_loc in (Ast.Glob_eq_list (meta_id, values), loc) }
+        /*   text <> value   */
+        | meta_loc=simple_id_with_loc DISEQUAL values=separated_nonempty_list(PIPE,feature_value)
+          { let (meta_id,loc)=meta_loc in (Ast.Glob_diff_list (meta_id, values), loc) }
+        /*   text = *   */
+        | meta_loc=simple_id_with_loc EQUAL STAR
+          { let (meta_id,loc)=meta_loc in (Ast.Glob_diff_list (meta_id, []), loc) }
+        /*   !text   */
+        | BANG meta_loc=simple_id_with_loc
+          { let (meta_id,loc)=meta_loc in (Ast.Glob_absent meta_id, loc) }
+        /*   text = re"pref.*"  */
+        | meta_loc=simple_id_with_loc EQUAL re=REGEXP
+          { let (meta_id,loc)=meta_loc in (Ast.Glob_regexp (meta_id, re), loc) }
+
 
 pos_item:
         | PATTERN i=pn_item   { i }

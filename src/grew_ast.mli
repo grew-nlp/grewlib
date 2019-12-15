@@ -135,12 +135,21 @@ module Ast : sig
 
   val empty_basic: basic
 
+  type u_glob =
+    | Glob_cst of string
+    | Glob_eq_list of string * string list
+    | Glob_diff_list of string * string list
+    | Glob_absent of string
+    | Glob_regexp of string * string
+
+  type glob = u_glob * Loc.t
+
   type pattern = {
-      pivot: Id.name option;
-      pat_glob: string list;
-      pat_pos: basic;
-      pat_negs: basic list;
-    }
+    pivot: Id.name option;
+    pat_glob: glob list;
+    pat_pos: basic;
+    pat_negs: basic list;
+  }
 
   (* [check for duplicate edge identifier in pos part and
      remove edge identifier in neg part] *)
