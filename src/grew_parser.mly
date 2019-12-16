@@ -28,6 +28,11 @@ type ineq_item =
   | Ineq_sofi of Ast.simple_or_pointed
   | Ineq_float of float
 
+type req_item =
+  | Pattern of Ast.basic
+  | Without of Ast.basic
+  | Global of Ast.glob list
+
 let get_loc () = Global.get_loc ()
 let localize t = (t,get_loc ())
 %}
@@ -120,7 +125,7 @@ let localize t = (t,get_loc ())
 %token EOF                         /* end of file */
 
 %start <Grew_ast.Ast.gr> gr
-%start <Grew_ast.Ast.pattern> pattern
+%start <Grew_ast.Ast.pattern> isolated_pattern
 %start <Grew_ast.Ast.domain> domain
 
 %start <Grew_ast.Ast.grs> grs
@@ -282,18 +287,13 @@ display:
 /* RULES DEFINITION                                                                            */
 /*=============================================================================================*/
 rule:
-        | doc=option(COMMENT) RULE id_loc=simple_id_with_loc file_lexicons = option(external_lexicons) LACC g=option (glob_decl) p=option(pos_item) n=list(neg_item) cmds=commands RACC final_lexicons=list(final_lexicon)
+        | doc=option(COMMENT) RULE id_loc=simple_id_with_loc file_lexicons = option(external_lexicons) LACC req=pattern cmds=commands RACC final_lexicons=list(final_lexicon)
             {
               let lexicons = match file_lexicons with
               | Some l -> l @ final_lexicons
               | None -> final_lexicons in
               { Ast.rule_id = fst id_loc;
-                pattern = Ast.complete_pattern {
-                  Ast.pivot=None;
-                  Ast.pat_glob = (match g with None -> [] | Some x -> x);
-                  Ast.pat_pos = (match p with None -> Ast.empty_basic | Some x -> x);
-                  Ast.pat_negs = n;
-                };
+                pattern = req;
                 commands = cmds;
                 lexicon_info = lexicons;
                 rule_doc = begin match doc with Some d -> d | None -> [] end;
@@ -336,7 +336,7 @@ glob_item:
 
 
 pos_item:
-        | PATTERN i=pn_item   { i }
+        | PATTERN i=pn_item { i }
 
 neg_item:
         | WITHOUT i=pn_item { i }
@@ -806,16 +806,42 @@ concat_item:
 /*=============================================================================================*/
 /* ISOLATED PATTERN (grep mode)                                                                */
 /*=============================================================================================*/
-pattern:
-        | g=option (glob_decl) p=option(pos_item) n=list(neg_item) EOF
-          { Ast.complete_pattern {
-              Ast.pivot=None;
-              Ast.pat_glob = (match g with None -> [] | Some x -> x);
-              Ast.pat_pos = (match p with None -> Ast.empty_basic | Some x -> x);
-              Ast.pat_negs = n;
-            }
-          }
+isolated_pattern:
+        | r=pattern EOF { r }
 
+pattern:
+  | l = list (pattern_item)
+    {
+      let pos = List.fold_left
+        (fun acc i ->
+          match i with
+          | Pattern i -> Ast.concat_basic i acc
+          | _ -> acc
+          ) Ast.empty_basic l in
+      let negs = List.fold_left
+        (fun acc i ->
+          match i with
+          | Without i -> i :: acc
+          | _ -> acc
+          ) [] l in
+      let glob = List.fold_left
+        (fun acc i ->
+          match i with
+          | Global i -> i @ acc
+          | _ -> acc
+          ) [] l in
+      Ast.complete_pattern {
+          Ast.pivot = None;
+          Ast.pat_glob = glob;
+          Ast.pat_pos = pos;
+          Ast.pat_negs = negs;
+        }
+    }
+
+pattern_item:
+  | i=pos_item  { Pattern i }
+  | i=neg_item  { Without i }
+  | i=glob_decl { Global i }
 
 /*=============================================================================================*/
 /* Constituent tree (à la Sequoia)                                                             */

@@ -128,7 +128,7 @@ module Loader = struct
       Global.new_file file;
       let in_ch = open_in file in
       let lexbuf = Lexing.from_channel in_ch in
-      let pattern = parse_handle "[Grew_loader.Loader.pattern]" (Grew_parser.pattern Grew_lexer.global) lexbuf in
+      let pattern = parse_handle "[Grew_loader.Loader.pattern]" (Grew_parser.isolated_pattern Grew_lexer.global) lexbuf in
       close_in in_ch;
       pattern
     with Sys_error msg -> Error.parse ~loc:(Loc.file file) "[Grew_loader.Loader.pattern] %s" msg
@@ -171,7 +171,7 @@ module Parser = struct
     try
       Global.new_string ();
       let lexbuf = Lexing.from_string desc in
-      let pattern = parse_handle "[Grew_loader.Parser.pattern]" (Grew_parser.pattern Grew_lexer.global) lexbuf in
+      let pattern = parse_handle "[Grew_loader.Parser.pattern]" (Grew_parser.isolated_pattern Grew_lexer.global) lexbuf in
       pattern
     with Sys_error msg -> Error.parse "[Grew_loader.Parser.pattern] %s" msg
 

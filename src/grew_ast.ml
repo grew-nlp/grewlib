@@ -192,6 +192,9 @@ module Ast = struct
 
   let empty_basic = { pat_nodes=[]; pat_edges=[]; pat_const=[]; }
 
+  let concat_basic b1 b2 =
+    { pat_nodes=b1.pat_nodes @ b2.pat_nodes; pat_edges=b1.pat_edges @ b2.pat_edges; pat_const=b1.pat_const @ b2.pat_const; }
+
   type u_glob =
     | Glob_cst of string
     | Glob_eq_list of string * string list
