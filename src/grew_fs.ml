@@ -258,8 +258,14 @@ module G_fs = struct
     | (String v1, String v2) -> String (v1 ^ separator ^ v2)
     | _ -> Error.run "Cannot concat numerical values"
 
+  (* ---------------------------------------------------------------------- *)
   let append_feats ?loc src tar separator regexp =
-    match List.filter (fun (feature_name,_) -> String_.re_match (Str.regexp regexp) feature_name) src with
+    match List.filter
+      (fun (feature_name,_) ->
+        match feature_name with
+        | "form" | "lemma" | "upos" | "xpos" -> false
+        | _ -> String_.re_match (Str.regexp regexp) feature_name
+      ) src with
     | [] -> None
     | sub_src ->
     let (new_tar, updated_feats) = List.fold_left
