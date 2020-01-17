@@ -99,6 +99,7 @@ let localize t = (t,get_loc ())
 %token DEL_NODE                    /* del_node */
 %token ADD_NODE                    /* add_node */
 %token DEL_FEAT                    /* del_feat */
+%token APPEND_FEATS                /* append_feats */
 
 %token PICK                        /* Pick */
 %token ALT                         /* Alt */
@@ -790,6 +791,22 @@ command:
         /*   m.cat = n.x + "_" + nn.y   */
         | com_fead_id_loc= feature_ident_with_loc EQUAL items=separated_nonempty_list (PLUS, concat_item)
             { let (com_fead_id,loc) = com_fead_id_loc in (Ast.Update_feat (com_fead_id, items), loc) }
+
+        /*   append_feats M ==> N   */
+        | APPEND_FEATS src_loc=simple_id_with_loc ARROW tar=simple_id
+            { let (src,loc) = src_loc in (Ast.Append_feats (src, tar, ".*", ""), loc) }
+
+        /*   append_feats "+" M ==> N   */
+        | APPEND_FEATS sep=STRING src_loc=simple_id_with_loc ARROW tar=simple_id
+            { let (src,loc) = src_loc in (Ast.Append_feats (src, tar, ".*", sep), loc) }
+
+        /*   append_feats M =[re"_MISC_.*"]=> N   */
+        | APPEND_FEATS src_loc=simple_id_with_loc ARROW_LEFT regexp=REGEXP ARROW_RIGHT tar=simple_id
+            { let (src,loc) = src_loc in (Ast.Append_feats (src, tar, regexp, ""), loc) }
+
+        /*   append_feats "+" M =[re"_MISC_.*"]=> N   */
+        | APPEND_FEATS sep=STRING src_loc=simple_id_with_loc ARROW_LEFT regexp=REGEXP ARROW_RIGHT tar=simple_id
+            { let (src,loc) = src_loc in (Ast.Append_feats (src, tar, regexp, sep), loc) }
 
 concat_item:
         | gi=ID

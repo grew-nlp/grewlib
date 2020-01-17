@@ -64,6 +64,7 @@ module Command  = struct
     | SHIFT_EDGE of (command_node * command_node * Label_cst.t)
     | SHIFT_IN of (command_node * command_node * Label_cst.t)
     | SHIFT_OUT of (command_node * command_node * Label_cst.t)
+    | APPEND_FEATS of (command_node * command_node * string * string)
 
   type t = p * Loc.t  (* remember command location to be able to localize a command failure *)
 
@@ -177,6 +178,16 @@ module Command  = struct
           ("feat_name", `String feat_name)
         ]
       )]
+  | APPEND_FEATS (src, tar, regexp, separator) ->
+      `Assoc [("appen_feats",
+        `Assoc [
+          ("src", command_node_to_json src);
+          ("tar", command_node_to_json tar);
+          ("regexp", `String regexp);
+          ("separator", `String separator)
+        ]
+      )]
+
 
   let build ?domain lexicons (kni, kei) table ast_command =
     (* kni stands for "known node idents", kei for "known edge idents" *)
@@ -272,6 +283,11 @@ module Command  = struct
               ((DEL_EDGE_FEAT (node_or_edge_id, feat_name), loc), (kni, kei))
             | _ -> Error.build ~loc "Unknwon identifier \"%s\"" node_or_edge_id
           end
+
+      | (Ast.Append_feats ((src_id, tar_id, regexp, separator)), loc) ->
+          check_node_id loc src_id kni;
+          check_node_id loc tar_id kni;
+          ((APPEND_FEATS (cn_of_node_id src_id, cn_of_node_id tar_id, regexp, separator), loc), (kni, kei))
 
       | (Ast.Update_feat ((node_or_edge_id, feat_name), ast_items), loc) ->
           begin

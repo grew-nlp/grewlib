@@ -1321,7 +1321,7 @@ module Rule = struct
           }
         )
 
-    | Command.UPDATE_FEAT (tar_cn,tar_feat_name, item_list) ->
+    | Command.UPDATE_FEAT (tar_cn, tar_feat_name, item_list) ->
         let tar_gid = node_find tar_cn in
         let rule_items = List.map
             (function
@@ -1336,10 +1336,18 @@ module Rule = struct
                     | Not_found -> Error.run ~loc "UPDATE_FEAT: the lexicon '%s' does not exist" lex_name
                     )
             ) item_list in
-
         let (new_graph, new_feature_value) =
           G_graph.update_feat ~loc state.graph tar_gid tar_feat_name rule_items in
           {state with graph = new_graph; effective = true}
+
+    | Command.APPEND_FEATS (src_cn, tar_cn, regexp, separator) ->
+      let src_gid = node_find src_cn in
+      let tar_gid = node_find tar_cn in
+        (match G_graph.append_feats state.graph src_gid tar_gid separator regexp with
+          | None when !Global.safe_commands -> Error.run ~loc "APPEND_FEATS uneffective"
+          | None -> state
+          | Some (new_graph,_) -> {state with graph = new_graph; effective = true}
+        )
 
     | Command.DEL_FEAT (tar_cn,feat_name) ->
         let tar_gid = node_find tar_cn in
@@ -1740,6 +1748,25 @@ module Rule = struct
                   }
             end
         end
+
+    | Command.APPEND_FEATS (src_cn, tar_cn, regexp, separator) ->
+      let src_gid = node_find src_cn in
+      let tar_gid = node_find tar_cn in
+        begin
+          match G_graph.append_feats gwh.Graph_with_history.graph src_gid tar_gid separator regexp with
+          | None when !Global.safe_commands -> Error.run ~loc "APPEND_FEATS uneffective"
+          | None -> Graph_with_history_set.singleton gwh
+          | Some (new_graph, updated_edges) ->
+             Graph_with_history_set.singleton { gwh with
+                Graph_with_history.graph = new_graph;
+                delta = List.fold_left
+                  (fun acc (feature_name, value) ->
+                    Delta.set_feat gwh.Graph_with_history.seed tar_gid feature_name (Some value) acc)
+                  gwh.Graph_with_history.delta updated_edges;
+              }
+        end
+
+
 
   (*  ---------------------------------------------------------------------- *)
   (** [apply_rule graph_with_history matching rule] returns a new graph_with_history after the application of the rule *)

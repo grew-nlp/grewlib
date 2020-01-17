@@ -196,6 +196,7 @@ and standard target = parse
 | "del_node"      { DEL_NODE }
 | "add_node"      { ADD_NODE }
 | "del_feat"      { DEL_FEAT }
+| "append_feats"  { APPEND_FEATS }
 
 | "package"       { PACKAGE }
 | "rule"          { RULE }

@@ -177,14 +177,18 @@ module G_fs = struct
   let empty = []
 
   (* ---------------------------------------------------------------------- *)
-  let set_feat ?loc ?domain feature_name atom t =
-    let new_value = Feature_value.build_value ?loc ?domain feature_name atom in
+  let set_feat ?loc ?domain feature_name value t =
     let rec loop = function
-    | [] -> [(feature_name, new_value)]
-    | ((fn,_)::_) as t when feature_name < fn -> (feature_name, new_value)::t
-    | (fn,_)::t when feature_name = fn -> (feature_name, new_value)::t
+    | [] -> [(feature_name, value)]
+    | ((fn,_)::_) as t when feature_name < fn -> (feature_name, value)::t
+    | (fn,_)::t when feature_name = fn -> (feature_name, value)::t
     | (fn,a)::t -> (fn,a) :: (loop t)
     in loop t
+
+  (* ---------------------------------------------------------------------- *)
+  let set_atom ?loc ?domain feature_name atom t =
+    let value = Feature_value.build_value ?loc ?domain feature_name atom in
+    set_feat ?loc ?domain feature_name value t
 
   (* ---------------------------------------------------------------------- *)
   let del_feat = List_.sort_remove_assoc_opt
@@ -247,6 +251,26 @@ module G_fs = struct
       | ((fn, a1)::t1, (_, a2)::t2) when a1=a2 -> (fn,a1) :: (loop (t1, t2))
       | _ -> raise Fail_unif
     in try Some (loop (fs1, fs2)) with Fail_unif -> None
+
+  (* ---------------------------------------------------------------------- *)
+  let concat_values ?loc separator v1 v2 =
+    match (v1, v2) with
+    | (String v1, String v2) -> String (v1 ^ separator ^ v2)
+    | _ -> Error.run "Cannot concat numerical values"
+
+  let append_feats ?loc src tar separator regexp =
+    match List.filter (fun (feature_name,_) -> String_.re_match (Str.regexp regexp) feature_name) src with
+    | [] -> None
+    | sub_src ->
+    let (new_tar, updated_feats) = List.fold_left
+      (fun (acc_tar, acc_updated_feats) (feat, value) ->
+         match List_.sort_assoc feat tar with
+        | None -> (set_feat ?loc feat value acc_tar, (feat, value)::acc_updated_feats)
+        | Some v ->
+          let new_value = concat_values ?loc separator v value in
+          (set_feat ?loc feat new_value acc_tar, (feat, new_value)::acc_updated_feats)
+      ) (tar,[]) sub_src in
+    Some (new_tar, updated_feats)
 
   (* ---------------------------------------------------------------------- *)
   let get_main ?main_feat t =

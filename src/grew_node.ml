@@ -72,7 +72,7 @@ module G_node = struct
   let shift user_id delta t =
     { t with
     name = CCOpt.map (fun n -> user_id ^ "_" ^ n) t.name;
-    fs = G_fs.set_feat "user" user_id t.fs;
+    fs = G_fs.set_atom "user" user_id t.fs;
     next = Massoc_gid.map_key ((+) delta) t.next;
     prec = CCOpt.map ((+) delta) t.prec;
     succ = CCOpt.map ((+) delta) t.succ;
@@ -172,6 +172,13 @@ module G_node = struct
   | _ -> 0
 
   let rename mapping n = {n with next = Massoc_gid.rename mapping n.next}
+
+  let append_feats ?loc src tar separator regexp =
+    let src_fs = get_fs src in
+    let tar_fs = get_fs tar in
+    match G_fs.append_feats ?loc src_fs tar_fs separator regexp with
+      | Some (new_tar_fs, updated_feats) -> Some (set_fs new_tar_fs tar, updated_feats)
+      | None -> None
 
 end (* module G_node *)
 

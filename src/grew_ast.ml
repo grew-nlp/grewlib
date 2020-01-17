@@ -295,6 +295,9 @@ module Ast = struct
 
     | Del_feat of feature_ident
     | Update_feat of feature_ident * concat_item list
+    (* Append_feats (src, tar, regexp, separator)*)
+    | Append_feats of (Id.name * Id.name * string * string)
+
   type command = u_command * Loc.t
 
   let string_of_u_command u_command = match u_command with
@@ -323,6 +326,11 @@ module Ast = struct
       sprintf "%s.%s = %s" act_id feat_name (List_.to_string string_of_concat_item " + " item_list)
     | Del_feat (act_id, feat_name) ->
       sprintf "del_feat %s.%s" act_id feat_name
+    | Append_feats (src, tar, regexp, "") ->
+      sprintf "append_feats %s =%s=> %s" src regexp tar
+    | Append_feats (src, tar, regexp, separator) ->
+      sprintf "append_feats \"%s\" %s =%s=> %s" separator src regexp tar
+
 
   type lexicon =
   | File of string

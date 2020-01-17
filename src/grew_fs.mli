@@ -30,9 +30,9 @@ module G_fs: sig
 
   val empty: t
 
-  (** [set_feat domain feature_name atom t] adds the feature ([feature_name],[atom]) in [t].
+  (** [set_atom domain feature_name atom t] adds the feature ([feature_name],[atom]) in [t].
       If [t] already contains a feature named [feature_name], the old value is erased by the new one. *)
-  val set_feat: ?loc:Loc.t -> ?domain:Domain.t -> feature_name -> string -> t ->  t
+  val set_atom: ?loc:Loc.t -> ?domain:Domain.t -> feature_name -> string -> t ->  t
 
   (** [del_feat feature_name t] remove the feature with name [feature_name] in [t].
       If [t] does not contain such a feature, None is returned. *)
@@ -63,6 +63,9 @@ module G_fs: sig
   (** [unif t1 t2] returns [Some t] if [t] is the unification of two graph feature structures
       [None] is returned if the two feature structures cannot be unified. *)
   val unif: t -> t -> t option
+
+  val append_feats: ?loc:Loc.t -> t -> t -> string -> string -> (t * (string * value) list) option
+
 end (* module G_fs *)
 
 (* ================================================================================ *)

@@ -83,6 +83,8 @@ module G_node: sig
 
   val rename: (Gid.t * Gid.t) list -> t -> t
 
+  val append_feats: ?loc:Loc.t -> t -> t -> string -> string -> (t * (string * value) list) option
+
 end (* module G_node *)
 
 (* ================================================================================ *)

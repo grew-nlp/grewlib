@@ -473,10 +473,10 @@ module G_graph = struct
         Conll_types.Int_map.fold
           (fun key mwe (acc, free_index) ->
             let kind = match mwe.Mwe.kind with Mwe.Ne -> "NE" | Mwe.Mwe -> "MWE" in
-            let fs1 = G_fs.set_feat ?domain "kind" kind G_fs.empty in
-            let fs2 = match mwe.Mwe.label with None -> fs1 | Some p -> G_fs.set_feat ?domain "label" p fs1 in
-            let fs3 = match mwe.Mwe.mwepos with None -> fs2 | Some p -> G_fs.set_feat ?domain "mwepos" p fs2 in
-            let fs4 = match mwe.Mwe.criterion with None -> fs3 | Some c -> G_fs.set_feat ?domain "criterion" c fs3 in
+            let fs1 = G_fs.set_atom ?domain "kind" kind G_fs.empty in
+            let fs2 = match mwe.Mwe.label with None -> fs1 | Some p -> G_fs.set_atom ?domain "label" p fs1 in
+            let fs3 = match mwe.Mwe.mwepos with None -> fs2 | Some p -> G_fs.set_atom ?domain "mwepos" p fs2 in
+            let fs4 = match mwe.Mwe.criterion with None -> fs3 | Some c -> G_fs.set_atom ?domain "criterion" c fs3 in
 
             let new_node = G_node.set_fs fs4 G_node.empty in
 
@@ -791,7 +791,7 @@ module G_graph = struct
       match feat_name with
         | "position" -> G_node.set_position (float_of_string new_value) node
         | _ ->
-          let new_fs = G_fs.set_feat ?loc ?domain feat_name new_value (G_node.get_fs node) in
+          let new_fs = G_fs.set_atom ?loc ?domain feat_name new_value (G_node.get_fs node) in
           (G_node.set_fs new_fs node) in
     { graph with map = Gid_map.add node_id new_node graph.map }
 
@@ -817,6 +817,15 @@ module G_graph = struct
         ) item_list in
     let new_feature_value = List_.to_string (fun s->s) "" strings_to_concat in
     (set_feat ?loc graph tar_id tar_feat_name new_feature_value, new_feature_value)
+
+  (* -------------------------------------------------------------------------------- *)
+  let append_feats ?loc graph src_id tar_id separator regexp =
+    let src_node = Gid_map.find src_id graph.map in
+    let tar_node = Gid_map.find tar_id graph.map in
+    match G_node.append_feats ?loc src_node tar_node separator regexp with
+    | Some (new_tar_node, updated_feats) ->
+      Some ({ graph with map = Gid_map.add tar_id new_tar_node graph.map }, updated_feats)
+    | None -> None
 
   (* -------------------------------------------------------------------------------- *)
   let del_feat graph node_id feat_name =

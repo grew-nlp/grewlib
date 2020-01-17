@@ -183,6 +183,9 @@ module Ast : sig
 
     | Del_feat of feature_ident
     | Update_feat of feature_ident * concat_item list
+
+    | Append_feats of (Id.name * Id.name * string * string)
+
   val string_of_u_command:  u_command -> string
   type command = u_command * Loc.t
 
