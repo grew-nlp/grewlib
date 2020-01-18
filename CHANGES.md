@@ -1,3 +1,8 @@
+## 1.3.4 (2020/01/18)
+  * add command append_feats (see https://gitlab.inria.fr/grew/grew/issues/12)
+  * any sequence of "pattern" / "without" / "global" is admitted
+  * add global constraints in meta information
+
 ## 1.3.3 (2019/10/22)
   * Various new functions from grew-match and grew_server
   * fix bug on checking duplicate definition in packages
