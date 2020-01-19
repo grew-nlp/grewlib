@@ -147,7 +147,6 @@ module Ast : sig
   type glob = u_glob * Loc.t
 
   type pattern = {
-    pivot: Id.name option;
     pat_glob: glob list;
     pat_pos: basic;
     pat_negs: basic list;

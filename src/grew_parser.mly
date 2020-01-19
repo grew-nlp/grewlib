@@ -848,7 +848,6 @@ pattern:
           | _ -> acc
           ) [] l in
       Ast.complete_pattern {
-          Ast.pivot = None;
           Ast.pat_glob = glob;
           Ast.pat_pos = pos;
           Ast.pat_negs = negs;

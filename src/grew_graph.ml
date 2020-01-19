@@ -33,18 +33,13 @@ end (* module P_deco *)
 
 (* ================================================================================ *)
 module P_graph = struct
-  type map = P_node.t Pid_map.t
+  type t = P_node.t Pid_map.t
 
-  type t = {
-    map: map;
-    pivot: Pid.t option;
-  }
+  let empty = Pid_map.empty
 
-  let empty = { map = Pid_map.empty; pivot = None }
+  let find = Pid_map.find
 
-  let find pid t = Pid_map.find pid t.map
-
-  let pid_name_list t = Pid_map.fold (fun _ node acc -> (P_node.get_name node)::acc) t.map []
+  let pid_name_list t = Pid_map.fold (fun _ node acc -> (P_node.get_name node)::acc) t []
 
   let to_json ?domain t =
     `List (
@@ -54,7 +49,7 @@ module P_graph = struct
             ("id", `String (Pid.to_string pid));
             ("node", P_node.to_json ?domain p_node)
           ]) :: acc
-        ) t.map []
+        ) t []
       )
 
   (* -------------------------------------------------------------------------------- *)
@@ -67,7 +62,7 @@ module P_graph = struct
       | Some new_node -> Some (Pid_map.add id_src new_node map)
 
   (* -------------------------------------------------------------------------------- *)
-  let build ?domain lexicons pivot basic_ast =
+  let build ?domain lexicons basic_ast =
       let (full_node_list : Ast.node list) = basic_ast.Ast.pat_nodes
       and full_edge_list = basic_ast.Ast.pat_edges in
 
@@ -98,7 +93,7 @@ module P_graph = struct
       (fun i acc elt -> Pid_map.add (Pid.Pos i) elt acc)
       Pid_map.empty node_list in
 
-    let (map : map) =
+    let (map : t) =
       List.fold_left
         (fun acc (ast_edge, loc) ->
           let i1 = Id.build ~loc ast_edge.Ast.src pos_table in
@@ -110,16 +105,15 @@ module P_graph = struct
               (P_edge.to_string ?domain edge)
           )
         ) map_without_edges full_edge_list in
-        let pivot = CCOpt.map (fun x -> Pid.Pos (Id.build x pos_table)) pivot in
-    ({map; pivot}, pos_table)
+    (map, pos_table)
 
 
   (* -------------------------------------------------------------------------------- *)
   (* a type for extension of graph (a former graph exists):
      in grew the former is a positive basic and an extension is a negative basic ("without") *)
   type extension = {
-    ext_map: map; (* node description for new nodes and for edge "Old -> New"  *)
-    old_map: map; (* a partial map for new constraints on old nodes "Old [...]" *)
+    ext_map: t; (* node description for new nodes and for edge "Old -> New"  *)
+    old_map: t; (* a partial map for new constraints on old nodes "Old [...]" *)
   }
 
   (* -------------------------------------------------------------------------------- *)
@@ -195,7 +189,7 @@ module P_graph = struct
                 else Pid_set.add tar acc2
               else Pid_set.add tar acc2
             ) acc (P_node.get_next node)
-        ) graph.map Pid_set.empty in
+        ) graph Pid_set.empty in
 
     let roots =
       Pid_map.fold
@@ -203,7 +197,7 @@ module P_graph = struct
           if Pid_set.mem id not_root
           then acc
           else id::acc
-        ) graph.map [] in
+        ) graph [] in
 
     (!tree_prop, roots)
 
@@ -221,10 +215,9 @@ module G_deco = struct
     nodes: (Gid.t * (string * highlighted_feat list)) list;
     (* an edge list *)
     edges: (Gid.t * G_edge.t * Gid.t) list;
-    pivot: Gid.t option;
   }
 
-  let empty = {nodes=[]; edges=[]; pivot=None;}
+  let empty = {nodes=[]; edges=[]; }
 end (* module G_deco *)
 
 (* ================================================================================ *)

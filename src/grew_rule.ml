@@ -307,9 +307,9 @@ module Rule = struct
       ("constraints", `List (List.map (const_to_json ?domain) basic.constraints));
     ]
 
-  let build_pos_basic ?domain lexicons pivot basic_ast =
+  let build_pos_basic ?domain lexicons basic_ast =
     let (graph, pos_table) =
-      P_graph.build ?domain lexicons pivot basic_ast in
+      P_graph.build ?domain lexicons basic_ast in
     (
       {
         graph = graph;
@@ -421,7 +421,7 @@ module Rule = struct
 
     let filters = Pid_map.fold (fun id node acc -> Filter (id, P_node.get_fs node) :: acc) extension.P_graph.old_map [] in
     {
-      graph = {P_graph.map = extension.P_graph.ext_map; pivot = None };
+      graph = extension.P_graph.ext_map;
       constraints = filters @ List.map (build_neg_constraint ?domain lexicons pos_table neg_table) basic_ast.Ast.pat_const ;
     }
 
@@ -431,7 +431,7 @@ module Rule = struct
         Massoc_pid.fold
           (fun acc2 _ edge -> (P_edge.get_id edge)::acc2)
           acc (P_node.get_next node)
-      ) basic.graph.P_graph.map []
+      ) basic.graph []
 
   (* a [pattern] is described by the positive basic and a list of negative basics. *)
   type pattern = {
@@ -480,7 +480,7 @@ module Rule = struct
             (Pid.to_id id) (P_node.get_name node) (P_fs.to_dep (P_node.get_fs node))
           )
           :: acc
-        ) pos_basic.graph.P_graph.map [] in
+        ) pos_basic.graph [] in
 
     (* nodes are sorted to appear in the same order in dep picture and in input file *)
     let sorted_nodes = List.sort (fun (n1,_) (n2,_) -> P_node.compare_pos n1 n2) nodes in
@@ -510,7 +510,7 @@ module Rule = struct
               (P_edge.to_string ?domain edge)
           )
           (P_node.get_next node)
-      ) pos_basic.graph.P_graph.map;
+      ) pos_basic.graph;
 
     List.iteri
       (fun i cst ->
@@ -564,7 +564,7 @@ module Rule = struct
 
     let pattern = Ast.normalize_pattern rule_ast.Ast.pattern in
     let (pos, pos_table) =
-      try build_pos_basic ?domain lexicons pattern.Ast.pivot pattern.Ast.pat_pos
+      try build_pos_basic ?domain lexicons pattern.Ast.pat_pos
       with P_fs.Fail_unif ->
         Error.build ~loc:rule_ast.Ast.rule_loc
           "[Rule.build] in rule \"%s\": feature structures declared in the \"match\" clause are inconsistent"
@@ -590,7 +590,7 @@ module Rule = struct
   let build_pattern ?domain ?(lexicons=[]) pattern_ast =
     let n_pattern = Ast.normalize_pattern pattern_ast in
     let (pos, pos_table) =
-      try build_pos_basic ?domain lexicons n_pattern.Ast.pivot n_pattern.Ast.pat_pos
+      try build_pos_basic ?domain lexicons n_pattern.Ast.pat_pos
       with P_fs.Fail_unif -> Error.build "feature structures declared in the \"match\" clause are inconsistent " in
     let negs =
       List_.try_map
@@ -693,9 +693,6 @@ module Rule = struct
             (gid, (P_node.get_name pnode, pattern_feat_list)) :: acc
           ) matching.n_match [];
       G_deco.edges = String_map.fold (fun _ edge acc -> edge::acc) matching.e_match [];
-      G_deco.pivot = match pattern.pos.graph.pivot with
-        | None -> None
-        | Some pid -> try Some (Pid_map.find pid matching.n_match) with Not_found -> None
     }
 
   let find cnode ?loc (matching, created_nodes) =
@@ -727,7 +724,6 @@ module Rule = struct
             (find src_cn (matching, created_nodes), edge, find tar_cn (matching, created_nodes)) :: acc
         | _ -> acc
       ) [] commands;
-      pivot=None;
     }
 
   exception Fail
@@ -747,7 +743,7 @@ module Rule = struct
   let init ?lexicons basic =
     let roots = P_graph.roots basic.graph in
 
-    let node_list = Pid_map.fold (fun pid _ acc -> pid::acc) basic.graph.P_graph.map [] in
+    let node_list = Pid_map.fold (fun pid _ acc -> pid::acc) basic.graph [] in
 
     (* put all roots in the front of the list to speed up the algo *)
     let sorted_node_list =
@@ -1038,7 +1034,7 @@ module Rule = struct
     let unmatched_nodes =
       Pid_map.fold
         (fun pid _ acc -> match pid with Pid.Neg _ -> pid::acc | _ -> acc)
-        neg_graph.P_graph.map [] in
+        neg_graph [] in
     let unmatched_edges =
       Pid_map.fold
         (fun pid node acc ->
@@ -1055,7 +1051,7 @@ module Rule = struct
             (* Massoc.fold_left  *)
             (*   (fun acc2 pid_next p_edge -> (pid, p_edge, pid_next) :: acc2) *)
             (*   acc (P_node.get_next node) *)
-        ) neg_graph.P_graph.map [] in
+        ) neg_graph [] in
     {
      sub = sub;
      unmatched_nodes = unmatched_nodes;

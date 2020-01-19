@@ -39,7 +39,6 @@ module G_deco: sig
     nodes: (Gid.t * (string * highlighted_feat list)) list;
     (* an edge list *)
     edges: (Gid.t * G_edge.t * Gid.t) list;
-    pivot: Gid.t option;
   }
 
   val empty:t
@@ -47,12 +46,7 @@ end (* module G_deco *)
 
 (* ================================================================================ *)
 module P_graph: sig
-  type map = P_node.t Pid_map.t
-
-  type t = {
-    map: map;
-    pivot: Pid.t option;
-  }
+  type t = P_node.t Pid_map.t
 
   val empty: t
 
@@ -73,7 +67,6 @@ module P_graph: sig
   val build:
       ?domain:Domain.t ->
       Lexicons.t ->
-      Id.name option ->
       Ast.basic ->
       (t * Id.table)
 
