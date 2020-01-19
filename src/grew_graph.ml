@@ -895,13 +895,17 @@ module G_graph = struct
 
   let esc s = Str.global_replace (Str.regexp "<") "&lt;" s
 
-  let to_sentence ?(only_pivot=false) ?(deco=G_deco.empty) graph =
-    let high_list = match (only_pivot, deco.pivot) with
-      | (true, None) -> []
-      | (true, Some i) -> [i,("pivot", [])]
-      | (false, _) -> deco.nodes in
+  let to_sentence ?pivot ?(deco=G_deco.empty) graph =
+    let high_list = match pivot with
+    | None -> List.map fst deco.nodes
+    | Some pivot ->
+      match List.find_opt
+        (fun (gid, (pattern_id,_)) -> pattern_id = pivot
+        ) deco.nodes with
+      | None -> Error.run "Undefined pivot %s" pivot
+      | Some (gid,_) -> [gid] in
 
-    let is_highlighted_gid gid = List.mem_assoc gid high_list in
+    let is_highlighted_gid gid = List.mem gid high_list in
 
     let inside fusion_item gid =
       let first = Gid_map.find fusion_item.first graph.map in
@@ -912,7 +916,7 @@ module G_graph = struct
       | _ -> false in
 
     let is_highlighted_fusion_item fusion_item =
-      List.exists (fun (gid,_) -> inside fusion_item gid) high_list in
+      List.exists (fun gid -> inside fusion_item gid) high_list in
 
     let nodes = Gid_map.fold (fun id elt acc -> (id,elt)::acc) graph.map [] in
     let snodes = List.sort (fun (_,n1) (_,n2) -> G_node.position_comp n1 n2) nodes in

@@ -215,7 +215,7 @@ module G_graph: sig
   (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
   val to_gr: t -> string
   val to_dot: ?main_feat:string -> ?get_url:(string -> string option) -> ?deco:G_deco.t -> t -> string
-  val to_sentence: ?only_pivot: bool -> ?deco:G_deco.t -> t -> string
+  val to_sentence: ?pivot: string -> ?deco:G_deco.t -> t -> string
   val to_orfeo: ?deco:G_deco.t -> t -> string
   val to_dep: ?filter: (string -> bool) -> ?main_feat:string -> ?deco:G_deco.t -> t -> string
   val to_conll: t -> Conll.t
