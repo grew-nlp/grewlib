@@ -22,19 +22,7 @@ open Grew_command
 open Grew_graph
 
 
-(* ================================================================================ *)
-module Rule = struct
-
-  (* the number of rewriting steps is bounded to stop rewriting when the system is not terminating *)
-  let max_rules = ref 10000
-  let current_rules = ref 0
-
-  let set_max_rules n = max_rules := n
-  let reset_rules () = current_rules := 0
-  let incr_rules () =
-    incr current_rules;
-    if !current_rules > !max_rules
-    then Error.run "More than %d rewriting steps: ckeck for loops or increase max_rules value" !max_rules
+module Pattern = struct
 
   type const =
     | Cst_out of Pid.t * Label_cst.t
@@ -434,7 +422,7 @@ module Rule = struct
       ) basic.graph []
 
   (* a [pattern] is described by the positive basic and a list of negative basics. *)
-  type pattern = {
+  type t = {
     global: Ast.glob list;
     pos: basic;
     negs: basic list;
@@ -442,9 +430,40 @@ module Rule = struct
 
   let pid_name_list pattern = P_graph.pid_name_list pattern.pos.graph
 
+  let build ?domain ?(lexicons=[]) pattern_ast =
+    let n_pattern = Ast.normalize_pattern pattern_ast in
+    let (pos, pos_table) =
+      try build_pos_basic ?domain lexicons n_pattern.Ast.pat_pos
+      with P_fs.Fail_unif -> Error.build "feature structures declared in the \"match\" clause are inconsistent " in
+    let negs =
+      List_.try_map
+        P_fs.Fail_unif (* Skip the without parts that are incompatible with the match part *)
+        (fun basic_ast -> build_neg_basic ?domain lexicons pos_table basic_ast)
+        n_pattern.Ast.pat_negs in
+    { pos; negs; global=pattern_ast.pat_glob; }
+
+
+end (* module Pattern *)
+
+(* ================================================================================ *)
+module Rule = struct
+
+
+  (* the number of rewriting steps is bounded to stop rewriting when the system is not terminating *)
+  let max_rules = ref 10000
+  let current_rules = ref 0
+
+  let set_max_rules n = max_rules := n
+  let reset_rules () = current_rules := 0
+  let incr_rules () =
+    incr current_rules;
+    if !current_rules > !max_rules
+    then Error.run "More than %d rewriting steps: ckeck for loops or increase max_rules value" !max_rules
+
+
   type t = {
       name: string;
-      pattern: pattern;
+      pattern: Pattern.t;
       commands: Command.t list;
       lexicons: Lexicons.t;
       loc: Loc.t;
@@ -461,8 +480,8 @@ module Rule = struct
     `Assoc
     ([
       ("rule_name", `String t.name);
-      ("pattern", basic_to_json ?domain t.pattern.pos);
-      ("without", `List (List.map (basic_to_json ?domain) t.pattern.negs));
+      ("pattern", Pattern.basic_to_json ?domain t.pattern.pos);
+      ("without", `List (List.map (Pattern.basic_to_json ?domain) t.pattern.negs));
       ("commands", `List (List.map (Command.to_json ?domain) t.commands))
     ]
     )
@@ -493,7 +512,7 @@ module Rule = struct
     List.iteri
       (fun i cst ->
         match cst with
-          | Cst_out _ | Cst_in _ -> bprintf buff "  C_%d { word=\"*\"}\n" i
+          | Pattern.Cst_out _ | Cst_in _ -> bprintf buff "  C_%d { word=\"*\"}\n" i
           | _ -> ()
       ) pos_basic.constraints;
     bprintf buff "}\n";
@@ -515,7 +534,7 @@ module Rule = struct
     List.iteri
       (fun i cst ->
         match cst with
-          | Cst_out (pid, label_cst) ->
+          | Pattern.Cst_out (pid, label_cst) ->
             bprintf buff "  N_%s -> C_%d {label = \"%s\"; style=dot; bottom; color=green;}\n"
               (Pid.to_id pid) i (Label_cst.to_string ?domain label_cst)
           | Cst_in (pid, label_cst) ->
@@ -529,7 +548,7 @@ module Rule = struct
   (* ====================================================================== *)
   let build_commands ?domain lexicons pos pos_table ast_commands =
     let known_node_ids = Array.to_list pos_table in
-    let known_edge_ids = get_edge_ids pos in
+    let known_edge_ids = Pattern.get_edge_ids pos in
 
     let rec loop (kni,kei) = function
       | [] -> []
@@ -564,7 +583,7 @@ module Rule = struct
 
     let pattern = Ast.normalize_pattern rule_ast.Ast.pattern in
     let (pos, pos_table) =
-      try build_pos_basic ?domain lexicons pattern.Ast.pat_pos
+      try Pattern.build_pos_basic ?domain lexicons pattern.Ast.pat_pos
       with P_fs.Fail_unif ->
         Error.build ~loc:rule_ast.Ast.rule_loc
           "[Rule.build] in rule \"%s\": feature structures declared in the \"match\" clause are inconsistent"
@@ -572,7 +591,7 @@ module Rule = struct
     let (negs,_) =
       List.fold_left
       (fun (acc,pos) basic_ast ->
-        try ((build_neg_basic ?domain lexicons pos_table basic_ast) :: acc, pos+1)
+        try ((Pattern.build_neg_basic ?domain lexicons pos_table basic_ast) :: acc, pos+1)
         with P_fs.Fail_unif ->
           Error.warning ~loc:rule_ast.Ast.rule_loc "In rule \"%s\", the wihtout number %d cannot be satisfied, it is skipped"
             rule_ast.Ast.rule_id pos;
@@ -587,17 +606,6 @@ module Rule = struct
       path = rule_ast.Ast.rule_path;
     }
 
-  let build_pattern ?domain ?(lexicons=[]) pattern_ast =
-    let n_pattern = Ast.normalize_pattern pattern_ast in
-    let (pos, pos_table) =
-      try build_pos_basic ?domain lexicons n_pattern.Ast.pat_pos
-      with P_fs.Fail_unif -> Error.build "feature structures declared in the \"match\" clause are inconsistent " in
-    let negs =
-      List_.try_map
-        P_fs.Fail_unif (* Skip the without parts that are incompatible with the match part *)
-        (fun basic_ast -> build_neg_basic ?domain lexicons pos_table basic_ast)
-        n_pattern.Ast.pat_negs in
-    { pos; negs; global=pattern_ast.pat_glob; }
 
   (* ====================================================================== *)
   type matching = {
@@ -611,7 +619,7 @@ module Rule = struct
   let matching_to_json ?(all_edges=false) pattern graph m =
     let node_name gid = G_node.get_name gid (G_graph.find gid graph) in
     let nodes = Pid_map.fold (fun pid gid acc ->
-      let pnode = P_graph.find pid pattern.pos.graph in
+      let pnode = P_graph.find pid pattern.Pattern.pos.graph in
         (P_node.get_name pnode, `String (node_name gid))::acc
       ) m.n_match [] in
     let edges = String_map.fold (fun id (src,lab,tar) acc ->
@@ -631,7 +639,7 @@ module Rule = struct
   let node_matching pattern graph { n_match } =
     Pid_map.fold
       (fun pid gid acc ->
-        let pnode = P_graph.find pid pattern.pos.graph in
+        let pnode = P_graph.find pid pattern.Pattern.pos.graph in
         let gnode = G_graph.find gid graph in
         (P_node.get_name pnode, G_node.get_name gid gnode) :: acc
       ) n_match []
@@ -641,7 +649,7 @@ module Rule = struct
     try
       Pid_map.iter
         (fun pid _ ->
-          if P_node.get_name (P_graph.find pid pattern.pos.graph) = name
+          if P_node.get_name (P_graph.find pid pattern.Pattern.pos.graph) = name
           then raise (Found pid)
         ) n_match;
         None
@@ -688,7 +696,7 @@ module Rule = struct
     { G_deco.nodes =
         Pid_map.fold
           (fun pid gid acc ->
-            let pnode = P_graph.find pid pattern.pos.graph in
+            let pnode = P_graph.find pid pattern.Pattern.pos.graph in
             let pattern_feat_list = P_fs.feat_list (P_node.get_fs pnode) in
             (gid, (P_node.get_name pnode, pattern_feat_list)) :: acc
           ) matching.n_match [];
@@ -732,7 +740,7 @@ module Rule = struct
       unmatched_nodes: Pid.t list;
       unmatched_edges: (Pid.t * P_edge.t * Pid.t) list;
       already_matched_gids: Gid.t list; (* to ensure injectivity *)
-      check: const list (* constraints to verify at the end of the matching *)
+      check: Pattern.const list (* constraints to verify at the end of the matching *)
     }
 
         (* PREREQUISITES:
@@ -741,7 +749,7 @@ module Rule = struct
          *)
   (*  ---------------------------------------------------------------------- *)
   let init ?lexicons basic =
-    let roots = P_graph.roots basic.graph in
+    let roots = P_graph.roots basic.Pattern.graph in
 
     let node_list = Pid_map.fold (fun pid _ acc -> pid::acc) basic.graph [] in
 
@@ -781,7 +789,7 @@ module Rule = struct
       | feat_name -> G_fs.get_float_feat feat_name (G_node.get_fs (get_node pid)) in
 
     match cst with
-      | Cst_out (pid,label_cst) ->
+      | Pattern.Cst_out (pid,label_cst) ->
         let gid = Pid_map.find pid matching.n_match in
         if G_graph.edge_out graph gid label_cst
         then matching
@@ -1030,7 +1038,7 @@ module Rule = struct
 
   (*  ---------------------------------------------------------------------- *)
   let update_partial pos_graph without (sub, already_matched_gids) =
-    let neg_graph = without.graph in
+    let neg_graph = without.Pattern.graph in
     let unmatched_nodes =
       Pid_map.fold
         (fun pid _ acc -> match pid with Pid.Neg _ -> pid::acc | _ -> acc)
@@ -1146,7 +1154,7 @@ module Rule = struct
     else false
 
   (*  ---------------------------------------------------------------------- *)
-  let match_in_graph ?domain ?lexicons { global; pos; negs } graph =
+  let match_in_graph ?domain ?lexicons { Pattern.global; pos; negs } graph =
     let casted_graph = G_graph.cast ?domain graph in
 
     if not (check_global_constraint global graph)
@@ -1167,7 +1175,7 @@ module Rule = struct
           (fun (sub, already_matched_gids) ->
             List.for_all
               (fun without ->
-                let neg_graph = without.graph in
+                let neg_graph = without.Pattern.graph in
                 let new_partial_matching = update_partial pos_graph without (sub, already_matched_gids) in
                 fulfill ?domain (pos_graph,neg_graph) graph new_partial_matching
               ) negs
@@ -1400,7 +1408,7 @@ module Rule = struct
 
 
   let onf_apply ?domain rule graph =
-    let {pos; negs} = rule.pattern in
+    let {Pattern.pos; negs} = rule.pattern in
     (* get the list of partial matching for positive part of the pattern *)
       let matching_list =
         extend_matching
@@ -1432,7 +1440,7 @@ module Rule = struct
             else None
 
   let rec wrd_apply ?domain rule (graph, big_step_opt) =
-    let {pos; negs} = rule.pattern in
+    let {Pattern.pos; negs} = rule.pattern in
     (* get the list of partial matching for positive part of the pattern *)
       let matching_list =
         extend_matching
@@ -1792,7 +1800,7 @@ module Rule = struct
   exception Dead_lock
   let owh_apply ?domain rule gwh =
     let graph = gwh.Graph_with_history.graph in
-    let {pos; negs} = rule.pattern in
+    let {Pattern.pos; negs} = rule.pattern in
 
     (* get the list of matching for positive part of the pattern *)
     let matching_list = extend_matching ?domain (pos.graph,P_graph.empty) graph (init ~lexicons:rule.lexicons pos) in

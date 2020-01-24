@@ -85,17 +85,17 @@ end
 (** {2 Patterns} *)
 (* ==================================================================================================== *)
 module Pattern = struct
-  type t = Grew_rule.Rule.pattern
+  type t = Grew_rule.Pattern.t
 
   let load ?domain file =
-  Libgrew.handle ~name:"Pattern.load" (fun () -> Grew_rule.Rule.build_pattern ?domain (Grew_loader.Loader.pattern file)) ()
+  Libgrew.handle ~name:"Pattern.load" (fun () -> Grew_rule.Pattern.build ?domain (Grew_loader.Loader.pattern file)) ()
 
   let parse ?domain desc =
-  Libgrew.handle ~name:"Pattern.load" (fun () -> Grew_rule.Rule.build_pattern ?domain (Grew_loader.Parser.pattern desc)) ()
+  Libgrew.handle ~name:"Pattern.load" (fun () -> Grew_rule.Pattern.build ?domain (Grew_loader.Parser.pattern desc)) ()
 
   let pid_name_list pattern =
   Libgrew.handle ~name:"Pattern.pid_list"
-    (fun () -> List.map (fun x -> x) (Grew_rule.Rule.pid_name_list pattern)
+    (fun () -> List.map (fun x -> x) (Grew_rule.Pattern.pid_name_list pattern)
     ) ()
 end
 

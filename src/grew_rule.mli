@@ -19,6 +19,15 @@ open Grew_ast
 
 
 (* ================================================================================ *)
+module Pattern : sig
+  type t
+
+  val pid_name_list: t -> Id.name list
+
+  val build: ?domain:Domain.t -> ?lexicons: Lexicons.t -> Ast.pattern -> t
+end
+
+(* ================================================================================ *)
 module Rule : sig
   type t
 
@@ -48,23 +57,20 @@ module Rule : sig
   (** the type matching encodes the graph morphism from a pattern to a graph *)
   (* NB: it was made public for the grep mode *)
   type matching
-  type pattern
 
-  val pid_name_list: pattern -> Id.name list
 
-  val matching_to_json: ?all_edges: bool -> pattern -> G_graph.t -> matching -> Yojson.Basic.t
+  val matching_to_json: ?all_edges: bool -> Pattern.t -> G_graph.t -> matching -> Yojson.Basic.t
 
-  val build_pattern: ?domain:Domain.t -> ?lexicons: Lexicons.t -> Ast.pattern -> pattern
 
   (** [node_matching pattern graph matching] return a assoc list (pid_name, gid_name) *)
-  val node_matching: pattern -> G_graph.t -> matching -> (string * string) list
+  val node_matching: Pattern.t -> G_graph.t -> matching -> (string * string) list
 
   (** [match_in_graph rule graph] returns the list of matching of the pattern of the rule into the graph *)
-  val match_in_graph: ?domain:Domain.t -> ?lexicons: Lexicons.t -> pattern -> G_graph.t -> matching list
+  val match_in_graph: ?domain:Domain.t -> ?lexicons: Lexicons.t -> Pattern.t -> G_graph.t -> matching list
 
   (** [match_deco rule matching] builds the decoration of the [graph] illustrating the given [matching] of the [rule] *)
   (* NB: it can be computed independly from the graph itself! *)
-  val match_deco: pattern -> matching -> G_deco.t
+  val match_deco: Pattern.t -> matching -> G_deco.t
 
 
 
@@ -83,7 +89,7 @@ module Rule : sig
     * the name of a feature value [N.feat] where [N] is a node declared in the positive part of the pattern
     * the name of an edge featue [E.feat] where [e] is a edge declared in the positive part of the pattern
   *)
-  val get_value: string -> pattern -> G_graph.t -> matching -> string option
+  val get_value: string -> Pattern.t -> G_graph.t -> matching -> string option
 
 
 
