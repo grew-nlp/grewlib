@@ -28,6 +28,35 @@ module Pattern : sig
 end
 
 (* ================================================================================ *)
+module Matching : sig
+  (** the type t encodes the graph morphism from a pattern to a graph *)
+  (* NB: it was made public for the grep mode *)
+  type t
+
+  val to_json: ?all_edges: bool -> Pattern.t -> G_graph.t -> t -> Yojson.Basic.t
+
+  (** [node_matching pattern graph matching] return a assoc list (pid_name, gid_name) *)
+  val node_matching: Pattern.t -> G_graph.t -> t -> (string * string) list
+
+  (** [match_in_graph rule graph] returns the list of matching of the pattern of the rule into the graph *)
+  val match_in_graph: ?domain:Domain.t -> ?lexicons: Lexicons.t -> Pattern.t -> G_graph.t -> t list
+
+  (** [match_deco rule matching] builds the decoration of the [graph] illustrating the given [matching] of the [rule] *)
+  (* NB: it can be computed independly from the graph itself! *)
+  val match_deco: Pattern.t -> t -> G_deco.t
+
+  (* [get value request pattern graph matching] returns the value corresponding to the request in the result of a previou result of match
+    [request] can be:
+    * the name of a edge declared in the positive part of the pattern
+    * the name of a feature value [N.feat] where [N] is a node declared in the positive part of the pattern
+    * the name of an edge featue [E.feat] where [e] is a edge declared in the positive part of the pattern
+  *)
+  val get_value: string -> Pattern.t -> G_graph.t -> t -> string option
+
+
+end
+
+(* ================================================================================ *)
 module Rule : sig
   type t
 
@@ -54,23 +83,9 @@ module Rule : sig
   val build: ?domain:Domain.t -> Ast.rule -> t
 
 
-  (** the type matching encodes the graph morphism from a pattern to a graph *)
-  (* NB: it was made public for the grep mode *)
-  type matching
 
 
-  val matching_to_json: ?all_edges: bool -> Pattern.t -> G_graph.t -> matching -> Yojson.Basic.t
 
-
-  (** [node_matching pattern graph matching] return a assoc list (pid_name, gid_name) *)
-  val node_matching: Pattern.t -> G_graph.t -> matching -> (string * string) list
-
-  (** [match_in_graph rule graph] returns the list of matching of the pattern of the rule into the graph *)
-  val match_in_graph: ?domain:Domain.t -> ?lexicons: Lexicons.t -> Pattern.t -> G_graph.t -> matching list
-
-  (** [match_deco rule matching] builds the decoration of the [graph] illustrating the given [matching] of the [rule] *)
-  (* NB: it can be computed independly from the graph itself! *)
-  val match_deco: Pattern.t -> matching -> G_deco.t
 
 
 
@@ -82,14 +97,6 @@ module Rule : sig
   val gwh_apply: ?domain: Domain.t -> t -> Graph_with_history.t -> Graph_with_history_set.t
 
   val owh_apply: ?domain: Domain.t -> t -> Graph_with_history.t -> Graph_with_history.t option
-
-  (* [get value request pattern graph matching] returns the value corresponding to the request in the result of a previou result of match
-    [request] can be:
-    * the name of a edge declared in the positive part of the pattern
-    * the name of a feature value [N.feat] where [N] is a node declared in the positive part of the pattern
-    * the name of an edge featue [E.feat] where [e] is a edge declared in the positive part of the pattern
-  *)
-  val get_value: string -> Pattern.t -> G_graph.t -> matching -> string option
 
 
 

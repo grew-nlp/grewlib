@@ -103,18 +103,18 @@ end
 (** {2 Matching} *)
 (* ==================================================================================================== *)
 module Matching = struct
-  type t = Grew_rule.Rule.matching
+  type t = Grew_rule.Matching.t
 
-  let to_json ?(all_edges=false) pattern graph t = Grew_rule.Rule.matching_to_json ~all_edges pattern graph t
+  let to_json ?(all_edges=false) pattern graph t = Grew_rule.Matching.to_json ~all_edges pattern graph t
 
   let nodes pattern graph matching =
     Libgrew.handle ~name:"Matching.nodes" (fun () ->
-      Grew_rule.Rule.node_matching pattern graph matching
+      Grew_rule.Matching.node_matching pattern graph matching
     ) ()
 
   let get_value request pattern graph matching =
     Libgrew.handle ~name:"Matching.get_value" (fun () ->
-      Grew_rule.Rule.get_value request pattern graph matching
+      Grew_rule.Matching.get_value request pattern graph matching
     ) ()
 
 
@@ -125,7 +125,7 @@ end
 (* ==================================================================================================== *)
 module Deco = struct
   type t = Grew_graph.G_deco.t
-  let build pattern matching = Grew_rule.Rule.match_deco pattern matching
+  let build pattern matching = Grew_rule.Matching.match_deco pattern matching
 end
 
 (* ==================================================================================================== *)
@@ -251,7 +251,7 @@ module Graph = struct
 
   let search_pattern ?domain pattern graph =
     Libgrew.handle ~name:"Graph.search_pattern" (fun () ->
-      Grew_rule.Rule.match_in_graph ?domain pattern graph
+      Grew_rule.Matching.match_in_graph ?domain pattern graph
     ) ()
 end
 
