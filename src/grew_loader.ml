@@ -15,12 +15,12 @@ open Grew_ast
 (** general function to handle parse errors *)
 let parse_handle fct_name fct lexbuf =
   try fct lexbuf with
-    | Grew_lexer.Error msg ->        Error.parse ~loc:(Global.get_loc ()) "%s, Lexing error: %s" fct_name msg
-    | Grew_parser.Error ->           Error.parse ~loc:(Global.get_loc ()) "%s, Syntax error: %s" fct_name (Lexing.lexeme lexbuf)
-    | Error.Build (msg, None) ->     Error.parse ~loc:(Global.get_loc ()) "%s, Syntax error: %s" fct_name msg
-    | Error.Build (msg, Some loc) -> Error.parse ~loc "%s, Syntax error: %s" fct_name msg
-    | Failure msg ->                 Error.parse ~loc:(Global.get_loc ()) "%s, Failure: %s" fct_name msg
-    | err ->                         Error.bug ~loc:(Global.get_loc ()) "%s, Unexpected error: %s" fct_name (Printexc.to_string err)
+  | Grew_lexer.Error msg ->        Error.parse ~loc:(Global.get_loc ()) "%s, Lexing error: %s" fct_name msg
+  | Grew_parser.Error ->           Error.parse ~loc:(Global.get_loc ()) "%s, Syntax error: %s" fct_name (Lexing.lexeme lexbuf)
+  | Error.Build (msg, None) ->     Error.parse ~loc:(Global.get_loc ()) "%s, Syntax error: %s" fct_name msg
+  | Error.Build (msg, Some loc) -> Error.parse ~loc "%s, Syntax error: %s" fct_name msg
+  | Failure msg ->                 Error.parse ~loc:(Global.get_loc ()) "%s, Failure: %s" fct_name msg
+  | err ->                         Error.bug ~loc:(Global.get_loc ()) "%s, Unexpected error: %s" fct_name (Printexc.to_string err)
 
 (* ================================================================================ *)
 module Loader = struct
@@ -50,7 +50,7 @@ module Loader = struct
         match check_duplicate_id name tail with
         | None -> ()
         | Some loc2 -> Error.build "Identifier \"%s\" is used twice in the same package (%s and %s)"
-          name (Loc.to_string loc) (Loc.to_string loc2)
+                         name (Loc.to_string loc) (Loc.to_string loc2)
       end;
       check_grs tail
     | Ast.Package (loc, name, sub) :: tail ->
@@ -58,7 +58,7 @@ module Loader = struct
         match check_duplicate_id name tail with
         | None -> ()
         | Some loc2 -> Error.build "Identifier \"%s\" is used twice in the same package (%s and %s)"
-          name (Loc.to_string loc) (Loc.to_string loc2)
+                         name (Loc.to_string loc) (Loc.to_string loc2)
       end;
       check_grs sub;
       check_grs tail
@@ -77,39 +77,39 @@ module Loader = struct
       let grs = parse_handle "loc_grs" (Grew_parser.grs Grew_lexer.global) lexbuf in
       close_in in_ch;
       grs
-  with Sys_error msg -> Error.parse ~loc:(Loc.file file) "[Grew_loader.Loader.grs] %s" msg
+    with Sys_error msg -> Error.parse ~loc:(Loc.file file) "[Grew_loader.Loader.grs] %s" msg
 
   let rec unfold_grs dir top path new_ast_grs =
-  List.fold_left
-    (fun acc decl -> match decl with
-      | Ast.Import filename ->
-        let real_file = Filename.concat dir filename in
-        let pack_name = match CCString.chop_suffix ~suf:".grs" filename with
-          | Some x -> x
-          | None -> Error.build "Imported file must have the \".grs\" file extension" in
-        let sub = loc_grs real_file in
-        let unfolded_sub = unfold_grs (real_dir real_file) false (path ^ pack_name ^ ".") sub in
-          Ast.Package (Loc.file filename, pack_name, unfolded_sub) :: acc
-      | Ast.Include filename ->
-        let real_file = Filename.concat dir filename in
-        let sub = loc_grs real_file in
-        let unfolded_sub = unfold_grs (real_dir real_file) top path sub in
-          unfolded_sub @ acc
-      | Ast.Features _ when not top -> Error.build "Non top features declaration"
-      | Ast.Labels _ when not top -> Error.build "Non top labels declaration"
-      | Ast.Package (loc, name, decls) ->
-        Ast.Package (loc, name, unfold_grs dir top (path ^ name ^ ".") decls) :: acc
-      | Ast.Rule ast_rule ->
-        Ast.Rule {ast_rule with Ast.rule_dir = Some dir; Ast.rule_path = path} :: acc
-      | x -> x :: acc
-    ) [] new_ast_grs
+    List.fold_left
+      (fun acc decl -> match decl with
+         | Ast.Import filename ->
+           let real_file = Filename.concat dir filename in
+           let pack_name = match CCString.chop_suffix ~suf:".grs" filename with
+             | Some x -> x
+             | None -> Error.build "Imported file must have the \".grs\" file extension" in
+           let sub = loc_grs real_file in
+           let unfolded_sub = unfold_grs (real_dir real_file) false (path ^ pack_name ^ ".") sub in
+           Ast.Package (Loc.file filename, pack_name, unfolded_sub) :: acc
+         | Ast.Include filename ->
+           let real_file = Filename.concat dir filename in
+           let sub = loc_grs real_file in
+           let unfolded_sub = unfold_grs (real_dir real_file) top path sub in
+           unfolded_sub @ acc
+         | Ast.Features _ when not top -> Error.build "Non top features declaration"
+         | Ast.Labels _ when not top -> Error.build "Non top labels declaration"
+         | Ast.Package (loc, name, decls) ->
+           Ast.Package (loc, name, unfold_grs dir top (path ^ name ^ ".") decls) :: acc
+         | Ast.Rule ast_rule ->
+           Ast.Rule {ast_rule with Ast.rule_dir = Some dir; Ast.rule_path = path} :: acc
+         | x -> x :: acc
+      ) [] new_ast_grs
 
   let grs file =
     let final_grs = unfold_grs (real_dir file) true "" (loc_grs file) in
     check_grs final_grs;
     final_grs
 
-(* ================================================================================ *)
+  (* ================================================================================ *)
   (* ------------------------------------------------------------------------------------------*)
   let gr file =
     try

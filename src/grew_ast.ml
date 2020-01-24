@@ -20,10 +20,10 @@ module Ast = struct
   (* allowed is a char list which is a sub set of ['#'; '.'; ':'; '*'] *)
   let check_special name allowed s =
     let rec loop = function
-    | [] -> ()
-    | Str.Delim wrong_char :: _ when not (List.mem wrong_char allowed) ->
-      Error.build "The identifier '%s' is not a valid %s, the character '%s' is illegal" s name wrong_char
-    | _::t -> loop t in
+      | [] -> ()
+      | Str.Delim wrong_char :: _ when not (List.mem wrong_char allowed) ->
+        Error.build "The identifier '%s' is not a valid %s, the character '%s' is illegal" s name wrong_char
+      | _::t -> loop t in
     loop (Str.full_split (Str.regexp "#\\|\\.\\|:\\|\\*") s)
 
   (* ---------------------------------------------------------------------- *)
@@ -212,31 +212,31 @@ module Ast = struct
 
   let check_duplicate_edge_identifier basic =
     let ids = List_.opt_map
-      (function ({edge_id= Some e},loc) -> Some (e, loc) | _ -> None)
-       basic.pat_edges in
+        (function ({edge_id= Some e},loc) -> Some (e, loc) | _ -> None)
+        basic.pat_edges in
     let rec loop = function
-    | [] -> ()
-    | (x,loc)::t when List.exists (fun (y,_) -> x=y) t ->
+      | [] -> ()
+      | (x,loc)::t when List.exists (fun (y,_) -> x=y) t ->
         Error.build ~loc "The identifier '%s' is used twice" x
-    | _::t -> loop t in
+      | _::t -> loop t in
     loop ids
 
   let normalize_pattern pattern =
     check_duplicate_edge_identifier pattern.pat_pos;
     { pattern with pat_negs =
-        List.map
-          (fun pat_neg ->
-            { pat_neg with pat_edges =
-              List.map
-                (fun (u_edge,loc) ->
-                  match u_edge.edge_id with
-                  | None -> (u_edge,loc)
-                  | Some id ->
-                    Error.warning ~loc "identifier \"%s\" is useless in without part" id;
-                    ({u_edge with edge_id=None},loc)
-                ) pat_neg.pat_edges
-            }
-          ) pattern.pat_negs
+                     List.map
+                       (fun pat_neg ->
+                          { pat_neg with pat_edges =
+                                           List.map
+                                             (fun (u_edge,loc) ->
+                                                match u_edge.edge_id with
+                                                | None -> (u_edge,loc)
+                                                | Some id ->
+                                                  Error.warning ~loc "identifier \"%s\" is useless in without part" id;
+                                                  ({u_edge with edge_id=None},loc)
+                                             ) pat_neg.pat_edges
+                          }
+                       ) pattern.pat_negs
     }
 
   let add_implicit_node loc aux name pat_nodes =
@@ -247,11 +247,11 @@ module Ast = struct
 
   let complete_basic aux basic =
     let new_pat_nodes = List.fold_left
-    (fun acc ({src; tar}, loc) ->
-      acc
-      |> (add_implicit_node loc aux src)
-      |> (add_implicit_node loc aux tar)
-    ) basic.pat_nodes basic.pat_edges in
+        (fun acc ({src; tar}, loc) ->
+           acc
+           |> (add_implicit_node loc aux src)
+           |> (add_implicit_node loc aux tar)
+        ) basic.pat_nodes basic.pat_edges in
     {basic with pat_nodes=new_pat_nodes}
 
   let complete_pattern pattern =
@@ -326,8 +326,8 @@ module Ast = struct
 
 
   type lexicon =
-  | File of string
-  | Final of (int * string) list
+    | File of string
+    | Final of (int * string) list
 
   type lexicon_info = (string * lexicon) list
 
@@ -375,71 +375,71 @@ module Ast = struct
 
   let complete id nodes =
     let rec loop n = match n with
-    | [] -> [{node_id=id; position=None; fs=default_fs id},Loc.empty]
-    | ({ node_id = head_id },_)::_ when head_id = id -> n
-    | head::tail -> head :: (loop tail)
-  in loop nodes
+      | [] -> [{node_id=id; position=None; fs=default_fs id},Loc.empty]
+      | ({ node_id = head_id },_)::_ when head_id = id -> n
+      | head::tail -> head :: (loop tail)
+    in loop nodes
 
   let complete_graph gr =
     let new_nodes =
       List.fold_left
         (fun acc (edge,_) ->
-          acc
-          |> (complete edge.src)
-          |> (complete edge.tar)
+           acc
+           |> (complete edge.src)
+           |> (complete edge.tar)
         ) gr.nodes gr.edges in
     { gr with nodes = new_nodes }
 
   (* phrase structure tree *)
   type pst =
-  | Leaf of (Loc.t * string) (* phon *)
-  | T of (Loc.t * string * pst list)
+    | Leaf of (Loc.t * string) (* phon *)
+    | T of (Loc.t * string * pst list)
 
   let rec word_list = function
     | Leaf (_, p) -> [p]
     | T (_,_,l) -> List.flatten (List.map word_list l)
 
   type strat =
-  | Ref of node_ident           (* reference to a rule name or to another strategy *)
-  | Pick of strat               (* pick one normal form a the given strategy; return 0 if nf *)
-  | Alt of strat list           (* a set of strategies to apply in parallel *)
-  | Seq of strat list           (* a sequence of strategies to apply one after the other *)
-  | Iter of strat               (* a strategy to apply iteratively *)
-  | Onf of strat                (* deterministic computation of One Normal Form *)
-  | If of strat * strat * strat (* choose a stragegy with a test *)
-  | Try of strat                (* ≜ If (S, S, Empty): pick one normal form a the given strategy; return input if nf *)
+    | Ref of node_ident           (* reference to a rule name or to another strategy *)
+    | Pick of strat               (* pick one normal form a the given strategy; return 0 if nf *)
+    | Alt of strat list           (* a set of strategies to apply in parallel *)
+    | Seq of strat list           (* a sequence of strategies to apply one after the other *)
+    | Iter of strat               (* a strategy to apply iteratively *)
+    | Onf of strat                (* deterministic computation of One Normal Form *)
+    | If of strat * strat * strat (* choose a stragegy with a test *)
+    | Try of strat                (* ≜ If (S, S, Empty): pick one normal form a the given strategy; return input if nf *)
 
   type decl =
-  | Conll_fields of string list
-  | Features of feature_spec list
-  | Labels of (string * string list) list
-  | Package of (Loc.t * simple_ident * decl list)
-  | Rule of rule
-  | Strategy of (Loc.t * simple_ident * strat)
-  | Import of string
-  | Include of string
+    | Conll_fields of string list
+    | Features of feature_spec list
+    | Labels of (string * string list) list
+    | Package of (Loc.t * simple_ident * decl list)
+    | Rule of rule
+    | Strategy of (Loc.t * simple_ident * strat)
+    | Import of string
+    | Include of string
 
   type grs = decl list
 
   let rec strat_to_json = function
-  | Ref name -> `Assoc [("Ref", `String name)]
-  | Pick s -> `Assoc [("Pick", strat_to_json s)]
-  | Onf s -> `Assoc [("Onf", strat_to_json s)]
-  | Alt l -> `Assoc [("Alt", `List (List.map strat_to_json l))]
-  | Seq l -> `Assoc [("Seq", `List (List.map strat_to_json l))]
-  | Iter s -> `Assoc [("Iter", strat_to_json s)]
-  | If (s, s1, s2) -> `Assoc [("If", strat_to_json s); ("Then", strat_to_json s1); ("Else", strat_to_json s2)]
-  | Try s -> `Assoc [("Try", strat_to_json s)]
+    | Ref name -> `Assoc [("Ref", `String name)]
+    | Pick s -> `Assoc [("Pick", strat_to_json s)]
+    | Onf s -> `Assoc [("Onf", strat_to_json s)]
+    | Alt l -> `Assoc [("Alt", `List (List.map strat_to_json l))]
+    | Seq l -> `Assoc [("Seq", `List (List.map strat_to_json l))]
+    | Iter s -> `Assoc [("Iter", strat_to_json s)]
+    | If (s, s1, s2) -> `Assoc [("If", strat_to_json s); ("Then", strat_to_json s1); ("Else", strat_to_json s2)]
+    | Try s -> `Assoc [("Try", strat_to_json s)]
 
   let strat_list grs =
     let rec loop pref = function
-    | [] -> []
-    | Strategy (_,name,_) :: tail -> name :: (loop pref tail)
-    | Package (_,pack_name,decl_list) :: tail -> (loop (pref^"."^pack_name) decl_list) @  (loop pref tail)
-    | _ :: tail -> loop pref tail
+      | [] -> []
+      | Strategy (_,name,_) :: tail -> name :: (loop pref tail)
+      | Package (_,pack_name,decl_list) :: tail -> (loop (pref^"."^pack_name) decl_list) @  (loop pref tail)
+      | _ :: tail -> loop pref tail
     in loop "" grs
 
-  end (* module Ast *)
+end (* module Ast *)
 
 
 

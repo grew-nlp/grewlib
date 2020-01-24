@@ -134,6 +134,6 @@ end (* module Lexicons *)
 (* ================================================================================ *)
 module Concat_item : sig
   type t =
-  | Feat of (Gid.t * feature_name)
-  | String of string
+    | Feat of (Gid.t * feature_name)
+    | String of string
 end (* module Concat_item *)

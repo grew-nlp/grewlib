@@ -68,10 +68,10 @@ module Ast : sig
   val default_fs: ?loc:Loc.t -> string -> feature list
 
   type u_node = {
-      node_id: Id.name;
-      position: float option;
-      fs: feature list;
-    }
+    node_id: Id.name;
+    position: float option;
+    fs: feature list;
+  }
   type node = u_node * Loc.t
 
   type atom_edge_label_cst =
@@ -88,11 +88,11 @@ module Ast : sig
     | Atom_list of atom_edge_label_cst list (* 1=subj, 2 *)
 
   type u_edge = {
-      edge_id: Id.name option;
-      src: Id.name;
-      edge_label_cst: edge_label_cst;
-      tar: Id.name;
-    }
+    edge_id: Id.name option;
+    src: Id.name;
+    edge_label_cst: edge_label_cst;
+    tar: Id.name;
+  }
   type edge = u_edge * Loc.t
 
   type ineq = Lt | Gt | Le | Ge
@@ -128,10 +128,10 @@ module Ast : sig
   type const = u_const * Loc.t
 
   type basic = {
-      pat_nodes: node list;
-      pat_edges: edge list;
-      pat_const: const list;
-    }
+    pat_nodes: node list;
+    pat_edges: edge list;
+    pat_const: const list;
+  }
 
   val empty_basic: basic
 
@@ -189,21 +189,21 @@ module Ast : sig
   type command = u_command * Loc.t
 
   type lexicon =
-  | File of string
-  | Final of (int * string) list
+    | File of string
+    | Final of (int * string) list
 
   type lexicon_info = (string * lexicon) list
 
   type rule = {
-      rule_id:Id.name;
-      pattern: pattern;
-      commands: command list;
-      lexicon_info: lexicon_info;
-      rule_doc:string list;
-      rule_loc: Loc.t;
-      rule_dir: string option; (* the real folder where the file is defined *)
-      rule_path: string;
-    }
+    rule_id:Id.name;
+    pattern: pattern;
+    commands: command list;
+    lexicon_info: lexicon_info;
+    rule_doc:string list;
+    rule_loc: Loc.t;
+    rule_dir: string option; (* the real folder where the file is defined *)
+    rule_path: string;
+  }
 
   type label_spec = string * string list
 
@@ -215,9 +215,9 @@ module Ast : sig
   val build_closed: feature_name -> feature_atom list -> feature_spec
 
   type domain = {
-      feature_domain: feature_spec list;
-      label_domain: label_spec list;
-    }
+    feature_domain: feature_spec list;
+    label_domain: label_spec list;
+  }
 
   type gr = {
     meta: string list;
@@ -228,29 +228,29 @@ module Ast : sig
 
   (* phrase structure tree *)
   type pst =
-  | Leaf of (Loc.t * string) (* phon *)
-  | T of (Loc.t * string * pst list)
+    | Leaf of (Loc.t * string) (* phon *)
+    | T of (Loc.t * string * pst list)
   val word_list: pst -> string list
 
   type strat =
-  | Ref of node_ident       (* reference to a rule name or to another strategy *)
-  | Pick of strat               (* pick one normal form a the given strategy; return 0 if nf *)
-  | Alt of strat list           (* a set of strategies to apply in parallel *)
-  | Seq of strat list           (* a sequence of strategies to apply one after the other *)
-  | Iter of strat               (* a strategy to apply iteratively *)
-  | Onf of strat                (* deterministic computation of One Normal Form *)
-  | If of strat * strat * strat (* choose a stragegy with a test *)
-  | Try of strat                (* ≜ If (S, S, Empty): pick one normal form a the given strategy; return input if nf *)
+    | Ref of node_ident       (* reference to a rule name or to another strategy *)
+    | Pick of strat               (* pick one normal form a the given strategy; return 0 if nf *)
+    | Alt of strat list           (* a set of strategies to apply in parallel *)
+    | Seq of strat list           (* a sequence of strategies to apply one after the other *)
+    | Iter of strat               (* a strategy to apply iteratively *)
+    | Onf of strat                (* deterministic computation of One Normal Form *)
+    | If of strat * strat * strat (* choose a stragegy with a test *)
+    | Try of strat                (* ≜ If (S, S, Empty): pick one normal form a the given strategy; return input if nf *)
 
   type decl =
-  | Conll_fields of string list
-  | Features of feature_spec list
-  | Labels of (string * string list) list
-  | Package of (Loc.t * simple_ident * decl list)
-  | Rule of rule
-  | Strategy of (Loc.t * simple_ident * strat)
-  | Import of string
-  | Include of string
+    | Conll_fields of string list
+    | Features of feature_spec list
+    | Labels of (string * string list) list
+    | Package of (Loc.t * simple_ident * decl list)
+    | Rule of rule
+    | Strategy of (Loc.t * simple_ident * strat)
+    | Import of string
+    | Include of string
 
   type grs = decl list
 

@@ -25,14 +25,14 @@ module G_node = struct
     | Misc
 
   type t = {
-      name: Id.name option;
-      fs: G_fs.t;
-      next: G_edge.t Massoc_gid.t;
-      succ: Gid.t option;
-      prec: Gid.t option;
-      sort: sort;
-      efs: (string * string) list;
-    }
+    name: Id.name option;
+    fs: G_fs.t;
+    next: G_edge.t Massoc_gid.t;
+    succ: Gid.t option;
+    prec: Gid.t option;
+    sort: sort;
+    efs: (string * string) list;
+  }
 
   let empty = {
     name = None;
@@ -71,12 +71,12 @@ module G_node = struct
 
   let shift user_id delta t =
     { t with
-    name = CCOpt.map (fun n -> user_id ^ "_" ^ n) t.name;
-    fs = G_fs.set_atom "user" user_id t.fs;
-    next = Massoc_gid.map_key ((+) delta) t.next;
-    prec = CCOpt.map ((+) delta) t.prec;
-    succ = CCOpt.map ((+) delta) t.succ;
-  }
+      name = CCOpt.map (fun n -> user_id ^ "_" ^ n) t.name;
+      fs = G_fs.set_atom "user" user_id t.fs;
+      next = Massoc_gid.map_key ((+) delta) t.next;
+      prec = CCOpt.map ((+) delta) t.prec;
+      succ = CCOpt.map ((+) delta) t.succ;
+    }
 
   let unshift user_id t =
     match (
@@ -115,21 +115,21 @@ module G_node = struct
     { empty with name=Some ast_node.Ast.node_id; fs; sort; prec; succ }
 
   let float_of_conll_id = function
-  | (i, None) -> float i
-  | (i, Some j) when j > 0 && j < 10 -> (float i) +. (float j) /. 10.
-  | _ -> Error.bug "[float_of_conll_id]"
+    | (i, None) -> float i
+    | (i, Some j) when j > 0 && j < 10 -> (float i) +. (float j) /. 10.
+    | _ -> Error.bug "[float_of_conll_id]"
 
   let of_conll ?loc ?prec ?succ ?domain line =
     if line = Conll.root
     then { empty with sort = Ordered 0.; succ; name = Some "ROOT" }
     else { empty with
-      fs = G_fs.of_conll ?loc ?domain line;
-      sort = Ordered (float_of_conll_id line.Conll.id);
-      prec;
-      succ;
-      efs=line.Conll.efs;
-      name = Some (Conll_types.Id.to_string line.Conll.id)
-    }
+           fs = G_fs.of_conll ?loc ?domain line;
+           sort = Ordered (float_of_conll_id line.Conll.id);
+           prec;
+           succ;
+           efs=line.Conll.efs;
+           name = Some (Conll_types.Id.to_string line.Conll.id)
+         }
 
   let pst_leaf ?loc ?domain phon position = (* TODO remove position  arg *)
     { empty with fs = G_fs.pst_leaf ?loc ?domain phon; sort = Misc }
@@ -152,7 +152,7 @@ module G_node = struct
       match Massoc_gid.add_opt gid_tar new_edge without_edge with
       | Some new_next -> Some ({t with next = new_next }, new_edge)
       | None -> (* the produced edge already exists, just remove the old one *)
-      Some ({t with next = without_edge }, new_edge)
+        Some ({t with next = without_edge }, new_edge)
 
   let del_edge_feature gid_tar old_edge feat_name t =
     match G_edge.remove feat_name old_edge with
@@ -168,8 +168,8 @@ module G_node = struct
   let rm_out_edges t = {t with next = Massoc_gid.empty}
 
   let position_comp n1 n2 = match (n1.sort, n2.sort) with
-  | (Ordered i, Ordered j) -> Stdlib.compare i j
-  | _ -> 0
+    | (Ordered i, Ordered j) -> Stdlib.compare i j
+    | _ -> 0
 
   let rename mapping n = {n with next = Massoc_gid.rename mapping n.next}
 
@@ -177,30 +177,30 @@ module G_node = struct
     let src_fs = get_fs src in
     let tar_fs = get_fs tar in
     match G_fs.append_feats ?loc src_fs tar_fs separator regexp with
-      | Some (new_tar_fs, updated_feats) -> Some (set_fs new_tar_fs tar, updated_feats)
-      | None -> None
+    | Some (new_tar_fs, updated_feats) -> Some (set_fs new_tar_fs tar, updated_feats)
+    | None -> None
 
 end (* module G_node *)
 
 (* ================================================================================ *)
 module P_node = struct
   type t = {
-      name: Id.name;
-      fs: P_fs.t;
-      next: P_edge.t Massoc_pid.t;
-      loc: Loc.t option;
-    }
+    name: Id.name;
+    fs: P_fs.t;
+    next: P_edge.t Massoc_pid.t;
+    loc: Loc.t option;
+  }
 
   let to_json ?domain t =
     let json_next = `List (
-      Massoc_pid.fold
-        (fun acc pid p_edge ->
-          `Assoc [
-            ("id", `String (Pid.to_string pid));
-            ("label", P_edge.to_json ?domain p_edge);
-          ] :: acc
-        ) [] t.next
-    ) in
+        Massoc_pid.fold
+          (fun acc pid p_edge ->
+             `Assoc [
+               ("id", `String (Pid.to_string pid));
+               ("label", P_edge.to_json ?domain p_edge);
+             ] :: acc
+          ) [] t.next
+      ) in
     `Assoc [
       ("node_name", `String t.name);
       ("fs", P_fs.to_json ?domain t.fs);

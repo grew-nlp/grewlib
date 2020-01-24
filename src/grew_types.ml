@@ -23,7 +23,7 @@ type value =
 
 let string_of_value = function
   | String s -> Str.global_replace (Str.regexp "\"") "\\\""
-    (Str.global_replace (Str.regexp "\\\\") "\\\\\\\\" s)
+                  (Str.global_replace (Str.regexp "\\\\") "\\\\\\\\" s)
   | Float i -> String_.of_float i
 
 let conll_string_of_value = function
@@ -59,23 +59,23 @@ module Pid_set = Set.Make (Pid)
 
 (* ================================================================================ *)
 module Pid_map =
-  struct
-    include Map.Make (Pid)
+struct
+  include Map.Make (Pid)
 
-    exception True
+  exception True
 
-    let exists fct map =
-      try
-        iter
-          (fun key value ->
-            if fct key value
-            then raise True
-          ) map;
-        false
-      with True -> true
+  let exists fct map =
+    try
+      iter
+        (fun key value ->
+           if fct key value
+           then raise True
+        ) map;
+      false
+    with True -> true
 
-    (* union of two maps*)
-    let union_map m m' = fold (fun k v m'' -> (add k v m'')) m m'
+  (* union of two maps*)
+  let union_map m m' = fold (fun k v m'' -> (add k v m'')) m m'
 end (* module Pid_map *)
 
 (* ================================================================================ *)
@@ -96,11 +96,11 @@ module Gid_map = struct
 
   exception Found of Gid.t
   let search_key fct t =
-  try
-    iter (fun k v -> if fct v then raise (Found k)) t;
-    None
-  with
-  | Found k -> Some k
+    try
+      iter (fun k v -> if fct v then raise (Found k)) t;
+      None
+    with
+    | Found k -> Some k
 end
 
 (* ================================================================================ *)
@@ -128,9 +128,9 @@ module Lexicon = struct
   }
 
   let rec transpose = function
-  | []             -> []
-  | []   :: xss    -> transpose xss
-  | (x::xs) :: xss -> (x :: List.map List.hd xss) :: transpose (xs :: List.map List.tl xss)
+    | []             -> []
+    | []   :: xss    -> transpose xss
+    | (x::xs) :: xss -> (x :: List.map List.hd xss) :: transpose (xs :: List.map List.tl xss)
 
   exception Equal of string
   let strict_compare x y =
@@ -141,34 +141,34 @@ module Lexicon = struct
   let build loc items =
     let real_items = List.filter (fun (_,x) -> x <> "" && x.[0] <> '%') items in
     match real_items with
-      | [] | [_] -> Error.build ~loc "[Lexicon.build] a lexicon must not be empty"
-      | (linenum_h, h)::t ->
-        let fields = List.map to_uname (Str.split (Str.regexp "\t") h) in
-        let l = List.length fields in
-        let rec loop = function
-          | [] -> []
-          | (linenum, line)::tail ->
-            let norm_line =
-              if String.length line > 1 && line.[0] = '\\' && line.[1] = '%'
-              then String_.rm_first_char line
-              else line in
-            let items = Str.split (Str.regexp "\t") norm_line in
-            if List.length items <> l then
-              begin
-                let loc = Loc.set_line linenum loc in
-                Error.build ~loc "[Lexicon.build] line with %d items (%d expected!!)" (List.length items) l
-              end;
-             items :: (loop tail) in
-        let items_list = fields ::(loop t) in
-        let tr = transpose items_list in
-        try
-          let sorted_tr = List.sort (fun l1 l2 -> strict_compare (List.hd l1) (List.hd l2)) tr in
-          match transpose sorted_tr with
-            | [] -> Error.bug ~loc "[Lexicon.build] inconsistent data"
-            | header :: lines_list -> { header; lines = List.fold_right Line_set.add lines_list Line_set.empty; loc }
-        with Equal v ->
-          let loc = Loc.set_line linenum_h loc in
-          Error.build ~loc "[Lexicon.build] the field name \"%s\" is used twice" v
+    | [] | [_] -> Error.build ~loc "[Lexicon.build] a lexicon must not be empty"
+    | (linenum_h, h)::t ->
+      let fields = List.map to_uname (Str.split (Str.regexp "\t") h) in
+      let l = List.length fields in
+      let rec loop = function
+        | [] -> []
+        | (linenum, line)::tail ->
+          let norm_line =
+            if String.length line > 1 && line.[0] = '\\' && line.[1] = '%'
+            then String_.rm_first_char line
+            else line in
+          let items = Str.split (Str.regexp "\t") norm_line in
+          if List.length items <> l then
+            begin
+              let loc = Loc.set_line linenum loc in
+              Error.build ~loc "[Lexicon.build] line with %d items (%d expected!!)" (List.length items) l
+            end;
+          items :: (loop tail) in
+      let items_list = fields ::(loop t) in
+      let tr = transpose items_list in
+      try
+        let sorted_tr = List.sort (fun l1 l2 -> strict_compare (List.hd l1) (List.hd l2)) tr in
+        match transpose sorted_tr with
+        | [] -> Error.bug ~loc "[Lexicon.build] inconsistent data"
+        | header :: lines_list -> { header; lines = List.fold_right Line_set.add lines_list Line_set.empty; loc }
+      with Equal v ->
+        let loc = Loc.set_line linenum_h loc in
+        Error.build ~loc "[Lexicon.build] the field name \"%s\" is used twice" v
 
   let load loc file =
     try
@@ -181,12 +181,12 @@ module Lexicon = struct
     let sorted_sub_list = List.sort Stdlib.compare sub_list in
     let reduce_line line =
       let rec loop = function
-      | ([],_,_) -> []
-      | (hs::ts, hh::th, hl::tl)    when hs=hh    -> hl::(loop (ts,th,tl))
-      | (hs::ts, hh::th, hl::tl)    when hs>hh    -> loop (hs::ts, th, tl)
-      | (hs::ts, hh::th, hl::tl) (* when hs<hh *) -> Error.bug "[Lexicon.reduce] Field '%s' not in lexicon" hs
-      | (hs::ts, [], []) -> Error.bug "[Lexicon.reduce] Field '%s' not in lexicon" hs
-      | _ -> Error.bug "[Lexicon.reduce] Inconsistent length" in
+        | ([],_,_) -> []
+        | (hs::ts, hh::th, hl::tl)    when hs=hh    -> hl::(loop (ts,th,tl))
+        | (hs::ts, hh::th, hl::tl)    when hs>hh    -> loop (hs::ts, th, tl)
+        | (hs::ts, hh::th, hl::tl) (* when hs<hh *) -> Error.bug "[Lexicon.reduce] Field '%s' not in lexicon" hs
+        | (hs::ts, [], []) -> Error.bug "[Lexicon.reduce] Field '%s' not in lexicon" hs
+        | _ -> Error.bug "[Lexicon.reduce] Inconsistent length" in
       loop (sorted_sub_list, lexicon.header, line) in
     let new_lines = Line_set.map reduce_line lexicon.lines in
     { lexicon with header = sorted_sub_list; lines = new_lines }
@@ -194,7 +194,7 @@ module Lexicon = struct
   let union lex1 lex2 =
     if lex1.header <> lex2.header then Error.build "[Lexicon.union] different header";
     { lex1 with lines = Line_set.union lex1.lines lex2.lines }
-    (* NOTE: the loc field of a union may be not accurate *)
+  (* NOTE: the loc field of a union may be not accurate *)
 
   let select head value lex =
     match List_.index head lex.header with

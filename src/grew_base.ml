@@ -32,10 +32,10 @@ module Loc = struct
   let set_line l (x,_) = (x, Some l)
 
   let to_string = function
-  | (Some file, Some line) -> sprintf "[file: %s, line: %d]" (Filename.basename file) line
-  | (None, Some line) -> sprintf "[line: %d]" line
-  | (Some file, None) -> sprintf "[file: %s]" (Filename.basename file)
-  | (None, None) -> ""
+    | (Some file, Some line) -> sprintf "[file: %s, line: %d]" (Filename.basename file) line
+    | (None, Some line) -> sprintf "[line: %d]" line
+    | (Some file, None) -> sprintf "[file: %s]" (Filename.basename file)
+    | (None, None) -> ""
 end (* module Loc *)
 
 (* ================================================================================ *)
@@ -70,8 +70,8 @@ module String_ = struct
   let to_float string =
     try float_of_string string
     with _ ->
-      try float_of_string (Str.global_replace (Str.regexp "\\.") "," string)
-      with _ -> Error.build "[String_.to_float] cannot convert '%s'" string
+    try float_of_string (Str.global_replace (Str.regexp "\\.") "," string)
+    with _ -> Error.build "[String_.to_float] cannot convert '%s'" string
 
   let of_float float = Str.global_replace (Str.regexp ",") "." (sprintf "%g" float)
 
@@ -86,10 +86,10 @@ module String_ = struct
 
   let rev_concat sep l =
     let rec loop = function
-    | [] -> ""
-    | [one] -> one
-    | h :: tail -> (loop tail) ^ sep ^ h in
-  loop l
+      | [] -> ""
+      | [one] -> one
+      | h :: tail -> (loop tail) ^ sep ^ h in
+    loop l
 
 end (* module String_ *)
 
@@ -154,7 +154,7 @@ module File = struct
 
   exception Found of int
   let get_suffix file_name =
-  let len = String.length file_name in
+    let len = String.length file_name in
     try
       for i = len-1 downto 0 do
         if file_name.[i] = '.'
@@ -163,19 +163,19 @@ module File = struct
       None
     with
     | Found i -> Some (String.sub file_name i (len-i))
- end (* module File *)
+end (* module File *)
 
 (* ================================================================================ *)
 module Array_ = struct
   let dicho_mem elt array =
     let rec loop low high =
       (if low > high
-      then false
-      else
-        match (low+high)/2 with
-        | middle when array.(middle) = elt -> true
-        | middle when array.(middle) < elt -> loop (middle+1) high
-        | middle -> loop low (middle - 1)
+       then false
+       else
+         match (low+high)/2 with
+         | middle when array.(middle) = elt -> true
+         | middle when array.(middle) < elt -> loop (middle+1) high
+         | middle -> loop low (middle - 1)
       ) in
     loop 0 ((Array.length array) - 1)
 
@@ -218,17 +218,17 @@ module List_ = struct
 
   let index x l =
     let rec loop i = function
-    | [] -> None
-    | h::t when h=x -> Some i
-    | _::t -> loop (i+1) t in
+      | [] -> None
+      | h::t when h=x -> Some i
+      | _::t -> loop (i+1) t in
     loop 0 l
 
   let rec opt_map f = function
     | [] -> []
     | x::t ->
-        match f x with
-        | None -> opt_map f t
-        | Some r -> r :: (opt_map f t)
+      match f x with
+      | None -> opt_map f t
+      | Some r -> r :: (opt_map f t)
 
   let rec try_map exc fct = function
     | [] -> []
@@ -248,8 +248,8 @@ module List_ = struct
       | [] -> []
       | h::t ->
         match fct i h with
-          | None -> loop (i+1) t
-          | Some res -> res :: (loop (i+1) t)
+        | None -> loop (i+1) t
+        | Some res -> res :: (loop (i+1) t)
     in loop 0
 
   let foldi_left f init l =
@@ -306,8 +306,8 @@ module List_ = struct
     | (k,_)::_ when key<k -> None
     | (k,v)::t when key>k ->
       (match sort_remove_assoc_opt key t with
-        | None -> None
-        | Some new_t -> Some ((k,v) :: new_t)
+       | None -> None
+       | Some new_t -> Some ((k,v) :: new_t)
       )
     | (_,v)::t (* key = k *) -> Some t
 
@@ -489,17 +489,17 @@ module Massoc_make (Ord: OrderedType) = struct
     try
       let list = M.find key t in
       match List_.usort_insert elt list with
-        | Some l -> Some (M.add key l t)
-        | None -> None
+      | Some l -> Some (M.add key l t)
+      | None -> None
     with Not_found -> Some (M.add key [elt] t)
 
   let fold fct init t =
     M.fold
       (fun key list acc ->
-        List.fold_left
-          (fun acc2 elt ->
-            fct acc2 key elt)
-          acc list)
+         List.fold_left
+           (fun acc2 elt ->
+              fct acc2 key elt)
+           acc list)
       t init
 
   let fold_on_list fct init t = M.fold (fun key list acc -> fct acc key list) t init
@@ -507,8 +507,8 @@ module Massoc_make (Ord: OrderedType) = struct
   (* Not found raised in the value is not defined *)
   let remove key value t =
     match M.find key t with
-      | [one] when one=value -> M.remove key t
-      | old -> M.add key (List_.usort_remove value old) t
+    | [one] when one=value -> M.remove key t
+    | old -> M.add key (List_.usort_remove value old) t
 
   let remove_opt key value t =
     try Some (remove key value t)
@@ -527,12 +527,12 @@ module Massoc_make (Ord: OrderedType) = struct
   let disjoint_union t1 t2 =
     M.fold
       (fun key list acc ->
-        try
-          let old = M.find key acc in
-          M.add key (List_.sort_disjoint_union list old) acc
-        with
-          | Not_found -> M.add key list acc
-          | List_.Not_disjoint -> raise Not_disjoint
+         try
+           let old = M.find key acc in
+           M.add key (List_.sort_disjoint_union list old) acc
+         with
+         | Not_found -> M.add key list acc
+         | List_.Not_disjoint -> raise Not_disjoint
       ) t1 t2
 
   exception True
@@ -540,8 +540,8 @@ module Massoc_make (Ord: OrderedType) = struct
     try
       M.iter
         (fun key list ->
-          if List.exists (fun elt -> fct key elt) list
-          then raise True
+           if List.exists (fun elt -> fct key elt) list
+           then raise True
         ) t;
       false
     with True -> true
@@ -549,8 +549,8 @@ module Massoc_make (Ord: OrderedType) = struct
   let rename mapping t =
     M.fold
       (fun key value acc ->
-        let new_key = try List.assoc key mapping with Not_found -> key in
-        M.add new_key value acc
+         let new_key = try List.assoc key mapping with Not_found -> key in
+         M.add new_key value acc
       ) t M.empty
 
   let map_key fct t = M.fold (fun key value acc -> M.add (fct key) value acc) t M.empty
@@ -607,8 +607,8 @@ module Timeout = struct
     match !timeout with
     | None -> ()
     | Some delay ->
-        if Unix.gettimeofday () -. !counter > delay
-        then raise (Stop delay)
+      if Unix.gettimeofday () -. !counter > delay
+      then raise (Stop delay)
 end (* module Timeout *)
 
 (* ================================================================================ *)
@@ -633,8 +633,8 @@ module Global = struct
     label_flag := false
 
   let new_line () = match !current_loc with
-  | (_,None) -> ()
-  | (fo, Some l) -> current_loc := (fo, Some (l+1))
+    | (_,None) -> ()
+    | (fo, Some l) -> current_loc := (fo, Some (l+1))
 
   let debug = ref false
   let safe_commands = ref false
@@ -651,23 +651,23 @@ module Dependencies = struct
 
   let is_projective edge_list =
     let rec loop position from_here from_before = function
-    | [] ->
-    (* Printf.printf "=N=> pos=%d H=[%s] B=[%s]\n" position (String.concat "," (List.map string_of_int from_here)) (String.concat "," (List.map string_of_int from_before)); *)
-    None
-    | (i,j) :: tail ->
-    (* Printf.printf "=S=> (%d, %d) pos=%d H=[%s] B=[%s]\n" i j position (String.concat "," (List.map string_of_int from_here)) (String.concat "," (List.map string_of_int from_before)); *)
-    let rec reduce_from_before = function
-    | h::t when h <= i -> reduce_from_before t
-    | l -> l in
-    let (new_from_here, new_from_before) =
-    if i > position
-    then ([], reduce_from_before (from_here @ from_before))
-    else (from_here, reduce_from_before from_before) in
-    (* Printf.printf "   ...> NH=[%s] NB=[%s]\n" (String.concat "," (List.map string_of_int new_from_here)) (String.concat "," (List.map string_of_int new_from_before)); *)
-    match new_from_before with
-    | h::t when j > h -> Some (i,j)
-    | h::t when j = h -> loop i new_from_here new_from_before tail
-    | _ -> loop i (insert_sorted j new_from_here) new_from_before tail in
+      | [] ->
+        (* Printf.printf "=N=> pos=%d H=[%s] B=[%s]\n" position (String.concat "," (List.map string_of_int from_here)) (String.concat "," (List.map string_of_int from_before)); *)
+        None
+      | (i,j) :: tail ->
+        (* Printf.printf "=S=> (%d, %d) pos=%d H=[%s] B=[%s]\n" i j position (String.concat "," (List.map string_of_int from_here)) (String.concat "," (List.map string_of_int from_before)); *)
+        let rec reduce_from_before = function
+          | h::t when h <= i -> reduce_from_before t
+          | l -> l in
+        let (new_from_here, new_from_before) =
+          if i > position
+          then ([], reduce_from_before (from_here @ from_before))
+          else (from_here, reduce_from_before from_before) in
+        (* Printf.printf "   ...> NH=[%s] NB=[%s]\n" (String.concat "," (List.map string_of_int new_from_here)) (String.concat "," (List.map string_of_int new_from_before)); *)
+        match new_from_before with
+        | h::t when j > h -> Some (i,j)
+        | h::t when j = h -> loop i new_from_here new_from_before tail
+        | _ -> loop i (insert_sorted j new_from_here) new_from_before tail in
     loop 0. [] [] edge_list
 
 end

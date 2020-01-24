@@ -22,9 +22,9 @@ open Grew_command
 (* ================================================================================ *)
 module P_deco: sig
   type t =
-      { nodes: Pid.t list;
-        edges: (Pid.t * P_edge.t * Pid.t) list;
-      }
+    { nodes: Pid.t list;
+      edges: (Pid.t * P_edge.t * Pid.t) list;
+    }
 
   val empty:t
 end (* module P_deco *)
@@ -59,25 +59,25 @@ module P_graph: sig
   val pid_name_list: t -> Id.name list
 
   type extension = {
-      ext_map: P_node.t Pid_map.t; (* node description for new nodes and for edge "Old -> New"  *)
-      old_map: P_node.t Pid_map.t; (* a partial map for new constraints on old nodes "Old [...]" *)
-    }
+    ext_map: P_node.t Pid_map.t; (* node description for new nodes and for edge "Old -> New"  *)
+    old_map: P_node.t Pid_map.t; (* a partial map for new constraints on old nodes "Old [...]" *)
+  }
 
   (** It raises [P_fs.Fail_unif] exception in case of inconsistent feature structures. *)
   val build:
-      ?domain:Domain.t ->
-      Lexicons.t ->
-      Ast.basic ->
-      (t * Id.table)
+    ?domain:Domain.t ->
+    Lexicons.t ->
+    Ast.basic ->
+    (t * Id.table)
 
   (** It raises [P_fs.Fail_unif] exception in case of inconsistent feature structures. *)
   val build_extension:
-      ?domain:Domain.t ->
-      Lexicons.t ->
-      Id.table ->
-      Ast.node list ->
-      Ast.edge list ->
-      (extension * Id.table)
+    ?domain:Domain.t ->
+    Lexicons.t ->
+    Id.table ->
+    Ast.node list ->
+    Ast.edge list ->
+    (extension * Id.table)
 end (* module P_graph *)
 
 (* ================================================================================ *)
@@ -154,10 +154,10 @@ module G_graph: sig
     (Gid.t -> bool) ->  (* a locality test: true iff the node is a pattern node *)
     Label_cst.t ->      (* what are the constraint on edge label *)
     t ->                (* input graph *)
-      ( t *                                (* output graph *)
-        (Gid.t * G_edge.t * Gid.t) list *  (* list of really deleted edges *)
-        (Gid.t * G_edge.t * Gid.t) list    (* list of really added edges *)
-      )
+    ( t *                                (* output graph *)
+      (Gid.t * G_edge.t * Gid.t) list *  (* list of really deleted edges *)
+      (Gid.t * G_edge.t * Gid.t) list    (* list of really added edges *)
+    )
 
   (** shift all crown-edges starting from [src_gid] to edges starting from [tar_gid] *)
   val shift_out:
@@ -167,10 +167,10 @@ module G_graph: sig
     (Gid.t -> bool) ->  (* a locality test: true iff the node is a pattern node *)
     Label_cst.t ->      (* what are the constraint on edge label *)
     t ->                (* input graph *)
-      ( t *                                (* output graph *)
-        (Gid.t * G_edge.t * Gid.t) list *  (* list of really deleted edges *)
-        (Gid.t * G_edge.t * Gid.t) list    (* list of really added edges *)
-      )
+    ( t *                                (* output graph *)
+      (Gid.t * G_edge.t * Gid.t) list *  (* list of really deleted edges *)
+      (Gid.t * G_edge.t * Gid.t) list    (* list of really added edges *)
+    )
 
   (** move all incident crown-edges from/to [src_gid] are moved to incident edges on node [tar_gid] from graph *)
   val shift_edges:
@@ -180,10 +180,10 @@ module G_graph: sig
     (Gid.t -> bool) ->  (* a locality test: true iff the node is a pattern node *)
     Label_cst.t ->      (* what are the constraint on edge label *)
     t ->                (* input graph *)
-      ( t *                                (* output graph *)
-        (Gid.t * G_edge.t * Gid.t) list *  (* list of really deleted edges *)
-        (Gid.t * G_edge.t * Gid.t) list    (* list of really added edges *)
-      )
+    ( t *                                (* output graph *)
+      (Gid.t * G_edge.t * Gid.t) list *  (* list of really deleted edges *)
+      (Gid.t * G_edge.t * Gid.t) list    (* list of really added edges *)
+    )
 
   (** [update_feat graph tar_id tar_feat_name concat_items] sets the feature of the node [tar_id]
       with feature name [tar_feat_name] to be the contatenation of values described by the [concat_items].
@@ -192,8 +192,8 @@ module G_graph: sig
 
 
   (** [append_feats graph src_id tar_id separator regexp] copy all feats of nodes [src_id] that match [regexp] to the node [tar_id].
-    If a feature of the same name already exists in [tar_id], the two values are concatenated (separated by [separator]).
-    The output is [None] if no changes are made on [tar_id], [Some (new_graph, trace)] else where [trace] is the list of updated features in [tar_id]
+      If a feature of the same name already exists in [tar_id], the two values are concatenated (separated by [separator]).
+      The output is [None] if no changes are made on [tar_id], [Some (new_graph, trace)] else where [trace] is the list of updated features in [tar_id]
   *)
   val append_feats: ?loc:Loc.t -> t -> Gid.t -> Gid.t -> string -> string -> (t * (string * value) list) option
 

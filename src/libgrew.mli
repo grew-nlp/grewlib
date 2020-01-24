@@ -64,7 +64,7 @@ module Matching: sig
       * the name of a edge declared in the positive part of the pattern
       * the name of a feature value [N.feat] where [N] is a node declared in the positive part of the pattern
       * the name of an edge featue [E.feat] where [e] is a edge declared in the positive part of the pattern
-    *)
+  *)
   val get_value: string -> Pattern.t -> Grew_graph.G_graph.t -> t -> string option
 end
 

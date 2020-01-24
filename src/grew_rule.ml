@@ -57,230 +57,230 @@ module Pattern = struct
 
 
   let const_to_json ?domain = function
-  | Cst_out (pid, label_cst) -> `Assoc ["cst_out", Label_cst.to_json ?domain label_cst]
-  | Cst_in (pid, label_cst) -> `Assoc ["cst_in", Label_cst.to_json ?domain label_cst]
-  | Features_eq (pid1,fn1,pid2,fn2) ->
-    `Assoc ["features_eq",
-      `Assoc [
-        ("id1", `String (Pid.to_string pid1));
-        ("feature_name_1", `String fn1);
-        ("id2", `String (Pid.to_string pid2));
-        ("feature_name_2", `String fn2);
-      ]
-    ]
-  | Features_diseq (pid1,fn1,pid2,fn2) ->
-    `Assoc ["features_diseq",
-      `Assoc [
-        ("id1", `String (Pid.to_string pid1));
-        ("feature_name_1", `String fn1);
-        ("id2", `String (Pid.to_string pid2));
-        ("feature_name_2", `String fn2);
-      ]
-    ]
-  | Feature_eq_cst (pid,fn,value) ->
-    `Assoc ["feature_eq_cst",
-      `Assoc [
-        ("id", `String (Pid.to_string pid));
-        ("feature_name_", `String fn);
-        ("value", `String value);
-      ]
-    ]
-  | Feature_diff_cst (pid,fn,value) ->
-    `Assoc ["feature_diff_cst",
-      `Assoc [
-        ("id", `String (Pid.to_string pid));
-        ("feature_name_", `String fn);
-        ("value", `String value);
-      ]
-    ]
-  | Feature_eq_lex (pid,fn,(lex,field)) ->
-    `Assoc ["feature_eq_lex",
-      `Assoc [
-        ("id", `String (Pid.to_string pid));
-        ("feature_name_", `String fn);
-        ("lexicon", `String lex);
-        ("field", `String field);
-      ]
-    ]
-  | Feature_diff_lex (pid,fn,(lex,field)) ->
-    `Assoc ["feature_diff_lex",
-      `Assoc [
-        ("id", `String (Pid.to_string pid));
-        ("feature_name_", `String fn);
-        ("lexicon", `String lex);
-        ("field", `String field);
-      ]
-    ]
+    | Cst_out (pid, label_cst) -> `Assoc ["cst_out", Label_cst.to_json ?domain label_cst]
+    | Cst_in (pid, label_cst) -> `Assoc ["cst_in", Label_cst.to_json ?domain label_cst]
+    | Features_eq (pid1,fn1,pid2,fn2) ->
+      `Assoc ["features_eq",
+              `Assoc [
+                ("id1", `String (Pid.to_string pid1));
+                ("feature_name_1", `String fn1);
+                ("id2", `String (Pid.to_string pid2));
+                ("feature_name_2", `String fn2);
+              ]
+             ]
+    | Features_diseq (pid1,fn1,pid2,fn2) ->
+      `Assoc ["features_diseq",
+              `Assoc [
+                ("id1", `String (Pid.to_string pid1));
+                ("feature_name_1", `String fn1);
+                ("id2", `String (Pid.to_string pid2));
+                ("feature_name_2", `String fn2);
+              ]
+             ]
+    | Feature_eq_cst (pid,fn,value) ->
+      `Assoc ["feature_eq_cst",
+              `Assoc [
+                ("id", `String (Pid.to_string pid));
+                ("feature_name_", `String fn);
+                ("value", `String value);
+              ]
+             ]
+    | Feature_diff_cst (pid,fn,value) ->
+      `Assoc ["feature_diff_cst",
+              `Assoc [
+                ("id", `String (Pid.to_string pid));
+                ("feature_name_", `String fn);
+                ("value", `String value);
+              ]
+             ]
+    | Feature_eq_lex (pid,fn,(lex,field)) ->
+      `Assoc ["feature_eq_lex",
+              `Assoc [
+                ("id", `String (Pid.to_string pid));
+                ("feature_name_", `String fn);
+                ("lexicon", `String lex);
+                ("field", `String field);
+              ]
+             ]
+    | Feature_diff_lex (pid,fn,(lex,field)) ->
+      `Assoc ["feature_diff_lex",
+              `Assoc [
+                ("id", `String (Pid.to_string pid));
+                ("feature_name_", `String fn);
+                ("lexicon", `String lex);
+                ("field", `String field);
+              ]
+             ]
 
 
-  | Feature_eq_float (pid,fn,value) ->
-    `Assoc ["feature_eq_float",
-      `Assoc [
-        ("id", `String (Pid.to_string pid));
-        ("feature_name_", `String fn);
-        ("value", `String (string_of_float value));
-        ]
-    ]
-  | Feature_diff_float (pid,fn,value) ->
-    `Assoc ["feature_diff_float",
-      `Assoc [
-        ("id", `String (Pid.to_string pid));
-        ("feature_name", `String fn);
-        ("value", `String (string_of_float value));
-      ]
-    ]
-  | Feature_eq_regexp (pid,fn,regexp) ->
-    `Assoc ["feature_eq_regexp",
-      `Assoc [
-        ("id", `String (Pid.to_string pid));
-        ("feature_name", `String fn);
-        ("regexp", `String regexp);
-      ]
-    ]
-  | Features_ineq (ineq,pid1,fn1,pid2,fn2) ->
-    `Assoc ["features_ineq",
-      `Assoc [
-        ("ineq", `String (Ast.string_of_ineq ineq));
-        ("id1", `String (Pid.to_string pid1));
-        ("feature_name_1", `String fn1);
-        ("id2", `String (Pid.to_string pid2));
-        ("feature_name_2", `String fn2);
-      ]
-    ]
-  | Feature_ineq_cst (ineq,pid,fn,value) ->
-    `Assoc ["feature_ineq_cst",
-      `Assoc [
-        ("ineq", `String (Ast.string_of_ineq ineq));
-        ("id", `String (Pid.to_string pid));
-        ("feature_name", `String fn);
-        ("value", `String (string_of_float value));
-      ]
-    ]
-  | Filter (pid, p_fs) ->
-    `Assoc ["filter",
-      `Assoc [
-        ("id", `String (Pid.to_string pid));
-        ("fs", P_fs.to_json ?domain p_fs);
-      ]
-    ]
-  | Immediate_prec (pid1, pid2) ->
-    `Assoc ["immediate_prec",
-      `Assoc [
-        ("id1", `String (Pid.to_string pid1));
-        ("id2", `String (Pid.to_string pid2));
-      ]
-    ]
-  | Large_prec (pid1, pid2) ->
-    `Assoc ["large_prec",
-      `Assoc [
-        ("id1", `String (Pid.to_string pid1));
-        ("id2", `String (Pid.to_string pid2));
-      ]
-    ]
-  | Id_prec (pid1, pid2) ->
-    `Assoc ["id_prec",
-      `Assoc [
-        ("id1", `String (Pid.to_string pid1));
-        ("id2", `String (Pid.to_string pid2));
-      ]
-    ]
-  | Label_equal (eid1, eid2) ->
-    `Assoc ["label_equal",
-      `Assoc [
-        ("id1", `String eid1);
-        ("id2", `String eid2);
-      ]
-    ]
-  | Label_disequal (eid1, eid2) ->
-    `Assoc ["label_disequal",
-      `Assoc [
-        ("id1", `String eid1);
-        ("id2", `String eid2);
-      ]
-    ]
+    | Feature_eq_float (pid,fn,value) ->
+      `Assoc ["feature_eq_float",
+              `Assoc [
+                ("id", `String (Pid.to_string pid));
+                ("feature_name_", `String fn);
+                ("value", `String (string_of_float value));
+              ]
+             ]
+    | Feature_diff_float (pid,fn,value) ->
+      `Assoc ["feature_diff_float",
+              `Assoc [
+                ("id", `String (Pid.to_string pid));
+                ("feature_name", `String fn);
+                ("value", `String (string_of_float value));
+              ]
+             ]
+    | Feature_eq_regexp (pid,fn,regexp) ->
+      `Assoc ["feature_eq_regexp",
+              `Assoc [
+                ("id", `String (Pid.to_string pid));
+                ("feature_name", `String fn);
+                ("regexp", `String regexp);
+              ]
+             ]
+    | Features_ineq (ineq,pid1,fn1,pid2,fn2) ->
+      `Assoc ["features_ineq",
+              `Assoc [
+                ("ineq", `String (Ast.string_of_ineq ineq));
+                ("id1", `String (Pid.to_string pid1));
+                ("feature_name_1", `String fn1);
+                ("id2", `String (Pid.to_string pid2));
+                ("feature_name_2", `String fn2);
+              ]
+             ]
+    | Feature_ineq_cst (ineq,pid,fn,value) ->
+      `Assoc ["feature_ineq_cst",
+              `Assoc [
+                ("ineq", `String (Ast.string_of_ineq ineq));
+                ("id", `String (Pid.to_string pid));
+                ("feature_name", `String fn);
+                ("value", `String (string_of_float value));
+              ]
+             ]
+    | Filter (pid, p_fs) ->
+      `Assoc ["filter",
+              `Assoc [
+                ("id", `String (Pid.to_string pid));
+                ("fs", P_fs.to_json ?domain p_fs);
+              ]
+             ]
+    | Immediate_prec (pid1, pid2) ->
+      `Assoc ["immediate_prec",
+              `Assoc [
+                ("id1", `String (Pid.to_string pid1));
+                ("id2", `String (Pid.to_string pid2));
+              ]
+             ]
+    | Large_prec (pid1, pid2) ->
+      `Assoc ["large_prec",
+              `Assoc [
+                ("id1", `String (Pid.to_string pid1));
+                ("id2", `String (Pid.to_string pid2));
+              ]
+             ]
+    | Id_prec (pid1, pid2) ->
+      `Assoc ["id_prec",
+              `Assoc [
+                ("id1", `String (Pid.to_string pid1));
+                ("id2", `String (Pid.to_string pid2));
+              ]
+             ]
+    | Label_equal (eid1, eid2) ->
+      `Assoc ["label_equal",
+              `Assoc [
+                ("id1", `String eid1);
+                ("id2", `String eid2);
+              ]
+             ]
+    | Label_disequal (eid1, eid2) ->
+      `Assoc ["label_disequal",
+              `Assoc [
+                ("id1", `String eid1);
+                ("id2", `String eid2);
+              ]
+             ]
 
   let build_pos_constraint ?domain lexicons pos_table const =
     let pid_of_name loc node_name = Pid.Pos (Id.build ~loc node_name pos_table) in
     match const with
-      | (Ast.Cst_out (id,label_cst), loc) ->
-        Cst_out (pid_of_name loc id, Label_cst.build ~loc ?domain label_cst)
-      | (Ast.Cst_in (id,label_cst), loc) ->
-        Cst_in (pid_of_name loc id, Label_cst.build ~loc ?domain label_cst)
+    | (Ast.Cst_out (id,label_cst), loc) ->
+      Cst_out (pid_of_name loc id, Label_cst.build ~loc ?domain label_cst)
+    | (Ast.Cst_in (id,label_cst), loc) ->
+      Cst_in (pid_of_name loc id, Label_cst.build ~loc ?domain label_cst)
 
-      | (Ast.Features_eq ((node_name1, feat_name1), (node_name2, feat_name2)), loc) ->
-        Domain.check_feature_name ?domain ~loc feat_name1;
-        Domain.check_feature_name ?domain ~loc feat_name2;
-        Features_eq (pid_of_name loc node_name1, feat_name1, pid_of_name loc node_name2, feat_name2)
+    | (Ast.Features_eq ((node_name1, feat_name1), (node_name2, feat_name2)), loc) ->
+      Domain.check_feature_name ?domain ~loc feat_name1;
+      Domain.check_feature_name ?domain ~loc feat_name2;
+      Features_eq (pid_of_name loc node_name1, feat_name1, pid_of_name loc node_name2, feat_name2)
 
-      | (Ast.Features_diseq ((node_name1, feat_name1), (node_name2, feat_name2)), loc) ->
-        Domain.check_feature_name ?domain ~loc feat_name1;
-        Domain.check_feature_name ?domain ~loc feat_name2;
-        Features_diseq (pid_of_name loc node_name1, feat_name1, pid_of_name loc node_name2, feat_name2)
+    | (Ast.Features_diseq ((node_name1, feat_name1), (node_name2, feat_name2)), loc) ->
+      Domain.check_feature_name ?domain ~loc feat_name1;
+      Domain.check_feature_name ?domain ~loc feat_name2;
+      Features_diseq (pid_of_name loc node_name1, feat_name1, pid_of_name loc node_name2, feat_name2)
 
-      | (Ast.Features_ineq (ineq, (node_name1, feat_name1), (node_name2, feat_name2)), loc) ->
-        Domain.check_feature_name ?domain ~loc feat_name1;
-        Domain.check_feature_name ?domain ~loc feat_name2;
-        Features_ineq (ineq, pid_of_name loc node_name1, feat_name1, pid_of_name loc node_name2, feat_name2)
+    | (Ast.Features_ineq (ineq, (node_name1, feat_name1), (node_name2, feat_name2)), loc) ->
+      Domain.check_feature_name ?domain ~loc feat_name1;
+      Domain.check_feature_name ?domain ~loc feat_name2;
+      Features_ineq (ineq, pid_of_name loc node_name1, feat_name1, pid_of_name loc node_name2, feat_name2)
 
-      | (Ast.Feature_ineq_cst (ineq, (node_name1, feat_name1), constant), loc) ->
-        Domain.check_feature_name ?domain ~loc feat_name1;
-        Feature_ineq_cst (ineq, pid_of_name loc node_name1, feat_name1, constant)
+    | (Ast.Feature_ineq_cst (ineq, (node_name1, feat_name1), constant), loc) ->
+      Domain.check_feature_name ?domain ~loc feat_name1;
+      Feature_ineq_cst (ineq, pid_of_name loc node_name1, feat_name1, constant)
 
-      | (Ast.Feature_eq_regexp ((node_name, feat_name), regexp), loc) ->
-        Domain.check_feature_name ?domain ~loc feat_name;
-        Feature_eq_regexp (pid_of_name loc node_name, feat_name, regexp)
+    | (Ast.Feature_eq_regexp ((node_name, feat_name), regexp), loc) ->
+      Domain.check_feature_name ?domain ~loc feat_name;
+      Feature_eq_regexp (pid_of_name loc node_name, feat_name, regexp)
 
-      | (Ast.Feature_eq_cst ((node_name, feat_name), string), loc) ->
-        Domain.check_feature_name ?domain ~loc feat_name;
-        Feature_eq_cst (pid_of_name loc node_name, feat_name, string)
-      | (Ast.Feature_diff_cst ((node_name, feat_name), string), loc) ->
-        Domain.check_feature_name ?domain ~loc feat_name;
-        Feature_diff_cst (pid_of_name loc node_name, feat_name, string)
+    | (Ast.Feature_eq_cst ((node_name, feat_name), string), loc) ->
+      Domain.check_feature_name ?domain ~loc feat_name;
+      Feature_eq_cst (pid_of_name loc node_name, feat_name, string)
+    | (Ast.Feature_diff_cst ((node_name, feat_name), string), loc) ->
+      Domain.check_feature_name ?domain ~loc feat_name;
+      Feature_diff_cst (pid_of_name loc node_name, feat_name, string)
 
-      | (Ast.Feature_eq_lex ((node_name, feat_name), lf), loc) ->
-        Domain.check_feature_name ?domain ~loc feat_name;
-        Feature_eq_lex (pid_of_name loc node_name, feat_name, lf)
-      | (Ast.Feature_diff_lex ((node_name, feat_name), lf), loc) ->
-        Domain.check_feature_name ?domain ~loc feat_name;
-        Feature_diff_lex (pid_of_name loc node_name, feat_name, lf)
+    | (Ast.Feature_eq_lex ((node_name, feat_name), lf), loc) ->
+      Domain.check_feature_name ?domain ~loc feat_name;
+      Feature_eq_lex (pid_of_name loc node_name, feat_name, lf)
+    | (Ast.Feature_diff_lex ((node_name, feat_name), lf), loc) ->
+      Domain.check_feature_name ?domain ~loc feat_name;
+      Feature_diff_lex (pid_of_name loc node_name, feat_name, lf)
 
-      | (Ast.Feature_eq_float ((node_name, feat_name), float), loc) ->
-        Domain.check_feature_name ?domain ~loc feat_name;
-        Feature_eq_float (pid_of_name loc node_name, feat_name, float)
-      | (Ast.Feature_diff_float ((node_name, feat_name), float), loc) ->
-        Domain.check_feature_name ?domain ~loc feat_name;
-        Feature_diff_float (pid_of_name loc node_name, feat_name, float)
+    | (Ast.Feature_eq_float ((node_name, feat_name), float), loc) ->
+      Domain.check_feature_name ?domain ~loc feat_name;
+      Feature_eq_float (pid_of_name loc node_name, feat_name, float)
+    | (Ast.Feature_diff_float ((node_name, feat_name), float), loc) ->
+      Domain.check_feature_name ?domain ~loc feat_name;
+      Feature_diff_float (pid_of_name loc node_name, feat_name, float)
 
-      | (Ast.Immediate_prec (id1, id2), loc) ->
-        Immediate_prec (pid_of_name loc id1, pid_of_name loc id2)
+    | (Ast.Immediate_prec (id1, id2), loc) ->
+      Immediate_prec (pid_of_name loc id1, pid_of_name loc id2)
 
-      | (Ast.Large_prec (id1, id2), loc) ->
-        Large_prec (pid_of_name loc id1, pid_of_name loc id2)
+    | (Ast.Large_prec (id1, id2), loc) ->
+      Large_prec (pid_of_name loc id1, pid_of_name loc id2)
 
-      | (Ast.Label_equal (eid1, eid2), loc) ->
-        Label_equal (eid1, eid2)
+    | (Ast.Label_equal (eid1, eid2), loc) ->
+      Label_equal (eid1, eid2)
 
-      | (Ast.Label_disequal (eid1, eid2), loc) ->
-        Label_disequal (eid1, eid2)
+    | (Ast.Label_disequal (eid1, eid2), loc) ->
+      Label_disequal (eid1, eid2)
 
-      | (Ast.Feature_eq_lex_or_fs ((node_name, feat_name),(node_or_lex, fn_or_field)), loc) ->
-          begin
-            match Id.build_opt node_or_lex pos_table with
-            | None ->
-              Lexicons.check ~loc node_or_lex fn_or_field lexicons;
-              Feature_eq_lex (pid_of_name loc node_name, feat_name, (node_or_lex, fn_or_field))
-            | _ ->  Features_eq (pid_of_name loc node_name, feat_name, pid_of_name loc node_or_lex, fn_or_field)
-          end
-      | (Ast.Feature_diff_lex_or_fs ((node_name, feat_name),(node_or_lex, fn_or_field)), loc) ->
-          begin
-            match Id.build_opt node_or_lex pos_table with
-            | None ->
-              Lexicons.check ~loc node_or_lex fn_or_field lexicons;
-              Feature_diff_lex (pid_of_name loc node_name, feat_name, (node_or_lex, fn_or_field))
-            | _ ->  Features_diseq (pid_of_name loc node_name, feat_name, pid_of_name loc node_or_lex, fn_or_field)
-          end
-      | (Ast.Id_prec (id1, id2), loc) ->
-        Id_prec (pid_of_name loc id1, pid_of_name loc id2)
+    | (Ast.Feature_eq_lex_or_fs ((node_name, feat_name),(node_or_lex, fn_or_field)), loc) ->
+      begin
+        match Id.build_opt node_or_lex pos_table with
+        | None ->
+          Lexicons.check ~loc node_or_lex fn_or_field lexicons;
+          Feature_eq_lex (pid_of_name loc node_name, feat_name, (node_or_lex, fn_or_field))
+        | _ ->  Features_eq (pid_of_name loc node_name, feat_name, pid_of_name loc node_or_lex, fn_or_field)
+      end
+    | (Ast.Feature_diff_lex_or_fs ((node_name, feat_name),(node_or_lex, fn_or_field)), loc) ->
+      begin
+        match Id.build_opt node_or_lex pos_table with
+        | None ->
+          Lexicons.check ~loc node_or_lex fn_or_field lexicons;
+          Feature_diff_lex (pid_of_name loc node_name, feat_name, (node_or_lex, fn_or_field))
+        | _ ->  Features_diseq (pid_of_name loc node_name, feat_name, pid_of_name loc node_or_lex, fn_or_field)
+      end
+    | (Ast.Id_prec (id1, id2), loc) ->
+      Id_prec (pid_of_name loc id1, pid_of_name loc id2)
 
 
 
@@ -310,95 +310,95 @@ module Pattern = struct
   let build_neg_constraint ?domain lexicons pos_table neg_table const =
     let pid_of_name loc node_name =
       match Id.build_opt node_name pos_table with
-        | Some i -> Pid.Pos i
-        | None -> Pid.Neg (Id.build ~loc node_name neg_table) in
+      | Some i -> Pid.Pos i
+      | None -> Pid.Neg (Id.build ~loc node_name neg_table) in
     match const with
-      | (Ast.Cst_out (id,label_cst), loc) ->
-        Cst_out (pid_of_name loc id, Label_cst.build ~loc ?domain label_cst)
-      | (Ast.Cst_in (id,label_cst), loc) ->
-        Cst_in (pid_of_name loc id, Label_cst.build ~loc ?domain label_cst)
+    | (Ast.Cst_out (id,label_cst), loc) ->
+      Cst_out (pid_of_name loc id, Label_cst.build ~loc ?domain label_cst)
+    | (Ast.Cst_in (id,label_cst), loc) ->
+      Cst_in (pid_of_name loc id, Label_cst.build ~loc ?domain label_cst)
 
-      | (Ast.Features_eq (feat_id1, feat_id2), loc) ->
-        let (node_name1, feat_name1) = feat_id1
-        and (node_name2, feat_name2) = feat_id2 in
-        Domain.check_feature_name ?domain ~loc feat_name1;
-        Domain.check_feature_name ?domain ~loc feat_name2;
-        Features_eq (pid_of_name loc node_name1, feat_name1, pid_of_name loc node_name2, feat_name2)
+    | (Ast.Features_eq (feat_id1, feat_id2), loc) ->
+      let (node_name1, feat_name1) = feat_id1
+      and (node_name2, feat_name2) = feat_id2 in
+      Domain.check_feature_name ?domain ~loc feat_name1;
+      Domain.check_feature_name ?domain ~loc feat_name2;
+      Features_eq (pid_of_name loc node_name1, feat_name1, pid_of_name loc node_name2, feat_name2)
 
-      | (Ast.Features_diseq (feat_id1, feat_id2), loc) ->
-        let (node_name1, feat_name1) = feat_id1
-        and (node_name2, feat_name2) = feat_id2 in
-        Domain.check_feature_name ?domain ~loc feat_name1;
-        Domain.check_feature_name ?domain ~loc feat_name2;
-        Features_diseq (pid_of_name loc node_name1, feat_name1, pid_of_name loc node_name2, feat_name2)
+    | (Ast.Features_diseq (feat_id1, feat_id2), loc) ->
+      let (node_name1, feat_name1) = feat_id1
+      and (node_name2, feat_name2) = feat_id2 in
+      Domain.check_feature_name ?domain ~loc feat_name1;
+      Domain.check_feature_name ?domain ~loc feat_name2;
+      Features_diseq (pid_of_name loc node_name1, feat_name1, pid_of_name loc node_name2, feat_name2)
 
-      | (Ast.Features_ineq (ineq, feat_id1, feat_id2), loc) ->
-        let (node_name1, feat_name1) = feat_id1
-        and (node_name2, feat_name2) = feat_id2 in
-        Domain.check_feature_name ?domain ~loc feat_name1;
-        Domain.check_feature_name ?domain ~loc feat_name2;
-        Features_ineq (ineq, pid_of_name loc node_name1, feat_name1, pid_of_name loc node_name2, feat_name2)
+    | (Ast.Features_ineq (ineq, feat_id1, feat_id2), loc) ->
+      let (node_name1, feat_name1) = feat_id1
+      and (node_name2, feat_name2) = feat_id2 in
+      Domain.check_feature_name ?domain ~loc feat_name1;
+      Domain.check_feature_name ?domain ~loc feat_name2;
+      Features_ineq (ineq, pid_of_name loc node_name1, feat_name1, pid_of_name loc node_name2, feat_name2)
 
-      | (Ast.Feature_ineq_cst (ineq, feat_id1, constant), loc) ->
-        let (node_name1, feat_name1) = feat_id1 in
-        Domain.check_feature_name ?domain ~loc feat_name1;
-        Feature_ineq_cst (ineq, pid_of_name loc node_name1, feat_name1, constant)
+    | (Ast.Feature_ineq_cst (ineq, feat_id1, constant), loc) ->
+      let (node_name1, feat_name1) = feat_id1 in
+      Domain.check_feature_name ?domain ~loc feat_name1;
+      Feature_ineq_cst (ineq, pid_of_name loc node_name1, feat_name1, constant)
 
-      | (Ast.Feature_eq_regexp (feat_id, regexp), loc) ->
-        let (node_name, feat_name) = feat_id in
-        Domain.check_feature_name ?domain ~loc feat_name;
-        Feature_eq_regexp (pid_of_name loc node_name, feat_name, regexp)
+    | (Ast.Feature_eq_regexp (feat_id, regexp), loc) ->
+      let (node_name, feat_name) = feat_id in
+      Domain.check_feature_name ?domain ~loc feat_name;
+      Feature_eq_regexp (pid_of_name loc node_name, feat_name, regexp)
 
-      | (Ast.Feature_eq_cst ((node_name, feat_name), string), loc) ->
-        Domain.check_feature_name ?domain ~loc feat_name;
-        Feature_eq_cst (pid_of_name loc node_name, feat_name, string)
-      | (Ast.Feature_diff_cst ((node_name, feat_name), string), loc) ->
-        Domain.check_feature_name ?domain ~loc feat_name;
-        Feature_diff_cst (pid_of_name loc node_name, feat_name, string)
+    | (Ast.Feature_eq_cst ((node_name, feat_name), string), loc) ->
+      Domain.check_feature_name ?domain ~loc feat_name;
+      Feature_eq_cst (pid_of_name loc node_name, feat_name, string)
+    | (Ast.Feature_diff_cst ((node_name, feat_name), string), loc) ->
+      Domain.check_feature_name ?domain ~loc feat_name;
+      Feature_diff_cst (pid_of_name loc node_name, feat_name, string)
 
-      | (Ast.Feature_eq_lex ((node_name, feat_name), lf), loc) ->
-        Domain.check_feature_name ?domain ~loc feat_name;
-        Feature_eq_lex (pid_of_name loc node_name, feat_name, lf)
-      | (Ast.Feature_diff_lex ((node_name, feat_name), lf), loc) ->
-        Domain.check_feature_name ?domain ~loc feat_name;
-        Feature_diff_lex (pid_of_name loc node_name, feat_name, lf)
+    | (Ast.Feature_eq_lex ((node_name, feat_name), lf), loc) ->
+      Domain.check_feature_name ?domain ~loc feat_name;
+      Feature_eq_lex (pid_of_name loc node_name, feat_name, lf)
+    | (Ast.Feature_diff_lex ((node_name, feat_name), lf), loc) ->
+      Domain.check_feature_name ?domain ~loc feat_name;
+      Feature_diff_lex (pid_of_name loc node_name, feat_name, lf)
 
-      | (Ast.Feature_eq_float ((node_name, feat_name), float), loc) ->
-        Domain.check_feature_name ?domain ~loc feat_name;
-        Feature_eq_float (pid_of_name loc node_name, feat_name, float)
-      | (Ast.Feature_diff_float ((node_name, feat_name), float), loc) ->
-        Domain.check_feature_name ?domain ~loc feat_name;
-        Feature_diff_float (pid_of_name loc node_name, feat_name, float)
+    | (Ast.Feature_eq_float ((node_name, feat_name), float), loc) ->
+      Domain.check_feature_name ?domain ~loc feat_name;
+      Feature_eq_float (pid_of_name loc node_name, feat_name, float)
+    | (Ast.Feature_diff_float ((node_name, feat_name), float), loc) ->
+      Domain.check_feature_name ?domain ~loc feat_name;
+      Feature_diff_float (pid_of_name loc node_name, feat_name, float)
 
-      | (Ast.Immediate_prec (id1, id2), loc) ->
-        Immediate_prec (pid_of_name loc id1, pid_of_name loc id2)
+    | (Ast.Immediate_prec (id1, id2), loc) ->
+      Immediate_prec (pid_of_name loc id1, pid_of_name loc id2)
 
-      | (Ast.Large_prec (id1, id2), loc) ->
-        Large_prec (pid_of_name loc id1, pid_of_name loc id2)
+    | (Ast.Large_prec (id1, id2), loc) ->
+      Large_prec (pid_of_name loc id1, pid_of_name loc id2)
 
-      | (Ast.Label_equal (eid1, eid2), loc) ->
-        Label_equal (eid1, eid2)
+    | (Ast.Label_equal (eid1, eid2), loc) ->
+      Label_equal (eid1, eid2)
 
-      | (Ast.Label_disequal (eid1, eid2), loc) ->
-        Label_disequal (eid1, eid2)
+    | (Ast.Label_disequal (eid1, eid2), loc) ->
+      Label_disequal (eid1, eid2)
 
-      | (Ast.Feature_eq_lex_or_fs ((node_name, feat_name),(node_or_lex, fn_or_field)), loc) ->
-          begin
-            match (Id.build_opt node_or_lex pos_table, Id.build_opt node_or_lex neg_table) with
-            | (None, None) ->
-              Lexicons.check ~loc node_or_lex fn_or_field lexicons;
-              Feature_eq_lex (pid_of_name loc node_name, feat_name, (node_or_lex, fn_or_field))
-            | _ ->  Features_eq (pid_of_name loc node_name, feat_name, pid_of_name loc node_or_lex, fn_or_field)
-          end
-      | (Ast.Feature_diff_lex_or_fs ((node_name, feat_name),(node_or_lex, fn_or_field)), loc) ->
-          begin
-            match (Id.build_opt node_or_lex pos_table, Id.build_opt node_or_lex neg_table) with
-            | (None, None) -> Feature_diff_lex (pid_of_name loc node_name, feat_name, (node_or_lex, fn_or_field))
-            | _ ->  Features_diseq (pid_of_name loc node_name, feat_name, pid_of_name loc node_or_lex, fn_or_field)
-          end
+    | (Ast.Feature_eq_lex_or_fs ((node_name, feat_name),(node_or_lex, fn_or_field)), loc) ->
+      begin
+        match (Id.build_opt node_or_lex pos_table, Id.build_opt node_or_lex neg_table) with
+        | (None, None) ->
+          Lexicons.check ~loc node_or_lex fn_or_field lexicons;
+          Feature_eq_lex (pid_of_name loc node_name, feat_name, (node_or_lex, fn_or_field))
+        | _ ->  Features_eq (pid_of_name loc node_name, feat_name, pid_of_name loc node_or_lex, fn_or_field)
+      end
+    | (Ast.Feature_diff_lex_or_fs ((node_name, feat_name),(node_or_lex, fn_or_field)), loc) ->
+      begin
+        match (Id.build_opt node_or_lex pos_table, Id.build_opt node_or_lex neg_table) with
+        | (None, None) -> Feature_diff_lex (pid_of_name loc node_name, feat_name, (node_or_lex, fn_or_field))
+        | _ ->  Features_diseq (pid_of_name loc node_name, feat_name, pid_of_name loc node_or_lex, fn_or_field)
+      end
 
-      | (Ast.Id_prec (id1, id2), loc) ->
-        Id_prec (pid_of_name loc id1, pid_of_name loc id2)
+    | (Ast.Id_prec (id1, id2), loc) ->
+      Id_prec (pid_of_name loc id1, pid_of_name loc id2)
 
 
 
@@ -416,9 +416,9 @@ module Pattern = struct
   let get_edge_ids basic =
     Pid_map.fold
       (fun _ node acc ->
-        Massoc_pid.fold
-          (fun acc2 _ edge -> (P_edge.get_id edge)::acc2)
-          acc (P_node.get_next node)
+         Massoc_pid.fold
+           (fun acc2 _ edge -> (P_edge.get_id edge)::acc2)
+           acc (P_node.get_next node)
       ) basic.graph []
 
   (* a [pattern] is described by the positive basic and a list of negative basics. *)
@@ -463,17 +463,17 @@ module Matching = struct
   let to_json ?(all_edges=false) pattern graph m =
     let node_name gid = G_node.get_name gid (G_graph.find gid graph) in
     let nodes = Pid_map.fold (fun pid gid acc ->
-      let pnode = P_graph.find pid pattern.Pattern.pos.graph in
+        let pnode = P_graph.find pid pattern.Pattern.pos.graph in
         (P_node.get_name pnode, `String (node_name gid))::acc
       ) m.n_match [] in
     let edges = String_map.fold (fun id (src,lab,tar) acc ->
-      if all_edges || not (intern id)
-      then (id, `Assoc [
-          ("source", `String (node_name src));
-          ("label", `String (G_edge.to_string lab));
-          ("target", `String (node_name tar));
-        ]) :: acc
-      else acc
+        if all_edges || not (intern id)
+        then (id, `Assoc [
+            ("source", `String (node_name src));
+            ("label", `String (G_edge.to_string lab));
+            ("target", `String (node_name tar));
+          ]) :: acc
+        else acc
       ) m.e_match [] in
     `Assoc [
       ("nodes", `Assoc nodes);
@@ -483,9 +483,9 @@ module Matching = struct
   let node_matching pattern graph { n_match } =
     Pid_map.fold
       (fun pid gid acc ->
-        let pnode = P_graph.find pid pattern.Pattern.pos.graph in
-        let gnode = G_graph.find gid graph in
-        (P_node.get_name pnode, G_node.get_name gid gnode) :: acc
+         let pnode = P_graph.find pid pattern.Pattern.pos.graph in
+         let gnode = G_graph.find gid graph in
+         (P_node.get_name pnode, G_node.get_name gid gnode) :: acc
       ) n_match []
 
   exception Found of Pid.t
@@ -493,10 +493,10 @@ module Matching = struct
     try
       Pid_map.iter
         (fun pid _ ->
-          if P_node.get_name (P_graph.find pid pattern.Pattern.pos.graph) = name
-          then raise (Found pid)
+           if P_node.get_name (P_graph.find pid pattern.Pattern.pos.graph) = name
+           then raise (Found pid)
         ) n_match;
-        None
+      None
     with Found pid -> Some pid
 
   (* return the value of a feature or an edge label *)
@@ -513,15 +513,15 @@ module Matching = struct
         match String_map.find_opt node_or_edge_id matching.e_match with
         | Some (_,edge,_) -> G_edge.get_sub feature_name edge
         | None ->
-        begin
-          match get_pid_by_name pattern node_or_edge_id matching.n_match with (* TODO: edge feature "e.deep" *)
-          | None -> Error.run "[Rule.get_value] unknown id %s" node_or_edge_id
-          | Some pid ->
-            let gid = Pid_map.find pid matching.n_match in
-            let node = G_graph.find gid graph in
-            let fs = G_node.get_fs node in
-            G_fs.get_string_atom feature_name fs
-        end
+          begin
+            match get_pid_by_name pattern node_or_edge_id matching.n_match with (* TODO: edge feature "e.deep" *)
+            | None -> Error.run "[Rule.get_value] unknown id %s" node_or_edge_id
+            | Some pid ->
+              let gid = Pid_map.find pid matching.n_match in
+              let node = G_graph.find gid graph in
+              let fs = G_node.get_fs node in
+              G_fs.get_string_atom feature_name fs
+          end
       end
     | _ -> Error.run "[Rule.get_value] unable to handled request %s" request
 
@@ -534,9 +534,9 @@ module Matching = struct
     { G_deco.nodes =
         Pid_map.fold
           (fun pid gid acc ->
-            let pnode = P_graph.find pid pattern.Pattern.pos.graph in
-            let pattern_feat_list = P_fs.feat_list (P_node.get_fs pnode) in
-            (gid, (P_node.get_name pnode, pattern_feat_list)) :: acc
+             let pnode = P_graph.find pid pattern.Pattern.pos.graph in
+             let pattern_feat_list = P_fs.feat_list (P_node.get_fs pnode) in
+             (gid, (P_node.get_name pnode, pattern_feat_list)) :: acc
           ) matching.n_match [];
       G_deco.edges = String_map.fold (fun _ edge acc -> edge::acc) matching.e_match [];
     }
@@ -544,47 +544,47 @@ module Matching = struct
   let find cnode ?loc (matching, created_nodes) =
     match cnode with
     | Command.Pat pid ->
-        (try Pid_map.find pid matching.n_match
-        with Not_found -> Error.bug ?loc "Inconsistent matching pid '%s' not found" (Pid.to_string pid))
+      (try Pid_map.find pid matching.n_match
+       with Not_found -> Error.bug ?loc "Inconsistent matching pid '%s' not found" (Pid.to_string pid))
     | Command.New name ->
-        (try List.assoc name created_nodes
-        with Not_found -> Error.run ?loc "Identifier '%s' not found" name)
+      (try List.assoc name created_nodes
+       with Not_found -> Error.run ?loc "Identifier '%s' not found" name)
 
   let down_deco (matching,created_nodes) commands =
     let feat_to_highlight = List.fold_left
-      (fun acc -> function
-        | (Command.UPDATE_FEAT (tar_cn,feat_name,_),loc) ->
-          (* | (Command.SHIFT_EDGE (_,tar_cn),loc) *)
-          let gid = find tar_cn (matching, created_nodes) in
-          let old_feat_list = try Gid_map.find gid acc with Not_found -> [] in
-          Gid_map.add gid (feat_name :: old_feat_list) acc
-        | _ -> acc
-      ) Gid_map.empty commands in
+        (fun acc -> function
+           | (Command.UPDATE_FEAT (tar_cn,feat_name,_),loc) ->
+             (* | (Command.SHIFT_EDGE (_,tar_cn),loc) *)
+             let gid = find tar_cn (matching, created_nodes) in
+             let old_feat_list = try Gid_map.find gid acc with Not_found -> [] in
+             Gid_map.add gid (feat_name :: old_feat_list) acc
+           | _ -> acc
+        ) Gid_map.empty commands in
 
     {
       G_deco.nodes = List.map (fun (gid,feat_list) ->
-        (gid, ("", (List.map (fun x -> (x,None)) feat_list)))
-      ) (Gid_map.bindings feat_to_highlight);
+          (gid, ("", (List.map (fun x -> (x,None)) feat_list)))
+        ) (Gid_map.bindings feat_to_highlight);
       G_deco.edges = List.fold_left (fun acc -> function
-        | (Command.ADD_EDGE (src_cn,tar_cn,edge),loc) ->
+          | (Command.ADD_EDGE (src_cn,tar_cn,edge),loc) ->
             (find src_cn (matching, created_nodes), edge, find tar_cn (matching, created_nodes)) :: acc
-        | _ -> acc
-      ) [] commands;
+          | _ -> acc
+        ) [] commands;
     }
 
   exception Fail
   type partial = {
-      sub: t;
-      unmatched_nodes: Pid.t list;
-      unmatched_edges: (Pid.t * P_edge.t * Pid.t) list;
-      already_matched_gids: Gid.t list; (* to ensure injectivity *)
-      check: Pattern.const list (* constraints to verify at the end of the matching *)
-    }
+    sub: t;
+    unmatched_nodes: Pid.t list;
+    unmatched_edges: (Pid.t * P_edge.t * Pid.t) list;
+    already_matched_gids: Gid.t list; (* to ensure injectivity *)
+    check: Pattern.const list (* constraints to verify at the end of the matching *)
+  }
 
-        (* PREREQUISITES:
-           - all partial matching have the same ?domain
-           - the ?domain of the pattern P is the disjoint union of ?domain([sub]) and [unmatched_nodes]
-         *)
+  (* PREREQUISITES:
+     - all partial matching have the same ?domain
+     - the ?domain of the pattern P is the disjoint union of ?domain([sub]) and [unmatched_nodes]
+  *)
   (*  ---------------------------------------------------------------------- *)
   let init ?lexicons basic =
     let roots = P_graph.roots basic.Pattern.graph in
@@ -595,9 +595,9 @@ module Matching = struct
     let sorted_node_list =
       List.sort
         (fun n1 n2 -> match (List.mem n1 roots, List.mem n2 roots) with
-        | true, false -> -1
-        | false, true -> 1
-        | _ -> 0) node_list in
+           | true, false -> -1
+           | false, true -> 1
+           | _ -> 0) node_list in
     {
       sub = empty ?lexicons ();
       unmatched_nodes = sorted_node_list;
@@ -628,152 +628,152 @@ module Matching = struct
       | feat_name -> G_fs.get_float_feat feat_name (G_node.get_fs (get_node pid)) in
 
     match cst with
-      | Pattern.Cst_out (pid,label_cst) ->
-        let gid = Pid_map.find pid matching.n_match in
-        if G_graph.edge_out graph gid label_cst
-        then matching
-        else raise Fail
-      | Cst_in (pid,label_cst) ->
-        let gid = Pid_map.find pid matching.n_match in
-        if G_graph.node_exists
+    | Pattern.Cst_out (pid,label_cst) ->
+      let gid = Pid_map.find pid matching.n_match in
+      if G_graph.edge_out graph gid label_cst
+      then matching
+      else raise Fail
+    | Cst_in (pid,label_cst) ->
+      let gid = Pid_map.find pid matching.n_match in
+      if G_graph.node_exists
           (fun node ->
-            List.exists (fun e -> Label_cst.match_ ?domain label_cst e) (Massoc_gid.assoc gid (G_node.get_next node))
+             List.exists (fun e -> Label_cst.match_ ?domain label_cst e) (Massoc_gid.assoc gid (G_node.get_next node))
           ) graph
-        then matching
-        else raise Fail
-      | Filter (pid, fs) ->
-        begin
-          try
-            let gid = Pid_map.find pid matching.n_match in
-            let gnode = G_graph.find gid graph in
-            let new_param = P_fs.match_ ~lexicons:(matching.l_param) fs (G_node.get_fs gnode) in
-            {matching with l_param = new_param }
-          with P_fs.Fail -> raise Fail
-        end
-      | Features_eq (pid1, feat_name1, pid2, feat_name2) ->
-        begin
-          match (get_string_feat pid1 feat_name1, get_string_feat pid2 feat_name2) with
-            | Some fv1, Some fv2 when fv1 = fv2 -> matching
-            | _ -> raise Fail
-        end
-      | Feature_eq_cst (pid1, feat_name1, value) ->
-        begin
-          match get_string_feat pid1 feat_name1 with
-            | Some fv1 when fv1 = value -> matching
-            | _ -> raise Fail
-        end
-      | Feature_diff_cst (pid1, feat_name1, value) ->
-        begin
-          match get_string_feat pid1 feat_name1 with
-            | Some fv1 when fv1 <> value -> matching
-            | _ -> raise Fail
-        end
-      | Feature_eq_float (pid1, feat_name1, float) ->
-        begin
-          match get_float_feat pid1 feat_name1 with
-            | Some fv1 when fv1 = float -> matching
-            | _ -> raise Fail
-        end
-      | Feature_diff_float (pid1, feat_name1, float) ->
-        begin
-          match get_float_feat pid1 feat_name1 with
-            | Some fv1 when fv1 <> float -> matching
-            | _ -> raise Fail
-        end
-      | Features_diseq (pid1, feat_name1, pid2, feat_name2) ->
-        begin
-          match (get_string_feat pid1 feat_name1, get_string_feat pid2 feat_name2) with
-            | Some fv1, Some fv2 when fv1 <> fv2 -> matching
-            | _ -> raise Fail
-        end
-      | Features_ineq (ineq, pid1, feat_name1, pid2, feat_name2) ->
-        begin
-          match (ineq, get_float_feat pid1 feat_name1, get_float_feat pid2 feat_name2) with
-            | (Ast.Lt, Some fv1, Some fv2) when fv1 < fv2 -> matching
-            | (Ast.Gt, Some fv1, Some fv2) when fv1 > fv2 -> matching
-            | (Ast.Le, Some fv1, Some fv2) when fv1 <= fv2 -> matching
-            | (Ast.Ge, Some fv1, Some fv2) when fv1 >= fv2 -> matching
-            | _ -> raise Fail
-          end
-      | Feature_ineq_cst (ineq, pid1, feat_name1, constant) ->
-        begin
-          match (ineq, get_float_feat pid1 feat_name1) with
-            | (Ast.Lt, Some fv1) when fv1 < constant -> matching
-            | (Ast.Gt, Some fv1) when fv1 > constant -> matching
-            | (Ast.Le, Some fv1) when fv1 <= constant -> matching
-            | (Ast.Ge, Some fv1) when fv1 >= constant -> matching
-            | _ -> raise Fail
-          end
-      | Feature_eq_regexp (pid, feat_name, regexp) ->
-        begin
-          match get_string_feat pid feat_name with
+      then matching
+      else raise Fail
+    | Filter (pid, fs) ->
+      begin
+        try
+          let gid = Pid_map.find pid matching.n_match in
+          let gnode = G_graph.find gid graph in
+          let new_param = P_fs.match_ ~lexicons:(matching.l_param) fs (G_node.get_fs gnode) in
+          {matching with l_param = new_param }
+        with P_fs.Fail -> raise Fail
+      end
+    | Features_eq (pid1, feat_name1, pid2, feat_name2) ->
+      begin
+        match (get_string_feat pid1 feat_name1, get_string_feat pid2 feat_name2) with
+        | Some fv1, Some fv2 when fv1 = fv2 -> matching
+        | _ -> raise Fail
+      end
+    | Feature_eq_cst (pid1, feat_name1, value) ->
+      begin
+        match get_string_feat pid1 feat_name1 with
+        | Some fv1 when fv1 = value -> matching
+        | _ -> raise Fail
+      end
+    | Feature_diff_cst (pid1, feat_name1, value) ->
+      begin
+        match get_string_feat pid1 feat_name1 with
+        | Some fv1 when fv1 <> value -> matching
+        | _ -> raise Fail
+      end
+    | Feature_eq_float (pid1, feat_name1, float) ->
+      begin
+        match get_float_feat pid1 feat_name1 with
+        | Some fv1 when fv1 = float -> matching
+        | _ -> raise Fail
+      end
+    | Feature_diff_float (pid1, feat_name1, float) ->
+      begin
+        match get_float_feat pid1 feat_name1 with
+        | Some fv1 when fv1 <> float -> matching
+        | _ -> raise Fail
+      end
+    | Features_diseq (pid1, feat_name1, pid2, feat_name2) ->
+      begin
+        match (get_string_feat pid1 feat_name1, get_string_feat pid2 feat_name2) with
+        | Some fv1, Some fv2 when fv1 <> fv2 -> matching
+        | _ -> raise Fail
+      end
+    | Features_ineq (ineq, pid1, feat_name1, pid2, feat_name2) ->
+      begin
+        match (ineq, get_float_feat pid1 feat_name1, get_float_feat pid2 feat_name2) with
+        | (Ast.Lt, Some fv1, Some fv2) when fv1 < fv2 -> matching
+        | (Ast.Gt, Some fv1, Some fv2) when fv1 > fv2 -> matching
+        | (Ast.Le, Some fv1, Some fv2) when fv1 <= fv2 -> matching
+        | (Ast.Ge, Some fv1, Some fv2) when fv1 >= fv2 -> matching
+        | _ -> raise Fail
+      end
+    | Feature_ineq_cst (ineq, pid1, feat_name1, constant) ->
+      begin
+        match (ineq, get_float_feat pid1 feat_name1) with
+        | (Ast.Lt, Some fv1) when fv1 < constant -> matching
+        | (Ast.Gt, Some fv1) when fv1 > constant -> matching
+        | (Ast.Le, Some fv1) when fv1 <= constant -> matching
+        | (Ast.Ge, Some fv1) when fv1 >= constant -> matching
+        | _ -> raise Fail
+      end
+    | Feature_eq_regexp (pid, feat_name, regexp) ->
+      begin
+        match get_string_feat pid feat_name with
+        | None -> raise Fail
+        | Some string_feat ->
+          let re = Str.regexp regexp in
+          if String_.re_match re string_feat then matching else raise Fail
+      end
+    | Immediate_prec (pid1, pid2) ->
+      let gid1 = Pid_map.find pid1 matching.n_match in
+      let gid2 = Pid_map.find pid2 matching.n_match in
+      let gnode1 = G_graph.find gid1 graph in
+      if G_node.get_succ gnode1 = Some gid2
+      then matching
+      else  raise Fail
+    | Large_prec (pid1, pid2) ->
+      let gnode1 = G_graph.find (Pid_map.find pid1 matching.n_match) graph in
+      let gnode2 = G_graph.find (Pid_map.find pid2 matching.n_match) graph in
+      if G_node.get_position gnode1 < G_node.get_position gnode2
+      then matching
+      else raise Fail
+
+    | Id_prec (pid1, pid2) ->
+      let gid1 = Pid_map.find pid1 matching.n_match in
+      let gid2 = Pid_map.find pid2 matching.n_match in
+      if gid1 < gid2
+      then matching
+      else raise Fail
+
+    | Label_equal (eid1, eid2) ->
+      begin
+        match (String_map.find_opt eid1 matching.e_match, String_map.find_opt eid2 matching.e_match) with
+        | (Some (_,e1,_), Some (_,e2,_)) when e1 = e2 -> matching
+        | (Some (_,e1,_), Some (_,e2,_)) -> raise Fail
+        | (None, Some _) -> Error.build "Edge identifier '%s' not found" eid1;
+        | (Some _, None) -> Error.build "Edge identifier '%s' not found" eid2;
+        | (None, None) -> Error.build "Edge identifiers '%s' and '%s' not found" eid1 eid2;
+      end
+
+    | Label_disequal (eid1, eid2) ->
+      begin
+        match (String_map.find_opt eid1 matching.e_match, String_map.find_opt eid2 matching.e_match) with
+        | (Some (_,e1,_), Some (_,e2,_)) when e1 <> e2 -> matching
+        | (Some (_,e1,_), Some (_,e2,_)) -> raise Fail
+        | (None, Some _) -> Error.build "Edge identifier '%s' not found" eid1;
+        | (Some _, None) -> Error.build "Edge identifier '%s' not found" eid2;
+        | (None, None) -> Error.build "Edge identifiers '%s' and '%s' not found" eid1 eid2;
+      end
+
+    | Feature_eq_lex (pid, feature_name, (lexicon,field)) ->
+      begin
+        match get_string_feat pid feature_name with
+        | None -> raise Fail
+        | Some v ->
+          let old_lex = List.assoc lexicon matching.l_param in
+          match Lexicon.select field v old_lex with
           | None -> raise Fail
-          | Some string_feat ->
-            let re = Str.regexp regexp in
-            if String_.re_match re string_feat then matching else raise Fail
-        end
-      | Immediate_prec (pid1, pid2) ->
-          let gid1 = Pid_map.find pid1 matching.n_match in
-          let gid2 = Pid_map.find pid2 matching.n_match in
-          let gnode1 = G_graph.find gid1 graph in
-          if G_node.get_succ gnode1 = Some gid2
-          then matching
-          else  raise Fail
-      | Large_prec (pid1, pid2) ->
-          let gnode1 = G_graph.find (Pid_map.find pid1 matching.n_match) graph in
-          let gnode2 = G_graph.find (Pid_map.find pid2 matching.n_match) graph in
-          if G_node.get_position gnode1 < G_node.get_position gnode2
-          then matching
-          else raise Fail
+          | Some new_lex -> {matching with l_param = (lexicon, new_lex) :: (List.remove_assoc lexicon matching.l_param) }
+      end
 
-      | Id_prec (pid1, pid2) ->
-          let gid1 = Pid_map.find pid1 matching.n_match in
-          let gid2 = Pid_map.find pid2 matching.n_match in
-          if gid1 < gid2
-          then matching
-          else raise Fail
-
-      | Label_equal (eid1, eid2) ->
-        begin
-          match (String_map.find_opt eid1 matching.e_match, String_map.find_opt eid2 matching.e_match) with
-          | (Some (_,e1,_), Some (_,e2,_)) when e1 = e2 -> matching
-          | (Some (_,e1,_), Some (_,e2,_)) -> raise Fail
-          | (None, Some _) -> Error.build "Edge identifier '%s' not found" eid1;
-          | (Some _, None) -> Error.build "Edge identifier '%s' not found" eid2;
-          | (None, None) -> Error.build "Edge identifiers '%s' and '%s' not found" eid1 eid2;
-        end
-
-      | Label_disequal (eid1, eid2) ->
-        begin
-          match (String_map.find_opt eid1 matching.e_match, String_map.find_opt eid2 matching.e_match) with
-          | (Some (_,e1,_), Some (_,e2,_)) when e1 <> e2 -> matching
-          | (Some (_,e1,_), Some (_,e2,_)) -> raise Fail
-          | (None, Some _) -> Error.build "Edge identifier '%s' not found" eid1;
-          | (Some _, None) -> Error.build "Edge identifier '%s' not found" eid2;
-          | (None, None) -> Error.build "Edge identifiers '%s' and '%s' not found" eid1 eid2;
-        end
-
-      | Feature_eq_lex (pid, feature_name, (lexicon,field)) ->
-        begin
-          match get_string_feat pid feature_name with
+    | Feature_diff_lex (pid, feature_name, (lexicon,field)) ->
+      begin
+        match get_string_feat pid feature_name with
+        | None -> raise Fail
+        | Some v ->
+          let old_lex = List.assoc lexicon matching.l_param in
+          match Lexicon.unselect field v old_lex with
           | None -> raise Fail
-          | Some v ->
-              let old_lex = List.assoc lexicon matching.l_param in
-              match Lexicon.select field v old_lex with
-              | None -> raise Fail
-              | Some new_lex -> {matching with l_param = (lexicon, new_lex) :: (List.remove_assoc lexicon matching.l_param) }
-        end
-
-      | Feature_diff_lex (pid, feature_name, (lexicon,field)) ->
-        begin
-          match get_string_feat pid feature_name with
-          | None -> raise Fail
-          | Some v ->
-              let old_lex = List.assoc lexicon matching.l_param in
-              match Lexicon.unselect field v old_lex with
-              | None -> raise Fail
-              | Some new_lex -> {matching with l_param = (lexicon, new_lex) :: (List.remove_assoc lexicon matching.l_param) }
-        end
+          | Some new_lex -> {matching with l_param = (lexicon, new_lex) :: (List.remove_assoc lexicon matching.l_param) }
+      end
 
 
   (*  ---------------------------------------------------------------------- *)
@@ -786,53 +786,53 @@ module Matching = struct
           let new_matching =
             List.fold_left
               (fun acc const ->
-                apply_cst ?domain graph acc const
+                 apply_cst ?domain graph acc const
               ) partial.sub partial.check in
           [new_matching, partial.already_matched_gids]
         with Fail -> []
       end
     | (src_pid, p_edge, tar_pid)::tail_ue, _ ->
-        begin
-          try (* is the tar already found in the matching ? *)
-            let new_partials =
-              let src_gid = Pid_map.find src_pid partial.sub.n_match in
-              let tar_gid = Pid_map.find tar_pid partial.sub.n_match in
-              let src_gnode = G_graph.find src_gid graph in
-              let g_edges = Massoc_gid.assoc tar_gid (G_node.get_next src_gnode) in
+      begin
+        try (* is the tar already found in the matching ? *)
+          let new_partials =
+            let src_gid = Pid_map.find src_pid partial.sub.n_match in
+            let tar_gid = Pid_map.find tar_pid partial.sub.n_match in
+            let src_gnode = G_graph.find src_gid graph in
+            let g_edges = Massoc_gid.assoc tar_gid (G_node.get_next src_gnode) in
 
-              match P_edge.match_list ?domain p_edge g_edges with
-              | P_edge.Fail -> (* no good edge in graph for this pattern edge -> stop here *)
-                  []
-              | P_edge.Binds (id,labels) -> (* n edges in the graph match the identified p_edge -> make copies of the [k] matchings (and returns n*k matchings) *)
-                  List.map
-                    (fun label ->
-                      {partial with sub = e_match_add id (src_gid,label,tar_gid) partial.sub; unmatched_edges = tail_ue }
-                    ) labels
-            in List_.flat_map (extend_matching ?domain (positive,neg) graph) new_partials
-          with Not_found -> (* p_edge goes to an unmatched node *)
-            let candidates = (* candidates (of type (gid, matching)) for m(tar_pid) = gid) with new partial matching m *)
-              let (src_gid : Gid.t) = Pid_map.find src_pid partial.sub.n_match in
-              let src_gnode = G_graph.find src_gid graph in
-              Massoc_gid.fold
-                (fun acc gid_next g_edge ->
-                  match P_edge.match_ ?domain p_edge g_edge with
-                  | P_edge.Fail -> (* g_edge does not fit, no new candidate *)
-                      acc
-                  | P_edge.Binds (id,[label]) -> (* g_edge fits with an extended matching *)
-                      (gid_next, e_match_add id (src_gid, label, gid_next) partial.sub) :: acc
-                  | _ -> Error.bug "P_edge.match_ must return exactly one label"
-                ) [] (G_node.get_next src_gnode) in
-            List_.flat_map
-              (fun (gid_next, matching) ->
-                extend_matching_from ?domain (positive,neg) graph tar_pid gid_next
-                  {partial with sub=matching; unmatched_edges = tail_ue}
-              ) candidates
-        end
+            match P_edge.match_list ?domain p_edge g_edges with
+            | P_edge.Fail -> (* no good edge in graph for this pattern edge -> stop here *)
+              []
+            | P_edge.Binds (id,labels) -> (* n edges in the graph match the identified p_edge -> make copies of the [k] matchings (and returns n*k matchings) *)
+              List.map
+                (fun label ->
+                   {partial with sub = e_match_add id (src_gid,label,tar_gid) partial.sub; unmatched_edges = tail_ue }
+                ) labels
+          in List_.flat_map (extend_matching ?domain (positive,neg) graph) new_partials
+        with Not_found -> (* p_edge goes to an unmatched node *)
+          let candidates = (* candidates (of type (gid, matching)) for m(tar_pid) = gid) with new partial matching m *)
+            let (src_gid : Gid.t) = Pid_map.find src_pid partial.sub.n_match in
+            let src_gnode = G_graph.find src_gid graph in
+            Massoc_gid.fold
+              (fun acc gid_next g_edge ->
+                 match P_edge.match_ ?domain p_edge g_edge with
+                 | P_edge.Fail -> (* g_edge does not fit, no new candidate *)
+                   acc
+                 | P_edge.Binds (id,[label]) -> (* g_edge fits with an extended matching *)
+                   (gid_next, e_match_add id (src_gid, label, gid_next) partial.sub) :: acc
+                 | _ -> Error.bug "P_edge.match_ must return exactly one label"
+              ) [] (G_node.get_next src_gnode) in
+          List_.flat_map
+            (fun (gid_next, matching) ->
+               extend_matching_from ?domain (positive,neg) graph tar_pid gid_next
+                 {partial with sub=matching; unmatched_edges = tail_ue}
+            ) candidates
+      end
     | [], pid :: _ ->
-        G_graph.fold_gid
-          (fun gid acc ->
-            (extend_matching_from ?domain (positive,neg) graph pid gid partial) @ acc
-          ) graph []
+      G_graph.fold_gid
+        (fun gid acc ->
+           (extend_matching_from ?domain (positive,neg) graph pid gid partial) @ acc
+        ) graph []
 
   (*  ---------------------------------------------------------------------- *)
   and extend_matching_from ?domain (positive,neg) (graph:G_graph.t) pid (gid : Gid.t) partial =
@@ -842,8 +842,8 @@ module Matching = struct
       let p_node =
         try P_graph.find pid positive
         with Not_found ->
-          try P_graph.find pid neg
-          with Not_found -> Error.bug "[Grew_rule.extend_matching_from] cannot find node" in
+        try P_graph.find pid neg
+        with Not_found -> Error.bug "[Grew_rule.extend_matching_from] cannot find node" in
 
       (* let p_node =  *)
       (*   if pid >= 0  *)
@@ -886,27 +886,27 @@ module Matching = struct
     let unmatched_edges =
       Pid_map.fold
         (fun pid node acc ->
-          match pid with
-            | Pid.Neg _ -> acc
-            | Pid.Pos i ->
-          (* if pid < 0  *)
-          (* then acc *)
-          (* else  *)
-              Massoc_pid.fold
-                (fun acc2 pid_next p_edge -> (pid, p_edge, pid_next) :: acc2)
-                acc (P_node.get_next node)
+           match pid with
+           | Pid.Neg _ -> acc
+           | Pid.Pos i ->
+             (* if pid < 0  *)
+             (* then acc *)
+             (* else  *)
+             Massoc_pid.fold
+               (fun acc2 pid_next p_edge -> (pid, p_edge, pid_next) :: acc2)
+               acc (P_node.get_next node)
 
-            (* Massoc.fold_left  *)
-            (*   (fun acc2 pid_next p_edge -> (pid, p_edge, pid_next) :: acc2) *)
-            (*   acc (P_node.get_next node) *)
+         (* Massoc.fold_left  *)
+         (*   (fun acc2 pid_next p_edge -> (pid, p_edge, pid_next) :: acc2) *)
+         (*   acc (P_node.get_next node) *)
         ) neg_graph [] in
     {
-     sub = sub;
-     unmatched_nodes = unmatched_nodes;
-     unmatched_edges = unmatched_edges;
-     already_matched_gids = already_matched_gids;
-     check = without.constraints;
-   }
+      sub = sub;
+      unmatched_nodes = unmatched_nodes;
+      unmatched_edges = unmatched_edges;
+      already_matched_gids = already_matched_gids;
+      check = without.constraints;
+    }
 
 
   (*  ---------------------------------------------------------------------- *)
@@ -923,40 +923,40 @@ module Matching = struct
     | l ->
       let dfs = G_graph.depth_first_search graph in
       let rec loop = function
-      | [] -> true
-      | "is_projective" :: tail ->
-        begin
-          match G_graph.is_projective graph with
-          | Some _ -> false
-          | None -> loop tail
-        end
-      | "is_not_projective" :: tail ->
-        begin
-          match G_graph.is_projective graph with
-          | Some _ -> loop tail
-          | None -> false
+        | [] -> true
+        | "is_projective" :: tail ->
+          begin
+            match G_graph.is_projective graph with
+            | Some _ -> false
+            | None -> loop tail
+          end
+        | "is_not_projective" :: tail ->
+          begin
+            match G_graph.is_projective graph with
+            | Some _ -> loop tail
+            | None -> false
           end
 
-      | "is_tree" :: tail when dfs.tree -> loop tail
-      | "is_tree" :: _ -> false
+        | "is_tree" :: tail when dfs.tree -> loop tail
+        | "is_tree" :: _ -> false
 
-      | "is_not_tree" :: tail when not dfs.tree -> loop tail
-      | "is_not_tree" :: _ -> false
+        | "is_not_tree" :: tail when not dfs.tree -> loop tail
+        | "is_not_tree" :: _ -> false
 
-      | "is_forest" :: tail when dfs.forest -> loop tail
-      | "is_forest" :: _ -> false
+        | "is_forest" :: tail when dfs.forest -> loop tail
+        | "is_forest" :: _ -> false
 
-      | "is_not_forest" :: tail when not dfs.forest -> loop tail
-      | "is_not_forest" :: _ -> false
+        | "is_not_forest" :: tail when not dfs.forest -> loop tail
+        | "is_not_forest" :: _ -> false
 
-      | "is_cyclic" :: tail when dfs.cyclic -> loop tail
-      | "is_cyclic" :: _ -> false
+        | "is_cyclic" :: tail when dfs.cyclic -> loop tail
+        | "is_cyclic" :: _ -> false
 
-      | "is_not_cyclic" :: tail when not dfs.cyclic -> loop tail
-      | "is_not_cyclic" :: _ -> false
+        | "is_not_cyclic" :: tail when not dfs.cyclic -> loop tail
+        | "is_not_cyclic" :: _ -> false
 
-      | x :: tail -> Error.build "Unknown global requirement \"%s\"" x in
-    loop l
+        | x :: tail -> Error.build "Unknown global requirement \"%s\"" x in
+      loop l
 
 
   let check_global_constraint glob_list graph =
@@ -967,29 +967,29 @@ module Matching = struct
         (function
           | (Ast.Glob_cst _, _) -> true (* these constraints are alredy checked in [test_stucture_constraints] function *)
           | (Ast.Glob_eq_list (key, value_list), _) ->
-          begin
-            match G_graph.get_meta_opt key graph with
-            | Some v -> List.mem v value_list
-            | None -> false
-          end
+            begin
+              match G_graph.get_meta_opt key graph with
+              | Some v -> List.mem v value_list
+              | None -> false
+            end
           | (Ast.Glob_diff_list (key, value_list), _) ->
-          begin
-            match G_graph.get_meta_opt key graph with
-            | Some v -> not (List.mem v value_list)
-            | None -> false
-          end
+            begin
+              match G_graph.get_meta_opt key graph with
+              | Some v -> not (List.mem v value_list)
+              | None -> false
+            end
           | (Ast.Glob_absent key, _) ->
-          begin
-            match G_graph.get_meta_opt key graph with
-            | Some v -> false
-            | None -> true
-          end
+            begin
+              match G_graph.get_meta_opt key graph with
+              | Some v -> false
+              | None -> true
+            end
           | (Ast.Glob_regexp (key, re), _) ->
-          begin
-            match G_graph.get_meta_opt key graph with
-            | Some v -> String_.re_match (Str.regexp re) v
-            | None -> false
-          end
+            begin
+              match G_graph.get_meta_opt key graph with
+              | Some v -> String_.re_match (Str.regexp re) v
+              | None -> false
+            end
         ) glob_list
     else false
 
@@ -1013,12 +1013,12 @@ module Matching = struct
       let filtered_matching_list =
         List.filter
           (fun (sub, already_matched_gids) ->
-            List.for_all
-              (fun without ->
-                let neg_graph = without.Pattern.graph in
-                let new_partial_matching = update_partial pos_graph without (sub, already_matched_gids) in
-                fulfill ?domain (pos_graph,neg_graph) graph new_partial_matching
-              ) negs
+             List.for_all
+               (fun without ->
+                  let neg_graph = without.Pattern.graph in
+                  let new_partial_matching = update_partial pos_graph without (sub, already_matched_gids) in
+                  fulfill ?domain (pos_graph,neg_graph) graph new_partial_matching
+               ) negs
           ) matching_list in
       List.map fst filtered_matching_list
 
@@ -1042,13 +1042,13 @@ module Rule = struct
 
 
   type t = {
-      name: string;
-      pattern: Pattern.t;
-      commands: Command.t list;
-      lexicons: Lexicons.t;
-      loc: Loc.t;
-      path: string;
-    }
+    name: string;
+    pattern: Pattern.t;
+    commands: Command.t list;
+    lexicons: Lexicons.t;
+    loc: Loc.t;
+    path: string;
+  }
 
   let get_name t = t.name
 
@@ -1058,13 +1058,13 @@ module Rule = struct
 
   let to_json ?domain t =
     `Assoc
-    ([
-      ("rule_name", `String t.name);
-      ("pattern", Pattern.basic_to_json ?domain t.pattern.pos);
-      ("without", `List (List.map (Pattern.basic_to_json ?domain) t.pattern.negs));
-      ("commands", `List (List.map (Command.to_json ?domain) t.commands))
-    ]
-    )
+      ([
+        ("rule_name", `String t.name);
+        ("pattern", Pattern.basic_to_json ?domain t.pattern.pos);
+        ("without", `List (List.map (Pattern.basic_to_json ?domain) t.pattern.negs));
+        ("commands", `List (List.map (Command.to_json ?domain) t.commands))
+      ]
+      )
 
   (* ====================================================================== *)
   let to_dep ?domain t =
@@ -1075,10 +1075,10 @@ module Rule = struct
     let nodes =
       Pid_map.fold
         (fun id node acc ->
-          (node, sprintf "  N_%s { word=\"%s\"; subword=\"%s\"}"
-            (Pid.to_id id) (P_node.get_name node) (P_fs.to_dep (P_node.get_fs node))
-          )
-          :: acc
+           (node, sprintf "  N_%s { word=\"%s\"; subword=\"%s\"}"
+              (Pid.to_id id) (P_node.get_name node) (P_fs.to_dep (P_node.get_fs node))
+           )
+           :: acc
         ) pos_basic.graph [] in
 
     (* nodes are sorted to appear in the same order in dep picture and in input file *)
@@ -1091,9 +1091,9 @@ module Rule = struct
 
     List.iteri
       (fun i cst ->
-        match cst with
-          | Pattern.Cst_out _ | Cst_in _ -> bprintf buff "  C_%d { word=\"*\"}\n" i
-          | _ -> ()
+         match cst with
+         | Pattern.Cst_out _ | Cst_in _ -> bprintf buff "  C_%d { word=\"*\"}\n" i
+         | _ -> ()
       ) pos_basic.constraints;
     bprintf buff "}\n";
 
@@ -1101,26 +1101,26 @@ module Rule = struct
 
     Pid_map.iter
       (fun id_src node ->
-        Massoc_pid.iter
-          (fun id_tar edge ->
-            bprintf buff "  N_%s -> N_%s { label=\"%s\"}\n"
-              (Pid.to_id id_src)
-              (Pid.to_id id_tar)
-              (P_edge.to_string ?domain edge)
-          )
-          (P_node.get_next node)
+         Massoc_pid.iter
+           (fun id_tar edge ->
+              bprintf buff "  N_%s -> N_%s { label=\"%s\"}\n"
+                (Pid.to_id id_src)
+                (Pid.to_id id_tar)
+                (P_edge.to_string ?domain edge)
+           )
+           (P_node.get_next node)
       ) pos_basic.graph;
 
     List.iteri
       (fun i cst ->
-        match cst with
-          | Pattern.Cst_out (pid, label_cst) ->
-            bprintf buff "  N_%s -> C_%d {label = \"%s\"; style=dot; bottom; color=green;}\n"
-              (Pid.to_id pid) i (Label_cst.to_string ?domain label_cst)
-          | Cst_in (pid, label_cst) ->
-            bprintf buff "  C_%d -> N_%s {label = \"%s\"; style=dot; bottom; color=green;}\n"
-              i (Pid.to_id pid) (Label_cst.to_string ?domain label_cst)
-          | _ -> ()
+         match cst with
+         | Pattern.Cst_out (pid, label_cst) ->
+           bprintf buff "  N_%s -> C_%d {label = \"%s\"; style=dot; bottom; color=green;}\n"
+             (Pid.to_id pid) i (Label_cst.to_string ?domain label_cst)
+         | Cst_in (pid, label_cst) ->
+           bprintf buff "  C_%d -> N_%s {label = \"%s\"; style=dot; bottom; color=green;}\n"
+             i (Pid.to_id pid) (Label_cst.to_string ?domain label_cst)
+         | _ -> ()
       ) pos_basic.constraints;
     bprintf buff "}\n";
     Buffer.contents buff
@@ -1133,33 +1133,33 @@ module Rule = struct
     let rec loop (kni,kei) = function
       | [] -> []
       | ast_command :: tail ->
-          let (command, (new_kni, new_kei)) =
-            Command.build
-              ?domain
-              lexicons
-              (kni,kei)
-              pos_table
-              ast_command in
-          command :: (loop (new_kni,new_kei) tail) in
+        let (command, (new_kni, new_kei)) =
+          Command.build
+            ?domain
+            lexicons
+            (kni,kei)
+            pos_table
+            ast_command in
+        command :: (loop (new_kni,new_kei) tail) in
     loop (known_node_ids, known_edge_ids) ast_commands
 
   let build_lex loc = function
-  | Ast.File filename ->
+    | Ast.File filename ->
       if Filename.is_relative filename
       then Lexicon.load loc (Filename.concat (Global.get_dir ()) filename)
       else Lexicon.load loc filename
-  | Ast.Final (line_list) -> Lexicon.build loc line_list
+    | Ast.Final (line_list) -> Lexicon.build loc line_list
 
 
   (* ====================================================================== *)
   let build ?domain rule_ast =
     let lexicons =
       List.fold_left (fun acc (name,lex) ->
-        try
-          let prev = List.assoc name acc in
-          (name, (Lexicon.union prev (build_lex rule_ast.Ast.rule_loc lex))) :: (List.remove_assoc name acc)
-        with Not_found -> (name, build_lex rule_ast.Ast.rule_loc lex) :: acc
-    ) [] rule_ast.Ast.lexicon_info in
+          try
+            let prev = List.assoc name acc in
+            (name, (Lexicon.union prev (build_lex rule_ast.Ast.rule_loc lex))) :: (List.remove_assoc name acc)
+          with Not_found -> (name, build_lex rule_ast.Ast.rule_loc lex) :: acc
+        ) [] rule_ast.Ast.lexicon_info in
 
     let pattern = Ast.normalize_pattern rule_ast.Ast.pattern in
     let (pos, pos_table) =
@@ -1170,13 +1170,13 @@ module Rule = struct
           rule_ast.Ast.rule_id in
     let (negs,_) =
       List.fold_left
-      (fun (acc,pos) basic_ast ->
-        try ((Pattern.build_neg_basic ?domain lexicons pos_table basic_ast) :: acc, pos+1)
-        with P_fs.Fail_unif ->
-          Error.warning ~loc:rule_ast.Ast.rule_loc "In rule \"%s\", the wihtout number %d cannot be satisfied, it is skipped"
-            rule_ast.Ast.rule_id pos;
-          (acc, pos+1)
-      ) ([],1) pattern.Ast.pat_negs in
+        (fun (acc,pos) basic_ast ->
+           try ((Pattern.build_neg_basic ?domain lexicons pos_table basic_ast) :: acc, pos+1)
+           with P_fs.Fail_unif ->
+             Error.warning ~loc:rule_ast.Ast.rule_loc "In rule \"%s\", the wihtout number %d cannot be satisfied, it is skipped"
+               rule_ast.Ast.rule_id pos;
+             (acc, pos+1)
+        ) ([],1) pattern.Ast.pat_negs in
     {
       name = rule_ast.Ast.rule_id;
       pattern = { pos; negs; global=pattern.Ast.pat_glob; };
@@ -1202,11 +1202,11 @@ module Rule = struct
   let onf_find cnode ?loc (matching, created_nodes) = (* TODO review args order and remove pair *)
     match cnode with
     | Command.Pat pid ->
-        (try Pid_map.find pid matching.Matching.n_match
-        with Not_found -> Error.bug ?loc "Inconsistent matching pid '%s' not found" (Pid.to_string pid))
+      (try Pid_map.find pid matching.Matching.n_match
+       with Not_found -> Error.bug ?loc "Inconsistent matching pid '%s' not found" (Pid.to_string pid))
     | Command.New name ->
-        (try List.assoc name created_nodes
-        with Not_found -> Error.run ?loc "Identifier '%s' not found" name)
+      (try List.assoc name created_nodes
+       with Not_found -> Error.run ?loc "Identifier '%s' not found" name)
 
   (*  ---------------------------------------------------------------------- *)
   type oac_state = {
@@ -1221,282 +1221,282 @@ module Rule = struct
 
     match command with
     | Command.ADD_EDGE (src_cn,tar_cn,edge) ->
-        let src_gid = node_find src_cn in
-        let tar_gid = node_find tar_cn in
-        begin
-          match G_graph.add_edge state.graph src_gid edge tar_gid with
-          | None when !Global.safe_commands ->
-              Error.run ~loc "ADD_EDGE: the edge '%s' already exists" (G_edge.to_string ?domain edge)
-          | None -> state
-          | Some new_graph -> {state with graph = new_graph; effective = true}
-        end
+      let src_gid = node_find src_cn in
+      let tar_gid = node_find tar_cn in
+      begin
+        match G_graph.add_edge state.graph src_gid edge tar_gid with
+        | None when !Global.safe_commands ->
+          Error.run ~loc "ADD_EDGE: the edge '%s' already exists" (G_edge.to_string ?domain edge)
+        | None -> state
+        | Some new_graph -> {state with graph = new_graph; effective = true}
+      end
 
     | Command.ADD_EDGE_EXPL (src_cn,tar_cn,edge_id) ->
-        let src_gid = node_find src_cn in
-        let tar_gid = node_find tar_cn in
-        let (_,edge,_) =
-          try String_map.find edge_id state.e_mapping
-          with Not_found -> Error.run ~loc "The edge identifier '%s' is undefined" edge_id in
-        begin
-          match G_graph.add_edge state.graph src_gid edge tar_gid with
-          | None when !Global.safe_commands ->
-              Error.run ~loc "ADD_EDGE_EXPL: the edge '%s' already exists" (G_edge.to_string ?domain edge)
-          | None -> state
-          | Some new_graph -> {state with graph = new_graph; effective = true}
-        end
+      let src_gid = node_find src_cn in
+      let tar_gid = node_find tar_cn in
+      let (_,edge,_) =
+        try String_map.find edge_id state.e_mapping
+        with Not_found -> Error.run ~loc "The edge identifier '%s' is undefined" edge_id in
+      begin
+        match G_graph.add_edge state.graph src_gid edge tar_gid with
+        | None when !Global.safe_commands ->
+          Error.run ~loc "ADD_EDGE_EXPL: the edge '%s' already exists" (G_edge.to_string ?domain edge)
+        | None -> state
+        | Some new_graph -> {state with graph = new_graph; effective = true}
+      end
 
     | Command.ADD_EDGE_ITEMS (src_cn,tar_cn,items) ->
-        let src_gid = node_find src_cn in
-        let tar_gid = node_find tar_cn in
-        let direct_items = List.map (fun (name, value) ->
+      let src_gid = node_find src_cn in
+      let tar_gid = node_find tar_cn in
+      let direct_items = List.map (fun (name, value) ->
           match Str.bounded_split (Str.regexp_string ".") value 2
           with
-            | [edge_id; feat_name] ->
-                begin
-                  match String_map.find_opt edge_id state.e_mapping with
-                  | None -> (name, value)
-                  | Some (_,matched_edge,_) ->
-                    match G_edge.get_sub feat_name matched_edge with
-                      | Some new_value -> (name, new_value)
-                      | None -> Error.run "ADD_EDGE_ITEMS: no items edge feature name '%s' in matched edge '%s'" feat_name edge_id
-                end
-            | _ -> (name, value)
+          | [edge_id; feat_name] ->
+            begin
+              match String_map.find_opt edge_id state.e_mapping with
+              | None -> (name, value)
+              | Some (_,matched_edge,_) ->
+                match G_edge.get_sub feat_name matched_edge with
+                | Some new_value -> (name, new_value)
+                | None -> Error.run "ADD_EDGE_ITEMS: no items edge feature name '%s' in matched edge '%s'" feat_name edge_id
+            end
+          | _ -> (name, value)
         ) items in
-        let edge = G_edge.from_items direct_items in
-        begin
-          match G_graph.add_edge state.graph src_gid edge tar_gid with
-          | None when !Global.safe_commands ->
-              Error.run ~loc "ADD_EDGE_ITEMS: the edge '%s' already exists" (G_edge.to_string ?domain edge)
-          | None -> state
-          | Some new_graph -> {state with graph = new_graph; effective = true}
-        end
+      let edge = G_edge.from_items direct_items in
+      begin
+        match G_graph.add_edge state.graph src_gid edge tar_gid with
+        | None when !Global.safe_commands ->
+          Error.run ~loc "ADD_EDGE_ITEMS: the edge '%s' already exists" (G_edge.to_string ?domain edge)
+        | None -> state
+        | Some new_graph -> {state with graph = new_graph; effective = true}
+      end
 
     | Command.DEL_EDGE_EXPL (src_cn,tar_cn,edge) ->
-        let src_gid = node_find src_cn in
-        let tar_gid = node_find tar_cn in
-        (match G_graph.del_edge ~loc src_gid edge tar_gid state.graph with
-          | None when !Global.safe_commands -> Error.run ~loc "DEL_EDGE_EXPL: the edge '%s' does not exist" (G_edge.to_string ?domain edge)
-          | None -> state
-          | Some new_graph -> {state with graph = new_graph; effective = true}
-        )
+      let src_gid = node_find src_cn in
+      let tar_gid = node_find tar_cn in
+      (match G_graph.del_edge ~loc src_gid edge tar_gid state.graph with
+       | None when !Global.safe_commands -> Error.run ~loc "DEL_EDGE_EXPL: the edge '%s' does not exist" (G_edge.to_string ?domain edge)
+       | None -> state
+       | Some new_graph -> {state with graph = new_graph; effective = true}
+      )
 
     | Command.DEL_EDGE_NAME edge_ident ->
-        let (src_gid,edge,tar_gid) =
-          try String_map.find edge_ident state.e_mapping
-          with Not_found -> Error.run ~loc "DEL_EDGE_NAME: The edge identifier '%s' is undefined" edge_ident in
-          (match G_graph.del_edge ~loc src_gid edge tar_gid state.graph with
-            | None when !Global.safe_commands -> Error.run ~loc "DEL_EDGE_NAME: the edge '%s' does not exist" edge_ident
-            | None -> state
-            | Some new_graph ->
-              {state with
-                graph = new_graph;
-                effective = true;
-                e_mapping = String_map.remove edge_ident state.e_mapping;
-              }
-          )
+      let (src_gid,edge,tar_gid) =
+        try String_map.find edge_ident state.e_mapping
+        with Not_found -> Error.run ~loc "DEL_EDGE_NAME: The edge identifier '%s' is undefined" edge_ident in
+      (match G_graph.del_edge ~loc src_gid edge tar_gid state.graph with
+       | None when !Global.safe_commands -> Error.run ~loc "DEL_EDGE_NAME: the edge '%s' does not exist" edge_ident
+       | None -> state
+       | Some new_graph ->
+         {state with
+          graph = new_graph;
+          effective = true;
+          e_mapping = String_map.remove edge_ident state.e_mapping;
+         }
+      )
 
     | Command.DEL_EDGE_FEAT (edge_id, feat_name) ->
-        begin
-          match String_map.find_opt edge_id state.e_mapping with
-          | None -> Error.run ~loc "DEL_EDGE_FEAT: The edge identifier '%s' is undefined" edge_id
-          | Some (src_gid,old_edge,tar_gid) ->
-            begin
-              match G_graph.del_edge_feature ~loc edge_id feat_name (src_gid,old_edge,tar_gid) state.graph with
-              | None when !Global.safe_commands -> Error.run ~loc "DEL_EDGE_FEAT: the edge feature name '%s' does not exist" feat_name
-              | None -> state
-              | Some (new_graph, new_edge) ->
-                  {state with
-                    graph = new_graph;
-                    effective = true;
-                    e_mapping = String_map.add edge_id (src_gid,new_edge,tar_gid) state.e_mapping;
-                  }
-            end
-        end
-
-    | Command.UPDATE_EDGE_FEAT (edge_ident, feat_name, new_value) ->
-        let (src_gid,edge,tar_gid) =
-          try String_map.find edge_ident state.e_mapping
-          with Not_found -> Error.run ~loc "The edge identifier '%s' is undefined" edge_ident in
-          (match G_graph.update_edge_feature ~loc edge_ident feat_name new_value (src_gid,edge,tar_gid) state.graph with
-            | None when !Global.safe_commands -> Error.run ~loc "UPDATE_EDGE_FEAT: no changes %s" edge_ident
+      begin
+        match String_map.find_opt edge_id state.e_mapping with
+        | None -> Error.run ~loc "DEL_EDGE_FEAT: The edge identifier '%s' is undefined" edge_id
+        | Some (src_gid,old_edge,tar_gid) ->
+          begin
+            match G_graph.del_edge_feature ~loc edge_id feat_name (src_gid,old_edge,tar_gid) state.graph with
+            | None when !Global.safe_commands -> Error.run ~loc "DEL_EDGE_FEAT: the edge feature name '%s' does not exist" feat_name
             | None -> state
             | Some (new_graph, new_edge) ->
-              { state with
-                graph = new_graph;
-                effective = true;
-                e_mapping = String_map.add edge_ident (src_gid,new_edge,tar_gid) state.e_mapping;
+              {state with
+               graph = new_graph;
+               effective = true;
+               e_mapping = String_map.add edge_id (src_gid,new_edge,tar_gid) state.e_mapping;
               }
-          )
+          end
+      end
+
+    | Command.UPDATE_EDGE_FEAT (edge_ident, feat_name, new_value) ->
+      let (src_gid,edge,tar_gid) =
+        try String_map.find edge_ident state.e_mapping
+        with Not_found -> Error.run ~loc "The edge identifier '%s' is undefined" edge_ident in
+      (match G_graph.update_edge_feature ~loc edge_ident feat_name new_value (src_gid,edge,tar_gid) state.graph with
+       | None when !Global.safe_commands -> Error.run ~loc "UPDATE_EDGE_FEAT: no changes %s" edge_ident
+       | None -> state
+       | Some (new_graph, new_edge) ->
+         { state with
+           graph = new_graph;
+           effective = true;
+           e_mapping = String_map.add edge_ident (src_gid,new_edge,tar_gid) state.e_mapping;
+         }
+      )
 
     | Command.DEL_NODE node_cn ->
-        let node_gid = node_find node_cn in
-        (match G_graph.del_node state.graph node_gid with
-          | None when !Global.safe_commands -> Error.run ~loc "DEL_NODE: the node does not exist"
-          | None -> state
-          | Some new_graph ->
-          { state with
-            graph = new_graph;
-            effective = true;
-            e_mapping = String_map.filter (fun _ (s,_,t) -> s=node_gid || t=node_gid) state.e_mapping;
-          }
-        )
+      let node_gid = node_find node_cn in
+      (match G_graph.del_node state.graph node_gid with
+       | None when !Global.safe_commands -> Error.run ~loc "DEL_NODE: the node does not exist"
+       | None -> state
+       | Some new_graph ->
+         { state with
+           graph = new_graph;
+           effective = true;
+           e_mapping = String_map.filter (fun _ (s,_,t) -> s=node_gid || t=node_gid) state.e_mapping;
+         }
+      )
 
     | Command.UPDATE_FEAT (tar_cn, tar_feat_name, item_list) ->
-        let tar_gid = node_find tar_cn in
-        let rule_items = List.map
-            (function
-              | Command.Feat (cnode, feat_name) -> Concat_item.Feat (node_find cnode, feat_name)
-              | Command.String s -> Concat_item.String s
-              | Command.Lexical_field (lex_name, field) ->
-                  (try
-                    let lexicon = List.assoc lex_name matching.l_param in
-                    let v = Lexicon.get field lexicon in
-                    Concat_item.String v
-                   with
-                    | Not_found -> Error.run ~loc "UPDATE_FEAT: the lexicon '%s' does not exist" lex_name
-                    )
-            ) item_list in
-        let (new_graph, new_feature_value) =
-          G_graph.update_feat ~loc state.graph tar_gid tar_feat_name rule_items in
-          {state with graph = new_graph; effective = true}
+      let tar_gid = node_find tar_cn in
+      let rule_items = List.map
+          (function
+            | Command.Feat (cnode, feat_name) -> Concat_item.Feat (node_find cnode, feat_name)
+            | Command.String s -> Concat_item.String s
+            | Command.Lexical_field (lex_name, field) ->
+              (try
+                 let lexicon = List.assoc lex_name matching.l_param in
+                 let v = Lexicon.get field lexicon in
+                 Concat_item.String v
+               with
+               | Not_found -> Error.run ~loc "UPDATE_FEAT: the lexicon '%s' does not exist" lex_name
+              )
+          ) item_list in
+      let (new_graph, new_feature_value) =
+        G_graph.update_feat ~loc state.graph tar_gid tar_feat_name rule_items in
+      {state with graph = new_graph; effective = true}
 
     | Command.APPEND_FEATS (src_cn, tar_cn, regexp, separator) ->
       let src_gid = node_find src_cn in
       let tar_gid = node_find tar_cn in
-        (match G_graph.append_feats state.graph src_gid tar_gid separator regexp with
-          | None when !Global.safe_commands -> Error.run ~loc "APPEND_FEATS uneffective"
-          | None -> state
-          | Some (new_graph,_) -> {state with graph = new_graph; effective = true}
-        )
+      (match G_graph.append_feats state.graph src_gid tar_gid separator regexp with
+       | None when !Global.safe_commands -> Error.run ~loc "APPEND_FEATS uneffective"
+       | None -> state
+       | Some (new_graph,_) -> {state with graph = new_graph; effective = true}
+      )
 
     | Command.DEL_FEAT (tar_cn,feat_name) ->
-        let tar_gid = node_find tar_cn in
-        (match G_graph.del_feat state.graph tar_gid feat_name with
-          | None when !Global.safe_commands -> Error.run ~loc "DEL_FEAT the feat does not exist"
-          | None -> state
-          | Some new_graph -> {state with graph = new_graph; effective = true}
-        )
-        (* TODO: an update feat is always considered as effective! is it OK? *)
+      let tar_gid = node_find tar_cn in
+      (match G_graph.del_feat state.graph tar_gid feat_name with
+       | None when !Global.safe_commands -> Error.run ~loc "DEL_FEAT the feat does not exist"
+       | None -> state
+       | Some new_graph -> {state with graph = new_graph; effective = true}
+      )
+    (* TODO: an update feat is always considered as effective! is it OK? *)
 
     | Command.SHIFT_IN (src_cn,tar_cn,label_cst) ->
-        let src_gid = node_find src_cn in
-        let tar_gid = node_find tar_cn in
-        let (new_graph, de, ae) = G_graph.shift_in loc src_gid tar_gid (Matching.test_locality matching state.created_nodes) label_cst state.graph in
-        {state with graph = new_graph; effective = state.effective || de <> [] || ae <> []}
+      let src_gid = node_find src_cn in
+      let tar_gid = node_find tar_cn in
+      let (new_graph, de, ae) = G_graph.shift_in loc src_gid tar_gid (Matching.test_locality matching state.created_nodes) label_cst state.graph in
+      {state with graph = new_graph; effective = state.effective || de <> [] || ae <> []}
 
     | Command.SHIFT_OUT (src_cn,tar_cn,label_cst) ->
-        let src_gid = node_find src_cn in
-        let tar_gid = node_find tar_cn in
-        let (new_graph, de, ae) = G_graph.shift_out loc src_gid tar_gid (Matching.test_locality matching state.created_nodes) label_cst state.graph in
-        {state with graph = new_graph; effective = state.effective || de <> [] || ae <> []}
+      let src_gid = node_find src_cn in
+      let tar_gid = node_find tar_cn in
+      let (new_graph, de, ae) = G_graph.shift_out loc src_gid tar_gid (Matching.test_locality matching state.created_nodes) label_cst state.graph in
+      {state with graph = new_graph; effective = state.effective || de <> [] || ae <> []}
 
     | Command.SHIFT_EDGE (src_cn,tar_cn,label_cst) ->
-        let src_gid = node_find src_cn in
-        let tar_gid = node_find tar_cn in
-        let (new_graph, de, ae) = G_graph.shift_edges loc src_gid tar_gid (Matching.test_locality matching state.created_nodes) label_cst state.graph in
-        {state with graph = new_graph; effective = state.effective || de <> [] || ae <> []}
+      let src_gid = node_find src_cn in
+      let tar_gid = node_find tar_cn in
+      let (new_graph, de, ae) = G_graph.shift_edges loc src_gid tar_gid (Matching.test_locality matching state.created_nodes) label_cst state.graph in
+      {state with graph = new_graph; effective = state.effective || de <> [] || ae <> []}
 
     | Command.NEW_AFTER (created_name,base_cn) ->
-        let base_gid = node_find base_cn in
-        let (new_gid,new_graph) = G_graph.add_after base_gid state.graph in
-        { state with
-          graph=new_graph;
-          created_nodes = (created_name,new_gid) :: state.created_nodes;
-          effective = true;
-        }
+      let base_gid = node_find base_cn in
+      let (new_gid,new_graph) = G_graph.add_after base_gid state.graph in
+      { state with
+        graph=new_graph;
+        created_nodes = (created_name,new_gid) :: state.created_nodes;
+        effective = true;
+      }
 
     | Command.NEW_BEFORE (created_name,base_cn) ->
-        let base_gid = node_find base_cn in
-        let (new_gid,new_graph) = G_graph.add_before base_gid state.graph in
-        { state with
-          graph=new_graph;
-          created_nodes = (created_name,new_gid) :: state.created_nodes;
-          effective = true;
-        }
+      let base_gid = node_find base_cn in
+      let (new_gid,new_graph) = G_graph.add_before base_gid state.graph in
+      { state with
+        graph=new_graph;
+        created_nodes = (created_name,new_gid) :: state.created_nodes;
+        effective = true;
+      }
 
     | Command.NEW_NODE (created_name) ->
-        let (new_gid,new_graph) = G_graph.add_unordered state.graph in
-        { state with
-          graph=new_graph;
-          created_nodes = (created_name,new_gid) :: state.created_nodes;
-          effective = true;
-        }
+      let (new_gid,new_graph) = G_graph.add_unordered state.graph in
+      { state with
+        graph=new_graph;
+        created_nodes = (created_name,new_gid) :: state.created_nodes;
+        effective = true;
+      }
 
 
   let onf_apply ?domain rule graph =
     let {Pattern.pos; negs} = rule.pattern in
     (* get the list of partial matching for positive part of the pattern *)
-      let matching_list =
-        Matching.extend_matching
-          ?domain
-          (pos.graph,P_graph.empty)
-          graph
-          (Matching.init ~lexicons:rule.lexicons pos) in
-      match List.find_opt
-        (fun (sub, already_matched_gids) ->
-          List.for_all
-            (fun neg ->
-              let new_partial_matching = Matching.update_partial pos.graph neg (sub, already_matched_gids) in
-              Matching.fulfill ?domain (pos.graph,neg.graph) graph new_partial_matching
-            ) negs
-        ) matching_list with
-        | None -> None
-        | Some (first_matching_where_all_witout_are_fulfilled,_) ->
-          let final_state =
-            List.fold_left
-              (fun state command -> onf_apply_command ?domain first_matching_where_all_witout_are_fulfilled command state)
-              { graph;
-                created_nodes = [];
-                effective = false;
-                e_mapping = first_matching_where_all_witout_are_fulfilled.e_match;
-              }
-              rule.commands in
-            if final_state.effective
-            then (Timeout.check (); incr_rules(); Some (G_graph.push_rule (get_long_name rule) final_state.graph))
-            else None
+    let matching_list =
+      Matching.extend_matching
+        ?domain
+        (pos.graph,P_graph.empty)
+        graph
+        (Matching.init ~lexicons:rule.lexicons pos) in
+    match List.find_opt
+            (fun (sub, already_matched_gids) ->
+               List.for_all
+                 (fun neg ->
+                    let new_partial_matching = Matching.update_partial pos.graph neg (sub, already_matched_gids) in
+                    Matching.fulfill ?domain (pos.graph,neg.graph) graph new_partial_matching
+                 ) negs
+            ) matching_list with
+    | None -> None
+    | Some (first_matching_where_all_witout_are_fulfilled,_) ->
+      let final_state =
+        List.fold_left
+          (fun state command -> onf_apply_command ?domain first_matching_where_all_witout_are_fulfilled command state)
+          { graph;
+            created_nodes = [];
+            effective = false;
+            e_mapping = first_matching_where_all_witout_are_fulfilled.e_match;
+          }
+          rule.commands in
+      if final_state.effective
+      then (Timeout.check (); incr_rules(); Some (G_graph.push_rule (get_long_name rule) final_state.graph))
+      else None
 
   let rec wrd_apply ?domain rule (graph, big_step_opt) =
     let {Pattern.pos; negs} = rule.pattern in
     (* get the list of partial matching for positive part of the pattern *)
-      let matching_list =
-        Matching.extend_matching
-          ?domain
-          (pos.graph,P_graph.empty)
-          graph
-          (Matching.init ~lexicons:rule.lexicons pos) in
-      match List.find_opt
-        (fun (sub, already_matched_gids) ->
-          List.for_all
-            (fun neg ->
-              let new_partial_matching = Matching.update_partial pos.graph neg (sub, already_matched_gids) in
-              Matching.fulfill ?domain (pos.graph,neg.graph) graph new_partial_matching
-            ) negs
-        ) matching_list with
-      | None -> None
-      | Some (first_matching_where_all_witout_are_fulfilled,_) ->
-          let final_state =
-            List.fold_left
-              (fun state command -> onf_apply_command ?domain first_matching_where_all_witout_are_fulfilled command state)
-              { graph;
-                created_nodes = [];
-                effective = false;
-                e_mapping = first_matching_where_all_witout_are_fulfilled.e_match;
-              }
-              rule.commands in
+    let matching_list =
+      Matching.extend_matching
+        ?domain
+        (pos.graph,P_graph.empty)
+        graph
+        (Matching.init ~lexicons:rule.lexicons pos) in
+    match List.find_opt
+            (fun (sub, already_matched_gids) ->
+               List.for_all
+                 (fun neg ->
+                    let new_partial_matching = Matching.update_partial pos.graph neg (sub, already_matched_gids) in
+                    Matching.fulfill ?domain (pos.graph,neg.graph) graph new_partial_matching
+                 ) negs
+            ) matching_list with
+    | None -> None
+    | Some (first_matching_where_all_witout_are_fulfilled,_) ->
+      let final_state =
+        List.fold_left
+          (fun state command -> onf_apply_command ?domain first_matching_where_all_witout_are_fulfilled command state)
+          { graph;
+            created_nodes = [];
+            effective = false;
+            e_mapping = first_matching_where_all_witout_are_fulfilled.e_match;
+          }
+          rule.commands in
 
-          let rule_app = {
-            Libgrew_types.rule_name = rule.name;
-            up = Matching.match_deco rule.pattern first_matching_where_all_witout_are_fulfilled;
-            down = Matching.down_deco (first_matching_where_all_witout_are_fulfilled,final_state.created_nodes) rule.commands
-          } in
+      let rule_app = {
+        Libgrew_types.rule_name = rule.name;
+        up = Matching.match_deco rule.pattern first_matching_where_all_witout_are_fulfilled;
+        down = Matching.down_deco (first_matching_where_all_witout_are_fulfilled,final_state.created_nodes) rule.commands
+      } in
 
-          let new_big_step = match big_step_opt with
-            | None -> {Libgrew_types.small_step = []; first=rule_app}
-            | Some {Libgrew_types.small_step; first} -> {Libgrew_types.small_step = (graph,rule_app) :: small_step; first} in
+      let new_big_step = match big_step_opt with
+        | None -> {Libgrew_types.small_step = []; first=rule_app}
+        | Some {Libgrew_types.small_step; first} -> {Libgrew_types.small_step = (graph,rule_app) :: small_step; first} in
 
-          if final_state.effective
-          then (Timeout.check (); incr_rules(); Some (final_state.graph, new_big_step))
-          else None
+      if final_state.effective
+      then (Timeout.check (); incr_rules(); Some (final_state.graph, new_big_step))
+      else None
 
 
 
@@ -1509,8 +1509,8 @@ module Rule = struct
   let find cnode ?loc gwh matching =
     match cnode with
     | Command.Pat pid ->
-        (try Pid_map.find pid matching.Matching.n_match
-        with Not_found -> Error.bug ?loc "Inconsistent matching pid '%s' not found" (Pid.to_string pid))
+      (try Pid_map.find pid matching.Matching.n_match
+       with Not_found -> Error.bug ?loc "Inconsistent matching pid '%s' not found" (Pid.to_string pid))
     | Command.New name -> List.assoc name gwh.Graph_with_history.added_gids
 
   let gwh_apply_command ?domain (command,loc) matching gwh =
@@ -1518,273 +1518,273 @@ module Rule = struct
 
     match command with
     | Command.ADD_EDGE (src_cn,tar_cn,edge) ->
-        let src_gid = node_find src_cn in
-        let tar_gid = node_find tar_cn in
-        begin
-          match G_graph.add_edge gwh.Graph_with_history.graph src_gid edge tar_gid with
-          | None when !Global.safe_commands ->
-            Error.run ~loc "ADD_EDGE: the edge '%s' already exists" (G_edge.to_string ?domain edge)
-          | None -> Graph_with_history_set.singleton gwh
-          | Some new_graph ->
-            Graph_with_history_set.singleton
-              {gwh with
-                Graph_with_history.graph = new_graph;
-                delta = Delta.add_edge src_gid edge tar_gid gwh.Graph_with_history.delta;
-              }
-        end
+      let src_gid = node_find src_cn in
+      let tar_gid = node_find tar_cn in
+      begin
+        match G_graph.add_edge gwh.Graph_with_history.graph src_gid edge tar_gid with
+        | None when !Global.safe_commands ->
+          Error.run ~loc "ADD_EDGE: the edge '%s' already exists" (G_edge.to_string ?domain edge)
+        | None -> Graph_with_history_set.singleton gwh
+        | Some new_graph ->
+          Graph_with_history_set.singleton
+            {gwh with
+             Graph_with_history.graph = new_graph;
+             delta = Delta.add_edge src_gid edge tar_gid gwh.Graph_with_history.delta;
+            }
+      end
 
     | Command.ADD_EDGE_EXPL (src_cn,tar_cn,edge_ident) ->
-        let src_gid = node_find src_cn in
-        let tar_gid = node_find tar_cn in
-        let (_,edge,_) =
-          try String_map.find edge_ident gwh.e_mapping
-          with Not_found -> Error.run ~loc "ADD_EDGE_EXPL: the edge identifier '%s' is undefined" edge_ident in
+      let src_gid = node_find src_cn in
+      let tar_gid = node_find tar_cn in
+      let (_,edge,_) =
+        try String_map.find edge_ident gwh.e_mapping
+        with Not_found -> Error.run ~loc "ADD_EDGE_EXPL: the edge identifier '%s' is undefined" edge_ident in
 
-        begin
-          match G_graph.add_edge gwh.Graph_with_history.graph src_gid edge tar_gid with
-          | None when !Global.safe_commands ->
-              Error.run ~loc "ADD_EDGE_EXPL: the edge '%s' already exists" (G_edge.to_string ?domain edge)
-          | None -> Graph_with_history_set.singleton gwh
-          | Some new_graph -> Graph_with_history_set.singleton
-              {gwh with
-                Graph_with_history.graph = new_graph;
-                delta = Delta.add_edge src_gid edge tar_gid gwh.Graph_with_history.delta;
-              }
-        end
+      begin
+        match G_graph.add_edge gwh.Graph_with_history.graph src_gid edge tar_gid with
+        | None when !Global.safe_commands ->
+          Error.run ~loc "ADD_EDGE_EXPL: the edge '%s' already exists" (G_edge.to_string ?domain edge)
+        | None -> Graph_with_history_set.singleton gwh
+        | Some new_graph -> Graph_with_history_set.singleton
+                              {gwh with
+                               Graph_with_history.graph = new_graph;
+                               delta = Delta.add_edge src_gid edge tar_gid gwh.Graph_with_history.delta;
+                              }
+      end
 
     | Command.ADD_EDGE_ITEMS (src_cn,tar_cn,items) ->
-        let src_gid = node_find src_cn in
-        let tar_gid = node_find tar_cn in
-        let direct_items = List.map (fun (name, value) ->
+      let src_gid = node_find src_cn in
+      let tar_gid = node_find tar_cn in
+      let direct_items = List.map (fun (name, value) ->
           match Str.bounded_split (Str.regexp_string ".") value 2
           with
-            | [edge_id; feat_name] ->
-                begin
-                  match String_map.find_opt edge_id gwh.e_mapping with
-                  | None -> (name, value)
-                  | Some (_,matched_edge,_) ->
-                    match G_edge.get_sub feat_name matched_edge with
-                      | Some new_value -> (name, new_value)
-                      | None -> Error.run "ADD_EDGE_ITEMS: no items edge feature name '%s' in matched edge '%s'" feat_name edge_id
-                end
-            | _ -> (name, value)
+          | [edge_id; feat_name] ->
+            begin
+              match String_map.find_opt edge_id gwh.e_mapping with
+              | None -> (name, value)
+              | Some (_,matched_edge,_) ->
+                match G_edge.get_sub feat_name matched_edge with
+                | Some new_value -> (name, new_value)
+                | None -> Error.run "ADD_EDGE_ITEMS: no items edge feature name '%s' in matched edge '%s'" feat_name edge_id
+            end
+          | _ -> (name, value)
         ) items in
-        let edge = G_edge.from_items direct_items in
-        begin
-          match G_graph.add_edge gwh.Graph_with_history.graph src_gid edge tar_gid with
-          | None when !Global.safe_commands ->
-              Error.run ~loc "ADD_EDGE_ITEMS: the edge '%s' already exists" (G_edge.to_string ?domain edge)
-          | None -> Graph_with_history_set.singleton gwh
-          | Some new_graph -> Graph_with_history_set.singleton
-              {gwh with
-                Graph_with_history.graph = new_graph;
-                delta = Delta.add_edge src_gid edge tar_gid gwh.Graph_with_history.delta;
-              }
-        end
+      let edge = G_edge.from_items direct_items in
+      begin
+        match G_graph.add_edge gwh.Graph_with_history.graph src_gid edge tar_gid with
+        | None when !Global.safe_commands ->
+          Error.run ~loc "ADD_EDGE_ITEMS: the edge '%s' already exists" (G_edge.to_string ?domain edge)
+        | None -> Graph_with_history_set.singleton gwh
+        | Some new_graph -> Graph_with_history_set.singleton
+                              {gwh with
+                               Graph_with_history.graph = new_graph;
+                               delta = Delta.add_edge src_gid edge tar_gid gwh.Graph_with_history.delta;
+                              }
+      end
 
     | Command.DEL_EDGE_EXPL (src_cn,tar_cn,edge) ->
-        let src_gid = node_find src_cn in
-        let tar_gid = node_find tar_cn in
-        (match G_graph.del_edge ~loc src_gid edge tar_gid gwh.Graph_with_history.graph with
-        | None when !Global.safe_commands ->
-          Error.run ~loc "DEL_EDGE_EXPL: the edge '%s' does not exist" (G_edge.to_string ?domain edge)
-        | None -> Graph_with_history_set.singleton gwh
-        | Some new_graph -> Graph_with_history_set.singleton
-         {gwh with
-            Graph_with_history.graph = new_graph;
-            delta = Delta.del_edge src_gid edge tar_gid gwh.Graph_with_history.delta;
-        })
+      let src_gid = node_find src_cn in
+      let tar_gid = node_find tar_cn in
+      (match G_graph.del_edge ~loc src_gid edge tar_gid gwh.Graph_with_history.graph with
+       | None when !Global.safe_commands ->
+         Error.run ~loc "DEL_EDGE_EXPL: the edge '%s' does not exist" (G_edge.to_string ?domain edge)
+       | None -> Graph_with_history_set.singleton gwh
+       | Some new_graph -> Graph_with_history_set.singleton
+                             {gwh with
+                              Graph_with_history.graph = new_graph;
+                              delta = Delta.del_edge src_gid edge tar_gid gwh.Graph_with_history.delta;
+                             })
 
     | Command.DEL_EDGE_NAME edge_ident ->
-        let (src_gid,edge,tar_gid) =
-          try String_map.find edge_ident gwh.e_mapping
-          with Not_found -> Error.run ~loc "The edge identifier '%s' is undefined" edge_ident in
-          (match G_graph.del_edge ~loc src_gid edge tar_gid gwh.Graph_with_history.graph with
-        | None when !Global.safe_commands -> Error.run ~loc "DEL_EDGE_NAME: the edge '%s' does not exist" edge_ident
-        | None -> Graph_with_history_set.singleton gwh
-        | Some new_graph -> Graph_with_history_set.singleton
-         {gwh with
-            Graph_with_history.graph = new_graph;
-            delta = Delta.del_edge src_gid edge tar_gid gwh.Graph_with_history.delta;
-            e_mapping = String_map.remove edge_ident gwh.e_mapping;
-        })
+      let (src_gid,edge,tar_gid) =
+        try String_map.find edge_ident gwh.e_mapping
+        with Not_found -> Error.run ~loc "The edge identifier '%s' is undefined" edge_ident in
+      (match G_graph.del_edge ~loc src_gid edge tar_gid gwh.Graph_with_history.graph with
+       | None when !Global.safe_commands -> Error.run ~loc "DEL_EDGE_NAME: the edge '%s' does not exist" edge_ident
+       | None -> Graph_with_history_set.singleton gwh
+       | Some new_graph -> Graph_with_history_set.singleton
+                             {gwh with
+                              Graph_with_history.graph = new_graph;
+                              delta = Delta.del_edge src_gid edge tar_gid gwh.Graph_with_history.delta;
+                              e_mapping = String_map.remove edge_ident gwh.e_mapping;
+                             })
 
     | Command.DEL_NODE node_cn ->
-        let node_gid = node_find node_cn in
-        (match G_graph.del_node gwh.Graph_with_history.graph node_gid with
-          | None when !Global.safe_commands -> Error.run ~loc "DEL_NODE: the node does not exist"
-          | None -> Graph_with_history_set.singleton gwh
-          | Some new_graph -> Graph_with_history_set.singleton
-            { gwh with
-              Graph_with_history.graph = new_graph;
-              delta = Delta.del_node node_gid gwh.Graph_with_history.delta;
-              e_mapping = String_map.filter (fun _ (s,_,t) -> s=node_gid || t=node_gid) gwh.e_mapping;
-            }
-        )
+      let node_gid = node_find node_cn in
+      (match G_graph.del_node gwh.Graph_with_history.graph node_gid with
+       | None when !Global.safe_commands -> Error.run ~loc "DEL_NODE: the node does not exist"
+       | None -> Graph_with_history_set.singleton gwh
+       | Some new_graph -> Graph_with_history_set.singleton
+                             { gwh with
+                               Graph_with_history.graph = new_graph;
+                               delta = Delta.del_node node_gid gwh.Graph_with_history.delta;
+                               e_mapping = String_map.filter (fun _ (s,_,t) -> s=node_gid || t=node_gid) gwh.e_mapping;
+                             }
+      )
 
     | Command.UPDATE_FEAT (tar_cn, tar_feat_name, item_list) ->
-        let tar_gid = node_find tar_cn in
+      let tar_gid = node_find tar_cn in
 
-        (* a list of possible rule_items is produced: there can be more than one in case of non functional lexicons *)
-        let rule_items_list =
-          List.fold_right
-            (fun item acc -> match item with
-              | Command.Feat (cnode, feat_name) -> List.map (fun x -> Concat_item.Feat (node_find cnode, feat_name)::x) acc
-              | Command.String s -> List.map (fun x -> (Concat_item.String s) :: x) acc
-              | Command.Lexical_field (lex_name, field) ->
-                  try
-                    let lexicon = List.assoc lex_name matching.l_param in
-                    let values = Lexicon.read_all field lexicon in
-                    List.fold_left
-                      (fun acc2 value ->
-                        (List.map (fun x -> (Concat_item.String value) :: x) acc) @ acc2
-                      ) [] values
-                   with
-                    | Not_found -> Error.run ~loc "UPDATE_FEAT: the lexicon '%s' does not exist" lex_name
-                    | Lexicon.Not_functional_lexicon -> Error.run ~loc "UPDATE_FEAT: the lexicon is not functional" lex_name
-            ) item_list [[]] in
+      (* a list of possible rule_items is produced: there can be more than one in case of non functional lexicons *)
+      let rule_items_list =
+        List.fold_right
+          (fun item acc -> match item with
+             | Command.Feat (cnode, feat_name) -> List.map (fun x -> Concat_item.Feat (node_find cnode, feat_name)::x) acc
+             | Command.String s -> List.map (fun x -> (Concat_item.String s) :: x) acc
+             | Command.Lexical_field (lex_name, field) ->
+               try
+                 let lexicon = List.assoc lex_name matching.l_param in
+                 let values = Lexicon.read_all field lexicon in
+                 List.fold_left
+                   (fun acc2 value ->
+                      (List.map (fun x -> (Concat_item.String value) :: x) acc) @ acc2
+                   ) [] values
+               with
+               | Not_found -> Error.run ~loc "UPDATE_FEAT: the lexicon '%s' does not exist" lex_name
+               | Lexicon.Not_functional_lexicon -> Error.run ~loc "UPDATE_FEAT: the lexicon is not functional" lex_name
+          ) item_list [[]] in
 
-        let new_graphs = List.fold_left
+      let new_graphs = List.fold_left
           (fun acc rule_items ->
-            let (new_graph, new_feature_value) = (* TODO: take value type into account in update_feat *)
-            G_graph.update_feat ~loc gwh.Graph_with_history.graph tar_gid tar_feat_name rule_items in
-            let new_value =
-              if Domain.is_num ?domain tar_feat_name
-              then Float (float_of_string new_feature_value)
-              else String new_feature_value in
-              Graph_with_history_set.add
-                { gwh with
-                  Graph_with_history.graph = new_graph;
-                  delta = Delta.set_feat gwh.Graph_with_history.seed tar_gid tar_feat_name (Some new_value) gwh.Graph_with_history.delta;
-                }
-              acc
+             let (new_graph, new_feature_value) = (* TODO: take value type into account in update_feat *)
+               G_graph.update_feat ~loc gwh.Graph_with_history.graph tar_gid tar_feat_name rule_items in
+             let new_value =
+               if Domain.is_num ?domain tar_feat_name
+               then Float (float_of_string new_feature_value)
+               else String new_feature_value in
+             Graph_with_history_set.add
+               { gwh with
+                 Graph_with_history.graph = new_graph;
+                 delta = Delta.set_feat gwh.Graph_with_history.seed tar_gid tar_feat_name (Some new_value) gwh.Graph_with_history.delta;
+               }
+               acc
           ) Graph_with_history_set.empty rule_items_list in
-          new_graphs
+      new_graphs
 
     | Command.DEL_FEAT (tar_cn,feat_name) ->
-        let tar_gid = node_find tar_cn in
-        (match G_graph.del_feat gwh.Graph_with_history.graph tar_gid feat_name with
-          | None when !Global.safe_commands -> Error.run ~loc "DEL_FEAT: the feat does not exist"
-          | None -> Graph_with_history_set.singleton gwh
-          | Some new_graph -> Graph_with_history_set.singleton { gwh with
-            Graph_with_history.graph = new_graph;
-            delta = Delta.set_feat gwh.Graph_with_history.seed tar_gid feat_name None gwh.Graph_with_history.delta;
-          }
-        )
+      let tar_gid = node_find tar_cn in
+      (match G_graph.del_feat gwh.Graph_with_history.graph tar_gid feat_name with
+       | None when !Global.safe_commands -> Error.run ~loc "DEL_FEAT: the feat does not exist"
+       | None -> Graph_with_history_set.singleton gwh
+       | Some new_graph -> Graph_with_history_set.singleton { gwh with
+                                                              Graph_with_history.graph = new_graph;
+                                                              delta = Delta.set_feat gwh.Graph_with_history.seed tar_gid feat_name None gwh.Graph_with_history.delta;
+                                                            }
+      )
 
     | Command.UPDATE_EDGE_FEAT (edge_id, feat_name, new_value) ->
-        let (src_gid,old_edge,tar_gid) =
-          try String_map.find edge_id gwh.e_mapping
-          with Not_found -> Error.run ~loc "The edge identifier '%s' is undefined" edge_id in
-          (match G_graph.update_edge_feature ~loc edge_id feat_name new_value (src_gid,old_edge,tar_gid) gwh.Graph_with_history.graph with
-            | None when !Global.safe_commands -> Error.run ~loc "UPDATE_EDGE_FEAT: no changes %s" edge_id
-            | None -> Graph_with_history_set.singleton gwh
-            | Some (new_graph, new_edge) ->
-            Graph_with_history_set.singleton
-            { gwh with
-              Graph_with_history.graph = new_graph;
-              delta = gwh.Graph_with_history.delta
-              |> Delta.del_edge src_gid old_edge tar_gid
-              |> Delta.add_edge src_gid new_edge tar_gid;
-              e_mapping = String_map.add edge_id (src_gid,new_edge,tar_gid) gwh.e_mapping;
-            }
-          )
+      let (src_gid,old_edge,tar_gid) =
+        try String_map.find edge_id gwh.e_mapping
+        with Not_found -> Error.run ~loc "The edge identifier '%s' is undefined" edge_id in
+      (match G_graph.update_edge_feature ~loc edge_id feat_name new_value (src_gid,old_edge,tar_gid) gwh.Graph_with_history.graph with
+       | None when !Global.safe_commands -> Error.run ~loc "UPDATE_EDGE_FEAT: no changes %s" edge_id
+       | None -> Graph_with_history_set.singleton gwh
+       | Some (new_graph, new_edge) ->
+         Graph_with_history_set.singleton
+           { gwh with
+             Graph_with_history.graph = new_graph;
+             delta = gwh.Graph_with_history.delta
+                     |> Delta.del_edge src_gid old_edge tar_gid
+                     |> Delta.add_edge src_gid new_edge tar_gid;
+             e_mapping = String_map.add edge_id (src_gid,new_edge,tar_gid) gwh.e_mapping;
+           }
+      )
 
     | Command.SHIFT_IN (src_cn,tar_cn,label_cst) ->
-        let src_gid = node_find src_cn in
-        let tar_gid = node_find tar_cn in
-        let (new_graph, del_edges, add_edges) =
+      let src_gid = node_find src_cn in
+      let tar_gid = node_find tar_cn in
+      let (new_graph, del_edges, add_edges) =
         G_graph.shift_in loc src_gid tar_gid (Matching.test_locality matching gwh.added_gids_in_rule) label_cst gwh.Graph_with_history.graph in
-          Graph_with_history_set.singleton { gwh with
-            Graph_with_history.graph = new_graph;
-            delta = gwh.Graph_with_history.delta
-            |> (List.fold_right (fun (s,e,t) -> Delta.del_edge s e t) del_edges)
-            |> (List.fold_right (fun (s,e,t) -> Delta.add_edge s e t) add_edges)
-          }
+      Graph_with_history_set.singleton { gwh with
+                                         Graph_with_history.graph = new_graph;
+                                         delta = gwh.Graph_with_history.delta
+                                                 |> (List.fold_right (fun (s,e,t) -> Delta.del_edge s e t) del_edges)
+                                                 |> (List.fold_right (fun (s,e,t) -> Delta.add_edge s e t) add_edges)
+                                       }
 
     | Command.SHIFT_OUT (src_cn,tar_cn,label_cst) ->
-        let src_gid = node_find src_cn in
-        let tar_gid = node_find tar_cn in
-        let (new_graph, del_edges, add_edges) =
+      let src_gid = node_find src_cn in
+      let tar_gid = node_find tar_cn in
+      let (new_graph, del_edges, add_edges) =
         G_graph.shift_out loc src_gid tar_gid (Matching.test_locality matching gwh.added_gids_in_rule) label_cst gwh.Graph_with_history.graph in
-          Graph_with_history_set.singleton { gwh with
-            Graph_with_history.graph = new_graph;
-            delta = gwh.Graph_with_history.delta
-            |> (List.fold_right (fun (s,e,t) -> Delta.del_edge s e t) del_edges)
-            |> (List.fold_right (fun (s,e,t) -> Delta.add_edge s e t) add_edges)
-          }
+      Graph_with_history_set.singleton { gwh with
+                                         Graph_with_history.graph = new_graph;
+                                         delta = gwh.Graph_with_history.delta
+                                                 |> (List.fold_right (fun (s,e,t) -> Delta.del_edge s e t) del_edges)
+                                                 |> (List.fold_right (fun (s,e,t) -> Delta.add_edge s e t) add_edges)
+                                       }
 
     | Command.SHIFT_EDGE (src_cn,tar_cn,label_cst) ->
-        let src_gid = node_find src_cn in
-        let tar_gid = node_find tar_cn in
-        let (new_graph, del_edges, add_edges) =
+      let src_gid = node_find src_cn in
+      let tar_gid = node_find tar_cn in
+      let (new_graph, del_edges, add_edges) =
         G_graph.shift_edges loc src_gid tar_gid (Matching.test_locality matching gwh.added_gids_in_rule) label_cst gwh.Graph_with_history.graph in
-          Graph_with_history_set.singleton { gwh with
-            Graph_with_history.graph = new_graph;
-            delta = gwh.Graph_with_history.delta
-            |> (List.fold_right (fun (s,e,t) -> Delta.del_edge s e t) del_edges)
-            |> (List.fold_right (fun (s,e,t) -> Delta.add_edge s e t) add_edges)
-          }
+      Graph_with_history_set.singleton { gwh with
+                                         Graph_with_history.graph = new_graph;
+                                         delta = gwh.Graph_with_history.delta
+                                                 |> (List.fold_right (fun (s,e,t) -> Delta.del_edge s e t) del_edges)
+                                                 |> (List.fold_right (fun (s,e,t) -> Delta.add_edge s e t) add_edges)
+                                       }
 
     | Command.NEW_AFTER (created_name,base_cn) ->
-        let base_gid = node_find base_cn in
-        let (new_gid,new_graph) = G_graph.add_after base_gid gwh.Graph_with_history.graph in
-          Graph_with_history_set.singleton { gwh with
-            Graph_with_history.graph = new_graph;
-            added_gids = (created_name, new_gid) :: gwh.Graph_with_history.added_gids;
-            added_gids_in_rule = (created_name,new_gid) :: gwh.added_gids_in_rule;
-          }
+      let base_gid = node_find base_cn in
+      let (new_gid,new_graph) = G_graph.add_after base_gid gwh.Graph_with_history.graph in
+      Graph_with_history_set.singleton { gwh with
+                                         Graph_with_history.graph = new_graph;
+                                         added_gids = (created_name, new_gid) :: gwh.Graph_with_history.added_gids;
+                                         added_gids_in_rule = (created_name,new_gid) :: gwh.added_gids_in_rule;
+                                       }
 
     | Command.NEW_BEFORE (created_name,base_cn) ->
-        let base_gid = node_find base_cn in
-        let (new_gid,new_graph) = G_graph.add_before base_gid gwh.Graph_with_history.graph in
-          Graph_with_history_set.singleton { gwh with
-            Graph_with_history.graph = new_graph;
-            added_gids = (created_name, new_gid) :: gwh.Graph_with_history.added_gids;
-            added_gids_in_rule = (created_name,new_gid) :: gwh.added_gids_in_rule;
-          }
+      let base_gid = node_find base_cn in
+      let (new_gid,new_graph) = G_graph.add_before base_gid gwh.Graph_with_history.graph in
+      Graph_with_history_set.singleton { gwh with
+                                         Graph_with_history.graph = new_graph;
+                                         added_gids = (created_name, new_gid) :: gwh.Graph_with_history.added_gids;
+                                         added_gids_in_rule = (created_name,new_gid) :: gwh.added_gids_in_rule;
+                                       }
 
     | Command.NEW_NODE (created_name) ->
-        let (new_gid,new_graph) = G_graph.add_unordered gwh.Graph_with_history.graph in
-          Graph_with_history_set.singleton { gwh with
-            Graph_with_history.graph = new_graph;
-            added_gids = (created_name, new_gid) :: gwh.Graph_with_history.added_gids;
-            added_gids_in_rule = (created_name,new_gid) :: gwh.added_gids_in_rule;
-          }
+      let (new_gid,new_graph) = G_graph.add_unordered gwh.Graph_with_history.graph in
+      Graph_with_history_set.singleton { gwh with
+                                         Graph_with_history.graph = new_graph;
+                                         added_gids = (created_name, new_gid) :: gwh.Graph_with_history.added_gids;
+                                         added_gids_in_rule = (created_name,new_gid) :: gwh.added_gids_in_rule;
+                                       }
 
     | Command.DEL_EDGE_FEAT (edge_id, feat_name) ->
-        begin
-          match String_map.find_opt edge_id gwh.e_mapping with
-          | None -> Error.run ~loc "The edge identifier '%s' is undefined" edge_id
-          | Some (src_gid,old_edge,tar_gid) ->
-            begin
-              match G_graph.del_edge_feature ~loc edge_id feat_name (src_gid,old_edge,tar_gid) gwh.Graph_with_history.graph with
-              | None when !Global.safe_commands -> Error.run ~loc "DEL_EDGE_FEAT: the edge feature name '%s' does not exist" feat_name
-              | None -> Graph_with_history_set.singleton gwh
-              | Some (new_graph, new_edge) -> Graph_with_history_set.singleton
-                  {gwh with
-                    Graph_with_history.graph = new_graph;
-                    e_mapping = String_map.add edge_id (src_gid,new_edge,tar_gid) gwh.e_mapping;
-                  }
-            end
-        end
+      begin
+        match String_map.find_opt edge_id gwh.e_mapping with
+        | None -> Error.run ~loc "The edge identifier '%s' is undefined" edge_id
+        | Some (src_gid,old_edge,tar_gid) ->
+          begin
+            match G_graph.del_edge_feature ~loc edge_id feat_name (src_gid,old_edge,tar_gid) gwh.Graph_with_history.graph with
+            | None when !Global.safe_commands -> Error.run ~loc "DEL_EDGE_FEAT: the edge feature name '%s' does not exist" feat_name
+            | None -> Graph_with_history_set.singleton gwh
+            | Some (new_graph, new_edge) -> Graph_with_history_set.singleton
+                                              {gwh with
+                                               Graph_with_history.graph = new_graph;
+                                               e_mapping = String_map.add edge_id (src_gid,new_edge,tar_gid) gwh.e_mapping;
+                                              }
+          end
+      end
 
     | Command.APPEND_FEATS (src_cn, tar_cn, regexp, separator) ->
       let src_gid = node_find src_cn in
       let tar_gid = node_find tar_cn in
-        begin
-          match G_graph.append_feats gwh.Graph_with_history.graph src_gid tar_gid separator regexp with
-          | None when !Global.safe_commands -> Error.run ~loc "APPEND_FEATS uneffective"
-          | None -> Graph_with_history_set.singleton gwh
-          | Some (new_graph, updated_edges) ->
-             Graph_with_history_set.singleton { gwh with
-                Graph_with_history.graph = new_graph;
-                delta = List.fold_left
-                  (fun acc (feature_name, value) ->
-                    Delta.set_feat gwh.Graph_with_history.seed tar_gid feature_name (Some value) acc)
-                  gwh.Graph_with_history.delta updated_edges;
-              }
-        end
+      begin
+        match G_graph.append_feats gwh.Graph_with_history.graph src_gid tar_gid separator regexp with
+        | None when !Global.safe_commands -> Error.run ~loc "APPEND_FEATS uneffective"
+        | None -> Graph_with_history_set.singleton gwh
+        | Some (new_graph, updated_edges) ->
+          Graph_with_history_set.singleton { gwh with
+                                             Graph_with_history.graph = new_graph;
+                                             delta = List.fold_left
+                                                 (fun acc (feature_name, value) ->
+                                                    Delta.set_feat gwh.Graph_with_history.seed tar_gid feature_name (Some value) acc)
+                                                 gwh.Graph_with_history.delta updated_edges;
+                                           }
+      end
 
 
 
@@ -1793,24 +1793,24 @@ module Rule = struct
   let gwh_apply_rule ?domain graph_with_history matching rule =
     Timeout.check (); incr_rules ();
     let init = Graph_with_history_set.singleton
-      { graph_with_history with
-        e_mapping = matching.Matching.e_match;
-        added_gids_in_rule = [];
-      } in
+        { graph_with_history with
+          e_mapping = matching.Matching.e_match;
+          added_gids_in_rule = [];
+        } in
 
     List.fold_left
       (fun gwh_set cmd ->
-          Graph_with_history_set.fold
-            (fun gwh acc ->
+         Graph_with_history_set.fold
+           (fun gwh acc ->
               Graph_with_history_set.union (gwh_apply_command ?domain cmd matching gwh) acc
-            ) gwh_set Graph_with_history_set.empty
+           ) gwh_set Graph_with_history_set.empty
       ) init rule.commands
 
   let gwh_apply ?domain rule graph_with_history =
     let matching_list = Matching.match_in_graph ?domain ~lexicons:rule.lexicons rule.pattern graph_with_history.Graph_with_history.graph in
     List.fold_left
       (fun acc matching ->
-        Graph_with_history_set.union (gwh_apply_rule ?domain graph_with_history matching rule) acc
+         Graph_with_history_set.union (gwh_apply_rule ?domain graph_with_history matching rule) acc
       ) Graph_with_history_set.empty matching_list
 
   exception Dead_lock
@@ -1822,27 +1822,27 @@ module Rule = struct
     let matching_list = Matching.extend_matching ?domain (pos.graph,P_graph.empty) graph (Matching.init ~lexicons:rule.lexicons pos) in
 
     let rec loop_matching = function
-    | [] -> None
-    | (sub, already_matched_gids) :: tail ->
-      if List.for_all
-        (fun neg ->
-          let new_partial_matching = Matching.update_partial pos.graph neg (sub, already_matched_gids) in
-          Matching.fulfill ?domain (pos.graph,neg.graph) graph new_partial_matching
-        ) negs
-      then (* all negs part are fulfilled *)
-        let init_gwh = { gwh with e_mapping = sub.Matching.e_match; added_gids_in_rule = []; } in
-        let rec loop_command acc_gwh = function
-          | [] -> acc_gwh
-          | command :: tail_commands ->
+      | [] -> None
+      | (sub, already_matched_gids) :: tail ->
+        if List.for_all
+            (fun neg ->
+               let new_partial_matching = Matching.update_partial pos.graph neg (sub, already_matched_gids) in
+               Matching.fulfill ?domain (pos.graph,neg.graph) graph new_partial_matching
+            ) negs
+        then (* all negs part are fulfilled *)
+          let init_gwh = { gwh with e_mapping = sub.Matching.e_match; added_gids_in_rule = []; } in
+          let rec loop_command acc_gwh = function
+            | [] -> acc_gwh
+            | command :: tail_commands ->
               let set = gwh_apply_command ?domain command sub acc_gwh in
               match Graph_with_history_set.choose_opt set with
               | None -> raise Dead_lock
               | Some next_gwh -> loop_command next_gwh tail_commands in
-        try
-          let new_gwh = loop_command init_gwh rule.commands in
-          Timeout.check (); incr_rules();
-          Some {new_gwh with graph = G_graph.push_rule (get_long_name rule) new_gwh.graph }
-        with Dead_lock -> loop_matching tail (* failed to apply all commands -> move to the next matching *)
-      else loop_matching tail (* some neg part prevents rule app -> move to the next matching *)
+          try
+            let new_gwh = loop_command init_gwh rule.commands in
+            Timeout.check (); incr_rules();
+            Some {new_gwh with graph = G_graph.push_rule (get_long_name rule) new_gwh.graph }
+          with Dead_lock -> loop_matching tail (* failed to apply all commands -> move to the next matching *)
+        else loop_matching tail (* some neg part prevents rule app -> move to the next matching *)
     in loop_matching matching_list
 end (* module Rule *)

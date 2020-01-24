@@ -17,7 +17,7 @@ open Grew_types
 open Grew_ast
 open Grew_domain
 
-  let decode_feat_name s = Str.global_replace (Str.regexp "__\\([0-9a-z]+\\)$") "[\\1]" s
+let decode_feat_name s = Str.global_replace (Str.regexp "__\\([0-9a-z]+\\)$") "[\\1]" s
 
 (* ================================================================================ *)
 module Feature_value = struct
@@ -26,8 +26,8 @@ module Feature_value = struct
 
   let build_value ?loc ?domain name value =
     match build_disj ?loc ?domain name [value] with
-      | [x] -> x
-      | _ -> Error.bug ?loc "[Feature_value.build_value]"
+    | [x] -> x
+    | _ -> Error.bug ?loc "[Feature_value.build_value]"
 end (* module Feature_value *)
 
 (* ================================================================================ *)
@@ -60,14 +60,14 @@ module G_feature = struct
   let to_dot (feat_name, feat_val) =
     let string_val = string_of_value feat_val in
     match Str.split (Str.regexp ":C:") string_val with
-      | [] -> Error.bug "[G_feature.to_dot] feature value '%s'" string_val
-      | fv::_ -> sprintf "%s=%s" feat_name fv
+    | [] -> Error.bug "[G_feature.to_dot] feature value '%s'" string_val
+    | fv::_ -> sprintf "%s=%s" feat_name fv
 
   let buff_dot buff (feat_name, feat_val) =
     let string_val = string_of_value feat_val in
     match Str.split (Str.regexp ":C:") string_val with
-      | [] -> Error.bug "[G_feature.to_dot] feature value '%s'" string_val
-      | fv::_ -> bprintf buff "<TR><TD ALIGN=\"right\">%s</TD><TD>=</TD><TD ALIGN=\"left\">%s</TD></TR>\n" (decode_feat_name feat_name) fv
+    | [] -> Error.bug "[G_feature.to_dot] feature value '%s'" string_val
+    | fv::_ -> bprintf buff "<TR><TD ALIGN=\"right\">%s</TD><TD>=</TD><TD ALIGN=\"left\">%s</TD></TR>\n" (decode_feat_name feat_name) fv
 end (* module G_feature *)
 
 (* ================================================================================ *)
@@ -88,13 +88,13 @@ module P_feature = struct
     printf "%s%s\n"
       feature_name
       (match cst with
-      | Different [] -> "=*"
-      | Different l -> "≠" ^ (String.concat "|" (List.map string_of_value l))
-      | Equal l -> "=" ^ (String.concat "|" (List.map string_of_value l))
-      | Equal_lex (lex,fn) -> sprintf "= %s.%s" lex fn
-      | Different_lex (lex,fn) -> sprintf "≠ %s.%s" lex fn
-      | Absent -> " must be Absent!"
-      | Else (fv1,fn2,fv2) -> sprintf " = %s/%s = %s" (string_of_value fv1) fn2 (string_of_value fv2));
+       | Different [] -> "=*"
+       | Different l -> "≠" ^ (String.concat "|" (List.map string_of_value l))
+       | Equal l -> "=" ^ (String.concat "|" (List.map string_of_value l))
+       | Equal_lex (lex,fn) -> sprintf "= %s.%s" lex fn
+       | Different_lex (lex,fn) -> sprintf "≠ %s.%s" lex fn
+       | Absent -> " must be Absent!"
+       | Else (fv1,fn2,fv2) -> sprintf " = %s/%s = %s" (string_of_value fv1) fn2 (string_of_value fv2));
 
     printf "%!"
 
@@ -126,14 +126,14 @@ module P_feature = struct
     | (cst1, cst2) ->
       let cst =  match (cst1, cst2) with
         | (Equal l1, Equal l2) ->
-            (match List_.sort_inter l1 l2 with
-            | [] -> raise Fail_unif
-            | l -> Equal l)
+          (match List_.sort_inter l1 l2 with
+           | [] -> raise Fail_unif
+           | l -> Equal l)
         | (Equal l1, Different l2)
         | (Different l2, Equal l1) ->
-            (match List_.sort_diff l1 l2 with
-            | [] -> raise Fail_unif
-            | l -> Equal l)
+          (match List_.sort_diff l1 l2 with
+           | [] -> raise Fail_unif
+           | l -> Equal l)
         | (Different l1, Different l2) -> Different (List_.sort_union l1 l2)
         | _ -> Error.bug "[P_feature.unif_value] inconsistent match case" in
       cst
@@ -179,10 +179,10 @@ module G_fs = struct
   (* ---------------------------------------------------------------------- *)
   let set_feat ?loc ?domain feature_name value t =
     let rec loop = function
-    | [] -> [(feature_name, value)]
-    | ((fn,_)::_) as t when feature_name < fn -> (feature_name, value)::t
-    | (fn,_)::t when feature_name = fn -> (feature_name, value)::t
-    | (fn,a)::t -> (fn,a) :: (loop t)
+      | [] -> [(feature_name, value)]
+      | ((fn,_)::_) as t when feature_name < fn -> (feature_name, value)::t
+      | (fn,_)::t when feature_name = fn -> (feature_name, value)::t
+      | (fn,a)::t -> (fn,a) :: (loop t)
     in loop t
 
   (* ---------------------------------------------------------------------- *)
@@ -199,15 +199,15 @@ module G_fs = struct
   (* ---------------------------------------------------------------------- *)
   let get_string_atom feat_name t =
     match List_.sort_assoc feat_name t with
-      | None -> None
-      | Some v -> Some (conll_string_of_value v)
+    | None -> None
+    | Some v -> Some (conll_string_of_value v)
 
   (* ---------------------------------------------------------------------- *)
   let get_float_feat feat_name t =
     match List_.sort_assoc feat_name t with
-      | None -> None
-      | Some (Float i) -> Some i
-      | Some (String s) -> Error.build "[Fs.get_float_feat] feat_name=%s, value=%s" feat_name s
+    | None -> None
+    | Some (Float i) -> Some i
+    | Some (String s) -> Error.build "[Fs.get_float_feat] feat_name=%s, value=%s" feat_name s
 
   (* ---------------------------------------------------------------------- *)
   let to_string t = List_.to_string G_feature.to_string "," t
@@ -261,35 +261,35 @@ module G_fs = struct
   (* ---------------------------------------------------------------------- *)
   let append_feats ?loc src tar separator regexp =
     match List.filter
-      (fun (feature_name,_) ->
-        match feature_name with
-        | "form" | "lemma" | "upos" | "xpos" -> false
-        | _ -> String_.re_match (Str.regexp regexp) feature_name
-      ) src with
+            (fun (feature_name,_) ->
+               match feature_name with
+               | "form" | "lemma" | "upos" | "xpos" -> false
+               | _ -> String_.re_match (Str.regexp regexp) feature_name
+            ) src with
     | [] -> None
     | sub_src ->
-    let (new_tar, updated_feats) = List.fold_left
-      (fun (acc_tar, acc_updated_feats) (feat, value) ->
-         match List_.sort_assoc feat tar with
-        | None -> (set_feat ?loc feat value acc_tar, (feat, value)::acc_updated_feats)
-        | Some v ->
-          let new_value = concat_values ?loc separator v value in
-          (set_feat ?loc feat new_value acc_tar, (feat, new_value)::acc_updated_feats)
-      ) (tar,[]) sub_src in
-    Some (new_tar, updated_feats)
+      let (new_tar, updated_feats) = List.fold_left
+          (fun (acc_tar, acc_updated_feats) (feat, value) ->
+             match List_.sort_assoc feat tar with
+             | None -> (set_feat ?loc feat value acc_tar, (feat, value)::acc_updated_feats)
+             | Some v ->
+               let new_value = concat_values ?loc separator v value in
+               (set_feat ?loc feat new_value acc_tar, (feat, new_value)::acc_updated_feats)
+          ) (tar,[]) sub_src in
+      Some (new_tar, updated_feats)
 
   (* ---------------------------------------------------------------------- *)
   let get_main ?main_feat t =
     let default_list = ["kind"; "phon"; "form"; "label"; "cat"; "upos"] in
     let main_list = match main_feat with
-    | None -> default_list
-    | Some string -> (Str.split (Str.regexp "\\( *; *\\)\\|#") string) @ default_list in
+      | None -> default_list
+      | Some string -> (Str.split (Str.regexp "\\( *; *\\)\\|#") string) @ default_list in
     let rec loop = function
       | [] -> (None, t)
       | feat_name :: tail ->
-          match List_.sort_assoc feat_name t with
-          | Some atom -> (Some (feat_name, atom), List_.sort_remove_assoc feat_name t)
-          | None -> loop tail in
+        match List_.sort_assoc feat_name t with
+        | Some atom -> (Some (feat_name, atom), List_.sort_remove_assoc feat_name t)
+        | None -> loop tail in
     loop main_list
 
   (* ---------------------------------------------------------------------- *)
@@ -299,9 +299,9 @@ module G_fs = struct
     let is_highlithed feat_name =
       (List.mem_assoc feat_name highlighted_feat_list) ||
       (List.exists (function
-        | (f, Some g) when g = feat_name && (not (List.mem_assoc f t)) && (List.mem_assoc g t) -> true
-        | _ -> false
-        ) highlighted_feat_list
+           | (f, Some g) when g = feat_name && (not (List.mem_assoc f t)) && (List.mem_assoc g t) -> true
+           | _ -> false
+         ) highlighted_feat_list
       ) in
 
     let buff = Buffer.create 32 in
@@ -320,12 +320,12 @@ module G_fs = struct
     let next = List.sort G_feature.print_cmp next in
     List.iter
       (fun g_feat ->
-        G_feature.buff_dot buff g_feat
+         G_feature.buff_dot buff g_feat
       ) next;
 
     match Buffer.contents buff with
-      | "" -> ""
-      | s -> sprintf "<TABLE BORDER=\"0\" CELLBORDER=\"0\" CELLSPACING=\"0\">\n%s\n</TABLE>\n" s
+    | "" -> ""
+    | s -> sprintf "<TABLE BORDER=\"0\" CELLBORDER=\"0\" CELLSPACING=\"0\">\n%s\n</TABLE>\n" s
 
   (* ---------------------------------------------------------------------- *)
   let to_word (t:t) =
@@ -350,18 +350,18 @@ module G_fs = struct
     let is_highlithed feat_name =
       (List.mem_assoc feat_name highlighted_feat_list) ||
       (List.exists (function
-        | (f, Some g) when g = feat_name && (not (List.mem_assoc f t)) && (List.mem_assoc g t) -> true
-        | _ -> false
-        ) highlighted_feat_list
+           | (f, Some g) when g = feat_name && (not (List.mem_assoc f t)) && (List.mem_assoc g t) -> true
+           | _ -> false
+         ) highlighted_feat_list
       ) in
 
     let (main_opt, sub) = get_main ?main_feat t in
     let sub = List.sort G_feature.print_cmp sub in
 
     let color = match get_string_atom "kind" t with
-    | Some "NE" -> ":C:#ff760b"
-    | Some "MWE" -> ":C:#1d7df2"
-    | _ -> "" in
+      | Some "NE" -> ":C:#ff760b"
+      | Some "MWE" -> ":C:#1d7df2"
+      | _ -> "" in
 
     let main = match main_opt with
       | None -> []
@@ -386,16 +386,16 @@ module G_fs = struct
       | _ -> [] in
 
     let lines = List.fold_left
-      (fun acc (feat_name, atom) ->
-        let esc_atom = escape_sharp (G_feature.to_string (decode_feat_name feat_name, atom)) in
-        let text = esc_atom ^ color in
-        if is_highlithed feat_name
-        then (sprintf "%s:B:#8bf56e" text) :: acc
-        else
-          match filter with
-            | Some test when not (test feat_name) -> acc
-            | _ -> text :: acc
-      ) last sub in
+        (fun acc (feat_name, atom) ->
+           let esc_atom = escape_sharp (G_feature.to_string (decode_feat_name feat_name, atom)) in
+           let text = esc_atom ^ color in
+           if is_highlithed feat_name
+           then (sprintf "%s:B:#8bf56e" text) :: acc
+           else
+             match filter with
+             | Some test when not (test feat_name) -> acc
+             | _ -> text :: acc
+        ) last sub in
     let subword = String.concat "#" (List.rev lines) in
 
     sprintf " word=\"%s\"; subword=\"%s\"" word subword
@@ -442,8 +442,8 @@ module P_fs = struct
 
   let feat_list t =
     List.map (function
-      | (fn, P_feature.Else (_,fn2,_)) -> (fn, Some fn2)
-      | (fn, _) -> (fn, None)
+        | (fn, P_feature.Else (_,fn2,_)) -> (fn, Some fn2)
+        | (fn, _) -> (fn, None)
       ) t
 
   let to_string t = List_.to_string P_feature.to_string "\\n" t
@@ -478,7 +478,7 @@ module P_fs = struct
           try if (List.assoc fn2 g_fs) <> fv2 then raise Fail
           with Not_found -> raise Fail
         end; loop acc (t_pat, [])
-        | ((fn_pat, P_feature.Else (_,fn2,fv2))::t_pat,(fn, fv)::t) when fn_pat < fn ->
+      | ((fn_pat, P_feature.Else (_,fn2,fv2))::t_pat,(fn, fv)::t) when fn_pat < fn ->
         begin
           try if (List.assoc fn2 g_fs) <> fv2 then raise Fail
           with Not_found -> raise Fail

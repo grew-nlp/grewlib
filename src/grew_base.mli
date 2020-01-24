@@ -66,7 +66,7 @@ module String_: sig
   val rm_first_char: string -> string
 
   (* [rm_peripheral_white s] returns the string [s] without any white space or tab
-    at the beginning or at the end of the string. *)
+     at the beginning or at the end of the string. *)
   val rm_peripheral_white: string -> string
 
   val rev_concat: string -> string list -> string
@@ -175,8 +175,8 @@ module List_: sig
   val sort_assoc: 'a -> ('a * 'b) list -> 'b option
   val sort_mem_assoc: 'a -> ('a * 'b) list -> bool
 
-   (* [sort_remove_assoc k ass_list] returns the input list without the [key] element,
-      if [key] not found, the unchanged input list is returned *)
+  (* [sort_remove_assoc k ass_list] returns the input list without the [key] element,
+     if [key] not found, the unchanged input list is returned *)
   val sort_remove_assoc: 'a -> ('a * 'b) list -> ('a * 'b) list
 
   val sort_remove_assoc_opt: 'a -> ('a * 'b) list -> ('a * 'b) list option
@@ -188,68 +188,68 @@ end
 
 (* ================================================================================ *)
 module type OrderedType =
-  sig
-    type t
-      (** The type of the map keys. *)
-    val compare : t -> t -> int
-      (** A total ordering function over the keys.
-          This is a two-argument function [f] such that
-          [f e1 e2] is zero if the keys [e1] and [e2] are equal,
-          [f e1 e2] is strictly negative if [e1] is smaller than [e2],
-          and [f e1 e2] is strictly positive if [e1] is greater than [e2].
-          Example: a suitable ordering function is the generic structural
-          comparison function {!Stdlib.compare}. *)
-  end
+sig
+  type t
+  (** The type of the map keys. *)
+  val compare : t -> t -> int
+  (** A total ordering function over the keys.
+      This is a two-argument function [f] such that
+      [f e1 e2] is zero if the keys [e1] and [e2] are equal,
+      [f e1 e2] is strictly negative if [e1] is smaller than [e2],
+      and [f e1 e2] is strictly positive if [e1] is greater than [e2].
+      Example: a suitable ordering function is the generic structural
+      comparison function {!Stdlib.compare}. *)
+end
 (** Input signature of the functor {!Map.Make}. *)
 
 (* ================================================================================ *)
 module type S =
-  sig
-    type key
+sig
+  type key
 
-    type +'a t
+  type +'a t
 
-    val empty: 'a t
+  val empty: 'a t
 
-    (* an empty list returned if the key is undefined *)
-    val assoc: key -> 'a t -> 'a list
+  (* an empty list returned if the key is undefined *)
+  val assoc: key -> 'a t -> 'a list
 
-    val is_empty: 'a t -> bool
+  val is_empty: 'a t -> bool
 
-    val to_string: ('a -> string) -> 'a t -> string
+  val to_string: ('a -> string) -> 'a t -> string
 
-    val iter: (key -> 'a -> unit) -> 'a t -> unit
+  val iter: (key -> 'a -> unit) -> 'a t -> unit
 
-    val add_opt: key -> 'a -> 'a t -> 'a t option
+  val add_opt: key -> 'a -> 'a t -> 'a t option
 
-    val replace: key -> 'a list -> 'a t -> 'a t
+  val replace: key -> 'a list -> 'a t -> 'a t
 
-    val fold: ('b -> key -> 'a -> 'b) -> 'b -> 'a t -> 'b
+  val fold: ('b -> key -> 'a -> 'b) -> 'b -> 'a t -> 'b
 
-    val fold_on_list: ('b -> key -> 'a list -> 'b) -> 'b -> 'a t -> 'b
+  val fold_on_list: ('b -> key -> 'a list -> 'b) -> 'b -> 'a t -> 'b
 
-    (* raise Not_found if no (key,elt) *)
-    val remove: key -> 'a -> 'a t -> 'a t
-    val remove_opt: key -> 'a -> 'a t -> 'a t option
+  (* raise Not_found if no (key,elt) *)
+  val remove: key -> 'a -> 'a t -> 'a t
+  val remove_opt: key -> 'a -> 'a t -> 'a t option
 
-    (* raise Not_found if no (key,elt) *)
-    val remove_key: key -> 'a t -> 'a t
+  (* raise Not_found if no (key,elt) *)
+  val remove_key: key -> 'a t -> 'a t
 
-    (* [mem key value t ] test if the couple (key, value) is in the massoc [t]. *)
-    val mem: key -> 'a -> 'a t -> bool
+  (* [mem key value t ] test if the couple (key, value) is in the massoc [t]. *)
+  val mem: key -> 'a -> 'a t -> bool
 
-    (* mem_key key t] tests is [key] is associated to at least one value in [t]. *)
-    val mem_key: key -> 'a t -> bool
+  (* mem_key key t] tests is [key] is associated to at least one value in [t]. *)
+  val mem_key: key -> 'a t -> bool
 
-    exception Not_disjoint
-    val disjoint_union: 'a t -> 'a t -> 'a t
+  exception Not_disjoint
+  val disjoint_union: 'a t -> 'a t -> 'a t
 
-    val exists: (key -> 'a -> bool) -> 'a t -> bool
+  val exists: (key -> 'a -> bool) -> 'a t -> bool
 
-    val rename: (key * key) list -> 'a t -> 'a t
+  val rename: (key * key) list -> 'a t -> 'a t
 
-    val map_key: (key -> key) -> 'a t -> 'a t
-  end
+  val map_key: (key -> key) -> 'a t -> 'a t
+end
 
 (* ================================================================================ *)
 module Massoc_make (Ord : OrderedType) : S with type key = Ord.t
@@ -312,6 +312,6 @@ module Dependencies : sig
   val lex_cmp: ('a * 'b) -> ('a * 'b) -> int
 
   (* [is_projective arcs] returns [None] if the structure is projective and [Some arc] where [arc] is one of the edge implied in non-projectivity.
-  Input: a list of arcs represented by couples (smallest position, highest position) and lexicographically ordered *)
+     Input: a list of arcs represented by couples (smallest position, highest position) and lexicographically ordered *)
   val is_projective: (float * float) list -> (float * float) option
 end

@@ -79,7 +79,7 @@ module G_node: sig
   val position_comp: t -> t -> int
 
   (* val build_neighbour: t -> t
-  val build_new: t -> t *)
+     val build_new: t -> t *)
 
   val rename: (Gid.t * Gid.t) list -> t -> t
 

@@ -13,15 +13,15 @@ open Grew_graph
 type step_name = string
 
 type rule_app = {
-    rule_name: string;
-    up: G_deco.t;
-    down: G_deco.t;
-  }
+  rule_name: string;
+  up: G_deco.t;
+  down: G_deco.t;
+}
 
 type big_step = {
-    first: rule_app;
-    small_step: (G_graph.t * rule_app) list;
-  }
+  first: rule_app;
+  small_step: (G_graph.t * rule_app) list;
+}
 
 let swap bs = {bs with small_step = List.rev bs.small_step}
 

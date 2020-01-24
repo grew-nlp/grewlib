@@ -44,8 +44,8 @@ module Domain : sig
   val build_labels_only: Label_domain.t -> t
 
   val build_disj : ?loc:Loc.t -> ?domain:t ->
-           feature_name ->
-           feature_atom list -> value list
+    feature_name ->
+    feature_atom list -> value list
 
   val feature_names: t -> string list
 

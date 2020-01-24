@@ -46,7 +46,7 @@ module Matching : sig
   val match_deco: Pattern.t -> t -> G_deco.t
 
   (* [get value request pattern graph matching] returns the value corresponding to the request in the result of a previou result of match
-    [request] can be:
+     [request] can be:
     * the name of a edge declared in the positive part of the pattern
     * the name of a feature value [N.feat] where [N] is a node declared in the positive part of the pattern
     * the name of an edge featue [E.feat] where [e] is a edge declared in the positive part of the pattern

@@ -51,10 +51,10 @@ module Command : sig
 
 
   val build:
-      ?domain: Domain.t ->
-      Lexicons.t ->
-      (Id.name list * string list) ->
-      Id.table ->
-      Ast.command ->
-        t * (Id.name list * string list)
+    ?domain: Domain.t ->
+    Lexicons.t ->
+    (Id.name list * string list) ->
+    Id.table ->
+    Ast.command ->
+    t * (Id.name list * string list)
 end (* module Command *)

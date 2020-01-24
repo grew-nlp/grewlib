@@ -26,9 +26,9 @@ open Grew_loader
 module Grs = struct
 
   type decl =
-  | Rule of Rule.t
-  | Strategy of string * Ast.strat
-  | Package of string * decl list
+    | Rule of Rule.t
+    | Strategy of string * Ast.strat
+    | Package of string * decl list
 
   type t = {
     filename: string;
@@ -57,14 +57,14 @@ module Grs = struct
   let to_json t =
     match t.domain with
     | None -> `Assoc [
-      "filename", `String t.filename;
-      "decls", `List (List.map decl_to_json t.decls)
-    ]
+        "filename", `String t.filename;
+        "decls", `List (List.map decl_to_json t.decls)
+      ]
     | Some dom -> `Assoc [
-      "domain", Domain.to_json dom;
-      "filename", `String t.filename;
-      "decls", `List (List.map (decl_to_json ~domain:dom) t.decls)
-    ]
+        "domain", Domain.to_json dom;
+        "filename", `String t.filename;
+        "decls", `List (List.map (decl_to_json ~domain:dom) t.decls)
+      ]
 
 
   let get_strat_list grs = Grew_ast.Ast.strat_list grs.ast
@@ -85,10 +85,10 @@ module Grs = struct
     ()
 
   let rec build_decl ?domain = function
-  | Ast.Package (loc, name, decl_list) -> Package (name, List.map (build_decl ?domain) decl_list)
-  | Ast.Rule ast_rule -> Rule (Rule.build ?domain ast_rule)
-  | Ast.Strategy (loc, name, ast_strat) -> Strategy (name, ast_strat)
-  | _ -> Error.bug "[build_decl] Inconsistent ast for grs"
+    | Ast.Package (loc, name, decl_list) -> Package (name, List.map (build_decl ?domain) decl_list)
+    | Ast.Rule ast_rule -> Rule (Rule.build ?domain ast_rule)
+    | Ast.Strategy (loc, name, ast_strat) -> Strategy (name, ast_strat)
+    | _ -> Error.bug "[build_decl] Inconsistent ast for grs"
 
   let domain t = t.domain
 
@@ -99,39 +99,39 @@ module Grs = struct
 
   let from_ast filename ast =
     let feature_domains = List_.opt_map
-      (fun x -> match x with
-        | Ast.Features desc -> Some desc
-        | _ -> None
-      ) ast in
+        (fun x -> match x with
+           | Ast.Features desc -> Some desc
+           | _ -> None
+        ) ast in
 
     let feature_domain = match feature_domains with
-    | [] -> None
-    | h::t -> Some (Feature_domain.build (List.fold_left Feature_domain.merge h t)) in
+      | [] -> None
+      | h::t -> Some (Feature_domain.build (List.fold_left Feature_domain.merge h t)) in
 
     let label_domains = List_.opt_map
-      (fun x -> match x with
-        | Ast.Labels desc -> Some desc
-        | _ -> None
-      ) ast in
+        (fun x -> match x with
+           | Ast.Labels desc -> Some desc
+           | _ -> None
+        ) ast in
     let label_domain = match label_domains with
-    | [] -> None
-    | h::t -> Some (Label_domain.build (List.fold_left Label_domain.merge h t)) in
+      | [] -> None
+      | h::t -> Some (Label_domain.build (List.fold_left Label_domain.merge h t)) in
 
     let domain = match (label_domain, feature_domain) with
-    | (None, None) -> None
-    | (Some ld, None) -> Some (Domain.build_labels_only ld)
-    | (None, Some fd) -> Some (Domain.build_features_only fd)
-    | (Some ld, Some fd) -> Some (Domain.build ld fd) in
+      | (None, None) -> None
+      | (Some ld, None) -> Some (Domain.build_labels_only ld)
+      | (None, Some fd) -> Some (Domain.build_features_only fd)
+      | (Some ld, Some fd) -> Some (Domain.build ld fd) in
 
     let decls = List_.opt_map
-      (fun x -> match x with
-        | Ast.Features _ -> None
-        | Ast.Labels _ -> None
-        | Ast.Conll_fields _ -> None
-        | Ast.Import _ -> Error.bug "[load] Import: inconsistent ast for grs"
-        | Ast.Include _ -> Error.bug "[load] Include: inconsistent ast for grs"
-        | x -> Some (build_decl ?domain x)
-      ) ast in
+        (fun x -> match x with
+           | Ast.Features _ -> None
+           | Ast.Labels _ -> None
+           | Ast.Conll_fields _ -> None
+           | Ast.Import _ -> Error.bug "[load] Import: inconsistent ast for grs"
+           | Ast.Include _ -> Error.bug "[load] Include: inconsistent ast for grs"
+           | x -> Some (build_decl ?domain x)
+        ) ast in
 
     { filename;
       ast;
@@ -143,28 +143,28 @@ module Grs = struct
 
   (* The type [pointed] is a zipper style data structure for resolving names x.y.z *)
   type pointed =
-  | Top of decl list
-  | Pack of (decl list * pointed)  (* (content, mother package) *)
+    | Top of decl list
+    | Pack of (decl list * pointed)  (* (content, mother package) *)
 
   let rec dump_pointed = function
-  | Top l -> printf "TOP: %s\n" (String.concat "+" (List.map decl_to_string l))
-  | Pack (l, pointed)  ->
-    printf "PACK: %s\nMOTHER --> " (String.concat "+" (List.map decl_to_string l));
-    dump_pointed pointed
+    | Top l -> printf "TOP: %s\n" (String.concat "+" (List.map decl_to_string l))
+    | Pack (l, pointed)  ->
+      printf "PACK: %s\nMOTHER --> " (String.concat "+" (List.map decl_to_string l));
+      dump_pointed pointed
 
 
 
   let top grs = Top grs.decls
 
   let decl_list = function
-  | Top dl -> dl
-  | Pack (dl, _) -> dl
+    | Top dl -> dl
+    | Pack (dl, _) -> dl
 
   let down pointed name =
     let rec loop = function
-    | [] -> None
-    | Package (n,dl) :: _ when n=name -> Some (Pack (dl, pointed))
-    | _::t -> loop t in
+      | [] -> None
+      | Package (n,dl) :: _ when n=name -> Some (Pack (dl, pointed))
+      | _::t -> loop t in
     loop (decl_list pointed)
 
 
@@ -174,12 +174,12 @@ module Grs = struct
     | [one] ->
       begin
         match List.find_opt
-          (function
-            | Strategy (s,_) when s=one -> true
-            | Rule r when Rule.get_name r = one -> true
-            | Package (p,_) when p=one -> true
-            | _ -> false
-          ) (decl_list pointed) with
+                (function
+                  | Strategy (s,_) when s=one -> true
+                  | Rule r when Rule.get_name r = one -> true
+                  | Package (p,_) when p=one -> true
+                  | _ -> false
+                ) (decl_list pointed) with
         | Some item -> Some (item, pointed)
         | None -> None
       end
@@ -191,11 +191,11 @@ module Grs = struct
   (* search for the path in current location and recursively on mother structure *)
   let rec search_from pointed path =
     match search_at pointed path with
-      | Some r_or_s -> Some r_or_s
-      | None ->
+    | Some r_or_s -> Some r_or_s
+    | None ->
       (match pointed with
-        | Top _ -> None
-        | Pack (_,mother) -> search_from mother path
+       | Top _ -> None
+       | Pack (_,mother) -> search_from mother path
       )
 
 
@@ -287,19 +287,19 @@ module Grs = struct
       | [] -> None
       | Rule r :: tail_decl ->
         (match Rule.onf_apply ?domain r graph with
-        | Some x -> Some x
-        | None -> loop tail_decl
+         | Some x -> Some x
+         | None -> loop tail_decl
         )
       | _ :: tail_decl -> loop tail_decl in
-      loop decl_list
+    loop decl_list
 
-      (* one step or until normal_form *)
-      (* 3 values: Zero | Id | New_graph g *)
+  (* one step or until normal_form *)
+  (* 3 values: Zero | Id | New_graph g *)
 
   let rec onf_intern_simple_rewrite ?domain pointed strat_name graph =
     (* printf "===== onf_intern_simple_rewrite ==== %s\n%!" strat_name; *)
     let path = Str.split (Str.regexp "\\.") strat_name in
-      match search_from pointed path with
+    match search_from pointed path with
     | None -> Error.build "Simple rewrite, cannot find strat %s" strat_name
     | Some (Rule r,_) -> Rule.onf_apply ?domain r graph
     | Some (Package (_, decl_list), _) -> onf_pack_rewrite ?domain decl_list graph
@@ -319,7 +319,7 @@ module Grs = struct
           match onf_strat_simple_rewrite ?domain pointed head_strat graph with
           | None -> loop tail_strat
           | Some x -> Some x in
-        loop strat_list
+      loop strat_list
 
     | Ast.Seq [] -> Some graph
     | Ast.Seq (head_strat :: tail_strat) ->
@@ -334,14 +334,14 @@ module Grs = struct
         match onf_strat_simple_rewrite ?domain pointed sub_strat graph with
         | None -> Some graph
         | Some inst -> onf_strat_simple_rewrite ?domain pointed strat inst
-        end
+      end
 
     | Ast.Try sub_strat ->
-        begin
-          match onf_strat_simple_rewrite ?domain pointed sub_strat graph with
-          | None -> Some graph
-          | Some i -> Some i
-        end
+      begin
+        match onf_strat_simple_rewrite ?domain pointed sub_strat graph with
+        | None -> Some graph
+        | Some i -> Some i
+      end
 
     | Ast.If (s, s1, s2) ->
       begin
@@ -372,11 +372,11 @@ module Grs = struct
       | [] -> None
       | Rule r :: tail_decl ->
         (match Rule.owh_apply ?domain r gwh with
-        | Some x -> Some x
-        | None -> loop tail_decl
+         | Some x -> Some x
+         | None -> loop tail_decl
         )
       | _ :: tail_decl -> loop tail_decl in
-      loop decl_list
+    loop decl_list
 
   let rec owh_intern_simple_rewrite ?domain pointed strat_name gwh =
     let path = Str.split (Str.regexp "\\.") strat_name in
@@ -400,7 +400,7 @@ module Grs = struct
           match owh_strat_simple_rewrite ?domain pointed head_strat gwh with
           | None -> loop tail_strat
           | Some x -> Some x in
-        loop strat_list
+      loop strat_list
 
     | Ast.Seq [] -> Some gwh
     | Ast.Seq (head_strat :: tail_strat) ->
@@ -439,8 +439,8 @@ module Grs = struct
   let gwh_pack_rewrite ?domain decl_list gwh =
     List.fold_left
       (fun acc decl -> match decl with
-        | Rule r -> Graph_with_history_set.union acc (Rule.gwh_apply ?domain r gwh)
-        | _ -> acc
+         | Rule r -> Graph_with_history_set.union acc (Rule.gwh_apply ?domain r gwh)
+         | _ -> acc
       ) Graph_with_history_set.empty decl_list
 
   let rec gwh_intern_simple_rewrite ?domain pointed strat_name gwh =
@@ -458,15 +458,15 @@ module Grs = struct
     | Ast.Pick strat ->
       begin
         match Graph_with_history_set.choose_opt
-          (gwh_strat_simple_rewrite ?domain pointed strat gwh) with
+                (gwh_strat_simple_rewrite ?domain pointed strat gwh) with
         | None -> Graph_with_history_set.empty
         | Some x -> Graph_with_history_set.singleton x
       end
 
     | Ast.Alt [] -> Graph_with_history_set.empty
     | Ast.Alt strat_list -> List.fold_left
-      (fun acc strat -> Graph_with_history_set.union acc (gwh_strat_simple_rewrite ?domain pointed strat gwh)
-      ) Graph_with_history_set.empty strat_list
+                              (fun acc strat -> Graph_with_history_set.union acc (gwh_strat_simple_rewrite ?domain pointed strat gwh)
+                              ) Graph_with_history_set.empty strat_list
 
     | Ast.Seq [] -> Graph_with_history_set.singleton gwh
     | Ast.Seq (head_strat :: tail_strat) ->
@@ -489,7 +489,7 @@ module Grs = struct
     | Ast.If (s, s1, s2) ->
       begin
         match (* TODO: is it correct to put onf_ ?*)
-        onf_strat_simple_rewrite ?domain pointed s gwh.Graph_with_history.graph with
+          onf_strat_simple_rewrite ?domain pointed s gwh.Graph_with_history.graph with
         | Some _ -> gwh_strat_simple_rewrite ?domain pointed s1 gwh
         | None   -> gwh_strat_simple_rewrite ?domain pointed s2 gwh
       end
@@ -503,24 +503,24 @@ module Grs = struct
         let one_step = gwh_strat_simple_rewrite ?domain pointed strat one in
         if Graph_with_history_set.subset one_step (Graph_with_history_set.singleton one)
         then
-        loop (
-          new_todo,
-          not_nf,
-          Graph_with_history_set.add one nf
-        )
+          loop (
+            new_todo,
+            not_nf,
+            Graph_with_history_set.add one nf
+          )
         else
           let new_graphs =
             (Graph_with_history_set.diff
-              (Graph_with_history_set.diff
-                (Graph_with_history_set.diff one_step todo)
-              not_nf)
-            nf) in
-        loop (
-          Graph_with_history_set.union new_todo new_graphs,
-          Graph_with_history_set.add one not_nf,
-          nf
-        ) in
-      loop (Graph_with_history_set.singleton gwh, Graph_with_history_set.empty, Graph_with_history_set.empty)
+               (Graph_with_history_set.diff
+                  (Graph_with_history_set.diff one_step todo)
+                  not_nf)
+               nf) in
+          loop (
+            Graph_with_history_set.union new_todo new_graphs,
+            Graph_with_history_set.add one not_nf,
+            nf
+          ) in
+    loop (Graph_with_history_set.singleton gwh, Graph_with_history_set.empty, Graph_with_history_set.empty)
 
   (* ============================================================================================= *)
   let gwh_simple_rewrite grs strat graph =
@@ -555,17 +555,17 @@ module Grs = struct
       | [] -> None
       | Rule r :: tail_decl ->
         (match Rule.wrd_apply ?domain r graph_with_big_step with
-        | Some x -> Some x
-        | None -> loop tail_decl
+         | Some x -> Some x
+         | None -> loop tail_decl
         )
       | _ :: tail_decl -> loop tail_decl in
-      loop decl_list
+    loop decl_list
 
   let rec wrd_pack_iter_rewrite ?domain decl_list graph_with_big_step =
     match (graph_with_big_step, wrd_pack_rewrite ?domain decl_list graph_with_big_step) with
-      | (_, Some (new_gr, new_bs)) -> wrd_pack_iter_rewrite ?domain decl_list (new_gr, Some new_bs)
-      | ((gr, Some bs), None) -> Some (gr, bs)
-      | ((gr, None), None) -> None
+    | (_, Some (new_gr, new_bs)) -> wrd_pack_iter_rewrite ?domain decl_list (new_gr, Some new_bs)
+    | ((gr, Some bs), None) -> Some (gr, bs)
+    | ((gr, None), None) -> None
 
   (* functions [wrd_intern_simple_rewrite] and [wrd_strat_simple_rewrite] computes
      one normal form and output the data needed for rew_display production.
@@ -579,38 +579,38 @@ module Grs = struct
     | Some (Rule r,_) when iter_flag ->
       begin (* pack iterations on one rule as one "package" *)
         match wrd_pack_iter_rewrite ?domain [Rule r] (linear_rd.graph, None) with
-          | None -> None
-          | Some (new_graph, big_step) -> Some {
-              steps = (sprintf "Onf(%s)" (Rule.get_name r), linear_rd.graph, big_step) :: linear_rd.steps;
-              graph = new_graph;
-              know_normal_form = true;
-            }
+        | None -> None
+        | Some (new_graph, big_step) -> Some {
+            steps = (sprintf "Onf(%s)" (Rule.get_name r), linear_rd.graph, big_step) :: linear_rd.steps;
+            graph = new_graph;
+            know_normal_form = true;
+          }
       end
     | Some (Rule r,_) ->
       begin
         match Rule.wrd_apply ?domain r (linear_rd.graph, None) with
-          | None -> None
-          | Some (new_graph, big_step) -> Some {
-              steps = (Rule.get_name r, linear_rd.graph, big_step) :: linear_rd.steps;
-              graph = new_graph;
-              know_normal_form=false
-            }
+        | None -> None
+        | Some (new_graph, big_step) -> Some {
+            steps = (Rule.get_name r, linear_rd.graph, big_step) :: linear_rd.steps;
+            graph = new_graph;
+            know_normal_form=false
+          }
       end
     | Some (Package (name, decl_list), _) when iter_flag ->
       begin
         match wrd_pack_iter_rewrite ?domain decl_list (linear_rd.graph, None) with
-          | None -> None
-          | Some (new_graph, big_step) -> Some {
-              steps = (name, linear_rd.graph, big_step) :: linear_rd.steps;
-              graph = new_graph;
-              know_normal_form = true;
-            }
+        | None -> None
+        | Some (new_graph, big_step) -> Some {
+            steps = (name, linear_rd.graph, big_step) :: linear_rd.steps;
+            graph = new_graph;
+            know_normal_form = true;
+          }
       end
     | Some (Package (name, decl_list), _) ->
       begin
         match wrd_pack_rewrite ?domain decl_list (linear_rd.graph, None) with
-          | None -> None
-          | Some (new_graph, big_step) -> Some {
+        | None -> None
+        | Some (new_graph, big_step) -> Some {
             steps = (name, linear_rd.graph, big_step) :: linear_rd.steps;
             graph = new_graph;
             know_normal_form = true;
@@ -632,7 +632,7 @@ module Grs = struct
           match wrd_strat_simple_rewrite ?domain false pointed head_strat linear_rd  with
           | None -> loop tail_strat
           | Some x -> Some x in
-        loop strat_list
+      loop strat_list
 
     | Ast.Seq [] -> Some linear_rd
     | Ast.Seq (head_strat :: tail_strat) ->
@@ -652,11 +652,11 @@ module Grs = struct
       end
 
     | Ast.Try sub_strat ->
-        begin
-          match wrd_strat_simple_rewrite ?domain false pointed sub_strat linear_rd  with
-          | None -> Some linear_rd
-          | Some i -> Some i
-        end
+      begin
+        match wrd_strat_simple_rewrite ?domain false pointed sub_strat linear_rd  with
+        | None -> Some linear_rd
+        | Some i -> Some i
+      end
 
     | Ast.If (s, s1, s2) ->
       begin
