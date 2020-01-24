@@ -16,6 +16,8 @@ module Int_map : Map.S with type key = int
 
 module Float_map : Map.S with type key = float
 
+val to_uname: string -> string
+
 (* ================================================================================ *)
 (* [Loc] general module to describe errors location: (file name, line number in file) *)
 module Loc: sig
@@ -315,3 +317,6 @@ module Dependencies : sig
      Input: a list of arcs represented by couples (smallest position, highest position) and lexicographically ordered *)
   val is_projective: (float * float) list -> (float * float) option
 end
+
+
+

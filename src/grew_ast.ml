@@ -11,7 +11,25 @@
 open Printf
 open Log
 open Grew_base
-open Grew_types
+
+type feature_name = string (* cat, num, ... *)
+type feature_atom = string (* V, N, inf, ... *)
+type feature_value = string (* V, 4, "free text", ... *)
+
+type value =
+  | String of string
+  | Float of float
+
+let string_of_value = function
+  | String s -> Str.global_replace (Str.regexp "\"") "\\\""
+                  (Str.global_replace (Str.regexp "\\\\") "\\\\\\\\" s)
+  | Float i -> String_.of_float i
+
+let conll_string_of_value = function
+  | String s -> s
+  | Float i -> String_.of_float i
+
+type disjunction = value list
 
 (* ================================================================================ *)
 module Ast = struct

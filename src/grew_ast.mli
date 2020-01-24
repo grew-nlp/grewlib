@@ -9,7 +9,22 @@
 (**********************************************************************************)
 
 open Grew_base
-open Grew_types
+
+type feature_name = string (* cat, num, ... *)
+type feature_atom = string (* V, N, inf, ... *)
+type feature_value = string (* V, 4, "free text", ... *)
+
+type value =
+  | String of string
+  | Float of float
+
+val string_of_value : value -> string
+
+val conll_string_of_value : value -> string
+
+type disjunction = value list
+
+
 
 module Ast : sig
 

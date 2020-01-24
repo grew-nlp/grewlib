@@ -21,6 +21,17 @@ module Float_map = Map.Make (struct type t = float let compare = Stdlib.compare 
 
 module String_opt_map = Map.Make (struct type t = string option let compare = Stdlib.compare end)
 
+
+
+let to_uname = function
+  | "cat" -> "upos"
+  | "pos" -> "xpos"
+  | "phon" -> "form"
+  | x -> x
+
+
+
+
 (* ================================================================================ *)
 module Loc = struct
   type t = string option * int option
@@ -671,3 +682,4 @@ module Dependencies = struct
     loop 0. [] [] edge_list
 
 end
+

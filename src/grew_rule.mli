@@ -52,8 +52,6 @@ module Matching : sig
     * the name of an edge featue [E.feat] where [e] is a edge declared in the positive part of the pattern
   *)
   val get_value: string -> Pattern.t -> G_graph.t -> t -> string option
-
-
 end
 
 (* ================================================================================ *)
@@ -82,14 +80,6 @@ module Rule : sig
   (** [build ?domain ast_rule] returns the Rule.t value corresponding to [ast_rule] *)
   val build: ?domain:Domain.t -> Ast.rule -> t
 
-
-
-
-
-
-
-
-
   val wrd_apply: ?domain: Domain.t -> t -> (G_graph.t * Libgrew_types.big_step option) -> (G_graph.t * Libgrew_types.big_step) option
 
   val onf_apply: ?domain: Domain.t -> t -> G_graph.t -> G_graph.t option
@@ -97,7 +87,5 @@ module Rule : sig
   val gwh_apply: ?domain: Domain.t -> t -> Graph_with_history.t -> Graph_with_history_set.t
 
   val owh_apply: ?domain: Domain.t -> t -> Graph_with_history.t -> Graph_with_history.t option
-
-
 
 end (* module Rule *)

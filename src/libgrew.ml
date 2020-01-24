@@ -116,8 +116,6 @@ module Matching = struct
     Libgrew.handle ~name:"Matching.get_value" (fun () ->
       Grew_rule.Matching.get_value request pattern graph matching
     ) ()
-
-
 end
 
 (* ==================================================================================================== *)

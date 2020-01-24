@@ -22,6 +22,13 @@ open Grew_fs
 open Grew_node
 
 (* ================================================================================ *)
+module Concat_item = struct
+  type t =
+    | Feat of (Gid.t * feature_name)
+    | String of string
+end (* module Concat_item *)
+
+(* ================================================================================ *)
 module P_deco = struct
   type t = {
     nodes: Pid.t list;
@@ -229,10 +236,11 @@ module G_graph = struct
     efs: (string * string) list;
   }
 
-  let shift_fusion_item n fusion_item = { fusion_item with
-                                          first = fusion_item.first + n;
-                                          last = fusion_item.last + n;
-                                        }
+  let shift_fusion_item n fusion_item =
+    { fusion_item with
+      first = fusion_item.first + n;
+      last = fusion_item.last + n;
+    }
 
   type t = {
     domain: Domain.t option;
@@ -943,11 +951,12 @@ module G_graph = struct
 
   let start_dur gnode =
     let fs = G_node.get_fs gnode in
-    match (G_fs.get_string_atom "_start" fs, G_fs.get_string_atom "_stop" fs) with (Some _start, Some _stop) ->
+    match (G_fs.get_string_atom "_start" fs, G_fs.get_string_atom "_stop" fs) with
+    | (Some _start, Some _stop) ->
       let start = float_of_string _start
       and stop = float_of_string _stop in
       (start, stop -. start)
-                                                                                 | _ -> (-1., -1.)
+    | _ -> (-1., -1.)
 
 
   let to_orfeo ?(deco=G_deco.empty) graph =

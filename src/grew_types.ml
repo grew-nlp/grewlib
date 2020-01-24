@@ -12,31 +12,8 @@ open Log
 open Printf
 
 open Grew_base
+open Grew_ast
 
-type feature_name = string (* cat, num, ... *)
-type feature_atom = string (* V, N, inf, ... *)
-type feature_value = string (* V, 4, "free text", ... *)
-
-type value =
-  | String of string
-  | Float of float
-
-let string_of_value = function
-  | String s -> Str.global_replace (Str.regexp "\"") "\\\""
-                  (Str.global_replace (Str.regexp "\\\\") "\\\\\\\\" s)
-  | Float i -> String_.of_float i
-
-let conll_string_of_value = function
-  | String s -> s
-  | Float i -> String_.of_float i
-
-type disjunction = value list
-
-let to_uname = function
-  | "cat" -> "upos"
-  | "pos" -> "xpos"
-  | "phon" -> "form"
-  | x -> x
 
 (* ================================================================================ *)
 module Pid = struct
@@ -124,7 +101,7 @@ module Lexicon = struct
   type t = {
     header: string list;  (* ordered list of column headers *)
     lines: Line_set.t;
-    loc: Loc.t;
+    loc: Loc.t option;
   }
 
   let rec transpose = function
@@ -138,10 +115,14 @@ module Lexicon = struct
     | 0 -> raise (Equal x)
     | x -> x
 
-  let build loc items =
+  (** [build loc items] build a lexicon from a list.
+      The first list is interpreted as the column headers.
+      All other lines are lexicon items.
+      It is supposed that all sublist have the same length *)
+  let build_from_list ?loc items =
     let real_items = List.filter (fun (_,x) -> x <> "" && x.[0] <> '%') items in
     match real_items with
-    | [] | [_] -> Error.build ~loc "[Lexicon.build] a lexicon must not be empty"
+    | [] | [_] -> Error.build ?loc "[Lexicon.build] a lexicon must not be empty"
     | (linenum_h, h)::t ->
       let fields = List.map to_uname (Str.split (Str.regexp "\t") h) in
       let l = List.length fields in
@@ -155,8 +136,8 @@ module Lexicon = struct
           let items = Str.split (Str.regexp "\t") norm_line in
           if List.length items <> l then
             begin
-              let loc = Loc.set_line linenum loc in
-              Error.build ~loc "[Lexicon.build] line with %d items (%d expected!!)" (List.length items) l
+              let loc = CCOpt.map (Loc.set_line linenum) loc in
+              Error.build ?loc "[Lexicon.build] line with %d items (%d expected!!)" (List.length items) l
             end;
           items :: (loop tail) in
       let items_list = fields ::(loop t) in
@@ -164,32 +145,18 @@ module Lexicon = struct
       try
         let sorted_tr = List.sort (fun l1 l2 -> strict_compare (List.hd l1) (List.hd l2)) tr in
         match transpose sorted_tr with
-        | [] -> Error.bug ~loc "[Lexicon.build] inconsistent data"
+        | [] -> Error.bug ?loc "[Lexicon.build] inconsistent data"
         | header :: lines_list -> { header; lines = List.fold_right Line_set.add lines_list Line_set.empty; loc }
       with Equal v ->
-        let loc = Loc.set_line linenum_h loc in
-        Error.build ~loc "[Lexicon.build] the field name \"%s\" is used twice" v
+        let loc = CCOpt.map (Loc.set_line linenum_h) loc in
+        Error.build ?loc "[Lexicon.build] the field name \"%s\" is used twice" v
 
-  let load loc file =
+  let load ?loc file =
     try
       let lines = File.read_ln file in
       let loc = Loc.file file in
-      build loc lines
-    with Sys_error _ -> Error.build ~loc "[Lexicon.load] unable to load file %s" file
-
-  let reduce sub_list lexicon =
-    let sorted_sub_list = List.sort Stdlib.compare sub_list in
-    let reduce_line line =
-      let rec loop = function
-        | ([],_,_) -> []
-        | (hs::ts, hh::th, hl::tl)    when hs=hh    -> hl::(loop (ts,th,tl))
-        | (hs::ts, hh::th, hl::tl)    when hs>hh    -> loop (hs::ts, th, tl)
-        | (hs::ts, hh::th, hl::tl) (* when hs<hh *) -> Error.bug "[Lexicon.reduce] Field '%s' not in lexicon" hs
-        | (hs::ts, [], []) -> Error.bug "[Lexicon.reduce] Field '%s' not in lexicon" hs
-        | _ -> Error.bug "[Lexicon.reduce] Inconsistent length" in
-      loop (sorted_sub_list, lexicon.header, line) in
-    let new_lines = Line_set.map reduce_line lexicon.lines in
-    { lexicon with header = sorted_sub_list; lines = new_lines }
+      build_from_list ~loc lines
+    with Sys_error _ -> Error.build ?loc "[Lexicon.load] unable to load file %s" file
 
   let union lex1 lex2 =
     if lex1.header <> lex2.header then Error.build "[Lexicon.union] different header";
@@ -198,7 +165,7 @@ module Lexicon = struct
 
   let select head value lex =
     match List_.index head lex.header with
-    | None -> Error.build ~loc:lex.loc "[Lexicon.select] cannot find %s in lexicon" head
+    | None -> Error.build ?loc:lex.loc "[Lexicon.select] cannot find %s in lexicon" head
     | Some index ->
       let new_set = Line_set.filter (fun line -> List.nth line index = value) lex.lines in
       if Line_set.is_empty new_set
@@ -207,7 +174,7 @@ module Lexicon = struct
 
   let unselect head value lex =
     match List_.index head lex.header with
-    | None -> Error.build ~loc:lex.loc "[Lexicon.unselect] cannot find the fiels \"%s\" in lexicon" head
+    | None -> Error.build ?loc:lex.loc "[Lexicon.unselect] cannot find the fiels \"%s\" in lexicon" head
     | Some index ->
       let new_set = Line_set.filter (fun line -> List.nth line index <> value) lex.lines in
       if Line_set.is_empty new_set
@@ -216,7 +183,7 @@ module Lexicon = struct
 
   let projection head lex =
     match List_.index head lex.header with
-    | None -> Error.build ~loc:lex.loc "[Lexicon.projection] cannot find %s in lexicon" head
+    | None -> Error.build ?loc:lex.loc "[Lexicon.projection] cannot find %s in lexicon" head
     | Some index -> Line_set.fold (fun line acc -> String_set.add (List.nth line index) acc) lex.lines String_set.empty
 
   exception Not_functional_lexicon
@@ -237,24 +204,26 @@ module Lexicon = struct
     match String_set.elements (projection head lex) with
     | [] -> Error.bug "[Lexicon.read] a lexicon must not be empty"
     | l -> String.concat "/" l
+
+  let build ?loc = function
+    | Ast.File filename ->
+      if Filename.is_relative filename
+      then load ?loc (Filename.concat (Global.get_dir ()) filename)
+      else load ?loc filename
+    | Ast.Final (line_list) -> build_from_list ?loc line_list
+
 end (* module Lexicon *)
 
 (* ================================================================================ *)
 module Lexicons = struct
   type t = (string * Lexicon.t) list
 
-  let check ~loc lexicon_name field_name t =
+  let check ?loc lexicon_name field_name t =
     match List.assoc_opt lexicon_name t with
     | None ->
-      Error.build ~loc "Undefined lexicon name \"%s\"" lexicon_name
+      Error.build ?loc "Undefined lexicon name \"%s\"" lexicon_name
     | Some lexicon when not (List.mem field_name lexicon.Lexicon.header) ->
-      Error.build ~loc "Undefined field name \"%s\" in lexicon %s" field_name lexicon_name
+      Error.build ?loc "Undefined field name \"%s\" in lexicon %s" field_name lexicon_name
     | _ -> ()
 end (* module Lexicons *)
 
-(* ================================================================================ *)
-module Concat_item = struct
-  type t =
-    | Feat of (Gid.t * feature_name)
-    | String of string
-end (* module Concat_item *)

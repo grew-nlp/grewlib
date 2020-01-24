@@ -9,22 +9,7 @@
 (**********************************************************************************)
 
 open Grew_base
-
-type feature_name = string (* cat, num, ... *)
-type feature_atom = string (* V, N, inf, ... *)
-type feature_value = string (* V, 4, "free text", ... *)
-
-type value =
-  | String of string
-  | Float of float
-
-val string_of_value : value -> string
-
-val conll_string_of_value : value -> string
-
-type disjunction = value list
-
-val to_uname: feature_name -> feature_name
+open Grew_ast
 
 (* ================================================================================ *)
 (* [Pid] describes identifier used in pattern graphs *)
@@ -84,19 +69,13 @@ module Massoc_string : S with type key = string
 module Lexicon : sig
   type t
 
-  (** [build loc items] build a lexicon from a list.
-      The first list is interpreted as the column headers.
-      All other lines are lexicon items.
-      It is supposed that all sublist have the same length *)
-  val build: Loc.t -> (int * string) list -> t
-
   (** [load file] build a lexicon from a file.
       The file should contain same data than the ones in the build function
       in separate lines, each line used tabulation as separator *)
-  val load: Loc.t -> string -> t
+  val load: ?loc:Loc.t -> string -> t
 
   (** [reduce headers lexicon] build a smaller lexicon restricted to a subset of columns (defined in [headers]) *)
-  val reduce: string list -> t -> t
+  (* val reduce: string list -> t -> t *)
 
   (** [union lex1 lex2] returns the union of two lexicons
       It supposed that the two lexicons define the same columns *)
@@ -122,18 +101,14 @@ module Lexicon : sig
 
   (** [read_multi head lexicon] returns "v_1/…/v_k" where v_i are the values of the [head] column *)
   val read_multi: string -> t -> string
+
+  val build: ?loc:Loc.t -> Ast.lexicon -> t
 end (* module Lexicon *)
 
 (* ================================================================================ *)
 module Lexicons : sig
   type t = (string * Lexicon.t) list
 
-  val check: loc:Loc.t -> string -> string -> t -> unit
+  val check: ?loc:Loc.t -> string -> string -> t -> unit
 end (* module Lexicons *)
 
-(* ================================================================================ *)
-module Concat_item : sig
-  type t =
-    | Feat of (Gid.t * feature_name)
-    | String of string
-end (* module Concat_item *)

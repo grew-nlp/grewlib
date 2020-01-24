@@ -54,8 +54,6 @@ module Pattern = struct
     | Label_equal of string * string
     | Label_disequal of string * string
 
-
-
   let const_to_json ?domain = function
     | Cst_out (pid, label_cst) -> `Assoc ["cst_out", Label_cst.to_json ?domain label_cst]
     | Cst_in (pid, label_cst) -> `Assoc ["cst_in", Label_cst.to_json ?domain label_cst]
@@ -505,7 +503,7 @@ module Matching = struct
     | [edge_id] ->
       begin
         match String_map.find_opt edge_id matching.e_match with
-        | None -> Error.run "[Rule.get_value] unknown edge_id %s" edge_id
+        | None -> Error.run "[Matching.get_value] unknown edge_id %s" edge_id
         | Some (_,edge,_) -> Some (G_edge.to_conll edge)
       end
     | [node_or_edge_id; feature_name] ->
@@ -515,7 +513,7 @@ module Matching = struct
         | None ->
           begin
             match get_pid_by_name pattern node_or_edge_id matching.n_match with (* TODO: edge feature "e.deep" *)
-            | None -> Error.run "[Rule.get_value] unknown id %s" node_or_edge_id
+            | None -> Error.run "[Matching.get_value] unknown id %s" node_or_edge_id
             | Some pid ->
               let gid = Pid_map.find pid matching.n_match in
               let node = G_graph.find gid graph in
@@ -523,7 +521,7 @@ module Matching = struct
               G_fs.get_string_atom feature_name fs
           end
       end
-    | _ -> Error.run "[Rule.get_value] unable to handled request %s" request
+    | _ -> Error.run "[Matching.get_value] unable to handled request %s" request
 
   let e_match_add ?pos edge_id new_edge matching =
     if String_map.mem edge_id matching.e_match
@@ -1021,14 +1019,10 @@ module Matching = struct
                ) negs
           ) matching_list in
       List.map fst filtered_matching_list
-
-
 end (* module Matching *)
 
 (* ================================================================================ *)
 module Rule = struct
-
-
   (* the number of rewriting steps is bounded to stop rewriting when the system is not terminating *)
   let max_rules = ref 10000
   let current_rules = ref 0
@@ -1143,22 +1137,14 @@ module Rule = struct
         command :: (loop (new_kni,new_kei) tail) in
     loop (known_node_ids, known_edge_ids) ast_commands
 
-  let build_lex loc = function
-    | Ast.File filename ->
-      if Filename.is_relative filename
-      then Lexicon.load loc (Filename.concat (Global.get_dir ()) filename)
-      else Lexicon.load loc filename
-    | Ast.Final (line_list) -> Lexicon.build loc line_list
-
-
   (* ====================================================================== *)
   let build ?domain rule_ast =
     let lexicons =
       List.fold_left (fun acc (name,lex) ->
           try
             let prev = List.assoc name acc in
-            (name, (Lexicon.union prev (build_lex rule_ast.Ast.rule_loc lex))) :: (List.remove_assoc name acc)
-          with Not_found -> (name, build_lex rule_ast.Ast.rule_loc lex) :: acc
+            (name, (Lexicon.union prev (Lexicon.build ~loc:rule_ast.Ast.rule_loc lex))) :: (List.remove_assoc name acc)
+          with Not_found -> (name, Lexicon.build ~loc:rule_ast.Ast.rule_loc lex) :: acc
         ) [] rule_ast.Ast.lexicon_info in
 
     let pattern = Ast.normalize_pattern rule_ast.Ast.pattern in

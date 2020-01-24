@@ -20,6 +20,13 @@ open Grew_node
 open Grew_command
 
 (* ================================================================================ *)
+module Concat_item : sig
+  type t =
+    | Feat of (Gid.t * feature_name)
+    | String of string
+end (* module Concat_item *)
+
+(* ================================================================================ *)
 module P_deco: sig
   type t =
     { nodes: Pid.t list;
