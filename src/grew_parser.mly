@@ -453,6 +453,14 @@ pat_item:
         | STAR atom_list=delimited(LTR_EDGE_LEFT,separated_nonempty_list(COMMA, label_atom),LTR_EDGE_RIGHT) n2_loc=simple_id_with_loc
             { let (n2,loc) = n2_loc in Pat_const (Ast.Cst_in (n2,Ast.Atom_list atom_list), loc) }
 
+        /*   A -[re"mod.*"]-> *   */
+        | n1_loc=simple_id_with_loc LTR_EDGE_LEFT re=REGEXP LTR_EDGE_RIGHT STAR
+            { let (n1,loc) = n1_loc in Pat_const (Ast.Cst_out (n1,Ast.Regexp re), loc) }
+
+        /*   * -[re"mod.*"]-> B   */
+        | STAR LTR_EDGE_LEFT re=REGEXP LTR_EDGE_RIGHT n2_loc=simple_id_with_loc
+            { let (n2,loc) = n2_loc in Pat_const (Ast.Cst_in (n2,Ast.Regexp re), loc) }
+
 
         /* =================================== */
         /* other constraints                   */
