@@ -76,7 +76,7 @@ module P_graph = struct
     (* NB: insert searches for a previous node with the Same name and uses unification rather than constraint *)
     (* NB: insertion of new node at the end of the list: not efficient but graph building is not the hard part. *)
     let rec insert (ast_node, loc) = function
-      | [] -> [P_node.build ?domain lexicons (ast_node, loc)]
+      | [] -> [P_node.build_from_ast ?domain lexicons (ast_node, loc)]
       | (node_id,fs)::tail when ast_node.Ast.node_id = node_id ->
         begin
           try (node_id, P_node.unif_fs (P_fs.build ?domain lexicons ast_node.Ast.fs) fs) :: tail
@@ -127,7 +127,7 @@ module P_graph = struct
   (* It may raise [P_fs.Fail_unif] in case of contradiction on constraints *)
   let build_extension ?domain lexicons pos_table full_node_list full_edge_list =
 
-    let built_nodes = List.map (P_node.build ?domain lexicons) full_node_list in
+    let built_nodes = List.map (P_node.build_from_ast ?domain lexicons) full_node_list in
 
     let (old_nodes, new_nodes) =
       List.partition
@@ -313,7 +313,7 @@ module G_graph = struct
   let map_add_edge_opt map id_src label id_tar =
     let node_src =
       (* Not found can be raised when adding an edge from pos to neg *)
-      try Gid_map.find id_src map with Not_found -> G_node.empty in
+      try Gid_map.find id_src map with Not_found -> (G_node.build ()) in
     match G_node.add_edge label id_tar node_src with
     | None -> None
     | Some new_node -> Some (Gid_map.add id_src new_node map)
@@ -353,7 +353,7 @@ module G_graph = struct
         else
           let (new_tail, table) = loop (node_id :: already_bound) (index+1) (Some index) tail in
           let succ = if tail = [] then None else Some (index+1) in
-          let new_node = G_node.build ?domain ?prec ?succ ~position:index (ast_node, loc) in
+          let new_node = G_node.build_from_ast ?domain ?prec ?succ ~position:index (ast_node, loc) in
           (
             Gid_map.add index new_node new_tail,
             (node_id,index)::table
@@ -365,7 +365,7 @@ module G_graph = struct
       List.fold_left
         (fun (acc_map, acc_table, acc_index) (ast_node,loc) ->
            let node_id = ast_node.Ast.node_id in
-           let new_node = G_node.build ?domain (ast_node,loc) in
+           let new_node = G_node.build_from_ast ?domain (ast_node,loc) in
            (
              Gid_map.add acc_index new_node acc_map,
              (node_id,acc_index)::acc_table,
@@ -435,10 +435,10 @@ module G_graph = struct
       | [] -> Gid_map.empty
       | [last] ->
         let loc = Loc.file_opt_line conll.Conll.file last.Conll.line_num in
-        Gid_map.add index (G_node.of_conll ~loc ?domain ?prec (Some index) last) Gid_map.empty
+        Gid_map.add index (G_node.build_from_conll ~loc ?domain ?prec (Some index) last) Gid_map.empty
       | line::tail ->
         let loc = Loc.file_opt_line conll.Conll.file line.Conll.line_num in
-        Gid_map.add index (G_node.of_conll ~loc ?domain ?prec ~succ:(index+1) (Some index) line)
+        Gid_map.add index (G_node.build_from_conll ~loc ?domain ?prec ~succ:(index+1) (Some index) line)
           (loop (index+1) (Some index) tail) in
 
     let map_without_edges = loop 0 None sorted_lines in
@@ -483,7 +483,7 @@ module G_graph = struct
            let fs3 = match mwe.Mwe.mwepos with None -> fs2 | Some p -> G_fs.set_atom ?domain "mwepos" p fs2 in
            let fs4 = match mwe.Mwe.criterion with None -> fs3 | Some c -> G_fs.set_atom ?domain "criterion" c fs3 in
 
-           let new_node = G_node.set_fs fs4 G_node.empty in
+           let new_node = G_node.set_fs fs4 (G_node.build ()) in
 
            (* add a new node *)
            let new_map_1 = (Gid_map.add free_index new_node acc) in
@@ -542,13 +542,13 @@ module G_graph = struct
     let rec loop nodes = function
       | Ast.Leaf (loc, phon) ->
         let fid = fresh_id () in
-        let node = G_node.pst_leaf ~loc ?domain phon in
+        let node = G_node.build_pst_leaf ~loc ?domain phon in
         leaf_list := fid :: ! leaf_list;
         (fid, Gid_map.add fid node nodes)
 
       | Ast.T (loc, cat, daughters) ->
         let fid = fresh_id () in
-        let new_node = G_node.pst_node ~loc ?domain cat in
+        let new_node = G_node.build_pst_node ~loc ?domain cat in
         let with_mother = Gid_map.add fid new_node nodes in
         let new_nodes = List.fold_left
             (fun map daughter ->
@@ -631,11 +631,11 @@ module G_graph = struct
     let new_map = match G_node.get_prec node with
       | None ->
         shifted_map
-        |> (Gid_map.add new_gid (G_node.fresh ~succ:gid position))
+        |> (Gid_map.add new_gid (G_node.build ~succ:gid ~position ()))
         |> (Gid_map.add gid (G_node.set_prec new_gid node))
       | Some prec_gid ->
         shifted_map
-        |> (Gid_map.add new_gid (G_node.fresh ~prec:prec_gid ~succ:gid position))
+        |> (Gid_map.add new_gid (G_node.build ~prec:prec_gid ~succ:gid ~position ()))
         |> (Gid_map.add prec_gid (G_node.set_succ new_gid (Gid_map.find prec_gid graph.map)))
         |> (Gid_map.add gid (G_node.set_prec new_gid node)) in
 
@@ -651,7 +651,7 @@ module G_graph = struct
     let new_gid = graph.highest_index + 1 in
     let new_map =
       graph.map
-      |> (Gid_map.add new_gid (G_node.fresh ~prec:last_gid new_pos))
+      |> (Gid_map.add new_gid (G_node.build ~prec:last_gid ~position:new_pos ()))
       |> (Gid_map.add last_gid (G_node.set_succ new_gid last_node)) in
     (new_gid, { graph with map=new_map; highest_index = new_gid })
 
@@ -664,7 +664,7 @@ module G_graph = struct
   (* -------------------------------------------------------------------------------- *)
   let add_unordered graph =
     let new_gid = graph.highest_index + 1 in
-    let map = Gid_map.add new_gid G_node.empty graph.map in
+    let map = Gid_map.add new_gid (G_node.build ()) graph.map in
     (new_gid, { graph with map; highest_index = new_gid })
 
 
@@ -1100,7 +1100,7 @@ module G_graph = struct
 
     let ordered_nodes = Gid_map.fold
         (fun id node acc ->
-           if (G_node.get_position node <> None) || (G_node.is_conll_root node)
+           if G_node.get_position node <> None
            then (id,node)::acc
            else acc
         ) graph.map [] in
@@ -1111,10 +1111,10 @@ module G_graph = struct
     (* [mapping] associated gid to Conll.Id.t *)
     let (_,_,mapping) = List.fold_left
         (fun (acc_pos, acc_empty, acc) (gid,node) ->
-           if G_node.is_conll_root node
+           if G_node.get_position node = Some 0
            then (acc_pos, acc_empty, Gid_map.add gid (0,None) acc)
            else
-           if G_node.is_empty node
+           if G_node.is_eud_empty node
            then
              let new_empty = match acc_empty with
                | None -> Some 1
@@ -1150,7 +1150,7 @@ module G_graph = struct
              ()
         )
         (match sorted_nodes with
-         | (_,h)::t when G_node.is_conll_root h -> t (* the first element in the Conll_root which must not be displayed *)
+         | (_,h)::t when G_node.get_position h = Some 0 -> t (* the first element in the Conll_root which must not be displayed *)
          | l -> l
         ) in
 

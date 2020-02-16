@@ -30,15 +30,9 @@ module G_node = struct
     efs: (string * string) list;
   }
 
-  let empty = {
-    name = None;
-    fs = G_fs.empty;
-    next = Massoc_gid.empty;
-    succ = None;
-    prec = None;
-    position = None;
-    efs=[]
-  }
+  let compare n1 n2 = match (n1.position, n2.position) with
+    | (Some i, Some j) -> Stdlib.compare i j
+    | _ -> 0
 
   let get_name gid t = match t.name with
     | Some n -> n
@@ -50,38 +44,18 @@ module G_node = struct
   let get_next t = t.next
   let set_next next t = {t with next }
 
-  let get_position t = t.position
-  let set_position p t = { t with position = Some p }
+  let get_prec t = t.prec
+  let set_prec id t = { t with prec = Some id }
+  let remove_prec t = { t with prec = None }
 
   let get_succ t = t.succ
   let set_succ id t = { t with succ = Some id }
   let remove_succ t = { t with succ = None }
 
-  let get_prec t = t.prec
-  let set_prec id t = { t with prec = Some id }
-  let remove_prec t = { t with prec = None }
+  let get_position t = t.position
+  let set_position p t = { t with position = Some p }
 
-  let is_conll_root t = t.position = Some 0
-
-  let shift user_id delta t =
-    { t with
-      name = CCOpt.map (fun n -> user_id ^ "_" ^ n) t.name;
-      fs = G_fs.set_atom "user" user_id t.fs;
-      next = Massoc_gid.map_key ((+) delta) t.next;
-      prec = CCOpt.map ((+) delta) t.prec;
-      succ = CCOpt.map ((+) delta) t.succ;
-    }
-
-  let unshift user_id t =
-    match (
-      CCOpt.map (fun x -> CCString.chop_prefix ~pre:(user_id^"_") x) t.name,
-      G_fs.del_feat "user" t.fs
-    ) with
-    | (Some name, Some fs) -> { t with name; fs }
-    | (Some name, None) -> { t with name }
-    | _ -> Error.run "[G_node.unshift] Inconsistent data"
-
-  let is_empty t = match G_fs.get_string_atom "_UD_empty" t.fs with
+  let is_eud_empty t = match G_fs.get_string_atom "_UD_empty" t.fs with
     | Some "Yes" -> true
     | _ -> false
 
@@ -92,22 +66,23 @@ module G_node = struct
 
   let to_gr t = sprintf "[%s] " (G_fs.to_gr t.fs)
 
-  let add_edge g_edge gid_tar t =
-    match Massoc_gid.add_opt gid_tar g_edge t.next with
-    | Some l -> Some {t with next = l}
-    | None -> None
+  let empty = {
+    name = None;
+    fs = G_fs.empty;
+    next = Massoc_gid.empty;
+    succ = None;
+    prec = None;
+    position = None;
+    efs=[]
+  }
 
-  let get_efs n = n.efs
+  let build ?prec ?succ ?position () = { empty with position; prec; succ }
 
-  let string_efs n = match n.efs with
-    | [] -> "_"
-    | list -> String.concat "|" (List.map (fun (f,v) -> sprintf "%s=%s" f v) list)
-
-  let build ?domain ?prec ?succ ?position (ast_node, loc) =
+  let build_from_ast ?domain ?prec ?succ ?position (ast_node, loc) =
     let fs = G_fs.build ?domain ast_node.Ast.fs in
     { empty with name=Some ast_node.Ast.node_id; fs; position; prec; succ }
 
-  let of_conll ?loc ?domain ?prec ?succ position line =
+  let build_from_conll ?loc ?domain ?prec ?succ position line =
     if line = Conll.root
     then { empty with position=Some 0; succ; name = Some "ROOT" }
     else { empty with
@@ -119,13 +94,17 @@ module G_node = struct
            name = Some (Conll_types.Id.to_string line.Conll.id)
          }
 
-  let pst_leaf ?loc ?domain phon =
+  let build_pst_leaf ?loc ?domain phon =
     { empty with fs = G_fs.pst_leaf ?loc ?domain phon }
 
-  let pst_node ?loc ?domain cat =
+  let build_pst_node ?loc ?domain cat =
     { empty with fs = G_fs.pst_node ?loc ?domain cat }
 
-  let fresh ?prec ?succ pos = { empty with position=Some pos; prec; succ }
+
+  let add_edge g_edge gid_tar t =
+    match Massoc_gid.add_opt gid_tar g_edge t.next with
+    | Some l -> Some {t with next = l}
+    | None -> None
 
   let remove_edge gid_tar label t =
     match Massoc_gid.remove_opt gid_tar label t.next with
@@ -152,13 +131,8 @@ module G_node = struct
       | None -> None
 
   let remove_key node_id t =
-    try {t with next = Massoc_gid.remove_key node_id t.next} with Not_found -> t
-
-  let rm_out_edges t = {t with next = Massoc_gid.empty}
-
-  let compare n1 n2 = match (n1.position, n2.position) with
-    | (Some i, Some j) -> Stdlib.compare i j
-    | _ -> 0
+    try {t with next = Massoc_gid.remove_key node_id t.next}
+    with Not_found -> t
 
   let rename mapping n = {n with next = Massoc_gid.rename mapping n.next}
 
@@ -168,6 +142,24 @@ module G_node = struct
     match G_fs.append_feats ?loc src_fs tar_fs separator regexp with
     | Some (new_tar_fs, updated_feats) -> Some (set_fs new_tar_fs tar, updated_feats)
     | None -> None
+
+  let shift user_id delta t =
+    { t with
+      name = CCOpt.map (fun n -> user_id ^ "_" ^ n) t.name;
+      fs = G_fs.set_atom "user" user_id t.fs;
+      next = Massoc_gid.map_key ((+) delta) t.next;
+      prec = CCOpt.map ((+) delta) t.prec;
+      succ = CCOpt.map ((+) delta) t.succ;
+    }
+
+  let unshift user_id t =
+    match (
+      CCOpt.map (fun x -> CCString.chop_prefix ~pre:(user_id^"_") x) t.name,
+      G_fs.del_feat "user" t.fs
+    ) with
+    | (Some name, Some fs) -> { t with name; fs }
+    | (Some name, None) -> { t with name }
+    | _ -> Error.run "[G_node.unshift] Inconsistent data"
 
 end (* module G_node *)
 
@@ -179,6 +171,23 @@ module P_node = struct
     next: P_edge.t Massoc_pid.t;
     loc: Loc.t option;
   }
+
+  let empty = { fs = P_fs.empty; next = Massoc_pid.empty; name = ""; loc=None }
+
+  let get_name t = t.name
+
+  let get_fs t = t.fs
+
+  let get_next t = t.next
+
+  let build_from_ast ?domain lexicons (ast_node, loc) =
+    (ast_node.Ast.node_id,
+     {
+       name = ast_node.Ast.node_id;
+       fs = P_fs.build ?domain lexicons ast_node.Ast.fs;
+       next = Massoc_pid.empty;
+       loc = Some loc;
+     } )
 
   let to_json ?domain t =
     let json_next = `List (
@@ -196,22 +205,7 @@ module P_node = struct
       ("next", json_next)
     ]
 
-  let get_name t = t.name
-  let get_fs t = t.fs
-  let get_next t = t.next
-
   let unif_fs fs t = { t with fs = P_fs.unif fs t.fs }
-
-  let empty = { fs = P_fs.empty; next = Massoc_pid.empty; name = ""; loc=None   }
-
-  let build ?domain lexicons (ast_node, loc) =
-    (ast_node.Ast.node_id,
-     {
-       name = ast_node.Ast.node_id;
-       fs = P_fs.build ?domain lexicons ast_node.Ast.fs;
-       next = Massoc_pid.empty;
-       loc = Some loc;
-     } )
 
   let add_edge p_edge pid_tar t =
     match Massoc_pid.add_opt pid_tar p_edge t.next with
