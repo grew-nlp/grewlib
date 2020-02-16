@@ -39,9 +39,8 @@ module G_node: sig
   val remove_succ: t -> t
 
   val set_fs: G_fs.t -> t -> t
-  val set_position: float -> t -> t
-  val get_position: t -> float option
-  (* val get_float: t -> float *)
+  val set_position: int -> t -> t
+  val get_position: t -> int option
 
   val shift: string -> int -> t -> t
   val unshift: string -> t -> t
@@ -69,14 +68,17 @@ module G_node: sig
   val add_edge: G_edge.t -> Gid.t -> t -> t option
 
 
-  val build: ?domain:Domain.t -> ?prec:Gid.t -> ?succ:Gid.t -> ?position:float -> Ast.node -> t
-  val of_conll: ?loc:Loc.t -> ?prec:Gid.t -> ?succ:Gid.t -> ?domain:Domain.t -> Conll.line -> t
-  val pst_leaf: ?loc:Loc.t -> ?domain:Domain.t -> string -> int -> t
-  val pst_node: ?loc:Loc.t -> ?domain:Domain.t -> string -> int -> t
+  val build: ?domain:Domain.t -> ?prec:Gid.t -> ?succ:Gid.t -> ?position:int -> Ast.node -> t
 
-  val fresh: ?prec:Gid.t -> ?succ:Gid.t -> float -> t
+  val of_conll: ?loc:Loc.t -> ?domain:Domain.t -> ?prec:Gid.t -> ?succ:Gid.t -> int option -> Conll.line -> t
 
-  val position_comp: t -> t -> int
+  val pst_leaf: ?loc:Loc.t -> ?domain:Domain.t -> string -> t
+
+  val pst_node: ?loc:Loc.t -> ?domain:Domain.t -> string -> t
+
+  val fresh: ?prec:Gid.t -> ?succ:Gid.t -> int -> t
+
+  val compare: t -> t -> int
 
   (* val build_neighbour: t -> t
      val build_new: t -> t *)

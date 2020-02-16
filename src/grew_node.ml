@@ -20,17 +20,13 @@ open Grew_fs
 
 (* ================================================================================ *)
 module G_node = struct
-  type sort =
-    | Ordered of float
-    | Misc
-
   type t = {
     name: Id.name option;
     fs: G_fs.t;
     next: G_edge.t Massoc_gid.t;
     succ: Gid.t option;
     prec: Gid.t option;
-    sort: sort;
+    position: int option;
     efs: (string * string) list;
   }
 
@@ -40,7 +36,7 @@ module G_node = struct
     next = Massoc_gid.empty;
     succ = None;
     prec = None;
-    sort = Misc;
+    position = None;
     efs=[]
   }
 
@@ -54,10 +50,8 @@ module G_node = struct
   let get_next t = t.next
   let set_next next t = {t with next }
 
-  let get_position t = match t.sort with Ordered p -> Some p | _ -> None
-  let set_position p t = { t with sort = Ordered p }
-
-  (* let get_float t = match t.position with Ordered p -> p | Unordered i -> float i *)
+  let get_position t = t.position
+  let set_position p t = { t with position = Some p }
 
   let get_succ t = t.succ
   let set_succ id t = { t with succ = Some id }
@@ -67,7 +61,7 @@ module G_node = struct
   let set_prec id t = { t with prec = Some id }
   let remove_prec t = { t with prec = None }
 
-  let is_conll_root t = t.sort = Ordered 0.
+  let is_conll_root t = t.position = Some 0
 
   let shift user_id delta t =
     { t with
@@ -111,32 +105,27 @@ module G_node = struct
 
   let build ?domain ?prec ?succ ?position (ast_node, loc) =
     let fs = G_fs.build ?domain ast_node.Ast.fs in
-    let sort = match position with None -> Misc | Some p -> Ordered p in
-    { empty with name=Some ast_node.Ast.node_id; fs; sort; prec; succ }
+    { empty with name=Some ast_node.Ast.node_id; fs; position; prec; succ }
 
-  let float_of_conll_id = function
-    | (i, None) -> float i
-    | (i, Some j) when j > 0 && j < 10 -> (float i) +. (float j) /. 10.
-    | _ -> Error.bug "[float_of_conll_id]"
-
-  let of_conll ?loc ?prec ?succ ?domain line =
+  let of_conll ?loc ?domain ?prec ?succ position line =
     if line = Conll.root
-    then { empty with sort = Ordered 0.; succ; name = Some "ROOT" }
+    then { empty with position=Some 0; succ; name = Some "ROOT" }
     else { empty with
            fs = G_fs.of_conll ?loc ?domain line;
-           sort = Ordered (float_of_conll_id line.Conll.id);
+           position;
            prec;
            succ;
            efs=line.Conll.efs;
            name = Some (Conll_types.Id.to_string line.Conll.id)
          }
 
-  let pst_leaf ?loc ?domain phon position = (* TODO remove position  arg *)
-    { empty with fs = G_fs.pst_leaf ?loc ?domain phon; sort = Misc }
-  let pst_node ?loc ?domain cat position = (* TODO remove position  arg *)
-    { empty with fs = G_fs.pst_node ?loc ?domain cat; sort = Misc }
+  let pst_leaf ?loc ?domain phon =
+    { empty with fs = G_fs.pst_leaf ?loc ?domain phon }
 
-  let fresh ?prec ?succ position = { empty with sort = Ordered position; prec; succ; name=Some (Printf.sprintf "W%g" position) }
+  let pst_node ?loc ?domain cat =
+    { empty with fs = G_fs.pst_node ?loc ?domain cat }
+
+  let fresh ?prec ?succ pos = { empty with position=Some pos; prec; succ }
 
   let remove_edge gid_tar label t =
     match Massoc_gid.remove_opt gid_tar label t.next with
@@ -167,8 +156,8 @@ module G_node = struct
 
   let rm_out_edges t = {t with next = Massoc_gid.empty}
 
-  let position_comp n1 n2 = match (n1.sort, n2.sort) with
-    | (Ordered i, Ordered j) -> Stdlib.compare i j
+  let compare n1 n2 = match (n1.position, n2.position) with
+    | (Some i, Some j) -> Stdlib.compare i j
     | _ -> 0
 
   let rename mapping n = {n with next = Massoc_gid.rename mapping n.next}
@@ -229,14 +218,16 @@ module P_node = struct
     | Some l -> Some {t with next = l}
     | None -> None
 
+  let match_ ?lexicons p_node g_node = P_fs.match_ ?lexicons p_node.fs (G_node.get_fs g_node)
 
-  let match_ ?lexicons p_node g_node =
+  (* TODO remove: no more position in node features. *)
+  (* let match_ ?lexicons p_node g_node =
     match G_node.get_position g_node with
     | None -> P_fs.match_ ?lexicons p_node.fs (G_node.get_fs g_node)
     | Some p ->
       if P_fs.check_position (Some p) p_node.fs
       then P_fs.match_ ?lexicons p_node.fs (G_node.get_fs g_node)
-      else raise P_fs.Fail
+      else raise P_fs.Fail *)
 
   let compare_pos t1 t2 = Stdlib.compare t1.loc t2.loc
 end (* module P_node *)

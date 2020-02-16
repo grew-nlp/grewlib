@@ -315,7 +315,7 @@ module Dependencies : sig
 
   (* [is_projective arcs] returns [None] if the structure is projective and [Some arc] where [arc] is one of the edge implied in non-projectivity.
      Input: a list of arcs represented by couples (smallest position, highest position) and lexicographically ordered *)
-  val is_projective: (float * float) list -> (float * float) option
+  val is_projective: (int * int) list -> (int * int) option
 end
 
 

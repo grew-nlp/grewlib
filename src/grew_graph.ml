@@ -334,7 +334,8 @@ module G_graph = struct
   (* -------------------------------------------------------------------------------- *)
   let build ?domain gr_ast =
 
-    let (ordered_nodes, unordered_nodes) = List.fold_left
+    let (ordered_nodes, unordered_nodes) =
+      List.fold_left
         (fun (orderd_acc, unordered_acc) (node,loc) ->
            match Id.get_pos node.Ast.node_id with
            | Some p -> ((p,(node,loc)) :: orderd_acc, unordered_acc)
@@ -345,14 +346,14 @@ module G_graph = struct
 
     let rec loop already_bound index prec = function
       | [] -> (Gid_map.empty,[])
-      | (position, (ast_node, loc))::tail ->
+      | (_, (ast_node, loc))::tail ->
         let node_id = ast_node.Ast.node_id in
         if List.mem node_id already_bound
         then Error.build ~loc "[GRS] [Graph.build] try to build a graph with twice the same node id '%s'" node_id
         else
           let (new_tail, table) = loop (node_id :: already_bound) (index+1) (Some index) tail in
           let succ = if tail = [] then None else Some (index+1) in
-          let new_node = G_node.build ?domain ?prec ?succ ~position (ast_node, loc) in
+          let new_node = G_node.build ?domain ?prec ?succ ~position:index (ast_node, loc) in
           (
             Gid_map.add index new_node new_tail,
             (node_id,index)::table
@@ -425,16 +426,19 @@ module G_graph = struct
     let sorted_lines = Conll.root :: (List.sort Conll.compare conll.Conll.lines) in
 
     (* [gtable] maps *)
-    let gtable = (Array.of_list (List.map (fun line -> line.Conll.id) sorted_lines), Conll.Id.to_dot) in
+    let gtable = (
+      Array.of_list (List.map (fun line -> line.Conll.id) sorted_lines),
+      Conll.Id.to_dot
+    ) in
 
     let rec loop index prec = function
       | [] -> Gid_map.empty
       | [last] ->
         let loc = Loc.file_opt_line conll.Conll.file last.Conll.line_num in
-        Gid_map.add index (G_node.of_conll ?domain ~loc ?prec last) Gid_map.empty
+        Gid_map.add index (G_node.of_conll ~loc ?domain ?prec (Some index) last) Gid_map.empty
       | line::tail ->
         let loc = Loc.file_opt_line conll.Conll.file line.Conll.line_num in
-        Gid_map.add index (G_node.of_conll ?domain ~loc ?prec ~succ:(index+1) line)
+        Gid_map.add index (G_node.of_conll ~loc ?domain ?prec ~succ:(index+1) (Some index) line)
           (loop (index+1) (Some index) tail) in
 
     let map_without_edges = loop 0 None sorted_lines in
@@ -531,27 +535,27 @@ module G_graph = struct
   (* -------------------------------------------------------------------------------- *)
   let of_pst ?domain pst =
     let cpt = ref 0 in
-    let get_pos () = incr cpt; !cpt - 1 in
+    let fresh_id () = incr cpt; !cpt - 1 in
 
     let leaf_list = ref [] in
 
     let rec loop nodes = function
       | Ast.Leaf (loc, phon) ->
-        let fresh_id = get_pos () in
-        let node = G_node.pst_leaf ~loc ?domain phon fresh_id in
-        leaf_list := fresh_id :: ! leaf_list;
-        (fresh_id, Gid_map.add fresh_id node nodes)
+        let fid = fresh_id () in
+        let node = G_node.pst_leaf ~loc ?domain phon in
+        leaf_list := fid :: ! leaf_list;
+        (fid, Gid_map.add fid node nodes)
 
       | Ast.T (loc, cat, daughters) ->
-        let fresh_id = get_pos () in
-        let new_node = G_node.pst_node ~loc ?domain cat fresh_id in
-        let with_mother = Gid_map.add fresh_id new_node nodes in
+        let fid = fresh_id () in
+        let new_node = G_node.pst_node ~loc ?domain cat in
+        let with_mother = Gid_map.add fid new_node nodes in
         let new_nodes = List.fold_left
             (fun map daughter ->
                let (daughter_id, new_map) = loop map daughter in
-               map_add_edge new_map fresh_id G_edge.sub daughter_id
+               map_add_edge new_map fid G_edge.sub daughter_id
             ) with_mother daughters in
-        (fresh_id, new_nodes) in
+        (fid, new_nodes) in
 
     let (_,map) = loop Gid_map.empty pst in
 
@@ -602,16 +606,79 @@ module G_graph = struct
 
 
   (* -------------------------------------------------------------------------------- *)
+  (* [shift_position delta gid map] applies a position shift of [delta] to all nodes
+     of the [map] that are successors of [gid] *)
+  let rec shift_position delta gid map =
+    let node = Gid_map.find gid map in
+    match G_node.get_position node with
+    | None -> Error.run "[G_node.shift_position] unordered node"
+    | Some p ->
+      let new_node = G_node.set_position (p + delta) node in
+      let next_map = Gid_map.add gid new_node map in
+      match G_node.get_succ node with
+      | None -> next_map
+      | Some next_gid -> shift_position delta next_gid next_map
+
+  (* -------------------------------------------------------------------------------- *)
+  let add_before gid graph =
+    let node = Gid_map.find gid graph.map in
+    let position = match G_node.get_position node with
+      | None -> Error.run "[G_node.insert_before] unordered node"
+      | Some p -> p in
+    let shifted_map = shift_position 1 gid graph.map in
+    let new_gid = graph.highest_index + 1 in
+
+    let new_map = match G_node.get_prec node with
+      | None ->
+        shifted_map
+        |> (Gid_map.add new_gid (G_node.fresh ~succ:gid position))
+        |> (Gid_map.add gid (G_node.set_prec new_gid node))
+      | Some prec_gid ->
+        shifted_map
+        |> (Gid_map.add new_gid (G_node.fresh ~prec:prec_gid ~succ:gid position))
+        |> (Gid_map.add prec_gid (G_node.set_succ new_gid (Gid_map.find prec_gid graph.map)))
+        |> (Gid_map.add gid (G_node.set_prec new_gid node)) in
+
+    (new_gid, { graph with map=new_map; highest_index = new_gid })
+
+  (* -------------------------------------------------------------------------------- *)
+  (* WARNING: use only if [last_gid] is the last ordered node in graph! *)
+  let append last_gid graph =
+    let last_node = Gid_map.find last_gid graph.map in
+    let new_pos = match G_node.get_position last_node with
+      | None -> Error.run "[G_node.append] unordered nodes"
+      | Some pos -> pos + 1 in
+    let new_gid = graph.highest_index + 1 in
+    let new_map =
+      graph.map
+      |> (Gid_map.add new_gid (G_node.fresh ~prec:last_gid new_pos))
+      |> (Gid_map.add last_gid (G_node.set_succ new_gid last_node)) in
+    (new_gid, { graph with map=new_map; highest_index = new_gid })
+
+  (* -------------------------------------------------------------------------------- *)
+  let add_after gid graph =
+    match G_node.get_succ (Gid_map.find gid graph.map) with
+    | Some gid_succ -> add_before gid_succ graph
+    | None -> append gid graph
+
+  (* -------------------------------------------------------------------------------- *)
+  let add_unordered graph =
+    let new_gid = graph.highest_index + 1 in
+    let map = Gid_map.add new_gid G_node.empty graph.map in
+    (new_gid, { graph with map; highest_index = new_gid })
+
+
+  (* -------------------------------------------------------------------------------- *)
   let del_node graph node_id =
-    let map_wo_node =
-      Gid_map.fold
-        (fun id value acc ->
-           if id = node_id
-           then acc
-           else Gid_map.add id (G_node.remove_key node_id value) acc
-        ) graph.map Gid_map.empty in
     try
       let node = Gid_map.find node_id graph.map in
+      let map_wo_node =
+        Gid_map.fold
+          (fun id value acc ->
+             if id = node_id
+             then acc
+             else Gid_map.add id (G_node.remove_key node_id value) acc
+          ) graph.map Gid_map.empty in
       let new_map =
         match (G_node.get_prec node, G_node.get_succ node) with
         | (Some id_prec, Some id_succ) ->
@@ -621,6 +688,7 @@ module G_graph = struct
             map_wo_node
             |> (Gid_map.add id_prec (G_node.set_succ id_succ prec))
             |> (Gid_map.add id_succ (G_node.set_prec id_prec succ))
+            |> (shift_position (-1) id_succ)
           end
         | (Some id_prec, None) ->
           begin
@@ -633,68 +701,12 @@ module G_graph = struct
             let succ = Gid_map.find id_succ map_wo_node in
             map_wo_node
             |> (Gid_map.add id_succ (G_node.remove_prec succ))
+            |> (shift_position (-1) id_succ)
           end
         | (None, None) -> map_wo_node in
       Some { graph with map = new_map }
-    with Not_found -> None
+    with Not_found -> (* [node_id] not defined in [graph] *) None
 
-  (* -------------------------------------------------------------------------------- *)
-  let insert id1 id2 graph =
-    let node1 = Gid_map.find id1 graph.map in
-    let node2 = Gid_map.find id2 graph.map in
-    let new_pos = match (G_node.get_position node1, G_node.get_position node2) with
-      | (Some pos1, Some pos2) -> (pos1 +. pos2) /. 2.
-      | _ -> Error.run "Try to insert into non ordered nodes" in
-    let new_gid = graph.highest_index + 1 in
-    let map = graph.map
-              |> (Gid_map.add new_gid (G_node.fresh ~prec:id1 ~succ:id2 new_pos))
-              |> (Gid_map.add id1 (G_node.set_succ new_gid node1))
-              |> (Gid_map.add id2 (G_node.set_prec new_gid node2)) in
-    (new_gid, { graph with map; highest_index = new_gid })
-
-  (* -------------------------------------------------------------------------------- *)
-  let append id graph =
-    let node = Gid_map.find id graph.map in
-    let new_pos = match G_node.get_position node with
-      | Some pos -> pos +. 1.
-      | _ -> Error.run "Try to append into non ordered nodes" in
-    let new_gid = graph.highest_index + 1 in
-    let map = graph.map
-              |> (Gid_map.add new_gid (G_node.fresh ~prec:id new_pos))
-              |> (Gid_map.add id (G_node.set_succ new_gid node)) in
-    (new_gid, { graph with map; highest_index = new_gid })
-
-  (* -------------------------------------------------------------------------------- *)
-  let prepend id graph =
-    let node = Gid_map.find id graph.map in
-    let new_pos = match G_node.get_position node with
-      | Some pos -> pos /. 2. (* build a smaller position but still > 0 *)
-      | _ -> Error.run "Try to prepend into non ordered nodes" in
-    let new_gid = graph.highest_index + 1 in
-    let map = graph.map
-              |> (Gid_map.add new_gid (G_node.fresh ~succ:id new_pos))
-              |> (Gid_map.add id (G_node.set_prec new_gid node)) in
-    (new_gid, { graph with map; highest_index = new_gid })
-
-  (* -------------------------------------------------------------------------------- *)
-  let add_after node_id graph =
-    let node = Gid_map.find node_id graph.map in
-    match G_node.get_succ node with
-    | Some gid_succ -> insert node_id gid_succ graph
-    | None -> append node_id graph
-
-  (* -------------------------------------------------------------------------------- *)
-  let add_before node_id graph =
-    let node = Gid_map.find node_id graph.map in
-    match G_node.get_prec node with
-    | Some gid_prec -> insert gid_prec node_id graph
-    | None -> prepend node_id graph
-
-  (* -------------------------------------------------------------------------------- *)
-  let add_unordered graph =
-    let new_gid = graph.highest_index + 1 in
-    let map = Gid_map.add new_gid G_node.empty graph.map in
-    (new_gid, { graph with map; highest_index = new_gid })
 
   (* -------------------------------------------------------------------------------- *)
   (* move out-edges (which respect cst [labels,neg]) from id_src are moved to out-edges out off node id_tar *)
@@ -790,7 +802,7 @@ module G_graph = struct
     let node = Gid_map.find node_id graph.map in
     let new_node =
       match feat_name with
-      | "position" -> G_node.set_position (float_of_string new_value) node
+      | "position" -> G_node.set_position (int_of_string new_value) node
       | _ ->
         let new_fs = G_fs.set_atom ?loc ?domain feat_name new_value (G_node.get_fs node) in
         (G_node.set_fs new_fs node) in
@@ -805,7 +817,7 @@ module G_graph = struct
             let node = Gid_map.find node_gid graph.map in
             begin
               match G_node.get_position node with
-              | Some p -> sprintf "%g" p
+              | Some p -> sprintf "%d" p
               | _ -> Error.run ?loc "Try to read position of an unordered node"
             end
           | Concat_item.Feat (node_gid, feat_name) ->
@@ -866,7 +878,7 @@ module G_graph = struct
 
     (* node_list *)
     let nodes = Gid_map.fold (fun gid node acc -> (gid,node)::acc) graph.map [] in
-    let sorted_nodes = List.sort (fun (_,n1) (_,n2) -> G_node.position_comp n1 n2) nodes in
+    let sorted_nodes = List.sort (fun (_,n1) (_,n2) -> G_node.compare n1 n2) nodes in
     List.iter
       (fun (gid,node) ->
          bprintf buff "  N_%d %s;\n" gid (G_node.to_gr node)
@@ -920,7 +932,7 @@ module G_graph = struct
       List.exists (fun gid -> inside fusion_item gid) high_list in
 
     let nodes = Gid_map.fold (fun id elt acc -> (id,elt)::acc) graph.map [] in
-    let snodes = List.sort (fun (_,n1) (_,n2) -> G_node.position_comp n1 n2) nodes in
+    let snodes = List.sort (fun (_,n1) (_,n2) -> G_node.compare n1 n2) nodes in
 
     let rec loop skip = function
       | [] -> ""
@@ -963,7 +975,7 @@ module G_graph = struct
     let is_highlighted_gid gid = List.mem_assoc gid deco.nodes in
 
     let nodes = Gid_map.fold (fun id elt acc -> (id,elt)::acc) graph.map [] in
-    let snodes = List.sort (fun (_,n1) (_,n2) -> G_node.position_comp n1 n2) nodes in
+    let snodes = List.sort (fun (_,n1) (_,n2) -> G_node.compare n1 n2) nodes in
 
     let buff = Buffer.create 32 in
     CCList.iteri (fun i (gid, gnode) ->
@@ -1000,7 +1012,7 @@ module G_graph = struct
            else ((id,elt)::acc1, acc2)
         ) graph.map ([],[]) in
 
-    let snodes = List.sort (fun (_,n1) (_,n2) -> G_node.position_comp n1 n2) nodes in
+    let snodes = List.sort (fun (_,n1) (_,n2) -> G_node.compare n1 n2) nodes in
 
     let insert (mid,mwe) nodes =
       let next_ids = Massoc_gid.fold (fun acc gid _ -> gid::acc) [] (G_node.get_next mwe) in
@@ -1094,7 +1106,7 @@ module G_graph = struct
         ) graph.map [] in
 
     (* sort nodes wrt position *)
-    let sorted_nodes = List.sort (fun (_,n1) (_,n2) -> G_node.position_comp n1 n2) ordered_nodes in
+    let sorted_nodes = List.sort (fun (_,n1) (_,n2) -> G_node.compare n1 n2) ordered_nodes in
 
     (* [mapping] associated gid to Conll.Id.t *)
     let (_,_,mapping) = List.fold_left
@@ -1274,11 +1286,11 @@ module G_graph = struct
                 | None -> acc2
                 | Some tar_pos -> (min src_pos tar_pos, max src_pos tar_pos) :: acc2
               ) acc (G_node.get_next src_node) in
-            (new_acc, Float_map.add src_pos src_gid acc_map)
-        ) t.map ([], Float_map.empty) in
+            (new_acc, Int_map.add src_pos src_gid acc_map)
+        ) t.map ([], Int_map.empty) in
     let sorted_arc_positions = List.sort Dependencies.lex_cmp arc_positions in
     match Dependencies.is_projective sorted_arc_positions with
-    | Some (p1, p2) -> Some (Float_map.find p1 pos_to_gid_map, Float_map.find p1 pos_to_gid_map)
+    | Some (p1, p2) -> Some (Int_map.find p1 pos_to_gid_map, Int_map.find p1 pos_to_gid_map)
     | None -> None
 
   (* --------------------------------------------------------------- *)

@@ -612,7 +612,7 @@ module Matching = struct
       | "position" ->
         begin
           match G_node.get_position (get_node pid) with
-          | Some f -> Some (sprintf "%g" f)
+          | Some f -> Some (sprintf "%d" f)
           | None -> Error.run "Cannot read position of an unordered node"
         end
       | feat_name -> G_fs.get_string_atom feat_name (G_node.get_fs (get_node pid)) in
@@ -620,7 +620,7 @@ module Matching = struct
       | "position" ->
         begin
           match G_node.get_position (get_node pid) with
-          | Some f -> Some f
+          | Some f -> Some (float_of_int f)
           | None -> Error.run "Cannot read position of an unordered node"
         end
       | feat_name -> G_fs.get_float_feat feat_name (G_node.get_fs (get_node pid)) in

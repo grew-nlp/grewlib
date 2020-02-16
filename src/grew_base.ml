@@ -574,7 +574,7 @@ module Id = struct
 
   type 'a gtable = 'a array * ('a -> string)
 
-  let gbuild ?(loc:Loc.t option) key (table,conv) =
+  let gbuild ?loc key (table,conv) =
     try Array_.dicho_find key table
     with Not_found -> Error.build ?loc "[Id.gbuild] Identifier '%s' not found" (conv key)
 
@@ -679,7 +679,7 @@ module Dependencies = struct
         | h::t when j > h -> Some (i,j)
         | h::t when j = h -> loop i new_from_here new_from_before tail
         | _ -> loop i (insert_sorted j new_from_here) new_from_before tail in
-    loop 0. [] [] edge_list
+    loop 0 [] [] edge_list
 
 end
 
