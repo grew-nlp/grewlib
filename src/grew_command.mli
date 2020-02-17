@@ -45,6 +45,7 @@ module Command : sig
     | SHIFT_IN of (command_node * command_node * Label_cst.t)
     | SHIFT_OUT of (command_node * command_node * Label_cst.t)
     | APPEND_FEATS of (command_node * command_node * string * string)
+    | UNORDER of command_node
 
   type t = (p * Loc.t)
   val to_json: ?domain:Domain.t -> t -> Yojson.Basic.t

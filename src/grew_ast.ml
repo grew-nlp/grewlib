@@ -308,6 +308,7 @@ module Ast = struct
     | Update_feat of feature_ident * concat_item list
     (* Append_feats (src, tar, regexp, separator)*)
     | Append_feats of (Id.name * Id.name * string * string)
+    | Unorder of Id.name
 
   type command = u_command * Loc.t
 
@@ -341,6 +342,7 @@ module Ast = struct
       sprintf "append_feats %s =%s=> %s" src regexp tar
     | Append_feats (src, tar, regexp, separator) ->
       sprintf "append_feats \"%s\" %s =%s=> %s" separator src regexp tar
+    | Unorder n -> sprintf "unorder %s" n
 
 
   type lexicon =

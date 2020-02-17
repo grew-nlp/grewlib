@@ -1355,6 +1355,18 @@ module Rule = struct
        | Some (new_graph,_) -> {state with graph = new_graph; effective = true}
       )
 
+    | Command.UNORDER (node_cn) ->
+      let node_gid = node_find node_cn in
+      (match G_graph.unorder node_gid state.graph with
+       | None when !Global.safe_commands -> Error.run ~loc "UNORDER: the node is not ordered"
+       | None -> state
+       | Some new_graph ->
+         { state with
+           graph = new_graph;
+           effective = true;
+         }
+      )
+
     | Command.DEL_FEAT (tar_cn,feat_name) ->
       let tar_gid = node_find tar_cn in
       (match G_graph.del_feat state.graph tar_gid feat_name with
@@ -1771,6 +1783,17 @@ module Rule = struct
                                                  gwh.Graph_with_history.delta updated_edges;
                                            }
       end
+    | Command.UNORDER node_cn ->
+      let node_gid = node_find node_cn in
+      (match G_graph.unorder node_gid gwh.Graph_with_history.graph with
+       | None when !Global.safe_commands -> Error.run ~loc "UNORDER: the node is not ordered"
+       | None -> Graph_with_history_set.singleton gwh
+       | Some new_graph -> Graph_with_history_set.singleton
+                             { gwh with
+                               Graph_with_history.graph = new_graph;
+                               delta = Delta.unorder node_gid gwh.Graph_with_history.delta;
+                             }
+      )
 
 
 

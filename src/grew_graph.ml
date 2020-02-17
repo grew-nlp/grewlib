@@ -667,11 +667,56 @@ module G_graph = struct
     let map = Gid_map.add new_gid (G_node.build ()) graph.map in
     (new_gid, { graph with map; highest_index = new_gid })
 
+  (* -------------------------------------------------------------------------------- *)
+  (* build a new map when one node is remove from the list of ordered nodes:
+     1) update prec and succ fields of neighbour
+     2) shift position of nodes after [node]
+  *)
+  let map_unorder node map =
+    match (G_node.get_prec node, G_node.get_succ node) with
+    | (Some id_prec, Some id_succ) ->
+      begin
+        let prec = Gid_map.find id_prec map
+        and succ = Gid_map.find id_succ map in
+        map
+        |> (Gid_map.add id_prec (G_node.set_succ id_succ prec))
+        |> (Gid_map.add id_succ (G_node.set_prec id_prec succ))
+        |> (shift_position (-1) id_succ)
+      end
+    | (Some id_prec, None) ->
+      begin
+        let prec = Gid_map.find id_prec map in
+        map
+        |> (Gid_map.add id_prec (G_node.remove_succ prec))
+      end
+    | (None, Some id_succ) ->
+      begin
+        let succ = Gid_map.find id_succ map in
+        map
+        |> (Gid_map.add id_succ (G_node.remove_prec succ))
+        |> (shift_position (-1) id_succ)
+      end
+    | (None, None) -> map
+
+  (* -------------------------------------------------------------------------------- *)
+  let unorder node_id graph =
+    match Gid_map.find_opt node_id graph.map with
+    | None -> None
+    | Some node ->
+      match G_node.get_position node with
+      | None -> None
+      | Some _ ->
+        let new_map =
+          graph.map
+          |> (Gid_map.add node_id (G_node.unset_position node))
+          |> (map_unorder node) in
+        Some { graph with map = new_map }
 
   (* -------------------------------------------------------------------------------- *)
   let del_node graph node_id =
-    try
-      let node = Gid_map.find node_id graph.map in
+    match Gid_map.find_opt node_id graph.map with
+    | None -> None
+    | Some node ->
       let map_wo_node =
         Gid_map.fold
           (fun id value acc ->
@@ -679,34 +724,7 @@ module G_graph = struct
              then acc
              else Gid_map.add id (G_node.remove_key node_id value) acc
           ) graph.map Gid_map.empty in
-      let new_map =
-        match (G_node.get_prec node, G_node.get_succ node) with
-        | (Some id_prec, Some id_succ) ->
-          begin
-            let prec = Gid_map.find id_prec map_wo_node
-            and succ = Gid_map.find id_succ map_wo_node in
-            map_wo_node
-            |> (Gid_map.add id_prec (G_node.set_succ id_succ prec))
-            |> (Gid_map.add id_succ (G_node.set_prec id_prec succ))
-            |> (shift_position (-1) id_succ)
-          end
-        | (Some id_prec, None) ->
-          begin
-            let prec = Gid_map.find id_prec map_wo_node in
-            map_wo_node
-            |> (Gid_map.add id_prec (G_node.remove_succ prec))
-          end
-        | (None, Some id_succ) ->
-          begin
-            let succ = Gid_map.find id_succ map_wo_node in
-            map_wo_node
-            |> (Gid_map.add id_succ (G_node.remove_prec succ))
-            |> (shift_position (-1) id_succ)
-          end
-        | (None, None) -> map_wo_node in
-      Some { graph with map = new_map }
-    with Not_found -> (* [node_id] not defined in [graph] *) None
-
+      Some { graph with map = map_unorder node map_wo_node }
 
   (* -------------------------------------------------------------------------------- *)
   (* move out-edges (which respect cst [labels,neg]) from id_src are moved to out-edges out off node id_tar *)
@@ -1418,17 +1436,19 @@ module Delta = struct
   (* the three list are ordered *)
   type t = {
     del_nodes: Gid.t list;
+    unordered_nodes: Gid.t list;
     edges: ((Gid.t * G_edge.t * Gid.t) * status) list;
     feats: ((Gid.t * feature_name) * (value option)) list;
   }
 
-  let empty = { del_nodes=[]; edges=[]; feats=[]; }
+  let empty = { del_nodes=[]; unordered_nodes=[]; edges=[]; feats=[]; }
 
   let del_node gid t =
     match List_.usort_insert gid t.del_nodes with
     | None -> raise (Inconsistent "del_node")
     | Some new_del_nodes -> {
         del_nodes= new_del_nodes;
+        unordered_nodes = List.filter (fun g -> g <> gid) t.unordered_nodes;
         edges = List.filter (fun ((g1,_,g2),_) -> g1 <> gid && g2 <> gid) t.edges;
         feats = List.filter (fun ((g,_),_) -> g <> gid) t.feats;
       }
@@ -1465,6 +1485,11 @@ module Delta = struct
       | ((g,f),_)::tail when (* (g,f)=(gid,feat_name) && *) equal_orig -> tail
       | ((g,f),_)::tail (* when (g,f)=(gid,feat_name) *)               -> ((g,f), new_val_opt) :: tail in
     { t with feats = loop t.feats }
+
+  let unorder gid t =
+    match List_.usort_insert gid t.unordered_nodes with
+    | None -> raise (Inconsistent "unorder")
+    | Some new_unordered_nodes -> { t with unordered_nodes = new_unordered_nodes }
 end (* module Delta *)
 
 (* ================================================================================ *)

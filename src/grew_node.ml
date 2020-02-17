@@ -54,6 +54,7 @@ module G_node = struct
 
   let get_position t = t.position
   let set_position p t = { t with position = Some p }
+  let unset_position t = { t with position = None }
 
   let is_eud_empty t = match G_fs.get_string_atom "_UD_empty" t.fs with
     | Some "Yes" -> true

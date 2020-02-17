@@ -153,6 +153,8 @@ module G_graph: sig
   val add_after: Gid.t -> t -> (Gid.t * t)
   val add_unordered: t -> (Gid.t * t)
 
+  val unorder: Gid.t -> t -> t option
+
   (** shift all crown-edges ending in [src_gid] to edges ending in [tar_gid] *)
   val shift_in:
     Loc.t ->            (* localization of the command *)
@@ -247,6 +249,7 @@ module Delta : sig
   val add_edge: Gid.t -> G_edge.t -> Gid.t -> t -> t
   val del_edge: Gid.t -> G_edge.t -> Gid.t -> t -> t
   val set_feat: G_graph.t -> Gid.t -> feature_name -> value option -> t -> t
+  val unorder: Gid.t -> t -> t
 end (* module Delta *)
 
 (* ================================================================================ *)

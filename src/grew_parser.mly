@@ -100,6 +100,7 @@ let localize t = (t,get_loc ())
 %token ADD_NODE                    /* add_node */
 %token DEL_FEAT                    /* del_feat */
 %token APPEND_FEATS                /* append_feats */
+%token UNORDER                     /* unorder */
 
 %token PICK                        /* Pick */
 %token ALT                         /* Alt */
@@ -815,6 +816,10 @@ command:
         /*   append_feats "+" M =[re"_MISC_.*"]=> N   */
         | APPEND_FEATS sep=STRING src_loc=simple_id_with_loc ARROW_LEFT regexp=REGEXP ARROW_RIGHT tar=simple_id
             { let (src,loc) = src_loc in (Ast.Append_feats (src, tar, regexp, sep), loc) }
+
+        /*   unorder N   */
+        | UNORDER node_id_loc=simple_id_with_loc
+            { let (node_id,loc) = node_id_loc in (Ast.Unorder node_id, loc) }
 
 concat_item:
         | gi=ID

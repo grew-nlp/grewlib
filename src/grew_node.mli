@@ -41,6 +41,7 @@ module G_node: sig
 
   val get_position: t -> int option
   val set_position: int -> t -> t
+  val unset_position: t -> t
 
   val is_eud_empty: t -> bool
 

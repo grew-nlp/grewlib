@@ -65,6 +65,7 @@ module Command  = struct
     | SHIFT_IN of (command_node * command_node * Label_cst.t)
     | SHIFT_OUT of (command_node * command_node * Label_cst.t)
     | APPEND_FEATS of (command_node * command_node * string * string)
+    | UNORDER of command_node
 
   type t = p * Loc.t  (* remember command location to be able to localize a command failure *)
 
@@ -187,6 +188,7 @@ module Command  = struct
                  ("separator", `String separator)
                ]
               )]
+    | UNORDER cn -> `Assoc [("unorder", command_node_to_json cn)]
 
 
   let build ?domain lexicons (kni, kei) table ast_command =
@@ -288,6 +290,10 @@ module Command  = struct
       check_node_id loc src_id kni;
       check_node_id loc tar_id kni;
       ((APPEND_FEATS (cn_of_node_id src_id, cn_of_node_id tar_id, regexp, separator), loc), (kni, kei))
+
+    | (Ast.Unorder node_n, loc) ->
+      check_node_id loc node_n kni;
+      ((UNORDER (cn_of_node_id node_n), loc), (kni, kei))
 
     | (Ast.Update_feat ((node_or_edge_id, feat_name), ast_items), loc) ->
       begin

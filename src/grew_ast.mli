@@ -199,6 +199,7 @@ module Ast : sig
     | Update_feat of feature_ident * concat_item list
 
     | Append_feats of (Id.name * Id.name * string * string)
+    | Unorder of Id.name
 
   val string_of_u_command:  u_command -> string
   type command = u_command * Loc.t
