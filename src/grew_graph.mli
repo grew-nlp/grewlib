@@ -19,37 +19,6 @@ open Grew_edge
 open Grew_node
 open Grew_command
 
-(* ================================================================================ *)
-module Concat_item : sig
-  type t =
-    | Feat of (Gid.t * feature_name)
-    | String of string
-end (* module Concat_item *)
-
-(* ================================================================================ *)
-module P_deco: sig
-  type t =
-    { nodes: Pid.t list;
-      edges: (Pid.t * P_edge.t * Pid.t) list;
-    }
-
-  val empty:t
-end (* module P_deco *)
-
-(* ================================================================================ *)
-module G_deco: sig
-  (* value is (f, Some g) for combined request "f=v/g=u" and (j, None) else *)
-  type highlighted_feat = string * string option
-
-  type t = {
-    (* a list of (node, (pattern_id, features of nodes implied in the step)) *)
-    nodes: (Gid.t * (string * highlighted_feat list)) list;
-    (* an edge list *)
-    edges: (Gid.t * G_edge.t * Gid.t) list;
-  }
-
-  val empty:t
-end (* module G_deco *)
 
 (* ================================================================================ *)
 module P_graph: sig
@@ -86,6 +55,21 @@ module P_graph: sig
     Ast.edge list ->
     (extension * Id.table)
 end (* module P_graph *)
+
+(* ================================================================================ *)
+module G_deco: sig
+  (* value is (f, Some g) for combined request "f=v/g=u" and (j, None) else *)
+  type highlighted_feat = string * string option
+
+  type t = {
+    (* a list of (node, (pattern_id, features of nodes implied in the step)) *)
+    nodes: (Gid.t * (string * highlighted_feat list)) list;
+    (* an edge list *)
+    edges: (Gid.t * G_edge.t * Gid.t) list;
+  }
+
+  val empty:t
+end (* module G_deco *)
 
 (* ================================================================================ *)
 module G_graph: sig

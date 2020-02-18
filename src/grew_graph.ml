@@ -22,23 +22,6 @@ open Grew_fs
 open Grew_node
 
 (* ================================================================================ *)
-module Concat_item = struct
-  type t =
-    | Feat of (Gid.t * feature_name)
-    | String of string
-end (* module Concat_item *)
-
-(* ================================================================================ *)
-module P_deco = struct
-  type t = {
-    nodes: Pid.t list;
-    edges: (Pid.t * P_edge.t * Pid.t) list;
-  }
-
-  let empty = {nodes=[]; edges=[]}
-end (* module P_deco *)
-
-(* ================================================================================ *)
 module P_graph = struct
   type t = P_node.t Pid_map.t
 

@@ -2,15 +2,15 @@ digraph grew {
   node [shape=Mrecord];
   rankdir = LR;
   grew_base [label="grew_base|String_set\nString_map\nInt_set\nInt_map\nLoc\nError\nString_\nFile\nArray_\nList_\nMassoc_make()\nId\nTimeout\nGlobal"]
-  grew_types [label="grew_types|Pid\nPid_set\nPid_map\nGid\nGid_map\nMassoc_gid\nMassoc_pid\nMassoc_string\nLexicon\nLexicons"]
+  grew_types [label="grew_types|Pid\nPid_set\nPid_map\nGid\nGid_map\nMassoc_gid\nMassoc_pid\nMassoc_string\nLexicon\nLexicons\nConcat_item"]
   grew_ast [label="grew_ast|Ast"]
   grew_domain [label="grew_domain|Label_domain\nFeature_domain\nDomain"]
   grew_loader [label="grew_loader|Loader\nParser"]
-  grew_fs [label="grew_fs|Feature_value\nG_feature\nP_feature\nG_fs\nP_fs"]
+  grew_fs [label="grew_fs|Feature_value\nG_fs\nP_fs|[P_feature]\n[G_feature]"]
   grew_edge [label="grew_edge|G_edge\nLabel_cst\nP_edge"]
   grew_node [label="grew_node|G_node\nP_node"]
   grew_command [label="grew_command|Command"]
-  grew_graph [label="grew_graph|Concat_item\nP_deco\nP_graph\nG_deco\nG_graph\nDelta\nGraph_with_history\nGraph_with_history_set"]
+  grew_graph [label="grew_graph|P_graph\nG_deco\nG_graph\nDelta\nGraph_with_history\nGraph_with_history_set"]
   grew_rule [label="grew_rule|Pattern\nMatching\nRule"]
   grew_grs [label="grew_grs|Grs"]
 
