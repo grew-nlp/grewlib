@@ -245,6 +245,8 @@ and standard target = parse
 | "<<"       { LPREC }
 | ">>"       { LSUCC }
 
+| "><"       { CROSSING }
+
 | ":<"       { BEFORE }
 | ":>"       { AFTER }
 

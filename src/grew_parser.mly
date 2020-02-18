@@ -61,6 +61,7 @@ let localize t = (t,get_loc ())
 %token GE                          /* >= or ≥ */
 %token LPREC                       /* << */
 %token LSUCC                       /* >> */
+%token CROSSING                    /* >< */
 
 %token BEFORE                      /* :< */
 %token AFTER                       /* :> */
@@ -183,6 +184,12 @@ feature_value:
         | v=ID        { Ast.parse_simple_ident v }
         | v=STRING    { v }
         | v=FLOAT     { Printf.sprintf "%g" v }
+
+simple_or_pointed :
+        | id=ID       { Ast.parse_simple_or_pointed id }
+
+simple_or_pointed_with_loc :
+        | id=ID       { localize (Ast.parse_simple_or_pointed id) }
 
 pattern_feature_value:
         | v=ID        { Ast.parse_simple_or_pointed v }
@@ -487,26 +494,35 @@ pat_item:
         | feat_id1_loc=feature_ident_with_loc EQUAL rhs=FLOAT
             { let (feat_id1,loc)=feat_id1_loc in Pat_const (Ast.Feature_eq_float (feat_id1, rhs), loc) }
 
-        /*   X.cat <> Y.cat   */
+
         /*   X.cat <> value   */
+        /*   X.cat <> Y.cat   */
         /*   X.cat <> lex.value   */
-        | feat_id1_loc=feature_ident_with_loc DISEQUAL rhs=ID
-             { let (feat_id1,loc)=feat_id1_loc in
-              match Ast.parse_simple_or_pointed rhs with
-              | Ast.Simple value ->
-                Pat_const (Ast.Feature_diff_cst (feat_id1, value), loc)
-              | Ast.Pointed (s1, s2) ->
-                Pat_const (Ast.Feature_diff_lex_or_fs (feat_id1, (s1, to_uname s2)), loc)
+        | lhs_loc=simple_or_pointed_with_loc DISEQUAL rhs =simple_or_pointed
+             {  match (lhs_loc,rhs) with
+              | ((Ast.Pointed feat_id,loc), Ast.Simple value) ->
+                Pat_const (Ast.Feature_diff_cst (feat_id, value), loc)
+              | ((Ast.Pointed feat_id,loc), Ast.Pointed (s1, s2)) ->
+                Pat_const (Ast.Feature_diff_lex_or_fs (feat_id, (s1, to_uname s2)), loc)
+              | ((Ast.Simple edge_id1,loc), Ast.Simple edge_id2) ->
+                Pat_const (Ast.Edge_disjoint (edge_id1, edge_id2), loc)
+              | ((_,loc),_) -> Error.build ~loc "syntax error in constraint"
              }
 
+        /* NB: the two next clauses use [simple_or_pointed_with_loc] instead of [feature_ident_with_loc] to avoid a Menhir conflict */
         /*   X.cat <> "value"   */
-        | feat_id1_loc=feature_ident_with_loc DISEQUAL rhs=STRING
-            { let (feat_id1,loc)=feat_id1_loc in Pat_const (Ast.Feature_diff_cst (feat_id1, rhs), loc) }
+        | lhs_loc=simple_or_pointed_with_loc DISEQUAL rhs=STRING
+            { match lhs_loc with
+              | (Ast.Pointed feat_id, loc) -> Pat_const (Ast.Feature_diff_cst (feat_id, rhs), loc)
+              | (_,loc) -> Error.build ~loc "syntax error in constraint"
+            }
 
         /*   X.cat <> 12.34   */
-        | feat_id1_loc=feature_ident_with_loc DISEQUAL rhs=FLOAT
-            { let (feat_id1,loc)=feat_id1_loc in Pat_const (Ast.Feature_diff_float (feat_id1, rhs), loc) }
-
+        | lhs_loc=simple_or_pointed_with_loc DISEQUAL rhs=FLOAT
+            { match lhs_loc with
+              | (Ast.Pointed feat_id, loc) -> Pat_const (Ast.Feature_diff_float (feat_id, rhs), loc)
+              | (_,loc) -> Error.build ~loc "syntax error in constraint"
+            }
 
         /*   X.cat = re"regexp"   */
         | feat_id_loc=feature_ident_with_loc EQUAL regexp=REGEXP
@@ -620,7 +636,7 @@ pat_item:
             { let (id1,loc) = id1_loc in
               match (id1, id2) with
               | ("label", "label") -> Pat_const (Ast.Label_equal (n2, n1), loc)
-              | ("label", n) | (n, "id") -> Error.build ~loc "Unexpected operator '%s'" n
+              | ("label", n) | (n, "label") -> Error.build ~loc "Unexpected operator '%s'" n
               | (n, m) -> Error.build ~loc "Unexpected operators '%s' and '%s'" n m
             }
 
@@ -630,9 +646,13 @@ pat_item:
             { let (id1,loc) = id1_loc in
               match (id1, id2) with
               | ("label", "label") -> Pat_const (Ast.Label_disequal (n2, n1), loc)
-              | ("label", n) | (n, "id") -> Error.build ~loc "Unexpected operator '%s'" n
+              | ("label", n) | (n, "label") -> Error.build ~loc "Unexpected operator '%s'" n
               | (n, m) -> Error.build ~loc "Unexpected operators '%s' and '%s'" n m
             }
+
+        /*   e1 >< e2   */
+        | n1_loc=simple_id_with_loc CROSSING n2=simple_id
+            { let (n1,loc) = n1_loc in Pat_const (Ast.Edge_crossing (n1,n2), loc) }
 
 node_features:
         /*   cat = n|v|adj   */

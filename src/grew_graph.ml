@@ -282,6 +282,7 @@ module G_graph = struct
   let get_domain t = t.domain
 
   let find node_id graph = Gid_map.find node_id graph.map
+  let find_opt node_id graph = Gid_map.find_opt node_id graph.map
 
   let equals t t' = Gid_map.equal (=) t.map t'.map
 

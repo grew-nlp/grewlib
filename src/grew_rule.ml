@@ -47,12 +47,16 @@ module Pattern = struct
     | Filter of Pid.t * P_fs.t (* used when a without impose a fs on a node defined by the match basic *)
     (* *)
     | Immediate_prec of Pid.t * Pid.t
-    | Large_prec of Pid.t * Pid.t
+    | Node_large_prec of Pid.t * Pid.t
     (* *)
     | Id_prec of Pid.t * Pid.t
     (* *)
     | Label_equal of string * string
     | Label_disequal of string * string
+    (* *)
+    | Edge_included of string * string
+    | Edge_disjoint of string * string
+    | Edge_crossing of string * string
 
   let const_to_json ?domain = function
     | Cst_out (pid, label_cst) -> `Assoc ["cst_out", Label_cst.to_json ?domain label_cst]
@@ -168,8 +172,8 @@ module Pattern = struct
                 ("id2", `String (Pid.to_string pid2));
               ]
              ]
-    | Large_prec (pid1, pid2) ->
-      `Assoc ["large_prec",
+    | Node_large_prec (pid1, pid2) ->
+      `Assoc ["node_large_prec",
               `Assoc [
                 ("id1", `String (Pid.to_string pid1));
                 ("id2", `String (Pid.to_string pid2));
@@ -196,6 +200,28 @@ module Pattern = struct
                 ("id2", `String eid2);
               ]
              ]
+    | Edge_included (eid1, eid2) ->
+      `Assoc ["edge_included",
+              `Assoc [
+                ("id1", `String eid1);
+                ("id2", `String eid2);
+              ]
+             ]
+    | Edge_disjoint (eid1, eid2) ->
+      `Assoc ["edge_disjoint",
+              `Assoc [
+                ("id1", `String eid1);
+                ("id2", `String eid2);
+              ]
+             ]
+    | Edge_crossing (eid1, eid2) ->
+      `Assoc ["edge_crossing",
+              `Assoc [
+                ("id1", `String eid1);
+                ("id2", `String eid2);
+              ]
+             ]
+
 
   let build_pos_constraint ?domain lexicons pos_table const =
     let pid_of_name loc node_name = Pid.Pos (Id.build ~loc node_name pos_table) in
@@ -252,8 +278,17 @@ module Pattern = struct
     | (Ast.Immediate_prec (id1, id2), loc) ->
       Immediate_prec (pid_of_name loc id1, pid_of_name loc id2)
 
+    (* WARNING: the ast Command [Large_prec] can be translated as:
+      - Node_large_prec if arguments are nodes id
+      - Edge_included in arguments are edges id
+    *)
     | (Ast.Large_prec (id1, id2), loc) ->
-      Large_prec (pid_of_name loc id1, pid_of_name loc id2)
+      begin
+        match (Id.build_opt id1 pos_table, Id.build_opt id2 pos_table) with
+        | (None,None) -> Edge_included (id1, id2)
+        | (Some x, Some y) -> Node_large_prec (Pid.Pos x, Pid.Pos y)
+        | _ -> Error.build "Operator << can be used only with two nodes if two edges"
+      end
 
     | (Ast.Label_equal (eid1, eid2), loc) ->
       Label_equal (eid1, eid2)
@@ -280,7 +315,10 @@ module Pattern = struct
     | (Ast.Id_prec (id1, id2), loc) ->
       Id_prec (pid_of_name loc id1, pid_of_name loc id2)
 
-
+    | (Ast.Edge_disjoint (eid1, eid2), loc) ->
+      Edge_disjoint (eid1, eid2)
+    | (Ast.Edge_crossing (eid1, eid2), loc) ->
+      Edge_crossing (eid1, eid2)
 
   type basic = {
     graph: P_graph.t;
@@ -371,8 +409,18 @@ module Pattern = struct
     | (Ast.Immediate_prec (id1, id2), loc) ->
       Immediate_prec (pid_of_name loc id1, pid_of_name loc id2)
 
+    (* WARNING: the ast Command [Large_prec] can be translated as:
+      - Node_large_prec if arguments are nodes id
+      - Edge_included in arguments are edges id
+    *)
     | (Ast.Large_prec (id1, id2), loc) ->
-      Large_prec (pid_of_name loc id1, pid_of_name loc id2)
+      begin
+        match (Id.build_opt id1 pos_table, Id.build_opt id1 neg_table, Id.build_opt id2 pos_table, Id.build_opt id2 neg_table) with
+        | (None,None,None,None) -> Edge_included (id1, id2)
+        | (None,None,_,_) -> Error.build "Operator << can be used only with two nodes if two edges"
+        | (_,_,None,None) -> Error.build "Operator << can be used only with two nodes if two edges"
+        | _ -> Node_large_prec  (pid_of_name loc id1, pid_of_name loc id2)
+      end
 
     | (Ast.Label_equal (eid1, eid2), loc) ->
       Label_equal (eid1, eid2)
@@ -398,6 +446,10 @@ module Pattern = struct
     | (Ast.Id_prec (id1, id2), loc) ->
       Id_prec (pid_of_name loc id1, pid_of_name loc id2)
 
+    | (Ast.Edge_disjoint (eid1, eid2), loc) ->
+      Edge_disjoint (eid1, eid2)
+    | (Ast.Edge_crossing (eid1, eid2), loc) ->
+      Edge_crossing (eid1, eid2)
 
 
   (* It may raise [P_fs.Fail_unif] in case of contradiction on constraints *)
@@ -604,6 +656,25 @@ module Matching = struct
       check = basic.constraints;
     }
 
+  type edge_relative_position =
+    | Included
+    | Contained
+    | Disjoint
+    | Crossing
+    | Non_ordered
+
+  let get_relative_position (l1,_,r1) (l2,_,r2) graph =
+    match (G_graph.find_opt l1 graph, G_graph.find_opt r1 graph, G_graph.find_opt l2 graph, G_graph.find_opt r2 graph) with
+    | (Some nl1, Some nr1, Some nl2, Some nr2) ->
+      begin
+        match (G_node.get_position nl1, G_node.get_position nr1, G_node.get_position nl2, G_node.get_position nr2) with
+        | (Some pl1, Some pr1, Some pl2, Some pr2) when pr1 <= pl2 || pr2 <= pl1 -> Disjoint
+        | (Some pl1, Some pr1, Some pl2, Some pr2) when pl1 <= pl2 && pr2 <= pr1 -> Contained
+        | (Some pl1, Some pr1, Some pl2, Some pr2) when pl2 <= pl1 && pr1 <= pr2 -> Included
+        | (Some _, Some _, Some _, Some _) -> Crossing
+        | _ -> Non_ordered
+      end
+    | _ -> Error.bug "[get_relative_position]"
 
   (*  ---------------------------------------------------------------------- *)
   let apply_cst ?domain graph matching cst =
@@ -717,7 +788,8 @@ module Matching = struct
       if G_node.get_succ gnode1 = Some gid2
       then matching
       else  raise Fail
-    | Large_prec (pid1, pid2) ->
+
+    | Node_large_prec (pid1, pid2) ->
       let gnode1 = G_graph.find (Pid_map.find pid1 matching.n_match) graph in
       let gnode2 = G_graph.find (Pid_map.find pid2 matching.n_match) graph in
       if G_node.get_position gnode1 < G_node.get_position gnode2
@@ -773,6 +845,35 @@ module Matching = struct
           | Some new_lex -> {matching with l_param = (lexicon, new_lex) :: (List.remove_assoc lexicon matching.l_param) }
       end
 
+    | Edge_included (eid1, eid2) ->
+      begin
+        match (String_map.find_opt eid1 matching.e_match, String_map.find_opt eid2 matching.e_match) with
+        | (Some e1, Some e2) when get_relative_position e1 e2 graph = Included -> matching
+        | (Some _, Some _) -> raise Fail
+        | (None, Some _) -> Error.build "Edge identifier '%s' not found" eid1;
+        | (Some _, None) -> Error.build "Edge identifier '%s' not found" eid2;
+        | (None, None) -> Error.build "Edge identifiers '%s' and '%s' not found" eid1 eid2;
+      end
+
+    | Edge_disjoint (eid1, eid2) ->
+      begin
+        match (String_map.find_opt eid1 matching.e_match, String_map.find_opt eid2 matching.e_match) with
+        | (Some e1, Some e2) when get_relative_position e1 e2 graph = Disjoint -> matching
+        | (Some _, Some _) -> raise Fail
+        | (None, Some _) -> Error.build "Edge identifier '%s' not found" eid1;
+        | (Some _, None) -> Error.build "Edge identifier '%s' not found" eid2;
+        | (None, None) -> Error.build "Edge identifiers '%s' and '%s' not found" eid1 eid2;
+      end
+
+    | Edge_crossing (eid1, eid2) ->
+      begin
+        match (String_map.find_opt eid1 matching.e_match, String_map.find_opt eid2 matching.e_match) with
+        | (Some e1, Some e2) when get_relative_position e1 e2 graph = Crossing -> matching
+        | (Some _, Some _) -> raise Fail
+        | (None, Some _) -> Error.build "Edge identifier '%s' not found" eid1;
+        | (Some _, None) -> Error.build "Edge identifier '%s' not found" eid2;
+        | (None, None) -> Error.build "Edge identifiers '%s' and '%s' not found" eid1 eid2;
+      end
 
   (*  ---------------------------------------------------------------------- *)
   (* returns all extension of the partial input matching *)

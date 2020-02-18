@@ -198,7 +198,9 @@ module Ast = struct
     (* *)
     | Label_equal of Id.name * Id.name
     | Label_disequal of Id.name * Id.name
-
+    (* *)
+    | Edge_disjoint of Id.name * Id.name
+    | Edge_crossing of Id.name * Id.name
 
   type const = u_const * Loc.t
 

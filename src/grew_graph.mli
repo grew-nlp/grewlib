@@ -99,6 +99,7 @@ module G_graph: sig
   (** [find gid graph] return the g_node associated with [gid] in [graph].
       [Not_found] is raised if [gid] is not defined in [graph]. *)
   val find: Gid.t -> t -> G_node.t
+  val find_opt: Gid.t -> t -> G_node.t option
 
   val equals: t -> t -> bool
 
