@@ -85,8 +85,6 @@ module G_graph: sig
   val find: Gid.t -> t -> G_node.t
   val find_opt: Gid.t -> t -> G_node.t option
 
-  val equals: t -> t -> bool
-
   val node_exists: (G_node.t -> bool) -> t -> bool
 
   val fold_gid: (Gid.t -> 'a -> 'a) -> t -> 'a -> 'a
@@ -123,7 +121,7 @@ module G_graph: sig
       if it succeeds, [Some new_graph] is returned
       if it fails (the edge already exists), [None] is returned
   *)
-  val add_edge: t -> Gid.t -> G_edge.t -> Gid.t -> t option
+  val add_edge: Gid.t -> G_edge.t -> Gid.t -> t -> t option
 
   (** [del_edge ?loc src_gid label tar_gid graph] removes the edge (src_gid -[label]-> tar_gid) from graph. *)
   val del_edge: ?loc:Loc.t -> Gid.t -> G_edge.t -> Gid.t -> t -> t option
@@ -135,8 +133,8 @@ module G_graph: sig
 
 
   (** [del_node graph id] remove node [id] from [graph], with all its incoming and outcoming edges.
-      None is returned if [id] not defined in [graph]*)
-  val del_node: t -> Gid.t -> t option
+      None is returned if [id] is not defined in [graph]*)
+  val del_node: Gid.t -> t -> t option
 
   val add_before: Gid.t -> t -> (Gid.t * t)
   val add_after: Gid.t -> t -> (Gid.t * t)
@@ -152,9 +150,9 @@ module G_graph: sig
     (Gid.t -> bool) ->  (* a locality test: true iff the node is a pattern node *)
     Label_cst.t ->      (* what are the constraint on edge label *)
     t ->                (* input graph *)
-    ( t *                                (* output graph *)
-      (Gid.t * G_edge.t * Gid.t) list *  (* list of really deleted edges *)
-      (Gid.t * G_edge.t * Gid.t) list    (* list of really added edges *)
+    ( t                                  (* output graph *)
+      * (Gid.t * G_edge.t * Gid.t) list  (* list of really deleted edges *)
+      * (Gid.t * G_edge.t * Gid.t) list  (* list of really added edges *)
     )
 
   (** shift all crown-edges starting from [src_gid] to edges starting from [tar_gid] *)
@@ -165,9 +163,9 @@ module G_graph: sig
     (Gid.t -> bool) ->  (* a locality test: true iff the node is a pattern node *)
     Label_cst.t ->      (* what are the constraint on edge label *)
     t ->                (* input graph *)
-    ( t *                                (* output graph *)
-      (Gid.t * G_edge.t * Gid.t) list *  (* list of really deleted edges *)
-      (Gid.t * G_edge.t * Gid.t) list    (* list of really added edges *)
+    ( t                                  (* output graph *)
+      * (Gid.t * G_edge.t * Gid.t) list  (* list of really deleted edges *)
+      * (Gid.t * G_edge.t * Gid.t) list  (* list of really added edges *)
     )
 
   (** move all incident crown-edges from/to [src_gid] are moved to incident edges on node [tar_gid] from graph *)
@@ -178,9 +176,9 @@ module G_graph: sig
     (Gid.t -> bool) ->  (* a locality test: true iff the node is a pattern node *)
     Label_cst.t ->      (* what are the constraint on edge label *)
     t ->                (* input graph *)
-    ( t *                                (* output graph *)
-      (Gid.t * G_edge.t * Gid.t) list *  (* list of really deleted edges *)
-      (Gid.t * G_edge.t * Gid.t) list    (* list of really added edges *)
+    ( t                                  (* output graph *)
+      * (Gid.t * G_edge.t * Gid.t) list  (* list of really deleted edges *)
+      * (Gid.t * G_edge.t * Gid.t) list  (* list of really added edges *)
     )
 
   (** [update_feat graph tar_id tar_feat_name concat_items] sets the feature of the node [tar_id]

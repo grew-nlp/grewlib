@@ -267,8 +267,6 @@ module G_graph = struct
   let find node_id graph = Gid_map.find node_id graph.map
   let find_opt node_id graph = Gid_map.find_opt node_id graph.map
 
-  let equals t t' = Gid_map.equal (=) t.map t'.map
-
   let node_exists fct t = Gid_map.exists (fun _ node -> fct node) t.map
 
   let fold_gid fct t init =
@@ -317,7 +315,7 @@ module G_graph = struct
     | None -> Error.bug "[Graph.map_add_edge] duplicate edge"
 
   (* -------------------------------------------------------------------------------- *)
-  let add_edge graph id_src label id_tar =
+  let add_edge id_src label id_tar graph =
     match map_add_edge_opt graph.map id_src label id_tar with
     | Some new_map -> Some {graph with map = new_map }
     | None -> None
@@ -704,18 +702,18 @@ module G_graph = struct
         Some { graph with map = new_map }
 
   (* -------------------------------------------------------------------------------- *)
-  let del_node graph node_id =
+  let del_node node_id graph =
     match Gid_map.find_opt node_id graph.map with
     | None -> None
     | Some node ->
-      let map_wo_node =
+      let new_map =
         Gid_map.fold
           (fun id value acc ->
              if id = node_id
              then acc
              else Gid_map.add id (G_node.remove_key node_id value) acc
-          ) graph.map Gid_map.empty in
-      Some { graph with map = map_unorder node map_wo_node }
+          ) (map_unorder node graph.map) Gid_map.empty in
+      Some { graph with map = new_map }
 
   (* -------------------------------------------------------------------------------- *)
   (* move out-edges (which respect cst [labels,neg]) from id_src are moved to out-edges out off node id_tar *)

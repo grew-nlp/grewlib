@@ -1326,7 +1326,7 @@ module Rule = struct
       let src_gid = node_find src_cn in
       let tar_gid = node_find tar_cn in
       begin
-        match G_graph.add_edge state.graph src_gid edge tar_gid with
+        match G_graph.add_edge src_gid edge tar_gid state.graph with
         | None when !Global.safe_commands ->
           Error.run ~loc "ADD_EDGE: the edge '%s' already exists" (G_edge.to_string ?domain edge)
         | None -> state
@@ -1340,7 +1340,7 @@ module Rule = struct
         try String_map.find edge_id state.e_mapping
         with Not_found -> Error.run ~loc "The edge identifier '%s' is undefined" edge_id in
       begin
-        match G_graph.add_edge state.graph src_gid edge tar_gid with
+        match G_graph.add_edge src_gid edge tar_gid state.graph with
         | None when !Global.safe_commands ->
           Error.run ~loc "ADD_EDGE_EXPL: the edge '%s' already exists" (G_edge.to_string ?domain edge)
         | None -> state
@@ -1366,7 +1366,7 @@ module Rule = struct
         ) items in
       let edge = G_edge.from_items direct_items in
       begin
-        match G_graph.add_edge state.graph src_gid edge tar_gid with
+        match G_graph.add_edge src_gid edge tar_gid state.graph with
         | None when !Global.safe_commands ->
           Error.run ~loc "ADD_EDGE_ITEMS: the edge '%s' already exists" (G_edge.to_string ?domain edge)
         | None -> state
@@ -1432,7 +1432,7 @@ module Rule = struct
 
     | Command.DEL_NODE node_cn ->
       let node_gid = node_find node_cn in
-      (match G_graph.del_node state.graph node_gid with
+      (match G_graph.del_node node_gid state.graph with
        | None when !Global.safe_commands -> Error.run ~loc "DEL_NODE: the node does not exist"
        | None -> state
        | Some new_graph ->
@@ -1635,7 +1635,7 @@ module Rule = struct
       let src_gid = node_find src_cn in
       let tar_gid = node_find tar_cn in
       begin
-        match G_graph.add_edge gwh.Graph_with_history.graph src_gid edge tar_gid with
+        match G_graph.add_edge src_gid edge tar_gid gwh.Graph_with_history.graph with
         | None when !Global.safe_commands ->
           Error.run ~loc "ADD_EDGE: the edge '%s' already exists" (G_edge.to_string ?domain edge)
         | None -> Graph_with_history_set.singleton gwh
@@ -1655,7 +1655,7 @@ module Rule = struct
         with Not_found -> Error.run ~loc "ADD_EDGE_EXPL: the edge identifier '%s' is undefined" edge_ident in
 
       begin
-        match G_graph.add_edge gwh.Graph_with_history.graph src_gid edge tar_gid with
+        match G_graph.add_edge src_gid edge tar_gid gwh.Graph_with_history.graph with
         | None when !Global.safe_commands ->
           Error.run ~loc "ADD_EDGE_EXPL: the edge '%s' already exists" (G_edge.to_string ?domain edge)
         | None -> Graph_with_history_set.singleton gwh
@@ -1685,7 +1685,7 @@ module Rule = struct
         ) items in
       let edge = G_edge.from_items direct_items in
       begin
-        match G_graph.add_edge gwh.Graph_with_history.graph src_gid edge tar_gid with
+        match G_graph.add_edge src_gid edge tar_gid gwh.Graph_with_history.graph with
         | None when !Global.safe_commands ->
           Error.run ~loc "ADD_EDGE_ITEMS: the edge '%s' already exists" (G_edge.to_string ?domain edge)
         | None -> Graph_with_history_set.singleton gwh
@@ -1725,7 +1725,7 @@ module Rule = struct
 
     | Command.DEL_NODE node_cn ->
       let node_gid = node_find node_cn in
-      (match G_graph.del_node gwh.Graph_with_history.graph node_gid with
+      (match G_graph.del_node node_gid gwh.Graph_with_history.graph with
        | None when !Global.safe_commands -> Error.run ~loc "DEL_NODE: the node does not exist"
        | None -> Graph_with_history_set.singleton gwh
        | Some new_graph -> Graph_with_history_set.singleton
