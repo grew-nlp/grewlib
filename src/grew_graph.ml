@@ -310,6 +310,13 @@ module G_graph = struct
     let node = Gid_map.find node_id graph.map in
     Massoc_gid.exists (fun _ e -> Label_cst.match_ ?domain label_cst e) (G_node.get_next node)
 
+  let covered node (gid1, _, gid2) graph =
+    let node1 = find gid1 graph in
+    let node2 = find gid2 graph in
+    match (G_node.get_position node, G_node.get_position node1, G_node.get_position node2) with
+    | (Some p, Some p1, Some p2) -> (min p1 p2) < p && (max p1 p2) > p
+    | _ -> false
+
   (* -------------------------------------------------------------------------------- *)
   let map_add_edge_opt map id_src label id_tar =
     let node_src =

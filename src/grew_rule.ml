@@ -57,6 +57,8 @@ module Pattern = struct
     | Edge_included of string * string
     | Edge_disjoint of string * string
     | Edge_crossing of string * string
+    (* *)
+    | Covered of Pid.t * string (* node_id, edge_id *)
 
   let const_to_json ?domain = function
     | Cst_out (pid, label_cst) -> `Assoc ["cst_out", Label_cst.to_json ?domain label_cst]
@@ -221,6 +223,7 @@ module Pattern = struct
                 ("id2", `String eid2);
               ]
              ]
+    | Covered (pid1, eid2) -> `Assoc ["covered",`Assoc [("id1", `String (Pid.to_string pid1)); ("id2", `String eid2)]]
 
 
   let build_pos_constraint ?domain lexicons pos_table const =
@@ -280,13 +283,15 @@ module Pattern = struct
 
     (* WARNING: the ast Command [Large_prec] can be translated as:
       - Node_large_prec if arguments are nodes id
-      - Edge_included in arguments are edges id
+      - Edge_included if arguments are edges id
+      - Covered if args are node and edge
     *)
     | (Ast.Large_prec (id1, id2), loc) ->
       begin
         match (Id.build_opt id1 pos_table, Id.build_opt id2 pos_table) with
         | (None,None) -> Edge_included (id1, id2)
         | (Some x, Some y) -> Node_large_prec (Pid.Pos x, Pid.Pos y)
+        | (Some x, None) -> Covered (Pid.Pos x, id2)
         | _ -> Error.build "Operator << can be used only with two nodes if two edges"
       end
 
@@ -411,14 +416,15 @@ module Pattern = struct
 
     (* WARNING: the ast Command [Large_prec] can be translated as:
       - Node_large_prec if arguments are nodes id
-      - Edge_included in arguments are edges id
+      - Edge_included if arguments are edges id
+      - Covered if args are node and edge
     *)
     | (Ast.Large_prec (id1, id2), loc) ->
       begin
         match (Id.build_opt id1 pos_table, Id.build_opt id1 neg_table, Id.build_opt id2 pos_table, Id.build_opt id2 neg_table) with
         | (None,None,None,None) -> Edge_included (id1, id2)
+        | (_,_,None,None) -> Covered (pid_of_name loc id1, id2)
         | (None,None,_,_) -> Error.build "Operator << can be used only with two nodes if two edges"
-        | (_,_,None,None) -> Error.build "Operator << can be used only with two nodes if two edges"
         | _ -> Node_large_prec  (pid_of_name loc id1, pid_of_name loc id2)
       end
 
@@ -873,6 +879,15 @@ module Matching = struct
         | (None, Some _) -> Error.build "Edge identifier '%s' not found" eid1;
         | (Some _, None) -> Error.build "Edge identifier '%s' not found" eid2;
         | (None, None) -> Error.build "Edge identifiers '%s' and '%s' not found" eid1 eid2;
+      end
+
+      | Covered (pid, eid) ->
+      begin
+        let gnode = G_graph.find (Pid_map.find pid matching.n_match) graph in
+        match (String_map.find_opt eid matching.e_match) with
+        | (Some edge) when G_graph.covered gnode edge graph -> matching
+        | Some _ -> raise Fail
+        | (None) -> Error.build "Edge identifier '%s' not found" eid;
       end
 
   (*  ---------------------------------------------------------------------- *)

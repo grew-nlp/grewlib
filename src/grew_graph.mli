@@ -112,6 +112,10 @@ module G_graph: sig
   (** [edge_out t id label_cst] returns true iff there is an out-edge from the node [id] with a label compatible with [label_cst] *)
   val edge_out: t -> Gid.t -> Label_cst.t -> bool
 
+  (** [covered t node edge graph] returns true iff the node is covered by the [edge]
+      i.e. the position of the node is strictly between the two nodes of the edge *)
+  val covered: G_node.t -> (Gid.t * G_edge.t * Gid.t ) -> t -> bool
+
   (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
   (* Build functions *)
   (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
