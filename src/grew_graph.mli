@@ -39,14 +39,14 @@ module P_graph: sig
     old_map: P_node.t Pid_map.t; (* a partial map for new constraints on old nodes "Old [...]" *)
   }
 
-  (** It raises [P_fs.Fail_unif] exception in case of inconsistent feature structures. *)
+  (** [P_fs.Fail_unif] exception is raised in case of inconsistent feature structures. *)
   val build:
     ?domain:Domain.t ->
     Lexicons.t ->
     Ast.basic ->
     (t * Id.table)
 
-  (** It raises [P_fs.Fail_unif] exception in case of inconsistent feature structures. *)
+  (** [P_fs.Fail_unif] exception is raised in case of inconsistent feature structures. *)
   val build_extension:
     ?domain:Domain.t ->
     Lexicons.t ->
@@ -205,7 +205,9 @@ module G_graph: sig
   val to_gr: t -> string
   val to_dot: ?main_feat:string -> ?get_url:(string -> string option) -> ?deco:G_deco.t -> t -> string
   val to_sentence: ?pivot: string -> ?deco:G_deco.t -> t -> string
-  val to_orfeo: ?deco:G_deco.t -> t -> string
+
+  val to_orfeo: ?deco:G_deco.t -> t -> (string * (float * float) option)
+
   val to_dep: ?filter: (string -> bool) -> ?main_feat:string -> ?deco:G_deco.t -> t -> string
   val to_conll: t -> Conll.t
   val to_conll_string: ?cupt:bool -> t -> string

@@ -1001,7 +1001,18 @@ module G_graph = struct
             )
             word
       ) snodes;
-    Buffer.contents buff
+
+    let bounds =
+      match (CCList.nth_opt snodes 1, CCList.last_opt snodes) with (* 0 is the "conll root node" *)
+      | (Some (_,node1), Some (_,node2)) ->
+        begin
+          match (G_fs.get_string_atom "_start" (G_node.get_fs node1), G_fs.get_string_atom "_stop" (G_node.get_fs node2)) with
+          | (Some i, Some f) -> (try Some (float_of_string i, float_of_string f) with Failure _ -> None)
+          | _ -> None
+        end
+      | _ -> None in
+
+    (Buffer.contents buff, bounds)
 
 
   (* -------------------------------------------------------------------------------- *)

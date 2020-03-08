@@ -110,7 +110,8 @@ module Graph : sig
   val sentence_of_pst: ?domain:Domain.t -> string -> string
 
   val to_sentence: ?pivot: string -> ?deco:Deco.t -> t -> string
-  val to_orfeo: ?deco:Deco.t -> t -> string
+
+  val to_orfeo: ?deco:Deco.t -> t -> string * (float * float) option
 
   val to_dot : ?main_feat:string -> ?deco:Deco.t -> ?get_url:(string -> string option) -> t -> string
 
@@ -124,6 +125,9 @@ module Graph : sig
 
   (** [search_pattern pattern graph] returns the list of the possible matching of [pattern] in [graph] *)
   val search_pattern: ?domain:Domain.t -> Pattern.t -> t -> Matching.t list
+
+  val get_meta_opt: string -> t -> string option
+
 end
 
 (* ==================================================================================================== *)
