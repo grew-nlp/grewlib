@@ -1,3 +1,6 @@
+## 1.3.5 (2020/03/12)
+  * Avoid exception [Not_conll] in G_edge.to_dep & G_edge.to_dot
+
 ## 1.3.4 (2020/01/18)
   * add command append_feats (see https://gitlab.inria.fr/grew/grew/issues/12)
   * any sequence of "pattern" / "without" / "global" is admitted
