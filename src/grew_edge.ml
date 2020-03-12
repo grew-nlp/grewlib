@@ -66,11 +66,11 @@ module G_edge = struct
     with Not_conll s -> sprintf "[%s]" s
 
   let to_dep ?domain ?(deco=false) t =
-    let conll = to_conll t in
+    let conll = to_string t in
     Domain.label_to_dep ?domain ~deco conll
 
   let to_dot ?domain ?(deco=false) t =
-    let conll = to_conll t in
+    let conll = to_string t in
     Domain.label_to_dot ?domain ~deco conll
 
   let split l = CCList.mapi
