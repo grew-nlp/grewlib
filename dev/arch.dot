@@ -13,6 +13,7 @@ digraph grew {
   grew_graph [label="grew_graph|P_graph\nG_deco\nG_graph\nDelta\nGraph_with_history\nGraph_with_history_set"]
   grew_rule [label="grew_rule|Pattern\nMatching\nRule"]
   grew_grs [label="grew_grs|Grs"]
+  grew_corpus [label="grew_corpus|Corpus\nCorpus_desc"]
 
 grew_domain -> grew_types -> grew_ast -> grew_base
 grew_edge -> grew_domain
@@ -27,7 +28,8 @@ libgrew_types -> grew_graph
 grew_rule -> libgrew_types
 grew_grs -> grew_rule
 grew_grs -> grew_loader -> grew_lexer -> grew_parser -> grew_ast
-libgrew -> grew_grs
+grew_corpus -> grew_grs
+libgrew -> grew_corpus
 
 libgrew -> libgrew_types [style=dotted]
 }

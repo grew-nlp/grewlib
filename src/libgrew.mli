@@ -174,6 +174,51 @@ module Rewrite: sig
   val simple_rewrite: gr:Graph.t -> grs:Grs.t -> strat:string -> Graph.t list
 end
 
+
+
+(* ==================================================================================================== *)
+(** {2 Corpus} *)
+(* ==================================================================================================== *)
+module Corpus: sig
+  type t = Grew_corpus.Corpus.t
+
+  (* [size t] returns the number of graphs in the corpus *)
+  val size: t -> int
+
+  val get_domain: t -> Domain.t option
+  val get_graph: int -> t -> Graph.t
+  val get_sent_id: int -> t -> string
+  val is_conll: int -> t -> bool
+  val get_text: int -> t -> string
+
+  val fold_left: ('a -> Graph.t -> 'a) -> 'a -> t -> 'a
+
+  val permut_length: t -> int array
+end
+
+module Corpus_desc: sig
+
+  type t
+
+  val build_corpus: t -> Corpus.t
+
+
+  val is_rtl: t -> bool
+  val is_audio: t -> bool
+  val get_id: t -> string
+  val get_directory: t -> string
+
+  val load_json: string -> t list
+
+  val compile: ?grew_match: string ->  t -> unit
+
+  val clean: t -> unit
+
+end
+
+
+
+
 module Multigraph: sig
   type t = Grew_graph.Multigraph.t
 

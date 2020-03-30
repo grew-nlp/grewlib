@@ -678,6 +678,19 @@ module Grs = struct
     | None -> Libgrew_types.Leaf graph
     | Some linear_rd -> build_rew_display_from_linear_rd linear_rd
 
+
+  let eud2ud = load (Filename.concat DATADIR "eud2ud.grs")
+  let apply_eud2ud graph =
+    match simple_rewrite eud2ud "main" graph with
+    | [one] -> one
+    | _ -> Error.run "the conversion eud2ud is not deterministic"
+
+  let apply grs_name graph =
+    match grs_name with
+    | "eud2ud" -> apply_eud2ud graph
+    | x -> Error.run "[Grs.apply] Unknown GRS \"%s\"" x
+
+
 end (* module Grs *)
 
 

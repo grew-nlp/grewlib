@@ -36,4 +36,8 @@ module Grs : sig
 
   val simple_rewrite: t -> string -> G_graph.t -> G_graph.t list
   val wrd_rewrite: t -> string -> G_graph.t -> Libgrew_types.rew_display
+
+  (* [apply grs_name t] apply a deterministic GRS of the given [name]
+     [Error.Run] is raised if the name in unknown or the GRS application not deterministic *)
+  val apply: string -> G_graph.t -> G_graph.t
 end (* module Grs *)
