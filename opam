@@ -2,13 +2,13 @@ opam-version: "2.0"
 maintainer: "Bruno.Guillaume@loria.fr"
 homepage: "http://grew.fr"
 build: [
-  ["make"]
+  ["make" "PREFIX=%{prefix}%"]
 ]
 install: [
-  ["make" "install"]
+  ["make" "install" "PREFIX=%{prefix}%"]
 ]
 remove: [
-  ["make" "uninstall"]
+  ["make" "uninstall" "PREFIX=%{prefix}%"]
 ]
 depends: [
   "cppo"
