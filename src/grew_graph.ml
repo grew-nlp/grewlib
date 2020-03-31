@@ -615,18 +615,19 @@ module G_graph = struct
       | None -> Error.run "[G_node.insert_before] unordered node"
       | Some p -> p in
     let shifted_map = shift_position 1 gid graph.map in
+    let shifted_node = Gid_map.find gid shifted_map in
     let new_gid = graph.highest_index + 1 in
 
     let new_map = match G_node.get_prec node with
       | None ->
         shifted_map
         |> (Gid_map.add new_gid (G_node.build ~succ:gid ~position ()))
-        |> (Gid_map.add gid (G_node.set_prec new_gid node))
+        |> (Gid_map.add gid (G_node.set_prec new_gid shifted_node))
       | Some prec_gid ->
         shifted_map
         |> (Gid_map.add new_gid (G_node.build ~prec:prec_gid ~succ:gid ~position ()))
         |> (Gid_map.add prec_gid (G_node.set_succ new_gid (Gid_map.find prec_gid graph.map)))
-        |> (Gid_map.add gid (G_node.set_prec new_gid node)) in
+        |> (Gid_map.add gid (G_node.set_prec new_gid shifted_node)) in
 
     (new_gid, { graph with map=new_map; highest_index = new_gid })
 
