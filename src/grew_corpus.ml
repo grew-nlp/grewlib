@@ -103,9 +103,13 @@ module Corpus_desc = struct
   let get_full_files { kind; directory; files } =
     let file_list = match files with
       | [] ->
-        Array.fold_left
-          (fun acc file -> if List.mem (Filename.extension file) (extensions kind) then file::acc else acc)
-          [] (Sys.readdir directory)
+        begin
+          try
+            Array.fold_left
+              (fun acc file -> if List.mem (Filename.extension file) (extensions kind) then file::acc else acc)
+              [] (Sys.readdir directory)
+          with Sys_error _ -> Error.run "[Corpus] cannot read directory %s" directory
+        end
       | l -> l in
     List.map (fun f -> Filename.concat directory f) file_list
 
@@ -129,10 +133,10 @@ module Corpus_desc = struct
             try
               let init_graph = G_graph.of_conll ?domain conll in
               let graph = match corpus_desc.preapply with
-              | Some grs -> Grs.apply grs init_graph
-              | None -> init_graph in
+                | Some grs -> Grs.apply grs init_graph
+                | None -> init_graph in
               Some {Corpus.sent_id; text=G_graph.to_sentence graph; graph; kind=Conll}
-            with exc -> Log.fwarning "[id=%s] Conll skipped [exception: %s]" sent_id (Printexc.to_string exc); None
+            with exc -> Log.fwarning "[build_corpus] [id=%s] Conll skipped [exception: %s]" sent_id (Printexc.to_string exc); None
           ) conll_corpus in
       { Corpus.domain; items }
     | _ -> Error.bug "[Corpus_desc.build_corpus] is available only on Conll format"
@@ -211,6 +215,20 @@ module Corpus_desc = struct
 
   (* ---------------------------------------------------------------------------------------------------- *)
   exception Skip
+  let ensure_dir dir =
+    try (* catch if dir does not exist *)
+      begin (* test if "dir" exists but is not a directory *)
+        match Unix.stat dir with
+        | { Unix.st_kind = Unix.S_DIR } -> ()
+        | _ -> Log.fwarning "grew_match option ignored: %s already exists and is not directory" dir; raise Skip
+      end; ()
+    with Unix.Unix_error (Unix.ENOENT,_,_) ->
+      begin (* dir does not exist -> try to create it *)
+        try Unix.mkdir dir 0o755
+        with exc -> Log.fwarning "grew_match option ignored: cannot create dir %s (%s)" dir (Printexc.to_string exc); raise Skip
+      end
+
+  (* ---------------------------------------------------------------------------------------------------- *)
   (* [grew_match] is a folder where tables, logs and corpus desc is stored *)
   let build_marshal_file domain ?grew_match preapply marshal_file id kind complete_files =
 
@@ -219,18 +237,7 @@ module Corpus_desc = struct
       | (Corpus.Amr,_) | (Pst,_) | (Conll, None) -> (None, None)
       | (Conll, Some dir) ->
         try
-          let _ =
-            try (* catch if dir does not exist *)
-              begin (* test if "dir" exists but is not a directory *)
-                match Unix.stat dir with
-                | { Unix.st_kind = Unix.S_DIR } -> ()
-                | _ -> Log.fwarning "grew_match option ignored: %s already exists and is not directory" dir; raise Skip
-              end; ()
-            with Unix.Unix_error (Unix.ENOENT,_,_) ->
-              begin (* dir does not exist -> try to create it *)
-                try Unix.mkdir dir 0o755
-                with exc -> Log.fwarning "grew_match option ignored: cannot create dir %s (%s)" dir (Printexc.to_string exc); raise Skip
-              end; () in
+          ensure_dir dir;
           let log = Filename.concat dir (sprintf "%s.log" id) in
           try close_out (open_out log); (Some dir, Some log)
           with exc -> Log.fwarning "grew_match option ignored: cannot create file in dir %s (%s)" dir (Printexc.to_string exc); raise Skip
@@ -245,10 +252,12 @@ module Corpus_desc = struct
               try
                 let init_graph = G_graph.of_conll ?domain conll in
                 let graph = match preapply with
-                | Some grs -> Grs.apply grs init_graph
-                | None -> init_graph in
+                  | Some grs -> Grs.apply grs init_graph
+                  | None -> init_graph in
                 Some {Corpus.sent_id; text=G_graph.to_sentence graph; graph; kind=Conll}
-              with exc -> Log.fwarning "[id=%s] Conll skipped [exception: %s]" sent_id (Printexc.to_string exc); None
+              with exc -> Log.fwarning "[build_marshal_file][id=%s] Conll skipped [exception: %s]" sent_id (Printexc.to_string exc); None
+
+
             ) conll_corpus
 
         | Pst ->
@@ -303,7 +312,7 @@ module Corpus_desc = struct
         (* the domain file is more recent than the marshal file *)
         really_marshal ()
       | _ when List.exists (fun f -> (Unix.stat f).Unix.st_mtime > marshal_time) full_files ->
-        (* on of the data files is more recent than the marshal file *)
+        (* one of the data files is more recent than the marshal file *)
         really_marshal ()
       | _ -> Log.fmessage "--> %s is uptodate" corpus_desc.id
     with
