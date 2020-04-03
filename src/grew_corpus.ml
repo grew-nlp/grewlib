@@ -199,7 +199,7 @@ module Corpus_desc = struct
       CCIO.with_out out_file (fun oc -> CCIO.write_line oc html);
 
       let date =
-        if CCString.suffix ~suf:"dev" name || CCString.suffix ~suf:"master" name || CCString.suffix ~suf:"conv" name
+        if List.exists (fun suf -> CCString.suffix ~suf name) ["latest"; "dev"; "master"; "conv"]
         then let t = Unix.gmtime (Unix.time ()) in
           sprintf "&nbsp;last update: %d/%02d/%02d" (t.Unix.tm_year + 1900) (t.Unix.tm_mon + 1) t.Unix.tm_mday
         else "" in
