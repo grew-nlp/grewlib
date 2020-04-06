@@ -46,7 +46,6 @@ module Pattern = struct
     (* *)
     | Filter of Pid.t * P_fs.t (* used when a without impose a fs on a node defined by the match basic *)
     (* *)
-    | Immediate_prec of Pid.t * Pid.t
     | Node_large_prec of Pid.t * Pid.t
     (* *)
     | Id_prec of Pid.t * Pid.t
@@ -167,13 +166,6 @@ module Pattern = struct
                 ("fs", P_fs.to_json ?domain p_fs);
               ]
              ]
-    | Immediate_prec (pid1, pid2) ->
-      `Assoc ["immediate_prec",
-              `Assoc [
-                ("id1", `String (Pid.to_string pid1));
-                ("id2", `String (Pid.to_string pid2));
-              ]
-             ]
     | Node_large_prec (pid1, pid2) ->
       `Assoc ["node_large_prec",
               `Assoc [
@@ -277,9 +269,6 @@ module Pattern = struct
     | (Ast.Feature_diff_float ((node_name, feat_name), float), loc) ->
       Domain.check_feature_name ?domain ~loc feat_name;
       Feature_diff_float (pid_of_name loc node_name, feat_name, float)
-
-    | (Ast.Immediate_prec (id1, id2), loc) ->
-      Immediate_prec (pid_of_name loc id1, pid_of_name loc id2)
 
     (* WARNING: the ast Command [Large_prec] can be translated as:
       - Node_large_prec if arguments are nodes id
@@ -410,9 +399,6 @@ module Pattern = struct
     | (Ast.Feature_diff_float ((node_name, feat_name), float), loc) ->
       Domain.check_feature_name ?domain ~loc feat_name;
       Feature_diff_float (pid_of_name loc node_name, feat_name, float)
-
-    | (Ast.Immediate_prec (id1, id2), loc) ->
-      Immediate_prec (pid_of_name loc id1, pid_of_name loc id2)
 
     (* WARNING: the ast Command [Large_prec] can be translated as:
       - Node_large_prec if arguments are nodes id
@@ -787,14 +773,6 @@ module Matching = struct
           let re = Str.regexp regexp in
           if String_.re_match re string_feat then matching else raise Fail
       end
-
-    | Immediate_prec (pid1, pid2) ->
-      let gid1 = Pid_map.find pid1 matching.n_match in
-      let gid2 = Pid_map.find pid2 matching.n_match in
-      let gnode1 = G_graph.find gid1 graph in
-      if G_node.get_succ gnode1 = Some gid2
-      then matching
-      else  raise Fail
 
     | Node_large_prec (pid1, pid2) ->
       let gnode1 = G_graph.find (Pid_map.find pid1 matching.n_match) graph in
