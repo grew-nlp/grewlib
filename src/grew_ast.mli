@@ -101,6 +101,7 @@ module Ast : sig
     | Neg_list of edge_label list           (*  ^X|Y|Z   *)
     | Regexp of string                      (*  re"a.*"  *)
     | Atom_list of atom_edge_label_cst list (* 1=subj, 2 *)
+    | Pred
 
   type u_edge = {
     edge_id: Id.name option;

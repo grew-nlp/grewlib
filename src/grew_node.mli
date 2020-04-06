@@ -62,8 +62,10 @@ module G_node: sig
 
   val remove_key: Gid.t -> t -> t
 
+  val add_edge: G_edge.t -> Gid.t -> t -> t
+
   (* None is returned if the edge already exists *)
-  val add_edge: G_edge.t -> Gid.t -> t -> t option
+  val add_edge_opt: G_edge.t -> Gid.t -> t -> t option
 
   val rename: (Gid.t * Gid.t) list -> t -> t
 

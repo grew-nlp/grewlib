@@ -473,7 +473,7 @@ module Pattern = struct
     Pid_map.fold
       (fun _ node acc ->
          Massoc_pid.fold
-           (fun acc2 _ edge -> (P_edge.get_id edge)::acc2)
+           (fun acc2 _ edge -> match P_edge.get_id edge with Some id -> id::acc2 | None -> acc2)
            acc (P_node.get_next node)
       ) basic.graph []
 
@@ -917,7 +917,8 @@ module Matching = struct
 
             match P_edge.match_list ?domain p_edge g_edges with
             | P_edge.Fail -> (* no good edge in graph for this pattern edge -> stop here *)
-              []
+             []
+            | P_edge.Pass -> [ {partial with unmatched_edges = tail_ue } ]
             | P_edge.Binds (id,labels) -> (* n edges in the graph match the identified p_edge -> make copies of the [k] matchings (and returns n*k matchings) *)
               List.map
                 (fun label ->
@@ -933,6 +934,7 @@ module Matching = struct
                  match P_edge.match_ ?domain p_edge g_edge with
                  | P_edge.Fail -> (* g_edge does not fit, no new candidate *)
                    acc
+                 | P_edge.Pass -> (gid_next, partial.sub) :: acc
                  | P_edge.Binds (id,[label]) -> (* g_edge fits with an extended matching *)
                    (gid_next, e_match_add id (src_gid, label, gid_next) partial.sub) :: acc
                  | _ -> Error.bug "P_edge.match_ must return exactly one label"

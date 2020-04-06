@@ -39,6 +39,8 @@ module G_edge: sig
   val to_json: t -> Yojson.Basic.t
 
   val sub: t
+  val pred: t
+  val succ: t
 
   val build: Ast.edge -> t
 
@@ -63,12 +65,15 @@ end (* module Label_cst *)
 module P_edge: sig
   type t
 
+  val pred: t
+  val succ: t
+
   (* [all] is the joker pattern edge *)
   val all: t
 
   val to_json: ?domain:Domain.t -> t -> Yojson.Basic.t
 
-  val get_id: t -> string
+  val get_id: t -> string option
 
   val to_string: ?domain:Domain.t -> t -> string
 
@@ -76,6 +81,7 @@ module P_edge: sig
 
   type edge_matcher =
     | Fail
+    | Pass
     | Binds of string * G_edge.t list
 
   val match_: ?domain:Domain.t -> t -> G_edge.t -> edge_matcher

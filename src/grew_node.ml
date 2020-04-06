@@ -104,6 +104,11 @@ module G_node = struct
 
   let add_edge g_edge gid_tar t =
     match Massoc_gid.add_opt gid_tar g_edge t.next with
+    | Some l -> {t with next = l}
+    | None -> t
+
+  let add_edge_opt g_edge gid_tar t =
+    match Massoc_gid.add_opt gid_tar g_edge t.next with
     | Some l -> Some {t with next = l}
     | None -> None
 

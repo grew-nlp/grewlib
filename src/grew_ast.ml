@@ -148,13 +148,14 @@ module Ast = struct
     | Neg_list of edge_label list           (*  ^X|Y|Z   *)
     | Regexp of string                      (*  re"a.*"  *)
     | Atom_list of atom_edge_label_cst list (* 1=subj, 2 *)
-
+    | Pred
   let string_of_edge_label_cst = function
     | Neg_list [] -> ""
     | Pos_list labels -> sprintf "[%s]" (List_.to_string (fun x->x) "|" labels)
     | Neg_list labels -> sprintf "[^%s]" (List_.to_string (fun x->x) "|" labels)
     | Regexp re -> sprintf "[re\"%s\"]" re
     | Atom_list l -> String.concat "," (List.map string_of_atom_edge_label_cst l)
+    | Pred -> "PRED"
 
   type u_edge = {
     edge_id: Id.name option;

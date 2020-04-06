@@ -88,13 +88,26 @@ module P_graph = struct
         (fun acc (ast_edge, loc) ->
            let i1 = Id.build ~loc ast_edge.Ast.src pos_table in
            let i2 = Id.build ~loc ast_edge.Ast.tar pos_table in
-           let edge = P_edge.build ?domain (ast_edge, loc) in
-           (match map_add_edge acc (Pid.Pos i1) edge (Pid.Pos i2) with
-            | Some g -> g
-            | None -> Error.build ~loc "[Graph.build] try to build a graph with twice the same edge %s"
-                        (P_edge.to_string ?domain edge)
-           )
+           match ast_edge.Ast.edge_label_cst with
+           | Ast.Pred ->
+             (match map_add_edge acc (Pid.Pos i1) P_edge.succ (Pid.Pos i2) with
+              | Some acc2 -> (match map_add_edge acc (Pid.Pos i2) P_edge.pred (Pid.Pos i1) with
+                  | Some g -> g
+                  | None -> Error.build ~loc "[Graph.build] try to build a graph with twice the order edge"
+                )
+             | None -> Error.build ~loc "[Graph.build] try to build a graph with twice the order edge"
+             )
+           | _ -> 
+             let edge = P_edge.build ?domain (ast_edge, loc) in
+             (match map_add_edge acc (Pid.Pos i1) edge (Pid.Pos i2) with
+              | Some g -> g
+              | None -> Error.build ~loc "[Graph.build] try to build a graph with twice the same edge %s"
+                          (P_edge.to_string ?domain edge)
+             )
         ) map_without_edges full_edge_list in
+
+
+
     (map, pos_table)
 
 
@@ -288,14 +301,14 @@ module G_graph = struct
     let node_src =
       (* Not found can be raised when adding an edge from pos to neg *)
       try Gid_map.find id_src map with Not_found -> (G_node.build ()) in
-    match G_node.add_edge label id_tar node_src with
+    match G_node.add_edge_opt label id_tar node_src with
     | None -> None
     | Some new_node -> Some (Gid_map.add id_src new_node map)
 
   (* -------------------------------------------------------------------------------- *)
   let map_add_edge map id_src label id_tar =
     let node_src = Gid_map.find id_src map in
-    match G_node.add_edge label id_tar node_src with
+    match G_node.add_edge_opt label id_tar node_src with
     | Some new_node -> Gid_map.add id_src new_node map
     | None -> Error.bug "[Graph.map_add_edge] duplicate edge"
 
@@ -409,11 +422,19 @@ module G_graph = struct
       | [] -> Gid_map.empty
       | [last] ->
         let loc = Loc.file_opt_line conll.Conll.file last.Conll.line_num in
-        Gid_map.add index (G_node.build_from_conll ~loc ?domain ?prec (Some index) last) Gid_map.empty
+        let node = 
+          G_node.build_from_conll ~loc ?domain ?prec (Some index) last
+          |> (fun x -> match prec with None -> x | Some p -> G_node.add_edge G_edge.pred p x)
+        in
+        Gid_map.add index node Gid_map.empty
       | line::tail ->
         let loc = Loc.file_opt_line conll.Conll.file line.Conll.line_num in
-        Gid_map.add index (G_node.build_from_conll ~loc ?domain ?prec ~succ:(index+1) (Some index) line)
-          (loop (index+1) (Some index) tail) in
+        let node =
+          G_node.build_from_conll ~loc ?domain ?prec ~succ:(index+1) (Some index) line
+          |> (fun x -> match prec with None -> x | Some p -> G_node.add_edge G_edge.pred p x)
+          |> G_node.add_edge G_edge.succ (index+1)
+        in
+        Gid_map.add index node (loop (index+1) (Some index) tail) in
 
     let map_without_edges = loop 0 None sorted_lines in
 

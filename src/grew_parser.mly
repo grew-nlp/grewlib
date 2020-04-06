@@ -547,7 +547,7 @@ pat_item:
 
               (*   X < Y   *)
               | (Ineq_sofi (Ast.Simple n1), Ineq_sofi (Ast.Simple n2)) ->
-                Pat_const (Ast.Immediate_prec (n1,n2), loc)
+                 Pat_edge ({Ast.edge_id = None; src=n1; edge_label_cst=Ast.Pred; tar=n2}, loc)
 
  (* TODO : axe lex_field *)
 
@@ -575,7 +575,7 @@ pat_item:
 
               (*   X > Y   *)
               | (Ineq_sofi (Ast.Simple n1), Ineq_sofi (Ast.Simple n2)) ->
-                Pat_const (Ast.Immediate_prec (n2,n1), loc)
+                Pat_edge ({Ast.edge_id = None; src=n2; edge_label_cst=Ast.Pred; tar=n1}, loc)
 
 (* TODO : axe lex_field *)
 
