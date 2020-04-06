@@ -178,7 +178,6 @@ module P_graph = struct
          then acc
          else pid::acc
       ) p_graph []
-
 end (* module P_graph *)
 
 (* ================================================================================ *)
@@ -354,11 +353,11 @@ module G_graph = struct
         (fun acc (ast_edge, loc) ->
            let i1 = List.assoc ast_edge.Ast.src table in
            let i2 = List.assoc ast_edge.Ast.tar table in
-           let edge = G_edge.build ?domain (ast_edge, loc) in
+           let edge = G_edge.build (ast_edge, loc) in
            (match map_add_edge_opt acc i1 edge i2 with
             | Some g -> g
             | None -> Error.build ~loc "[Graph.build] try to build a graph with twice the same edge %s"
-                        (G_edge.to_string ?domain edge)
+                        (G_edge.to_string edge)
            )
         ) map_without_edges gr_ast.Ast.edges in
 
@@ -426,11 +425,11 @@ module G_graph = struct
            List.fold_left
              (fun acc2 (gov, dep_lab) ->
                 let gov_id = Id.gbuild ~loc gov gtable in
-                let edge = G_edge.from_string ?domain ~loc dep_lab in
+                let edge = G_edge.from_string dep_lab in
                 (match map_add_edge_opt acc2 gov_id edge dep_id with
                  | Some g -> g
                  | None -> Error.build ~loc "[Graph.of_conll] try to build a graph with twice the same edge %s"
-                             (G_edge.to_string ?domain edge)
+                             (G_edge.to_string edge)
                 )
              ) acc line.Conll.deps
         ) map_without_edges conll.Conll.lines in
@@ -463,19 +462,19 @@ module G_graph = struct
            (* add a new node *)
            let new_map_1 = (Gid_map.add free_index new_node acc) in
            (* add a link to the first component *)
-           let new_map_2 = map_add_edge new_map_1 free_index (G_edge.from_string ?domain kind) (Id.gbuild (fst mwe.Mwe.first) gtable) in
+           let new_map_2 = map_add_edge new_map_1 free_index (G_edge.from_string kind) (Id.gbuild (fst mwe.Mwe.first) gtable) in
            let new_map_3 = match snd mwe.Mwe.first with
              | None -> new_map_2
-             | Some i -> map_add_edge new_map_2 free_index (G_edge.from_string ?domain (sprintf "%d" i)) (Id.gbuild (fst mwe.Mwe.first) gtable) in
+             | Some i -> map_add_edge new_map_2 free_index (G_edge.from_string (sprintf "%d" i)) (Id.gbuild (fst mwe.Mwe.first) gtable) in
 
            (* add a link to each other component *)
            let new_map_4 =
              Id_with_proj_set.fold (
                fun item acc2 ->
-                 let tmp = map_add_edge acc2 free_index (G_edge.from_string ?domain kind) (Id.gbuild (fst item) gtable) in
+                 let tmp = map_add_edge acc2 free_index (G_edge.from_string kind) (Id.gbuild (fst item) gtable) in
                  match snd item with
                  | None -> tmp
-                 | Some i -> map_add_edge tmp free_index (G_edge.from_string ?domain (sprintf "%d" i)) (Id.gbuild (fst item) gtable)
+                 | Some i -> map_add_edge tmp free_index (G_edge.from_string (sprintf "%d" i)) (Id.gbuild (fst item) gtable)
              ) mwe.Mwe.items new_map_3 in
 
            (new_map_4, free_index+1)
@@ -720,7 +719,7 @@ module G_graph = struct
            if Label_cst.match_ ?domain label_cst edge && not (is_gid_local next_gid)
            then
              match Massoc_gid.add_opt next_gid edge acc_tar_next with
-             | None when !Global.safe_commands -> Error.run ~loc "The [shift_out] command tries to build a duplicate edge (with label \"%s\")" (G_edge.to_string ?domain edge)
+             | None when !Global.safe_commands -> Error.run ~loc "The [shift_out] command tries to build a duplicate edge (with label \"%s\")" (G_edge.to_string edge)
              | None ->
                del_edges := (src_gid,edge,next_gid) :: !del_edges;
                (Massoc_gid.remove next_gid edge acc_src_next, acc_tar_next)
@@ -762,7 +761,7 @@ module G_graph = struct
                       then
                         match List_.usort_insert edge acc_node_tar_edges with
                         | None when !Global.safe_commands ->
-                          Error.run ~loc "The [shift_in] command tries to build a duplicate edge (with label \"%s\")" (G_edge.to_string ?domain edge)
+                          Error.run ~loc "The [shift_in] command tries to build a duplicate edge (with label \"%s\")" (G_edge.to_string edge)
                         | None ->
                           del_edges := (node_id,edge,src_gid) :: !del_edges;
                           (List_.usort_remove edge acc_node_src_edges, acc_node_tar_edges)
@@ -843,8 +842,6 @@ module G_graph = struct
 
   (* -------------------------------------------------------------------------------- *)
   let to_json graph =
-    let domain = get_domain graph in
-
     let gr_id id = G_node.get_name id (Gid_map.find id graph.map) in
 
     let nodes = Gid_map.fold
@@ -854,7 +851,7 @@ module G_graph = struct
            and succ =
              Massoc_gid.fold
                (fun acc tar edge ->
-                  (`List [`String (G_edge.to_string ?domain edge); `String (gr_id tar)]) :: acc
+                  (`List [`String (G_edge.to_string edge); `String (gr_id tar)]) :: acc
                ) [] (G_node.get_next node) in
            (node_id,`List [G_fs.to_json fs; `List succ])::acc
         ) graph.map [] in
@@ -863,7 +860,6 @@ module G_graph = struct
 
   (* -------------------------------------------------------------------------------- *)
   let to_gr graph =
-    let domain = get_domain graph in
     let buff = Buffer.create 32 in
     bprintf buff "graph {\n";
 
@@ -883,7 +879,7 @@ module G_graph = struct
       (fun (src_gid,node) ->
          Massoc_gid.iter
            (fun tar_gid edge ->
-              bprintf buff "  N_%d -[%s]-> N_%d;\n" src_gid (G_edge.to_string ?domain edge) tar_gid
+              bprintf buff "  N_%d -[%s]-> N_%d;\n" src_gid (G_edge.to_string edge) tar_gid
            ) (G_node.get_next node)
       ) sorted_nodes;
 
@@ -1100,9 +1096,6 @@ module G_graph = struct
   exception Skip
 
   let to_conll graph =
-
-    let domain = get_domain graph in
-
     let ordered_nodes = Gid_map.fold
         (fun id node acc ->
            if G_node.get_position node <> None
@@ -1135,7 +1128,7 @@ module G_graph = struct
            Massoc_gid.fold
              (fun acc2 tar_gid edge ->
                 let old = try Gid_map.find tar_gid acc2 with Not_found -> [] in
-                Gid_map.add tar_gid ((Gid_map.find src_gid mapping, G_edge.to_string ?domain edge) :: old) acc2
+                Gid_map.add tar_gid ((Gid_map.find src_gid mapping, G_edge.to_string edge) :: old) acc2
              ) acc (G_node.get_next node)
         ) Gid_map.empty sorted_nodes in
 
@@ -1183,13 +1176,13 @@ module G_graph = struct
              | head_gid::tail_gids ->
                let head_conll_id = Gid_map.find head_gid mapping in
                let head_proj = CCList.find_map
-                   (fun e -> int_of_string_opt (G_edge.to_string ?domain e))
+                   (fun e -> int_of_string_opt (G_edge.to_string e))
                    (Massoc_gid.assoc head_gid nexts) in
                let items = List.fold_left
                    (fun acc gid ->
                       let conll_id = Gid_map.find gid mapping in
                       let proj = CCList.find_map
-                          (fun e -> int_of_string_opt (G_edge.to_string ?domain e))
+                          (fun e -> int_of_string_opt (G_edge.to_string e))
                           (Massoc_gid.assoc gid nexts) in
                       Id_with_proj_set.add (conll_id, proj) acc
                    ) Id_with_proj_set.empty tail_gids in

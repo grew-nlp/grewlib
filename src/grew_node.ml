@@ -63,7 +63,7 @@ module G_node = struct
   let to_string ?domain t =
     Printf.sprintf "  fs=[%s]\n  next=%s\n"
       (G_fs.to_string t.fs)
-      (Massoc_gid.to_string (G_edge.to_string ?domain) t.next)
+      (Massoc_gid.to_string G_edge.to_string t.next)
 
   let to_gr t = sprintf "[%s] " (G_fs.to_gr t.fs)
 
@@ -124,7 +124,7 @@ module G_node = struct
         Some ({t with next = without_edge }, new_edge)
 
   let del_edge_feature gid_tar old_edge feat_name t =
-    match G_edge.remove feat_name old_edge with
+    match G_edge.remove_feat_opt feat_name old_edge with
     | None -> None
     | Some new_edge ->
       match Massoc_gid.add_opt gid_tar new_edge (Massoc_gid.remove gid_tar old_edge t.next) with

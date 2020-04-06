@@ -76,7 +76,7 @@ module Command  = struct
                `Assoc [
                  ("src",command_node_to_json src);
                  ("tar",command_node_to_json tar);
-                 ("edge", G_edge.to_json ?domain edge);
+                 ("edge", G_edge.to_json edge);
                ]
               )]
     | DEL_EDGE_NAME edge_name -> `Assoc [("del_edge_name", `String edge_name)]
@@ -85,7 +85,7 @@ module Command  = struct
                `Assoc [
                  ("src",command_node_to_json src);
                  ("tar",command_node_to_json tar);
-                 ("edge", G_edge.to_json ?domain edge);
+                 ("edge", G_edge.to_json edge);
                ]
               )]
 
@@ -214,7 +214,7 @@ module Command  = struct
     | (Ast.Del_edge_expl (node_i, node_j, lab), loc) ->
       check_node_id loc node_i kni;
       check_node_id loc node_j kni;
-      let edge = G_edge.from_string ~loc ?domain lab in
+      let edge = G_edge.from_string lab in
       ((DEL_EDGE_EXPL (cn_of_node_id node_i, cn_of_node_id node_j, edge), loc), (kni, kei))
 
     | (Ast.Del_edge_name id, loc) ->
@@ -224,7 +224,7 @@ module Command  = struct
     | (Ast.Add_edge (node_i, node_j, lab), loc) ->
       check_node_id loc node_i kni;
       check_node_id loc node_j kni;
-      let edge = G_edge.from_string ~loc ?domain lab in
+      let edge = G_edge.from_string lab in
       ((ADD_EDGE (cn_of_node_id node_i, cn_of_node_id node_j, edge), loc), (kni, kei))
 
     | (Ast.Add_edge_expl (node_i, node_j, name), loc) ->

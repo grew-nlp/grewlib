@@ -315,12 +315,12 @@ module List_ = struct
   let rec sort_remove_assoc_opt key = function
     | [] -> None
     | (k,_)::_ when key<k -> None
-    | (k,v)::t when key>k ->
+    | (k,_)::t when key=k -> Some t
+    | x::t (* when key>k *) ->
       (match sort_remove_assoc_opt key t with
        | None -> None
-       | Some new_t -> Some ((k,v) :: new_t)
+       | Some new_t -> Some (x :: new_t)
       )
-    | (_,v)::t (* key = k *) -> Some t
 
   exception Usort
 

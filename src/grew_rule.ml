@@ -1317,7 +1317,7 @@ module Rule = struct
       begin
         match G_graph.add_edge src_gid edge tar_gid state.graph with
         | None when !Global.safe_commands ->
-          Error.run ~loc "ADD_EDGE: the edge '%s' already exists" (G_edge.to_string ?domain edge)
+          Error.run ~loc "ADD_EDGE: the edge '%s' already exists" (G_edge.to_string edge)
         | None -> state
         | Some new_graph -> {state with graph = new_graph; effective = true}
       end
@@ -1331,7 +1331,7 @@ module Rule = struct
       begin
         match G_graph.add_edge src_gid edge tar_gid state.graph with
         | None when !Global.safe_commands ->
-          Error.run ~loc "ADD_EDGE_EXPL: the edge '%s' already exists" (G_edge.to_string ?domain edge)
+          Error.run ~loc "ADD_EDGE_EXPL: the edge '%s' already exists" (G_edge.to_string edge)
         | None -> state
         | Some new_graph -> {state with graph = new_graph; effective = true}
       end
@@ -1357,7 +1357,7 @@ module Rule = struct
       begin
         match G_graph.add_edge src_gid edge tar_gid state.graph with
         | None when !Global.safe_commands ->
-          Error.run ~loc "ADD_EDGE_ITEMS: the edge '%s' already exists" (G_edge.to_string ?domain edge)
+          Error.run ~loc "ADD_EDGE_ITEMS: the edge '%s' already exists" (G_edge.to_string edge)
         | None -> state
         | Some new_graph -> {state with graph = new_graph; effective = true}
       end
@@ -1366,7 +1366,7 @@ module Rule = struct
       let src_gid = node_find src_cn in
       let tar_gid = node_find tar_cn in
       (match G_graph.del_edge ~loc src_gid edge tar_gid state.graph with
-       | None when !Global.safe_commands -> Error.run ~loc "DEL_EDGE_EXPL: the edge '%s' does not exist" (G_edge.to_string ?domain edge)
+       | None when !Global.safe_commands -> Error.run ~loc "DEL_EDGE_EXPL: the edge '%s' does not exist" (G_edge.to_string edge)
        | None -> state
        | Some new_graph -> {state with graph = new_graph; effective = true}
       )
@@ -1626,7 +1626,7 @@ module Rule = struct
       begin
         match G_graph.add_edge src_gid edge tar_gid gwh.Graph_with_history.graph with
         | None when !Global.safe_commands ->
-          Error.run ~loc "ADD_EDGE: the edge '%s' already exists" (G_edge.to_string ?domain edge)
+          Error.run ~loc "ADD_EDGE: the edge '%s' already exists" (G_edge.to_string edge)
         | None -> Graph_with_history_set.singleton gwh
         | Some new_graph ->
           Graph_with_history_set.singleton
@@ -1646,7 +1646,7 @@ module Rule = struct
       begin
         match G_graph.add_edge src_gid edge tar_gid gwh.Graph_with_history.graph with
         | None when !Global.safe_commands ->
-          Error.run ~loc "ADD_EDGE_EXPL: the edge '%s' already exists" (G_edge.to_string ?domain edge)
+          Error.run ~loc "ADD_EDGE_EXPL: the edge '%s' already exists" (G_edge.to_string edge)
         | None -> Graph_with_history_set.singleton gwh
         | Some new_graph -> Graph_with_history_set.singleton
                               {gwh with
@@ -1676,7 +1676,7 @@ module Rule = struct
       begin
         match G_graph.add_edge src_gid edge tar_gid gwh.Graph_with_history.graph with
         | None when !Global.safe_commands ->
-          Error.run ~loc "ADD_EDGE_ITEMS: the edge '%s' already exists" (G_edge.to_string ?domain edge)
+          Error.run ~loc "ADD_EDGE_ITEMS: the edge '%s' already exists" (G_edge.to_string edge)
         | None -> Graph_with_history_set.singleton gwh
         | Some new_graph -> Graph_with_history_set.singleton
                               {gwh with
@@ -1690,7 +1690,7 @@ module Rule = struct
       let tar_gid = node_find tar_cn in
       (match G_graph.del_edge ~loc src_gid edge tar_gid gwh.Graph_with_history.graph with
        | None when !Global.safe_commands ->
-         Error.run ~loc "DEL_EDGE_EXPL: the edge '%s' does not exist" (G_edge.to_string ?domain edge)
+         Error.run ~loc "DEL_EDGE_EXPL: the edge '%s' does not exist" (G_edge.to_string edge)
        | None -> Graph_with_history_set.singleton gwh
        | Some new_graph -> Graph_with_history_set.singleton
                              {gwh with

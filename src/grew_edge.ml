@@ -18,15 +18,12 @@ open Grew_domain
 
 (* ================================================================================ *)
 module G_edge = struct
+  (* [G_edge.t] is a feature structure. The list of features must be ordered wrt [Stdlib.compare] *)
   type t = (string * string) list
 
   let from_items l = List.sort (fun (x,_) (y,_) -> Stdlib.compare x y) l
 
   let get_sub = List_.sort_assoc
-
-  exception Not_conll of string
-
-  let to_string_long edge = String.concat "," (List.map (fun (x,y) -> x^"="^y) edge)
 
   let rec update feat_name new_value = function
     | [] -> [(feat_name, new_value)]
@@ -34,36 +31,36 @@ module G_edge = struct
     | (fn,fv)::t when feat_name = fn -> (feat_name, new_value) :: t
     | x::t -> x :: (update feat_name new_value t)
 
-  let rec remove feat_name = function
-    | [] -> None
-    | (fn,fv)::t when feat_name < fn -> None
-    | (fn,fv)::t when feat_name = fn -> Some t
-    | x::t -> (match remove feat_name t with Some new_t -> Some (x::new_t) | None -> None)
+  let remove_feat_opt = List_.sort_remove_assoc_opt
 
-  let to_conll ?domain edge =
+  let to_string_long edge = String.concat "," (List.map (fun (x,y) -> x^"="^y) edge)
+
+  exception Not_conll
+  let to_conll edge =
     let prefix = match get_sub "kind" edge with
       | None -> ""
       | Some "surf" -> "S:"
       | Some "deep" -> "D:"
       | Some "enhanced" -> "E:"
-      | Some c -> raise (Not_conll (sprintf "unknown kind '%s' in edge '%s'" c (to_string_long edge))) in
+      | Some c -> raise Not_conll in
     let suffix = match get_sub "deep" edge with
       | Some s -> "@"^s
       | None -> "" in
-    let infix_items = edge
-                      |> (List_.sort_remove_assoc "kind")
-                      |> (List_.sort_remove_assoc "deep") in
+    let infix_items =
+      edge
+      |> (List_.sort_remove_assoc "kind")
+      |> (List_.sort_remove_assoc "deep") in
     let core = CCList.mapi
         (fun i (n,v) ->
            if string_of_int(i+1) = n
            then v
-           else raise (Not_conll (to_string_long edge))
+           else raise Not_conll
         ) infix_items in
     prefix ^ (String.concat ":" core) ^ suffix
 
-  let to_string ?domain edge =
-    try to_conll ?domain edge
-    with Not_conll s -> sprintf "[%s]" s
+  let to_string edge =
+    try to_conll edge
+    with Not_conll -> to_string_long edge
 
   let to_dep ?domain ?(deco=false) t =
     let conll = to_string t in
@@ -73,10 +70,11 @@ module G_edge = struct
     let conll = to_string t in
     Domain.label_to_dot ?domain ~deco conll
 
+  (* split ["a"; "b"; "c"] --> [("1","a"); ("2","b"); ("3","c")]  *)
   let split l = CCList.mapi
       (fun i elt -> (string_of_int (i+1), elt)) l
 
-  let from_string ?loc ?domain str =
+  let from_string str =
     let (init, deep) = match Str.bounded_split (Str.regexp_string "@") str 2 with
       | [i] -> (i, None)
       | [i;d] -> (i, Some ("deep",d))
@@ -89,18 +87,17 @@ module G_edge = struct
       | l -> split l in
     List.sort (Stdlib.compare) (CCList.cons_maybe deep before_deep)
 
-  let to_json ?domain t = `String (to_string ?domain t)
+  let to_json t = `String (to_string t)
 
   let sub = from_string "__SUB__"
 
-  let build ?domain (ast_edge, loc) =
+  let build (ast_edge, loc) =
     match ast_edge.Ast.edge_label_cst with
-    | Ast.Pos_list [one] -> from_string ~loc ?domain one
+    | Ast.Pos_list [one] -> from_string one
     | Ast.Neg_list _ -> Error.build ~loc "Negative edge spec are forbidden in graphs"
     | Ast.Pos_list _ -> Error.build ~loc "Only atomic edge values are allowed in graphs"
     | Ast.Regexp _ -> Error.build ~loc "Regexp are not allowed in graphs"
     | Ast.Atom_list _ -> Error.build ~loc "Non atomic edge are not allowed in graphs"
-
 end (* module G_edge *)
 
 
@@ -119,8 +116,8 @@ module Label_cst = struct
     | Atom_list of atom_cst list
 
   let to_string ?domain = function
-    | Pos l -> (List_.to_string (G_edge.to_string ?domain) "|" l)
-    | Neg l -> "^"^(List_.to_string (G_edge.to_string ?domain) "|" l)
+    | Pos l -> (List_.to_string G_edge.to_string "|" l)
+    | Neg l -> "^"^(List_.to_string G_edge.to_string "|" l)
     | Regexp (_,re) -> "re\""^re^"\""
     | Atom_list l ->
       String.concat ","
@@ -135,11 +132,11 @@ module Label_cst = struct
   let to_json ?domain = function
     | Pos l -> `Assoc
                  ["pos",
-                  `List (List.map (fun lab -> `String (G_edge.to_string ?domain lab)) l)
+                  `List (List.map (fun lab -> `String (G_edge.to_string lab)) l)
                  ]
     | Neg l -> `Assoc
                  ["neg",
-                  `List (List.map (fun lab -> `String (G_edge.to_string ?domain lab)) l)
+                  `List (List.map (fun lab -> `String (G_edge.to_string lab)) l)
                  ]
     | Regexp (_,re) -> `Assoc
                          ["regexp", `String re]
@@ -167,9 +164,9 @@ module Label_cst = struct
     | Neg labels -> not (List.exists (fun p_label -> p_label = g_label) labels)
     | Atom_list l -> List.for_all (match_atom g_label) l
     | Regexp (re,_) ->
-      try String_.re_match re (G_edge.to_conll ?domain g_label)
-      with G_edge.Not_conll s ->
-        Error.run "Cannot ckeck for regexp constraint on the edge \"%s\"" s
+      try String_.re_match re (G_edge.to_conll g_label)
+      with G_edge.Not_conll ->
+        Error.run "Cannot ckeck for regexp constraint againt a not Conll edge"
 
   let build_atom = function
     | Ast.Atom_eq (name, atoms) -> Eq (name, List.sort Stdlib.compare atoms)
@@ -177,8 +174,8 @@ module Label_cst = struct
     | Ast.Atom_absent name -> Absent name
 
   let build ?loc ?domain = function
-    | Ast.Neg_list p_labels -> Neg (List.sort compare (List.map (G_edge.from_string ?loc ?domain) p_labels))
-    | Ast.Pos_list p_labels -> Pos (List.sort compare (List.map (G_edge.from_string ?loc ?domain) p_labels))
+    | Ast.Neg_list p_labels -> Neg (List.sort compare (List.map G_edge.from_string p_labels))
+    | Ast.Pos_list p_labels -> Pos (List.sort compare (List.map G_edge.from_string p_labels))
     | Ast.Regexp re -> Regexp (Str.regexp re, re)
     | Ast.Atom_list l -> Atom_list (List.map build_atom l)
 end (* module Label_cst *)

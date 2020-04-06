@@ -20,27 +20,28 @@ module G_edge: sig
 
   val from_items: (string * string) list -> t
 
-  val to_string: ?domain:Domain.t -> t -> string
-
-  val to_conll: ?domain:Domain.t -> t -> string
-
   val get_sub: string -> t -> string option
+
+  val update: string -> string -> t -> t
+
+  val remove_feat_opt: string -> t -> t option
+
+  val to_conll: t -> string
+
+  val to_string: t -> string
 
   val to_dep: ?domain: Domain.t -> ?deco:bool -> t -> string
 
   val to_dot: ?domain: Domain.t -> ?deco:bool -> t -> string
 
-  val from_string: ?loc:Loc.t -> ?domain: Domain.t -> string -> t
+  val from_string: string -> t
 
-  val to_json: ?domain:Domain.t -> t -> Yojson.Basic.t
+  val to_json: t -> Yojson.Basic.t
 
   val sub: t
 
-  val build: ?domain:Domain.t -> Ast.edge -> t
+  val build: Ast.edge -> t
 
-  val update: string -> string -> t -> t
-
-  val remove: string -> t -> t option
 end (* module G_edge *)
 
 
