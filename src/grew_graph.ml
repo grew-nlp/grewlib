@@ -161,38 +161,24 @@ module P_graph = struct
         ) ext_map_without_edges full_edge_list in
     ({ext_map = ext_map_with_all_edges; old_map = old_map_without_edges}, new_table)
 
+
   (* -------------------------------------------------------------------------------- *)
-  (* [tree_and_roots t] returns:
-     - a boolean which is true iff the each node has at most one in-edge
-     - the list of "roots" (i.e. nodes without in-edge *)
-  let tree_and_roots graph =
-    let tree_prop = ref true in
-    let not_root =
+  (* return the list of [pid] of nodes without in edges *)
+  let roots (p_graph: t) = 
+    let not_root_set =
       Pid_map.fold
-        (fun _ node acc ->
+        (fun _ p_node acc ->
            Massoc_pid.fold
-             (fun acc2 tar _ ->
-                if !tree_prop
-                then
-                  if Pid_set.mem tar acc2
-                  then (tree_prop := false; acc2)
-                  else Pid_set.add tar acc2
-                else Pid_set.add tar acc2
-             ) acc (P_node.get_next node)
-        ) graph Pid_set.empty in
+             (fun acc2 tar_pid _ -> Pid_set.add tar_pid acc2
+             ) acc (P_node.get_next p_node)
+        ) p_graph Pid_set.empty in
+    Pid_map.fold
+      (fun pid _ acc ->
+         if Pid_set.mem pid not_root_set
+         then acc
+         else pid::acc
+      ) p_graph []
 
-    let roots =
-      Pid_map.fold
-        (fun id _ acc ->
-           if Pid_set.mem id not_root
-           then acc
-           else id::acc
-        ) graph [] in
-
-    (!tree_prop, roots)
-
-  (* -------------------------------------------------------------------------------- *)
-  let roots graph = snd (tree_and_roots graph)
 end (* module P_graph *)
 
 (* ================================================================================ *)

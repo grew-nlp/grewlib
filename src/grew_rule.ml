@@ -787,6 +787,7 @@ module Matching = struct
           let re = Str.regexp regexp in
           if String_.re_match re string_feat then matching else raise Fail
       end
+
     | Immediate_prec (pid1, pid2) ->
       let gid1 = Pid_map.find pid1 matching.n_match in
       let gid2 = Pid_map.find pid2 matching.n_match in
@@ -959,10 +960,6 @@ module Matching = struct
         try P_graph.find pid neg
         with Not_found -> Error.bug "[Grew_rule.extend_matching_from] cannot find node" in
 
-      (* let p_node =  *)
-      (*   if pid >= 0  *)
-      (*   then try P_graph.find pid positive with Not_found -> failwith "POS" *)
-      (*   else try P_graph.find pid neg with Not_found -> failwith "NEG" in *)
       let g_node = try G_graph.find gid graph with Not_found -> Error.bug "[extend_matching_from] cannot find gid in graph" in
 
       try
@@ -989,9 +986,8 @@ module Matching = struct
     (Pid_map.exists (fun _ id -> id=gid) matching.n_match) || (List.exists (fun (_,id) -> id=gid) created_nodes)
 
 
-
   (*  ---------------------------------------------------------------------- *)
-  let update_partial pos_graph without (sub, already_matched_gids) =
+  let update_partial without (sub, already_matched_gids) =
     let neg_graph = without.Pattern.graph in
     let unmatched_nodes =
       Pid_map.fold
@@ -1003,22 +999,15 @@ module Matching = struct
            match pid with
            | Pid.Neg _ -> acc
            | Pid.Pos i ->
-             (* if pid < 0  *)
-             (* then acc *)
-             (* else  *)
              Massoc_pid.fold
                (fun acc2 pid_next p_edge -> (pid, p_edge, pid_next) :: acc2)
                acc (P_node.get_next node)
-
-         (* Massoc.fold_left  *)
-         (*   (fun acc2 pid_next p_edge -> (pid, p_edge, pid_next) :: acc2) *)
-         (*   acc (P_node.get_next node) *)
         ) neg_graph [] in
     {
-      sub = sub;
+      sub;
       unmatched_nodes = unmatched_nodes;
       unmatched_edges = unmatched_edges;
-      already_matched_gids = already_matched_gids;
+      already_matched_gids;
       check = without.constraints;
     }
 
@@ -1030,7 +1019,7 @@ module Matching = struct
     | _ -> false
 
   (* returns true iff the graph verify all structure constraints give in the list *)
-  let test_stucture_constraints graph = function
+  let test_structure_constraints graph = function
     | [] -> true
     | ["is_projective"] -> G_graph.is_projective graph = None
     | ["is_not_projective"] -> G_graph.is_projective graph <> None
@@ -1075,7 +1064,7 @@ module Matching = struct
 
   let check_global_constraint glob_list graph =
     let stuct_cst_list = List.fold_left (fun acc (glob,_) -> match glob with Ast.Glob_cst s -> s::acc | _ -> acc) [] glob_list in
-    if test_stucture_constraints graph stuct_cst_list
+    if test_structure_constraints graph stuct_cst_list
     then
       List.for_all
         (function
@@ -1130,7 +1119,7 @@ module Matching = struct
              List.for_all
                (fun without ->
                   let neg_graph = without.Pattern.graph in
-                  let new_partial_matching = update_partial pos_graph without (sub, already_matched_gids) in
+                  let new_partial_matching = update_partial without (sub, already_matched_gids) in
                   fulfill ?domain (pos_graph,neg_graph) graph new_partial_matching
                ) negs
           ) matching_list in
@@ -1550,7 +1539,7 @@ module Rule = struct
             (fun (sub, already_matched_gids) ->
                List.for_all
                  (fun neg ->
-                    let new_partial_matching = Matching.update_partial pos.graph neg (sub, already_matched_gids) in
+                    let new_partial_matching = Matching.update_partial neg (sub, already_matched_gids) in
                     Matching.fulfill ?domain (pos.graph,neg.graph) graph new_partial_matching
                  ) negs
             ) matching_list with
@@ -1582,7 +1571,7 @@ module Rule = struct
             (fun (sub, already_matched_gids) ->
                List.for_all
                  (fun neg ->
-                    let new_partial_matching = Matching.update_partial pos.graph neg (sub, already_matched_gids) in
+                    let new_partial_matching = Matching.update_partial neg (sub, already_matched_gids) in
                     Matching.fulfill ?domain (pos.graph,neg.graph) graph new_partial_matching
                  ) negs
             ) matching_list with
@@ -1951,7 +1940,7 @@ module Rule = struct
       | (sub, already_matched_gids) :: tail ->
         if List.for_all
             (fun neg ->
-               let new_partial_matching = Matching.update_partial pos.graph neg (sub, already_matched_gids) in
+               let new_partial_matching = Matching.update_partial neg (sub, already_matched_gids) in
                Matching.fulfill ?domain (pos.graph,neg.graph) graph new_partial_matching
             ) negs
         then (* all negs part are fulfilled *)
