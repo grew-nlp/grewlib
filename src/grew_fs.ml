@@ -191,23 +191,23 @@ module G_fs = struct
     set_feat ?loc ?domain feature_name value t
 
   (* ---------------------------------------------------------------------- *)
-  let del_feat = List_.sort_remove_assoc_opt
+  let del_feat_opt = List_.sort_remove_assoc_opt
 
   (* ---------------------------------------------------------------------- *)
-  let get_atom = List_.sort_assoc
+  let get_atom_opt = List_.sort_assoc
 
   (* ---------------------------------------------------------------------- *)
-  let get_string_atom feat_name t =
+  let get_string_atom_opt feat_name t =
     match List_.sort_assoc feat_name t with
     | None -> None
     | Some v -> Some (conll_string_of_value v)
 
   (* ---------------------------------------------------------------------- *)
-  let get_float_feat feat_name t =
+  let get_float_feat_opt feat_name t =
     match List_.sort_assoc feat_name t with
     | None -> None
     | Some (Float i) -> Some i
-    | Some (String s) -> Error.build "[Fs.get_float_feat] feat_name=%s, value=%s" feat_name s
+    | Some (String s) -> Error.build "[Fs.get_float_feat_opt] feat_name=%s, value=%s" feat_name s
 
   (* ---------------------------------------------------------------------- *)
   let to_string t = List_.to_string G_feature.to_string "," t
@@ -259,7 +259,7 @@ module G_fs = struct
     | _ -> Error.run "Cannot concat numerical values"
 
   (* ---------------------------------------------------------------------- *)
-  let append_feats ?loc src tar separator regexp =
+  let append_feats_opt ?loc src tar separator regexp =
     match List.filter
             (fun (feature_name,_) ->
                match feature_name with
@@ -328,7 +328,7 @@ module G_fs = struct
     | s -> sprintf "<TABLE BORDER=\"0\" CELLBORDER=\"0\" CELLSPACING=\"0\">\n%s\n</TABLE>\n" s
 
   (* ---------------------------------------------------------------------- *)
-  let to_word (t:t) =
+  let to_word_opt (t:t) =
     match List_.sort_assoc "_UD_empty" t with
     | Some v when string_of_value v = "Yes" -> None
     | _ ->
@@ -358,7 +358,7 @@ module G_fs = struct
     let (main_opt, sub) = get_main ?main_feat t in
     let sub = List.sort G_feature.print_cmp sub in
 
-    let color = match get_string_atom "kind" t with
+    let color = match get_string_atom_opt "kind" t with
       | Some "NE" -> ":C:#ff760b"
       | Some "MWE" -> ":C:#1d7df2"
       | _ -> "" in

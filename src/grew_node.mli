@@ -32,11 +32,11 @@ module G_node: sig
   val get_next_without_pred_succ: t -> G_edge.t Massoc_gid.t
   val set_next: G_edge.t Massoc_gid.t -> t -> t
 
-  val get_pred: t -> Gid.t option
+  val get_pred_opt: t -> Gid.t option
 
-  val get_succ: t -> Gid.t option
+  val get_succ_opt: t -> Gid.t option
 
-  val get_position: t -> int option
+  val get_position_opt: t -> int option
   val set_position: int -> t -> t
   val unset_position: t -> t
 
@@ -53,9 +53,9 @@ module G_node: sig
   val build_pst_node: ?loc:Loc.t -> ?domain:Domain.t -> string -> t
 
 
-  val remove_edge: Gid.t -> G_edge.t -> t -> t option
-  val update_edge: Gid.t -> G_edge.t -> string -> string -> t -> (t * G_edge.t) option
-  val del_edge_feature: Gid.t -> G_edge.t -> string -> t -> (t * G_edge.t) option
+  val remove_edge_opt: Gid.t -> G_edge.t -> t -> t option
+  val update_edge_opt: Gid.t -> G_edge.t -> string -> string -> t -> (t * G_edge.t) option
+  val del_edge_feature_opt: Gid.t -> G_edge.t -> string -> t -> (t * G_edge.t) option
 
   val remove_key: Gid.t -> t -> t
 
@@ -66,7 +66,7 @@ module G_node: sig
 
   val rename: (Gid.t * Gid.t) list -> t -> t
 
-  val append_feats: ?loc:Loc.t -> t -> t -> string -> string -> (t * (string * value) list) option
+  val append_feats_opt: ?loc:Loc.t -> t -> t -> string -> string -> (t * (string * value) list) option
   val shift: string -> int -> t -> t
   val unshift: string -> t -> t
 

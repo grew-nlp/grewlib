@@ -44,14 +44,14 @@ module G_node = struct
 
   let get_next_without_pred_succ t = Massoc_gid.filter (fun e -> not (G_edge.ordering e)) t.next
 
-  let get_pred t = Massoc_gid.find_opt (fun _ v -> v = G_edge.pred) t.next
-  let get_succ t = Massoc_gid.find_opt (fun _ v -> v = G_edge.succ) t.next
+  let get_pred_opt t = Massoc_gid.find_opt (fun _ v -> v = G_edge.pred) t.next
+  let get_succ_opt t = Massoc_gid.find_opt (fun _ v -> v = G_edge.succ) t.next
 
-  let get_position t = t.position
+  let get_position_opt t = t.position
   let set_position p t = { t with position = Some p }
   let unset_position t = { t with position = None }
 
-  let is_eud_empty t = match G_fs.get_string_atom "_UD_empty" t.fs with
+  let is_eud_empty t = match G_fs.get_string_atom_opt "_UD_empty" t.fs with
     | Some "Yes" -> true
     | _ -> false
 
@@ -103,12 +103,12 @@ module G_node = struct
     | Some l -> Some {t with next = l}
     | None -> None
 
-  let remove_edge gid_tar label t =
+  let remove_edge_opt gid_tar label t =
     match Massoc_gid.remove_opt gid_tar label t.next with
     | Some new_next -> Some {t with next = new_next}
     | None -> None
 
-  let update_edge gid_tar old_edge feat_name new_value t =
+  let update_edge_opt gid_tar old_edge feat_name new_value t =
     let new_edge = G_edge.update feat_name new_value old_edge in
     if new_edge = old_edge
     then None (* the edge is not modified --> not safe *)
@@ -119,7 +119,7 @@ module G_node = struct
       | None -> (* the produced edge already exists, just remove the old one *)
         Some ({t with next = without_edge }, new_edge)
 
-  let del_edge_feature gid_tar old_edge feat_name t =
+  let del_edge_feature_opt gid_tar old_edge feat_name t =
     match G_edge.remove_feat_opt feat_name old_edge with
     | None -> None
     | Some new_edge ->
@@ -133,10 +133,10 @@ module G_node = struct
 
   let rename mapping n = {n with next = Massoc_gid.rename mapping n.next}
 
-  let append_feats ?loc src tar separator regexp =
+  let append_feats_opt ?loc src tar separator regexp =
     let src_fs = get_fs src in
     let tar_fs = get_fs tar in
-    match G_fs.append_feats ?loc src_fs tar_fs separator regexp with
+    match G_fs.append_feats_opt ?loc src_fs tar_fs separator regexp with
     | Some (new_tar_fs, updated_feats) -> Some (set_fs new_tar_fs tar, updated_feats)
     | None -> None
 
@@ -150,7 +150,7 @@ module G_node = struct
   let unshift user_id t =
     match (
       CCOpt.map (fun x -> CCString.chop_prefix ~pre:(user_id^"_") x) t.name,
-      G_fs.del_feat "user" t.fs
+      G_fs.del_feat_opt "user" t.fs
     ) with
     | (Some name, Some fs) -> { t with name; fs }
     | (Some name, None) -> { t with name }
@@ -208,15 +208,6 @@ module P_node = struct
     | None -> None
 
   let match_ ?lexicons p_node g_node = P_fs.match_ ?lexicons p_node.fs (G_node.get_fs g_node)
-
-  (* TODO remove: no more position in node features. *)
-  (* let match_ ?lexicons p_node g_node =
-    match G_node.get_position g_node with
-    | None -> P_fs.match_ ?lexicons p_node.fs (G_node.get_fs g_node)
-    | Some p ->
-      if P_fs.check_position (Some p) p_node.fs
-      then P_fs.match_ ?lexicons p_node.fs (G_node.get_fs g_node)
-      else raise P_fs.Fail *)
 
   let compare_pos t1 t2 = Stdlib.compare t1.loc t2.loc
 end (* module P_node *)

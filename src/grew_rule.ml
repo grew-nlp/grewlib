@@ -570,7 +570,7 @@ module Matching = struct
               let gid = Pid_map.find pid matching.n_match in
               let node = G_graph.find gid graph in
               let fs = G_node.get_fs node in
-              G_fs.get_string_atom feature_name fs
+              G_fs.get_string_atom_opt feature_name fs
           end
       end
     | _ -> Error.run "[Matching.get_value] unable to handled request %s" request
@@ -667,7 +667,7 @@ module Matching = struct
     match (G_graph.find_opt l1 graph, G_graph.find_opt r1 graph, G_graph.find_opt l2 graph, G_graph.find_opt r2 graph) with
     | (Some nl1, Some nr1, Some nl2, Some nr2) ->
       begin
-        match (G_node.get_position nl1, G_node.get_position nr1, G_node.get_position nl2, G_node.get_position nr2) with
+        match (G_node.get_position_opt nl1, G_node.get_position_opt nr1, G_node.get_position_opt nl2, G_node.get_position_opt nr2) with
         | (Some pl1, Some pr1, Some pl2, Some pr2) when pr1 <= pl2 || pr2 <= pl1 -> Disjoint
         | (Some pl1, Some pr1, Some pl2, Some pr2) when pl1 <= pl2 && pr2 <= pr1 -> Contained
         | (Some pl1, Some pr1, Some pl2, Some pr2) when pl2 <= pl1 && pr1 <= pr2 -> Included
@@ -679,8 +679,8 @@ module Matching = struct
   (*  ---------------------------------------------------------------------- *)
   let apply_cst ?domain graph matching cst =
     let get_node pid = G_graph.find (Pid_map.find pid matching.n_match) graph in
-    let get_string_feat pid feat_name = G_fs.get_string_atom feat_name (G_node.get_fs (get_node pid)) in
-    let get_float_feat pid feat_name = G_fs.get_float_feat feat_name (G_node.get_fs (get_node pid)) in
+    let get_string_feat_opt pid feat_name = G_fs.get_string_atom_opt feat_name (G_node.get_fs (get_node pid)) in
+    let get_float_feat_opt pid feat_name = G_fs.get_float_feat_opt feat_name (G_node.get_fs (get_node pid)) in
 
     match cst with
     | Pattern.Cst_out (pid,label_cst) ->
@@ -707,43 +707,43 @@ module Matching = struct
       end
     | Features_eq (pid1, feat_name1, pid2, feat_name2) ->
       begin
-        match (get_string_feat pid1 feat_name1, get_string_feat pid2 feat_name2) with
+        match (get_string_feat_opt pid1 feat_name1, get_string_feat_opt pid2 feat_name2) with
         | Some fv1, Some fv2 when fv1 = fv2 -> matching
         | _ -> raise Fail
       end
     | Feature_eq_cst (pid1, feat_name1, value) ->
       begin
-        match get_string_feat pid1 feat_name1 with
+        match get_string_feat_opt pid1 feat_name1 with
         | Some fv1 when fv1 = value -> matching
         | _ -> raise Fail
       end
     | Feature_diff_cst (pid1, feat_name1, value) ->
       begin
-        match get_string_feat pid1 feat_name1 with
+        match get_string_feat_opt pid1 feat_name1 with
         | Some fv1 when fv1 <> value -> matching
         | _ -> raise Fail
       end
     | Feature_eq_float (pid1, feat_name1, float) ->
       begin
-        match get_float_feat pid1 feat_name1 with
+        match get_float_feat_opt pid1 feat_name1 with
         | Some fv1 when fv1 = float -> matching
         | _ -> raise Fail
       end
     | Feature_diff_float (pid1, feat_name1, float) ->
       begin
-        match get_float_feat pid1 feat_name1 with
+        match get_float_feat_opt pid1 feat_name1 with
         | Some fv1 when fv1 <> float -> matching
         | _ -> raise Fail
       end
     | Features_diseq (pid1, feat_name1, pid2, feat_name2) ->
       begin
-        match (get_string_feat pid1 feat_name1, get_string_feat pid2 feat_name2) with
+        match (get_string_feat_opt pid1 feat_name1, get_string_feat_opt pid2 feat_name2) with
         | Some fv1, Some fv2 when fv1 <> fv2 -> matching
         | _ -> raise Fail
       end
     | Features_ineq (ineq, pid1, feat_name1, pid2, feat_name2) ->
       begin
-        match (ineq, get_float_feat pid1 feat_name1, get_float_feat pid2 feat_name2) with
+        match (ineq, get_float_feat_opt pid1 feat_name1, get_float_feat_opt pid2 feat_name2) with
         | (Ast.Lt, Some fv1, Some fv2) when fv1 < fv2 -> matching
         | (Ast.Gt, Some fv1, Some fv2) when fv1 > fv2 -> matching
         | (Ast.Le, Some fv1, Some fv2) when fv1 <= fv2 -> matching
@@ -752,7 +752,7 @@ module Matching = struct
       end
     | Feature_ineq_cst (ineq, pid1, feat_name1, constant) ->
       begin
-        match (ineq, get_float_feat pid1 feat_name1) with
+        match (ineq, get_float_feat_opt pid1 feat_name1) with
         | (Ast.Lt, Some fv1) when fv1 < constant -> matching
         | (Ast.Gt, Some fv1) when fv1 > constant -> matching
         | (Ast.Le, Some fv1) when fv1 <= constant -> matching
@@ -761,7 +761,7 @@ module Matching = struct
       end
     | Feature_eq_regexp (pid, feat_name, regexp) ->
       begin
-        match get_string_feat pid feat_name with
+        match get_string_feat_opt pid feat_name with
         | None -> raise Fail
         | Some string_feat ->
           let re = Str.regexp regexp in
@@ -771,9 +771,11 @@ module Matching = struct
     | Node_large_prec (pid1, pid2) ->
       let gnode1 = G_graph.find (Pid_map.find pid1 matching.n_match) graph in
       let gnode2 = G_graph.find (Pid_map.find pid2 matching.n_match) graph in
-      if G_node.get_position gnode1 < G_node.get_position gnode2
-      then matching
-      else raise Fail
+      begin
+        match (G_node.get_position_opt gnode1, G_node.get_position_opt gnode2) with
+        | Some i1, Some i2 when i1 < i2 -> matching
+        | _ -> raise Fail
+      end
 
     | Id_prec (pid1, pid2) ->
       let gid1 = Pid_map.find pid1 matching.n_match in
@@ -804,7 +806,7 @@ module Matching = struct
 
     | Feature_eq_lex (pid, feature_name, (lexicon,field)) ->
       begin
-        match get_string_feat pid feature_name with
+        match get_string_feat_opt pid feature_name with
         | None -> raise Fail
         | Some v ->
           let old_lex = List.assoc lexicon matching.l_param in
@@ -815,7 +817,7 @@ module Matching = struct
 
     | Feature_diff_lex (pid, feature_name, (lexicon,field)) ->
       begin
-        match get_string_feat pid feature_name with
+        match get_string_feat_opt pid feature_name with
         | None -> raise Fail
         | Some v ->
           let old_lex = List.assoc lexicon matching.l_param in
@@ -1366,7 +1368,7 @@ module Rule = struct
         | None -> Error.run ~loc "DEL_EDGE_FEAT: The edge identifier '%s' is undefined" edge_id
         | Some (src_gid,old_edge,tar_gid) ->
           begin
-            match G_graph.del_edge_feature ~loc edge_id feat_name (src_gid,old_edge,tar_gid) state.graph with
+            match G_graph.del_edge_feature_opt ~loc edge_id feat_name (src_gid,old_edge,tar_gid) state.graph with
             | None when !Global.safe_commands -> Error.run ~loc "DEL_EDGE_FEAT: the edge feature name '%s' does not exist" feat_name
             | None -> state
             | Some (new_graph, new_edge) ->
@@ -1835,7 +1837,7 @@ module Rule = struct
         | None -> Error.run ~loc "The edge identifier '%s' is undefined" edge_id
         | Some (src_gid,old_edge,tar_gid) ->
           begin
-            match G_graph.del_edge_feature ~loc edge_id feat_name (src_gid,old_edge,tar_gid) gwh.Graph_with_history.graph with
+            match G_graph.del_edge_feature_opt ~loc edge_id feat_name (src_gid,old_edge,tar_gid) gwh.Graph_with_history.graph with
             | None when !Global.safe_commands -> Error.run ~loc "DEL_EDGE_FEAT: the edge feature name '%s' does not exist" feat_name
             | None -> Graph_with_history_set.singleton gwh
             | Some (new_graph, new_edge) -> Graph_with_history_set.singleton

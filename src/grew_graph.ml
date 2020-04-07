@@ -274,7 +274,7 @@ module G_graph = struct
   let covered node (gid1, _, gid2) graph =
     let node1 = find gid1 graph in
     let node2 = find gid2 graph in
-    match (G_node.get_position node, G_node.get_position node1, G_node.get_position node2) with
+    match (G_node.get_position_opt node, G_node.get_position_opt node1, G_node.get_position_opt node2) with
     | (Some p, Some p1, Some p2) -> (min p1 p2) < p && (max p1 p2) > p
     | _ -> false
 
@@ -305,7 +305,7 @@ module G_graph = struct
     match Gid_map.find_opt src_gid map with
     | None -> Error.bug ?loc "[Graph.map_del_edge_opt] Some edge refers to a dead node"
     | Some src_node ->
-      match G_node.remove_edge tar_gid label src_node with
+      match G_node.remove_edge_opt tar_gid label src_node with
       | None -> None
       | Some new_node -> Some (Gid_map.add src_gid new_node map)
 
@@ -315,7 +315,7 @@ module G_graph = struct
     match Gid_map.find_opt src_gid map with
     | None -> map
     | Some src_node ->
-      match G_node.remove_edge tar_gid label src_node with
+      match G_node.remove_edge_opt tar_gid label src_node with
       | None -> map
       | Some new_node -> Gid_map.add src_gid new_node map
 
@@ -596,15 +596,15 @@ module G_graph = struct
     match Gid_map.find_opt src_gid graph.map with
     | None -> Error.run ?loc "[Graph.update_edge_feature] cannot find source node of edge \"%s\"" edge_id
     | Some src_node ->
-      match G_node.update_edge tar_gid edge feat_name new_value src_node with
+      match G_node.update_edge_opt tar_gid edge feat_name new_value src_node with
       | Some (new_node, new_edge) -> Some ({graph with map = Gid_map.add src_gid new_node graph.map}, new_edge)
       | None -> None
 
-  let del_edge_feature ?loc edge_id feat_name (src_gid,edge,tar_gid) graph =
+  let del_edge_feature_opt ?loc edge_id feat_name (src_gid,edge,tar_gid) graph =
     match Gid_map.find_opt src_gid graph.map with
-    | None -> Error.run ?loc "[Graph.del_edge_feature] cannot find source node of edge \"%s\"" edge_id
+    | None -> Error.run ?loc "[Graph.del_edge_feature_opt] cannot find source node of edge \"%s\"" edge_id
     | Some src_node ->
-      match G_node.del_edge_feature tar_gid edge feat_name src_node with
+      match G_node.del_edge_feature_opt tar_gid edge feat_name src_node with
       | Some (new_node, new_edge) -> Some ({graph with map = Gid_map.add src_gid new_node graph.map}, new_edge)
       | None -> None
 
@@ -613,25 +613,25 @@ module G_graph = struct
      of the [map] that are successors of [gid] *)
   let rec shift_position delta gid map =
     let node = Gid_map.find gid map in
-    match G_node.get_position node with
+    match G_node.get_position_opt node with
     | None -> Error.run "[G_node.shift_position] unordered node"
     | Some p ->
       let new_node = G_node.set_position (p + delta) node in
       let next_map = Gid_map.add gid new_node map in
-      match G_node.get_succ node with
+      match G_node.get_succ_opt node with
       | None -> next_map
       | Some next_gid -> shift_position delta next_gid next_map
 
   (* -------------------------------------------------------------------------------- *)
   let add_before gid graph =
     let node = Gid_map.find gid graph.map in
-    let position = match G_node.get_position node with
+    let position = match G_node.get_position_opt node with
       | None -> Error.run "[G_node.insert_before] unordered node"
       | Some p -> p in
     let shifted_map = shift_position 1 gid graph.map in
     let new_gid = graph.highest_index + 1 in
 
-    let new_map = match G_node.get_pred node with
+    let new_map = match G_node.get_pred_opt node with
       | None ->
         shifted_map
         |> (Gid_map.add new_gid (G_node.build ~position ()))
@@ -648,7 +648,7 @@ module G_graph = struct
   (* WARNING: use only if [last_gid] is the last ordered node in graph! *)
   let append last_gid graph =
     let last_node = Gid_map.find last_gid graph.map in
-    let position = match G_node.get_position last_node with
+    let position = match G_node.get_position_opt last_node with
       | None -> Error.run "[G_node.append] unordered nodes"
       | Some pos -> pos + 1 in
     let new_gid = graph.highest_index + 1 in
@@ -660,7 +660,7 @@ module G_graph = struct
 
   (* -------------------------------------------------------------------------------- *)
   let add_after gid graph =
-    match G_node.get_succ (Gid_map.find gid graph.map) with
+    match G_node.get_succ_opt (Gid_map.find gid graph.map) with
     | Some gid_succ -> add_before gid_succ graph
     | None -> append gid graph
 
@@ -677,7 +677,7 @@ module G_graph = struct
   *)
   let map_unorder node_id map =
     let node = Gid_map.find node_id map in
-    match (G_node.get_pred node, G_node.get_succ node) with
+    match (G_node.get_pred_opt node, G_node.get_succ_opt node) with
     | (Some pred_id, Some succ_id) ->
       map
       |> (shift_position (-1) succ_id)
@@ -699,7 +699,7 @@ module G_graph = struct
     match Gid_map.find_opt node_id graph.map with
     | None -> None
     | Some node ->
-      match G_node.get_position node with
+      match G_node.get_position_opt node with
       | None -> None
       | Some _ ->
         let new_map =
@@ -825,7 +825,7 @@ module G_graph = struct
         (function
           | Concat_item.Feat (node_gid, feat_name) ->
             let node = Gid_map.find node_gid graph.map in
-            (match G_fs.get_string_atom feat_name (G_node.get_fs node) with
+            (match G_fs.get_string_atom_opt feat_name (G_node.get_fs node) with
              | Some atom -> atom
              | None -> Error.run ?loc "Cannot update_feat, some feature (named \"%s\") is not defined" feat_name
             )
@@ -838,7 +838,7 @@ module G_graph = struct
   let append_feats ?loc graph src_id tar_id separator regexp =
     let src_node = Gid_map.find src_id graph.map in
     let tar_node = Gid_map.find tar_id graph.map in
-    match G_node.append_feats ?loc src_node tar_node separator regexp with
+    match G_node.append_feats_opt ?loc src_node tar_node separator regexp with
     | Some (new_tar_node, updated_feats) ->
       Some ({ graph with map = Gid_map.add tar_id new_tar_node graph.map }, updated_feats)
     | None -> None
@@ -846,7 +846,7 @@ module G_graph = struct
   (* -------------------------------------------------------------------------------- *)
   let del_feat graph node_id feat_name =
     let node = Gid_map.find node_id graph.map in
-    match G_fs.del_feat feat_name (G_node.get_fs node) with
+    match G_fs.del_feat_opt feat_name (G_node.get_fs node) with
     | Some new_fs -> Some { graph with map = Gid_map.add node_id (G_node.set_fs new_fs node) graph.map }
     | None -> None
 
@@ -904,7 +904,7 @@ module G_graph = struct
     with Not_found -> " "
 
   let space_after gnode =
-    match G_fs.get_string_atom "_MISC_SpaceAfter" (G_node.get_fs gnode) with
+    match G_fs.get_string_atom_opt "_MISC_SpaceAfter" (G_node.get_fs gnode) with
     | Some "No" -> ""
     | _ -> " "
 
@@ -926,7 +926,7 @@ module G_graph = struct
       let first = Gid_map.find fusion_item.first graph.map in
       let last = Gid_map.find fusion_item.last graph.map in
       let node = Gid_map.find gid graph.map in
-      match (G_node.get_position first, G_node.get_position node, G_node.get_position last) with
+      match (G_node.get_position_opt first, G_node.get_position_opt node, G_node.get_position_opt last) with
       | (Some f, Some n, Some l) when f <= n && n <= l -> true
       | _ -> false in
 
@@ -948,7 +948,7 @@ module G_graph = struct
             ^ (fusion_item_space_after fusion_item)
             ^ (loop (Some fusion_item.last) gtail)
           | None ->
-            match G_fs.to_word (G_node.get_fs gnode) with
+            match G_fs.to_word_opt (G_node.get_fs gnode) with
             | None -> (loop None gtail)
             | Some text ->
               (if is_highlighted_gid gid
@@ -965,7 +965,7 @@ module G_graph = struct
 
   let start_dur gnode =
     let fs = G_node.get_fs gnode in
-    match (G_fs.get_string_atom "_start" fs, G_fs.get_string_atom "_stop" fs) with
+    match (G_fs.get_string_atom_opt "_start" fs, G_fs.get_string_atom_opt "_stop" fs) with
     | (Some _start, Some _stop) ->
       let start = float_of_string _start
       and stop = float_of_string _stop in
@@ -981,7 +981,7 @@ module G_graph = struct
 
     let buff = Buffer.create 32 in
     CCList.iteri (fun i (gid, gnode) ->
-        match G_fs.to_word (G_node.get_fs gnode) with
+        match G_fs.to_word_opt (G_node.get_fs gnode) with
         | None -> ()
         | Some word ->
           let (start, dur) = start_dur gnode in
@@ -1001,7 +1001,7 @@ module G_graph = struct
       match (CCList.nth_opt snodes 1, CCList.last_opt snodes) with (* 0 is the "conll root node" *)
       | (Some (_,node1), Some (_,node2)) ->
         begin
-          match (G_fs.get_string_atom "_start" (G_node.get_fs node1), G_fs.get_string_atom "_stop" (G_node.get_fs node2)) with
+          match (G_fs.get_string_atom_opt "_start" (G_node.get_fs node1), G_fs.get_string_atom_opt "_stop" (G_node.get_fs node2)) with
           | (Some i, Some f) -> (try Some (float_of_string i, float_of_string f) with Failure _ -> None)
           | _ -> None
         end
@@ -1012,7 +1012,7 @@ module G_graph = struct
 
   (* -------------------------------------------------------------------------------- *)
   let is_non_lexical_node node =
-    let fs = G_node.get_fs node in G_fs.get_string_atom "kind" fs <> None
+    let fs = G_node.get_fs node in G_fs.get_string_atom_opt "kind" fs <> None
 
   let to_dep ?filter ?main_feat ?(deco=G_deco.empty) graph =
     let domain = get_domain graph in
@@ -1051,15 +1051,15 @@ module G_graph = struct
          let fs = G_node.get_fs node in
 
          let tail =
-         match (!Global.debug, G_node.get_position node) with
+         match (!Global.debug, G_node.get_position_opt node) with
          | (true, Some pos) -> [sprintf "position=%d:B:lightblue" pos]
          | _ -> [] in
 
          let dep_fs = G_fs.to_dep ~decorated_feat ~tail ?filter ?main_feat fs in
 
-         let style = match G_fs.get_string_atom "void" fs with
+         let style = match G_fs.get_string_atom_opt "void" fs with
            | Some "y" -> "; forecolor=red; subcolor=red; "
-           | _ -> match G_fs.get_string_atom "_UD_empty" fs with
+           | _ -> match G_fs.get_string_atom_opt "_UD_empty" fs with
              | Some "Yes" -> "; forecolor=purple; subcolor=purple; "
              | _ -> "" in
 
@@ -1078,12 +1078,12 @@ module G_graph = struct
       List.iter
         (fun (id, node) ->
            begin
-             match G_node.get_pred node with
+             match G_node.get_pred_opt node with
              | None -> ()
              | Some p -> bprintf buff "N_%s -> N_%s { label=\"__PREC__\"; bottom; style=dot; color=lightblue; forecolor=lightblue; }\n" (Gid.to_string id) (Gid.to_string p)
            end;
            begin
-             match G_node.get_succ node with
+             match G_node.get_succ_opt node with
              | None -> ()
              | Some s -> bprintf buff "N_%s -> N_%s { label=\"__SUCC__\"; bottom; style=dot; color=lightblue; forecolor=lightblue; }\n" (Gid.to_string id) (Gid.to_string s)
            end
@@ -1117,7 +1117,7 @@ module G_graph = struct
   let to_conll graph =
     let ordered_nodes = Gid_map.fold
         (fun id node acc ->
-           if G_node.get_position node <> None
+           if G_node.get_position_opt node <> None
            then (id,node)::acc
            else acc
         ) graph.map [] in
@@ -1128,7 +1128,7 @@ module G_graph = struct
     (* [mapping] associated gid to Conll.Id.t *)
     let (_,_,mapping) = List.fold_left
         (fun (acc_pos, acc_empty, acc) (gid,node) ->
-           if G_node.get_position node = Some 0
+           if G_node.get_position_opt node = Some 0
            then (acc_pos, acc_empty, Gid_map.add gid (0,None) acc)
            else
            if G_node.is_eud_empty node
@@ -1161,16 +1161,16 @@ module G_graph = struct
 
            Conll.build_line
              ~id: (Gid_map.find gid mapping)
-             ~form: (match G_fs.get_string_atom "form" fs with Some p -> p | None -> "_")
-             ~lemma: (match G_fs.get_string_atom "lemma" fs with Some p -> p | None -> "_")
-             ~upos: (match G_fs.get_string_atom "upos" fs with Some p -> p | None -> "_")
-             ~xpos: (match G_fs.get_string_atom "xpos" fs with Some p -> p | None -> "_")
+             ~form: (match G_fs.get_string_atom_opt "form" fs with Some p -> p | None -> "_")
+             ~lemma: (match G_fs.get_string_atom_opt "lemma" fs with Some p -> p | None -> "_")
+             ~upos: (match G_fs.get_string_atom_opt "upos" fs with Some p -> p | None -> "_")
+             ~xpos: (match G_fs.get_string_atom_opt "xpos" fs with Some p -> p | None -> "_")
              ~feats: (G_fs.to_conll ~exclude: ["form"; "lemma"; "upos"; "xpos"] fs)
              ~deps
              ()
         )
         (match sorted_nodes with
-         | (_,h)::t when G_node.get_position h = Some 0 -> t (* the first element in the Conll_root which must not be displayed *)
+         | (_,h)::t when G_node.get_position_opt h = Some 0 -> t (* the first element in the Conll_root which must not be displayed *)
          | l -> l
         ) in
 
@@ -1178,7 +1178,7 @@ module G_graph = struct
         (fun _ node (num,acc) ->
            try
              let fs = G_node.get_fs node in
-             let kind = match G_fs.get_string_atom "kind" fs with
+             let kind = match G_fs.get_string_atom_opt "kind" fs with
                | Some "NE" -> Mwe.Ne
                | Some "MWE" -> Mwe.Mwe
                | _ -> raise Skip in
@@ -1188,7 +1188,7 @@ module G_graph = struct
                  (fun gid1 gid2 ->
                     let n1 = List.assoc gid1 sorted_nodes
                     and n2 = List.assoc gid2 sorted_nodes in
-                    match (G_node.get_position n1, G_node.get_position n2) with
+                    match (G_node.get_position_opt n1, G_node.get_position_opt n2) with
                     | (Some i, Some j) -> Stdlib.compare i j
                     | _ -> 0
                  )
@@ -1210,9 +1210,9 @@ module G_graph = struct
                    ) Id_with_proj_set.empty tail_gids in
                let mwe = {
                  Mwe.kind;
-                 Mwe.mwepos = G_fs.get_string_atom "mwepos" fs;
-                 Mwe.label = G_fs.get_string_atom "label" fs;
-                 Mwe.criterion = G_fs.get_string_atom "criterion" fs;
+                 Mwe.mwepos = G_fs.get_string_atom_opt "mwepos" fs;
+                 Mwe.label = G_fs.get_string_atom_opt "label" fs;
+                 Mwe.criterion = G_fs.get_string_atom_opt "criterion" fs;
                  first = (head_conll_id,head_proj);
                  items;
                } in
@@ -1246,7 +1246,7 @@ module G_graph = struct
            try List.assoc id deco.G_deco.nodes
            with Not_found -> ("",[]) in
          let fs = G_node.get_fs node in
-         let lab_url = match G_fs.get_string_atom "label" fs with
+         let lab_url = match G_fs.get_string_atom_opt "label" fs with
            | None -> None
            | Some lab ->
              match get_url lab with
@@ -1278,7 +1278,7 @@ module G_graph = struct
     Gid_map.iter
       (fun id node ->
          begin
-           match G_node.get_succ node with
+           match G_node.get_succ_opt node with
            | Some s when !Global.debug ->
              bprintf buff "  N_%s -> N_%s [label=\"SUCC\", style=dotted, fontcolor=lightblue, color=lightblue]; {rank=same; N_%s; N_%s };\n"
                (Gid.to_string id) (Gid.to_string s) (Gid.to_string id) (Gid.to_string s)
@@ -1300,12 +1300,12 @@ module G_graph = struct
   let is_projective t =
     let (arc_positions, pos_to_gid_map) =
       Gid_map.fold (fun src_gid src_node (acc, acc_map) ->
-          match G_node.get_position src_node with
+          match G_node.get_position_opt src_node with
           | None -> (acc, acc_map)
           | Some src_pos ->
             let new_acc = Massoc_gid.fold (fun acc2 tar_gid edge ->
                 let tar_node = find tar_gid t in
-                match G_node.get_position tar_node with
+                match G_node.get_position_opt tar_node with
                 | None -> acc2
                 | Some tar_pos -> (min src_pos tar_pos, max src_pos tar_pos) :: acc2
               ) acc (G_node.get_next_without_pred_succ src_node) in
@@ -1479,7 +1479,7 @@ module Delta = struct
   let set_feat seed_graph gid feat_name new_val_opt t =
     (* equal_orig is true iff new val is the same as the one in seed_graph *)
     let equal_orig =
-      try (new_val_opt = G_fs.get_atom feat_name (G_node.get_fs (G_graph.find gid seed_graph)))
+      try (new_val_opt = G_fs.get_atom_opt feat_name (G_node.get_fs (G_graph.find gid seed_graph)))
       with Not_found -> false (* when gid is in created nodes *) in
     let rec loop = fun old -> match old with
       | [] when equal_orig                                             -> []

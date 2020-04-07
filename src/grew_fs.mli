@@ -34,20 +34,20 @@ module G_fs: sig
       If [t] already contains a feature named [feature_name], the old value is erased by the new one. *)
   val set_atom: ?loc:Loc.t -> ?domain:Domain.t -> feature_name -> string -> t ->  t
 
-  (** [del_feat feature_name t] remove the feature with name [feature_name] in [t].
+  (** [del_feat_opt feature_name t] remove the feature with name [feature_name] in [t].
       If [t] does not contain such a feature, None is returned. *)
-  val del_feat:  string -> t ->  t option
+  val del_feat_opt:  string -> t ->  t option
 
-  val get_atom: string -> t -> value option
+  val get_atom_opt: string -> t -> value option
 
-  (** [get_string_atom f t] returns [Some v] if the fs [t] contains the feature (f,v).
+  (** [get_string_atom_opt f t] returns [Some v] if the fs [t] contains the feature (f,v).
       It returns [None] if there is no feature named [f] in [t] *)
-  val get_string_atom: string -> t -> string option
+  val get_string_atom_opt: string -> t -> string option
 
-  val get_float_feat: string -> t -> float option
+  val get_float_feat_opt: string -> t -> float option
   val to_gr: t -> string
   val to_dot: ?decorated_feat:(string * (string * string option) list) -> ?main_feat: string -> t -> string
-  val to_word: t -> string option
+  val to_word_opt: t -> string option
 
   val to_dep:
     ?decorated_feat:(string * (string * string option) list) ->
@@ -68,11 +68,11 @@ module G_fs: sig
   val pst_leaf: ?loc:Loc.t -> ?domain:Domain.t -> string -> t
   val pst_node: ?loc:Loc.t -> ?domain:Domain.t -> string -> t
 
-  (** [unif t1 t2] returns [Some t] if [t] is the unification of two graph feature structures
+  (** [unif_opt t1 t2] returns [Some t] if [t] is the unification of two graph feature structures
       [None] is returned if the two feature structures cannot be unified. *)
-  val unif: t -> t -> t option
+  val unif_opt: t -> t -> t option
 
-  val append_feats: ?loc:Loc.t -> t -> t -> string -> string -> (t * (string * value) list) option
+  val append_feats_opt: ?loc:Loc.t -> t -> t -> string -> string -> (t * (string * value) list) option
 
 end (* module G_fs *)
 
