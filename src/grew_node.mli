@@ -29,6 +29,7 @@ module G_node: sig
   val set_fs: G_fs.t -> t -> t
 
   val get_next: t -> G_edge.t Massoc_gid.t
+  val get_next_without_pred_succ: t -> G_edge.t Massoc_gid.t
   val set_next: G_edge.t Massoc_gid.t -> t -> t
 
   val get_pred: t -> Gid.t option

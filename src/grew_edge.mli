@@ -47,6 +47,7 @@ module G_edge: sig
 
   val build: Ast.edge -> t
 
+  val ordering: t -> bool
 end (* module G_edge *)
 
 

@@ -1332,7 +1332,7 @@ module G_graph = struct
                 match G_node.get_position tar_node with
                 | None -> acc2
                 | Some tar_pos -> (min src_pos tar_pos, max src_pos tar_pos) :: acc2
-              ) acc (G_node.get_next src_node) in
+              ) acc (G_node.get_next_without_pred_succ src_node) in
             (new_acc, Int_map.add src_pos src_gid acc_map)
         ) t.map ([], Int_map.empty) in
     let sorted_arc_positions = List.sort Dependencies.lex_cmp arc_positions in
@@ -1360,7 +1360,7 @@ module G_graph = struct
              fun acc2 next_gid _ ->
                if dfs_debug then printf " %s ---> %s\n%!" (Gid.to_string gid) (Gid.to_string next_gid);
                Gid_set.add next_gid acc2
-           ) acc (G_node.get_next node)
+           ) acc (G_node.get_next_without_pred_succ node)
         ) graph.map Gid_set.empty in
     let roots =
       Gid_map.fold
@@ -1402,7 +1402,7 @@ module G_graph = struct
             | Pre_post _ -> info := {!info with nontree_edges = (gid, next_gid) :: !info.nontree_edges};
           with
           | Not_found -> explore next_gid
-        ) (G_node.get_next node);
+        ) (G_node.get_next_without_pred_succ node);
       match Gid_map.find_opt gid !info.intervals with
       | Some (Pre i) -> info := {!info with intervals = Gid_map.add gid (Pre_post (i,!clock)) !info.intervals}; incr clock;
       | _ -> assert false in

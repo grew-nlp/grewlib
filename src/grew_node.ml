@@ -40,7 +40,9 @@ module G_node = struct
   let set_fs fs t = {t with fs }
 
   let get_next t = t.next
-  let set_next next t = {t with next }
+  let set_next next t = { t with next }
+
+  let get_next_without_pred_succ t = Massoc_gid.filter (fun e -> not (G_edge.ordering e)) t.next
 
   let get_pred t = Massoc_gid.find_opt (fun _ v -> v = G_edge.pred) t.next
   let get_succ t = Massoc_gid.find_opt (fun _ v -> v = G_edge.succ) t.next

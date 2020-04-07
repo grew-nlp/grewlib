@@ -471,6 +471,8 @@ module type S = sig
 
   val find_opt: (key -> 'a -> bool) -> 'a t -> key option
 
+  val filter: ('a -> bool) -> 'a t -> 'a t
+
 end (* module type S *)
 
 (* ================================================================================ *)
@@ -579,6 +581,13 @@ module Massoc_make (Ord: OrderedType) = struct
 
   let map_key fct t = M.fold (fun key value acc -> M.add (fct key) value acc) t M.empty
 
+  let filter test t =
+    M.fold
+      (fun key value acc ->
+         match List.filter test value with
+         | [] -> acc
+         | l -> M.add key l acc
+      ) t M.empty
 end (* module Massoc_make *)
 
 (* ================================================================================ *)
