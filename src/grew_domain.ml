@@ -157,11 +157,7 @@ module Feature_domain = struct
     List.exists (fun item -> get_name item = feature_name) decls
 
   let rec build_decls = function
-    | [] -> [Ast.Num "position"]
-    | (Ast.Num "position") :: tail -> Log.warning "[Feature_domain] declaration of the feature name \"position\" in useless"; build_decls tail
-    | (Ast.Open "position") :: _
-    | (Ast.Closed ("position",_)) :: _ ->
-      Error.build "[Feature_domain] The feature named \"position\" is reserved and must be types 'integer', you cannot not redefine it"
+    | [] -> []
     | (Ast.Num fn) :: tail | (Ast.Open fn) :: tail | Ast.Closed (fn,_) :: tail when is_defined fn tail ->
       begin
         if fn = "form" || fn = "upos" || fn = "xpos"

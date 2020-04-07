@@ -679,22 +679,8 @@ module Matching = struct
   (*  ---------------------------------------------------------------------- *)
   let apply_cst ?domain graph matching cst =
     let get_node pid = G_graph.find (Pid_map.find pid matching.n_match) graph in
-    let get_string_feat pid = function
-      | "position" ->
-        begin
-          match G_node.get_position (get_node pid) with
-          | Some f -> Some (sprintf "%d" f)
-          | None -> Error.run "Cannot read position of an unordered node"
-        end
-      | feat_name -> G_fs.get_string_atom feat_name (G_node.get_fs (get_node pid)) in
-    let get_float_feat pid = function
-      | "position" ->
-        begin
-          match G_node.get_position (get_node pid) with
-          | Some f -> Some (float_of_int f)
-          | None -> Error.run "Cannot read position of an unordered node"
-        end
-      | feat_name -> G_fs.get_float_feat feat_name (G_node.get_fs (get_node pid)) in
+    let get_string_feat pid feat_name = G_fs.get_string_atom feat_name (G_node.get_fs (get_node pid)) in
+    let get_float_feat pid feat_name = G_fs.get_float_feat feat_name (G_node.get_fs (get_node pid)) in
 
     match cst with
     | Pattern.Cst_out (pid,label_cst) ->

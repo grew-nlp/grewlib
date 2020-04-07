@@ -814,12 +814,8 @@ module G_graph = struct
   let set_feat ?loc graph node_id feat_name new_value =
     let domain = get_domain graph in
     let node = Gid_map.find node_id graph.map in
-    let new_node =
-      match feat_name with
-      | "position" -> G_node.set_position (int_of_string new_value) node
-      | _ ->
-        let new_fs = G_fs.set_atom ?loc ?domain feat_name new_value (G_node.get_fs node) in
-        (G_node.set_fs new_fs node) in
+    let new_fs = G_fs.set_atom ?loc ?domain feat_name new_value (G_node.get_fs node) in
+    let new_node = G_node.set_fs new_fs node in
     { graph with map = Gid_map.add node_id new_node graph.map }
 
   (* -------------------------------------------------------------------------------- *)
@@ -827,13 +823,6 @@ module G_graph = struct
     let strings_to_concat =
       List.map
         (function
-          | Concat_item.Feat (node_gid, "position") ->
-            let node = Gid_map.find node_gid graph.map in
-            begin
-              match G_node.get_position node with
-              | Some p -> sprintf "%d" p
-              | _ -> Error.run ?loc "Try to read position of an unordered node"
-            end
           | Concat_item.Feat (node_gid, feat_name) ->
             let node = Gid_map.find node_gid graph.map in
             (match G_fs.get_string_atom feat_name (G_node.get_fs node) with
@@ -1060,8 +1049,13 @@ module G_graph = struct
       (fun (id, node) ->
          let decorated_feat = try List.assoc id deco.G_deco.nodes with Not_found -> ("",[]) in
          let fs = G_node.get_fs node in
-         let pos = G_node.get_position node in
-         let dep_fs = G_fs.to_dep ~decorated_feat ?position:pos ?filter ?main_feat fs in
+
+         let tail =
+         match (!Global.debug, G_node.get_position node) with
+         | (true, Some pos) -> [sprintf "position=%d:B:lightblue" pos]
+         | _ -> [] in
+
+         let dep_fs = G_fs.to_dep ~decorated_feat ~tail ?filter ?main_feat fs in
 
          let style = match G_fs.get_string_atom "void" fs with
            | Some "y" -> "; forecolor=red; subcolor=red; "
@@ -1171,7 +1165,7 @@ module G_graph = struct
              ~lemma: (match G_fs.get_string_atom "lemma" fs with Some p -> p | None -> "_")
              ~upos: (match G_fs.get_string_atom "upos" fs with Some p -> p | None -> "_")
              ~xpos: (match G_fs.get_string_atom "xpos" fs with Some p -> p | None -> "_")
-             ~feats: (G_fs.to_conll ~exclude: ["form"; "lemma"; "upos"; "xpos"; "position"] fs)
+             ~feats: (G_fs.to_conll ~exclude: ["form"; "lemma"; "upos"; "xpos"] fs)
              ~deps
              ()
         )

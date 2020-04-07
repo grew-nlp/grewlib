@@ -215,7 +215,7 @@ module Label_cst = struct
       begin
         match G_edge.to_short_opt g_edge with
         | Some s -> String_.re_match re s
-        | None -> Error.run "Cannot ckeck for regexp constraint againt a not Conll edge"
+        | None -> false
       end
     | _ -> false
 

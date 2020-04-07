@@ -274,8 +274,6 @@ module Command  = struct
       ((DEL_NODE (cn_of_node_id node_n), loc), (List_.rm node_n kni, kei))
 
     | (Ast.Del_feat (node_or_edge_id, feat_name), loc) ->
-      if feat_name = "position"
-      then Error.build ~loc "Illegal del_feat command: the 'position' feature cannot be deleted";
       begin
         match (List.mem node_or_edge_id kni, List.mem node_or_edge_id kei) with
         | (true, false) ->

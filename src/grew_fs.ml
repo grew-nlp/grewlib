@@ -344,7 +344,7 @@ module G_fs = struct
     Str.global_replace (Str.regexp "#") "__SHARP__" s
 
   (* ---------------------------------------------------------------------- *)
-  let to_dep ?(decorated_feat=("",[])) ?position ?main_feat ?filter t =
+  let to_dep ?(decorated_feat=("",[])) ?(tail=[]) ?main_feat ?filter t =
     let (pid_name, highlighted_feat_list) = decorated_feat in
 
     let is_highlithed feat_name =
@@ -381,10 +381,6 @@ module G_fs = struct
       | [] -> "_"
       | l ->  String.concat "#" l in
 
-    let last = match (!Global.debug, position) with
-      | (true, Some f) -> [(G_feature.to_string ("position", Float (float_of_int f)))^":B:lightblue"]
-      | _ -> [] in
-
     let lines = List.fold_left
         (fun acc (feat_name, atom) ->
            let esc_atom = escape_sharp (G_feature.to_string (decode_feat_name feat_name, atom)) in
@@ -395,7 +391,7 @@ module G_fs = struct
              match filter with
              | Some test when not (test feat_name) -> acc
              | _ -> text :: acc
-        ) last sub in
+        ) tail sub in
     let subword = String.concat "#" (List.rev lines) in
 
     sprintf " word=\"%s\"; subword=\"%s\"" word subword
@@ -423,18 +419,6 @@ module P_fs = struct
   let empty = []
 
   let to_json ?domain t = `List (List.map (P_feature.to_json ?domain) t)
-
-  let check_position position t =
-    try
-      match (List.assoc "position" t, position) with
-      | (P_feature.Equal pos_list, Some p) -> List.mem (Float p) pos_list
-      | (P_feature.Equal pos_list, None) -> false
-      | (P_feature.Different pos_list, Some p) -> not (List.mem (Float p) pos_list)
-      | (P_feature.Different pos_list, None) -> false
-      | (P_feature.Absent, Some _) -> false
-      | (P_feature.Absent, None) -> true
-      | _ -> true (* TODO : does positions in lexicons can be useful ??? *)
-    with Not_found -> true
 
   let build ?domain lexicons ast_fs =
     let unsorted = List.map (P_feature.build lexicons ?domain) ast_fs in

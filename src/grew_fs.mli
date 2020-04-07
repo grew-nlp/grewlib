@@ -51,7 +51,7 @@ module G_fs: sig
 
   val to_dep:
     ?decorated_feat:(string * (string * string option) list) ->
-    ?position:int ->
+    ?tail:string list ->
     ?main_feat: string ->
     ?filter: (string -> bool) ->
     t ->
@@ -99,10 +99,6 @@ module P_fs: sig
 
   (** [match_ ?lexicons p_fs g_fs] tries to match the pattern fs [p_fs] with the graph fs [g_fs]. *)
   val match_: ?lexicons:Lexicons.t -> t -> G_fs.t -> Lexicons.t
-
-  (** [check_position ?parma position pfs] checks wheter [pfs] is compatible with a node at [position].
-      It returns [true] iff [pfs] has no requirement about position ok if the requirement is satisfied. *)
-  val check_position: float option -> t -> bool
 
   exception Fail_unif
 
