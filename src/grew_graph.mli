@@ -117,7 +117,7 @@ module G_graph: sig
   (* Update functions *)
   (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
 
-  (** [add_edge_opt graph id_src label id_tar] tries to add an edge grom [id_src] to [id_tar] with [label] to [graph].
+  (** [add_edge_opt graph src_gid label tar_gid] tries to add an edge grom [src_gid] to [tar_gid] with [label] to [graph].
       if it succeeds, [Some new_graph] is returned
       if it fails (the edge already exists), [None] is returned
   *)

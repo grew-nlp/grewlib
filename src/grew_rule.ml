@@ -1175,12 +1175,12 @@ module Rule = struct
     bprintf buff "[EDGES] {\n";
 
     Pid_map.iter
-      (fun id_src node ->
+      (fun src_pid node ->
          Massoc_pid.iter
-           (fun id_tar edge ->
+           (fun tar_pid edge ->
               bprintf buff "  N_%s -> N_%s { label=\"%s\"}\n"
-                (Pid.to_id id_src)
-                (Pid.to_id id_tar)
+                (Pid.to_id src_pid)
+                (Pid.to_id tar_pid)
                 (P_edge.to_string ?domain edge)
            )
            (P_node.get_next node)

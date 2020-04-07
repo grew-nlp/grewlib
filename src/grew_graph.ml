@@ -43,13 +43,13 @@ module P_graph = struct
     )
 
   (* -------------------------------------------------------------------------------- *)
-  let map_add_edge id_src label id_tar map =
-    let node_src =
+  let map_add_edge src_pid label tar_pid map =
+    let src_node =
       (* Not found can be raised when adding an edge from pos to neg *)
-      try Pid_map.find id_src map with Not_found -> P_node.empty in
-    match P_node.add_edge_opt label id_tar node_src with
+      try Pid_map.find src_pid map with Not_found -> P_node.empty in
+    match P_node.add_edge_opt label tar_pid src_node with
     | None -> None
-    | Some new_node -> Some (Pid_map.add id_src new_node map)
+    | Some new_node -> Some (Pid_map.add src_pid new_node map)
 
   (* -------------------------------------------------------------------------------- *)
   let build ?domain lexicons basic_ast =
@@ -279,22 +279,22 @@ module G_graph = struct
     | _ -> false
 
   (* -------------------------------------------------------------------------------- *)
-  let map_add_edge_opt map id_src label id_tar =
-    let node_src = Gid_map.find id_src map in
-    match G_node.add_edge_opt label id_tar node_src with
+  let map_add_edge_opt map src_gid label tar_gid =
+    let src_node = Gid_map.find src_gid map in
+    match G_node.add_edge_opt label tar_gid src_node with
     | None -> None
-    | Some new_node -> Some (Gid_map.add id_src new_node map)
+    | Some new_node -> Some (Gid_map.add src_gid new_node map)
 
   (* -------------------------------------------------------------------------------- *)
-  let map_add_edge id_src label id_tar map =
-    let node_src = Gid_map.find id_src map in
-    match G_node.add_edge_opt label id_tar node_src with
-    | Some new_node -> Gid_map.add id_src new_node map
+  let map_add_edge src_gid label tar_gid map =
+    let src_node = Gid_map.find src_gid map in
+    match G_node.add_edge_opt label tar_gid src_node with
+    | Some new_node -> Gid_map.add src_gid new_node map
     | None -> Error.bug "[Graph.map_add_edge] duplicate edge"
 
   (* -------------------------------------------------------------------------------- *)
-  let add_edge_opt id_src label id_tar graph =
-    match map_add_edge_opt graph.map id_src label id_tar with
+  let add_edge_opt src_gid label tar_gid graph =
+    match map_add_edge_opt graph.map src_gid label tar_gid with
     | Some new_map -> Some {graph with map = new_map }
     | None -> None
 
@@ -721,7 +721,7 @@ module G_graph = struct
       Some { graph with map = new_map }
 
   (* -------------------------------------------------------------------------------- *)
-  (* move out-edges (which respect cst [labels,neg]) from id_src are moved to out-edges out off node id_tar *)
+  (* move out-edges (which respect cst [labels,neg]) from [src_gid] are moved to out-edges out off node [tar_gid] *)
   let shift_out loc src_gid tar_gid is_gid_local label_cst graph =
     let domain = get_domain_opt graph in
     let del_edges = ref [] and add_edges = ref [] in
@@ -750,13 +750,12 @@ module G_graph = struct
         )
         (src_next, tar_next) src_next in
 
-    let new_map = graph.map
-                  |> (Gid_map.add src_gid (G_node.set_next new_src_next src_node))
-                  |> (Gid_map.add tar_gid (G_node.set_next new_tar_next tar_node)) in
-    ( { graph with map = new_map },
-      !del_edges,
-      !add_edges
-    )
+    let new_map =
+      graph.map
+      |> (Gid_map.add src_gid (G_node.set_next new_src_next src_node))
+      |> (Gid_map.add tar_gid (G_node.set_next new_tar_next tar_node)) in
+
+    ( { graph with map = new_map }, !del_edges, !add_edges )
 
   (* -------------------------------------------------------------------------------- *)
   let shift_in loc src_gid tar_gid is_gid_local label_cst graph =
@@ -1049,9 +1048,9 @@ module G_graph = struct
          let fs = G_node.get_fs node in
 
          let tail =
-         match (!Global.debug, G_node.get_position_opt node) with
-         | (true, Some pos) -> [sprintf "position=%d:B:lightblue" pos]
-         | _ -> [] in
+           match (!Global.debug, G_node.get_position_opt node) with
+           | (true, Some pos) -> [sprintf "position=%d:B:lightblue" pos]
+           | _ -> [] in
 
          let dep_fs = G_fs.to_dep ~decorated_feat ~tail ?filter ?main_feat fs in
 
