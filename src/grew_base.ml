@@ -683,10 +683,11 @@ module Dependencies = struct
     | l -> i::l
 
   let is_projective edge_list =
+    let sorted_edge_list = List.sort lex_cmp edge_list in
     let rec loop position from_here from_before = function
       | [] ->
         (* Printf.printf "=N=> pos=%d H=[%s] B=[%s]\n" position (String.concat "," (List.map string_of_int from_here)) (String.concat "," (List.map string_of_int from_before)); *)
-        None
+        true
       | (i,j) :: tail ->
         (* Printf.printf "=S=> (%d, %d) pos=%d H=[%s] B=[%s]\n" i j position (String.concat "," (List.map string_of_int from_here)) (String.concat "," (List.map string_of_int from_before)); *)
         let rec reduce_from_before = function
@@ -698,10 +699,10 @@ module Dependencies = struct
           else (from_here, reduce_from_before from_before) in
         (* Printf.printf "   ...> NH=[%s] NB=[%s]\n" (String.concat "," (List.map string_of_int new_from_here)) (String.concat "," (List.map string_of_int new_from_before)); *)
         match new_from_before with
-        | h::t when j > h -> Some (i,j)
+        | h::t when j > h -> false
         | h::t when j = h -> loop i new_from_here new_from_before tail
         | _ -> loop i (insert_sorted j new_from_here) new_from_before tail in
-    loop 0 [] [] edge_list
+    loop 0 [] [] sorted_edge_list
 
 end
 

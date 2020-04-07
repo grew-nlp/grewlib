@@ -215,7 +215,7 @@ module G_graph: sig
 
   val cast: ?domain:Domain.t -> t -> t
 
-  val is_projective: t -> (Gid.t * Gid.t) option
+  val is_projective: t -> bool
 
   type dfs_output = {
     forest: bool;

@@ -314,13 +314,9 @@ end
 
 (* ================================================================================ *)
 module Dependencies : sig
-
-  (* [lex_cmp pair1 pair2] is the lexicographic ordering. This function can be used to sort data for [is_projective] function. *)
-  val lex_cmp: ('a * 'b) -> ('a * 'b) -> int
-
-  (* [is_projective arcs] returns [None] if the structure is projective and [Some arc] where [arc] is one of the edge implied in non-projectivity.
+  (* [is_projective arcs] returns [true] iff the structure is projective.
      Input: a list of arcs represented by couples (smallest position, highest position) and lexicographically ordered *)
-  val is_projective: (int * int) list -> (int * int) option
+  val is_projective: (int * int) list -> bool
 end
 
 

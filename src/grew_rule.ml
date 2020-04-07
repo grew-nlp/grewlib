@@ -997,8 +997,8 @@ module Matching = struct
   (* returns true iff the graph verify all structure constraints give in the list *)
   let test_structure_constraints graph = function
     | [] -> true
-    | ["is_projective"] -> G_graph.is_projective graph = None
-    | ["is_not_projective"] -> G_graph.is_projective graph <> None
+    | ["is_projective"] -> G_graph.is_projective graph
+    | ["is_not_projective"] -> not (G_graph.is_projective graph)
     | l ->
       let dfs = G_graph.depth_first_search graph in
       let rec loop = function
@@ -1006,14 +1006,14 @@ module Matching = struct
         | "is_projective" :: tail ->
           begin
             match G_graph.is_projective graph with
-            | Some _ -> false
-            | None -> loop tail
+            | false -> false
+            | true -> loop tail
           end
         | "is_not_projective" :: tail ->
           begin
             match G_graph.is_projective graph with
-            | Some _ -> loop tail
-            | None -> false
+            | false -> loop tail
+            | true -> false
           end
 
         | "is_tree" :: tail when dfs.tree -> loop tail

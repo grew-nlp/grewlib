@@ -1311,10 +1311,7 @@ module G_graph = struct
               ) acc (G_node.get_next_without_pred_succ src_node) in
             (new_acc, Int_map.add src_pos src_gid acc_map)
         ) t.map ([], Int_map.empty) in
-    let sorted_arc_positions = List.sort Dependencies.lex_cmp arc_positions in
-    match Dependencies.is_projective sorted_arc_positions with
-    | Some (p1, p2) -> Some (Int_map.find p1 pos_to_gid_map, Int_map.find p1 pos_to_gid_map)
-    | None -> None
+    Dependencies.is_projective arc_positions
 
   (* --------------------------------------------------------------- *)
   (* Detection of graph structure: cycle, tree, …
