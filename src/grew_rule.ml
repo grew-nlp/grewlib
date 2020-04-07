@@ -459,7 +459,7 @@ module Pattern = struct
     Pid_map.fold
       (fun _ node acc ->
          Massoc_pid.fold
-           (fun acc2 _ edge -> match P_edge.get_id edge with Some id -> id::acc2 | None -> acc2)
+           (fun acc2 _ edge -> match P_edge.get_id_opt edge with Some id -> id::acc2 | None -> acc2)
            acc (P_node.get_next node)
       ) basic.graph []
 
@@ -542,16 +542,16 @@ module Matching = struct
     with Found pid -> Some pid
 
   (* return the value of a feature or an edge label *)
-  let get_value request pattern graph matching =
+  let get_value_opt request pattern graph matching =
     match Str.split (Str.regexp "\\.") request with
     | [edge_id] ->
       begin
         match String_map.find_opt edge_id matching.e_match with
-        | None -> Error.run "[Matching.get_value] unknown edge_id %s" edge_id
+        | None -> Error.run "[Matching.get_value_opt] unknown edge_id %s" edge_id
         | Some (_,edge,_) ->
           match G_edge.to_string_opt edge with
           | Some s -> Some s
-          | None -> Error.bug "[Matching.get_value] internal edge %s" (G_edge.dump edge)
+          | None -> Error.bug "[Matching.get_value_opt] internal edge %s" (G_edge.dump edge)
       end
     | [node_or_edge_id; feature_name] ->
       begin
@@ -560,12 +560,12 @@ module Matching = struct
           begin
             match G_edge.get_sub_opt feature_name edge with
             | Some e -> Some e
-            | None -> Error.bug "[Matching.get_value] internal edge %s" (G_edge.dump edge)
+            | None -> Error.bug "[Matching.get_value_opt] internal edge %s" (G_edge.dump edge)
           end
         | None ->
           begin
             match get_pid_by_name pattern node_or_edge_id matching.n_match with (* TODO: edge feature "e.deep" *)
-            | None -> Error.run "[Matching.get_value] unknown id %s" node_or_edge_id
+            | None -> Error.run "[Matching.get_value_opt] unknown id %s" node_or_edge_id
             | Some pid ->
               let gid = Pid_map.find pid matching.n_match in
               let node = G_graph.find gid graph in
@@ -573,7 +573,7 @@ module Matching = struct
               G_fs.get_string_atom_opt feature_name fs
           end
       end
-    | _ -> Error.run "[Matching.get_value] unable to handled request %s" request
+    | _ -> Error.run "[Matching.get_value_opt] unable to handled request %s" request
 
   let e_match_add ?pos edge_id new_edge matching =
     if String_map.mem edge_id matching.e_match
@@ -810,7 +810,7 @@ module Matching = struct
         | None -> raise Fail
         | Some v ->
           let old_lex = List.assoc lexicon matching.l_param in
-          match Lexicon.select field v old_lex with
+          match Lexicon.select_opt field v old_lex with
           | None -> raise Fail
           | Some new_lex -> {matching with l_param = (lexicon, new_lex) :: (List.remove_assoc lexicon matching.l_param) }
       end
@@ -821,7 +821,7 @@ module Matching = struct
         | None -> raise Fail
         | Some v ->
           let old_lex = List.assoc lexicon matching.l_param in
-          match Lexicon.unselect field v old_lex with
+          match Lexicon.unselect_opt field v old_lex with
           | None -> raise Fail
           | Some new_lex -> {matching with l_param = (lexicon, new_lex) :: (List.remove_assoc lexicon matching.l_param) }
       end
@@ -1291,7 +1291,7 @@ module Rule = struct
       let src_gid = node_find src_cn in
       let tar_gid = node_find tar_cn in
       begin
-        match G_graph.add_edge src_gid edge tar_gid state.graph with
+        match G_graph.add_edge_opt src_gid edge tar_gid state.graph with
         | None when !Global.safe_commands ->
           Error.run ~loc "ADD_EDGE: the edge '%s' already exists" (G_edge.dump edge)
         | None -> state
@@ -1305,7 +1305,7 @@ module Rule = struct
         try String_map.find edge_id state.e_mapping
         with Not_found -> Error.run ~loc "The edge identifier '%s' is undefined" edge_id in
       begin
-        match G_graph.add_edge src_gid edge tar_gid state.graph with
+        match G_graph.add_edge_opt src_gid edge tar_gid state.graph with
         | None when !Global.safe_commands ->
           Error.run ~loc "ADD_EDGE_EXPL: the edge '%s' already exists" (G_edge.dump edge)
         | None -> state
@@ -1331,7 +1331,7 @@ module Rule = struct
         ) items in
       let edge = G_edge.from_items direct_items in
       begin
-        match G_graph.add_edge src_gid edge tar_gid state.graph with
+        match G_graph.add_edge_opt src_gid edge tar_gid state.graph with
         | None when !Global.safe_commands ->
           Error.run ~loc "ADD_EDGE_ITEMS: the edge '%s' already exists" (G_edge.dump edge)
         | None -> state
@@ -1384,7 +1384,7 @@ module Rule = struct
       let (src_gid,edge,tar_gid) =
         try String_map.find edge_ident state.e_mapping
         with Not_found -> Error.run ~loc "The edge identifier '%s' is undefined" edge_ident in
-      (match G_graph.update_edge_feature ~loc edge_ident feat_name new_value (src_gid,edge,tar_gid) state.graph with
+      (match G_graph.update_edge_feature_opt ~loc edge_ident feat_name new_value (src_gid,edge,tar_gid) state.graph with
        | None when !Global.safe_commands -> Error.run ~loc "UPDATE_EDGE_FEAT: no changes %s" edge_ident
        | None -> state
        | Some (new_graph, new_edge) ->
@@ -1397,7 +1397,7 @@ module Rule = struct
 
     | Command.DEL_NODE node_cn ->
       let node_gid = node_find node_cn in
-      (match G_graph.del_node node_gid state.graph with
+      (match G_graph.del_node_opt node_gid state.graph with
        | None when !Global.safe_commands -> Error.run ~loc "DEL_NODE: the node does not exist"
        | None -> state
        | Some new_graph ->
@@ -1430,7 +1430,7 @@ module Rule = struct
     | Command.APPEND_FEATS (src_cn, tar_cn, regexp, separator) ->
       let src_gid = node_find src_cn in
       let tar_gid = node_find tar_cn in
-      (match G_graph.append_feats state.graph src_gid tar_gid separator regexp with
+      (match G_graph.append_feats_opt state.graph src_gid tar_gid separator regexp with
        | None when !Global.safe_commands -> Error.run ~loc "APPEND_FEATS uneffective"
        | None -> state
        | Some (new_graph,_) -> {state with graph = new_graph; effective = true}
@@ -1438,7 +1438,7 @@ module Rule = struct
 
     | Command.UNORDER (node_cn) ->
       let node_gid = node_find node_cn in
-      (match G_graph.unorder node_gid state.graph with
+      (match G_graph.unorder_opt node_gid state.graph with
        | None when !Global.safe_commands -> Error.run ~loc "UNORDER: the node is not ordered"
        | None -> state
        | Some new_graph ->
@@ -1450,7 +1450,7 @@ module Rule = struct
 
     | Command.DEL_FEAT (tar_cn,feat_name) ->
       let tar_gid = node_find tar_cn in
-      (match G_graph.del_feat state.graph tar_gid feat_name with
+      (match G_graph.del_feat_opt state.graph tar_gid feat_name with
        | None when !Global.safe_commands -> Error.run ~loc "DEL_FEAT the feat does not exist"
        | None -> state
        | Some new_graph -> {state with graph = new_graph; effective = true}
@@ -1502,7 +1502,7 @@ module Rule = struct
       }
 
 
-  let onf_apply ?domain rule graph =
+  let onf_apply_opt ?domain rule graph =
     let {Pattern.pos; negs} = rule.pattern in
     (* get the list of partial matching for positive part of the pattern *)
     let matching_list =
@@ -1534,7 +1534,7 @@ module Rule = struct
       then (Timeout.check (); incr_rules(); Some (G_graph.push_rule (get_long_name rule) final_state.graph))
       else None
 
-  let rec wrd_apply ?domain rule (graph, big_step_opt) =
+  let rec wrd_apply_opt ?domain rule (graph, big_step_opt) =
     let {Pattern.pos; negs} = rule.pattern in
     (* get the list of partial matching for positive part of the pattern *)
     let matching_list =
@@ -1600,7 +1600,7 @@ module Rule = struct
       let src_gid = node_find src_cn in
       let tar_gid = node_find tar_cn in
       begin
-        match G_graph.add_edge src_gid edge tar_gid gwh.Graph_with_history.graph with
+        match G_graph.add_edge_opt src_gid edge tar_gid gwh.Graph_with_history.graph with
         | None when !Global.safe_commands ->
           Error.run ~loc "ADD_EDGE: the edge '%s' already exists" (G_edge.dump edge)
         | None -> Graph_with_history_set.singleton gwh
@@ -1620,7 +1620,7 @@ module Rule = struct
         with Not_found -> Error.run ~loc "ADD_EDGE_EXPL: the edge identifier '%s' is undefined" edge_ident in
 
       begin
-        match G_graph.add_edge src_gid edge tar_gid gwh.Graph_with_history.graph with
+        match G_graph.add_edge_opt src_gid edge tar_gid gwh.Graph_with_history.graph with
         | None when !Global.safe_commands ->
           Error.run ~loc "ADD_EDGE_EXPL: the edge '%s' already exists" (G_edge.dump edge)
         | None -> Graph_with_history_set.singleton gwh
@@ -1650,7 +1650,7 @@ module Rule = struct
         ) items in
       let edge = G_edge.from_items direct_items in
       begin
-        match G_graph.add_edge src_gid edge tar_gid gwh.Graph_with_history.graph with
+        match G_graph.add_edge_opt src_gid edge tar_gid gwh.Graph_with_history.graph with
         | None when !Global.safe_commands ->
           Error.run ~loc "ADD_EDGE_ITEMS: the edge '%s' already exists" (G_edge.dump edge)
         | None -> Graph_with_history_set.singleton gwh
@@ -1690,7 +1690,7 @@ module Rule = struct
 
     | Command.DEL_NODE node_cn ->
       let node_gid = node_find node_cn in
-      (match G_graph.del_node node_gid gwh.Graph_with_history.graph with
+      (match G_graph.del_node_opt node_gid gwh.Graph_with_history.graph with
        | None when !Global.safe_commands -> Error.run ~loc "DEL_NODE: the node does not exist"
        | None -> Graph_with_history_set.singleton gwh
        | Some new_graph -> Graph_with_history_set.singleton
@@ -1742,7 +1742,7 @@ module Rule = struct
 
     | Command.DEL_FEAT (tar_cn,feat_name) ->
       let tar_gid = node_find tar_cn in
-      (match G_graph.del_feat gwh.Graph_with_history.graph tar_gid feat_name with
+      (match G_graph.del_feat_opt gwh.Graph_with_history.graph tar_gid feat_name with
        | None when !Global.safe_commands -> Error.run ~loc "DEL_FEAT: the feat does not exist"
        | None -> Graph_with_history_set.singleton gwh
        | Some new_graph -> Graph_with_history_set.singleton { gwh with
@@ -1755,7 +1755,7 @@ module Rule = struct
       let (src_gid,old_edge,tar_gid) =
         try String_map.find edge_id gwh.e_mapping
         with Not_found -> Error.run ~loc "The edge identifier '%s' is undefined" edge_id in
-      (match G_graph.update_edge_feature ~loc edge_id feat_name new_value (src_gid,old_edge,tar_gid) gwh.Graph_with_history.graph with
+      (match G_graph.update_edge_feature_opt ~loc edge_id feat_name new_value (src_gid,old_edge,tar_gid) gwh.Graph_with_history.graph with
        | None when !Global.safe_commands -> Error.run ~loc "UPDATE_EDGE_FEAT: no changes %s" edge_id
        | None -> Graph_with_history_set.singleton gwh
        | Some (new_graph, new_edge) ->
@@ -1852,7 +1852,7 @@ module Rule = struct
       let src_gid = node_find src_cn in
       let tar_gid = node_find tar_cn in
       begin
-        match G_graph.append_feats gwh.Graph_with_history.graph src_gid tar_gid separator regexp with
+        match G_graph.append_feats_opt gwh.Graph_with_history.graph src_gid tar_gid separator regexp with
         | None when !Global.safe_commands -> Error.run ~loc "APPEND_FEATS uneffective"
         | None -> Graph_with_history_set.singleton gwh
         | Some (new_graph, updated_edges) ->
@@ -1866,7 +1866,7 @@ module Rule = struct
       end
     | Command.UNORDER node_cn ->
       let node_gid = node_find node_cn in
-      (match G_graph.unorder node_gid gwh.Graph_with_history.graph with
+      (match G_graph.unorder_opt node_gid gwh.Graph_with_history.graph with
        | None when !Global.safe_commands -> Error.run ~loc "UNORDER: the node is not ordered"
        | None -> Graph_with_history_set.singleton gwh
        | Some new_graph -> Graph_with_history_set.singleton
@@ -1904,7 +1904,7 @@ module Rule = struct
       ) Graph_with_history_set.empty matching_list
 
   exception Dead_lock
-  let owh_apply ?domain rule gwh =
+  let owh_apply_opt ?domain rule gwh =
     let graph = gwh.Graph_with_history.graph in
     let {Pattern.pos; negs} = rule.pattern in
 

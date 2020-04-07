@@ -164,7 +164,7 @@ module File = struct
       Buffer.contents buff
 
   exception Found of int
-  let get_suffix file_name =
+  let get_suffix_opt file_name =
     let len = String.length file_name in
     try
       for i = len-1 downto 0 do
@@ -227,7 +227,7 @@ module List_ = struct
     | x::t when x=elt -> t
     | x::t -> x::(rm elt t)
 
-  let index x l =
+  let index_opt x l =
     let rec loop i = function
       | [] -> None
       | h::t when h=x -> Some i
@@ -294,10 +294,10 @@ module List_ = struct
     | h::_ when elt=h -> true
     | h::t (* when elt>h *) -> sort_mem elt t
 
-  let rec sort_assoc key = function
+  let rec sort_assoc_opt key = function
     | [] -> None
     | (k,_)::_ when key<k -> None
-    | (k,_)::t when key>k -> sort_assoc key t
+    | (k,_)::t when key>k -> sort_assoc_opt key t
     | (_,v)::_ -> Some v
 
   let rec sort_mem_assoc key = function
@@ -330,7 +330,7 @@ module List_ = struct
     | x::t when key = x -> t
     | x::t -> x::(usort_remove key t)
 
-  let usort_insert ?(compare=Stdlib.compare) elt l =
+  let usort_insert_opt ?(compare=Stdlib.compare) elt l =
     let rec loop = function
       | [] -> [elt]
       | x::t when compare elt x < 0 -> elt :: x :: t
@@ -503,7 +503,7 @@ module Massoc_make (Ord: OrderedType) = struct
   let add_opt key elt t =
     try
       let list = M.find key t in
-      match List_.usort_insert elt list with
+      match List_.usort_insert_opt elt list with
       | Some l -> Some (M.add key l t)
       | None -> None
     with Not_found -> Some (M.add key [elt] t)
@@ -614,8 +614,8 @@ module Id = struct
     try Some (Array_.dicho_find key table)
     with Not_found -> None
 
-  (* [get_pos id] returns Some v (float) iff id is "Wv" else None *)
-  let get_pos name =
+  (* [get_pos_opt id] returns Some v (float) iff id is "Wv" else None *)
+  let get_pos_opt name =
     let len = String.length name in
     if len > 0 && name.[0] = 'W'
     then
@@ -653,7 +653,7 @@ module Global = struct
   let get_loc () = !current_loc
   let loc_string () = Loc.to_string !current_loc
 
-  let get_line () = snd (get_loc ())
+  let get_line_opt () = snd (get_loc ())
 
   let get_dir () = !current_dir
   let new_file filename =

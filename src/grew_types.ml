@@ -65,20 +65,7 @@ module Gid = struct
 end (* module Gid *)
 
 (* ================================================================================ *)
-module Gid_map = struct
-  include Map.Make (Gid)
-
-  let map_key_value fct_key fct_value t =
-    fold (fun key value acc -> add (fct_key key) (fct_value value) acc) t empty
-
-  exception Found of Gid.t
-  let search_key fct t =
-    try
-      iter (fun k v -> if fct v then raise (Found k)) t;
-      None
-    with
-    | Found k -> Some k
-end
+module Gid_map =  Map.Make (Gid)
 
 (* ================================================================================ *)
 module Gid_set = Set.Make (Gid)
@@ -163,18 +150,18 @@ module Lexicon = struct
     { lex1 with lines = Line_set.union lex1.lines lex2.lines }
   (* NOTE: the loc field of a union may be not accurate *)
 
-  let select head value lex =
-    match List_.index head lex.header with
-    | None -> Error.build ?loc:lex.loc "[Lexicon.select] cannot find %s in lexicon" head
+  let select_opt head value lex =
+    match List_.index_opt head lex.header with
+    | None -> Error.build ?loc:lex.loc "[Lexicon.select_opt] cannot find %s in lexicon" head
     | Some index ->
       let new_set = Line_set.filter (fun line -> List.nth line index = value) lex.lines in
       if Line_set.is_empty new_set
       then None
       else Some { lex with lines = new_set }
 
-  let unselect head value lex =
-    match List_.index head lex.header with
-    | None -> Error.build ?loc:lex.loc "[Lexicon.unselect] cannot find the fiels \"%s\" in lexicon" head
+  let unselect_opt head value lex =
+    match List_.index_opt head lex.header with
+    | None -> Error.build ?loc:lex.loc "[Lexicon.unselect_opt] cannot find the fiels \"%s\" in lexicon" head
     | Some index ->
       let new_set = Line_set.filter (fun line -> List.nth line index <> value) lex.lines in
       if Line_set.is_empty new_set
@@ -182,7 +169,7 @@ module Lexicon = struct
       else Some { lex with lines = new_set }
 
   let projection head lex =
-    match List_.index head lex.header with
+    match List_.index_opt head lex.header with
     | None -> Error.build ?loc:lex.loc "[Lexicon.projection] cannot find %s in lexicon" head
     | Some index -> Line_set.fold (fun line acc -> String_set.add (List.nth line index) acc) lex.lines String_set.empty
 

@@ -100,7 +100,7 @@ and string_lex re target = parse
 
 (* a dedicated lexer for local lexicons: read everything until "#END" *)
 and lp_lex name target = parse
-| '\n'                    { (match Global.get_line () with
+| '\n'                    { (match Global.get_line_opt () with
                               | None -> raise (Error "no loc in lexer")
                               | Some l -> lexicon_lines := (l, Buffer.contents buff) :: !lexicon_lines
                             );

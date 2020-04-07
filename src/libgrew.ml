@@ -112,9 +112,9 @@ module Matching = struct
         Grew_rule.Matching.node_matching pattern graph matching
       ) ()
 
-  let get_value request pattern graph matching =
+  let get_value_opt request pattern graph matching =
     Libgrew.handle ~name:"Matching.get_value" (fun () ->
-        Grew_rule.Matching.get_value request pattern graph matching
+        Grew_rule.Matching.get_value_opt request pattern graph matching
       ) ()
 end
 
@@ -172,7 +172,7 @@ module Graph = struct
   let load ?domain file =
     Libgrew.handle ~name:"Graph.load_graph" ~file
       (fun () ->
-         match Grew_base.File.get_suffix file with
+         match Grew_base.File.get_suffix_opt file with
          | Some ".gr" -> load_gr ?domain file
          | Some ".conll" | Some ".conllu" -> load_conll ?domain file
          | Some ".br" | Some ".melt" -> load_brown ?domain file
@@ -275,10 +275,10 @@ module Grs = struct
          Grew_grs.Grs.dump grs
       ) ()
 
-  let domain grs =
+  let domain_opt grs =
     Libgrew.handle ~name:"Grs.domain"
       (fun () ->
-         Grew_grs.Grs.domain grs
+         Grew_grs.Grs.domain_opt grs
       ) ()
 
   let to_json grs =
@@ -325,7 +325,7 @@ module Corpus = struct
   type t = Grew_corpus.Corpus.t
 
   let size = Grew_corpus.Corpus.size
-  let get_domain = Grew_corpus.Corpus.get_domain
+  let get_domain_opt = Grew_corpus.Corpus.get_domain_opt
   let permut_length = Grew_corpus.Corpus.permut_length
 
   let get_graph position t =

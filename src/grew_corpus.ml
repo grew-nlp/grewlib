@@ -50,7 +50,7 @@ module Corpus = struct
 
   let size t = Array.length t.items
 
-  let get_domain t = t.domain
+  let get_domain_opt t = t.domain
 
   let get_graph position t = t.items.(position).graph
   let get_sent_id position t = t.items.(position).sent_id

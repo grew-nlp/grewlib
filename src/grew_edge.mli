@@ -77,7 +77,7 @@ module P_edge: sig
 
   val to_json: ?domain:Domain.t -> t -> Yojson.Basic.t
 
-  val get_id: t -> string option
+  val get_id_opt: t -> string option
 
   val to_string: ?domain:Domain.t -> t -> string
 

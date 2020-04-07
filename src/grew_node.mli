@@ -93,7 +93,7 @@ module P_node: sig
       It raises [P_fs.Fail_unif] exception in case of Failure. *)
   val unif_fs: P_fs.t -> t -> t
 
-  val add_edge: P_edge.t -> Pid.t -> t -> t option
+  val add_edge_opt: P_edge.t -> Pid.t -> t -> t option
 
   val match_: ?lexicons:Lexicons.t -> t -> G_node.t -> Lexicons.t
 

@@ -94,10 +94,10 @@ module File: sig
   (** [load file_name] load the content of [file_name] as a string. *)
   val load: string -> string
 
-  (** [get_suffix file_name] returns the suffix in [file_name].
+  (** [get_suffix_opt file_name] returns the suffix in [file_name].
       "x.y.z" -> Some ".z"
       "xyz" -> None  *)
-  val get_suffix: string -> string option
+  val get_suffix_opt: string -> string option
 end
 
 (* ================================================================================ *)
@@ -132,7 +132,7 @@ module List_: sig
 
   (** [index elt list] return [Some index] if [index] is the smallest position in the [list] equals to [elt].
       None is returned if [elt] is not in the [list] *)
-  val index: 'a -> 'a list -> int option
+  val index_opt: 'a -> 'a list -> int option
 
   val opt_map: ('a -> 'b option) -> 'a list -> 'b list
 
@@ -164,7 +164,7 @@ module List_: sig
   val usort_remove: 'a -> 'a list -> 'a list
 
   (* Insert an element in a usort list. Return Some l or None if the element is already in the list *)
-  val usort_insert: ?compare:('a -> 'a -> int) -> 'a -> 'a list -> 'a list option
+  val usort_insert_opt: ?compare:('a -> 'a -> int) -> 'a -> 'a list -> 'a list option
 
   val sort_is_empty_inter: 'a list -> 'a list -> bool
   val sort_inter: 'a list -> 'a list -> 'a list
@@ -174,7 +174,7 @@ module List_: sig
   val sort_included_diff: 'a list -> 'a list -> 'a list
   val sort_diff: 'a list -> 'a list -> 'a list
 
-  val sort_assoc: 'a -> ('a * 'b) list -> 'b option
+  val sort_assoc_opt: 'a -> ('a * 'b) list -> 'b option
   val sort_mem_assoc: 'a -> ('a * 'b) list -> bool
 
   (* [sort_remove_assoc k ass_list] returns the input list without the [key] element,
@@ -282,7 +282,7 @@ module Id: sig
   val build_opt: name -> table -> t option
 
   (* [get_pos id] returns Some v (float) iff id is "Wv" else None *)
-  val get_pos: name -> float option
+  val get_pos_opt: name -> float option
 end
 
 (* ================================================================================ *)
@@ -302,7 +302,7 @@ module Global: sig
   val new_line: unit -> unit
 
   val get_loc: unit -> Loc.t
-  val get_line: unit -> int option
+  val get_line_opt: unit -> int option
   val get_dir: unit -> string
   val loc_string: unit -> string
   val label_flag: bool ref

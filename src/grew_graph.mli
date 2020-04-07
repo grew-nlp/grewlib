@@ -117,30 +117,30 @@ module G_graph: sig
   (* Update functions *)
   (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
 
-  (** [add_edge graph id_src label id_tar] tries to add an edge grom [id_src] to [id_tar] with [label] to [graph].
+  (** [add_edge_opt graph id_src label id_tar] tries to add an edge grom [id_src] to [id_tar] with [label] to [graph].
       if it succeeds, [Some new_graph] is returned
       if it fails (the edge already exists), [None] is returned
   *)
-  val add_edge: Gid.t -> G_edge.t -> Gid.t -> t -> t option
+  val add_edge_opt: Gid.t -> G_edge.t -> Gid.t -> t -> t option
 
   (** [del_edge ?loc src_gid label tar_gid graph] removes the edge (src_gid -[label]-> tar_gid) from graph. *)
   val del_edge_opt: ?loc:Loc.t -> Gid.t -> G_edge.t -> Gid.t -> t -> t option
 
 
-  val update_edge_feature: ?loc:Loc.t -> string -> string -> string -> (Gid.t * G_edge.t * Gid.t ) -> t -> (t * G_edge.t) option
+  val update_edge_feature_opt: ?loc:Loc.t -> string -> string -> string -> (Gid.t * G_edge.t * Gid.t ) -> t -> (t * G_edge.t) option
 
   val del_edge_feature_opt: ?loc:Loc.t -> string -> string -> (Gid.t * G_edge.t * Gid.t ) -> t -> (t * G_edge.t) option
 
 
   (** [del_node graph id] remove node [id] from [graph], with all its incoming and outcoming edges.
       None is returned if [id] is not defined in [graph]*)
-  val del_node: Gid.t -> t -> t option
+  val del_node_opt: Gid.t -> t -> t option
 
   val add_before: Gid.t -> t -> (Gid.t * t)
   val add_after: Gid.t -> t -> (Gid.t * t)
   val add_unordered: t -> (Gid.t * t)
 
-  val unorder: Gid.t -> t -> t option
+  val unorder_opt: Gid.t -> t -> t option
 
   (** shift all crown-edges ending in [src_gid] to edges ending in [tar_gid] *)
   val shift_in:
@@ -187,17 +187,17 @@ module G_graph: sig
   val update_feat: ?loc:Loc.t -> t -> Gid.t -> string -> Concat_item.t list -> (t * string)
 
 
-  (** [append_feats graph src_id tar_id separator regexp] copy all feats of nodes [src_id] that match [regexp] to the node [tar_id].
+  (** [append_feats_opt graph src_id tar_id separator regexp] copy all feats of nodes [src_id] that match [regexp] to the node [tar_id].
       If a feature of the same name already exists in [tar_id], the two values are concatenated (separated by [separator]).
       The output is [None] if no changes are made on [tar_id], [Some (new_graph, trace)] else where [trace] is the list of updated features in [tar_id]
   *)
-  val append_feats: ?loc:Loc.t -> t -> Gid.t -> Gid.t -> string -> string -> (t * (string * value) list) option
+  val append_feats_opt: ?loc:Loc.t -> t -> Gid.t -> Gid.t -> string -> string -> (t * (string * value) list) option
 
   val set_feat: ?loc:Loc.t -> t -> Gid.t -> string -> string -> t
 
-  (** [del_feat graph node_id feat_name] returns [graph] where the feat [feat_name] of [node_id] is deleted
-      If the feature is not present, None is returned. *)
-  val del_feat: t -> Gid.t -> string -> t option
+  (** [del_feat_opt graph node_id feat_name] returns [graph] where the feat [feat_name] of [node_id] is deleted
+      If the feature is not present, [None] is returned. *)
+  val del_feat_opt: t -> Gid.t -> string -> t option
 
   (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
   (* Output functions *)

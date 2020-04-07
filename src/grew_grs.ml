@@ -90,7 +90,7 @@ module Grs = struct
     | Ast.Strategy (loc, name, ast_strat) -> Strategy (name, ast_strat)
     | _ -> Error.bug "[build_decl] Inconsistent ast for grs"
 
-  let domain t = t.domain
+  let domain_opt t = t.domain
 
   let domain_build ast_domain =
     Domain.build
@@ -286,7 +286,7 @@ module Grs = struct
     let rec loop = function
       | [] -> None
       | Rule r :: tail_decl ->
-        (match Rule.onf_apply ?domain r graph with
+        (match Rule.onf_apply_opt ?domain r graph with
          | Some x -> Some x
          | None -> loop tail_decl
         )
@@ -301,7 +301,7 @@ module Grs = struct
     let path = Str.split (Str.regexp "\\.") strat_name in
     match search_from pointed path with
     | None -> Error.build "Simple rewrite, cannot find strat %s" strat_name
-    | Some (Rule r,_) -> Rule.onf_apply ?domain r graph
+    | Some (Rule r,_) -> Rule.onf_apply_opt ?domain r graph
     | Some (Package (_, decl_list), _) -> onf_pack_rewrite ?domain decl_list graph
     | Some (Strategy (_,ast_strat), new_pointed) ->
       onf_strat_simple_rewrite ?domain new_pointed ast_strat graph
@@ -371,7 +371,7 @@ module Grs = struct
     let rec loop = function
       | [] -> None
       | Rule r :: tail_decl ->
-        (match Rule.owh_apply ?domain r gwh with
+        (match Rule.owh_apply_opt ?domain r gwh with
          | Some x -> Some x
          | None -> loop tail_decl
         )
@@ -382,7 +382,7 @@ module Grs = struct
     let path = Str.split (Str.regexp "\\.") strat_name in
     match search_from pointed path with
     | None -> Error.build "Simple rewrite, cannot find strat %s" strat_name
-    | Some (Rule r,_) -> Rule.owh_apply ?domain r gwh
+    | Some (Rule r,_) -> Rule.owh_apply_opt ?domain r gwh
     | Some (Package (_, decl_list), _) -> owh_pack_rewrite ?domain decl_list gwh
     | Some (Strategy (_,ast_strat), new_pointed) ->
       owh_strat_simple_rewrite ?domain new_pointed ast_strat gwh
@@ -526,7 +526,7 @@ module Grs = struct
   let gwh_simple_rewrite grs strat graph =
     Rule.reset_rules ();
     Timeout.start ();
-    let domain = domain grs in
+    let domain = domain_opt grs in
     let casted_graph = G_graph.cast ?domain graph in
     let gwh = Graph_with_history.from_graph casted_graph in
     let set = gwh_strat_simple_rewrite ?domain (top grs) strat gwh in
@@ -554,7 +554,7 @@ module Grs = struct
     let rec loop = function
       | [] -> None
       | Rule r :: tail_decl ->
-        (match Rule.wrd_apply ?domain r graph_with_big_step with
+        (match Rule.wrd_apply_opt ?domain r graph_with_big_step with
          | Some x -> Some x
          | None -> loop tail_decl
         )
@@ -588,7 +588,7 @@ module Grs = struct
       end
     | Some (Rule r,_) ->
       begin
-        match Rule.wrd_apply ?domain r (linear_rd.graph, None) with
+        match Rule.wrd_apply_opt ?domain r (linear_rd.graph, None) with
         | None -> None
         | Some (new_graph, big_step) -> Some {
             steps = (Rule.get_name r, linear_rd.graph, big_step) :: linear_rd.steps;
@@ -672,7 +672,7 @@ module Grs = struct
   let wrd_rewrite grs strat graph =
     Rule.reset_rules ();
     Timeout.start ();
-    let domain = domain grs in
+    let domain = domain_opt grs in
     let casted_graph = G_graph.cast ?domain graph in
     match wrd_strat_simple_rewrite ?domain false (top grs) (Parser.strategy strat) {graph=casted_graph; steps=[]; know_normal_form=false} with
     | None -> Libgrew_types.Leaf graph

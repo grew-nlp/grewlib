@@ -59,13 +59,13 @@ module Matching: sig
 
   val nodes: Pattern.t -> Grew_graph.G_graph.t -> t -> (string * string) list
 
-  (* [get value request pattern graph matching] returns the value corresponding to the request in the result of a previou result of match
+  (* [get_value_opt request pattern graph matching] returns the value corresponding to the request in the result of a previou result of match
       [request] can be:
       * the name of a edge declared in the positive part of the pattern
       * the name of a feature value [N.feat] where [N] is a node declared in the positive part of the pattern
       * the name of an edge featue [E.feat] where [e] is a edge declared in the positive part of the pattern
   *)
-  val get_value: string -> Pattern.t -> Grew_graph.G_graph.t -> t -> string option
+  val get_value_opt: string -> Pattern.t -> Grew_graph.G_graph.t -> t -> string option
 end
 
 (* ==================================================================================================== *)
@@ -142,7 +142,7 @@ module Grs : sig
 
   val dump: t -> unit
 
-  val domain: t -> Domain.t option
+  val domain_opt: t -> Domain.t option
 
   val to_json: t -> Yojson.Basic.t
 
@@ -185,7 +185,7 @@ module Corpus: sig
   (* [size t] returns the number of graphs in the corpus *)
   val size: t -> int
 
-  val get_domain: t -> Domain.t option
+  val get_domain_opt: t -> Domain.t option
   val get_graph: int -> t -> Graph.t
   val get_sent_id: int -> t -> string
   val is_conll: int -> t -> bool

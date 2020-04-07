@@ -33,13 +33,13 @@ module G_edge = struct
   (* short is "E:x:y" or "x:y@z" *)
   exception Not_short
   let fs_to_short_opt fs =
-    let prefix = match List_.sort_assoc "kind" fs with
+    let prefix = match List_.sort_assoc_opt "kind" fs with
       | None -> ""
       | Some "surf" -> "S:"
       | Some "deep" -> "D:"
       | Some "enhanced" -> "E:"
       | Some c -> raise Not_short in
-    let suffix = match List_.sort_assoc "deep" fs with
+    let suffix = match List_.sort_assoc_opt "deep" fs with
       | Some s -> "@"^s
       | None -> "" in
     let infix_items =
@@ -91,7 +91,7 @@ module G_edge = struct
   let from_items l = Fs (fs_from_items l)
 
   let get_sub_opt feat_name = function
-    | Fs fs -> List_.sort_assoc feat_name fs
+    | Fs fs -> List_.sort_assoc_opt feat_name fs
     | _ -> Error.run "[get_sub_opt] edge is not fs"
 
   let rec update feat_name new_value = function
@@ -193,13 +193,13 @@ module Label_cst = struct
   let match_atom fs = function
     | Eq (name, l) ->
       begin
-        match List_.sort_assoc name fs with
+        match List_.sort_assoc_opt name fs with
         | None -> false
         | Some v -> List_.sort_mem v l
       end
     | Diseq (name, l) ->
       begin
-        match List_.sort_assoc name fs with
+        match List_.sort_assoc_opt name fs with
         | None -> false
         | Some v -> not (List_.sort_mem v l)
       end
@@ -246,7 +246,7 @@ module P_edge = struct
 
   let all = {id=fresh_name (); label_cst=Label_cst.all }
 
-  let get_id t = t.id
+  let get_id_opt t = t.id
 
   let to_json ?domain t =
     `Assoc (CCList.filter_map CCFun.id

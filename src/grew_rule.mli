@@ -45,13 +45,13 @@ module Matching : sig
   (* NB: it can be computed independly from the graph itself! *)
   val match_deco: Pattern.t -> t -> G_deco.t
 
-  (* [get value request pattern graph matching] returns the value corresponding to the request in the result of a previou result of match
+  (* [get_value_opt request pattern graph matching] returns the value corresponding to the request in the result of a previou result of match
      [request] can be:
     * the name of a edge declared in the positive part of the pattern
     * the name of a feature value [N.feat] where [N] is a node declared in the positive part of the pattern
     * the name of an edge featue [E.feat] where [e] is a edge declared in the positive part of the pattern
   *)
-  val get_value: string -> Pattern.t -> G_graph.t -> t -> string option
+  val get_value_opt: string -> Pattern.t -> G_graph.t -> t -> string option
 end
 
 (* ================================================================================ *)
@@ -80,12 +80,12 @@ module Rule : sig
   (** [build ?domain ast_rule] returns the Rule.t value corresponding to [ast_rule] *)
   val build: ?domain:Domain.t -> Ast.rule -> t
 
-  val wrd_apply: ?domain: Domain.t -> t -> (G_graph.t * Libgrew_types.big_step option) -> (G_graph.t * Libgrew_types.big_step) option
+  val wrd_apply_opt: ?domain: Domain.t -> t -> (G_graph.t * Libgrew_types.big_step option) -> (G_graph.t * Libgrew_types.big_step) option
 
-  val onf_apply: ?domain: Domain.t -> t -> G_graph.t -> G_graph.t option
+  val onf_apply_opt: ?domain: Domain.t -> t -> G_graph.t -> G_graph.t option
 
   val gwh_apply: ?domain: Domain.t -> t -> Graph_with_history.t -> Graph_with_history_set.t
 
-  val owh_apply: ?domain: Domain.t -> t -> Graph_with_history.t -> Graph_with_history.t option
+  val owh_apply_opt: ?domain: Domain.t -> t -> Graph_with_history.t -> Graph_with_history.t option
 
 end (* module Rule *)

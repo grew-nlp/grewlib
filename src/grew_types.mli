@@ -45,14 +45,7 @@ end (* module Gid *)
 
 (* ================================================================================ *)
 (* [Gid_map] is the map used in full graphs *)
-module Gid_map : sig
-  include Map.S with type key = Gid.t
-
-  val map_key_value: (key -> key) -> ('a -> 'a) -> 'a t -> 'a t
-
-  (* return the first key where the test is true *)
-  val search_key: ('a -> bool) -> 'a t -> key option
-end
+module Gid_map : Map.S with type key = Gid.t
 
 module Gid_set : Set.S with type elt = Gid.t
 
@@ -81,11 +74,11 @@ module Lexicon : sig
       It supposed that the two lexicons define the same columns *)
   val union: t -> t -> t
 
-  (** [select head value] returns the sublexicon with only items where the [head] column is equal to [value] if any, else returns None *)
-  val select: string -> string -> t -> t option
+  (** [select_opt head value] returns the sublexicon with only items where the [head] column is equal to [value] if any, else returns None *)
+  val select_opt: string -> string -> t -> t option
 
-  (** [unselect head value] returns the sublexicon with only items where the [head] column is different to [value] if any, else returns None *)
-  val unselect: string -> string -> t -> t option
+  (** [unselect_opt head value] returns the sublexicon with only items where the [head] column is different to [value] if any, else returns None *)
+  val unselect_opt: string -> string -> t -> t option
 
   exception Not_functional_lexicon
 

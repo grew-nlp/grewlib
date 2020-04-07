@@ -47,7 +47,7 @@ module P_graph = struct
     let node_src =
       (* Not found can be raised when adding an edge from pos to neg *)
       try Pid_map.find id_src map with Not_found -> P_node.empty in
-    match P_node.add_edge label id_tar node_src with
+    match P_node.add_edge_opt label id_tar node_src with
     | None -> None
     | Some new_node -> Some (Pid_map.add id_src new_node map)
 
@@ -242,7 +242,7 @@ module G_graph = struct
 
   let size t = Gid_map.cardinal (t.map)
 
-  let get_domain t = t.domain
+  let get_domain_opt t = t.domain
 
   let find node_id graph = Gid_map.find node_id graph.map
   let find_opt node_id graph = Gid_map.find_opt node_id graph.map
@@ -267,7 +267,7 @@ module G_graph = struct
 
   (* is there an edge e out of node i ? *)
   let edge_out graph node_id label_cst =
-    let domain = get_domain graph in
+    let domain = get_domain_opt graph in
     let node = Gid_map.find node_id graph.map in
     Massoc_gid.exists (fun _ e -> Label_cst.match_ ?domain label_cst e) (G_node.get_next node)
 
@@ -295,7 +295,7 @@ module G_graph = struct
     | None -> Error.bug "[Graph.map_add_edge] duplicate edge"
 
   (* -------------------------------------------------------------------------------- *)
-  let add_edge id_src label id_tar graph =
+  let add_edge_opt id_src label id_tar graph =
     match map_add_edge_opt graph.map id_src label id_tar with
     | Some new_map -> Some {graph with map = new_map }
     | None -> None
@@ -343,7 +343,7 @@ module G_graph = struct
     let (ordered_nodes, unordered_nodes) =
       List.fold_left
         (fun (orderd_acc, unordered_acc) (node,loc) ->
-           match Id.get_pos node.Ast.node_id with
+           match Id.get_pos_opt node.Ast.node_id with
            | Some p -> ((p,(node,loc)) :: orderd_acc, unordered_acc)
            | None -> (orderd_acc, (node,loc) :: unordered_acc)
         ) ([],[]) gr_ast.Ast.nodes in
@@ -592,9 +592,9 @@ module G_graph = struct
       rules = String_map.empty;
     }
 
-  let update_edge_feature ?loc edge_id feat_name new_value (src_gid,edge,tar_gid) graph =
+  let update_edge_feature_opt ?loc edge_id feat_name new_value (src_gid,edge,tar_gid) graph =
     match Gid_map.find_opt src_gid graph.map with
-    | None -> Error.run ?loc "[Graph.update_edge_feature] cannot find source node of edge \"%s\"" edge_id
+    | None -> Error.run ?loc "[Graph.update_edge_feature_opt] cannot find source node of edge \"%s\"" edge_id
     | Some src_node ->
       match G_node.update_edge_opt tar_gid edge feat_name new_value src_node with
       | Some (new_node, new_edge) -> Some ({graph with map = Gid_map.add src_gid new_node graph.map}, new_edge)
@@ -695,7 +695,7 @@ module G_graph = struct
       map
 
   (* -------------------------------------------------------------------------------- *)
-  let unorder node_id graph =
+  let unorder_opt node_id graph =
     match Gid_map.find_opt node_id graph.map with
     | None -> None
     | Some node ->
@@ -709,7 +709,7 @@ module G_graph = struct
         Some { graph with map = new_map }
 
   (* -------------------------------------------------------------------------------- *)
-  let del_node node_id graph =
+  let del_node_opt node_id graph =
     match Gid_map.find_opt node_id graph.map with
     | None -> None
     | Some node ->
@@ -725,7 +725,7 @@ module G_graph = struct
   (* -------------------------------------------------------------------------------- *)
   (* move out-edges (which respect cst [labels,neg]) from id_src are moved to out-edges out off node id_tar *)
   let shift_out loc src_gid tar_gid is_gid_local label_cst graph =
-    let domain = get_domain graph in
+    let domain = get_domain_opt graph in
     let del_edges = ref [] and add_edges = ref [] in
 
     let src_node = Gid_map.find src_gid graph.map in
@@ -762,7 +762,7 @@ module G_graph = struct
 
   (* -------------------------------------------------------------------------------- *)
   let shift_in loc src_gid tar_gid is_gid_local label_cst graph =
-    let domain = get_domain graph in
+    let domain = get_domain_opt graph in
     let del_edges = ref [] and add_edges = ref [] in
     let new_map =
       Gid_map.mapi
@@ -780,7 +780,7 @@ module G_graph = struct
                    (fun (acc_node_src_edges,acc_node_tar_edges) edge ->
                       if Label_cst.match_ ?domain label_cst edge
                       then
-                        match List_.usort_insert edge acc_node_tar_edges with
+                        match List_.usort_insert_opt edge acc_node_tar_edges with
                         | None when !Global.safe_commands ->
                           Error.run ~loc "The [shift_in] command tries to build a duplicate edge (with label \"%s\")" (G_edge.dump edge)
                         | None ->
@@ -812,7 +812,7 @@ module G_graph = struct
 
   (* -------------------------------------------------------------------------------- *)
   let set_feat ?loc graph node_id feat_name new_value =
-    let domain = get_domain graph in
+    let domain = get_domain_opt graph in
     let node = Gid_map.find node_id graph.map in
     let new_fs = G_fs.set_atom ?loc ?domain feat_name new_value (G_node.get_fs node) in
     let new_node = G_node.set_fs new_fs node in
@@ -835,7 +835,7 @@ module G_graph = struct
     (set_feat ?loc graph tar_id tar_feat_name new_feature_value, new_feature_value)
 
   (* -------------------------------------------------------------------------------- *)
-  let append_feats ?loc graph src_id tar_id separator regexp =
+  let append_feats_opt ?loc graph src_id tar_id separator regexp =
     let src_node = Gid_map.find src_id graph.map in
     let tar_node = Gid_map.find tar_id graph.map in
     match G_node.append_feats_opt ?loc src_node tar_node separator regexp with
@@ -844,7 +844,7 @@ module G_graph = struct
     | None -> None
 
   (* -------------------------------------------------------------------------------- *)
-  let del_feat graph node_id feat_name =
+  let del_feat_opt graph node_id feat_name =
     let node = Gid_map.find node_id graph.map in
     match G_fs.del_feat_opt feat_name (G_node.get_fs node) with
     | Some new_fs -> Some { graph with map = Gid_map.add node_id (G_node.set_fs new_fs node) graph.map }
@@ -1015,7 +1015,7 @@ module G_graph = struct
     let fs = G_node.get_fs node in G_fs.get_string_atom_opt "kind" fs <> None
 
   let to_dep ?filter ?main_feat ?(deco=G_deco.empty) graph =
-    let domain = get_domain graph in
+    let domain = get_domain_opt graph in
 
     (* split lexical // non-lexical nodes *)
     let (nodes, nl_nodes) = Gid_map.fold
@@ -1233,7 +1233,7 @@ module G_graph = struct
 
   (* -------------------------------------------------------------------------------- *)
   let to_dot ?main_feat ?(get_url = fun _ -> None) ?(deco=G_deco.empty) graph =
-    let domain = get_domain graph in
+    let domain = get_domain_opt graph in
     let buff = Buffer.create 32 in
 
     bprintf buff "digraph G {\n";
@@ -1449,7 +1449,7 @@ module Delta = struct
   let empty = { del_nodes=[]; unordered_nodes=[]; edges=[]; feats=[]; }
 
   let del_node gid t =
-    match List_.usort_insert gid t.del_nodes with
+    match List_.usort_insert_opt gid t.del_nodes with
     | None -> raise (Inconsistent "del_node")
     | Some new_del_nodes -> {
         del_nodes= new_del_nodes;
@@ -1492,7 +1492,7 @@ module Delta = struct
     { t with feats = loop t.feats }
 
   let unorder gid t =
-    match List_.usort_insert gid t.unordered_nodes with
+    match List_.usort_insert_opt gid t.unordered_nodes with
     | None -> raise (Inconsistent "unorder")
     | Some new_unordered_nodes -> { t with unordered_nodes = new_unordered_nodes }
 end (* module Delta *)

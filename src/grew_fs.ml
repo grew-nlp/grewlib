@@ -42,7 +42,7 @@ module G_feature = struct
   (* another order used for printing purpose only *)
   let print_order = ["phon"; "form"; "cat"; "upos"; "lemma"; "pos"; "xpos"]
   let print_cmp (name1,_) (name2,_) =
-    match (List_.index name1 print_order, List_.index name2 print_order) with
+    match (List_.index_opt name1 print_order, List_.index_opt name2 print_order) with
     | (Some i, Some j) -> Stdlib.compare i j
     | (Some i, None) -> -1
     | (None, Some j) -> 1
@@ -194,17 +194,17 @@ module G_fs = struct
   let del_feat_opt = List_.sort_remove_assoc_opt
 
   (* ---------------------------------------------------------------------- *)
-  let get_atom_opt = List_.sort_assoc
+  let get_atom_opt = List_.sort_assoc_opt
 
   (* ---------------------------------------------------------------------- *)
   let get_string_atom_opt feat_name t =
-    match List_.sort_assoc feat_name t with
+    match List_.sort_assoc_opt feat_name t with
     | None -> None
     | Some v -> Some (conll_string_of_value v)
 
   (* ---------------------------------------------------------------------- *)
   let get_float_feat_opt feat_name t =
-    match List_.sort_assoc feat_name t with
+    match List_.sort_assoc_opt feat_name t with
     | None -> None
     | Some (Float i) -> Some i
     | Some (String s) -> Error.build "[Fs.get_float_feat_opt] feat_name=%s, value=%s" feat_name s
@@ -257,7 +257,7 @@ module G_fs = struct
     | sub_src ->
       let (new_tar, updated_feats) = List.fold_left
           (fun (acc_tar, acc_updated_feats) (feat, value) ->
-             match List_.sort_assoc feat tar with
+             match List_.sort_assoc_opt feat tar with
              | None -> (set_feat ?loc feat value acc_tar, (feat, value)::acc_updated_feats)
              | Some v ->
                let new_value = concat_values ?loc separator v value in
@@ -274,7 +274,7 @@ module G_fs = struct
     let rec loop = function
       | [] -> (None, t)
       | feat_name :: tail ->
-        match List_.sort_assoc feat_name t with
+        match List_.sort_assoc_opt feat_name t with
         | Some atom -> (Some (feat_name, atom), List_.sort_remove_assoc feat_name t)
         | None -> loop tail in
     loop main_list
@@ -316,13 +316,13 @@ module G_fs = struct
 
   (* ---------------------------------------------------------------------- *)
   let to_word_opt (t:t) =
-    match List_.sort_assoc "_UD_empty" t with
+    match List_.sort_assoc_opt "_UD_empty" t with
     | Some v when string_of_value v = "Yes" -> None
     | _ ->
-      match List_.sort_assoc "phon" t with
+      match List_.sort_assoc_opt "phon" t with
       | Some s -> Some (string_of_value s)
       | None ->
-        match List_.sort_assoc "form" t with
+        match List_.sort_assoc_opt "form" t with
         | Some s -> Some (string_of_value s)
         | None -> None
 
@@ -468,7 +468,7 @@ module P_fs = struct
         begin
           try
             let lexicon = List.assoc lex_name acc in
-            match Lexicon.select field (string_of_value atom) lexicon with
+            match Lexicon.select_opt field (string_of_value atom) lexicon with
             | None -> raise Fail
             | Some new_lexicon ->
               let new_acc = (lex_name, new_lexicon) :: (List.remove_assoc lex_name acc) in
