@@ -24,8 +24,6 @@ module G_node = struct
     name: Id.name option;
     fs: G_fs.t;
     next: G_edge.t Massoc_gid.t;
-    succ: Gid.t option;
-    prec: Gid.t option;
     position: int option;
     efs: (string * string) list;
   }
@@ -44,13 +42,8 @@ module G_node = struct
   let get_next t = t.next
   let set_next next t = {t with next }
 
-  let get_prec t = t.prec
-  let set_prec id t = { t with prec = Some id }
-  let remove_prec t = { t with prec = None }
-
-  let get_succ t = t.succ
-  let set_succ id t = { t with succ = Some id }
-  let remove_succ t = { t with succ = None }
+  let get_pred t = Massoc_gid.find_opt (fun _ v -> v = G_edge.pred) t.next
+  let get_succ t = Massoc_gid.find_opt (fun _ v -> v = G_edge.succ) t.next
 
   let get_position t = t.position
   let set_position p t = { t with position = Some p }
@@ -71,26 +64,22 @@ module G_node = struct
     name = None;
     fs = G_fs.empty;
     next = Massoc_gid.empty;
-    succ = None;
-    prec = None;
     position = None;
     efs=[]
   }
 
-  let build ?prec ?succ ?position () = { empty with position; prec; succ }
+  let build ?position () = { empty with position; }
 
-  let build_from_ast ?domain ?prec ?succ ?position (ast_node, loc) =
+  let build_from_ast ?domain ?position (ast_node, loc) =
     let fs = G_fs.build ?domain ast_node.Ast.fs in
-    { empty with name=Some ast_node.Ast.node_id; fs; position; prec; succ }
+    { empty with name=Some ast_node.Ast.node_id; fs; position; }
 
-  let build_from_conll ?loc ?domain ?prec ?succ position line =
+  let build_from_conll ?loc ?domain position line =
     if line = Conll.root
-    then { empty with position=Some 0; succ; name = Some "ROOT" }
+    then { empty with position=Some 0; name = Some "ROOT" }
     else { empty with
            fs = G_fs.of_conll ?loc ?domain line;
            position;
-           prec;
-           succ;
            efs=line.Conll.efs;
            name = Some (Conll_types.Id.to_string line.Conll.id)
          }
@@ -154,8 +143,6 @@ module G_node = struct
       name = CCOpt.map (fun n -> user_id ^ "_" ^ n) t.name;
       fs = G_fs.set_atom "user" user_id t.fs;
       next = Massoc_gid.map_key ((+) delta) t.next;
-      prec = CCOpt.map ((+) delta) t.prec;
-      succ = CCOpt.map ((+) delta) t.succ;
     }
 
   let unshift user_id t =

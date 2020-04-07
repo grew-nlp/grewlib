@@ -251,6 +251,9 @@ sig
   val rename: (key * key) list -> 'a t -> 'a t
 
   val map_key: (key -> key) -> 'a t -> 'a t
+
+  val find_opt: (key -> 'a -> bool) -> 'a t -> key option
+
 end
 
 (* ================================================================================ *)

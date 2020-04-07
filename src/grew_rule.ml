@@ -1345,7 +1345,7 @@ module Rule = struct
     | Command.DEL_EDGE_EXPL (src_cn,tar_cn,edge) ->
       let src_gid = node_find src_cn in
       let tar_gid = node_find tar_cn in
-      (match G_graph.del_edge ~loc src_gid edge tar_gid state.graph with
+      (match G_graph.del_edge_opt ~loc src_gid edge tar_gid state.graph with
        | None when !Global.safe_commands -> Error.run ~loc "DEL_EDGE_EXPL: the edge '%s' does not exist" (G_edge.to_string edge)
        | None -> state
        | Some new_graph -> {state with graph = new_graph; effective = true}
@@ -1355,7 +1355,7 @@ module Rule = struct
       let (src_gid,edge,tar_gid) =
         try String_map.find edge_ident state.e_mapping
         with Not_found -> Error.run ~loc "DEL_EDGE_NAME: The edge identifier '%s' is undefined" edge_ident in
-      (match G_graph.del_edge ~loc src_gid edge tar_gid state.graph with
+      (match G_graph.del_edge_opt ~loc src_gid edge tar_gid state.graph with
        | None when !Global.safe_commands -> Error.run ~loc "DEL_EDGE_NAME: the edge '%s' does not exist" edge_ident
        | None -> state
        | Some new_graph ->
@@ -1668,7 +1668,7 @@ module Rule = struct
     | Command.DEL_EDGE_EXPL (src_cn,tar_cn,edge) ->
       let src_gid = node_find src_cn in
       let tar_gid = node_find tar_cn in
-      (match G_graph.del_edge ~loc src_gid edge tar_gid gwh.Graph_with_history.graph with
+      (match G_graph.del_edge_opt ~loc src_gid edge tar_gid gwh.Graph_with_history.graph with
        | None when !Global.safe_commands ->
          Error.run ~loc "DEL_EDGE_EXPL: the edge '%s' does not exist" (G_edge.to_string edge)
        | None -> Graph_with_history_set.singleton gwh
@@ -1682,7 +1682,7 @@ module Rule = struct
       let (src_gid,edge,tar_gid) =
         try String_map.find edge_ident gwh.e_mapping
         with Not_found -> Error.run ~loc "The edge identifier '%s' is undefined" edge_ident in
-      (match G_graph.del_edge ~loc src_gid edge tar_gid gwh.Graph_with_history.graph with
+      (match G_graph.del_edge_opt ~loc src_gid edge tar_gid gwh.Graph_with_history.graph with
        | None when !Global.safe_commands -> Error.run ~loc "DEL_EDGE_NAME: the edge '%s' does not exist" edge_ident
        | None -> Graph_with_history_set.singleton gwh
        | Some new_graph -> Graph_with_history_set.singleton

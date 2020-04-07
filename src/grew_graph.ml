@@ -43,7 +43,7 @@ module P_graph = struct
     )
 
   (* -------------------------------------------------------------------------------- *)
-  let map_add_edge map id_src label id_tar =
+  let map_add_edge id_src label id_tar map =
     let node_src =
       (* Not found can be raised when adding an edge from pos to neg *)
       try Pid_map.find id_src map with Not_found -> P_node.empty in
@@ -90,16 +90,16 @@ module P_graph = struct
            let i2 = Id.build ~loc ast_edge.Ast.tar pos_table in
            match ast_edge.Ast.edge_label_cst with
            | Ast.Pred ->
-             (match map_add_edge acc (Pid.Pos i1) P_edge.succ (Pid.Pos i2) with
-              | Some acc2 -> (match map_add_edge acc (Pid.Pos i2) P_edge.pred (Pid.Pos i1) with
+             (match map_add_edge (Pid.Pos i1) P_edge.succ (Pid.Pos i2) acc with
+              | Some acc2 -> (match map_add_edge (Pid.Pos i2) P_edge.pred (Pid.Pos i1) acc with
                   | Some g -> g
                   | None -> Error.build ~loc "[Graph.build] try to build a graph with twice the order edge"
                 )
-             | None -> Error.build ~loc "[Graph.build] try to build a graph with twice the order edge"
+              | None -> Error.build ~loc "[Graph.build] try to build a graph with twice the order edge"
              )
-           | _ -> 
+           | _ ->
              let edge = P_edge.build ?domain (ast_edge, loc) in
-             (match map_add_edge acc (Pid.Pos i1) edge (Pid.Pos i2) with
+             (match map_add_edge (Pid.Pos i1) edge (Pid.Pos i2) acc with
               | Some g -> g
               | None -> Error.build ~loc "[Graph.build] try to build a graph with twice the same edge %s"
                           (P_edge.to_string ?domain edge)
@@ -168,7 +168,7 @@ module P_graph = struct
              | Some i -> Pid.Pos i
              | None -> Pid.Neg (Id.build ~loc tar new_table) in
            let edge = P_edge.build ?domain (ast_edge, loc) in
-           match map_add_edge acc i1 edge i2 with
+           match map_add_edge i1 edge i2 acc with
            | Some map -> map
            | None -> Error.bug "[Graph.build_extension] add_edge cannot fail in pattern extension"
         ) ext_map_without_edges full_edge_list in
@@ -176,8 +176,8 @@ module P_graph = struct
 
 
   (* -------------------------------------------------------------------------------- *)
-  (* return the list of [pid] of nodes without in edges *)
-  let roots (p_graph: t) = 
+  (* return the list of [pid] of nodes without in edges (Pred & Succ are taken into account) *)
+  let roots (p_graph: t) =
     let not_root_set =
       Pid_map.fold
         (fun _ p_node acc ->
@@ -300,13 +300,13 @@ module G_graph = struct
   let map_add_edge_opt map id_src label id_tar =
     let node_src =
       (* Not found can be raised when adding an edge from pos to neg *)
-      try Gid_map.find id_src map with Not_found -> (G_node.build ()) in
+      try Gid_map.find id_src map with Not_found -> (G_node.build ()) in (* TODO 2020: check Not_found *)
     match G_node.add_edge_opt label id_tar node_src with
     | None -> None
     | Some new_node -> Some (Gid_map.add id_src new_node map)
 
   (* -------------------------------------------------------------------------------- *)
-  let map_add_edge map id_src label id_tar =
+  let map_add_edge id_src label id_tar map =
     let node_src = Gid_map.find id_src map in
     match G_node.add_edge_opt label id_tar node_src with
     | Some new_node -> Gid_map.add id_src new_node map
@@ -317,6 +317,43 @@ module G_graph = struct
     match map_add_edge_opt graph.map id_src label id_tar with
     | Some new_map -> Some {graph with map = new_map }
     | None -> None
+
+  (* -------------------------------------------------------------------------------- *)
+  let map_del_edge_opt ?loc src_gid label tar_gid map =
+    match Gid_map.find_opt src_gid map with
+    | None -> Error.bug ?loc "[Graph.map_del_edge_opt] Some edge refers to a dead node"
+    | Some src_node ->
+      match G_node.remove_edge tar_gid label src_node with
+      | None -> None
+      | Some new_node -> Some (Gid_map.add src_gid new_node map)
+
+  (* -------------------------------------------------------------------------------- *)
+  (* return input map if edge not found *)
+  let map_del_edge ?loc src_gid label tar_gid map =
+    match Gid_map.find_opt src_gid map with
+    | None -> map
+    | Some src_node ->
+      match G_node.remove_edge tar_gid label src_node with
+      | None -> map
+      | Some new_node -> Gid_map.add src_gid new_node map
+
+  (* -------------------------------------------------------------------------------- *)
+  let del_edge_opt ?loc src_gid label tar_gid graph =
+    match map_del_edge_opt ?loc src_gid label tar_gid graph.map with
+    | None -> None
+    | Some new_map -> Some {graph with map = new_map }
+
+  (* -------------------------------------------------------------------------------- *)
+  let map_add_pred_succ gid1 gid2 map =
+    map
+    |> (map_add_edge gid1 G_edge.succ gid2)
+    |> (map_add_edge gid2 G_edge.pred gid1)
+
+  let map_del_pred_succ gid1 gid2 map =
+    map
+    |> (map_del_edge gid1 G_edge.succ gid2)
+    |> (map_del_edge gid2 G_edge.pred gid1)
+
 
   (* -------------------------------------------------------------------------------- *)
   let build ?domain gr_ast =
@@ -331,7 +368,7 @@ module G_graph = struct
 
     let sorted_nodes = List.sort (fun (p1,_) (p2,_) -> Stdlib.compare p1 p2) ordered_nodes in
 
-    let rec loop already_bound index prec = function
+    let rec loop already_bound index pred = function
       | [] -> (Gid_map.empty,[])
       | (_, (ast_node, loc))::tail ->
         let node_id = ast_node.Ast.node_id in
@@ -339,10 +376,11 @@ module G_graph = struct
         then Error.build ~loc "[GRS] [Graph.build] try to build a graph with twice the same node id '%s'" node_id
         else
           let (new_tail, table) = loop (node_id :: already_bound) (index+1) (Some index) tail in
-          let succ = if tail = [] then None else Some (index+1) in
-          let new_node = G_node.build_from_ast ?domain ?prec ?succ ~position:index (ast_node, loc) in
+          let new_node = G_node.build_from_ast ?domain ~position:index (ast_node, loc) in
           (
-            Gid_map.add index new_node new_tail,
+            new_tail
+            |> (Gid_map.add index new_node)
+            |> (fun map -> match pred with | Some p -> map_add_pred_succ p index map | None -> map),
             (node_id,index)::table
           ) in
 
@@ -418,20 +456,20 @@ module G_graph = struct
       Conll.Id.to_dot
     ) in
 
-    let rec loop index prec = function
+    let rec loop index pred = function
       | [] -> Gid_map.empty
       | [last] ->
         let loc = Loc.file_opt_line conll.Conll.file last.Conll.line_num in
-        let node = 
-          G_node.build_from_conll ~loc ?domain ?prec (Some index) last
-          |> (fun x -> match prec with None -> x | Some p -> G_node.add_edge G_edge.pred p x)
+        let node =
+          G_node.build_from_conll ~loc ?domain (Some index) last
+          |> (fun x -> match pred with None -> x | Some p -> G_node.add_edge G_edge.pred p x)
         in
         Gid_map.add index node Gid_map.empty
       | line::tail ->
         let loc = Loc.file_opt_line conll.Conll.file line.Conll.line_num in
         let node =
-          G_node.build_from_conll ~loc ?domain ?prec ~succ:(index+1) (Some index) line
-          |> (fun x -> match prec with None -> x | Some p -> G_node.add_edge G_edge.pred p x)
+          G_node.build_from_conll ~loc ?domain (Some index) line
+          |> (fun x -> match pred with None -> x | Some p -> G_node.add_edge G_edge.pred p x)
           |> G_node.add_edge G_edge.succ (index+1)
         in
         Gid_map.add index node (loop (index+1) (Some index) tail) in
@@ -483,19 +521,19 @@ module G_graph = struct
            (* add a new node *)
            let new_map_1 = (Gid_map.add free_index new_node acc) in
            (* add a link to the first component *)
-           let new_map_2 = map_add_edge new_map_1 free_index (G_edge.from_string kind) (Id.gbuild (fst mwe.Mwe.first) gtable) in
+           let new_map_2 = map_add_edge free_index (G_edge.from_string kind) (Id.gbuild (fst mwe.Mwe.first) gtable) new_map_1 in
            let new_map_3 = match snd mwe.Mwe.first with
              | None -> new_map_2
-             | Some i -> map_add_edge new_map_2 free_index (G_edge.from_string (sprintf "%d" i)) (Id.gbuild (fst mwe.Mwe.first) gtable) in
+             | Some i -> map_add_edge free_index (G_edge.from_string (sprintf "%d" i)) (Id.gbuild (fst mwe.Mwe.first) gtable) new_map_2 in
 
            (* add a link to each other component *)
            let new_map_4 =
              Id_with_proj_set.fold (
                fun item acc2 ->
-                 let tmp = map_add_edge acc2 free_index (G_edge.from_string kind) (Id.gbuild (fst item) gtable) in
+                 let tmp = map_add_edge free_index (G_edge.from_string kind) (Id.gbuild (fst item) gtable) acc2 in
                  match snd item with
                  | None -> tmp
-                 | Some i -> map_add_edge tmp free_index (G_edge.from_string (sprintf "%d" i)) (Id.gbuild (fst item) gtable)
+                 | Some i -> map_add_edge free_index (G_edge.from_string (sprintf "%d" i)) (Id.gbuild (fst item) gtable) tmp
              ) mwe.Mwe.items new_map_3 in
 
            (new_map_4, free_index+1)
@@ -548,27 +586,25 @@ module G_graph = struct
         let new_nodes = List.fold_left
             (fun map daughter ->
                let (daughter_id, new_map) = loop map daughter in
-               map_add_edge new_map fid G_edge.sub daughter_id
+               map_add_edge fid G_edge.sub daughter_id new_map
             ) with_mother daughters in
         (fid, new_nodes) in
 
     let (_,map) = loop Gid_map.empty pst in
 
-    let rec prec_loop map = function
+    let rec prec_loop position map = function
       | [] | [_] -> map
-      | n1 :: n2 :: tail ->
-        let new_map = prec_loop map (n2 :: tail) in
-
-        let node1 = Gid_map.find n1 new_map
-        and node2 = Gid_map.find n2 new_map in
+      | gid1 :: gid2 :: tail ->
+        let new_map = prec_loop (position + 1) map (gid2 :: tail) in
+        let node1 = Gid_map.find gid1 new_map in
+        let new_node1 = G_node.set_position position node1 in
         new_map
-        |> (Gid_map.add n1 (G_node.set_succ n2 node1))
-        |> (Gid_map.add n2 (G_node.set_prec n1 node2)) in
-
+        |> (map_add_pred_succ gid1 gid2)
+        |> (Gid_map.add gid1 new_node1) in
     {
       domain;
       meta=[];
-      map=prec_loop map (List.rev !leaf_list);
+      map=prec_loop 1 map (List.rev !leaf_list);
       fusion = [];
       highest_index = !cpt;
       rules = String_map.empty;
@@ -591,16 +627,6 @@ module G_graph = struct
       | None -> None
 
   (* -------------------------------------------------------------------------------- *)
-  let del_edge ?loc src_gid label tar_gid graph =
-    match Gid_map.find_opt src_gid graph.map with
-    | None -> Error.bug ?loc "[Graph.del_edge] Some edge refers to a dead node"
-    | Some src_node ->
-      match G_node.remove_edge tar_gid label src_node with
-      | None -> None
-      | Some new_node -> Some {graph with map = Gid_map.add src_gid new_node graph.map}
-
-
-  (* -------------------------------------------------------------------------------- *)
   (* [shift_position delta gid map] applies a position shift of [delta] to all nodes
      of the [map] that are successors of [gid] *)
   let rec shift_position delta gid map =
@@ -621,34 +647,33 @@ module G_graph = struct
       | None -> Error.run "[G_node.insert_before] unordered node"
       | Some p -> p in
     let shifted_map = shift_position 1 gid graph.map in
-    let shifted_node = Gid_map.find gid shifted_map in
     let new_gid = graph.highest_index + 1 in
 
-    let new_map = match G_node.get_prec node with
+    let new_map = match G_node.get_pred node with
       | None ->
         shifted_map
-        |> (Gid_map.add new_gid (G_node.build ~succ:gid ~position ()))
-        |> (Gid_map.add gid (G_node.set_prec new_gid shifted_node))
+        |> (Gid_map.add new_gid (G_node.build ~position ()))
+        |> (map_add_pred_succ new_gid gid)
       | Some prec_gid ->
         shifted_map
-        |> (Gid_map.add new_gid (G_node.build ~prec:prec_gid ~succ:gid ~position ()))
-        |> (Gid_map.add prec_gid (G_node.set_succ new_gid (Gid_map.find prec_gid graph.map)))
-        |> (Gid_map.add gid (G_node.set_prec new_gid shifted_node)) in
-
+        |> (Gid_map.add new_gid (G_node.build ~position ()))
+        |> (map_del_pred_succ prec_gid gid)
+        |> (map_add_pred_succ new_gid gid)
+        |> (map_add_pred_succ prec_gid new_gid) in
     (new_gid, { graph with map=new_map; highest_index = new_gid })
 
   (* -------------------------------------------------------------------------------- *)
   (* WARNING: use only if [last_gid] is the last ordered node in graph! *)
   let append last_gid graph =
     let last_node = Gid_map.find last_gid graph.map in
-    let new_pos = match G_node.get_position last_node with
+    let position = match G_node.get_position last_node with
       | None -> Error.run "[G_node.append] unordered nodes"
       | Some pos -> pos + 1 in
     let new_gid = graph.highest_index + 1 in
     let new_map =
       graph.map
-      |> (Gid_map.add new_gid (G_node.build ~prec:last_gid ~position:new_pos ()))
-      |> (Gid_map.add last_gid (G_node.set_succ new_gid last_node)) in
+      |> (Gid_map.add new_gid (G_node.build ~position ()))
+      |> (map_add_pred_succ last_gid new_gid) in
     (new_gid, { graph with map=new_map; highest_index = new_gid })
 
   (* -------------------------------------------------------------------------------- *)
@@ -665,34 +690,27 @@ module G_graph = struct
 
   (* -------------------------------------------------------------------------------- *)
   (* build a new map when one node is remove from the list of ordered nodes:
-     1) update prec and succ fields of neighbour
-     2) shift position of nodes after [node]
+     1) shift position of nodes after [node]
+     2) update pred and succ edges
   *)
-  let map_unorder node map =
-    match (G_node.get_prec node, G_node.get_succ node) with
-    | (Some id_prec, Some id_succ) ->
-      begin
-        let prec = Gid_map.find id_prec map
-        and succ = Gid_map.find id_succ map in
-        map
-        |> (Gid_map.add id_prec (G_node.set_succ id_succ prec))
-        |> (Gid_map.add id_succ (G_node.set_prec id_prec succ))
-        |> (shift_position (-1) id_succ)
-      end
-    | (Some id_prec, None) ->
-      begin
-        let prec = Gid_map.find id_prec map in
-        map
-        |> (Gid_map.add id_prec (G_node.remove_succ prec))
-      end
-    | (None, Some id_succ) ->
-      begin
-        let succ = Gid_map.find id_succ map in
-        map
-        |> (Gid_map.add id_succ (G_node.remove_prec succ))
-        |> (shift_position (-1) id_succ)
-      end
-    | (None, None) -> map
+  let map_unorder node_id map =
+    let node = Gid_map.find node_id map in
+    match (G_node.get_pred node, G_node.get_succ node) with
+    | (Some pred_id, Some succ_id) ->
+      map
+      |> (shift_position (-1) succ_id)
+      |> (map_del_pred_succ pred_id node_id)
+      |> (map_del_pred_succ node_id succ_id)
+      |> (map_add_pred_succ pred_id succ_id)
+    | (Some pred_id, None) ->
+      map
+      |> (map_del_pred_succ pred_id node_id)
+    | (None, Some succ_id) ->
+      map
+      |> (shift_position (-1) succ_id)
+      |> (map_del_pred_succ node_id succ_id)
+    | (None, None) ->
+      map
 
   (* -------------------------------------------------------------------------------- *)
   let unorder node_id graph =
@@ -705,7 +723,7 @@ module G_graph = struct
         let new_map =
           graph.map
           |> (Gid_map.add node_id (G_node.unset_position node))
-          |> (map_unorder node) in
+          |> (map_unorder node_id) in
         Some { graph with map = new_map }
 
   (* -------------------------------------------------------------------------------- *)
@@ -719,7 +737,7 @@ module G_graph = struct
              if id = node_id
              then acc
              else Gid_map.add id (G_node.remove_key node_id value) acc
-          ) (map_unorder node graph.map) Gid_map.empty in
+          ) (map_unorder node_id graph.map) Gid_map.empty in
       Some { graph with map = new_map }
 
   (* -------------------------------------------------------------------------------- *)
@@ -1082,7 +1100,7 @@ module G_graph = struct
       List.iter
         (fun (id, node) ->
            begin
-             match G_node.get_prec node with
+             match G_node.get_pred node with
              | None -> ()
              | Some p -> bprintf buff "N_%s -> N_%s { label=\"__PREC__\"; bottom; style=dot; color=lightblue; forecolor=lightblue; }\n" (Gid.to_string id) (Gid.to_string p)
            end;

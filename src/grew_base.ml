@@ -469,6 +469,8 @@ module type S = sig
 
   val map_key: (key -> key) -> 'a t -> 'a t
 
+  val find_opt: (key -> 'a -> bool) -> 'a t -> key option
+
 end (* module type S *)
 
 (* ================================================================================ *)
@@ -556,6 +558,17 @@ module Massoc_make (Ord: OrderedType) = struct
         ) t;
       false
     with True -> true
+
+  exception Find of key
+  let find_opt fct t =
+    try
+      M.iter
+        (fun key list ->
+           if List.exists (fun elt -> fct key elt) list
+           then raise (Find key)
+        ) t;
+      None
+    with Find key -> Some key
 
   let rename mapping t =
     M.fold
@@ -647,7 +660,7 @@ module Global = struct
     | (_,None) -> ()
     | (fo, Some l) -> current_loc := (fo, Some (l+1))
 
-  let debug = ref false
+  let debug = ref true
   let safe_commands = ref false
 
   let track_rules = ref false

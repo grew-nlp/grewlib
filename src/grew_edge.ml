@@ -29,7 +29,7 @@ module G_edge = struct
     | (x::t) -> (x :: (update_fs feat_name new_value t))
 
   exception Not_conll
-  let fs_to_string fs = 
+  let fs_to_string fs =
     let prefix = match List_.sort_assoc "kind" fs with
       | None -> ""
       | Some "surf" -> "S:"
@@ -71,7 +71,7 @@ module G_edge = struct
     fs_from_items (CCList.cons_maybe deep before_deep)
 
 
-  type t = 
+  type t =
     | Fs of fs
     | Sub
     | Pred
@@ -226,7 +226,7 @@ module Label_cst = struct
     | Ast.Pos_list p_labels -> Pos (List.sort compare (List.map G_edge.fs_from_string p_labels))
     | Ast.Regexp re -> Regexp (Str.regexp re, re)
     | Ast.Atom_list l -> Atom_list (List.map build_atom l)
-    | Ast.Pred -> Error.bug "Pred in not a constraint"
+    | Ast.Pred -> Pred (* TODO 2020: should not occur? *)
 end (* module Label_cst *)
 
 (* ================================================================================ *)

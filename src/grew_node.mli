@@ -31,13 +31,9 @@ module G_node: sig
   val get_next: t -> G_edge.t Massoc_gid.t
   val set_next: G_edge.t Massoc_gid.t -> t -> t
 
-  val get_prec: t -> Gid.t option
-  val set_prec: Gid.t -> t -> t
-  val remove_prec: t -> t
+  val get_pred: t -> Gid.t option
 
   val get_succ: t -> Gid.t option
-  val set_succ: Gid.t -> t -> t
-  val remove_succ: t -> t
 
   val get_position: t -> int option
   val set_position: int -> t -> t
@@ -49,9 +45,9 @@ module G_node: sig
   val to_gr: t -> string
 
 
-  val build: ?prec:Gid.t -> ?succ:Gid.t -> ?position:int -> unit -> t
-  val build_from_ast: ?domain:Domain.t -> ?prec:Gid.t -> ?succ:Gid.t -> ?position:int -> Ast.node -> t
-  val build_from_conll: ?loc:Loc.t -> ?domain:Domain.t -> ?prec:Gid.t -> ?succ:Gid.t -> int option -> Conll.line -> t
+  val build: ?position:int -> unit -> t
+  val build_from_ast: ?domain:Domain.t -> ?position:int -> Ast.node -> t
+  val build_from_conll: ?loc:Loc.t -> ?domain:Domain.t -> int option -> Conll.line -> t
   val build_pst_leaf: ?loc:Loc.t -> ?domain:Domain.t -> string -> t
   val build_pst_node: ?loc:Loc.t -> ?domain:Domain.t -> string -> t
 

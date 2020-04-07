@@ -124,7 +124,7 @@ module G_graph: sig
   val add_edge: Gid.t -> G_edge.t -> Gid.t -> t -> t option
 
   (** [del_edge ?loc src_gid label tar_gid graph] removes the edge (src_gid -[label]-> tar_gid) from graph. *)
-  val del_edge: ?loc:Loc.t -> Gid.t -> G_edge.t -> Gid.t -> t -> t option
+  val del_edge_opt: ?loc:Loc.t -> Gid.t -> G_edge.t -> Gid.t -> t -> t option
 
 
   val update_edge_feature: ?loc:Loc.t -> string -> string -> string -> (Gid.t * G_edge.t * Gid.t ) -> t -> (t * G_edge.t) option
