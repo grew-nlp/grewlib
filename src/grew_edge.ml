@@ -229,7 +229,7 @@ module Label_cst = struct
     | Ast.Pos_list p_labels -> Pos (List.sort compare (List.map G_edge.fs_from_short p_labels))
     | Ast.Regexp re -> Regexp (Str.regexp re, re)
     | Ast.Atom_list l -> Atom_list (List.map build_atom l)
-    | Ast.Pred -> Pred (* TODO 2020: should not occur? *)
+    | Ast.Pred -> Error.bug "[Label_cst.build]"
 end (* module Label_cst *)
 
 (* ================================================================================ *)

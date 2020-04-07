@@ -280,9 +280,7 @@ module G_graph = struct
 
   (* -------------------------------------------------------------------------------- *)
   let map_add_edge_opt map id_src label id_tar =
-    let node_src =
-      (* Not found can be raised when adding an edge from pos to neg *)
-      try Gid_map.find id_src map with Not_found -> (G_node.build ()) in (* TODO 2020: check Not_found *)
+    let node_src = Gid_map.find id_src map in
     match G_node.add_edge_opt label id_tar node_src with
     | None -> None
     | Some new_node -> Some (Gid_map.add id_src new_node map)
