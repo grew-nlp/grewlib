@@ -20,19 +20,22 @@ module G_edge: sig
 
   val from_items: (string * string) list -> t
 
-  val get_sub: string -> t -> string option
+  val get_sub_opt: string -> t -> string option
 
   val update: string -> string -> t -> t
 
   val remove_feat_opt: string -> t -> t option
 
-  val to_conll: t -> string
+  val to_short_opt: t -> string option
 
-  val to_string: t -> string
+  val to_string_opt: t -> string option
 
-  val to_dep: ?domain: Domain.t -> ?deco:bool -> t -> string
+  (* robust printing: to be used only in error reporting *)
+  val dump: t -> string
 
-  val to_dot: ?domain: Domain.t -> ?deco:bool -> t -> string
+  val to_dep_opt: ?domain: Domain.t -> ?deco:bool -> t -> string option
+
+  val to_dot_opt: ?domain: Domain.t -> ?deco:bool -> t -> string option
 
   val from_string: string -> t
 

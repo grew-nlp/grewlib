@@ -53,10 +53,10 @@ module G_node = struct
     | Some "Yes" -> true
     | _ -> false
 
-  let to_string ?domain t =
+  let dump ?domain t =
     Printf.sprintf "  fs=[%s]\n  next=%s\n"
       (G_fs.to_string t.fs)
-      (Massoc_gid.to_string G_edge.to_string t.next)
+      (Massoc_gid.to_string G_edge.dump t.next)
 
   let to_gr t = sprintf "[%s] " (G_fs.to_gr t.fs)
 

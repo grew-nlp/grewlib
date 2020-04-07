@@ -271,9 +271,9 @@ module Pattern = struct
       Feature_diff_float (pid_of_name loc node_name, feat_name, float)
 
     (* WARNING: the ast Command [Large_prec] can be translated as:
-      - Node_large_prec if arguments are nodes id
-      - Edge_included if arguments are edges id
-      - Covered if args are node and edge
+       - Node_large_prec if arguments are nodes id
+       - Edge_included if arguments are edges id
+       - Covered if args are node and edge
     *)
     | (Ast.Large_prec (id1, id2), loc) ->
       begin
@@ -401,9 +401,9 @@ module Pattern = struct
       Feature_diff_float (pid_of_name loc node_name, feat_name, float)
 
     (* WARNING: the ast Command [Large_prec] can be translated as:
-      - Node_large_prec if arguments are nodes id
-      - Edge_included if arguments are edges id
-      - Covered if args are node and edge
+       - Node_large_prec if arguments are nodes id
+       - Edge_included if arguments are edges id
+       - Covered if args are node and edge
     *)
     | (Ast.Large_prec (id1, id2), loc) ->
       begin
@@ -512,7 +512,7 @@ module Matching = struct
         if all_edges || not (intern id)
         then (id, `Assoc [
             ("source", `String (node_name src));
-            ("label", `String (G_edge.to_string lab));
+            ("label", G_edge.to_json lab);
             ("target", `String (node_name tar));
           ]) :: acc
         else acc
@@ -548,12 +548,20 @@ module Matching = struct
       begin
         match String_map.find_opt edge_id matching.e_match with
         | None -> Error.run "[Matching.get_value] unknown edge_id %s" edge_id
-        | Some (_,edge,_) -> Some (G_edge.to_conll edge)
+        | Some (_,edge,_) ->
+          match G_edge.to_string_opt edge with
+          | Some s -> Some s
+          | None -> Error.bug "[Matching.get_value] internal edge %s" (G_edge.dump edge)
       end
     | [node_or_edge_id; feature_name] ->
       begin
         match String_map.find_opt node_or_edge_id matching.e_match with
-        | Some (_,edge,_) -> G_edge.get_sub feature_name edge
+        | Some (_,edge,_) ->
+          begin
+            match G_edge.get_sub_opt feature_name edge with
+            | Some e -> Some e
+            | None -> Error.bug "[Matching.get_value] internal edge %s" (G_edge.dump edge)
+          end
         | None ->
           begin
             match get_pid_by_name pattern node_or_edge_id matching.n_match with (* TODO: edge feature "e.deep" *)
@@ -860,7 +868,7 @@ module Matching = struct
         | (None, None) -> Error.build "Edge identifiers '%s' and '%s' not found" eid1 eid2;
       end
 
-      | Covered (pid, eid) ->
+    | Covered (pid, eid) ->
       begin
         let gnode = G_graph.find (Pid_map.find pid matching.n_match) graph in
         match (String_map.find_opt eid matching.e_match) with
@@ -895,7 +903,7 @@ module Matching = struct
 
             match P_edge.match_list ?domain p_edge g_edges with
             | P_edge.Fail -> (* no good edge in graph for this pattern edge -> stop here *)
-             []
+              []
             | P_edge.Pass -> [ {partial with unmatched_edges = tail_ue } ]
             | P_edge.Binds (id,labels) -> (* n edges in the graph match the identified p_edge -> make copies of the [k] matchings (and returns n*k matchings) *)
               List.map
@@ -1297,7 +1305,7 @@ module Rule = struct
       begin
         match G_graph.add_edge src_gid edge tar_gid state.graph with
         | None when !Global.safe_commands ->
-          Error.run ~loc "ADD_EDGE: the edge '%s' already exists" (G_edge.to_string edge)
+          Error.run ~loc "ADD_EDGE: the edge '%s' already exists" (G_edge.dump edge)
         | None -> state
         | Some new_graph -> {state with graph = new_graph; effective = true}
       end
@@ -1311,7 +1319,7 @@ module Rule = struct
       begin
         match G_graph.add_edge src_gid edge tar_gid state.graph with
         | None when !Global.safe_commands ->
-          Error.run ~loc "ADD_EDGE_EXPL: the edge '%s' already exists" (G_edge.to_string edge)
+          Error.run ~loc "ADD_EDGE_EXPL: the edge '%s' already exists" (G_edge.dump edge)
         | None -> state
         | Some new_graph -> {state with graph = new_graph; effective = true}
       end
@@ -1327,7 +1335,7 @@ module Rule = struct
               match String_map.find_opt edge_id state.e_mapping with
               | None -> (name, value)
               | Some (_,matched_edge,_) ->
-                match G_edge.get_sub feat_name matched_edge with
+                match G_edge.get_sub_opt feat_name matched_edge with
                 | Some new_value -> (name, new_value)
                 | None -> Error.run "ADD_EDGE_ITEMS: no items edge feature name '%s' in matched edge '%s'" feat_name edge_id
             end
@@ -1337,7 +1345,7 @@ module Rule = struct
       begin
         match G_graph.add_edge src_gid edge tar_gid state.graph with
         | None when !Global.safe_commands ->
-          Error.run ~loc "ADD_EDGE_ITEMS: the edge '%s' already exists" (G_edge.to_string edge)
+          Error.run ~loc "ADD_EDGE_ITEMS: the edge '%s' already exists" (G_edge.dump edge)
         | None -> state
         | Some new_graph -> {state with graph = new_graph; effective = true}
       end
@@ -1346,7 +1354,7 @@ module Rule = struct
       let src_gid = node_find src_cn in
       let tar_gid = node_find tar_cn in
       (match G_graph.del_edge_opt ~loc src_gid edge tar_gid state.graph with
-       | None when !Global.safe_commands -> Error.run ~loc "DEL_EDGE_EXPL: the edge '%s' does not exist" (G_edge.to_string edge)
+       | None when !Global.safe_commands -> Error.run ~loc "DEL_EDGE_EXPL: the edge '%s' does not exist" (G_edge.dump edge)
        | None -> state
        | Some new_graph -> {state with graph = new_graph; effective = true}
       )
@@ -1606,7 +1614,7 @@ module Rule = struct
       begin
         match G_graph.add_edge src_gid edge tar_gid gwh.Graph_with_history.graph with
         | None when !Global.safe_commands ->
-          Error.run ~loc "ADD_EDGE: the edge '%s' already exists" (G_edge.to_string edge)
+          Error.run ~loc "ADD_EDGE: the edge '%s' already exists" (G_edge.dump edge)
         | None -> Graph_with_history_set.singleton gwh
         | Some new_graph ->
           Graph_with_history_set.singleton
@@ -1626,7 +1634,7 @@ module Rule = struct
       begin
         match G_graph.add_edge src_gid edge tar_gid gwh.Graph_with_history.graph with
         | None when !Global.safe_commands ->
-          Error.run ~loc "ADD_EDGE_EXPL: the edge '%s' already exists" (G_edge.to_string edge)
+          Error.run ~loc "ADD_EDGE_EXPL: the edge '%s' already exists" (G_edge.dump edge)
         | None -> Graph_with_history_set.singleton gwh
         | Some new_graph -> Graph_with_history_set.singleton
                               {gwh with
@@ -1646,7 +1654,7 @@ module Rule = struct
               match String_map.find_opt edge_id gwh.e_mapping with
               | None -> (name, value)
               | Some (_,matched_edge,_) ->
-                match G_edge.get_sub feat_name matched_edge with
+                match G_edge.get_sub_opt feat_name matched_edge with
                 | Some new_value -> (name, new_value)
                 | None -> Error.run "ADD_EDGE_ITEMS: no items edge feature name '%s' in matched edge '%s'" feat_name edge_id
             end
@@ -1656,7 +1664,7 @@ module Rule = struct
       begin
         match G_graph.add_edge src_gid edge tar_gid gwh.Graph_with_history.graph with
         | None when !Global.safe_commands ->
-          Error.run ~loc "ADD_EDGE_ITEMS: the edge '%s' already exists" (G_edge.to_string edge)
+          Error.run ~loc "ADD_EDGE_ITEMS: the edge '%s' already exists" (G_edge.dump edge)
         | None -> Graph_with_history_set.singleton gwh
         | Some new_graph -> Graph_with_history_set.singleton
                               {gwh with
@@ -1670,7 +1678,7 @@ module Rule = struct
       let tar_gid = node_find tar_cn in
       (match G_graph.del_edge_opt ~loc src_gid edge tar_gid gwh.Graph_with_history.graph with
        | None when !Global.safe_commands ->
-         Error.run ~loc "DEL_EDGE_EXPL: the edge '%s' does not exist" (G_edge.to_string edge)
+         Error.run ~loc "DEL_EDGE_EXPL: the edge '%s' does not exist" (G_edge.dump edge)
        | None -> Graph_with_history_set.singleton gwh
        | Some new_graph -> Graph_with_history_set.singleton
                              {gwh with

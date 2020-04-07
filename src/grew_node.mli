@@ -41,7 +41,7 @@ module G_node: sig
 
   val is_eud_empty: t -> bool
 
-  val to_string: ?domain:Domain.t -> t -> string
+  val dump: ?domain:Domain.t -> t -> string
   val to_gr: t -> string
 
 

@@ -22,20 +22,23 @@ module G_edge = struct
   (* [G_edge.fs] is a feature structure. The list of features must be ordered wrt [Stdlib.compare] *)
   type fs = (string * string) list
 
+  let fs_from_items l = (List.sort (fun (x,_) (y,_) -> Stdlib.compare x y) l)
+
   let rec update_fs feat_name new_value = function
     | [] -> [(feat_name, new_value)]
     | ((fn,fv)::t) when feat_name < fn -> ((feat_name, new_value) :: (fn,fv) :: t)
     | ((fn,fv)::t) when feat_name = fn -> ((feat_name, new_value) :: t)
     | (x::t) -> (x :: (update_fs feat_name new_value t))
 
-  exception Not_conll
-  let fs_to_string fs =
+  (* short is "E:x:y" or "x:y@z" *)
+  exception Not_short
+  let fs_to_short_opt fs =
     let prefix = match List_.sort_assoc "kind" fs with
       | None -> ""
       | Some "surf" -> "S:"
       | Some "deep" -> "D:"
       | Some "enhanced" -> "E:"
-      | Some c -> raise Not_conll in
+      | Some c -> raise Not_short in
     let suffix = match List_.sort_assoc "deep" fs with
       | Some s -> "@"^s
       | None -> "" in
@@ -47,17 +50,22 @@ module G_edge = struct
         (fun i (n,v) ->
            if string_of_int(i+1) = n
            then v
-           else raise Not_conll
+           else raise Not_short
         ) infix_items in
-    prefix ^ (String.concat ":" core) ^ suffix
+    try Some (prefix ^ (String.concat ":" core) ^ suffix)
+    with Not_short -> None
 
-  let fs_from_items l = (List.sort (fun (x,_) (y,_) -> Stdlib.compare x y) l)
+  let fs_to_string fs =
+    match fs_to_short_opt fs with
+    | Some s -> s
+    | None -> String.concat "," (List.map (fun (x,y) -> x^"="^y) fs)
+
+
 
   (* split ["a"; "b"; "c"] --> [("1","a"); ("2","b"); ("3","c")]  *)
-  let split l = CCList.mapi
-      (fun i elt -> (string_of_int (i+1), elt)) l
+  let split l = CCList.mapi (fun i elt -> (string_of_int (i+1), elt)) l
 
-      let fs_from_string str =
+  let fs_from_short str =
     let (init, deep) = match Str.bounded_split (Str.regexp_string "@") str 2 with
       | [i] -> (i, None)
       | [i;d] -> (i, Some ("deep",d))
@@ -70,7 +78,6 @@ module G_edge = struct
       | l -> split l in
     fs_from_items (CCList.cons_maybe deep before_deep)
 
-
   type t =
     | Fs of fs
     | Sub
@@ -79,15 +86,9 @@ module G_edge = struct
 
   let from_items l = Fs (fs_from_items l)
 
-  let rec update feat_name new_value = function
-    | [] -> [(feat_name, new_value)]
-    | (fn,fv)::t when feat_name < fn -> (feat_name, new_value) :: (fn,fv) :: t
-    | (fn,fv)::t when feat_name = fn -> (feat_name, new_value) :: t
-    | x::t -> x :: (update feat_name new_value t)
-
-  let get_sub feat_name = function
+  let get_sub_opt feat_name = function
     | Fs fs -> List_.sort_assoc feat_name fs
-    | _ -> Error.run "[get_sub] edge is not fs"
+    | _ -> Error.run "[get_sub_opt] edge is not fs"
 
   let rec update feat_name new_value = function
     | Fs fs -> Fs (update_fs feat_name new_value fs)
@@ -97,34 +98,31 @@ module G_edge = struct
     | Fs fs -> (match List_.sort_remove_assoc_opt feat_name fs with None -> None | Some fs -> Some (Fs fs))
     | _ -> Error.run "[remove_feat_opt] edge is not fs"
 
-  let to_string_long = function
-    | Fs fs -> String.concat "," (List.map (fun (x,y) -> x^"="^y) fs)
-    | Pred -> "__PRED__"
-    | Succ -> "__SUCC__"
-    | Sub -> "__SUB__"
+  let to_short_opt = function
+    | Fs fs -> fs_to_short_opt fs
+    | _ -> None
 
-  let to_conll = function
+  let to_string_opt = function
+    | Fs fs -> Some (fs_to_string fs)
+    | _ -> None
+
+  let dump = function
     | Fs fs -> fs_to_string fs
+    | Sub -> "__SUB__"
     | Pred -> "__PRED__"
     | Succ -> "__SUCC__"
-    | Sub -> "__SUB__"
 
-  let to_string edge =
-    try to_conll edge
-    with Not_conll -> to_string_long edge
+  let to_dep_opt ?domain ?(deco=false) t =
+    let open CCOpt in
+    Domain.label_to_dep ?domain ~deco <$> (to_string_opt t)
 
-  let to_dep ?domain ?(deco=false) t =
-    let conll = to_string t in
-    Domain.label_to_dep ?domain ~deco conll
+  let to_dot_opt ?domain ?(deco=false) t =
+    let open CCOpt in
+    Domain.label_to_dot ?domain ~deco <$> (to_string_opt t)
 
-  let to_dot ?domain ?(deco=false) t =
-    let conll = to_string t in
-    Domain.label_to_dot ?domain ~deco conll
+  let from_string s = Fs (fs_from_short s)
 
-
-  let from_string s = Fs (fs_from_string s)
-
-  let to_json t = `String (to_string t)
+  let to_json t = match to_string_opt t with Some s -> `String s | None -> `Null
 
   let sub = Sub
   let pred = Pred
@@ -211,8 +209,9 @@ module Label_cst = struct
     | (Atom_list l, G_edge.Fs fs) -> List.for_all (match_atom fs) l
     | (Regexp (re,_), g_edge)  ->
       begin
-        try String_.re_match re (G_edge.to_conll g_edge)
-        with G_edge.Not_conll -> Error.run "Cannot ckeck for regexp constraint againt a not Conll edge"
+        match G_edge.to_short_opt g_edge with
+        | Some s -> String_.re_match re s
+        | None -> Error.run "Cannot ckeck for regexp constraint againt a not Conll edge"
       end
     | _ -> false
 
@@ -222,8 +221,8 @@ module Label_cst = struct
     | Ast.Atom_absent name -> Absent name
 
   let build ?loc ?domain = function
-    | Ast.Neg_list p_labels -> Neg (List.sort compare (List.map G_edge.fs_from_string p_labels))
-    | Ast.Pos_list p_labels -> Pos (List.sort compare (List.map G_edge.fs_from_string p_labels))
+    | Ast.Neg_list p_labels -> Neg (List.sort compare (List.map G_edge.fs_from_short p_labels))
+    | Ast.Pos_list p_labels -> Pos (List.sort compare (List.map G_edge.fs_from_short p_labels))
     | Ast.Regexp re -> Regexp (Str.regexp re, re)
     | Ast.Atom_list l -> Atom_list (List.map build_atom l)
     | Ast.Pred -> Pred (* TODO 2020: should not occur? *)
@@ -247,10 +246,10 @@ module P_edge = struct
 
   let to_json ?domain t =
     `Assoc (CCList.filter_map CCFun.id
-    [
-      (match t.id with Some id -> Some ("edge_id", `String id) | None -> None);
-      Some ("label_cst", Label_cst.to_json ?domain t.label_cst)
-    ])
+              [
+                (match t.id with Some id -> Some ("edge_id", `String id) | None -> None);
+                Some ("label_cst", Label_cst.to_json ?domain t.label_cst)
+              ])
 
   let build ?domain (ast_edge, loc) =
     { id = (match ast_edge.Ast.edge_id with Some s -> Some s | None -> fresh_name ());

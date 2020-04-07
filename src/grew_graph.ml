@@ -408,7 +408,7 @@ module G_graph = struct
            (match map_add_edge_opt acc i1 edge i2 with
             | Some g -> g
             | None -> Error.build ~loc "[Graph.build] try to build a graph with twice the same edge %s"
-                        (G_edge.to_string edge)
+                        (G_edge.dump edge)
            )
         ) map_without_edges gr_ast.Ast.edges in
 
@@ -488,7 +488,7 @@ module G_graph = struct
                 (match map_add_edge_opt acc2 gov_id edge dep_id with
                  | Some g -> g
                  | None -> Error.build ~loc "[Graph.of_conll] try to build a graph with twice the same edge %s"
-                             (G_edge.to_string edge)
+                             (G_edge.dump edge)
                 )
              ) acc line.Conll.deps
         ) map_without_edges conll.Conll.lines in
@@ -758,7 +758,7 @@ module G_graph = struct
            if Label_cst.match_ ?domain label_cst edge && not (is_gid_local next_gid)
            then
              match Massoc_gid.add_opt next_gid edge acc_tar_next with
-             | None when !Global.safe_commands -> Error.run ~loc "The [shift_out] command tries to build a duplicate edge (with label \"%s\")" (G_edge.to_string edge)
+             | None when !Global.safe_commands -> Error.run ~loc "The [shift_out] command tries to build a duplicate edge (with label \"%s\")" (G_edge.dump edge)
              | None ->
                del_edges := (src_gid,edge,next_gid) :: !del_edges;
                (Massoc_gid.remove next_gid edge acc_src_next, acc_tar_next)
@@ -800,7 +800,7 @@ module G_graph = struct
                       then
                         match List_.usort_insert edge acc_node_tar_edges with
                         | None when !Global.safe_commands ->
-                          Error.run ~loc "The [shift_in] command tries to build a duplicate edge (with label \"%s\")" (G_edge.to_string edge)
+                          Error.run ~loc "The [shift_in] command tries to build a duplicate edge (with label \"%s\")" (G_edge.dump edge)
                         | None ->
                           del_edges := (node_id,edge,src_gid) :: !del_edges;
                           (List_.usort_remove edge acc_node_src_edges, acc_node_tar_edges)
@@ -890,7 +890,7 @@ module G_graph = struct
            and succ =
              Massoc_gid.fold
                (fun acc tar edge ->
-                  (`List [`String (G_edge.to_string edge); `String (gr_id tar)]) :: acc
+                  (`List [G_edge.to_json edge; `String (gr_id tar)]) :: acc
                ) [] (G_node.get_next node) in
            (node_id,`List [G_fs.to_json fs; `List succ])::acc
         ) graph.map [] in
@@ -918,7 +918,9 @@ module G_graph = struct
       (fun (src_gid,node) ->
          Massoc_gid.iter
            (fun tar_gid edge ->
-              bprintf buff "  N_%d -[%s]-> N_%d;\n" src_gid (G_edge.to_string edge) tar_gid
+              match G_edge.to_string_opt edge with
+              | Some s -> bprintf buff "  N_%d -[%s]-> N_%d;\n" src_gid s tar_gid
+              | None -> ()
            ) (G_node.get_next node)
       ) sorted_nodes;
 
@@ -1116,7 +1118,9 @@ module G_graph = struct
          Massoc_gid.iter
            (fun tar g_edge ->
               let deco = List.mem (gid,g_edge,tar) deco.G_deco.edges in
-              bprintf buff "N_%s -> N_%s %s\n" (Gid.to_string gid) (Gid.to_string tar) (G_edge.to_dep ?domain ~deco g_edge)
+              match G_edge.to_dep_opt ?domain ~deco g_edge with
+              | None -> ()
+              | Some string_edge -> bprintf buff "N_%s -> N_%s %s\n" (Gid.to_string gid) (Gid.to_string tar) string_edge
            ) (G_node.get_next elt)
       ) graph.map;
 
@@ -1166,8 +1170,11 @@ module G_graph = struct
         (fun acc (src_gid, node) ->
            Massoc_gid.fold
              (fun acc2 tar_gid edge ->
-                let old = try Gid_map.find tar_gid acc2 with Not_found -> [] in
-                Gid_map.add tar_gid ((Gid_map.find src_gid mapping, G_edge.to_string edge) :: old) acc2
+                match G_edge.to_string_opt edge with
+                | None -> acc2
+                | Some string_edge ->
+                  let old = try Gid_map.find tar_gid acc2 with Not_found -> [] in
+                  Gid_map.add tar_gid ((Gid_map.find src_gid mapping, string_edge) :: old) acc2
              ) acc (G_node.get_next node)
         ) Gid_map.empty sorted_nodes in
 
@@ -1215,13 +1222,13 @@ module G_graph = struct
              | head_gid::tail_gids ->
                let head_conll_id = Gid_map.find head_gid mapping in
                let head_proj = CCList.find_map
-                   (fun e -> int_of_string_opt (G_edge.to_string e))
+                   (fun e -> match G_edge.to_string_opt e with Some s -> int_of_string_opt s | None -> None)
                    (Massoc_gid.assoc head_gid nexts) in
                let items = List.fold_left
                    (fun acc gid ->
                       let conll_id = Gid_map.find gid mapping in
                       let proj = CCList.find_map
-                          (fun e -> int_of_string_opt (G_edge.to_string e))
+                          (fun e -> match G_edge.to_string_opt e with Some s -> int_of_string_opt s | None -> None)
                           (Massoc_gid.assoc gid nexts) in
                       Id_with_proj_set.add (conll_id, proj) acc
                    ) Id_with_proj_set.empty tail_gids in
@@ -1284,7 +1291,10 @@ module G_graph = struct
               let deco = List.mem (id,g_edge,tar) deco.G_deco.edges in
               if g_edge = G_edge.sub
               then bprintf buff "  N_%s -> N_%s [dir=none];\n" (Gid.to_string id) (Gid.to_string tar)
-              else bprintf buff "  N_%s -> N_%s%s;\n" (Gid.to_string id) (Gid.to_string tar) (G_edge.to_dot ?domain ~deco g_edge)
+              else
+                match G_edge.to_dot_opt ?domain ~deco g_edge with
+                | None -> ()
+                | Some string_edge -> bprintf buff "  N_%s -> N_%s%s;\n" (Gid.to_string id) (Gid.to_string tar) string_edge
            ) (G_node.get_next node)
       ) graph.map;
 
