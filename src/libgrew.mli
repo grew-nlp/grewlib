@@ -217,25 +217,3 @@ module Corpus_desc: sig
 end
 
 
-
-
-module Multigraph: sig
-  type t = Grew_graph.Multigraph.t
-
-  val empty: t
-
-
-  val to_graph: t -> Graph.t
-
-  val remove_layer: string -> t -> t
-
-  val add_layer: string -> Graph.t -> t -> t
-
-  val get_users: t -> Set.Make(String).t
-
-  val user_graph: string -> t -> Graph.t option
-
-  val graphs: t -> (string * Graph.t) list
-
-  val save: out_channel -> t -> unit
-end

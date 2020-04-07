@@ -365,22 +365,3 @@ module Corpus_desc = struct
   let clean t =
     Libgrew.handle ~name:"Corpus.clean" (fun () -> Grew_corpus.Corpus_desc.clean t) ()
 end
-
-(* ==================================================================================================== *)
-(** {2 Multigraph} *)
-(* ==================================================================================================== *)
-module Multigraph = struct
-  type t = Grew_graph.Multigraph.t
-
-  let empty = Grew_graph.Multigraph.empty
-  let to_graph = Grew_graph.Multigraph.to_graph
-  let remove_layer = Grew_graph.Multigraph.remove_layer
-  let add_layer = Grew_graph.Multigraph.add_layer
-  let get_users = Grew_graph.Multigraph.get_users
-  let user_graph = Grew_graph.Multigraph.user_graph
-  let graphs = Grew_graph.Multigraph.graphs
-  let graphs = Grew_graph.Multigraph.graphs
-  let save = Grew_graph.Multigraph.save
-
-end
-

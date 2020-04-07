@@ -217,12 +217,6 @@ module G_graph = struct
     efs: (string * string) list;
   }
 
-  let shift_fusion_item n fusion_item =
-    { fusion_item with
-      first = fusion_item.first + n;
-      last = fusion_item.last + n;
-    }
-
   type t = {
     domain: Domain.t option;
     meta: string list;            (* meta-informations *)
@@ -241,18 +235,6 @@ module G_graph = struct
           | [Str.Delim _; Str.Text k; Str.Delim _; Str.Text value] when k = key -> Some value
           | s -> loop tail
         end in loop t.meta
-
-  let shift user_id n graph =
-    { graph with
-      fusion = List.map (shift_fusion_item n) graph.fusion;
-      map = Gid_map.map_key_value (fun i -> i+n) (fun node -> G_node.shift user_id n node) graph.map;
-      highest_index = graph.highest_index + n;
-    }
-
-  let unshift user_id graph =
-    { graph with
-      map = Gid_map.map (fun node -> G_node.unshift user_id node) graph.map;
-    }
 
   let empty = { domain=None; meta=[]; map=Gid_map.empty; fusion=[]; highest_index=0; rules=String_map.empty; }
 
@@ -1541,78 +1523,3 @@ end (* module Graph_with_history*)
 
 (* ================================================================================ *)
 module Graph_with_history_set = Set.Make (Graph_with_history)
-
-(* ================================================================================ *)
-module Multigraph = struct
-  module String_set = Set.Make(String)
-
-  type t = {
-    graph: G_graph.t;
-    users: String_set.t;
-  }
-
-  let empty = { graph = G_graph.empty; users = String_set.empty }
-  let is_empty t = G_graph.is_empty t.graph
-
-  let to_graph t = t.graph
-
-  let remove_layer user_id t =
-    let new_map = Gid_map.filter
-        (fun gid node ->
-           G_fs.get_string_atom "user" (G_node.get_fs node) <> Some user_id
-        ) t.graph.map in
-    let new_graph = { t.graph with map = new_map } in
-    { graph = new_graph; users = String_set.remove user_id t.users }
-
-  let add_layer user_id layer t =
-    (* first remove old binding if any *)
-    let new_t =
-      if String_set.mem user_id t.users
-      then remove_layer user_id t
-      else t in
-
-    (* Shift the new layer to new gids *)
-    let shifted_layer = G_graph.shift user_id (new_t.graph.G_graph.highest_index + 1) layer in
-    let union_map = Gid_map.union (fun _ _ _ -> failwith "overlap") new_t.graph.map shifted_layer.G_graph.map in
-    let new_graph =
-      if is_empty t
-      then { new_t.graph with map = union_map; highest_index = shifted_layer.highest_index; meta=layer.meta;  }
-      else { new_t.graph with map = union_map; highest_index = shifted_layer.highest_index } in
-    { graph = new_graph; users = String_set.add user_id new_t.users }
-
-  let get_users t = t.users
-
-  let user_graph user_id t =
-    if not (String_set.mem user_id t.users)
-    then None
-    else
-      let full_graph = t.graph in
-      let new_map = Gid_map.fold
-          (fun gid node acc ->
-             let fs = G_node.get_fs node in
-             match (G_fs.get_string_atom "user" fs, G_fs.del_feat "user" fs) with
-             | (Some u, Some new_fs) when u = user_id -> Gid_map.add gid (G_node.set_fs new_fs node) acc
-             | _ -> acc
-          ) full_graph.G_graph.map Gid_map.empty in
-
-      Some { full_graph with G_graph.map = new_map}
-
-  let graphs t =
-    String_set.fold
-      (fun user_id acc ->
-         match user_graph user_id t with
-         | None -> acc
-         | Some g -> (user_id, G_graph.unshift user_id g) :: acc
-      ) t.users []
-
-  let save out_ch t =
-    String_set.iter
-      (fun user_id ->
-         match user_graph user_id t with
-         | None -> ()
-         | Some g ->
-           fprintf out_ch "# user_id = %s\n%s\n"
-             user_id
-             (G_graph.to_conll_string g)
-      ) t.users
-end

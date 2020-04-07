@@ -260,26 +260,3 @@ end (* module Graph_with_history *)
 (* ================================================================================ *)
 module Graph_with_history_set : Set.S with type elt = Graph_with_history.t
 
-(* ================================================================================ *)
-module Multigraph : sig
-  type t
-
-  val empty: t
-
-  val to_graph: t -> G_graph.t
-
-  val remove_layer: string -> t -> t
-
-  val add_layer: string -> G_graph.t -> t -> t
-
-  val get_users: t -> Set.Make(String).t
-
-  (** [user_graph user_id t] returns the subgraph corresponding to the user *)
-  val user_graph: string -> t -> G_graph.t option
-
-  (** [graphs t] returns the list of subgraphs: a subgraph is:
-      (user_id, graph) split by user_id *)
-  val graphs: t -> (string * G_graph.t) list
-
-  val save: out_channel -> t -> unit
-end
