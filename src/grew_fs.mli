@@ -68,10 +68,6 @@ module G_fs: sig
   val pst_leaf: ?loc:Loc.t -> ?domain:Domain.t -> string -> t
   val pst_node: ?loc:Loc.t -> ?domain:Domain.t -> string -> t
 
-  (** [unif_opt t1 t2] returns [Some t] if [t] is the unification of two graph feature structures
-      [None] is returned if the two feature structures cannot be unified. *)
-  val unif_opt: t -> t -> t option
-
   val append_feats_opt: ?loc:Loc.t -> t -> t -> string -> string -> (t * (string * value) list) option
 
 end (* module G_fs *)

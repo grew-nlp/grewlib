@@ -240,19 +240,6 @@ module G_fs = struct
   let pst_node ?loc ?domain upos = [("upos", Feature_value.build_value ?loc ?domain "upos" upos)]
 
   (* ---------------------------------------------------------------------- *)
-  exception Fail_unif
-  let unif fs1 fs2 =
-    let rec loop = function
-      | [], fs | fs, [] -> fs
-      | (f1::t1, f2::t2) when G_feature.compare f1 f2 < 0 -> f1 :: loop (t1, f2::t2)
-      | (f1::t1, f2::t2) when G_feature.compare f1 f2 > 0 -> f2 :: loop (f1::t1, t2)
-
-      (* all remaining case are fn1 = fn2 *)
-      | ((fn, a1)::t1, (_, a2)::t2) when a1=a2 -> (fn,a1) :: (loop (t1, t2))
-      | _ -> raise Fail_unif
-    in try Some (loop (fs1, fs2)) with Fail_unif -> None
-
-  (* ---------------------------------------------------------------------- *)
   let concat_values ?loc separator v1 v2 =
     match (v1, v2) with
     | (String v1, String v2) -> String (v1 ^ separator ^ v2)
