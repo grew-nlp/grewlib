@@ -93,15 +93,15 @@ module P_graph = struct
              (match map_add_edge (Pid.Pos i1) P_edge.succ (Pid.Pos i2) acc with
               | Some acc2 -> (match map_add_edge (Pid.Pos i2) P_edge.pred (Pid.Pos i1) acc with
                   | Some g -> g
-                  | None -> Error.build ~loc "[Graph.build] try to build a graph with twice the order edge"
+                  | None -> Error.build ~loc "[P_graph.build] try to build a graph with twice the order edge"
                 )
-              | None -> Error.build ~loc "[Graph.build] try to build a graph with twice the order edge"
+              | None -> Error.build ~loc "[P_graph.build] try to build a graph with twice the order edge"
              )
            | _ ->
              let edge = P_edge.build ?domain (ast_edge, loc) in
              (match map_add_edge (Pid.Pos i1) edge (Pid.Pos i2) acc with
               | Some g -> g
-              | None -> Error.build ~loc "[Graph.build] try to build a graph with twice the same edge %s"
+              | None -> Error.build ~loc "[P_graph.build] try to build a graph with twice the same edge %s"
                           (P_edge.to_string ?domain edge)
              )
         ) map_without_edges full_edge_list in
@@ -167,10 +167,23 @@ module P_graph = struct
              match Id.build_opt tar pos_table with
              | Some i -> Pid.Pos i
              | None -> Pid.Neg (Id.build ~loc tar new_table) in
-           let edge = P_edge.build ?domain (ast_edge, loc) in
-           match map_add_edge i1 edge i2 acc with
-           | Some map -> map
-           | None -> Error.bug "[Graph.build_extension] add_edge cannot fail in pattern extension"
+
+           match ast_edge.Ast.edge_label_cst with
+           | Ast.Pred ->
+             (match map_add_edge i1 P_edge.succ i2 acc with
+              | Some acc2 -> (match map_add_edge i2 P_edge.pred i1 acc with
+                  | Some g -> g
+                  | None -> Error.build ~loc "[P_graph.build_extension] try to build a graph with twice the order edge"
+                )
+              | None -> Error.build ~loc "[P_graph.build_extension] try to build a graph with twice the order edge"
+             )
+           | _ ->
+             let edge = P_edge.build ?domain (ast_edge, loc) in
+             (match map_add_edge i1 edge i2 acc with
+              | Some g -> g
+              | None -> Error.build ~loc "[P_graph.build_extension] try to build a graph with twice the same edge %s"
+                          (P_edge.to_string ?domain edge)
+             )
         ) ext_map_without_edges full_edge_list in
     ({ext_map = ext_map_with_all_edges; old_map = old_map_without_edges}, new_table)
 
@@ -353,7 +366,7 @@ module G_graph = struct
       | (_, (ast_node, loc))::tail ->
         let node_id = ast_node.Ast.node_id in
         if List.mem node_id already_bound
-        then Error.build ~loc "[GRS] [Graph.build] try to build a graph with twice the same node id '%s'" node_id
+        then Error.build ~loc "[GRS] [G_graph.build] try to build a graph with twice the same node id '%s'" node_id
         else
           let (new_tail, table) = loop (node_id :: already_bound) (index+1) (Some index) tail in
           let new_node = G_node.build_from_ast ?domain ~position:index (ast_node, loc) in
@@ -387,7 +400,7 @@ module G_graph = struct
            let edge = G_edge.build (ast_edge, loc) in
            (match map_add_edge_opt acc i1 edge i2 with
             | Some g -> g
-            | None -> Error.build ~loc "[Graph.build] try to build a graph with twice the same edge %s"
+            | None -> Error.build ~loc "[G_graph.build] try to build a graph with twice the same edge %s"
                         (G_edge.dump edge)
            )
         ) map_without_edges gr_ast.Ast.edges in
