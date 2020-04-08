@@ -14,8 +14,6 @@ module String_map : Map.S with type key = string
 module Int_set : Set.S with type elt = int
 module Int_map : Map.S with type key = int
 
-module Float_map : Map.S with type key = float
-
 val to_uname: string -> string
 
 (* ================================================================================ *)

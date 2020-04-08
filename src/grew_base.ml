@@ -17,12 +17,6 @@ module String_map = Map.Make (String)
 module Int_set = Set.Make (struct type t = int let compare = Stdlib.compare end)
 module Int_map = Map.Make (struct type t = int let compare = Stdlib.compare end)
 
-module Float_map = Map.Make (struct type t = float let compare = Stdlib.compare end)
-
-module String_opt_map = Map.Make (struct type t = string option let compare = Stdlib.compare end)
-
-
-
 let to_uname = function
   | "cat" -> "upos"
   | "pos" -> "xpos"
