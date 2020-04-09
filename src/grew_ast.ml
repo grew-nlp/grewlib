@@ -167,6 +167,13 @@ module Ast = struct
 
   type ineq = Lt | Gt | Le | Ge
 
+  let check_ineq v1 ineq v2 =
+    match ineq with
+    | Lt -> v1 < v2
+    | Gt -> v1 > v2
+    | Le -> v1 <= v2
+    | Ge -> v1 >= v2
+
   let string_of_ineq = function
     | Lt -> "<"
     | Gt -> ">"
@@ -242,22 +249,7 @@ module Ast = struct
     loop ids
 
   let normalize_pattern pattern =
-    check_duplicate_edge_identifier pattern.pat_pos;
-    { pattern with pat_negs =
-                     List.map
-                       (fun pat_neg ->
-                          { pat_neg with pat_edges =
-                                           List.map
-                                             (fun (u_edge,loc) ->
-                                                match u_edge.edge_id with
-                                                | None -> (u_edge,loc)
-                                                | Some id ->
-                                                  Error.warning ~loc "identifier \"%s\" is useless in without part" id;
-                                                  ({u_edge with edge_id=None},loc)
-                                             ) pat_neg.pat_edges
-                          }
-                       ) pattern.pat_negs
-    }
+    check_duplicate_edge_identifier pattern.pat_pos; pattern
 
   let add_implicit_node loc aux name pat_nodes =
     if (List.exists (fun ({node_id},_) -> node_id=name) pat_nodes)

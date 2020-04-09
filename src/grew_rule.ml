@@ -44,6 +44,8 @@ module Pattern = struct
     | Features_ineq of Ast.ineq * Pid.t * string * Pid.t * string
     | Feature_ineq_cst of Ast.ineq * Pid.t * string * float
     (* *)
+    | Edge_features_ineq of Ast.ineq * string * string * string * string
+    (* *)
     | Filter of Pid.t * P_fs.t (* used when a without impose a fs on a node defined by the match basic *)
     (* *)
     | Node_large_prec of Pid.t * Pid.t
@@ -159,6 +161,16 @@ module Pattern = struct
                 ("value", `String (string_of_float value));
               ]
              ]
+    | Edge_features_ineq (ineq,id1,fn1,id2,fn2) ->
+      `Assoc ["features_ineq",
+              `Assoc [
+                ("ineq", `String (Ast.string_of_ineq ineq));
+                ("id1", `String (id1));
+                ("feature_name_1", `String fn1);
+                ("id2", `String (id2));
+                ("feature_name_2", `String fn2);
+              ]
+             ]
     | Filter (pid, p_fs) ->
       `Assoc ["filter",
               `Assoc [
@@ -236,10 +248,13 @@ module Pattern = struct
       Domain.check_feature_name ?domain ~loc feat_name2;
       Features_diseq (pid_of_name loc node_name1, feat_name1, pid_of_name loc node_name2, feat_name2)
 
-    | (Ast.Features_ineq (ineq, (node_name1, feat_name1), (node_name2, feat_name2)), loc) ->
-      Domain.check_feature_name ?domain ~loc feat_name1;
-      Domain.check_feature_name ?domain ~loc feat_name2;
-      Features_ineq (ineq, pid_of_name loc node_name1, feat_name1, pid_of_name loc node_name2, feat_name2)
+    | (Ast.Features_ineq (ineq, (id1, feat_name1), (id2, feat_name2)), loc) ->
+      begin
+        match (Id.build_opt id1 pos_table, Id.build_opt id2 pos_table) with
+        | (None,None) -> Edge_features_ineq (ineq, id1, feat_name1, id2, feat_name2)
+        | (Some x, Some y) -> Features_ineq (ineq, Pid.Pos x, feat_name1, Pid.Pos y, feat_name2)
+        | _ -> Error.build "Operator < can be used only with two nodes or two edges"
+      end
 
     | (Ast.Feature_ineq_cst (ineq, (node_name1, feat_name1), constant), loc) ->
       Domain.check_feature_name ?domain ~loc feat_name1;
@@ -298,6 +313,7 @@ module Pattern = struct
           Feature_eq_lex (pid_of_name loc node_name, feat_name, (node_or_lex, fn_or_field))
         | _ ->  Features_eq (pid_of_name loc node_name, feat_name, pid_of_name loc node_or_lex, fn_or_field)
       end
+
     | (Ast.Feature_diff_lex_or_fs ((node_name, feat_name),(node_or_lex, fn_or_field)), loc) ->
       begin
         match Id.build_opt node_or_lex pos_table with
@@ -342,6 +358,11 @@ module Pattern = struct
       match Id.build_opt node_name pos_table with
       | Some i -> Pid.Pos i
       | None -> Pid.Neg (Id.build ~loc node_name neg_table) in
+    let pid_of_name_opt node_name =
+      match (Id.build_opt node_name pos_table, Id.build_opt node_name neg_table) with
+      | (Some i, _) -> Some (Pid.Pos i)
+      | (_, Some i) -> Some (Pid.Neg i)
+      | _ -> None in
     match const with
     | (Ast.Cst_out (id,label_cst), loc) ->
       Cst_out (pid_of_name loc id, Label_cst.build ~loc ?domain label_cst)
@@ -362,12 +383,15 @@ module Pattern = struct
       Domain.check_feature_name ?domain ~loc feat_name2;
       Features_diseq (pid_of_name loc node_name1, feat_name1, pid_of_name loc node_name2, feat_name2)
 
-    | (Ast.Features_ineq (ineq, feat_id1, feat_id2), loc) ->
-      let (node_name1, feat_name1) = feat_id1
-      and (node_name2, feat_name2) = feat_id2 in
-      Domain.check_feature_name ?domain ~loc feat_name1;
-      Domain.check_feature_name ?domain ~loc feat_name2;
-      Features_ineq (ineq, pid_of_name loc node_name1, feat_name1, pid_of_name loc node_name2, feat_name2)
+    | (Ast.Features_ineq (ineq, (id1, feat_name1), (id2, feat_name2)), loc) ->
+      begin
+        match (pid_of_name_opt id1, pid_of_name_opt id2) with
+        | (Some pid1, Some pid2) -> Features_ineq (ineq, pid1, feat_name1, pid2, feat_name2)
+        | (None, None) ->
+        printf "### Edge_features_ineq (_,%s,%s,%s,%s)\n%!" id1 feat_name1 id2 feat_name2;
+        Edge_features_ineq (ineq, id1, feat_name1, id2, feat_name2)
+        | _ -> Error.build "Operator < can be used only with two nodes or two edges"
+      end
 
     | (Ast.Feature_ineq_cst (ineq, feat_id1, constant), loc) ->
       let (node_name1, feat_name1) = feat_id1 in
@@ -681,6 +705,7 @@ module Matching = struct
     let get_node pid = G_graph.find (Pid_map.find pid matching.n_match) graph in
     let get_string_feat_opt pid feat_name = G_fs.get_string_atom_opt feat_name (G_node.get_fs (get_node pid)) in
     let get_float_feat_opt pid feat_name = G_fs.get_float_feat_opt feat_name (G_node.get_fs (get_node pid)) in
+    printf "### 000\n%!";
 
     match cst with
     | Pattern.Cst_out (pid,label_cst) ->
@@ -759,6 +784,31 @@ module Matching = struct
         | (Ast.Ge, Some fv1) when fv1 >= constant -> matching
         | _ -> raise Fail
       end
+    | Edge_features_ineq (ineq, eid1, feat_name1, eid2, feat_name2) ->
+      begin
+        printf "### +++ Edge_features_ineq (_,%s,%s,%s,%s)\n%!" eid1 feat_name1 eid2 feat_name2;
+        match (String_map.find_opt eid1 matching.e_match, String_map.find_opt eid2 matching.e_match) with
+        | (Some (_,l1,_), Some (_,l2,_)) ->
+          begin
+            printf "### 111\n%!";
+            match (G_edge.get_sub_opt feat_name1 l1, G_edge.get_sub_opt feat_name2 l2) with
+            | (Some v1, Some v2) ->
+              begin
+                printf "### 222\n%!";
+                match (float_of_string_opt v1, float_of_string_opt v2) with
+                | (Some f1, Some f2) ->
+                  if Ast.check_ineq f1 ineq f2
+                  then (printf "### 333\n%!"; matching)
+                  else (printf "### 444\n%!"; raise Fail)
+                | _ -> Error.build "Cannot compare edge feature values %s and %s" v1 v2
+              end
+            | (None, _) -> Error.build "Unknown feature %s for edge %s" feat_name1 eid1
+            | (_, None) -> Error.build "Unknown feature %s for edge %s" feat_name2 eid2
+          end
+        | (None, _) -> Error.build "Unknown identifier %s" eid1
+        | (_, None) -> Error.build "Unknown identifier %s" eid2
+      end
+
     | Feature_eq_regexp (pid, feat_name, regexp) ->
       begin
         match get_string_feat_opt pid feat_name with

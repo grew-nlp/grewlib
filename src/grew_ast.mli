@@ -112,6 +112,7 @@ module Ast : sig
   type edge = u_edge * Loc.t
 
   type ineq = Lt | Gt | Le | Ge
+  val check_ineq: float -> ineq -> float -> bool
   val string_of_ineq: ineq -> string
 
   type u_const =
