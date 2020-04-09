@@ -25,6 +25,10 @@ let string_of_value = function
                   (Str.global_replace (Str.regexp "\\\\") "\\\\\\\\" s)
   | Float i -> String_.of_float i
 
+let value_of_string s = match float_of_string_opt s with
+  | Some f -> Float f
+  | None -> String s
+
 let conll_string_of_value = function
   | String s -> s
   | Float i -> String_.of_float i
@@ -183,21 +187,21 @@ module Ast = struct
   type u_const =
     | Cst_out of Id.name * edge_label_cst
     | Cst_in of Id.name * edge_label_cst
-    | Features_eq of feature_ident * feature_ident
-    | Features_diseq of feature_ident * feature_ident
-    | Features_ineq of ineq * feature_ident * feature_ident
+    | Feature_eq of feature_ident * feature_ident
+    | Feature_diseq of feature_ident * feature_ident
+    | Feature_ineq of ineq * feature_ident * feature_ident
     | Feature_ineq_cst of ineq * feature_ident * float
     | Feature_eq_float of feature_ident * float
     | Feature_diff_float of feature_ident * float
     (* ambiguous case, context needed to make difference "N.cat = M.cat" VS "N.cat = lex.cat" *)
-    | Feature_eq_lex_or_fs of feature_ident * (string * string)
-    | Feature_diff_lex_or_fs of feature_ident * (string * string)
+    (* | Feature_eq_lex_or_fs of feature_ident * (string * string)
+    | Feature_diff_lex_or_fs of feature_ident * (string * string) *)
     (* *)
     | Feature_eq_regexp of feature_ident * string
     | Feature_eq_cst of feature_ident * string
     (* | Feature_eq_lex of feature_ident * (string * string) *)
     | Feature_diff_cst of feature_ident * string
-    | Feature_diff_lex of feature_ident * (string * string)
+    (* | Feature_diff_lex of feature_ident * (string * string) *)
     (* *)
     | Large_prec of Id.name * Id.name
     (* *)

@@ -53,10 +53,10 @@ module P_graph = struct
 
   (* -------------------------------------------------------------------------------- *)
   let build ?domain lexicons basic_ast =
-    let (full_node_list : Ast.node list) = basic_ast.Ast.pat_nodes
+    let full_node_list = basic_ast.Ast.pat_nodes
     and full_edge_list = basic_ast.Ast.pat_edges in
 
-    (* NB: insert searches for a previous node with the Same name and uses unification rather than constraint *)
+    (* NB: insert searches for a previous node with the same name and uses unification rather than constraint *)
     (* NB: insertion of new node at the end of the list: not efficient but graph building is not the hard part. *)
     let rec insert (ast_node, loc) = function
       | [] -> [P_node.build_from_ast ?domain lexicons (ast_node, loc)]
@@ -83,32 +83,30 @@ module P_graph = struct
         (fun i acc elt -> Pid_map.add (Pid.Pos i) elt acc)
         Pid_map.empty node_list in
 
-    let (map : t) =
+    let (map,edge_ids : t * string list) =
       List.fold_left
-        (fun acc (ast_edge, loc) ->
+        (fun (acc_map,acc_edge_ids) (ast_edge, loc) ->
            let i1 = Id.build ~loc ast_edge.Ast.src pos_table in
            let i2 = Id.build ~loc ast_edge.Ast.tar pos_table in
            match ast_edge.Ast.edge_label_cst with
-           | Ast.Pred ->
-             (match map_add_edge (Pid.Pos i1) P_edge.succ (Pid.Pos i2) acc with
-              | Some acc2 -> (match map_add_edge (Pid.Pos i2) P_edge.pred (Pid.Pos i1) acc with
-                  | Some g -> g
+           | Ast.Pred -> (* when a Pred is declared, add two edges pred & succ *)
+             (match map_add_edge (Pid.Pos i1) P_edge.succ (Pid.Pos i2) acc_map with
+              | Some acc2 -> (match map_add_edge (Pid.Pos i2) P_edge.pred (Pid.Pos i1) acc_map with
+                  | Some m -> (m, acc_edge_ids)
                   | None -> Error.build ~loc "[P_graph.build] try to build a graph with twice the order edge"
                 )
               | None -> Error.build ~loc "[P_graph.build] try to build a graph with twice the order edge"
              )
            | _ ->
              let edge = P_edge.build ?domain (ast_edge, loc) in
-             (match map_add_edge (Pid.Pos i1) edge (Pid.Pos i2) acc with
-              | Some g -> g
+             (match map_add_edge (Pid.Pos i1) edge (Pid.Pos i2) acc_map with
+              | Some m -> (m, match ast_edge.Ast.edge_id with Some id -> id::acc_edge_ids | None -> acc_edge_ids)
               | None -> Error.build ~loc "[P_graph.build] try to build a graph with twice the same edge %s"
                           (P_edge.to_string ?domain edge)
              )
-        ) map_without_edges full_edge_list in
+        ) (map_without_edges,[]) full_edge_list in
 
-
-
-    (map, pos_table)
+    (map, pos_table, edge_ids)
 
 
   (* -------------------------------------------------------------------------------- *)
@@ -121,7 +119,7 @@ module P_graph = struct
 
   (* -------------------------------------------------------------------------------- *)
   (* It may raise [P_fs.Fail_unif] in case of contradiction on constraints *)
-  let build_extension ?domain lexicons pos_table full_node_list full_edge_list =
+  let build_extension ?domain lexicons pos_table edge_ids full_node_list full_edge_list =
 
     let built_nodes = List.map (P_node.build_from_ast ?domain lexicons) full_node_list in
 
@@ -137,7 +135,7 @@ module P_graph = struct
     (* table contains the sorted list of node ids *)
     let new_table = Array.of_list new_sorted_ids in
 
-    (* the nodes, in the same order stored with index -1, -2, ... -N *)
+    (* the nodes, in the same order stored with index -1, -2, ... -N TODO check ?? *)
     let ext_map_without_edges =
       List_.foldi_left
         (fun i acc elt -> Pid_map.add (Pid.Neg i) elt acc)
@@ -154,9 +152,9 @@ module P_graph = struct
            with Not_found -> Pid_map.add pid_pos node acc
         ) Pid_map.empty old_nodes in
 
-    let ext_map_with_all_edges =
+    let (ext_map_with_all_edges, new_edge_ids) =
       List.fold_left
-        (fun acc (ast_edge, loc) ->
+        (fun (acc_map, acc_edge_ids) (ast_edge, loc) ->
            let src = ast_edge.Ast.src
            and tar = ast_edge.Ast.tar in
            let i1 =
@@ -170,22 +168,22 @@ module P_graph = struct
 
            match ast_edge.Ast.edge_label_cst with
            | Ast.Pred ->
-             (match map_add_edge i1 P_edge.succ i2 acc with
-              | Some acc2 -> (match map_add_edge i2 P_edge.pred i1 acc with
-                  | Some g -> g
+             (match map_add_edge i1 P_edge.succ i2 acc_map with
+              | Some acc2 -> (match map_add_edge i2 P_edge.pred i1 acc_map with
+                  | Some m -> (m, acc_edge_ids)
                   | None -> Error.build ~loc "[P_graph.build_extension] try to build a graph with twice the order edge"
                 )
               | None -> Error.build ~loc "[P_graph.build_extension] try to build a graph with twice the order edge"
              )
            | _ ->
              let edge = P_edge.build ?domain (ast_edge, loc) in
-             (match map_add_edge i1 edge i2 acc with
-              | Some g -> g
+             (match map_add_edge i1 edge i2 acc_map with
+              | Some m -> (m, match ast_edge.Ast.edge_id with Some id -> id::acc_edge_ids | None -> acc_edge_ids)
               | None -> Error.build ~loc "[P_graph.build_extension] try to build a graph with twice the same edge %s"
                           (P_edge.to_string ?domain edge)
              )
-        ) ext_map_without_edges full_edge_list in
-    ({ext_map = ext_map_with_all_edges; old_map = old_map_without_edges}, new_table)
+        ) (ext_map_without_edges, edge_ids) full_edge_list in
+    ({ext_map = ext_map_with_all_edges; old_map = old_map_without_edges}, new_table, new_edge_ids)
 
 
   (* -------------------------------------------------------------------------------- *)

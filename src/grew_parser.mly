@@ -483,7 +483,7 @@ pat_item:
               | Ast.Simple value ->
                 Pat_const (Ast.Feature_eq_cst (feat_id1, value), loc)
               | Ast.Pointed (s1, s2) ->
-                Pat_const (Ast.Feature_eq_lex_or_fs (feat_id1, (s1, to_uname s2)), loc)
+                Pat_const (Ast.Feature_eq (feat_id1, (s1, to_uname s2)), loc)
              }
 
         /*   X.cat = "value"   */
@@ -498,12 +498,13 @@ pat_item:
         /*   X.cat <> value   */
         /*   X.cat <> Y.cat   */
         /*   X.cat <> lex.value   */
+        /*   e1 <> e2   */
         | lhs_loc=simple_or_pointed_with_loc DISEQUAL rhs =simple_or_pointed
              {  match (lhs_loc,rhs) with
               | ((Ast.Pointed feat_id,loc), Ast.Simple value) ->
                 Pat_const (Ast.Feature_diff_cst (feat_id, value), loc)
               | ((Ast.Pointed feat_id,loc), Ast.Pointed (s1, s2)) ->
-                Pat_const (Ast.Feature_diff_lex_or_fs (feat_id, (s1, to_uname s2)), loc)
+                Pat_const (Ast.Feature_diseq (feat_id, (s1, to_uname s2)), loc)
               | ((Ast.Simple edge_id1,loc), Ast.Simple edge_id2) ->
                 Pat_const (Ast.Edge_disjoint (edge_id1, edge_id2), loc)
               | ((_,loc),_) -> Error.build ~loc "syntax error in constraint"
@@ -535,7 +536,7 @@ pat_item:
               match (id1, id2) with
               (*   X.feat < Y.feat   *)
               | (Ineq_sofi (Ast.Pointed (n1, f1)), Ineq_sofi (Ast.Pointed (n2, f2))) ->
-                Pat_const (Ast.Features_ineq (Ast.Lt, (n1,f1), (n2,f2)), loc)
+                Pat_const (Ast.Feature_ineq (Ast.Lt, (n1,f1), (n2,f2)), loc)
 
               (*   X.feat < 12.34   *)
               | (Ineq_sofi (Ast.Pointed (n1, f1)), Ineq_float num) ->
@@ -563,7 +564,7 @@ pat_item:
               match (id1, id2) with
               (*   X.feat > Y.feat   *)
               | (Ineq_sofi (Ast.Pointed (n1, f1)), Ineq_sofi (Ast.Pointed (n2, f2))) ->
-                Pat_const (Ast.Features_ineq (Ast.Gt, (n1,f1), (n2,f2)), loc)
+                Pat_const (Ast.Feature_ineq (Ast.Gt, (n1,f1), (n2,f2)), loc)
 
               (*   X.feat > 12.34   *)
               | (Ineq_sofi (Ast.Pointed (n1, f1)), Ineq_float num) ->
@@ -586,11 +587,11 @@ pat_item:
 
         /*   X.position <= Y.position   */
         | feat_id1_loc=feature_ident_with_loc LE feat_id2=feature_ident
-            { let (feat_id1,loc)=feat_id1_loc in Pat_const (Ast.Features_ineq (Ast.Le, feat_id1, feat_id2), loc) }
+            { let (feat_id1,loc)=feat_id1_loc in Pat_const (Ast.Feature_ineq (Ast.Le, feat_id1, feat_id2), loc) }
 
         /*   X.position >= Y.position   */
         | feat_id1_loc=feature_ident_with_loc GE feat_id2=feature_ident
-            { let (feat_id1,loc)=feat_id1_loc in Pat_const (Ast.Features_ineq (Ast.Ge, feat_id1, feat_id2), loc) }
+            { let (feat_id1,loc)=feat_id1_loc in Pat_const (Ast.Feature_ineq (Ast.Ge, feat_id1, feat_id2), loc) }
 
         /*   X.feat >= 12.34   */
         | feat_id1_loc=feature_ident_with_loc GE num=FLOAT
@@ -653,6 +654,9 @@ pat_item:
         /*   e1 >< e2   */
         | n1_loc=simple_id_with_loc CROSSING n2=simple_id
             { let (n1,loc) = n1_loc in Pat_const (Ast.Edge_crossing (n1,n2), loc) }
+
+
+
 
 node_features:
         /*   cat = n|v|adj   */

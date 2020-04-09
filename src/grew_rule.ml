@@ -23,25 +23,34 @@ open Grew_graph
 
 
 module Pattern = struct
+  type base =
+    | Node_id of Pid.t
+    | Edge_id of string
+    | Lexicon_id of string
+
+  let json_of_base = function
+    | Node_id pid -> `String (Pid.to_string pid)
+    | Edge_id id -> `String id
+    | Lexicon_id id -> `String id
 
   type const =
     | Cst_out of Pid.t * Label_cst.t
     | Cst_in of Pid.t * Label_cst.t
-    | Features_eq of Pid.t * string * Pid.t * string
-    | Features_diseq of Pid.t * string * Pid.t * string
+    | Feature_eq of base * string * base * string
+    | Feature_diseq of base * string * base * string
+    (* | Feature_eq_lex of Pid.t * string * (string * string)
+       | Feature_diff_lex of Pid.t * string * (string * string) *)
     (* *)
     | Feature_eq_cst of Pid.t * string * string
     | Feature_diff_cst of Pid.t * string * string
     (* *)
-    | Feature_eq_lex of Pid.t * string * (string * string)
-    | Feature_diff_lex of Pid.t * string * (string * string)
     (* *)
     | Feature_eq_float of Pid.t * string * float
     | Feature_diff_float of Pid.t * string * float
     (* *)
     | Feature_eq_regexp of Pid.t * string * string
     (* *)
-    | Features_ineq of Ast.ineq * Pid.t * string * Pid.t * string
+    | Feature_ineq of Ast.ineq * base * string * base * string
     | Feature_ineq_cst of Ast.ineq * Pid.t * string * float
     (* *)
     | Edge_features_ineq of Ast.ineq * string * string * string * string
@@ -64,21 +73,21 @@ module Pattern = struct
   let const_to_json ?domain = function
     | Cst_out (pid, label_cst) -> `Assoc ["cst_out", Label_cst.to_json ?domain label_cst]
     | Cst_in (pid, label_cst) -> `Assoc ["cst_in", Label_cst.to_json ?domain label_cst]
-    | Features_eq (pid1,fn1,pid2,fn2) ->
+    | Feature_eq (id1,fn1,id2,fn2) ->
       `Assoc ["features_eq",
               `Assoc [
-                ("id1", `String (Pid.to_string pid1));
+                ("id1", json_of_base id1);
                 ("feature_name_1", `String fn1);
-                ("id2", `String (Pid.to_string pid2));
+                ("id2", json_of_base id1);
                 ("feature_name_2", `String fn2);
               ]
              ]
-    | Features_diseq (pid1,fn1,pid2,fn2) ->
+    | Feature_diseq (id1,fn1,id2,fn2) ->
       `Assoc ["features_diseq",
               `Assoc [
-                ("id1", `String (Pid.to_string pid1));
+                ("id1", json_of_base id1);
                 ("feature_name_1", `String fn1);
-                ("id2", `String (Pid.to_string pid2));
+                ("id2", json_of_base id2);
                 ("feature_name_2", `String fn2);
               ]
              ]
@@ -98,8 +107,8 @@ module Pattern = struct
                 ("value", `String value);
               ]
              ]
-    | Feature_eq_lex (pid,fn,(lex,field)) ->
-      `Assoc ["feature_eq_lex",
+    (* | Feature_eq_lex (pid,fn,(lex,field)) ->
+       `Assoc ["feature_eq_lex",
               `Assoc [
                 ("id", `String (Pid.to_string pid));
                 ("feature_name_", `String fn);
@@ -107,8 +116,8 @@ module Pattern = struct
                 ("field", `String field);
               ]
              ]
-    | Feature_diff_lex (pid,fn,(lex,field)) ->
-      `Assoc ["feature_diff_lex",
+       | Feature_diff_lex (pid,fn,(lex,field)) ->
+       `Assoc ["feature_diff_lex",
               `Assoc [
                 ("id", `String (Pid.to_string pid));
                 ("feature_name_", `String fn);
@@ -116,7 +125,7 @@ module Pattern = struct
                 ("field", `String field);
               ]
              ]
-
+    *)
 
     | Feature_eq_float (pid,fn,value) ->
       `Assoc ["feature_eq_float",
@@ -142,13 +151,13 @@ module Pattern = struct
                 ("regexp", `String regexp);
               ]
              ]
-    | Features_ineq (ineq,pid1,fn1,pid2,fn2) ->
+    | Feature_ineq (ineq,id1,fn1,id2,fn2) ->
       `Assoc ["features_ineq",
               `Assoc [
                 ("ineq", `String (Ast.string_of_ineq ineq));
-                ("id1", `String (Pid.to_string pid1));
+                ("id1", json_of_base id1);
                 ("feature_name_1", `String fn1);
-                ("id2", `String (Pid.to_string pid2));
+                ("id2", json_of_base id2);
                 ("feature_name_2", `String fn2);
               ]
              ]
@@ -229,8 +238,12 @@ module Pattern = struct
              ]
     | Covered (pid1, eid2) -> `Assoc ["covered",`Assoc [("id1", `String (Pid.to_string pid1)); ("id2", `String eid2)]]
 
-
-  let build_pos_constraint ?domain lexicons pos_table const =
+  let build_pos_constraint ?domain lexicons pos_table edge_ids const =
+    let parse_id loc id = match Id.build_opt id pos_table with
+      | Some pid -> Node_id (Pid.Pos pid)
+      | None when List.mem id edge_ids -> Edge_id id
+      | None when List.mem_assoc id lexicons -> Lexicon_id id
+      | _ -> Error.build ~loc "[Pattern.build_pos_constraint] Identifier '%s' not found" id in
     let pid_of_name loc node_name = Pid.Pos (Id.build ~loc node_name pos_table) in
     match const with
     | (Ast.Cst_out (id,label_cst), loc) ->
@@ -238,23 +251,39 @@ module Pattern = struct
     | (Ast.Cst_in (id,label_cst), loc) ->
       Cst_in (pid_of_name loc id, Label_cst.build ~loc ?domain label_cst)
 
-    | (Ast.Features_eq ((node_name1, feat_name1), (node_name2, feat_name2)), loc) ->
-      Domain.check_feature_name ?domain ~loc feat_name1;
-      Domain.check_feature_name ?domain ~loc feat_name2;
-      Features_eq (pid_of_name loc node_name1, feat_name1, pid_of_name loc node_name2, feat_name2)
+    | (Ast.Feature_eq ((id1, feat_name1), (id2, feat_name2)), loc) ->
+      Feature_eq (parse_id loc id1, feat_name1, parse_id loc id2, feat_name2)
 
-    | (Ast.Features_diseq ((node_name1, feat_name1), (node_name2, feat_name2)), loc) ->
-      Domain.check_feature_name ?domain ~loc feat_name1;
-      Domain.check_feature_name ?domain ~loc feat_name2;
-      Features_diseq (pid_of_name loc node_name1, feat_name1, pid_of_name loc node_name2, feat_name2)
+    | (Ast.Feature_diseq ((id1, feat_name1), (id2, feat_name2)), loc) ->
+      Feature_diseq (parse_id loc id1, feat_name1, parse_id loc id2, feat_name2)
 
-    | (Ast.Features_ineq (ineq, (id1, feat_name1), (id2, feat_name2)), loc) ->
-      begin
-        match (Id.build_opt id1 pos_table, Id.build_opt id2 pos_table) with
-        | (None,None) -> Edge_features_ineq (ineq, id1, feat_name1, id2, feat_name2)
-        | (Some x, Some y) -> Features_ineq (ineq, Pid.Pos x, feat_name1, Pid.Pos y, feat_name2)
-        | _ -> Error.build "Operator < can be used only with two nodes or two edges"
-      end
+    (* | (Ast.Feature_eq_lex_or_fs ((node_name, feat_name),(node_or_lex, fn_or_field)), loc) ->
+       begin
+        match Id.build_opt node_or_lex pos_table with
+        | None ->
+          Lexicons.check ~loc node_or_lex fn_or_field lexicons;
+          Feature_eq_lex (pid_of_name loc node_name, feat_name, (node_or_lex, fn_or_field))
+        | _ ->  Feature_eq (pid_of_name loc node_name, feat_name, pid_of_name loc node_or_lex, fn_or_field)
+       end
+
+       | (Ast.Feature_diff_lex_or_fs ((node_name, feat_name),(node_or_lex, fn_or_field)), loc) ->
+       begin
+        match Id.build_opt node_or_lex pos_table with
+        | None ->
+          Lexicons.check ~loc node_or_lex fn_or_field lexicons;
+          Feature_diff_lex (pid_of_name loc node_name, feat_name, (node_or_lex, fn_or_field))
+        | _ ->  Feature_diseq (pid_of_name loc node_name, feat_name, pid_of_name loc node_or_lex, fn_or_field)
+       end
+
+    *)
+
+
+
+
+
+
+    | (Ast.Feature_ineq (ineq, (id1, feat_name1), (id2, feat_name2)), loc) ->
+      Feature_ineq (ineq, parse_id loc id1, feat_name1, parse_id loc id2, feat_name2)
 
     | (Ast.Feature_ineq_cst (ineq, (node_name1, feat_name1), constant), loc) ->
       Domain.check_feature_name ?domain ~loc feat_name1;
@@ -272,11 +301,11 @@ module Pattern = struct
       Feature_diff_cst (pid_of_name loc node_name, feat_name, string)
 
     (* | (Ast.Feature_eq_lex ((node_name, feat_name), lf), loc) ->
-      Domain.check_feature_name ?domain ~loc feat_name;
-      Feature_eq_lex (pid_of_name loc node_name, feat_name, lf) *)
-    | (Ast.Feature_diff_lex ((node_name, feat_name), lf), loc) ->
-      Domain.check_feature_name ?domain ~loc feat_name;
-      Feature_diff_lex (pid_of_name loc node_name, feat_name, lf)
+       Domain.check_feature_name ?domain ~loc feat_name;
+       Feature_eq_lex (pid_of_name loc node_name, feat_name, lf)
+       | (Ast.Feature_diff_lex ((node_name, feat_name), lf), loc) ->
+       Domain.check_feature_name ?domain ~loc feat_name;
+       Feature_diff_lex (pid_of_name loc node_name, feat_name, lf) *)
 
     | (Ast.Feature_eq_float ((node_name, feat_name), float), loc) ->
       Domain.check_feature_name ?domain ~loc feat_name;
@@ -305,23 +334,6 @@ module Pattern = struct
     | (Ast.Label_disequal (eid1, eid2), loc) ->
       Label_disequal (eid1, eid2)
 
-    | (Ast.Feature_eq_lex_or_fs ((node_name, feat_name),(node_or_lex, fn_or_field)), loc) ->
-      begin
-        match Id.build_opt node_or_lex pos_table with
-        | None ->
-          Lexicons.check ~loc node_or_lex fn_or_field lexicons;
-          Feature_eq_lex (pid_of_name loc node_name, feat_name, (node_or_lex, fn_or_field))
-        | _ ->  Features_eq (pid_of_name loc node_name, feat_name, pid_of_name loc node_or_lex, fn_or_field)
-      end
-
-    | (Ast.Feature_diff_lex_or_fs ((node_name, feat_name),(node_or_lex, fn_or_field)), loc) ->
-      begin
-        match Id.build_opt node_or_lex pos_table with
-        | None ->
-          Lexicons.check ~loc node_or_lex fn_or_field lexicons;
-          Feature_diff_lex (pid_of_name loc node_name, feat_name, (node_or_lex, fn_or_field))
-        | _ ->  Features_diseq (pid_of_name loc node_name, feat_name, pid_of_name loc node_or_lex, fn_or_field)
-      end
     | (Ast.Id_prec (id1, id2), loc) ->
       Id_prec (pid_of_name loc id1, pid_of_name loc id2)
 
@@ -342,56 +354,60 @@ module Pattern = struct
     ]
 
   let build_pos_basic ?domain lexicons basic_ast =
-    let (graph, pos_table) =
+    let (graph, pos_table, edge_ids) =
       P_graph.build ?domain lexicons basic_ast in
     (
       {
         graph = graph;
-        constraints = List.map (build_pos_constraint ?domain lexicons pos_table) basic_ast.Ast.pat_const
+        constraints = List.map (build_pos_constraint ?domain lexicons pos_table edge_ids) basic_ast.Ast.pat_const
       },
-      pos_table
+      pos_table,
+      edge_ids
     )
 
   (* the neg part *)
-  let build_neg_constraint ?domain lexicons pos_table neg_table const =
+  let build_neg_constraint ?domain lexicons pos_table neg_table edge_ids const =
+    let parse_id loc id = match (Id.build_opt id pos_table, Id.build_opt id neg_table) with
+      | (Some pid,_) -> Node_id (Pid.Pos pid)
+      | (None, Some pid) -> Node_id (Pid.Neg pid)
+      | (None, None) when List.mem id edge_ids -> Edge_id id
+      | (None, None) when List.mem_assoc id lexicons -> Lexicon_id id
+      | _ -> Error.build ~loc "[Pattern.build_pos_constraint] Identifier '%s' not found" id in
+
     let pid_of_name loc node_name =
       match Id.build_opt node_name pos_table with
       | Some i -> Pid.Pos i
       | None -> Pid.Neg (Id.build ~loc node_name neg_table) in
-    let pid_of_name_opt node_name =
-      match (Id.build_opt node_name pos_table, Id.build_opt node_name neg_table) with
-      | (Some i, _) -> Some (Pid.Pos i)
-      | (_, Some i) -> Some (Pid.Neg i)
-      | _ -> None in
+    (* let pid_of_name_opt node_name =
+       match (Id.build_opt node_name pos_table, Id.build_opt node_name neg_table) with
+       | (Some i, _) -> Some (Pid.Pos i)
+       | (_, Some i) -> Some (Pid.Neg i)
+       | _ -> None in *)
     match const with
     | (Ast.Cst_out (id,label_cst), loc) ->
       Cst_out (pid_of_name loc id, Label_cst.build ~loc ?domain label_cst)
     | (Ast.Cst_in (id,label_cst), loc) ->
       Cst_in (pid_of_name loc id, Label_cst.build ~loc ?domain label_cst)
 
-    | (Ast.Features_eq (feat_id1, feat_id2), loc) ->
-      let (node_name1, feat_name1) = feat_id1
-      and (node_name2, feat_name2) = feat_id2 in
-      Domain.check_feature_name ?domain ~loc feat_name1;
-      Domain.check_feature_name ?domain ~loc feat_name2;
-      Features_eq (pid_of_name loc node_name1, feat_name1, pid_of_name loc node_name2, feat_name2)
+    | (Ast.Feature_eq ((id1, feat_name1),(id2, feat_name2)), loc) ->
+      Feature_eq (parse_id loc id1, feat_name1, parse_id loc id2, feat_name2)
 
-    | (Ast.Features_diseq (feat_id1, feat_id2), loc) ->
-      let (node_name1, feat_name1) = feat_id1
-      and (node_name2, feat_name2) = feat_id2 in
-      Domain.check_feature_name ?domain ~loc feat_name1;
-      Domain.check_feature_name ?domain ~loc feat_name2;
-      Features_diseq (pid_of_name loc node_name1, feat_name1, pid_of_name loc node_name2, feat_name2)
+    (* let (node_name1, feat_name1) = feat_id1
+       and (node_name2, feat_name2) = feat_id2 in
+       Domain.check_feature_name ?domain ~loc feat_name1;
+       Domain.check_feature_name ?domain ~loc feat_name2;
+       Feature_eq (pid_of_name loc node_name1, feat_name1, pid_of_name loc node_name2, feat_name2) *)
 
-    | (Ast.Features_ineq (ineq, (id1, feat_name1), (id2, feat_name2)), loc) ->
-      begin
-        match (pid_of_name_opt id1, pid_of_name_opt id2) with
-        | (Some pid1, Some pid2) -> Features_ineq (ineq, pid1, feat_name1, pid2, feat_name2)
-        | (None, None) ->
-        printf "### Edge_features_ineq (_,%s,%s,%s,%s)\n%!" id1 feat_name1 id2 feat_name2;
-        Edge_features_ineq (ineq, id1, feat_name1, id2, feat_name2)
-        | _ -> Error.build "Operator < can be used only with two nodes or two edges"
-      end
+    | (Ast.Feature_diseq ((id1, feat_name1),(id2, feat_name2)), loc)  ->
+      Feature_diseq (parse_id loc id1, feat_name1, parse_id loc id2, feat_name2)
+    (* let (node_name1, feat_name1) = feat_id1
+       and (node_name2, feat_name2) = feat_id2 in
+       Domain.check_feature_name ?domain ~loc feat_name1;
+       Domain.check_feature_name ?domain ~loc feat_name2;
+       Feature_diseq (pid_of_name loc node_name1, feat_name1, pid_of_name loc node_name2, feat_name2) *)
+
+    | (Ast.Feature_ineq (ineq, (id1, feat_name1), (id2, feat_name2)), loc) ->
+      Feature_ineq (ineq, parse_id loc id1, feat_name1, parse_id loc id2, feat_name2)
 
     | (Ast.Feature_ineq_cst (ineq, feat_id1, constant), loc) ->
       let (node_name1, feat_name1) = feat_id1 in
@@ -411,11 +427,11 @@ module Pattern = struct
       Feature_diff_cst (pid_of_name loc node_name, feat_name, string)
 
     (* | (Ast.Feature_eq_lex ((node_name, feat_name), lf), loc) ->
-      Domain.check_feature_name ?domain ~loc feat_name;
-      Feature_eq_lex (pid_of_name loc node_name, feat_name, lf) *)
-    | (Ast.Feature_diff_lex ((node_name, feat_name), lf), loc) ->
-      Domain.check_feature_name ?domain ~loc feat_name;
-      Feature_diff_lex (pid_of_name loc node_name, feat_name, lf)
+       Domain.check_feature_name ?domain ~loc feat_name;
+       Feature_eq_lex (pid_of_name loc node_name, feat_name, lf)
+       | (Ast.Feature_diff_lex ((node_name, feat_name), lf), loc) ->
+       Domain.check_feature_name ?domain ~loc feat_name;
+       Feature_diff_lex (pid_of_name loc node_name, feat_name, lf) *)
 
     | (Ast.Feature_eq_float ((node_name, feat_name), float), loc) ->
       Domain.check_feature_name ?domain ~loc feat_name;
@@ -444,21 +460,21 @@ module Pattern = struct
     | (Ast.Label_disequal (eid1, eid2), loc) ->
       Label_disequal (eid1, eid2)
 
-    | (Ast.Feature_eq_lex_or_fs ((node_name, feat_name),(node_or_lex, fn_or_field)), loc) ->
-      begin
+    (* | (Ast.Feature_eq_lex_or_fs ((node_name, feat_name),(node_or_lex, fn_or_field)), loc) ->
+       begin
         match (Id.build_opt node_or_lex pos_table, Id.build_opt node_or_lex neg_table) with
         | (None, None) ->
           Lexicons.check ~loc node_or_lex fn_or_field lexicons;
           Feature_eq_lex (pid_of_name loc node_name, feat_name, (node_or_lex, fn_or_field))
-        | _ ->  Features_eq (pid_of_name loc node_name, feat_name, pid_of_name loc node_or_lex, fn_or_field)
-      end
+        | _ -> Feature_eq (pid_of_name loc node_name, feat_name, pid_of_name loc node_or_lex, fn_or_field)
+       end
 
-    | (Ast.Feature_diff_lex_or_fs ((node_name, feat_name),(node_or_lex, fn_or_field)), loc) ->
-      begin
+       | (Ast.Feature_diff_lex_or_fs ((node_name, feat_name),(node_or_lex, fn_or_field)), loc) ->
+       begin
         match (Id.build_opt node_or_lex pos_table, Id.build_opt node_or_lex neg_table) with
         | (None, None) -> Feature_diff_lex (pid_of_name loc node_name, feat_name, (node_or_lex, fn_or_field))
-        | _ ->  Features_diseq (pid_of_name loc node_name, feat_name, pid_of_name loc node_or_lex, fn_or_field)
-      end
+        | _ ->  Feature_diseq (pid_of_name loc node_name, feat_name, pid_of_name loc node_or_lex, fn_or_field)
+       end *)
 
     | (Ast.Id_prec (id1, id2), loc) ->
       Id_prec (pid_of_name loc id1, pid_of_name loc id2)
@@ -470,14 +486,14 @@ module Pattern = struct
 
 
   (* It may raise [P_fs.Fail_unif] in case of contradiction on constraints *)
-  let build_neg_basic ?domain lexicons pos_table basic_ast =
-    let (extension, neg_table) =
-      P_graph.build_extension ?domain lexicons pos_table basic_ast.Ast.pat_nodes basic_ast.Ast.pat_edges in
+  let build_neg_basic ?domain lexicons pos_table edge_ids basic_ast =
+    let (extension, neg_table, edge_ids) =
+      P_graph.build_extension ?domain lexicons pos_table edge_ids basic_ast.Ast.pat_nodes basic_ast.Ast.pat_edges in
 
     let filters = Pid_map.fold (fun id node acc -> Filter (id, P_node.get_fs node) :: acc) extension.P_graph.old_map [] in
     {
       graph = extension.P_graph.ext_map;
-      constraints = filters @ List.map (build_neg_constraint ?domain lexicons pos_table neg_table) basic_ast.Ast.pat_const ;
+      constraints = filters @ List.map (build_neg_constraint ?domain lexicons pos_table neg_table edge_ids) basic_ast.Ast.pat_const ;
     }
 
   let get_edge_ids basic =
@@ -499,13 +515,13 @@ module Pattern = struct
 
   let build ?domain ?(lexicons=[]) pattern_ast =
     let n_pattern = Ast.normalize_pattern pattern_ast in
-    let (pos, pos_table) =
+    let (pos, pos_table, edge_ids) =
       try build_pos_basic ?domain lexicons n_pattern.Ast.pat_pos
       with P_fs.Fail_unif -> Error.build "feature structures declared in the \"match\" clause are inconsistent " in
     let negs =
       List_.try_map
         P_fs.Fail_unif (* Skip the without parts that are incompatible with the match part *)
-        (fun basic_ast -> build_neg_basic ?domain lexicons pos_table basic_ast)
+        (fun basic_ast -> build_neg_basic ?domain lexicons pos_table edge_ids basic_ast)
         n_pattern.Ast.pat_negs in
     { pos; negs; global=pattern_ast.pat_glob; }
 
@@ -701,12 +717,38 @@ module Matching = struct
       end
     | _ -> Error.bug "[get_relative_position]"
 
+  type out =
+    | Value of value
+    | Lex of (string * string)
+
   (*  ---------------------------------------------------------------------- *)
-  let apply_cst ?domain graph matching cst =
+  let apply_cst ?domain graph matching cst : t =
     let get_node pid = G_graph.find (Pid_map.find pid matching.n_match) graph in
     let get_string_feat_opt pid feat_name = G_fs.get_string_atom_opt feat_name (G_node.get_fs (get_node pid)) in
     let get_float_feat_opt pid feat_name = G_fs.get_float_feat_opt feat_name (G_node.get_fs (get_node pid)) in
-    printf "### 000\n%!";
+
+    let get_value base feat_name = match base with
+      | Pattern.Node_id pid ->
+        let node = G_graph.find (Pid_map.find pid matching.n_match) graph in
+        begin
+          match G_fs.get_atom_opt feat_name (G_node.get_fs node) with
+          | Some f -> Value f
+          | None -> raise Fail (* no such feat_name here *)
+        end
+      | Pattern.Edge_id edge_id ->
+        let (_,g_edge,_) = String_map.find edge_id matching.e_match in
+        begin
+          match G_edge.get_sub_opt feat_name g_edge with
+          | None -> raise Fail
+          | Some s -> Value (value_of_string s)
+        end
+      | Pattern.Lexicon_id id -> Lex (id, feat_name) in
+
+    (* let get_float base feat_name =
+       match get_value base feat_name with
+       | Lex id -> Lex id
+       | Value Float f -> Value f
+       | Value String s -> Error.build "[Pattern.apply_cst] feature name %s is not numeric" s in *)
 
     match cst with
     | Pattern.Cst_out (pid,label_cst) ->
@@ -731,11 +773,33 @@ module Matching = struct
           {matching with l_param = new_param }
         with P_fs.Fail -> raise Fail
       end
-    | Features_eq (pid1, feat_name1, pid2, feat_name2) ->
+    | Feature_eq (base1, feat_name1, base2, feat_name2) ->
       begin
-        match (get_string_feat_opt pid1 feat_name1, get_string_feat_opt pid2 feat_name2) with
-        | Some fv1, Some fv2 when fv1 = fv2 -> matching
-        | _ -> raise Fail
+        match (get_value base1 feat_name1, get_value base2 feat_name2) with
+        | (Value v1, Value v2) -> if v1 = v2 then matching else raise Fail
+        | (Value v, Lex (lexicon,field))
+        | (Lex (lexicon,field), Value v) ->
+          let old_lex = List.assoc lexicon matching.l_param in
+          begin
+            match Lexicon.select_opt field (string_of_value v) old_lex with
+            | None -> raise Fail
+            | Some new_lex -> {matching with l_param = (lexicon, new_lex) :: (List.remove_assoc lexicon matching.l_param) }
+          end
+        | _ -> Error.build "[Matching.apply_cst] cannot compare two lexicon fields"
+      end
+    | Feature_diseq (base1, feat_name1, base2, feat_name2) ->
+      begin
+        match (get_value base1 feat_name1, get_value base2 feat_name2) with
+        | (Value v1, Value v2) -> if v1 <> v2 then matching else raise Fail
+        | (Value v, Lex (lexicon,field))
+        | (Lex (lexicon,field), Value v) ->
+          let old_lex = List.assoc lexicon matching.l_param in
+          begin
+            match Lexicon.unselect_opt field (string_of_value v) old_lex with
+            | None -> raise Fail
+            | Some new_lex -> {matching with l_param = (lexicon, new_lex) :: (List.remove_assoc lexicon matching.l_param) }
+          end
+        | _ -> Error.build "[Matching.apply_cst] cannot compare two lexicon fields"
       end
     | Feature_eq_cst (pid1, feat_name1, value) ->
       begin
@@ -761,20 +825,12 @@ module Matching = struct
         | Some fv1 when fv1 <> float -> matching
         | _ -> raise Fail
       end
-    | Features_diseq (pid1, feat_name1, pid2, feat_name2) ->
+    | Feature_ineq (ineq, base1, feat_name1, base2, feat_name2) ->
       begin
-        match (get_string_feat_opt pid1 feat_name1, get_string_feat_opt pid2 feat_name2) with
-        | Some fv1, Some fv2 when fv1 <> fv2 -> matching
-        | _ -> raise Fail
-      end
-    | Features_ineq (ineq, pid1, feat_name1, pid2, feat_name2) ->
-      begin
-        match (ineq, get_float_feat_opt pid1 feat_name1, get_float_feat_opt pid2 feat_name2) with
-        | (Ast.Lt, Some fv1, Some fv2) when fv1 < fv2 -> matching
-        | (Ast.Gt, Some fv1, Some fv2) when fv1 > fv2 -> matching
-        | (Ast.Le, Some fv1, Some fv2) when fv1 <= fv2 -> matching
-        | (Ast.Ge, Some fv1, Some fv2) when fv1 >= fv2 -> matching
-        | _ -> raise Fail
+        match (get_value base1 feat_name1, get_value base2 feat_name2) with
+        | (Value (Float v1), Value (Float v2)) -> if Ast.check_ineq v1 ineq v2 then matching else raise Fail
+        | (Value _, Value _) -> Error.build "[Matching.apply_cst] Non numeric value in inequality"
+        | (_, _) -> Error.build "[Matching.apply_cst] cannot compare two lexicon fields"
       end
     | Feature_ineq_cst (ineq, pid1, feat_name1, constant) ->
       begin
@@ -785,8 +841,8 @@ module Matching = struct
         | (Ast.Ge, Some fv1) when fv1 >= constant -> matching
         | _ -> raise Fail
       end
-    | Edge_features_ineq (ineq, eid1, feat_name1, eid2, feat_name2) ->
-      begin
+    (* | Edge_features_ineq (ineq, eid1, feat_name1, eid2, feat_name2) ->
+       begin
         printf "### +++ Edge_features_ineq (_,%s,%s,%s,%s)\n%!" eid1 feat_name1 eid2 feat_name2;
         match (String_map.find_opt eid1 matching.e_match, String_map.find_opt eid2 matching.e_match) with
         | (Some (_,l1,_), Some (_,l2,_)) ->
@@ -808,8 +864,8 @@ module Matching = struct
           end
         | (None, _) -> Error.build "Unknown identifier %s" eid1
         | (_, None) -> Error.build "Unknown identifier %s" eid2
-      end
-
+       end
+    *)
     | Feature_eq_regexp (pid, feat_name, regexp) ->
       begin
         match get_string_feat_opt pid feat_name with
@@ -855,8 +911,8 @@ module Matching = struct
         | (None, None) -> Error.build "Edge identifiers '%s' and '%s' not found" eid1 eid2;
       end
 
-    | Feature_eq_lex (pid, feature_name, (lexicon,field)) ->
-      begin
+    (* | Feature_eq_lex (pid, feature_name, (lexicon,field)) ->
+       begin
         match get_string_feat_opt pid feature_name with
         | None -> raise Fail
         | Some v ->
@@ -864,10 +920,10 @@ module Matching = struct
           match Lexicon.select_opt field v old_lex with
           | None -> raise Fail
           | Some new_lex -> {matching with l_param = (lexicon, new_lex) :: (List.remove_assoc lexicon matching.l_param) }
-      end
+       end
 
-    | Feature_diff_lex (pid, feature_name, (lexicon,field)) ->
-      begin
+       | Feature_diff_lex (pid, feature_name, (lexicon,field)) ->
+       begin
         match get_string_feat_opt pid feature_name with
         | None -> raise Fail
         | Some v ->
@@ -875,7 +931,7 @@ module Matching = struct
           match Lexicon.unselect_opt field v old_lex with
           | None -> raise Fail
           | Some new_lex -> {matching with l_param = (lexicon, new_lex) :: (List.remove_assoc lexicon matching.l_param) }
-      end
+       end *)
 
     | Edge_included (eid1, eid2) ->
       begin
@@ -914,7 +970,9 @@ module Matching = struct
         | (Some edge) when G_graph.covered gnode edge graph -> matching
         | Some _ -> raise Fail
         | (None) -> Error.build "Edge identifier '%s' not found" eid;
+
       end
+    | _ -> failwith "TODO"
 
   (*  ---------------------------------------------------------------------- *)
   (* returns all extension of the partial input matching *)
@@ -1280,7 +1338,7 @@ module Rule = struct
         ) [] rule_ast.Ast.lexicon_info in
 
     let pattern = Ast.normalize_pattern rule_ast.Ast.pattern in
-    let (pos, pos_table) =
+    let (pos, pos_table, edge_ids) =
       try Pattern.build_pos_basic ?domain lexicons pattern.Ast.pat_pos
       with P_fs.Fail_unif ->
         Error.build ~loc:rule_ast.Ast.rule_loc
@@ -1289,7 +1347,7 @@ module Rule = struct
     let (negs,_) =
       List.fold_left
         (fun (acc,pos) basic_ast ->
-           try ((Pattern.build_neg_basic ?domain lexicons pos_table basic_ast) :: acc, pos+1)
+           try ((Pattern.build_neg_basic ?domain lexicons pos_table edge_ids basic_ast) :: acc, pos+1)
            with P_fs.Fail_unif ->
              Error.warning ~loc:rule_ast.Ast.rule_loc "In rule \"%s\", the wihtout number %d cannot be satisfied, it is skipped"
                rule_ast.Ast.rule_id pos;

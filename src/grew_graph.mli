@@ -44,16 +44,17 @@ module P_graph: sig
     ?domain:Domain.t ->
     Lexicons.t ->
     Ast.basic ->
-    (t * Id.table)
+    (t * Id.table * string list)
 
   (** [P_fs.Fail_unif] exception is raised in case of inconsistent feature structures. *)
   val build_extension:
     ?domain:Domain.t ->
     Lexicons.t ->
     Id.table ->
+    string list ->
     Ast.node list ->
     Ast.edge list ->
-    (extension * Id.table)
+    (extension * Id.table * string list)
 end (* module P_graph *)
 
 (* ================================================================================ *)
