@@ -271,9 +271,9 @@ module Pattern = struct
       Domain.check_feature_name ?domain ~loc feat_name;
       Feature_diff_cst (pid_of_name loc node_name, feat_name, string)
 
-    | (Ast.Feature_eq_lex ((node_name, feat_name), lf), loc) ->
+    (* | (Ast.Feature_eq_lex ((node_name, feat_name), lf), loc) ->
       Domain.check_feature_name ?domain ~loc feat_name;
-      Feature_eq_lex (pid_of_name loc node_name, feat_name, lf)
+      Feature_eq_lex (pid_of_name loc node_name, feat_name, lf) *)
     | (Ast.Feature_diff_lex ((node_name, feat_name), lf), loc) ->
       Domain.check_feature_name ?domain ~loc feat_name;
       Feature_diff_lex (pid_of_name loc node_name, feat_name, lf)
@@ -410,9 +410,9 @@ module Pattern = struct
       Domain.check_feature_name ?domain ~loc feat_name;
       Feature_diff_cst (pid_of_name loc node_name, feat_name, string)
 
-    | (Ast.Feature_eq_lex ((node_name, feat_name), lf), loc) ->
+    (* | (Ast.Feature_eq_lex ((node_name, feat_name), lf), loc) ->
       Domain.check_feature_name ?domain ~loc feat_name;
-      Feature_eq_lex (pid_of_name loc node_name, feat_name, lf)
+      Feature_eq_lex (pid_of_name loc node_name, feat_name, lf) *)
     | (Ast.Feature_diff_lex ((node_name, feat_name), lf), loc) ->
       Domain.check_feature_name ?domain ~loc feat_name;
       Feature_diff_lex (pid_of_name loc node_name, feat_name, lf)
@@ -452,6 +452,7 @@ module Pattern = struct
           Feature_eq_lex (pid_of_name loc node_name, feat_name, (node_or_lex, fn_or_field))
         | _ ->  Features_eq (pid_of_name loc node_name, feat_name, pid_of_name loc node_or_lex, fn_or_field)
       end
+
     | (Ast.Feature_diff_lex_or_fs ((node_name, feat_name),(node_or_lex, fn_or_field)), loc) ->
       begin
         match (Id.build_opt node_or_lex pos_table, Id.build_opt node_or_lex neg_table) with

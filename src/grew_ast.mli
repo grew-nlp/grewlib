@@ -130,7 +130,7 @@ module Ast : sig
     (* *)
     | Feature_eq_regexp of feature_ident * string
     | Feature_eq_cst of feature_ident * string
-    | Feature_eq_lex of feature_ident * (string * string)
+    (* | Feature_eq_lex of feature_ident * (string * string) *)
     | Feature_diff_cst of feature_ident * string
     | Feature_diff_lex of feature_ident * (string * string)
     (* *)
