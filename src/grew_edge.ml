@@ -33,26 +33,27 @@ module G_edge = struct
   (* short is "E:x:y" or "x:y@z" *)
   exception Not_short
   let fs_to_short_opt fs =
-    let prefix = match List_.sort_assoc_opt "kind" fs with
-      | None -> ""
-      | Some "surf" -> "S:"
-      | Some "deep" -> "D:"
-      | Some "enhanced" -> "E:"
-      | Some c -> raise Not_short in
-    let suffix = match List_.sort_assoc_opt "deep" fs with
-      | Some s -> "@"^s
-      | None -> "" in
-    let infix_items =
-      fs
-      |> (List_.sort_remove_assoc "kind")
-      |> (List_.sort_remove_assoc "deep") in
-    let core = CCList.mapi
-        (fun i (n,v) ->
-           if string_of_int(i+1) = n
-           then v
-           else raise Not_short
-        ) infix_items in
-    try Some (prefix ^ (String.concat ":" core) ^ suffix)
+    try
+      let prefix = match List_.sort_assoc_opt "kind" fs with
+        | None -> ""
+        | Some "surf" -> "S:"
+        | Some "deep" -> "D:"
+        | Some "enhanced" -> "E:"
+        | Some c -> raise Not_short in
+      let suffix = match List_.sort_assoc_opt "deep" fs with
+        | Some s -> "@"^s
+        | None -> "" in
+      let infix_items =
+        fs
+        |> (List_.sort_remove_assoc "kind")
+        |> (List_.sort_remove_assoc "deep") in
+      let core = CCList.mapi
+          (fun i (n,v) ->
+             if string_of_int(i+1) = n
+             then v
+             else raise Not_short
+          ) infix_items in
+      Some (prefix ^ (String.concat ":" core) ^ suffix)
     with Not_short -> None
 
   let fs_to_string fs =
@@ -85,8 +86,8 @@ module G_edge = struct
     | Succ
 
   let ordering = function
-  | Pred | Succ -> true
-  | _ -> false
+    | Pred | Succ -> true
+    | _ -> false
 
   let from_items l = Fs (fs_from_items l)
 
