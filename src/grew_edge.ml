@@ -73,6 +73,7 @@ module G_edge = struct
       | _ -> assert false in
     let before_deep =
       match Str.split (Str.regexp_string ":") init with
+      | [one] -> ["1", one]
       | "S" :: l -> ("kind","surf") :: (split l)
       | "D" :: l -> ("kind","deep") :: (split l)
       | "E" :: l -> ("kind","enhanced") :: (split l)
