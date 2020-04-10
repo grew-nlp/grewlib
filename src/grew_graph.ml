@@ -359,23 +359,30 @@ module G_graph = struct
 
     let sorted_nodes = List.sort (fun (p1,_) (p2,_) -> Stdlib.compare p1 p2) ordered_nodes in
 
-    let rec loop already_bound index pred = function
+    let rec loop already_bound index = function
       | [] -> (Gid_map.empty,[])
       | (_, (ast_node, loc))::tail ->
         let node_id = ast_node.Ast.node_id in
         if List.mem node_id already_bound
         then Error.build ~loc "[GRS] [G_graph.build] try to build a graph with twice the same node id '%s'" node_id
         else
-          let (new_tail, table) = loop (node_id :: already_bound) (index+1) (Some index) tail in
+          let (new_tail, table) = loop (node_id :: already_bound) (index+1) tail in
           let new_node = G_node.build_from_ast ?domain ~position:index (ast_node, loc) in
           (
-            new_tail
-            |> (Gid_map.add index new_node)
-            |> (fun map -> match pred with | Some p -> map_add_pred_succ p index map | None -> map),
+            Gid_map.add index new_node new_tail,
             (node_id,index)::table
           ) in
 
-    let (map_with_ordered_nodes, table_ordered) = loop [] 0 None sorted_nodes in
+    let rec loop_succ_pred acc_map = function
+      | [] | [_] -> acc_map
+      | x::y::t ->
+        loop_succ_pred acc_map (y::t)
+        |> map_add_pred_succ (snd x) (snd y)
+      in
+
+    let (map_with_ordered_nodes, table_ordered) = loop [] 1 sorted_nodes in
+
+    let map_with_ordered_nodes_succ_pred = loop_succ_pred map_with_ordered_nodes table_ordered in
 
     let (map_without_edges, table, final_index) =
       List.fold_left
@@ -387,7 +394,7 @@ module G_graph = struct
              (node_id,acc_index)::acc_table,
              acc_index + 1
            )
-        ) (map_with_ordered_nodes, table_ordered, List.length sorted_nodes) unordered_nodes in
+        ) (map_with_ordered_nodes_succ_pred, table_ordered, List.length sorted_nodes) unordered_nodes in
 
 
     let map =
