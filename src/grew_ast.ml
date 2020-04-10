@@ -36,8 +36,6 @@ let conll_string_of_value = function
   | String s -> s
   | Float i -> String_.of_float i
 
-type disjunction = feature_value list
-
 (* ================================================================================ *)
 module Ast = struct
 

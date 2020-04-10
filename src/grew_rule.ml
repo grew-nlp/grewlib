@@ -21,20 +21,17 @@ open Grew_node
 open Grew_command
 open Grew_graph
 
-
 module Pattern = struct
-
-
   type edge_relative_position =
     | Included
     | Contained
     | Disjoint
     | Crossing
   let json_of_edge_relative_position = function
-      | Included -> `String "Included"
-      | Contained -> `String "Contained"
-      | Disjoint -> `String "Disjoint"
-      | Crossing -> `String "Crossing"
+    | Included -> `String "Included"
+    | Contained -> `String "Contained"
+    | Disjoint -> `String "Disjoint"
+    | Crossing -> `String "Crossing"
 
   let check_relative_position erp (l1,_,r1) (l2,_,r2) graph =
     match (G_graph.find_opt l1 graph, G_graph.find_opt r1 graph, G_graph.find_opt l2 graph, G_graph.find_opt r2 graph) with
@@ -399,7 +396,7 @@ module Matching = struct
         | Some (_,edge,_) ->
           begin
             match G_edge.get_sub_opt feature_name edge with
-            | Some e -> Some e
+            | Some e -> Some (string_of_value e)
             | None -> Error.bug "[Matching.get_value_opt] internal edge %s" (G_edge.dump edge)
           end
         | None ->
@@ -515,7 +512,7 @@ module Matching = struct
         begin
           match G_edge.get_sub_opt feat_name g_edge with
           | None -> raise Fail
-          | Some s -> Value (value_of_string s)
+          | Some s -> Value s
         end
       | Pattern.Lexicon_id id -> Lex (id, feat_name) in
 
@@ -1120,20 +1117,22 @@ module Rule = struct
     | Command.ADD_EDGE_ITEMS (src_cn,tar_cn,items) ->
       let src_gid = node_find src_cn in
       let tar_gid = node_find tar_cn in
-      let direct_items = List.map (fun (name, value) ->
-          match Str.bounded_split (Str.regexp_string ".") value 2
-          with
-          | [edge_id; feat_name] ->
-            begin
-              match String_map.find_opt edge_id state.e_mapping with
-              | None -> (name, value)
-              | Some (_,matched_edge,_) ->
-                match G_edge.get_sub_opt feat_name matched_edge with
-                | Some new_value -> (name, new_value)
-                | None -> Error.run "ADD_EDGE_ITEMS: no items edge feature name '%s' in matched edge '%s'" feat_name edge_id
-            end
-          | _ -> (name, value)
-        ) items in
+      let direct_items =
+        List.map
+          (fun (name, value) ->
+             match Str.bounded_split (Str.regexp_string ".") value 2
+             with
+             | [edge_id; feat_name] ->
+               begin
+                 match String_map.find_opt edge_id state.e_mapping with
+                 | None -> (name, value_of_string value)
+                 | Some (_,matched_edge,_) ->
+                   match G_edge.get_sub_opt feat_name matched_edge with
+                   | Some new_value -> (name, new_value)
+                   | None -> Error.run "ADD_EDGE_ITEMS: no items edge feature name '%s' in matched edge '%s'" feat_name edge_id
+               end
+             | _ -> (name, value_of_string value)
+          ) items in
       let edge = G_edge.from_items direct_items in
       begin
         match G_graph.add_edge_opt src_gid edge tar_gid state.graph with
@@ -1445,13 +1444,13 @@ module Rule = struct
           | [edge_id; feat_name] ->
             begin
               match String_map.find_opt edge_id gwh.e_mapping with
-              | None -> (name, value)
+              | None -> (name, value_of_string value)
               | Some (_,matched_edge,_) ->
                 match G_edge.get_sub_opt feat_name matched_edge with
                 | Some new_value -> (name, new_value)
                 | None -> Error.run "ADD_EDGE_ITEMS: no items edge feature name '%s' in matched edge '%s'" feat_name edge_id
             end
-          | _ -> (name, value)
+          | _ -> (name, value_of_string value)
         ) items in
       let edge = G_edge.from_items direct_items in
       begin

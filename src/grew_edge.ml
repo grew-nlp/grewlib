@@ -20,55 +20,56 @@ open Grew_domain
 module G_edge = struct
 
   (* [G_edge.fs] is a feature structure. The list of feature names must be ordered wrt [Stdlib.compare] *)
-  type fs = (feature_name * string) list
+  type fs = (feature_name * feature_value) list
 
   let fs_from_items l = (List.sort (fun (x,_) (y,_) -> Stdlib.compare x y) l)
 
   (* short is "E:x:y" or "x:y@z" *)
   exception Not_short
-  let fs_to_short_opt fs =
+  let fs_to_short_opt (fs:fs) =
     try
       let prefix = match List_.sort_assoc_opt "kind" fs with
         | None -> ""
-        | Some "surf" -> "S:"
-        | Some "deep" -> "D:"
-        | Some "enhanced" -> "E:"
-        | Some c -> raise Not_short in
+        | Some (String "surf") -> "S:"
+        | Some (String "deep") -> "D:"
+        | Some (String "enhanced") -> "E:"
+        | Some _ -> raise Not_short in
       let suffix = match List_.sort_assoc_opt "deep" fs with
-        | Some s -> "@"^s
+        | Some (String s) -> "@"^s
+        | Some (Float f) -> "@"^(string_of_float f)
         | None -> "" in
       let infix_items =
         fs
         |> (List_.sort_remove_assoc "kind")
         |> (List_.sort_remove_assoc "deep") in
-      let core = CCList.mapi
+      let core_strings = CCList.mapi
           (fun i (n,v) ->
              if string_of_int(i+1) = n
-             then v
+             then string_of_value v
              else raise Not_short
           ) infix_items in
-      Some (prefix ^ (String.concat ":" core) ^ suffix)
+      Some (prefix ^ (String.concat ":" core_strings) ^ suffix)
     with Not_short -> None
 
   let fs_to_string fs =
     match fs_to_short_opt fs with
     | Some s -> s
-    | None -> String.concat "," (List.map (fun (x,y) -> x^"="^y) fs)
+    | None -> String.concat "," (List.map (fun (x,y) -> x^"="^(string_of_value y)) fs)
 
   (* split ["a"; "b"; "c"] --> [("1","a"); ("2","b"); ("3","c")]  *)
-  let split l = CCList.mapi (fun i elt -> (string_of_int (i+1), elt)) l
+  let split l = CCList.mapi (fun i elt -> (string_of_int (i+1), value_of_string elt)) l
 
   let fs_from_short str =
     let (init, deep) = match Str.bounded_split (Str.regexp_string "@") str 2 with
       | [i] -> (i, None)
-      | [i;d] -> (i, Some ("deep",d))
+      | [i;d] -> (i, Some ("deep",value_of_string d))
       | _ -> assert false in
     let before_deep =
       match Str.split (Str.regexp_string ":") init with
-      | [one] -> ["1", one]
-      | "S" :: l -> ("kind","surf") :: (split l)
-      | "D" :: l -> ("kind","deep") :: (split l)
-      | "E" :: l -> ("kind","enhanced") :: (split l)
+      | [one] -> ["1", value_of_string one]
+      | "S" :: l -> ("kind",String "surf") :: (split l)
+      | "D" :: l -> ("kind",String "deep") :: (split l)
+      | "E" :: l -> ("kind",String "enhanced") :: (split l)
       | l -> split l in
     fs_from_items (CCList.cons_maybe deep before_deep)
 
@@ -141,14 +142,21 @@ end (* module G_edge *)
 (** The module [Label_cst] defines contraints on label edges *)
 module Label_cst = struct
   type atom_cst =
-    | Eq of (string * string list)
-    | Diseq of (string * string list)
-    | Absent of string
+    (* 1=subj|obj *)
+    | Eq of (feature_name * feature_value list)
+    (* 1<>subj|obj   2=*  *)
+    | Diseq of (feature_name * feature_value list)
+    (* !3 *)
+    | Absent of feature_name
 
   type t =
+    (* [comp:obj|comp@pass] *)
     | Pos of G_edge.fs list
+    (* [^comp:obj|comp@pass] *)
     | Neg of G_edge.fs list
+    (* [RE"aux.*"]  compiled and string version *)
     | Regexp of (Str.regexp * string)
+    (* [1=subj, 2=*, !3] *)
     | Atom_list of atom_cst list
     | Pred
     | Succ
@@ -161,8 +169,8 @@ module Label_cst = struct
       String.concat ","
         (List.map
            (function
-             | Eq (name,al) -> sprintf "%s=%s" name (String.concat "|" al)
-             | Diseq (name,al) -> sprintf "%s<>%s" name (String.concat "|" al)
+             | Eq (name,al) -> sprintf "%s=%s" name (String.concat "|" (List.map string_of_value al))
+             | Diseq (name,al) -> sprintf "%s<>%s" name (String.concat "|" (List.map string_of_value al))
              | Absent name -> sprintf "!%s" name
            ) l
         )
@@ -214,8 +222,8 @@ module Label_cst = struct
     | _ -> false
 
   let build_atom = function
-    | Ast.Atom_eq (name, atoms) -> Eq (name, List.sort Stdlib.compare atoms)
-    | Ast.Atom_diseq (name, atoms) -> Diseq (name, List.sort Stdlib.compare atoms)
+    | Ast.Atom_eq (name, atoms) -> Eq (name, List.map value_of_string (List.sort Stdlib.compare atoms))
+    | Ast.Atom_diseq (name, atoms) -> Diseq (name, List.map value_of_string (List.sort Stdlib.compare atoms))
     | Ast.Atom_absent name -> Absent name
 
   let build ?loc ?domain = function

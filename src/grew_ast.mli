@@ -25,9 +25,6 @@ val value_of_string : string -> feature_value
 
 val conll_string_of_value : feature_value -> string
 
-type disjunction = feature_value list
-
-
 
 module Ast : sig
 

@@ -55,7 +55,7 @@ module Command  = struct
     | DEL_FEAT of (command_node * string)
     | DEL_EDGE_FEAT of (string * string) (* (edge identifier, feature_name) *)
     | UPDATE_FEAT of (command_node * string * item list)
-    | UPDATE_EDGE_FEAT of (string * string * string) (* edge identifier, feat_name, new_value *)
+    | UPDATE_EDGE_FEAT of (string * string * feature_value) (* edge identifier, feat_name, new_value *)
     (* *)
     | NEW_NODE of string
     | NEW_BEFORE of (string * command_node)
@@ -169,7 +169,7 @@ module Command  = struct
                `Assoc [
                  ("edge_id", `String edge_id);
                  ("feat_name", `String feat_name);
-                 ("feat_value", `String s);
+                 ("feat_value", json_of_value s);
                ]
               )]
     | DEL_EDGE_FEAT (edge_id, feat_name) ->
@@ -325,7 +325,7 @@ module Command  = struct
         | ( false, true) ->
           begin
             match ast_items with
-            | [Ast.String_item s] -> ((UPDATE_EDGE_FEAT (node_or_edge_id, feat_name, s), loc), (kni, kei))
+            | [Ast.String_item s] -> ((UPDATE_EDGE_FEAT (node_or_edge_id, feat_name, String s), loc), (kni, kei))
             | _ -> Error.build ~loc "Unknwon identifier \"%s\"" node_or_edge_id
           end
         | _ -> Error.build ~loc "Unknwon identifier \"%s\"" node_or_edge_id

@@ -18,11 +18,11 @@ open Grew_domain
 module G_edge: sig
   type t
 
-  val from_items: (string * string) list -> t
+  val from_items: (string * feature_value) list -> t
 
-  val get_sub_opt: string -> t -> string option
+  val get_sub_opt: string -> t -> feature_value option
 
-  val update: string -> string -> t -> t
+  val update: string -> feature_value -> t -> t
 
   val remove_feat_opt: string -> t -> t option
 
@@ -71,8 +71,6 @@ module P_edge: sig
 
   val pred: t
   val succ: t
-
-  (* [all] is the joker pattern edge *)
 
   val to_json: ?domain:Domain.t -> t -> Yojson.Basic.t
 

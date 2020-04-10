@@ -35,7 +35,7 @@ module Command : sig
     | DEL_FEAT of (command_node * string)
     | DEL_EDGE_FEAT of (string * string) (* (edge identifier, feature_name) *)
     | UPDATE_FEAT of (command_node * string * item list)
-    | UPDATE_EDGE_FEAT of (string * string * string) (* edge identifier, feat_name, new_value *)
+    | UPDATE_EDGE_FEAT of (string * string * feature_value) (* edge identifier, feat_name, new_value *)
     (* *)
     | NEW_NODE of string
     | NEW_BEFORE of (string * command_node)
