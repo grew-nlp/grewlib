@@ -23,6 +23,32 @@ open Grew_graph
 
 
 module Pattern = struct
+
+
+  type edge_relative_position =
+    | Included
+    | Contained
+    | Disjoint
+    | Crossing
+  let json_of_edge_relative_position = function
+      | Included -> `String "Included"
+      | Contained -> `String "Contained"
+      | Disjoint -> `String "Disjoint"
+      | Crossing -> `String "Crossing"
+
+  let check_relative_position erp (l1,_,r1) (l2,_,r2) graph =
+    match (G_graph.find_opt l1 graph, G_graph.find_opt r1 graph, G_graph.find_opt l2 graph, G_graph.find_opt r2 graph) with
+    | (Some nl1, Some nr1, Some nl2, Some nr2) ->
+      begin
+        match (erp, G_node.get_position_opt nl1, G_node.get_position_opt nr1, G_node.get_position_opt nl2, G_node.get_position_opt nr2) with
+        | (Disjoint, Some pl1, Some pr1, Some pl2, Some pr2) when pr1 <= pl2 || pr2 <= pl1 -> true
+        | (Contained, Some pl1, Some pr1, Some pl2, Some pr2) when pl1 <= pl2 && pr2 <= pr1 -> true
+        | (Included, Some pl1, Some pr1, Some pl2, Some pr2) when pl2 <= pl1 && pr1 <= pr2 -> true
+        | (Crossing, Some _, Some _, Some _, Some _) -> true
+        | _ -> false
+      end
+    | _ -> Error.bug "[check_relative_position]"
+
   type base =
     | Node_id of Pid.t
     | Edge_id of string
@@ -39,14 +65,12 @@ module Pattern = struct
     | Feature_eq of base * string * base * string
     | Feature_diseq of base * string * base * string
     (* *)
-    | Feature_eq_value of Pid.t * string * value
-    (* *)
-    | Feature_diff_value of Pid.t * string * value
-    (* *)
-    | Feature_eq_regexp of Pid.t * string * string
+    | Feature_eq_value of base * string * value
+    | Feature_diff_value of base * string * value
+    | Feature_eq_regexp of base * string * string
     (* *)
     | Feature_ineq of Ast.ineq * base * string * base * string
-    | Feature_ineq_cst of Ast.ineq * Pid.t * string * float
+    | Feature_ineq_cst of Ast.ineq * base * string * float
     (* *)
     | Filter of Pid.t * P_fs.t (* used when a without impose a fs on a node defined by the match basic *)
     (* *)
@@ -57,9 +81,7 @@ module Pattern = struct
     | Label_equal of string * string
     | Label_disequal of string * string
     (* *)
-    | Edge_included of string * string
-    | Edge_disjoint of string * string
-    | Edge_crossing of string * string
+    | Edge_relative of edge_relative_position * string * string
     (* *)
     | Covered of Pid.t * string (* node_id, edge_id *)
 
@@ -84,26 +106,26 @@ module Pattern = struct
                 ("feature_name_2", `String fn2);
               ]
              ]
-    | Feature_eq_value (pid,fn,value) ->
+    | Feature_eq_value (id,fn,value) ->
       `Assoc ["feature_eq_cst",
               `Assoc [
-                ("id", `String (Pid.to_string pid));
+                ("id", json_of_base id);
                 ("feature_name_", `String fn);
                 ("value", json_of_value value);
               ]
              ]
-    | Feature_diff_value (pid,fn,value) ->
+    | Feature_diff_value (id,fn,value) ->
       `Assoc ["feature_diff_cst",
               `Assoc [
-                ("id", `String (Pid.to_string pid));
+                ("id", json_of_base id);
                 ("feature_name_", `String fn);
                 ("value", json_of_value value);
               ]
              ]
-    | Feature_eq_regexp (pid,fn,regexp) ->
+    | Feature_eq_regexp (id,fn,regexp) ->
       `Assoc ["feature_eq_regexp",
               `Assoc [
-                ("id", `String (Pid.to_string pid));
+                ("id", json_of_base id);
                 ("feature_name", `String fn);
                 ("regexp", `String regexp);
               ]
@@ -118,11 +140,11 @@ module Pattern = struct
                 ("feature_name_2", `String fn2);
               ]
              ]
-    | Feature_ineq_cst (ineq,pid,fn,value) ->
+    | Feature_ineq_cst (ineq,id,fn,value) ->
       `Assoc ["feature_ineq_cst",
               `Assoc [
                 ("ineq", `String (Ast.string_of_ineq ineq));
-                ("id", `String (Pid.to_string pid));
+                ("id", json_of_base id);
                 ("feature_name", `String fn);
                 ("value", `String (string_of_float value));
               ]
@@ -162,23 +184,10 @@ module Pattern = struct
                 ("id2", `String eid2);
               ]
              ]
-    | Edge_included (eid1, eid2) ->
-      `Assoc ["edge_included",
+    | Edge_relative (erp, eid1, eid2) ->
+      `Assoc ["edge_relative",
               `Assoc [
-                ("id1", `String eid1);
-                ("id2", `String eid2);
-              ]
-             ]
-    | Edge_disjoint (eid1, eid2) ->
-      `Assoc ["edge_disjoint",
-              `Assoc [
-                ("id1", `String eid1);
-                ("id2", `String eid2);
-              ]
-             ]
-    | Edge_crossing (eid1, eid2) ->
-      `Assoc ["edge_crossing",
-              `Assoc [
+                ("edge_relative_position", json_of_edge_relative_position erp);
                 ("id1", `String eid1);
                 ("id2", `String eid2);
               ]
@@ -212,32 +221,26 @@ module Pattern = struct
     | (Ast.Feature_ineq (ineq, (id1, feat_name1), (id2, feat_name2)), loc) ->
       Feature_ineq (ineq, parse_id loc id1, feat_name1, parse_id loc id2, feat_name2)
 
-    | (Ast.Feature_ineq_cst (ineq, (node_name1, feat_name1), constant), loc) ->
-      Domain.check_feature_name ?domain ~loc feat_name1;
-      Feature_ineq_cst (ineq, pid_of_name loc node_name1, feat_name1, constant)
+    | (Ast.Feature_ineq_cst (ineq, (id1, feat_name1), constant), loc) ->
+      Feature_ineq_cst (ineq, parse_id loc id1, feat_name1, constant)
 
-    | (Ast.Feature_eq_regexp ((node_name, feat_name), regexp), loc) ->
-      Domain.check_feature_name ?domain ~loc feat_name;
-      Feature_eq_regexp (pid_of_name loc node_name, feat_name, regexp)
+    | (Ast.Feature_eq_regexp ((id, feat_name), regexp), loc) ->
+      Feature_eq_regexp (parse_id loc id, feat_name, regexp)
 
-    | (Ast.Feature_eq_cst ((node_name, feat_name), string), loc) ->
-      Domain.check_feature_name ?domain ~loc feat_name;
-      Feature_eq_value (pid_of_name loc node_name, feat_name, String string)
-    | (Ast.Feature_diff_cst ((node_name, feat_name), string), loc) ->
-      Domain.check_feature_name ?domain ~loc feat_name;
-      Feature_diff_value (pid_of_name loc node_name, feat_name, String string)
+    | (Ast.Feature_eq_cst ((id, feat_name), string), loc) ->
+      Feature_eq_value (parse_id loc id, feat_name, String string)
+    | (Ast.Feature_diff_cst ((id, feat_name), string), loc) ->
+      Feature_diff_value (parse_id loc id, feat_name, String string)
 
-    | (Ast.Feature_eq_float ((node_name, feat_name), float), loc) ->
-      Domain.check_feature_name ?domain ~loc feat_name;
-      Feature_eq_value (pid_of_name loc node_name, feat_name, Float float)
-    | (Ast.Feature_diff_float ((node_name, feat_name), float), loc) ->
-      Domain.check_feature_name ?domain ~loc feat_name;
-      Feature_diff_value (pid_of_name loc node_name, feat_name, Float float)
+    | (Ast.Feature_eq_float ((id, feat_name), float), loc) ->
+      Feature_eq_value (parse_id loc id, feat_name, Float float)
+    | (Ast.Feature_diff_float ((id, feat_name), float), loc) ->
+      Feature_diff_value (parse_id loc id, feat_name, Float float)
 
     | (Ast.Large_prec (id1, id2), loc) ->
       begin
         match (parse_id loc id1, parse_id loc id2) with
-        | (Edge_id eid1, Edge_id eid2) -> Edge_included (eid1, eid2)
+        | (Edge_id eid1, Edge_id eid2) -> Edge_relative (Included, eid1, eid2)
         | (Node_id pid1, Node_id pid2) -> Node_large_prec (pid1, pid2)
         | (Node_id pid1, Edge_id eid2) -> Covered (pid1, eid2)
         | _ -> Error.build "Operator << cannot be used with \"edge << node\""
@@ -253,9 +256,9 @@ module Pattern = struct
       Id_prec (pid_of_name loc id1, pid_of_name loc id2)
 
     | (Ast.Edge_disjoint (eid1, eid2), loc) ->
-      Edge_disjoint (eid1, eid2)
+      Edge_relative (Disjoint, eid1, eid2)
     | (Ast.Edge_crossing (eid1, eid2), loc) ->
-      Edge_crossing (eid1, eid2)
+      Edge_relative (Crossing, eid1, eid2)
 
 
   type basic = {
@@ -401,7 +404,7 @@ module Matching = struct
           end
         | None ->
           begin
-            match get_pid_by_name pattern node_or_edge_id matching.n_match with (* TODO: edge feature "e.deep" *)
+            match get_pid_by_name pattern node_or_edge_id matching.n_match with
             | None -> Error.run "[Matching.get_value_opt] unknown id %s" node_or_edge_id
             | Some pid ->
               let gid = Pid_map.find pid matching.n_match in
@@ -493,35 +496,12 @@ module Matching = struct
       check = basic.constraints;
     }
 
-  type edge_relative_position =
-    | Included
-    | Contained
-    | Disjoint
-    | Crossing
-    | Non_ordered
-
-  let get_relative_position (l1,_,r1) (l2,_,r2) graph =
-    match (G_graph.find_opt l1 graph, G_graph.find_opt r1 graph, G_graph.find_opt l2 graph, G_graph.find_opt r2 graph) with
-    | (Some nl1, Some nr1, Some nl2, Some nr2) ->
-      begin
-        match (G_node.get_position_opt nl1, G_node.get_position_opt nr1, G_node.get_position_opt nl2, G_node.get_position_opt nr2) with
-        | (Some pl1, Some pr1, Some pl2, Some pr2) when pr1 <= pl2 || pr2 <= pl1 -> Disjoint
-        | (Some pl1, Some pr1, Some pl2, Some pr2) when pl1 <= pl2 && pr2 <= pr1 -> Contained
-        | (Some pl1, Some pr1, Some pl2, Some pr2) when pl2 <= pl1 && pr1 <= pr2 -> Included
-        | (Some _, Some _, Some _, Some _) -> Crossing
-        | _ -> Non_ordered
-      end
-    | _ -> Error.bug "[get_relative_position]"
-
   type out =
     | Value of value
     | Lex of (string * string)
 
   (*  ---------------------------------------------------------------------- *)
   let apply_cst ?domain graph matching cst : t =
-    let get_node pid = G_graph.find (Pid_map.find pid matching.n_match) graph in
-    let get_feat_value_opt pid feat_name = G_fs.get_value_opt feat_name (G_node.get_fs (get_node pid)) in
-
     let get_value base feat_name = match base with
       | Pattern.Node_id pid ->
         let node = G_graph.find (Pid_map.find pid matching.n_match) graph in
@@ -590,41 +570,51 @@ module Matching = struct
           end
         | _ -> Error.build "[Matching.apply_cst] cannot compare two lexicon fields"
       end
-    | Feature_eq_value (pid1, feat_name1, value) ->
+    | Feature_eq_value (id1, feat_name1, value) ->
       begin
-        match get_feat_value_opt pid1 feat_name1 with
-        | Some fv1 when fv1 = value -> matching
+        match get_value id1 feat_name1 with
+        | Value fv when fv = value -> matching
+        | Lex (lexicon,field) ->
+          let old_lex = List.assoc lexicon matching.l_param in
+          begin
+            match Lexicon.select_opt field (string_of_value value) old_lex with
+            | None -> raise Fail
+            | Some new_lex -> {matching with l_param = (lexicon, new_lex) :: (List.remove_assoc lexicon matching.l_param) }
+          end
         | _ -> raise Fail
       end
-    | Feature_diff_value (pid1, feat_name1, value) ->
+    | Feature_diff_value (id1, feat_name1, value) ->
       begin
-        match get_feat_value_opt pid1 feat_name1 with
-        | Some fv1 when fv1 <> value -> matching
+        match get_value id1 feat_name1 with
+        | Value fv when fv <> value -> matching
+        | Lex (lexicon,field) ->
+          let old_lex = List.assoc lexicon matching.l_param in
+          begin
+            match Lexicon.unselect_opt field (string_of_value value) old_lex with
+            | None -> raise Fail
+            | Some new_lex -> {matching with l_param = (lexicon, new_lex) :: (List.remove_assoc lexicon matching.l_param) }
+          end
         | _ -> raise Fail
       end
     | Feature_ineq (ineq, base1, feat_name1, base2, feat_name2) ->
       begin
         match (get_value base1 feat_name1, get_value base2 feat_name2) with
         | (Value (Float v1), Value (Float v2)) -> if Ast.check_ineq v1 ineq v2 then matching else raise Fail
-        | (Value _, Value _) -> Error.build "[Matching.apply_cst] Non numeric value in inequality"
-        | (_, _) -> Error.build "[Matching.apply_cst] cannot compare two lexicon fields"
+        | (_, _) -> Error.build "[Matching.apply_cst] Inequalities on feature values are available only on numeric values"
       end
-    | Feature_ineq_cst (ineq, pid1, feat_name1, constant) ->
+    | Feature_ineq_cst (ineq, base, feat_name, constant) ->
       begin
-        match (ineq, get_feat_value_opt pid1 feat_name1) with
-        | (Ast.Lt, Some (Float fv1)) when fv1 < constant -> matching
-        | (Ast.Gt, Some (Float fv1)) when fv1 > constant -> matching
-        | (Ast.Le, Some (Float fv1)) when fv1 <= constant -> matching
-        | (Ast.Ge, Some (Float fv1)) when fv1 >= constant -> matching
-        | _ -> raise Fail
+        match (get_value base feat_name) with
+        | Value (Float f) -> if Ast.check_ineq f ineq constant then matching else raise Fail
+        | _ -> Error.build "[Matching.apply_cst] Inequalities on feature values are available only on numeric values"
       end
 
-    | Feature_eq_regexp (pid, feat_name, regexp) ->
+    | Feature_eq_regexp (id, feat_name, regexp) ->
       begin
-        match get_feat_value_opt pid feat_name with
-        | None -> raise Fail
-        | Some (Float _) -> Error.build "[Matching.apply_cst] test regexp against numeric value"
-        | Some (String string_feat) ->
+        match get_value id feat_name with
+        | Lex _ -> Error.build "[Matching.apply_cst] test regexp against lexicon is not available"
+        | Value (Float _) -> Error.build "[Matching.apply_cst] test regexp against numeric value is not available"
+        | Value (String string_feat) ->
           let re = Str.regexp regexp in
           if String_.re_match re string_feat then matching else raise Fail
       end
@@ -648,51 +638,26 @@ module Matching = struct
     | Label_equal (eid1, eid2) ->
       begin
         match (String_map.find_opt eid1 matching.e_match, String_map.find_opt eid2 matching.e_match) with
-        | (Some (_,e1,_), Some (_,e2,_)) when e1 = e2 -> matching
-        | (Some (_,e1,_), Some (_,e2,_)) -> raise Fail
-        | (None, Some _) -> Error.build "Edge identifier '%s' not found" eid1;
-        | (Some _, None) -> Error.build "Edge identifier '%s' not found" eid2;
-        | (None, None) -> Error.build "Edge identifiers '%s' and '%s' not found" eid1 eid2;
+        | (Some (_,e1,_), Some (_,e2,_)) -> if e1 = e2 then matching else raise Fail
+        | (None, _) -> Error.build "Edge identifier '%s' not found" eid1
+        | (_, None) -> Error.build "Edge identifier '%s' not found" eid2
       end
 
     | Label_disequal (eid1, eid2) ->
       begin
         match (String_map.find_opt eid1 matching.e_match, String_map.find_opt eid2 matching.e_match) with
-        | (Some (_,e1,_), Some (_,e2,_)) when e1 <> e2 -> matching
-        | (Some (_,e1,_), Some (_,e2,_)) -> raise Fail
-        | (None, Some _) -> Error.build "Edge identifier '%s' not found" eid1;
-        | (Some _, None) -> Error.build "Edge identifier '%s' not found" eid2;
-        | (None, None) -> Error.build "Edge identifiers '%s' and '%s' not found" eid1 eid2;
+        | (Some (_,e1,_), Some (_,e2,_)) -> if e1 <> e2 then matching else raise Fail
+        | (None, _) -> Error.build "Edge identifier '%s' not found" eid1
+        | (_, None) -> Error.build "Edge identifier '%s' not found" eid2
       end
 
-    | Edge_included (eid1, eid2) ->
+    | Edge_relative (erp, eid1, eid2) ->
       begin
         match (String_map.find_opt eid1 matching.e_match, String_map.find_opt eid2 matching.e_match) with
-        | (Some e1, Some e2) when get_relative_position e1 e2 graph = Included -> matching
+        | (Some e1, Some e2) when Pattern.check_relative_position erp e1 e2 graph -> matching
         | (Some _, Some _) -> raise Fail
-        | (None, Some _) -> Error.build "Edge identifier '%s' not found" eid1;
-        | (Some _, None) -> Error.build "Edge identifier '%s' not found" eid2;
-        | (None, None) -> Error.build "Edge identifiers '%s' and '%s' not found" eid1 eid2;
-      end
-
-    | Edge_disjoint (eid1, eid2) ->
-      begin
-        match (String_map.find_opt eid1 matching.e_match, String_map.find_opt eid2 matching.e_match) with
-        | (Some e1, Some e2) when get_relative_position e1 e2 graph = Disjoint -> matching
-        | (Some _, Some _) -> raise Fail
-        | (None, Some _) -> Error.build "Edge identifier '%s' not found" eid1;
-        | (Some _, None) -> Error.build "Edge identifier '%s' not found" eid2;
-        | (None, None) -> Error.build "Edge identifiers '%s' and '%s' not found" eid1 eid2;
-      end
-
-    | Edge_crossing (eid1, eid2) ->
-      begin
-        match (String_map.find_opt eid1 matching.e_match, String_map.find_opt eid2 matching.e_match) with
-        | (Some e1, Some e2) when get_relative_position e1 e2 graph = Crossing -> matching
-        | (Some _, Some _) -> raise Fail
-        | (None, Some _) -> Error.build "Edge identifier '%s' not found" eid1;
-        | (Some _, None) -> Error.build "Edge identifier '%s' not found" eid2;
-        | (None, None) -> Error.build "Edge identifiers '%s' and '%s' not found" eid1 eid2;
+        | (None, _) -> Error.build "Edge identifier '%s' not found" eid1
+        | (_, None) -> Error.build "Edge identifier '%s' not found" eid2
       end
 
     | Covered (pid, eid) ->
