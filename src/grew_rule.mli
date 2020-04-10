@@ -45,13 +45,13 @@ module Matching : sig
   (* NB: it can be computed independly from the graph itself! *)
   val match_deco: Pattern.t -> t -> G_deco.t
 
-  (* [get_value_opt request pattern graph matching] returns the value corresponding to the request in the result of a previou result of match
+  (* [get_string_value_opt request pattern graph matching] returns the value corresponding to the request in the result of a previou result of match
      [request] can be:
     * the name of a edge declared in the positive part of the pattern
     * the name of a feature value [N.feat] where [N] is a node declared in the positive part of the pattern
     * the name of an edge featue [E.feat] where [e] is a edge declared in the positive part of the pattern
   *)
-  val get_value_opt: string -> Pattern.t -> G_graph.t -> t -> string option
+  val get_string_value_opt: string -> Pattern.t -> G_graph.t -> t -> string option
 end
 
 (* ================================================================================ *)

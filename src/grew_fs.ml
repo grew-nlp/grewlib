@@ -177,7 +177,7 @@ module G_fs = struct
   let empty = []
 
   (* ---------------------------------------------------------------------- *)
-  let set_feat ?loc ?domain feature_name value t =
+  let set_value ?loc ?domain feature_name value t =
     let rec loop = function
       | [] -> [(feature_name, value)]
       | ((fn,_)::_) as t when feature_name < fn -> (feature_name, value)::t
@@ -188,26 +188,13 @@ module G_fs = struct
   (* ---------------------------------------------------------------------- *)
   let set_atom ?loc ?domain feature_name atom t =
     let value = Feature_value.build_value ?loc ?domain feature_name atom in
-    set_feat ?loc ?domain feature_name value t
+    set_value ?loc ?domain feature_name value t
 
   (* ---------------------------------------------------------------------- *)
   let del_feat_opt = List_.sort_remove_assoc_opt
 
   (* ---------------------------------------------------------------------- *)
-  let get_atom_opt = List_.sort_assoc_opt
-
-  (* ---------------------------------------------------------------------- *)
-  let get_string_atom_opt feat_name t =
-    match List_.sort_assoc_opt feat_name t with
-    | None -> None
-    | Some v -> Some (conll_string_of_value v)
-
-  (* ---------------------------------------------------------------------- *)
-  let get_float_feat_opt feat_name t =
-    match List_.sort_assoc_opt feat_name t with
-    | None -> None
-    | Some (Float i) -> Some i
-    | Some (String s) -> Error.build "[Fs.get_float_feat_opt] feat_name=%s, value=%s" feat_name s
+  let get_value_opt = List_.sort_assoc_opt
 
   (* ---------------------------------------------------------------------- *)
   let to_string t = List_.to_string G_feature.to_string "," t
@@ -258,10 +245,10 @@ module G_fs = struct
       let (new_tar, updated_feats) = List.fold_left
           (fun (acc_tar, acc_updated_feats) (feat, value) ->
              match List_.sort_assoc_opt feat tar with
-             | None -> (set_feat ?loc feat value acc_tar, (feat, value)::acc_updated_feats)
+             | None -> (set_value ?loc feat value acc_tar, (feat, value)::acc_updated_feats)
              | Some v ->
                let new_value = concat_values ?loc separator v value in
-               (set_feat ?loc feat new_value acc_tar, (feat, new_value)::acc_updated_feats)
+               (set_value ?loc feat new_value acc_tar, (feat, new_value)::acc_updated_feats)
           ) (tar,[]) sub_src in
       Some (new_tar, updated_feats)
 
@@ -345,9 +332,9 @@ module G_fs = struct
     let (main_opt, sub) = get_main ?main_feat t in
     let sub = List.sort G_feature.print_cmp sub in
 
-    let color = match get_string_atom_opt "kind" t with
-      | Some "NE" -> ":C:#ff760b"
-      | Some "MWE" -> ":C:#1d7df2"
+    let color = match get_value_opt "kind" t with
+      | Some (String "NE") -> ":C:#ff760b"
+      | Some (String "MWE") -> ":C:#1d7df2"
       | _ -> "" in
 
     let main = match main_opt with

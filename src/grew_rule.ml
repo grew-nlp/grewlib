@@ -39,11 +39,9 @@ module Pattern = struct
     | Feature_eq of base * string * base * string
     | Feature_diseq of base * string * base * string
     (* *)
-    | Feature_eq_cst of Pid.t * string * string
-    | Feature_diff_cst of Pid.t * string * string
+    | Feature_eq_value of Pid.t * string * value
     (* *)
-    | Feature_eq_float of Pid.t * string * float
-    | Feature_diff_float of Pid.t * string * float
+    | Feature_diff_value of Pid.t * string * value
     (* *)
     | Feature_eq_regexp of Pid.t * string * string
     (* *)
@@ -86,56 +84,20 @@ module Pattern = struct
                 ("feature_name_2", `String fn2);
               ]
              ]
-    | Feature_eq_cst (pid,fn,value) ->
+    | Feature_eq_value (pid,fn,value) ->
       `Assoc ["feature_eq_cst",
               `Assoc [
                 ("id", `String (Pid.to_string pid));
                 ("feature_name_", `String fn);
-                ("value", `String value);
+                ("value", json_of_value value);
               ]
              ]
-    | Feature_diff_cst (pid,fn,value) ->
+    | Feature_diff_value (pid,fn,value) ->
       `Assoc ["feature_diff_cst",
               `Assoc [
                 ("id", `String (Pid.to_string pid));
                 ("feature_name_", `String fn);
-                ("value", `String value);
-              ]
-             ]
-    (* | Feature_eq_lex (pid,fn,(lex,field)) ->
-       `Assoc ["feature_eq_lex",
-              `Assoc [
-                ("id", `String (Pid.to_string pid));
-                ("feature_name_", `String fn);
-                ("lexicon", `String lex);
-                ("field", `String field);
-              ]
-             ]
-       | Feature_diff_lex (pid,fn,(lex,field)) ->
-       `Assoc ["feature_diff_lex",
-              `Assoc [
-                ("id", `String (Pid.to_string pid));
-                ("feature_name_", `String fn);
-                ("lexicon", `String lex);
-                ("field", `String field);
-              ]
-             ]
-    *)
-
-    | Feature_eq_float (pid,fn,value) ->
-      `Assoc ["feature_eq_float",
-              `Assoc [
-                ("id", `String (Pid.to_string pid));
-                ("feature_name_", `String fn);
-                ("value", `String (string_of_float value));
-              ]
-             ]
-    | Feature_diff_float (pid,fn,value) ->
-      `Assoc ["feature_diff_float",
-              `Assoc [
-                ("id", `String (Pid.to_string pid));
-                ("feature_name", `String fn);
-                ("value", `String (string_of_float value));
+                ("value", json_of_value value);
               ]
              ]
     | Feature_eq_regexp (pid,fn,regexp) ->
@@ -223,7 +185,6 @@ module Pattern = struct
              ]
     | Covered (pid1, eid2) -> `Assoc ["covered",`Assoc [("id1", `String (Pid.to_string pid1)); ("id2", `String eid2)]]
 
-  (* the neg part *)
   let build_constraint ?domain lexicons pos_table neg_table edge_ids const =
     let parse_id loc id = match (Id.build_opt id pos_table, Id.build_opt id neg_table) with
       | (Some pid,_) -> Node_id (Pid.Pos pid)
@@ -261,17 +222,17 @@ module Pattern = struct
 
     | (Ast.Feature_eq_cst ((node_name, feat_name), string), loc) ->
       Domain.check_feature_name ?domain ~loc feat_name;
-      Feature_eq_cst (pid_of_name loc node_name, feat_name, string)
+      Feature_eq_value (pid_of_name loc node_name, feat_name, String string)
     | (Ast.Feature_diff_cst ((node_name, feat_name), string), loc) ->
       Domain.check_feature_name ?domain ~loc feat_name;
-      Feature_diff_cst (pid_of_name loc node_name, feat_name, string)
+      Feature_diff_value (pid_of_name loc node_name, feat_name, String string)
 
     | (Ast.Feature_eq_float ((node_name, feat_name), float), loc) ->
       Domain.check_feature_name ?domain ~loc feat_name;
-      Feature_eq_float (pid_of_name loc node_name, feat_name, float)
+      Feature_eq_value (pid_of_name loc node_name, feat_name, Float float)
     | (Ast.Feature_diff_float ((node_name, feat_name), float), loc) ->
       Domain.check_feature_name ?domain ~loc feat_name;
-      Feature_diff_float (pid_of_name loc node_name, feat_name, float)
+      Feature_diff_value (pid_of_name loc node_name, feat_name, Float float)
 
     | (Ast.Large_prec (id1, id2), loc) ->
       begin
@@ -418,7 +379,7 @@ module Matching = struct
     with Found pid -> Some pid
 
   (* return the value of a feature or an edge label *)
-  let get_value_opt request pattern graph matching =
+  let get_string_value_opt request pattern graph matching =
     match Str.split (Str.regexp "\\.") request with
     | [edge_id] ->
       begin
@@ -446,7 +407,7 @@ module Matching = struct
               let gid = Pid_map.find pid matching.n_match in
               let node = G_graph.find gid graph in
               let fs = G_node.get_fs node in
-              G_fs.get_string_atom_opt feature_name fs
+              CCOpt.map string_of_value (G_fs.get_value_opt feature_name fs)
           end
       end
     | _ -> Error.run "[Matching.get_value_opt] unable to handled request %s" request
@@ -559,14 +520,13 @@ module Matching = struct
   (*  ---------------------------------------------------------------------- *)
   let apply_cst ?domain graph matching cst : t =
     let get_node pid = G_graph.find (Pid_map.find pid matching.n_match) graph in
-    let get_string_feat_opt pid feat_name = G_fs.get_string_atom_opt feat_name (G_node.get_fs (get_node pid)) in
-    let get_float_feat_opt pid feat_name = G_fs.get_float_feat_opt feat_name (G_node.get_fs (get_node pid)) in
+    let get_feat_value_opt pid feat_name = G_fs.get_value_opt feat_name (G_node.get_fs (get_node pid)) in
 
     let get_value base feat_name = match base with
       | Pattern.Node_id pid ->
         let node = G_graph.find (Pid_map.find pid matching.n_match) graph in
         begin
-          match G_fs.get_atom_opt feat_name (G_node.get_fs node) with
+          match G_fs.get_value_opt feat_name (G_node.get_fs node) with
           | Some f -> Value f
           | None -> raise Fail (* no such feat_name here *)
         end
@@ -578,12 +538,6 @@ module Matching = struct
           | Some s -> Value (value_of_string s)
         end
       | Pattern.Lexicon_id id -> Lex (id, feat_name) in
-
-    (* let get_float base feat_name =
-       match get_value base feat_name with
-       | Lex id -> Lex id
-       | Value Float f -> Value f
-       | Value String s -> Error.build "[Pattern.apply_cst] feature name %s is not numeric" s in *)
 
     match cst with
     | Pattern.Cst_out (pid,label_cst) ->
@@ -636,28 +590,16 @@ module Matching = struct
           end
         | _ -> Error.build "[Matching.apply_cst] cannot compare two lexicon fields"
       end
-    | Feature_eq_cst (pid1, feat_name1, value) ->
+    | Feature_eq_value (pid1, feat_name1, value) ->
       begin
-        match get_string_feat_opt pid1 feat_name1 with
+        match get_feat_value_opt pid1 feat_name1 with
         | Some fv1 when fv1 = value -> matching
         | _ -> raise Fail
       end
-    | Feature_diff_cst (pid1, feat_name1, value) ->
+    | Feature_diff_value (pid1, feat_name1, value) ->
       begin
-        match get_string_feat_opt pid1 feat_name1 with
+        match get_feat_value_opt pid1 feat_name1 with
         | Some fv1 when fv1 <> value -> matching
-        | _ -> raise Fail
-      end
-    | Feature_eq_float (pid1, feat_name1, float) ->
-      begin
-        match get_float_feat_opt pid1 feat_name1 with
-        | Some fv1 when fv1 = float -> matching
-        | _ -> raise Fail
-      end
-    | Feature_diff_float (pid1, feat_name1, float) ->
-      begin
-        match get_float_feat_opt pid1 feat_name1 with
-        | Some fv1 when fv1 <> float -> matching
         | _ -> raise Fail
       end
     | Feature_ineq (ineq, base1, feat_name1, base2, feat_name2) ->
@@ -669,18 +611,20 @@ module Matching = struct
       end
     | Feature_ineq_cst (ineq, pid1, feat_name1, constant) ->
       begin
-        match (ineq, get_float_feat_opt pid1 feat_name1) with
-        | (Ast.Lt, Some fv1) when fv1 < constant -> matching
-        | (Ast.Gt, Some fv1) when fv1 > constant -> matching
-        | (Ast.Le, Some fv1) when fv1 <= constant -> matching
-        | (Ast.Ge, Some fv1) when fv1 >= constant -> matching
+        match (ineq, get_feat_value_opt pid1 feat_name1) with
+        | (Ast.Lt, Some (Float fv1)) when fv1 < constant -> matching
+        | (Ast.Gt, Some (Float fv1)) when fv1 > constant -> matching
+        | (Ast.Le, Some (Float fv1)) when fv1 <= constant -> matching
+        | (Ast.Ge, Some (Float fv1)) when fv1 >= constant -> matching
         | _ -> raise Fail
       end
+
     | Feature_eq_regexp (pid, feat_name, regexp) ->
       begin
-        match get_string_feat_opt pid feat_name with
+        match get_feat_value_opt pid feat_name with
         | None -> raise Fail
-        | Some string_feat ->
+        | Some (Float _) -> Error.build "[Matching.apply_cst] test regexp against numeric value"
+        | Some (String string_feat) ->
           let re = Str.regexp regexp in
           if String_.re_match re string_feat then matching else raise Fail
       end
@@ -1621,16 +1565,12 @@ module Rule = struct
 
       let new_graphs = List.fold_left
           (fun acc rule_items ->
-             let (new_graph, new_feature_value) = (* TODO: take value type into account in update_feat *)
+             let (new_graph, new_feature_value) =
                G_graph.update_feat ~loc gwh.Graph_with_history.graph tar_gid tar_feat_name rule_items in
-             let new_value =
-               if Domain.is_num ?domain tar_feat_name
-               then Float (float_of_string new_feature_value)
-               else String new_feature_value in
              Graph_with_history_set.add
                { gwh with
                  Graph_with_history.graph = new_graph;
-                 delta = Delta.set_feat gwh.Graph_with_history.seed tar_gid tar_feat_name (Some new_value) gwh.Graph_with_history.delta;
+                 delta = Delta.set_feat gwh.Graph_with_history.seed tar_gid tar_feat_name (Some new_feature_value) gwh.Graph_with_history.delta;
                }
                acc
           ) Graph_with_history_set.empty rule_items_list in

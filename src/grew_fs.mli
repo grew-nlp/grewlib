@@ -34,17 +34,14 @@ module G_fs: sig
       If [t] already contains a feature named [feature_name], the old value is erased by the new one. *)
   val set_atom: ?loc:Loc.t -> ?domain:Domain.t -> feature_name -> string -> t ->  t
 
+  val set_value: ?loc:Loc.t -> ?domain:Domain.t -> feature_name -> value -> t ->  t
+
   (** [del_feat_opt feature_name t] remove the feature with name [feature_name] in [t].
       If [t] does not contain such a feature, None is returned. *)
   val del_feat_opt:  string -> t ->  t option
 
-  val get_atom_opt: string -> t -> value option
+  val get_value_opt: string -> t -> value option
 
-  (** [get_string_atom_opt f t] returns [Some v] if the fs [t] contains the feature (f,v).
-      It returns [None] if there is no feature named [f] in [t] *)
-  val get_string_atom_opt: string -> t -> string option
-
-  val get_float_feat_opt: string -> t -> float option
   val to_gr: t -> string
   val to_dot: ?decorated_feat:(string * (string * string option) list) -> ?main_feat: string -> t -> string
   val to_word_opt: t -> string option

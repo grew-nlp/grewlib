@@ -114,7 +114,7 @@ module Matching = struct
 
   let get_value_opt request pattern graph matching =
     Libgrew.handle ~name:"Matching.get_value" (fun () ->
-        Grew_rule.Matching.get_value_opt request pattern graph matching
+        Grew_rule.Matching.get_string_value_opt request pattern graph matching
       ) ()
 end
 

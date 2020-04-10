@@ -19,6 +19,7 @@ type value =
   | Float of float
 
 val string_of_value : value -> string
+val json_of_value : value -> Yojson.Basic.t
 
 (* TODO: rm this function when type of g_edge will be value based *)
 val value_of_string : string -> value

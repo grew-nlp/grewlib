@@ -378,7 +378,7 @@ module G_graph = struct
       | x::y::t ->
         loop_succ_pred acc_map (y::t)
         |> map_add_pred_succ (snd x) (snd y)
-      in
+    in
 
     let (map_with_ordered_nodes, table_ordered) = loop [] 1 sorted_nodes in
 
@@ -829,24 +829,33 @@ module G_graph = struct
   let set_feat ?loc graph node_id feat_name new_value =
     let domain = get_domain_opt graph in
     let node = Gid_map.find node_id graph.map in
-    let new_fs = G_fs.set_atom ?loc ?domain feat_name new_value (G_node.get_fs node) in
+    let new_fs = G_fs.set_value ?loc ?domain feat_name new_value (G_node.get_fs node) in
     let new_node = G_node.set_fs new_fs node in
     { graph with map = Gid_map.add node_id new_node graph.map }
 
   (* -------------------------------------------------------------------------------- *)
   let update_feat ?loc graph tar_id tar_feat_name item_list =
-    let strings_to_concat =
-      List.map
-        (function
-          | Concat_item.Feat (node_gid, feat_name) ->
-            let node = Gid_map.find node_gid graph.map in
-            (match G_fs.get_string_atom_opt feat_name (G_node.get_fs node) with
-             | Some atom -> atom
-             | None -> Error.run ?loc "Cannot update_feat, some feature (named \"%s\") is not defined" feat_name
-            )
-          | Concat_item.String s -> s
-        ) item_list in
-    let new_feature_value = List_.to_string (fun s->s) "" strings_to_concat in
+    let new_feature_value =
+      match item_list with
+      | [Concat_item.Feat (node_gid, feat_name)] ->
+        let node = Gid_map.find node_gid graph.map in
+        (match G_fs.get_value_opt feat_name (G_node.get_fs node) with
+         | Some value -> value
+         | None -> Error.run ?loc "[G_graph.update_feat], feature \"%s\" is not defined" feat_name
+        )
+      | _ ->
+        let strings_to_concat =
+          List.map
+            (function
+              | Concat_item.Feat (node_gid, feat_name) ->
+                let node = Gid_map.find node_gid graph.map in
+                (match G_fs.get_value_opt feat_name (G_node.get_fs node) with
+                 | Some (String atom) -> atom
+                 | Some (Float _) -> Error.run ?loc "[G_graph.update_feat], cannot concatenate feature named \"%s\" is numeric" feat_name
+                 | None -> Error.run ?loc "[G_graph.update_feat], feature \"%s\" is not defined" feat_name
+                )
+              | Concat_item.String s -> s
+            ) item_list in String (List_.to_string (fun s->s) "" strings_to_concat) in
     (set_feat ?loc graph tar_id tar_feat_name new_feature_value, new_feature_value)
 
   (* -------------------------------------------------------------------------------- *)
@@ -919,8 +928,8 @@ module G_graph = struct
     with Not_found -> " "
 
   let space_after gnode =
-    match G_fs.get_string_atom_opt "_MISC_SpaceAfter" (G_node.get_fs gnode) with
-    | Some "No" -> ""
+    match G_fs.get_value_opt "_MISC_SpaceAfter" (G_node.get_fs gnode) with
+    | Some (String "No") -> ""
     | _ -> " "
 
   let esc s = Str.global_replace (Str.regexp "<") "&lt;" s
@@ -980,12 +989,9 @@ module G_graph = struct
 
   let start_dur gnode =
     let fs = G_node.get_fs gnode in
-    match (G_fs.get_string_atom_opt "_start" fs, G_fs.get_string_atom_opt "_stop" fs) with
-    | (Some _start, Some _stop) ->
-      let start = float_of_string _start
-      and stop = float_of_string _stop in
-      (start, stop -. start)
-    | _ -> (-1., -1.)
+    match (G_fs.get_value_opt "_start" fs, G_fs.get_value_opt "_stop" fs) with
+    | (Some (Float start), (Some Float stop)) -> (start, stop -. start)
+    | _ -> (-1., -1.) (* TODO: exception *)
 
 
   let to_orfeo ?(deco=G_deco.empty) graph =
@@ -1016,8 +1022,8 @@ module G_graph = struct
       match (CCList.nth_opt snodes 1, CCList.last_opt snodes) with (* 0 is the "conll root node" *)
       | (Some (_,node1), Some (_,node2)) ->
         begin
-          match (G_fs.get_string_atom_opt "_start" (G_node.get_fs node1), G_fs.get_string_atom_opt "_stop" (G_node.get_fs node2)) with
-          | (Some i, Some f) -> (try Some (float_of_string i, float_of_string f) with Failure _ -> None)
+          match (G_fs.get_value_opt "_start" (G_node.get_fs node1), G_fs.get_value_opt "_stop" (G_node.get_fs node2)) with
+          | (Some (Float i), Some (Float f)) -> Some (i,f)
           | _ -> None
         end
       | _ -> None in
@@ -1027,7 +1033,7 @@ module G_graph = struct
 
   (* -------------------------------------------------------------------------------- *)
   let is_non_lexical_node node =
-    let fs = G_node.get_fs node in G_fs.get_string_atom_opt "kind" fs <> None
+    let fs = G_node.get_fs node in G_fs.get_value_opt "kind" fs <> None
 
   let to_dep ?filter ?main_feat ?(deco=G_deco.empty) graph =
     let domain = get_domain_opt graph in
@@ -1072,10 +1078,10 @@ module G_graph = struct
 
          let dep_fs = G_fs.to_dep ~decorated_feat ~tail ?filter ?main_feat fs in
 
-         let style = match G_fs.get_string_atom_opt "void" fs with
-           | Some "y" -> "; forecolor=red; subcolor=red; "
-           | _ -> match G_fs.get_string_atom_opt "_UD_empty" fs with
-             | Some "Yes" -> "; forecolor=purple; subcolor=purple; "
+         let style = match G_fs.get_value_opt "void" fs with
+           | Some (String "y") -> "; forecolor=red; subcolor=red; "
+           | _ -> match G_fs.get_value_opt "_UD_empty" fs with
+             | Some (String "Yes") -> "; forecolor=purple; subcolor=purple; "
              | _ -> "" in
 
          bprintf buff "N_%s { %s%s }\n"
@@ -1169,17 +1175,20 @@ module G_graph = struct
              ) acc (G_node.get_next node)
         ) Gid_map.empty sorted_nodes in
 
+
     let lines = List.map
         (fun (gid,node) ->
            let fs = G_node.get_fs node in
+           let string_feat feat_name =
+             match G_fs.get_value_opt feat_name fs with Some (String p) -> p | Some (Float f) -> string_of_float f | None -> "_" in
            let deps = try Gid_map.find gid all_govs with Not_found -> [] in
 
            Conll.build_line
              ~id: (Gid_map.find gid mapping)
-             ~form: (match G_fs.get_string_atom_opt "form" fs with Some p -> p | None -> "_")
-             ~lemma: (match G_fs.get_string_atom_opt "lemma" fs with Some p -> p | None -> "_")
-             ~upos: (match G_fs.get_string_atom_opt "upos" fs with Some p -> p | None -> "_")
-             ~xpos: (match G_fs.get_string_atom_opt "xpos" fs with Some p -> p | None -> "_")
+             ~form: (string_feat "form")
+             ~lemma: (string_feat "lemma")
+             ~upos: (string_feat "upos")
+             ~xpos: (string_feat "xpos")
              ~feats: (G_fs.to_conll ~exclude: ["form"; "lemma"; "upos"; "xpos"] fs)
              ~deps
              ()
@@ -1193,9 +1202,9 @@ module G_graph = struct
         (fun _ node (num,acc) ->
            try
              let fs = G_node.get_fs node in
-             let kind = match G_fs.get_string_atom_opt "kind" fs with
-               | Some "NE" -> Mwe.Ne
-               | Some "MWE" -> Mwe.Mwe
+             let kind = match G_fs.get_value_opt "kind" fs with
+               | Some (String "NE") -> Mwe.Ne
+               | Some (String "MWE") -> Mwe.Mwe
                | _ -> raise Skip in
              let nexts = G_node.get_next node in
              let next_list =
@@ -1225,9 +1234,9 @@ module G_graph = struct
                    ) Id_with_proj_set.empty tail_gids in
                let mwe = {
                  Mwe.kind;
-                 Mwe.mwepos = G_fs.get_string_atom_opt "mwepos" fs;
-                 Mwe.label = G_fs.get_string_atom_opt "label" fs;
-                 Mwe.criterion = G_fs.get_string_atom_opt "criterion" fs;
+                 Mwe.mwepos = CCOpt.map string_of_value (G_fs.get_value_opt "mwepos" fs);
+                 Mwe.label = CCOpt.map string_of_value (G_fs.get_value_opt "label" fs);
+                 Mwe.criterion = CCOpt.map string_of_value (G_fs.get_value_opt "criterion" fs);
                  first = (head_conll_id,head_proj);
                  items;
                } in
@@ -1261,13 +1270,14 @@ module G_graph = struct
            try List.assoc id deco.G_deco.nodes
            with Not_found -> ("",[]) in
          let fs = G_node.get_fs node in
-         let lab_url = match G_fs.get_string_atom_opt "label" fs with
-           | None -> None
-           | Some lab ->
-             match get_url lab with
-             | None -> None
-             | Some url -> Some (lab,url)
-         in
+         let lab_url = match G_fs.get_value_opt "label" fs with
+           | Some (String lab) ->
+             begin
+               match get_url lab with
+               | None -> None
+               | Some url -> Some (lab,url)
+             end
+           | _ -> None in
          bprintf buff "  N_%s [label=<%s>%s]\n"
            (Gid.to_string id)
            (G_fs.to_dot ~decorated_feat ?main_feat fs)
@@ -1491,7 +1501,7 @@ module Delta = struct
   let set_feat seed_graph gid feat_name new_val_opt t =
     (* equal_orig is true iff new val is the same as the one in seed_graph *)
     let equal_orig =
-      try (new_val_opt = G_fs.get_atom_opt feat_name (G_node.get_fs (G_graph.find gid seed_graph)))
+      try (new_val_opt = G_fs.get_value_opt feat_name (G_node.get_fs (G_graph.find gid seed_graph)))
       with Not_found -> false (* when gid is in created nodes *) in
     let rec loop = fun old -> match old with
       | [] when equal_orig                                             -> []
