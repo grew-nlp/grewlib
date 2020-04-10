@@ -65,8 +65,8 @@ module Pattern = struct
     | Feature_eq of base * string * base * string
     | Feature_diseq of base * string * base * string
     (* *)
-    | Feature_eq_value of base * string * value
-    | Feature_diff_value of base * string * value
+    | Feature_eq_value of base * string * feature_value
+    | Feature_diff_value of base * string * feature_value
     | Feature_eq_regexp of base * string * string
     (* *)
     | Feature_ineq of Ast.ineq * base * string * base * string
@@ -497,7 +497,7 @@ module Matching = struct
     }
 
   type out =
-    | Value of value
+    | Value of feature_value
     | Lex of (string * string)
 
   (*  ---------------------------------------------------------------------- *)

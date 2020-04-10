@@ -306,6 +306,12 @@ module List_ = struct
     | (k,v)::t when key>k -> (k,v) :: (sort_remove_assoc key t)
     | (_,v)::t -> t
 
+  let rec sort_update_assoc key value = function
+    | [] -> [(key,value)]
+    | (k,_)::_ as t when key<k -> (key,value) :: t
+    | (k,_)::t when key=k -> (key,value) :: t
+    | (k,v)::t -> (k,v) :: (sort_update_assoc key value t)
+
   let rec sort_remove_assoc_opt key = function
     | [] -> None
     | (k,_)::_ when key<k -> None

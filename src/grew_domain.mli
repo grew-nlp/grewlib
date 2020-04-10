@@ -45,7 +45,7 @@ module Domain : sig
 
   val build_disj : ?loc:Loc.t -> ?domain:t ->
     feature_name ->
-    feature_atom list -> value list
+    string list -> feature_value list
 
   val feature_names: t -> string list
 
@@ -55,10 +55,10 @@ module Domain : sig
   (** [is_num domain feature_name] returns [true] iff the domain is set and [feature_name] is defined to be numerical *)
   val is_num: ?domain: t -> feature_name -> bool
 
-  (** [check_feature ~loc domain feature_name feature_value] fails iff a domain is set and [feature_name,feature_value] is not defined in the current domain. *)
-  val check_feature: ?loc:Loc.t -> ?domain: t -> feature_name -> feature_atom -> unit
+  (** [check_feature ~loc ~domain feature_name feature_value] fails iff a domain is set and [feature_name,feature_value] is not defined in the current domain. *)
+  val check_feature: ?loc:Loc.t -> ?domain: t -> feature_name -> string_feature_value -> unit
 
-  (** [check_feature_name ~loc domain feature_name] fails iff a domain is set and [feature_name] is not defined in the current domain. *)
+  (** [check_feature_name ~loc ~domain feature_name] fails iff a domain is set and [feature_name] is not defined in the current domain. *)
   val check_feature_name: ?loc:Loc.t -> ?domain:t -> feature_name -> unit
 
   val label_to_dot: ?domain:t -> ?deco:bool -> string -> string

@@ -17,9 +17,9 @@ open Grew_domain
 
 (* ================================================================================ *)
 module Feature_value: sig
-  val build_disj: ?loc:Loc.t -> ?domain: Domain.t -> feature_name -> feature_atom list -> value list
+  val build_disj: ?loc:Loc.t -> ?domain: Domain.t -> feature_name -> string list -> feature_value list
 
-  val build_value: ?loc:Loc.t -> ?domain: Domain.t -> feature_name -> feature_atom -> value
+  val build_value: ?loc:Loc.t -> ?domain: Domain.t -> feature_name -> string -> feature_value
 end (* module Feature_value *)
 
 
@@ -34,13 +34,13 @@ module G_fs: sig
       If [t] already contains a feature named [feature_name], the old value is erased by the new one. *)
   val set_atom: ?loc:Loc.t -> ?domain:Domain.t -> feature_name -> string -> t ->  t
 
-  val set_value: ?loc:Loc.t -> ?domain:Domain.t -> feature_name -> value -> t ->  t
+  val set_value: ?loc:Loc.t -> ?domain:Domain.t -> feature_name -> feature_value -> t ->  t
 
   (** [del_feat_opt feature_name t] remove the feature with name [feature_name] in [t].
       If [t] does not contain such a feature, None is returned. *)
   val del_feat_opt:  string -> t ->  t option
 
-  val get_value_opt: string -> t -> value option
+  val get_value_opt: string -> t -> feature_value option
 
   val to_gr: t -> string
   val to_dot: ?decorated_feat:(string * (string * string option) list) -> ?main_feat: string -> t -> string
@@ -65,7 +65,7 @@ module G_fs: sig
   val pst_leaf: ?loc:Loc.t -> ?domain:Domain.t -> string -> t
   val pst_node: ?loc:Loc.t -> ?domain:Domain.t -> string -> t
 
-  val append_feats_opt: ?loc:Loc.t -> t -> t -> string -> string -> (t * (string * value) list) option
+  val append_feats_opt: ?loc:Loc.t -> t -> t -> string -> string -> (t * (string * feature_value) list) option
 
 end (* module G_fs *)
 

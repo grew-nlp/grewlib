@@ -73,7 +73,6 @@ module P_edge: sig
   val succ: t
 
   (* [all] is the joker pattern edge *)
-  val all: t
 
   val to_json: ?domain:Domain.t -> t -> Yojson.Basic.t
 

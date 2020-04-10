@@ -1465,7 +1465,7 @@ module Delta = struct
     del_nodes: Gid.t list;
     unordered_nodes: Gid.t list;
     edges: ((Gid.t * G_edge.t * Gid.t) * status) list;
-    feats: ((Gid.t * feature_name) * (value option)) list;
+    feats: ((Gid.t * feature_name) * (feature_value option)) list;
   }
 
   let empty = { del_nodes=[]; unordered_nodes=[]; edges=[]; feats=[]; }

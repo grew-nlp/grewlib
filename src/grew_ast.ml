@@ -12,11 +12,10 @@ open Printf
 open Log
 open Grew_base
 
-type feature_name = string (* cat, num, ... *)
-type feature_atom = string (* V, N, inf, ... *)
-type feature_value = string (* V, 4, "free text", ... *)
+type feature_name = string (* upos, Gender, … *)
+type string_feature_value = string (* V, 4, "free text", … *)
 
-type value =
+type feature_value =
   | String of string
   | Float of float
 
@@ -37,7 +36,7 @@ let conll_string_of_value = function
   | String s -> s
   | Float i -> String_.of_float i
 
-type disjunction = value list
+type disjunction = feature_value list
 
 (* ================================================================================ *)
 module Ast = struct
@@ -101,12 +100,12 @@ module Ast = struct
 
   (* ---------------------------------------------------------------------- *)
   type feature_kind =
-    | Equality of feature_value list
-    | Disequality of feature_value list
+    | Equality of string_feature_value list
+    | Disequality of string_feature_value list
     | Equal_lex of string * string
     | Disequal_lex of string * string
     | Absent
-    | Else of (feature_value * feature_name * feature_value)
+    | Else of (string_feature_value * feature_name * string_feature_value)
 
   let feature_kind_to_string = function
     | Equality fv_list -> sprintf " = %s" (String.concat "|" fv_list)
@@ -368,12 +367,12 @@ module Ast = struct
   type label_spec = string * string list
 
   type feature_spec =
-    | Closed of feature_name * feature_atom list (* cat:V,N *)
+    | Closed of feature_name * string list (* cat:V,N *)
     | Open of feature_name (* phon, lemma, ... *)
     | Num of feature_name (* position *)
 
-  let build_closed feature_name feature_values =
-    let sorted_list = List.sort Stdlib.compare feature_values in
+  let build_closed feature_name string_feature_values =
+    let sorted_list = List.sort Stdlib.compare string_feature_values in
     let without_duplicate =
       let rec loop = function
         | [] -> []

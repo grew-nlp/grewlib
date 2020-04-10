@@ -10,23 +10,22 @@
 
 open Grew_base
 
-type feature_name = string (* cat, num, ... *)
-type feature_atom = string (* V, N, inf, ... *)
-type feature_value = string (* V, 4, "free text", ... *)
+type feature_name = string (* upos, Gender, … *)
+type string_feature_value = string (* V, 4, "free text", … *)
 
-type value =
+type feature_value =
   | String of string
   | Float of float
 
-val string_of_value : value -> string
-val json_of_value : value -> Yojson.Basic.t
+val string_of_value : feature_value -> string
+val json_of_value : feature_value -> Yojson.Basic.t
 
 (* TODO: rm this function when type of g_edge will be value based *)
-val value_of_string : string -> value
+val value_of_string : string -> feature_value
 
-val conll_string_of_value : value -> string
+val conll_string_of_value : feature_value -> string
 
-type disjunction = value list
+type disjunction = feature_value list
 
 
 
@@ -69,12 +68,12 @@ module Ast : sig
 
   (* ---------------------------------------------------------------------- *)
   type feature_kind =
-    | Equality of feature_value list
-    | Disequality of feature_value list
+    | Equality of string_feature_value list
+    | Disequality of string_feature_value list
     | Equal_lex of string * string
     | Disequal_lex of string * string
     | Absent
-    | Else of (feature_value * feature_name * feature_value)
+    | Else of (string_feature_value * feature_name * string_feature_value)
 
   type u_feature = {
     name: feature_name;
@@ -232,11 +231,11 @@ module Ast : sig
   type label_spec = string * string list
 
   type feature_spec =
-    | Closed of feature_name * feature_atom list (* cat:V,N *)
+    | Closed of feature_name * string list (* cat:V,N *)
     | Open of feature_name (* phon, lemma, ... *)
     | Num of feature_name (* position *)
 
-  val build_closed: feature_name -> feature_atom list -> feature_spec
+  val build_closed: feature_name -> string list -> feature_spec
 
   type domain = {
     feature_domain: feature_spec list;

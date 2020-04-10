@@ -33,7 +33,7 @@ end (* module Feature_value *)
 (* ================================================================================ *)
 module G_feature = struct
 
-  type t = string * value
+  type t = feature_name * feature_value
 
   let get_name = fst
 
@@ -72,22 +72,26 @@ end (* module G_feature *)
 
 (* ================================================================================ *)
 module P_feature = struct
-  (* feature= (feature_name, disjunction of atomic values) *)
 
-  type cst =
+  type p_feature_value =
     | Absent
-    | Equal of value list     (* with Equal constr, the list MUST never be empty *)
-    | Different of value list
+    | Equal of feature_value list     (* with Equal constr, the list MUST never be empty *)
+    | Different of feature_value list
     | Equal_lex of string * string
     | Different_lex of string * string
-    | Else of (value * feature_name * value)
+    | Else of (feature_value * feature_name * feature_value)
 
-  type t = string * cst
-  let dump (feature_name, cst) =
+  type t = feature_name * p_feature_value
+
+  let get_name = fst
+
+  let compare feat1 feat2 = Stdlib.compare (get_name feat1) (get_name feat2)
+
+  let dump (feature_name, p_feature_value) =
     printf "[P_feature.dump]\n";
     printf "%s%s\n"
       feature_name
-      (match cst with
+      (match p_feature_value with
        | Different [] -> "=*"
        | Different l -> "≠" ^ (String.concat "|" (List.map string_of_value l))
        | Equal l -> "=" ^ (String.concat "|" (List.map string_of_value l))
@@ -98,10 +102,10 @@ module P_feature = struct
 
     printf "%!"
 
-  let to_json ?domain (feature_name, cst) =
+  let to_json ?domain (feature_name, p_feature_value) =
     `Assoc [
       ("feature_name", `String feature_name);
-      ( match cst with
+      ( match p_feature_value with
         | Absent -> ("absent", `Null)
         | Equal val_list -> ("equal", `List (List.map (fun x -> `String (string_of_value x)) val_list))
         | Different val_list -> ("different", `List (List.map (fun x -> `String (string_of_value x)) val_list))
@@ -111,9 +115,6 @@ module P_feature = struct
       )
     ]
 
-  let get_name = fst
-
-  let compare feat1 feat2 = Stdlib.compare (get_name feat1) (get_name feat2)
 
   exception Fail_unif
 
@@ -122,24 +123,23 @@ module P_feature = struct
     | (Absent, Absent) -> v1
     | (Absent, _)
     | (_, Absent) -> raise Fail_unif
+    | (Equal l1, Equal l2) ->
+      begin
+        match List_.sort_inter l1 l2 with
+        | [] -> raise Fail_unif
+        | l -> Equal l
+      end
+    | (Equal l1, Different l2)
+    | (Different l2, Equal l1) ->
+      begin
+        match List_.sort_diff l1 l2 with
+        | [] -> raise Fail_unif
+        | l -> Equal l
+      end
+    | (Different l1, Different l2) -> Different (List_.sort_union l1 l2)
+    | _ -> Error.bug "[P_feature.unif_value] inconsistent match case"
 
-    | (cst1, cst2) ->
-      let cst =  match (cst1, cst2) with
-        | (Equal l1, Equal l2) ->
-          (match List_.sort_inter l1 l2 with
-           | [] -> raise Fail_unif
-           | l -> Equal l)
-        | (Equal l1, Different l2)
-        | (Different l2, Equal l1) ->
-          (match List_.sort_diff l1 l2 with
-           | [] -> raise Fail_unif
-           | l -> Equal l)
-        | (Different l1, Different l2) -> Different (List_.sort_union l1 l2)
-        | _ -> Error.bug "[P_feature.unif_value] inconsistent match case" in
-      cst
-
-  let to_string t =
-    match t with
+  let to_string = function
     | (feat_name, Absent) -> sprintf "!%s" feat_name
     | (feat_name, Equal atoms) -> sprintf "%s=%s" feat_name (List_.to_string string_of_value "|" atoms)
     | (feat_name, Different []) -> sprintf "%s=*" feat_name
@@ -474,8 +474,6 @@ module P_fs = struct
 
       | ((fn1,v1)::t1, (fn2,v2)::t2) when fn1 < fn2 -> (fn1,v1) :: (loop (t1,(fn2,v2)::t2))
       | ((fn1,v1)::t1, (fn2,v2)::t2) when fn1 > fn2 -> (fn2,v2) :: (loop ((fn1,v1)::t1,t2))
-
-      (* all remaining case are fn1 = fn2 *)
       | ((fn1,v1)::t1, (fn2,v2)::t2) (* when fn1 = fn2 *) ->
         try (fn1,P_feature.unif_value v1 v2) :: (loop (t1,t2))
         with

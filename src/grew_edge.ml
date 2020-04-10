@@ -19,16 +19,10 @@ open Grew_domain
 (* ================================================================================ *)
 module G_edge = struct
 
-  (* [G_edge.fs] is a feature structure. The list of features must be ordered wrt [Stdlib.compare] *)
-  type fs = (string * string) list
+  (* [G_edge.fs] is a feature structure. The list of feature names must be ordered wrt [Stdlib.compare] *)
+  type fs = (feature_name * string) list
 
   let fs_from_items l = (List.sort (fun (x,_) (y,_) -> Stdlib.compare x y) l)
-
-  let rec update_fs feat_name new_value = function
-    | [] -> [(feat_name, new_value)]
-    | ((fn,fv)::t) when feat_name < fn -> ((feat_name, new_value) :: (fn,fv) :: t)
-    | ((fn,fv)::t) when feat_name = fn -> ((feat_name, new_value) :: t)
-    | (x::t) -> (x :: (update_fs feat_name new_value t))
 
   (* short is "E:x:y" or "x:y@z" *)
   exception Not_short
@@ -60,8 +54,6 @@ module G_edge = struct
     match fs_to_short_opt fs with
     | Some s -> s
     | None -> String.concat "," (List.map (fun (x,y) -> x^"="^y) fs)
-
-
 
   (* split ["a"; "b"; "c"] --> [("1","a"); ("2","b"); ("3","c")]  *)
   let split l = CCList.mapi (fun i elt -> (string_of_int (i+1), elt)) l
@@ -97,7 +89,7 @@ module G_edge = struct
     | _ -> Error.run "[get_sub_opt] edge is not fs"
 
   let rec update feat_name new_value = function
-    | Fs fs -> Fs (update_fs feat_name new_value fs)
+    | Fs fs -> Fs (List_.sort_update_assoc feat_name new_value fs)
     | _ -> Error.run "[update] edge is not fs"
 
   let remove_feat_opt feat_name = function

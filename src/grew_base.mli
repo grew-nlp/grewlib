@@ -175,6 +175,8 @@ module List_: sig
   val sort_assoc_opt: 'a -> ('a * 'b) list -> 'b option
   val sort_mem_assoc: 'a -> ('a * 'b) list -> bool
 
+  val sort_update_assoc: 'a -> 'b -> ('a * 'b) list -> ('a * 'b) list
+
   (* [sort_remove_assoc k ass_list] returns the input list without the [key] element,
      if [key] not found, the unchanged input list is returned *)
   val sort_remove_assoc: 'a -> ('a * 'b) list -> ('a * 'b) list
