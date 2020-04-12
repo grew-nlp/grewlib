@@ -33,18 +33,31 @@ module Pattern = struct
     | Disjoint -> `String "Disjoint"
     | Crossing -> `String "Crossing"
 
-  let check_relative_position erp (l1,_,r1) (l2,_,r2) graph =
-    match (G_graph.find_opt l1 graph, G_graph.find_opt r1 graph, G_graph.find_opt l2 graph, G_graph.find_opt r2 graph) with
-    | (Some nl1, Some nr1, Some nl2, Some nr2) ->
-      begin
-        match (erp, G_node.get_position_opt nl1, G_node.get_position_opt nr1, G_node.get_position_opt nl2, G_node.get_position_opt nr2) with
-        | (Disjoint, Some pl1, Some pr1, Some pl2, Some pr2) when pr1 <= pl2 || pr2 <= pl1 -> true
-        | (Contained, Some pl1, Some pr1, Some pl2, Some pr2) when pl1 <= pl2 && pr2 <= pr1 -> true
-        | (Included, Some pl1, Some pr1, Some pl2, Some pr2) when pl2 <= pl1 && pr1 <= pr2 -> true
-        | (Crossing, Some _, Some _, Some _, Some _) -> true
-        | _ -> false
-      end
-    | _ -> Error.bug "[check_relative_position]"
+  let min_max x y = if x < y then (x,y) else (y,x)
+
+  let build_relative_postion l1 r1 l2 r2 =
+    if r1 <= l2 || r2 <= l1
+    then Disjoint
+    else if l1 <= l2 && r2 <= r1
+    then Contained
+    else if l2 <= l1 && r1 <= r2
+    then Included
+    else Crossing
+
+  let check_relative_position erp (src1,_,tar1) (src2,_,tar2) graph =
+    match (
+      G_node.get_position_opt (G_graph.find src1 graph),
+      G_node.get_position_opt (G_graph.find tar1 graph),
+      G_node.get_position_opt (G_graph.find src2 graph),
+      G_node.get_position_opt (G_graph.find tar2 graph)
+    ) with
+    | (Some pos_src1, Some pos_tar1, Some pos_src2, Some pos_tar2) ->
+      let (l1, r1) = min_max pos_src1 pos_tar1 in
+      let (l2, r2) = min_max pos_src2 pos_tar2 in
+      build_relative_postion l1 r1 l2 r2 = erp
+      |> (fun b -> printf "### %s e1 = [%d, %d]    e2 = [%d, %d] --> %b\n%!"
+             (Yojson.Basic.to_string (json_of_edge_relative_position erp)) l1 r1 l2 r2 b; b)
+    | _ -> false
 
   type base =
     | Node_id of Pid.t
