@@ -188,29 +188,17 @@ module Ast = struct
   type u_const =
     | Cst_out of Id.name * edge_label_cst
     | Cst_in of Id.name * edge_label_cst
-    | Feature_eq of feature_ident * feature_ident
-    | Feature_diseq of feature_ident * feature_ident
+    | Feature_equal of feature_ident * feature_ident
+    | Feature_diff of feature_ident * feature_ident
     | Feature_ineq of ineq * feature_ident * feature_ident
     | Feature_ineq_cst of ineq * feature_ident * float
-    | Feature_eq_float of feature_ident * float
-    | Feature_diff_float of feature_ident * float
-    (* ambiguous case, context needed to make difference "N.cat = M.cat" VS "N.cat = lex.cat" *)
-    (* | Feature_eq_lex_or_fs of feature_ident * (string * string)
-    | Feature_diff_lex_or_fs of feature_ident * (string * string) *)
-    (* *)
-    | Feature_eq_regexp of feature_ident * string
-    | Feature_eq_cst of feature_ident * string
-    (* | Feature_eq_lex of feature_ident * (string * string) *)
-    | Feature_diff_cst of feature_ident * string
-    (* | Feature_diff_lex of feature_ident * (string * string) *)
-    (* *)
+    | Feature_equal_regexp of feature_ident * string
+    | Feature_equal_value of feature_ident * feature_value
+    | Feature_diff_value of feature_ident * feature_value
     | Large_prec of Id.name * Id.name
-    (* *)
     | Id_prec of Id.name * Id.name
-    (* *)
     | Label_equal of Id.name * Id.name
-    | Label_disequal of Id.name * Id.name
-    (* *)
+    | Label_diff of Id.name * Id.name
     | Edge_disjoint of Id.name * Id.name
     | Edge_crossing of Id.name * Id.name
 

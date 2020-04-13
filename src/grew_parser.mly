@@ -316,7 +316,7 @@ external_lexicons:
         | LPAREN external_lexicons= separated_nonempty_list_final_opt(COMMA, external_lexicon) RPAREN       { external_lexicons }
 
 external_lexicon:
-        | lex_name=simple_id FROM file=STRING { (lex_name, Ast.File file)}
+        | lex_id=simple_id FROM file=STRING { (lex_id, Ast.File file)}
 
 final_lexicon:
         | final_lexicon = LEX_PAR  { (fst final_lexicon, Ast.Final (snd final_lexicon)) }
@@ -481,18 +481,18 @@ pat_item:
              { let (feat_id1,loc)=feat_id1_loc in
               match Ast.parse_simple_or_pointed rhs with
               | Ast.Simple value ->
-                Pat_const (Ast.Feature_eq_cst (feat_id1, value), loc)
+                Pat_const (Ast.Feature_equal_value (feat_id1, String value), loc)
               | Ast.Pointed (s1, s2) ->
-                Pat_const (Ast.Feature_eq (feat_id1, (s1, to_uname s2)), loc)
+                Pat_const (Ast.Feature_equal (feat_id1, (s1, to_uname s2)), loc)
              }
 
         /*   X.cat = "value"   */
         | feat_id1_loc=feature_ident_with_loc EQUAL rhs=STRING
-            { let (feat_id1,loc)=feat_id1_loc in Pat_const (Ast.Feature_eq_cst (feat_id1, rhs), loc) }
+            { let (feat_id1,loc)=feat_id1_loc in Pat_const (Ast.Feature_equal_value (feat_id1, String rhs), loc) }
 
         /*   X.cat = 12.34   */
         | feat_id1_loc=feature_ident_with_loc EQUAL rhs=FLOAT
-            { let (feat_id1,loc)=feat_id1_loc in Pat_const (Ast.Feature_eq_float (feat_id1, rhs), loc) }
+            { let (feat_id1,loc)=feat_id1_loc in Pat_const (Ast.Feature_equal_value (feat_id1, Float rhs), loc) }
 
 
         /*   X.cat <> value   */
@@ -502,9 +502,9 @@ pat_item:
         | lhs_loc=simple_or_pointed_with_loc DISEQUAL rhs =simple_or_pointed
              {  match (lhs_loc,rhs) with
               | ((Ast.Pointed feat_id,loc), Ast.Simple value) ->
-                Pat_const (Ast.Feature_diff_cst (feat_id, value), loc)
+                Pat_const (Ast.Feature_diff_value (feat_id, String value), loc)
               | ((Ast.Pointed feat_id,loc), Ast.Pointed (s1, s2)) ->
-                Pat_const (Ast.Feature_diseq (feat_id, (s1, to_uname s2)), loc)
+                Pat_const (Ast.Feature_diff (feat_id, (s1, to_uname s2)), loc)
               | ((Ast.Simple edge_id1,loc), Ast.Simple edge_id2) ->
                 Pat_const (Ast.Edge_disjoint (edge_id1, edge_id2), loc)
               | ((_,loc),_) -> Error.build ~loc "syntax error in constraint"
@@ -514,20 +514,20 @@ pat_item:
         /*   X.cat <> "value"   */
         | lhs_loc=simple_or_pointed_with_loc DISEQUAL rhs=STRING
             { match lhs_loc with
-              | (Ast.Pointed feat_id, loc) -> Pat_const (Ast.Feature_diff_cst (feat_id, rhs), loc)
+              | (Ast.Pointed feat_id, loc) -> Pat_const (Ast.Feature_diff_value (feat_id, String rhs), loc)
               | (_,loc) -> Error.build ~loc "syntax error in constraint"
             }
 
         /*   X.cat <> 12.34   */
         | lhs_loc=simple_or_pointed_with_loc DISEQUAL rhs=FLOAT
             { match lhs_loc with
-              | (Ast.Pointed feat_id, loc) -> Pat_const (Ast.Feature_diff_float (feat_id, rhs), loc)
+              | (Ast.Pointed feat_id, loc) -> Pat_const (Ast.Feature_diff_value (feat_id, Float rhs), loc)
               | (_,loc) -> Error.build ~loc "syntax error in constraint"
             }
 
         /*   X.cat = re"regexp"   */
         | feat_id_loc=feature_ident_with_loc EQUAL regexp=REGEXP
-            { let (feat_id,loc)=feat_id_loc in Pat_const (Ast.Feature_eq_regexp (feat_id, regexp), loc) }
+            { let (feat_id,loc)=feat_id_loc in Pat_const (Ast.Feature_equal_regexp (feat_id, regexp), loc) }
 
         /*   X.feat < Y.feat    */
         /*   X < Y     */
@@ -646,7 +646,7 @@ pat_item:
         | id1_loc=simple_id_with_loc LPAREN n1=simple_id RPAREN DISEQUAL id2=simple_id LPAREN n2=simple_id RPAREN
             { let (id1,loc) = id1_loc in
               match (id1, id2) with
-              | ("label", "label") -> Pat_const (Ast.Label_disequal (n2, n1), loc)
+              | ("label", "label") -> Pat_const (Ast.Label_diff (n2, n1), loc)
               | ("label", n) | (n, "label") -> Error.build ~loc "Unexpected operator '%s'" n
               | (n, m) -> Error.build ~loc "Unexpected operators '%s' and '%s'" n m
             }

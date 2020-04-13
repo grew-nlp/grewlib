@@ -70,35 +70,49 @@ module Pattern = struct
     | Lexicon_id id -> `String id
 
   type const =
+    (*   N -[…]-> *   *)
     | Cst_out of Pid.t * Label_cst.t
+    (*   * -[…]-> N   *)
     | Cst_in of Pid.t * Label_cst.t
-    | Feature_eq of base * string * base * string
-    | Feature_diseq of base * string * base * string
-    (* *)
-    | Feature_eq_value of base * string * feature_value
+    (*   N.upos = M.upos   *)
+    (*   e1.2 = e2.2   *)
+    (*   N.upos = lex.pos   *)
+    | Feature_equal of base * string * base * string
+    (*   N.upos <> M.upos   *)
+    | Feature_diff of base * string * base * string
+    (*   N.upos = VERB   *)
+    (*   e.2 = comp   *)
+    | Feature_equal_value of base * string * feature_value
+    (*   e.2 <> comp   *)
     | Feature_diff_value of base * string * feature_value
-    | Feature_eq_regexp of base * string * string
-    (* *)
+    (*   e.2 = re"…"   *)
+    | Feature_equal_regexp of base * string * string
+    (*   e1.level < e2.level   *)
     | Feature_ineq of Ast.ineq * base * string * base * string
+    (*   e1.level < 3   *)
     | Feature_ineq_cst of Ast.ineq * base * string * float
-    (* *)
-    | Filter of Pid.t * P_fs.t (* used when a without impose a fs on a node defined by the match basic *)
-    (* *)
+    (*   N [upos=VERB]   *)
+    (* ⚠ used only when a without impose a fs on a node also defined by the positive pattern part *)
+    | Filter of Pid.t * P_fs.t
+    (*   N << M   *)
     | Node_large_prec of Pid.t * Pid.t
-    (* *)
+    (*   id(N) < id(M)   *)
     | Id_prec of Pid.t * Pid.t
-    (* *)
+    (*   label(e1) = label(e2)   *)
     | Label_equal of string * string
-    | Label_disequal of string * string
-    (* *)
+    (*   label(e1) <> label(e2)   *)
+    | Label_diff of string * string
+    (*   e1 << e2   *)
+    (*   e1 <> e2   *)
+    (*   e1 >< e2   *)
     | Edge_relative of edge_relative_position * string * string
-    (* *)
+    (*   N << e2   *)
     | Covered of Pid.t * string (* node_id, edge_id *)
 
   let const_to_json ?domain = function
     | Cst_out (pid, label_cst) -> `Assoc ["cst_out", Label_cst.to_json ?domain label_cst]
     | Cst_in (pid, label_cst) -> `Assoc ["cst_in", Label_cst.to_json ?domain label_cst]
-    | Feature_eq (id1,fn1,id2,fn2) ->
+    | Feature_equal (id1,fn1,id2,fn2) ->
       `Assoc ["features_eq",
               `Assoc [
                 ("id1", json_of_base id1);
@@ -107,7 +121,7 @@ module Pattern = struct
                 ("feature_name_2", `String fn2);
               ]
              ]
-    | Feature_diseq (id1,fn1,id2,fn2) ->
+    | Feature_diff (id1,fn1,id2,fn2) ->
       `Assoc ["features_diseq",
               `Assoc [
                 ("id1", json_of_base id1);
@@ -116,7 +130,7 @@ module Pattern = struct
                 ("feature_name_2", `String fn2);
               ]
              ]
-    | Feature_eq_value (id,fn,value) ->
+    | Feature_equal_value (id,fn,value) ->
       `Assoc ["feature_eq_cst",
               `Assoc [
                 ("id", json_of_base id);
@@ -132,7 +146,7 @@ module Pattern = struct
                 ("value", json_of_value value);
               ]
              ]
-    | Feature_eq_regexp (id,fn,regexp) ->
+    | Feature_equal_regexp (id,fn,regexp) ->
       `Assoc ["feature_eq_regexp",
               `Assoc [
                 ("id", json_of_base id);
@@ -187,7 +201,7 @@ module Pattern = struct
                 ("id2", `String eid2);
               ]
              ]
-    | Label_disequal (eid1, eid2) ->
+    | Label_diff (eid1, eid2) ->
       `Assoc ["label_disequal",
               `Assoc [
                 ("id1", `String eid1);
@@ -222,11 +236,11 @@ module Pattern = struct
     | (Ast.Cst_in (id,label_cst), loc) ->
       Cst_in (pid_of_name loc id, Label_cst.build ~loc ?domain label_cst)
 
-    | (Ast.Feature_eq ((id1, feat_name1),(id2, feat_name2)), loc) ->
-      Feature_eq (parse_id loc id1, feat_name1, parse_id loc id2, feat_name2)
+    | (Ast.Feature_equal ((id1, feat_name1),(id2, feat_name2)), loc) ->
+      Feature_equal (parse_id loc id1, feat_name1, parse_id loc id2, feat_name2)
 
-    | (Ast.Feature_diseq ((id1, feat_name1),(id2, feat_name2)), loc)  ->
-      Feature_diseq (parse_id loc id1, feat_name1, parse_id loc id2, feat_name2)
+    | (Ast.Feature_diff ((id1, feat_name1),(id2, feat_name2)), loc)  ->
+      Feature_diff (parse_id loc id1, feat_name1, parse_id loc id2, feat_name2)
 
     | (Ast.Feature_ineq (ineq, (id1, feat_name1), (id2, feat_name2)), loc) ->
       Feature_ineq (ineq, parse_id loc id1, feat_name1, parse_id loc id2, feat_name2)
@@ -234,19 +248,13 @@ module Pattern = struct
     | (Ast.Feature_ineq_cst (ineq, (id1, feat_name1), constant), loc) ->
       Feature_ineq_cst (ineq, parse_id loc id1, feat_name1, constant)
 
-    | (Ast.Feature_eq_regexp ((id, feat_name), regexp), loc) ->
-      Feature_eq_regexp (parse_id loc id, feat_name, regexp)
+    | (Ast.Feature_equal_regexp ((id, feat_name), regexp), loc) ->
+      Feature_equal_regexp (parse_id loc id, feat_name, regexp)
 
-    | (Ast.Feature_eq_cst ((id, feat_name), string), loc) ->
-      Feature_eq_value (parse_id loc id, feat_name, String string)
-    | (Ast.Feature_diff_cst ((id, feat_name), string), loc) ->
-      Feature_diff_value (parse_id loc id, feat_name, String string)
-
-    | (Ast.Feature_eq_float ((id, feat_name), float), loc) ->
-      Feature_eq_value (parse_id loc id, feat_name, Float float)
-    | (Ast.Feature_diff_float ((id, feat_name), float), loc) ->
-      Feature_diff_value (parse_id loc id, feat_name, Float float)
-
+    | (Ast.Feature_equal_value ((id, feat_name), value), loc) ->
+      Feature_equal_value (parse_id loc id, feat_name, value)
+    | (Ast.Feature_diff_value ((id, feat_name), value), loc) ->
+      Feature_diff_value (parse_id loc id, feat_name, value)
     | (Ast.Large_prec (id1, id2), loc) ->
       begin
         match (parse_id loc id1, parse_id loc id2) with
@@ -259,8 +267,8 @@ module Pattern = struct
     | (Ast.Label_equal (eid1, eid2), loc) ->
       Label_equal (eid1, eid2)
 
-    | (Ast.Label_disequal (eid1, eid2), loc) ->
-      Label_disequal (eid1, eid2)
+    | (Ast.Label_diff (eid1, eid2), loc) ->
+      Label_diff (eid1, eid2)
 
     | (Ast.Id_prec (id1, id2), loc) ->
       Id_prec (pid_of_name loc id1, pid_of_name loc id2)
@@ -552,7 +560,7 @@ module Matching = struct
           {matching with l_param = new_param }
         with P_fs.Fail -> raise Fail
       end
-    | Feature_eq (base1, feat_name1, base2, feat_name2) ->
+    | Feature_equal (base1, feat_name1, base2, feat_name2) ->
       begin
         match (get_value base1 feat_name1, get_value base2 feat_name2) with
         | (Value v1, Value v2) -> if v1 = v2 then matching else raise Fail
@@ -566,7 +574,7 @@ module Matching = struct
           end
         | _ -> Error.build "[Matching.apply_cst] cannot compare two lexicon fields"
       end
-    | Feature_diseq (base1, feat_name1, base2, feat_name2) ->
+    | Feature_diff (base1, feat_name1, base2, feat_name2) ->
       begin
         match (get_value base1 feat_name1, get_value base2 feat_name2) with
         | (Value v1, Value v2) -> if v1 <> v2 then matching else raise Fail
@@ -580,7 +588,7 @@ module Matching = struct
           end
         | _ -> Error.build "[Matching.apply_cst] cannot compare two lexicon fields"
       end
-    | Feature_eq_value (id1, feat_name1, value) ->
+    | Feature_equal_value (id1, feat_name1, value) ->
       begin
         match get_value id1 feat_name1 with
         | Value fv when fv = value -> matching
@@ -619,7 +627,7 @@ module Matching = struct
         | _ -> Error.build "[Matching.apply_cst] Inequalities on feature values are available only on numeric values"
       end
 
-    | Feature_eq_regexp (id, feat_name, regexp) ->
+    | Feature_equal_regexp (id, feat_name, regexp) ->
       begin
         match get_value id feat_name with
         | Lex _ -> Error.build "[Matching.apply_cst] test regexp against lexicon is not available"
@@ -653,7 +661,7 @@ module Matching = struct
         | (_, None) -> Error.build "Edge identifier '%s' not found" eid2
       end
 
-    | Label_disequal (eid1, eid2) ->
+    | Label_diff (eid1, eid2) ->
       begin
         match (String_map.find_opt eid1 matching.e_match, String_map.find_opt eid2 matching.e_match) with
         | (Some (_,e1,_), Some (_,e2,_)) -> if e1 <> e2 then matching else raise Fail
@@ -1231,13 +1239,13 @@ module Rule = struct
           (function
             | Command.Feat (cnode, feat_name) -> Concat_item.Feat (node_find cnode, feat_name)
             | Command.String s -> Concat_item.String s
-            | Command.Lexical_field (lex_name, field) ->
+            | Command.Lexical_field (lex_id, field) ->
               (try
-                 let lexicon = List.assoc lex_name matching.l_param in
+                 let lexicon = List.assoc lex_id matching.l_param in
                  let v = Lexicon.get field lexicon in
                  Concat_item.String v
                with
-               | Not_found -> Error.run ~loc "UPDATE_FEAT: the lexicon '%s' does not exist" lex_name
+               | Not_found -> Error.run ~loc "UPDATE_FEAT: the lexicon '%s' does not exist" lex_id
               )
           ) item_list in
       let (new_graph, new_feature_value) =
@@ -1527,17 +1535,17 @@ module Rule = struct
           (fun item acc -> match item with
              | Command.Feat (cnode, feat_name) -> List.map (fun x -> Concat_item.Feat (node_find cnode, feat_name)::x) acc
              | Command.String s -> List.map (fun x -> (Concat_item.String s) :: x) acc
-             | Command.Lexical_field (lex_name, field) ->
+             | Command.Lexical_field (lex_id, field) ->
                try
-                 let lexicon = List.assoc lex_name matching.l_param in
+                 let lexicon = List.assoc lex_id matching.l_param in
                  let values = Lexicon.read_all field lexicon in
                  List.fold_left
                    (fun acc2 value ->
                       (List.map (fun x -> (Concat_item.String value) :: x) acc) @ acc2
                    ) [] values
                with
-               | Not_found -> Error.run ~loc "UPDATE_FEAT: the lexicon '%s' does not exist" lex_name
-               | Lexicon.Not_functional_lexicon -> Error.run ~loc "UPDATE_FEAT: the lexicon is not functional" lex_name
+               | Not_found -> Error.run ~loc "UPDATE_FEAT: the lexicon '%s' does not exist" lex_id
+               | Lexicon.Not_functional_lexicon -> Error.run ~loc "UPDATE_FEAT: the lexicon is not functional" lex_id
           ) item_list [[]] in
 
       let new_graphs = List.fold_left

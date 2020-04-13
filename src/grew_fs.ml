@@ -451,17 +451,17 @@ module P_fs = struct
       | ((_, P_feature.Equal fv)::_, (_, atom)::t) when not (List_.sort_mem atom fv) -> raise Fail
       | ((_, P_feature.Different fv)::_, (_, atom)::t) when List_.sort_mem atom fv -> raise Fail
 
-      | ((_, P_feature.Equal_lex (lex_name,field))::t_pat, (_, atom)::t) ->
+      | ((_, P_feature.Equal_lex (lex_id,field))::t_pat, (_, atom)::t) ->
         begin
           try
-            let lexicon = List.assoc lex_name acc in
+            let lexicon = List.assoc lex_id acc in
             match Lexicon.select_opt field (string_of_value atom) lexicon with
             | None -> raise Fail
             | Some new_lexicon ->
-              let new_acc = (lex_name, new_lexicon) :: (List.remove_assoc lex_name acc) in
+              let new_acc = (lex_id, new_lexicon) :: (List.remove_assoc lex_id acc) in
               loop new_acc (t_pat, t)
           with
-          | Not_found -> Error.bug "[P_fs.match_] Cannot find lexicon. lex_name=\"%s\"" lex_name
+          | Not_found -> Error.bug "[P_fs.match_] Cannot find lexicon. lex_id=\"%s\"" lex_id
         end
       | (_::p_tail, _::g_tail) -> loop acc (p_tail,g_tail) in
     loop lexicons (p_fs_wo_pos,g_fs)
