@@ -356,6 +356,9 @@ module Corpus_desc = struct
   let build_corpus t =
     Libgrew.handle ~name:"Corpus.build_corpus" (fun () -> Grew_corpus.Corpus_desc.build_corpus t) ()
 
+  let load_corpus_opt t =
+    Libgrew.handle ~name:"Corpus.load_corpus_opt" (fun () -> Grew_corpus.Corpus_desc.load_corpus_opt t) ()
+
   let load_json grs =
     Libgrew.handle ~name:"Corpus.load_json" (fun () -> Grew_corpus.Corpus_desc.load_json grs) ()
 

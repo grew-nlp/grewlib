@@ -142,6 +142,17 @@ module Corpus_desc = struct
     | _ -> Error.bug "[Corpus_desc.build_corpus] is available only on Conll format"
 
   (* ---------------------------------------------------------------------------------------------------- *)
+  let load_corpus_opt corpus_desc =
+    let marshal_file = (Filename.concat corpus_desc.directory corpus_desc.id) ^ ".marshal" in
+      try
+        let in_ch = open_in_bin marshal_file in
+        let data = (Marshal.from_channel in_ch : Corpus.t) in
+        close_in in_ch;
+        Some data
+      with Sys_error _ -> None
+
+
+  (* ---------------------------------------------------------------------------------------------------- *)
   let load_json json_file =
     let open Yojson.Basic.Util in
 

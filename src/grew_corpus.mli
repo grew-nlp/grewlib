@@ -23,6 +23,7 @@ module Corpus_desc : sig
   type t
 
   val build_corpus: t -> Corpus.t
+  val load_corpus_opt: t -> Corpus.t option
 
   val is_rtl: t -> bool
   val is_audio: t -> bool
