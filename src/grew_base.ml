@@ -669,7 +669,7 @@ module Global = struct
     | (_,None) -> ()
     | (fo, Some l) -> current_loc := (fo, Some (l+1))
 
-  let debug = ref true
+  let debug = ref false
   let safe_commands = ref false
 
   let track_rules = ref false
