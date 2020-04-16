@@ -50,24 +50,13 @@ module Error: sig
 end
 
 (* ================================================================================ *)
-(* [Pid_set] *)
 module String_: sig
-  (* [to_float]: robust conversion of string to float whatever is the locale *)
-  val to_float: string -> float
-
-  (* [of_float]: robust conversion of string to float (both . and , is accepted as separator) *)
-  val of_float: float -> string
-
   (* [re_match regexp s] returns true iff the full string [s] matches with [regexp] *)
   val re_match: Str.regexp -> string -> bool
 
   (* [rm_first_char s] returns the string [s] without the first charater if s is not empty.
      If [s] in empty, the empty string is returned  *)
   val rm_first_char: string -> string
-
-  (* [rm_peripheral_white s] returns the string [s] without any white space or tab
-     at the beginning or at the end of the string. *)
-  val rm_peripheral_white: string -> string
 
   val rev_concat: string -> string list -> string
 end (* module String_ *)

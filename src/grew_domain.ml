@@ -204,23 +204,26 @@ module Feature_domain = struct
     let values = List.sort Stdlib.compare unsorted_values in
     match (feature_domain, name.[0]) with
     | (None, _)
-    | (Some _, '_') -> List.map (fun s -> String s) values (* no check on feat_name starting with '_' *)
+    | (Some _, '_') -> List.map (fun s -> value_of_string s) values (* no check on feat_name starting with '_' *)
     | (Some {decls=dom}, _) ->
       let rec loop = function
         | [] -> Error.build ?loc "[GRS] Unknown feature name '%s'" name
         | ((Ast.Open n)::_) when n = name ->
           List.map (fun s -> String s) values
         | ((Ast.Num n)::_) when n = name ->
-          (try List.map (fun s -> Float (String_.to_float s)) values
-           with Failure _ -> Error.build ?loc "[GRS] The feature '%s' is of type int" name)
+          begin
+            try List.map (fun s -> Float (float_of_string s)) values
+            with Failure _ -> Error.build ?loc "[GRS] The feature '%s' is of type int" name
+          end
         | ((Ast.Closed (n,vs))::_) when n = name ->
-          (match List_.sort_diff values vs with
-           | [] -> List.map (fun s -> String s) values
-           | l when List.for_all (fun x -> x.[0] = '_') l -> List.map (fun s -> String s) values
-           | l -> Error.build ?loc "Unknown feature values '%s' for feature name '%s'"
-                    (List_.to_string (fun x->x) ", " l)
-                    name
-          )
+          begin
+            match List_.sort_diff values vs with
+            | [] -> List.map (fun s -> String s) values
+            | l when List.for_all (fun x -> x.[0] = '_') l -> List.map (fun s -> String s) values
+            | l -> Error.build ?loc "Unknown feature values '%s' for feature name '%s'"
+                     (List_.to_string (fun x->x) ", " l)
+                     name
+          end
         | _::t -> loop t in
       loop dom
 

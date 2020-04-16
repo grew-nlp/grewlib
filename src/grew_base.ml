@@ -72,20 +72,7 @@ end (* module Error *)
 
 (* ================================================================================ *)
 module String_ = struct
-  let to_float string =
-    try float_of_string string
-    with _ ->
-    try float_of_string (Str.global_replace (Str.regexp "\\.") "," string)
-    with _ -> Error.build "[String_.to_float] cannot convert '%s'" string
-
-  let of_float float = Str.global_replace (Str.regexp ",") "." (sprintf "%g" float)
-
   let rm_first_char = function "" -> "" | s -> String.sub s 1 ((String.length s) - 1)
-
-  let rm_peripheral_white s =
-    s
-    |> (Str.global_replace (Str.regexp "\\( \\|\t\\)*$") "")
-    |> (Str.global_replace (Str.regexp "^\\( \\|\t\\)*") "")
 
   let re_match re s = (Str.string_match re s 0) && (Str.matched_string s = s)
 
