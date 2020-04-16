@@ -572,7 +572,7 @@ module Matching = struct
             | None -> raise Fail
             | Some new_lex -> {matching with l_param = (lexicon, new_lex) :: (List.remove_assoc lexicon matching.l_param) }
           end
-        | _ -> Error.build "[Matching.apply_cst] cannot compare two lexicon fields"
+        | _ -> Error.run "[Matching.apply_cst] cannot compare two lexicon fields"
       end
     | Feature_diff (base1, feat_name1, base2, feat_name2) ->
       begin
@@ -586,7 +586,7 @@ module Matching = struct
             | None -> raise Fail
             | Some new_lex -> {matching with l_param = (lexicon, new_lex) :: (List.remove_assoc lexicon matching.l_param) }
           end
-        | _ -> Error.build "[Matching.apply_cst] cannot compare two lexicon fields"
+        | _ -> Error.run "[Matching.apply_cst] cannot compare two lexicon fields"
       end
     | Feature_equal_value (id1, feat_name1, value) ->
       begin
@@ -618,20 +618,22 @@ module Matching = struct
       begin
         match (get_value base1 feat_name1, get_value base2 feat_name2) with
         | (Value (Float v1), Value (Float v2)) -> if Ast.check_ineq v1 ineq v2 then matching else raise Fail
-        | (_, _) -> Error.build "[Matching.apply_cst] Inequalities on feature values are available only on numeric values"
+        | (_, _) ->
+          Error.run "[Matching.apply_cst] Cannot check inequality on feature values %s and %s (available only on numeric values)"
+            feat_name1 feat_name2
       end
     | Feature_ineq_cst (ineq, base, feat_name, constant) ->
       begin
         match (get_value base feat_name) with
         | Value (Float f) -> if Ast.check_ineq f ineq constant then matching else raise Fail
-        | _ -> Error.build "[Matching.apply_cst] Inequalities on feature values are available only on numeric values"
+        | _ -> Error.run "[Matching.apply_cst] Cannot check inequality on feature value %s (available only on numeric values)" feat_name
       end
 
     | Feature_equal_regexp (id, feat_name, regexp) ->
       begin
         match get_value id feat_name with
-        | Lex _ -> Error.build "[Matching.apply_cst] test regexp against lexicon is not available"
-        | Value (Float _) -> Error.build "[Matching.apply_cst] test regexp against numeric value is not available"
+        | Lex _ -> Error.run "[Matching.apply_cst] test regexp against lexicon is not available"
+        | Value (Float _) -> Error.run "[Matching.apply_cst] test regexp against numeric value is not available"
         | Value (String string_feat) ->
           let re = Str.regexp regexp in
           if String_.re_match re string_feat then matching else raise Fail
@@ -657,16 +659,16 @@ module Matching = struct
       begin
         match (String_map.find_opt eid1 matching.e_match, String_map.find_opt eid2 matching.e_match) with
         | (Some (_,e1,_), Some (_,e2,_)) -> if e1 = e2 then matching else raise Fail
-        | (None, _) -> Error.build "Edge identifier '%s' not found" eid1
-        | (_, None) -> Error.build "Edge identifier '%s' not found" eid2
+        | (None, _) -> Error.run "Edge identifier '%s' not found" eid1
+        | (_, None) -> Error.run "Edge identifier '%s' not found" eid2
       end
 
     | Label_diff (eid1, eid2) ->
       begin
         match (String_map.find_opt eid1 matching.e_match, String_map.find_opt eid2 matching.e_match) with
         | (Some (_,e1,_), Some (_,e2,_)) -> if e1 <> e2 then matching else raise Fail
-        | (None, _) -> Error.build "Edge identifier '%s' not found" eid1
-        | (_, None) -> Error.build "Edge identifier '%s' not found" eid2
+        | (None, _) -> Error.run "Edge identifier '%s' not found" eid1
+        | (_, None) -> Error.run "Edge identifier '%s' not found" eid2
       end
 
     | Edge_relative (erp, eid1, eid2) ->
@@ -674,8 +676,8 @@ module Matching = struct
         match (String_map.find_opt eid1 matching.e_match, String_map.find_opt eid2 matching.e_match) with
         | (Some e1, Some e2) when Pattern.check_relative_position erp e1 e2 graph -> matching
         | (Some _, Some _) -> raise Fail
-        | (None, _) -> Error.build "Edge identifier '%s' not found" eid1
-        | (_, None) -> Error.build "Edge identifier '%s' not found" eid2
+        | (None, _) -> Error.run "Edge identifier '%s' not found" eid1
+        | (_, None) -> Error.run "Edge identifier '%s' not found" eid2
       end
 
     | Covered (pid, eid) ->
@@ -684,7 +686,7 @@ module Matching = struct
         match (String_map.find_opt eid matching.e_match) with
         | (Some edge) when G_graph.covered gnode edge graph -> matching
         | Some _ -> raise Fail
-        | (None) -> Error.build "Edge identifier '%s' not found" eid;
+        | (None) -> Error.run "Edge identifier '%s' not found" eid;
 
       end
 
@@ -1328,87 +1330,83 @@ module Rule = struct
 
 
   let onf_apply_opt ?domain rule graph =
-    let {Pattern.pos; negs} = rule.pattern in
-    (* get the list of partial matching for positive part of the pattern *)
-    let matching_list =
-      Matching.extend_matching
-        ?domain
-        (pos.graph,P_graph.empty)
-        graph
-        (Matching.init ~lexicons:rule.lexicons pos) in
-    match List.find_opt
-            (fun (sub, already_matched_gids) ->
-               List.for_all
-                 (fun neg ->
-                    let new_partial_matching = Matching.update_partial neg (sub, already_matched_gids) in
-                    Matching.fulfill ?domain (pos.graph,neg.graph) graph new_partial_matching
-                 ) negs
-            ) matching_list with
-    | None -> None
-    | Some (first_matching_where_all_witout_are_fulfilled,_) ->
-      let final_state =
-        List.fold_left
-          (fun state command -> onf_apply_command ?domain first_matching_where_all_witout_are_fulfilled command state)
-          { graph;
-            created_nodes = [];
-            effective = false;
-            e_mapping = first_matching_where_all_witout_are_fulfilled.e_match;
-          }
-          rule.commands in
-      if final_state.effective
-      then (Timeout.check (); incr_rules(); Some (G_graph.push_rule (get_long_name rule) final_state.graph))
-      else None
+    try
+      let {Pattern.pos; negs} = rule.pattern in
+      (* get the list of partial matching for positive part of the pattern *)
+      let matching_list =
+        Matching.extend_matching
+          ?domain
+          (pos.graph,P_graph.empty)
+          graph
+          (Matching.init ~lexicons:rule.lexicons pos) in
+      match List.find_opt
+              (fun (sub, already_matched_gids) ->
+                 List.for_all
+                   (fun neg ->
+                      let new_partial_matching = Matching.update_partial neg (sub, already_matched_gids) in
+                      Matching.fulfill ?domain (pos.graph,neg.graph) graph new_partial_matching
+                   ) negs
+              ) matching_list with
+      | None -> None
+      | Some (first_matching_where_all_witout_are_fulfilled,_) ->
+        let final_state =
+          List.fold_left
+            (fun state command -> onf_apply_command ?domain first_matching_where_all_witout_are_fulfilled command state)
+            { graph;
+              created_nodes = [];
+              effective = false;
+              e_mapping = first_matching_where_all_witout_are_fulfilled.e_match;
+            }
+            rule.commands in
+        if final_state.effective
+        then (Timeout.check (); incr_rules(); Some (G_graph.push_rule (get_long_name rule) final_state.graph))
+        else None
+    with Error.Run (msg,_) -> Error.run ~loc:rule.loc "%s" msg
 
   let rec wrd_apply_opt ?domain rule (graph, big_step_opt) =
-    let {Pattern.pos; negs} = rule.pattern in
-    (* get the list of partial matching for positive part of the pattern *)
-    let matching_list =
-      Matching.extend_matching
-        ?domain
-        (pos.graph,P_graph.empty)
-        graph
-        (Matching.init ~lexicons:rule.lexicons pos) in
-    match List.find_opt
-            (fun (sub, already_matched_gids) ->
-               List.for_all
-                 (fun neg ->
-                    let new_partial_matching = Matching.update_partial neg (sub, already_matched_gids) in
-                    Matching.fulfill ?domain (pos.graph,neg.graph) graph new_partial_matching
-                 ) negs
-            ) matching_list with
-    | None -> None
-    | Some (first_matching_where_all_witout_are_fulfilled,_) ->
-      let final_state =
-        List.fold_left
-          (fun state command -> onf_apply_command ?domain first_matching_where_all_witout_are_fulfilled command state)
-          { graph;
-            created_nodes = [];
-            effective = false;
-            e_mapping = first_matching_where_all_witout_are_fulfilled.e_match;
-          }
-          rule.commands in
+    try
+      let {Pattern.pos; negs} = rule.pattern in
+      (* get the list of partial matching for positive part of the pattern *)
+      let matching_list =
+        Matching.extend_matching
+          ?domain
+          (pos.graph,P_graph.empty)
+          graph
+          (Matching.init ~lexicons:rule.lexicons pos) in
+      match List.find_opt
+              (fun (sub, already_matched_gids) ->
+                 List.for_all
+                   (fun neg ->
+                      let new_partial_matching = Matching.update_partial neg (sub, already_matched_gids) in
+                      Matching.fulfill ?domain (pos.graph,neg.graph) graph new_partial_matching
+                   ) negs
+              ) matching_list with
+      | None -> None
+      | Some (first_matching_where_all_witout_are_fulfilled,_) ->
+        let final_state =
+          List.fold_left
+            (fun state command -> onf_apply_command ?domain first_matching_where_all_witout_are_fulfilled command state)
+            { graph;
+              created_nodes = [];
+              effective = false;
+              e_mapping = first_matching_where_all_witout_are_fulfilled.e_match;
+            }
+            rule.commands in
 
-      let rule_app = {
-        Libgrew_types.rule_name = rule.name;
-        up = Matching.match_deco rule.pattern first_matching_where_all_witout_are_fulfilled;
-        down = Matching.down_deco (first_matching_where_all_witout_are_fulfilled,final_state.created_nodes) rule.commands
-      } in
+        let rule_app = {
+          Libgrew_types.rule_name = rule.name;
+          up = Matching.match_deco rule.pattern first_matching_where_all_witout_are_fulfilled;
+          down = Matching.down_deco (first_matching_where_all_witout_are_fulfilled,final_state.created_nodes) rule.commands
+        } in
 
-      let new_big_step = match big_step_opt with
-        | None -> {Libgrew_types.small_step = []; first=rule_app}
-        | Some {Libgrew_types.small_step; first} -> {Libgrew_types.small_step = (graph,rule_app) :: small_step; first} in
+        let new_big_step = match big_step_opt with
+          | None -> {Libgrew_types.small_step = []; first=rule_app}
+          | Some {Libgrew_types.small_step; first} -> {Libgrew_types.small_step = (graph,rule_app) :: small_step; first} in
 
-      if final_state.effective
-      then (Timeout.check (); incr_rules(); Some (final_state.graph, new_big_step))
-      else None
-
-
-
-
-
-
-
-
+        if final_state.effective
+        then (Timeout.check (); incr_rules(); Some (final_state.graph, new_big_step))
+        else None
+    with Error.Run (msg,_) -> Error.run ~loc:rule.loc "%s" msg
 
   let find cnode ?loc gwh matching =
     match cnode with
@@ -1718,11 +1716,13 @@ module Rule = struct
       ) init rule.commands
 
   let gwh_apply ?domain rule graph_with_history =
-    let matching_list = Matching.match_in_graph ?domain ~lexicons:rule.lexicons rule.pattern graph_with_history.Graph_with_history.graph in
-    List.fold_left
-      (fun acc matching ->
-         Graph_with_history_set.union (gwh_apply_rule ?domain graph_with_history matching rule) acc
-      ) Graph_with_history_set.empty matching_list
+    try
+      let matching_list = Matching.match_in_graph ?domain ~lexicons:rule.lexicons rule.pattern graph_with_history.Graph_with_history.graph in
+      List.fold_left
+        (fun acc matching ->
+           Graph_with_history_set.union (gwh_apply_rule ?domain graph_with_history matching rule) acc
+        ) Graph_with_history_set.empty matching_list
+    with Error.Run (msg,_) -> Error.run ~loc:rule.loc "%s" msg
 
   exception Dead_lock
   let owh_apply_opt ?domain rule gwh =
