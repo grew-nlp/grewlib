@@ -843,6 +843,7 @@ module G_graph = struct
          | Some value -> value
          | None -> Error.run ?loc "[G_graph.update_feat], feature \"%s\" is not defined" feat_name
         )
+      | [Concat_item.String s] -> value_of_string s (* hack to catch float in lexicon *)
       | _ ->
         let strings_to_concat =
           List.map
