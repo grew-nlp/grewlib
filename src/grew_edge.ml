@@ -35,8 +35,7 @@ module G_edge = struct
         | Some (String "enhanced") -> "E:"
         | Some _ -> raise Not_short in
       let suffix = match List_.sort_assoc_opt "deep" fs with
-        | Some (String s) -> "@"^s
-        | Some (Float f) -> "@"^(string_of_float f)
+        | Some value -> "@"^(string_of_value value)
         | None -> "" in
       let infix_items =
         fs

@@ -164,13 +164,13 @@ module Pattern = struct
                 ("feature_name_2", `String fn2);
               ]
              ]
-    | Feature_ineq_cst (ineq,id,fn,value) ->
+    | Feature_ineq_cst (ineq,id,fn,f) ->
       `Assoc ["feature_ineq_cst",
               `Assoc [
                 ("ineq", `String (Ast.string_of_ineq ineq));
                 ("id", json_of_base id);
                 ("feature_name", `String fn);
-                ("value", `String (string_of_float value));
+                ("value", `Float f);
               ]
              ]
     | Filter (pid, p_fs) ->

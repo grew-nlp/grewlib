@@ -1180,7 +1180,7 @@ module G_graph = struct
         (fun (gid,node) ->
            let fs = G_node.get_fs node in
            let string_feat feat_name =
-             match G_fs.get_value_opt feat_name fs with Some (String p) -> p | Some (Float f) -> string_of_float f | None -> "_" in
+             match G_fs.get_value_opt feat_name fs with Some value -> conll_string_of_value value | None -> "_" in
            let deps = try Gid_map.find gid all_govs with Not_found -> [] in
 
            Conll.build_line

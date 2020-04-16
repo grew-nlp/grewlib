@@ -22,7 +22,7 @@ type feature_value =
 let string_of_value = function
   | String s -> Str.global_replace (Str.regexp "\"") "\\\""
                   (Str.global_replace (Str.regexp "\\\\") "\\\\\\\\" s)
-  | Float i -> string_of_float i
+  | Float f -> sprintf "%g" f
 
 let json_of_value = function
   | String s -> `String s
@@ -34,7 +34,7 @@ let value_of_string s = match float_of_string_opt s with
 
 let conll_string_of_value = function
   | String s -> s
-  | Float i -> string_of_float i
+  | Float f -> sprintf "%g" f
 
 (* ================================================================================ *)
 module Ast = struct
