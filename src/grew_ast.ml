@@ -28,9 +28,10 @@ let json_of_value = function
   | String s -> `String s
   | Float f ->  `Float f
 
+(* the function [float_of_string] captures non numeric value like "Inf" *)
 let value_of_string s = match float_of_string_opt s with
-  | Some f -> Float f
-  | None -> String s
+  | Some f when classify_float f = FP_normal -> Float f
+  | _ -> String s
 
 let conll_string_of_value = function
   | String s -> s

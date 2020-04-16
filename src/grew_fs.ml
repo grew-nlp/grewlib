@@ -210,7 +210,7 @@ module G_fs = struct
   (* ---------------------------------------------------------------------- *)
   let of_conll ?loc ?domain line =
     let raw_list0 =
-      ("form", Feature_value.build_value ?loc ?domain "form" line.Conll.form)
+      ("form", String line.Conll.form)
       :: ("upos", Feature_value.build_value ?loc ?domain "upos" line.Conll.upos)
       :: (List.map (fun (f,v) -> (f, Feature_value.build_value ?loc ?domain f v)) line.Conll.feats) in
     let raw_list1 = match line.Conll.xpos with
@@ -218,7 +218,7 @@ module G_fs = struct
       | s -> ("xpos", Feature_value.build_value ?loc ?domain "xpos" s) :: raw_list0 in
     let raw_list2 = match line.Conll.lemma with
       | "" | "_" -> raw_list1
-      | s -> ("lemma", Feature_value.build_value ?loc ?domain "lemma" s) :: raw_list1 in
+      | s -> ("lemma", String s) :: raw_list1 in
     List.sort G_feature.compare raw_list2
 
 
