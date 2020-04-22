@@ -129,9 +129,6 @@ module Ast : sig
     | Feature_equal_value of feature_ident * feature_value
     | Feature_diff_value of feature_ident * feature_value
     | Large_prec of Id.name * Id.name
-    | Id_prec of Id.name * Id.name
-    | Label_equal of Id.name * Id.name
-    | Label_diff of Id.name * Id.name
     | Edge_disjoint of Id.name * Id.name
     | Edge_crossing of Id.name * Id.name
 

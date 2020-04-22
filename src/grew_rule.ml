@@ -96,12 +96,6 @@ module Pattern = struct
     | Filter of Pid.t * P_fs.t
     (*   N << M   *)
     | Node_large_prec of Pid.t * Pid.t
-    (*   id(N) < id(M)   *)
-    | Id_prec of Pid.t * Pid.t
-    (*   label(e1) = label(e2)   *)
-    | Label_equal of string * string
-    (*   label(e1) <> label(e2)   *)
-    | Label_diff of string * string
     (*   e1 << e2   *)
     (*   e1 <> e2   *)
     (*   e1 >< e2   *)
@@ -187,27 +181,6 @@ module Pattern = struct
                 ("id2", `String (Pid.to_string pid2));
               ]
              ]
-    | Id_prec (pid1, pid2) ->
-      `Assoc ["id_prec",
-              `Assoc [
-                ("id1", `String (Pid.to_string pid1));
-                ("id2", `String (Pid.to_string pid2));
-              ]
-             ]
-    | Label_equal (eid1, eid2) ->
-      `Assoc ["label_equal",
-              `Assoc [
-                ("id1", `String eid1);
-                ("id2", `String eid2);
-              ]
-             ]
-    | Label_diff (eid1, eid2) ->
-      `Assoc ["label_disequal",
-              `Assoc [
-                ("id1", `String eid1);
-                ("id2", `String eid2);
-              ]
-             ]
     | Edge_relative (erp, eid1, eid2) ->
       `Assoc ["edge_relative",
               `Assoc [
@@ -263,15 +236,6 @@ module Pattern = struct
         | (Node_id pid1, Edge_id eid2) -> Covered (pid1, eid2)
         | _ -> Error.build "Operator << cannot be used with \"edge << node\""
       end
-
-    | (Ast.Label_equal (eid1, eid2), loc) ->
-      Label_equal (eid1, eid2)
-
-    | (Ast.Label_diff (eid1, eid2), loc) ->
-      Label_diff (eid1, eid2)
-
-    | (Ast.Id_prec (id1, id2), loc) ->
-      Id_prec (pid_of_name loc id1, pid_of_name loc id2)
 
     | (Ast.Edge_disjoint (eid1, eid2), loc) ->
       Edge_relative (Disjoint, eid1, eid2)
@@ -522,18 +486,26 @@ module Matching = struct
   let apply_cst ?domain graph matching cst : t =
     let get_value base feat_name = match base with
       | Pattern.Node_id pid ->
-        let node = G_graph.find (Pid_map.find pid matching.n_match) graph in
-        begin
-          match G_fs.get_value_opt feat_name (G_node.get_fs node) with
-          | Some f -> Value f
-          | None -> raise Fail (* no such feat_name here *)
-        end
+        let gid = Pid_map.find pid matching.n_match in
+        if feat_name = "id"
+        then Value (Float (float_of_int gid))
+        else
+          let node = G_graph.find gid graph in
+          begin
+            match G_fs.get_value_opt feat_name (G_node.get_fs node) with
+            | Some f -> Value f
+            | None -> raise Fail (* no such feat_name here *)
+          end
       | Pattern.Edge_id edge_id ->
         let (_,g_edge,_) = String_map.find edge_id matching.e_match in
         begin
-          match G_edge.get_sub_opt feat_name g_edge with
-          | None -> raise Fail
-          | Some s -> Value s
+          match feat_name with
+          | "label" -> (match G_edge.to_string_opt g_edge with Some s -> Value (String s) | None -> raise Fail)
+          | "length" -> failwith "TODO not implemented"
+          | _ ->
+            match G_edge.get_sub_opt feat_name g_edge with
+            | None -> raise Fail
+            | Some s -> Value s
         end
       | Pattern.Lexicon_id id -> Lex (id, feat_name) in
 
@@ -646,29 +618,6 @@ module Matching = struct
         match (G_node.get_position_opt gnode1, G_node.get_position_opt gnode2) with
         | Some i1, Some i2 when i1 < i2 -> matching
         | _ -> raise Fail
-      end
-
-    | Id_prec (pid1, pid2) ->
-      let gid1 = Pid_map.find pid1 matching.n_match in
-      let gid2 = Pid_map.find pid2 matching.n_match in
-      if gid1 < gid2
-      then matching
-      else raise Fail
-
-    | Label_equal (eid1, eid2) ->
-      begin
-        match (String_map.find_opt eid1 matching.e_match, String_map.find_opt eid2 matching.e_match) with
-        | (Some (_,e1,_), Some (_,e2,_)) -> if e1 = e2 then matching else raise Fail
-        | (None, _) -> Error.run "Edge identifier '%s' not found" eid1
-        | (_, None) -> Error.run "Edge identifier '%s' not found" eid2
-      end
-
-    | Label_diff (eid1, eid2) ->
-      begin
-        match (String_map.find_opt eid1 matching.e_match, String_map.find_opt eid2 matching.e_match) with
-        | (Some (_,e1,_), Some (_,e2,_)) -> if e1 <> e2 then matching else raise Fail
-        | (None, _) -> Error.run "Edge identifier '%s' not found" eid1
-        | (_, None) -> Error.run "Edge identifier '%s' not found" eid2
       end
 
     | Edge_relative (erp, eid1, eid2) ->
@@ -945,8 +894,8 @@ module Rule = struct
     then
       if !current_rules > !max_rules
       then Error.run "More than %d rewriting steps: check for loops or increase max_rules value. Last rules are: […%s]"
-        !max_rules
-        (String.concat ", " (List.rev !rule_report_list))
+          !max_rules
+          (String.concat ", " (List.rev !rule_report_list))
       else rule_report_list := rule_name :: !rule_report_list
 
 
