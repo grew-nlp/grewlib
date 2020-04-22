@@ -296,6 +296,7 @@ module Command  = struct
     | (Ast.Update_feat ((node_or_edge_id, feat_name), ast_items), loc) ->
       begin
         match (List.mem node_or_edge_id kni, List.mem node_or_edge_id kei) with
+        | (true, false) when feat_name = "id" -> Error.build ~loc "The node feature name \"id\" is reserved and cannot be used in commands"
         | (true, false) ->
           let items = List.map
               (function
@@ -322,7 +323,11 @@ module Command  = struct
             | _ -> ()
           end;
           ((UPDATE_FEAT (cn_of_node_id node_or_edge_id, feat_name, items), loc), (kni, kei))
-        | ( false, true) ->
+        | (false, true) when feat_name = "length" ->
+          Error.build ~loc "The edge feature name \"length\" is reserved and cannot be used in commands"
+        | (false, true) when feat_name = "label" ->
+          Error.build ~loc "The edge feature name \"label\" is reserved and cannot be used in commands, used add_edge instead"
+        | (false, true) ->
           begin
             match ast_items with
             | [Ast.String_item s] -> ((UPDATE_EDGE_FEAT (node_or_edge_id, feat_name, typed_vos feat_name s), loc), (kni, kei))
