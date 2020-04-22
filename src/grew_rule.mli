@@ -60,8 +60,6 @@ module Rule : sig
 
   val reset_rules: unit -> unit
 
-  val incr_rules: unit -> unit
-
   val set_max_rules: int -> unit
 
   (** [get_name t] returns the name of the rule [t]. *)
