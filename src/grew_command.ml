@@ -325,7 +325,7 @@ module Command  = struct
         | ( false, true) ->
           begin
             match ast_items with
-            | [Ast.String_item s] -> ((UPDATE_EDGE_FEAT (node_or_edge_id, feat_name, value_of_string s), loc), (kni, kei))
+            | [Ast.String_item s] -> ((UPDATE_EDGE_FEAT (node_or_edge_id, feat_name, typed_vos feat_name s), loc), (kni, kei))
             | _ -> Error.build ~loc "Unknwon identifier \"%s\"" node_or_edge_id
           end
         | _ -> Error.build ~loc "Unknwon identifier \"%s\"" node_or_edge_id

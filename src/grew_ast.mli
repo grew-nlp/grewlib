@@ -18,12 +18,15 @@ type feature_value =
   | Float of float
 
 val string_of_value : feature_value -> string
-val json_of_value : feature_value -> Yojson.Basic.t
-
-(* TODO: rm this function when type of g_edge will be value based *)
-val value_of_string : string -> feature_value
 
 val conll_string_of_value : feature_value -> string
+
+val json_of_value : feature_value -> Yojson.Basic.t
+
+
+val numeric_feature_values: string list
+val typed_vos : feature_name -> string -> feature_value
+
 
 
 module Ast : sig
