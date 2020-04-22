@@ -136,7 +136,11 @@ module Corpus_desc = struct
                 | Some grs -> Grs.apply grs init_graph
                 | None -> init_graph in
               Some {Corpus.sent_id; text=G_graph.to_sentence graph; graph; kind=Conll}
-            with exc -> Log.fwarning "[build_corpus] [id=%s] Conll skipped [exception: %s]" sent_id (Printexc.to_string exc); None
+            with Error.Build (msg, loc_opt) ->
+              Log.fwarning "[build_corpus, sent_id=%s%s] skipped: %s"
+              sent_id
+              (match loc_opt with None -> "" | Some loc -> "; " ^ (Loc.to_string loc))
+              msg; None
           ) conll_corpus in
       { Corpus.domain; items }
     | _ -> Error.bug "[Corpus_desc.build_corpus] is available only on Conll format"
@@ -266,7 +270,11 @@ module Corpus_desc = struct
                   | Some grs -> Grs.apply grs init_graph
                   | None -> init_graph in
                 Some {Corpus.sent_id; text=G_graph.to_sentence graph; graph; kind=Conll}
-              with exc -> Log.fwarning "[build_marshal_file][id=%s] Conll skipped [exception: %s]" sent_id (Printexc.to_string exc); None
+            with Error.Build (msg, loc_opt) ->
+              Log.fwarning "[build_marshal_file, sent_id=%s%s] skipped: %s"
+              sent_id
+              (match loc_opt with None -> "" | Some loc -> "; " ^ (Loc.to_string loc))
+              msg; None
 
 
             ) conll_corpus
