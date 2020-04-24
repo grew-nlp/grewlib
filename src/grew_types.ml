@@ -206,12 +206,3 @@ module Lexicons = struct
       Error.build ?loc "Undefined field name \"%s\" in lexicon %s" field_name lexicon_name
     | _ -> ()
 end (* module Lexicons *)
-
-(* ================================================================================ *)
-module Concat_item = struct
-  type t =
-    | Node_feat of (Gid.t * feature_name)
-    | Edge_feat of (string * feature_name)
-    | String of string
-end (* module Concat_item *)
-

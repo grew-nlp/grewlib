@@ -128,8 +128,6 @@ module G_graph: sig
   val del_edge_opt: ?loc:Loc.t -> Gid.t -> G_edge.t -> Gid.t -> t -> t option
 
 
-  val update_edge_feature_opt: ?loc:Loc.t -> string -> string -> feature_value -> (Gid.t * G_edge.t * Gid.t ) -> t -> (t * G_edge.t) option
-
   val del_edge_feature_opt: ?loc:Loc.t -> string -> string -> (Gid.t * G_edge.t * Gid.t ) -> t -> (t * G_edge.t) option
 
 
@@ -182,13 +180,9 @@ module G_graph: sig
       * (Gid.t * G_edge.t * Gid.t) list  (* list of really added edges *)
     )
 
+  (** [update_feat graph tar_id tar_feat_name value] sets the feature of the node [tar_id]
+      with feature name [tar_feat_name] to be [value]. *)
   val update_feat: ?loc:Loc.t -> t -> Gid.t -> string -> feature_value -> t
-
-  (** [update_feat graph tar_id tar_feat_name concat_items] sets the feature of the node [tar_id]
-      with feature name [tar_feat_name] to be the contatenation of values described by the [concat_items].
-      It returns both the new graph and the new feature value produced as the second element *)
-  val update_feat_fil: ?loc:Loc.t -> t -> Gid.t -> string -> Concat_item.t list -> (t * feature_value)
-
 
   (** [append_feats_opt graph src_id tar_id separator regexp] copy all feats of nodes [src_id] that match [regexp] to the node [tar_id].
       If a feature of the same name already exists in [tar_id], the two values are concatenated (separated by [separator]).

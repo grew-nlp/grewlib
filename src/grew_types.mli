@@ -98,12 +98,3 @@ module Lexicons : sig
 
   val check: ?loc:Loc.t -> string -> string -> t -> unit
 end (* module Lexicons *)
-
-(* ================================================================================ *)
-module Concat_item : sig
-  type t =
-    | Node_feat of (Gid.t * feature_name)
-    | Edge_feat of (string * feature_name)
-    | String of string
-end (* module Concat_item *)
-

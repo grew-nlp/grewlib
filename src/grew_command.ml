@@ -335,9 +335,6 @@ module Command  = struct
         | (false, true) when feat_name = "length" ->
           Error.build ~loc "The edge feature name \"length\" is reserved and cannot be used in commands"
         | (false, true) ->
-          printf "### kei = [%s]\n%!" (String.concat ";" kei);
-          printf "##### %s\n%!" (Ast.string_of_u_command (fst ast_command));
-
           begin
             match ast_items with
             | [ast_item] -> ((UPDATE_EDGE_FEAT (node_or_edge_id, feat_name, build_item ast_item), loc), (kni, kei))

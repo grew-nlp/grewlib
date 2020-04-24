@@ -1107,7 +1107,6 @@ module Rule = struct
             | Some value -> typed_vos field value
         end in
 
-
     match command with
     | Command.ADD_EDGE (src_cn,tar_cn,edge) ->
       let src_gid = node_find src_cn in

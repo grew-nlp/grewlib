@@ -608,14 +608,6 @@ module G_graph = struct
       rules = String_map.empty;
     }
 
-  let update_edge_feature_opt ?loc edge_id feat_name new_value (src_gid,edge,tar_gid) graph =
-    match Gid_map.find_opt src_gid graph.map with
-    | None -> Error.run ?loc "[Graph.update_edge_feature_opt] cannot find source node of edge \"%s\"" edge_id
-    | Some src_node ->
-      match G_node.update_edge_opt tar_gid edge feat_name new_value src_node with
-      | Some (new_node, new_edge) -> Some ({graph with map = Gid_map.add src_gid new_node graph.map}, new_edge)
-      | None -> None
-
   let del_edge_feature_opt ?loc edge_id feat_name (src_gid,edge,tar_gid) graph =
     match Gid_map.find_opt src_gid graph.map with
     | None -> Error.run ?loc "[Graph.del_edge_feature_opt] cannot find source node of edge \"%s\"" edge_id
@@ -832,33 +824,6 @@ module G_graph = struct
     let new_fs = G_fs.set_value ?loc ?domain feat_name new_value (G_node.get_fs node) in
     let new_node = G_node.set_fs new_fs node in
     { graph with map = Gid_map.add node_id new_node graph.map }
-
-  (* -------------------------------------------------------------------------------- *)
-  let update_feat_fil ?loc graph tar_id tar_feat_name item_list =
-    let new_feature_value =
-      match item_list with
-      | [Concat_item.Node_feat (node_gid, feat_name)] ->
-        let node = Gid_map.find node_gid graph.map in
-        (match G_fs.get_value_opt feat_name (G_node.get_fs node) with
-         | Some value -> value
-         | None -> Error.run ?loc "[G_graph.update_feat_fil], feature \"%s\" is not defined" feat_name
-        )
-      | [Concat_item.String s] -> typed_vos tar_feat_name s
-      | _ ->
-        let strings_to_concat =
-          List.map
-            (function
-              | Concat_item.Node_feat (node_gid, feat_name) ->
-                let node = Gid_map.find node_gid graph.map in
-                (match G_fs.get_value_opt feat_name (G_node.get_fs node) with
-                 | Some (String atom) -> atom
-                 | Some (Float _) -> Error.run ?loc "[G_graph.update_feat_fil], cannot concatenate feature named \"%s\" is numeric" feat_name
-                 | None -> Error.run ?loc "[G_graph.update_feat_fil], feature \"%s\" is not defined" feat_name
-                )
-              | Concat_item.Edge_feat (edge_id, feat_name) -> failwith "XXX -> function to remove"
-              | Concat_item.String s -> s
-            ) item_list in String (List_.to_string (fun s->s) "" strings_to_concat) in
-    (update_feat ?loc graph tar_id tar_feat_name new_feature_value, new_feature_value)
 
   (* -------------------------------------------------------------------------------- *)
   let append_feats_opt ?loc graph src_id tar_id separator regexp =
