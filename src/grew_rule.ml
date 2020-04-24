@@ -366,28 +366,28 @@ module Matching = struct
   (* return the value of a feature or an edge label *)
   let get_string_value_opt request pattern graph matching =
     match Str.split (Str.regexp "\\.") request with
-    | [edge_id] ->
-      begin
-        match String_map.find_opt edge_id matching.e_match with
-        | None -> Error.run "[Matching.get_value_opt] unknown edge_id %s" edge_id
-        | Some (_,edge,_) ->
-          match G_edge.to_string_opt edge with
-          | Some s -> Some s
-          | None -> Error.bug "[Matching.get_value_opt] internal edge %s" (G_edge.dump edge)
-      end
+    | [edge_id] -> Error.build "In cluster key, the syntax \"%s\" is no more available, it must be replaced by \"%s.label\", see [[http://grew.fr/old]]" edge_id edge_id;
     | [node_or_edge_id; feature_name] ->
       begin
         match String_map.find_opt node_or_edge_id matching.e_match with
         | Some (_,edge,_) ->
-          begin
-            match G_edge.get_sub_opt feature_name edge with
-            | Some e -> Some (string_of_value e)
-            | None -> Error.bug "[Matching.get_value_opt] internal edge %s" (G_edge.dump edge)
-          end
+          if feature_name = "label"
+          then
+            begin
+              match G_edge.to_string_opt edge with
+              | Some s -> Some s
+              | None -> Error.bug "[Matching.get_string_value_opt] internal edge %s" (G_edge.dump edge)
+            end
+          else
+            begin
+              match G_edge.get_sub_opt feature_name edge with
+              | Some e -> Some (string_of_value e)
+              | None -> Error.bug "[Matching.get_string_value_opt] internal edge %s" (G_edge.dump edge)
+            end
         | None ->
           begin
             match get_pid_by_name pattern node_or_edge_id matching.n_match with
-            | None -> Error.run "[Matching.get_value_opt] unknown id %s" node_or_edge_id
+            | None -> Error.run "[Matching.get_string_value_opt] unknown id %s" node_or_edge_id
             | Some pid ->
               let gid = Pid_map.find pid matching.n_match in
               let node = G_graph.find gid graph in
@@ -395,7 +395,7 @@ module Matching = struct
               CCOpt.map string_of_value (G_fs.get_value_opt feature_name fs)
           end
       end
-    | _ -> Error.run "[Matching.get_value_opt] unable to handled request %s" request
+    | _ -> Error.run "[Matching.get_string_value_opt] unable to handled request %s" request
 
   let e_match_add ?pos edge_id new_edge matching =
     if String_map.mem edge_id matching.e_match
@@ -1165,20 +1165,38 @@ module Rule = struct
           end
       end
 
-    | Command.UPDATE_EDGE_FEAT (edge_ident, feat_name, new_value) ->
-      let (src_gid,edge,tar_gid) =
-        try String_map.find edge_ident state.e_mapping
-        with Not_found -> Error.run ~loc "The edge identifier '%s' is undefined" edge_ident in
-      (match G_graph.update_edge_feature_opt ~loc edge_ident feat_name new_value (src_gid,edge,tar_gid) state.graph with
-       | None when !Global.safe_commands -> Error.run ~loc "UPDATE_EDGE_FEAT: no changes %s" edge_ident
-       | None -> state
-       | Some (new_graph, new_edge) ->
-         { state with
-           graph = new_graph;
-           effective = true;
-           e_mapping = String_map.add edge_ident (src_gid,new_edge,tar_gid) state.e_mapping;
-         }
-      )
+    | Command.UPDATE_EDGE_FEAT (edge_id, feat_name, new_value) ->
+      let (src_gid,old_edge,tar_gid) =
+        try String_map.find edge_id state.e_mapping
+        with Not_found -> Error.run ~loc "The edge identifier '%s' is undefined" edge_id in
+      let new_state_opt =
+        if feat_name = "label"
+        then
+          match new_value with
+          | Float _ -> Error.run ~loc "UPDATE_EDGE_FEAT, cannot use a numeric value as an edge label on edge %s" edge_id
+          | String string_value ->
+            let new_edge = G_edge.from_string string_value in
+            if new_edge = old_edge
+            then None
+            else
+              match G_graph.del_edge_opt ~loc src_gid old_edge tar_gid state.graph with
+              | None -> Error.bug "Inconsistent graph structure in UPDATE_EDGE_FEAT"
+              | Some tmp_graph ->
+                match G_graph.add_edge_opt src_gid new_edge tar_gid tmp_graph with
+                | None -> None
+                | Some new_graph -> Some (new_graph, new_edge)
+        else G_graph.update_edge_feature_opt ~loc edge_id feat_name new_value (src_gid,old_edge,tar_gid) state.graph in
+      begin
+        match new_state_opt with
+        | None when !Global.safe_commands -> Error.run ~loc "UPDATE_EDGE_FEAT: no changes %s" edge_id
+        | None -> state
+        | Some (new_graph, new_edge) ->
+          { state with
+            graph = new_graph;
+            effective = true;
+            e_mapping = String_map.add edge_id (src_gid,new_edge,tar_gid) state.e_mapping;
+          }
+      end
 
     | Command.DEL_NODE node_cn ->
       let node_gid = node_find node_cn in
@@ -1532,19 +1550,37 @@ module Rule = struct
       let (src_gid,old_edge,tar_gid) =
         try String_map.find edge_id gwh.e_mapping
         with Not_found -> Error.run ~loc "The edge identifier '%s' is undefined" edge_id in
-      (match G_graph.update_edge_feature_opt ~loc edge_id feat_name new_value (src_gid,old_edge,tar_gid) gwh.Graph_with_history.graph with
-       | None when !Global.safe_commands -> Error.run ~loc "UPDATE_EDGE_FEAT: no changes %s" edge_id
-       | None -> Graph_with_history_set.singleton gwh
-       | Some (new_graph, new_edge) ->
-         Graph_with_history_set.singleton
-           { gwh with
-             Graph_with_history.graph = new_graph;
-             delta = gwh.Graph_with_history.delta
-                     |> Delta.del_edge src_gid old_edge tar_gid
-                     |> Delta.add_edge src_gid new_edge tar_gid;
-             e_mapping = String_map.add edge_id (src_gid,new_edge,tar_gid) gwh.e_mapping;
-           }
-      )
+      let new_state_opt =
+        if feat_name = "label"
+        then
+          match new_value with
+          | Float _ -> Error.run ~loc "UPDATE_EDGE_FEAT, cannot use a numeric value as an edge label on edge %s" edge_id
+          | String string_value ->
+            let new_edge = G_edge.from_string string_value in
+            if new_edge = old_edge
+            then None
+            else
+              match G_graph.del_edge_opt ~loc src_gid old_edge tar_gid gwh.Graph_with_history.graph with
+              | None -> Error.bug "Inconsistent graph structure in UPDATE_EDGE_FEAT"
+              | Some tmp_graph ->
+                match G_graph.add_edge_opt src_gid new_edge tar_gid tmp_graph with
+                | None -> None
+                | Some new_graph -> Some (new_graph, new_edge)
+        else G_graph.update_edge_feature_opt ~loc edge_id feat_name new_value (src_gid,old_edge,tar_gid) gwh.Graph_with_history.graph in
+      begin
+        match new_state_opt with
+        | None when !Global.safe_commands -> Error.run ~loc "UPDATE_EDGE_FEAT: no changes %s" edge_id
+        | None -> Graph_with_history_set.singleton gwh
+        | Some (new_graph, new_edge) ->
+          Graph_with_history_set.singleton
+            { gwh with
+              Graph_with_history.graph = new_graph;
+              delta = gwh.Graph_with_history.delta
+                      |> Delta.del_edge src_gid old_edge tar_gid
+                      |> Delta.add_edge src_gid new_edge tar_gid;
+              e_mapping = String_map.add edge_id (src_gid,new_edge,tar_gid) gwh.e_mapping;
+            }
+      end
 
     | Command.SHIFT_IN (src_cn,tar_cn,label_cst) ->
       let src_gid = node_find src_cn in

@@ -325,8 +325,6 @@ module Command  = struct
           ((UPDATE_FEAT (cn_of_node_id node_or_edge_id, feat_name, items), loc), (kni, kei))
         | (false, true) when feat_name = "length" ->
           Error.build ~loc "The edge feature name \"length\" is reserved and cannot be used in commands"
-        | (false, true) when feat_name = "label" ->
-          Error.build ~loc "The edge feature name \"label\" is reserved and cannot be used in commands, used add_edge instead"
         | (false, true) ->
           begin
             match ast_items with
