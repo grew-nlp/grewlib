@@ -296,7 +296,7 @@ module Command  = struct
     | (Ast.Update_feat ((node_or_edge_id, feat_name), ast_items), loc) ->
       begin
         match (List.mem node_or_edge_id kni, List.mem node_or_edge_id kei) with
-        | (true, false) when feat_name = "id" -> Error.build ~loc "The node feature name \"id\" is reserved and cannot be used in commands"
+        | (true, false) when feat_name = "__id__" -> Error.build ~loc "The node feature name \"__id__\" is reserved and cannot be used in commands"
         | (true, false) ->
           let items = List.map
               (function

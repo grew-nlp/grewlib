@@ -487,7 +487,7 @@ module Matching = struct
     let get_value base feat_name = match base with
       | Pattern.Node_id pid ->
         let gid = Pid_map.find pid matching.n_match in
-        if feat_name = "id"
+        if feat_name = "__id__"
         then Value (Float (float_of_int gid))
         else
           let node = G_graph.find gid graph in
