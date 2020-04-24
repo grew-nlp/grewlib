@@ -182,10 +182,12 @@ module G_graph: sig
       * (Gid.t * G_edge.t * Gid.t) list  (* list of really added edges *)
     )
 
+  val update_feat: ?loc:Loc.t -> t -> Gid.t -> string -> feature_value -> t
+
   (** [update_feat graph tar_id tar_feat_name concat_items] sets the feature of the node [tar_id]
       with feature name [tar_feat_name] to be the contatenation of values described by the [concat_items].
       It returns both the new graph and the new feature value produced as the second element *)
-  val update_feat: ?loc:Loc.t -> t -> Gid.t -> string -> Concat_item.t list -> (t * feature_value)
+  val update_feat_fil: ?loc:Loc.t -> t -> Gid.t -> string -> Concat_item.t list -> (t * feature_value)
 
 
   (** [append_feats_opt graph src_id tar_id separator regexp] copy all feats of nodes [src_id] that match [regexp] to the node [tar_id].
@@ -193,8 +195,6 @@ module G_graph: sig
       The output is [None] if no changes are made on [tar_id], [Some (new_graph, trace)] else where [trace] is the list of updated features in [tar_id]
   *)
   val append_feats_opt: ?loc:Loc.t -> t -> Gid.t -> Gid.t -> string -> string -> (t * (string * feature_value) list) option
-
-  val set_feat: ?loc:Loc.t -> t -> Gid.t -> string -> feature_value -> t
 
   (** [del_feat_opt graph node_id feat_name] returns [graph] where the feat [feat_name] of [node_id] is deleted
       If the feature is not present, [None] is returned. *)

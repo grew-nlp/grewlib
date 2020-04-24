@@ -1217,10 +1217,57 @@ module Rule = struct
 
     | Command.UPDATE_FEAT (tar_cn, tar_feat_name, item_list) ->
       let tar_gid = node_find tar_cn in
-      let rule_items = List.map
+
+      let feature_value_list =
+        List.map
           (function
-            | Command.Feat (cnode, feat_name) -> Concat_item.Feat (node_find cnode, feat_name)
-            | Command.String s -> Concat_item.String s
+            | Command.String_item s -> String s
+            | Command.Node_feat (cnode, feat_name) ->
+              let gid = node_find cnode in
+              let node = G_graph.find gid state.graph in
+              let fs = G_node.get_fs node in
+              begin
+                match G_fs.get_value_opt feat_name fs with
+                | None -> Error.run ~loc "Node feature named %s is undefined" feat_name
+                | Some v -> v
+              end
+            | Command.Edge_feat (edge_id, feat_name) ->
+              begin
+                match String_map.find_opt edge_id state.e_mapping with
+                | None -> Error.bug "Cannot find edge_id %s" edge_id
+                | Some (_,edge,_) ->
+                  match G_edge.get_sub_opt feat_name edge with
+                | None -> Error.run ~loc "Edge feature named %s is undefined" feat_name
+                | Some fv -> fv
+              end
+            | Command.Lexical_field (lex_id, field) ->
+              begin
+                match List.assoc_opt lex_id matching.l_param with
+                | None -> Error.run ~loc "Undefine lexicon %s" lex_id
+                | Some lexicon ->
+                  match Lexicon.get_opt field lexicon with
+                  | None -> failwith "XXX" (* TODO: test Fail in rule app !! *)
+                  | Some value -> typed_vos field value
+              end
+          ) item_list in
+
+      let new_feature_value = match feature_value_list with
+      | [one] -> one
+      | l ->
+        let rec loop = function
+        | [] -> ""
+        | String s :: tail -> s ^ (loop tail)
+        | Float _ :: _ -> Error.run "Cannot concat with numeric value" in
+        String (loop l) in
+
+      let new_graph = G_graph.update_feat ~loc state.graph tar_gid tar_feat_name new_feature_value in
+
+        {state with graph = new_graph; effective = true}
+      (* let rule_items = List.map
+          (function
+            | Command.Node_feat (cnode, feat_name) -> Concat_item.Node_feat (node_find cnode, feat_name)
+            | Command.Edge_feat (edge_id, feat_name) -> Concat_item.Edge_feat (edge_id, feat_name)
+            | Command.String_item s -> Concat_item.String s
             | Command.Lexical_field (lex_id, field) ->
               (try
                  let lexicon = List.assoc lex_id matching.l_param in
@@ -1231,8 +1278,9 @@ module Rule = struct
               )
           ) item_list in
       let (new_graph, new_feature_value) =
-        G_graph.update_feat ~loc state.graph tar_gid tar_feat_name rule_items in
-      {state with graph = new_graph; effective = true}
+        G_graph.update_feat_fil ~loc state.graph tar_gid tar_feat_name rule_items in *)
+
+
 
     | Command.APPEND_FEATS (src_cn, tar_cn, regexp, separator) ->
       let src_gid = node_find src_cn in
@@ -1511,8 +1559,9 @@ module Rule = struct
       let rule_items_list =
         List.fold_right
           (fun item acc -> match item with
-             | Command.Feat (cnode, feat_name) -> List.map (fun x -> Concat_item.Feat (node_find cnode, feat_name)::x) acc
-             | Command.String s -> List.map (fun x -> (Concat_item.String s) :: x) acc
+             | Command.Node_feat (cnode, feat_name) -> List.map (fun x -> Concat_item.Node_feat (node_find cnode, feat_name)::x) acc
+             | Command.Edge_feat (edge_id, feat_name) -> List.map (fun x -> Concat_item.Edge_feat (edge_id, feat_name)::x) acc
+             | Command.String_item s -> List.map (fun x -> (Concat_item.String s) :: x) acc
              | Command.Lexical_field (lex_id, field) ->
                try
                  let lexicon = List.assoc lex_id matching.l_param in
@@ -1529,7 +1578,7 @@ module Rule = struct
       let new_graphs = List.fold_left
           (fun acc rule_items ->
              let (new_graph, new_feature_value) =
-               G_graph.update_feat ~loc gwh.Graph_with_history.graph tar_gid tar_feat_name rule_items in
+               G_graph.update_feat_fil ~loc gwh.Graph_with_history.graph tar_gid tar_feat_name rule_items in
              Graph_with_history_set.add
                { gwh with
                  Graph_with_history.graph = new_graph;

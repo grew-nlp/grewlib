@@ -185,7 +185,7 @@ module Lexicon = struct
     | [] -> Error.bug "[Lexicon.read] a lexicon must not be empty"
     | l -> l
 
-  let get head lex = String_set.choose (projection head lex)
+  let get_opt head lex = String_set.choose_opt (projection head lex)
 
   let read_multi head lex =
     match String_set.elements (projection head lex) with
@@ -217,7 +217,8 @@ end (* module Lexicons *)
 (* ================================================================================ *)
 module Concat_item = struct
   type t =
-    | Feat of (Gid.t * feature_name)
+    | Node_feat of (Gid.t * feature_name)
+    | Edge_feat of (string * feature_name)
     | String of string
 end (* module Concat_item *)
 

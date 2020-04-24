@@ -30,18 +30,20 @@ module Command  = struct
 
   (* [item] is a element of the RHS of an update_feat command *)
   type item =
-    | Feat of (command_node * string)
-    | String of string
+    | Node_feat of (command_node * string)
+    | Edge_feat of (string * string)
+    | String_item of string
     | Lexical_field of (string * string)
 
   let item_to_json = function
-    | Feat (cn, feature_name) -> `Assoc [("copy_feat",
-                                          `Assoc [
-                                            ("node",command_node_to_json cn);
-                                            ("feature_name", `String feature_name);
-                                          ]
-                                         )]
-    | String s -> `Assoc [("string", `String s)]
+    | Node_feat (cn, feature_name) -> `Assoc [("copy_feat",
+                                               `Assoc [
+                                                 ("node",command_node_to_json cn);
+                                                 ("feature_name", `String feature_name);
+                                               ]
+                                              )]
+    | Edge_feat (edge_id, feat_name) -> `Assoc [("edge_id", `String edge_id); ("feat_name", `String feat_name)]
+    | String_item s -> `Assoc [("string", `String s)]
     | Lexical_field (lex,field) -> `Assoc [("lexical_filed", `String (lex ^ "." ^ field))]
 
   (* the command in pattern *)
@@ -296,33 +298,40 @@ module Command  = struct
     | (Ast.Update_feat ((node_or_edge_id, feat_name), ast_items), loc) ->
       begin
         match (List.mem node_or_edge_id kni, List.mem node_or_edge_id kei) with
+
+        (* [node_or_edge_id] is a node id *)
         | (true, false) when feat_name = "__id__" -> Error.build ~loc "The node feature name \"__id__\" is reserved and cannot be used in commands"
         | (true, false) ->
           let items = List.map
               (function
-                | Ast.Qfn_or_lex_item (node_id_or_lex,feature_name_or_lex_field) ->
-                  if List.mem_assoc node_id_or_lex lexicons
+                | Ast.Qfn_or_lex_item (id_or_lex,feature_name_or_lex_field) ->
+                  if List.mem_assoc id_or_lex lexicons
                   then
                     begin
-                      Lexicons.check ~loc node_id_or_lex feature_name_or_lex_field lexicons;
-                      Lexical_field (node_id_or_lex, feature_name_or_lex_field)
+                      Lexicons.check ~loc id_or_lex feature_name_or_lex_field lexicons;
+                      Lexical_field (id_or_lex, feature_name_or_lex_field)
                     end
-                  else
+                  else if List.mem id_or_lex kni
+                  then
                     begin
-                      check_node_id_msg loc ("Unbound identifier (neither a node nor a lexicon):") node_id_or_lex kni;
                       Domain.check_feature_name ~loc ?domain feature_name_or_lex_field;
-                      Feat (cn_of_node_id node_id_or_lex, feature_name_or_lex_field)
+                      Node_feat (cn_of_node_id id_or_lex, feature_name_or_lex_field)
                     end
-                | Ast.String_item s -> String s
+                    else if List.mem id_or_lex kei
+                    then Edge_feat (id_or_lex, feature_name_or_lex_field)
+                    else Error.build ~loc "Unknown identifier \"%s\"" id_or_lex
+                | Ast.String_item s -> String_item s
               ) ast_items in
           (* check for consistency *)
           begin
             match items with
             | _ when Domain.is_open_feature ?domain feat_name -> ()
-            | [String s] -> Domain.check_feature ~loc ?domain feat_name s
+            | [String_item s] -> Domain.check_feature ~loc ?domain feat_name s
             | _ -> ()
           end;
           ((UPDATE_FEAT (cn_of_node_id node_or_edge_id, feat_name, items), loc), (kni, kei))
+
+        (* [node_or_edge_id] is a edge id *)
         | (false, true) when feat_name = "length" ->
           Error.build ~loc "The edge feature name \"length\" is reserved and cannot be used in commands"
         | (false, true) ->
@@ -333,8 +342,10 @@ module Command  = struct
             | [Ast.String_item s] -> ((UPDATE_EDGE_FEAT (node_or_edge_id, feat_name, typed_vos feat_name s), loc), (kni, kei))
             | _ -> Error.build ~loc "[#1] Unknwon identifier \"%s\"" node_or_edge_id
           end
-        | _ -> Error.build ~loc "[#2] Unknwon identifier \"%s\"" node_or_edge_id
-      end
 
+        (* other cases *)
+        | (true,true) -> Error.build ~loc "Identifier conflict: \"%s\" is used both for a node and an edeg" node_or_edge_id
+        | (false, false) -> Error.build ~loc "[#2] Unknwon identifier \"%s\"" node_or_edge_id
+      end
 
 end (* module Command *)

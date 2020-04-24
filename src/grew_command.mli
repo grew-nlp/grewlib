@@ -21,8 +21,9 @@ module Command : sig
     | New of string         (* a node introduced by a new_neighbour *)
 
   type item =
-    | Feat of (command_node * string)
-    | String of string
+    | Node_feat of (command_node * string)
+    | Edge_feat of (string * string)
+    | String_item of string
     | Lexical_field of (string * string)
 
   type p =

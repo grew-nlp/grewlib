@@ -89,8 +89,8 @@ module Lexicon : sig
   (** [read head lexicon] return the list of [value] of all items having in the [head] column equals to [value] *)
   val read_all: string -> t -> string list
 
-  (** [get head lexicon] return [value] if one items have the [value] in the [head] field *)
-  val get: string -> t -> string
+  (** [get_opt head lexicon] return [value] if one items have the [value] in the [head] field *)
+  val get_opt: string -> t -> string option
 
   (** [read_multi head lexicon] returns "v_1/…/v_k" where v_i are the values of the [head] column *)
   val read_multi: string -> t -> string
@@ -108,7 +108,8 @@ end (* module Lexicons *)
 (* ================================================================================ *)
 module Concat_item : sig
   type t =
-    | Feat of (Gid.t * feature_name)
+    | Node_feat of (Gid.t * feature_name)
+    | Edge_feat of (string * feature_name)
     | String of string
 end (* module Concat_item *)
 
