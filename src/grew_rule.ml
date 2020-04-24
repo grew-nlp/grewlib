@@ -1082,18 +1082,22 @@ module Rule = struct
       end
 
     | Command.ADD_EDGE_EXPL (src_cn,tar_cn,edge_id) ->
-      let src_gid = node_find src_cn in
-      let tar_gid = node_find tar_cn in
-      let (_,edge,_) =
-        try String_map.find edge_id state.e_mapping
-        with Not_found -> Error.run ~loc "The edge identifier '%s' is undefined" edge_id in
-      begin
-        match G_graph.add_edge_opt src_gid edge tar_gid state.graph with
-        | None when !Global.safe_commands ->
-          Error.run ~loc "ADD_EDGE_EXPL: the edge '%s' already exists" (G_edge.dump edge)
-        | None -> state
-        | Some new_graph -> {state with graph = new_graph; effective = true}
-      end
+      if String_map.mem edge_id state.e_mapping
+      then Error.run ~loc "ADD_EDGE_EXPL: the edge name '%s' already used. Semantic of this command has changed, see [[http://grew.fr/old]]" edge_id
+      else
+        let src_gid = node_find src_cn in
+        let tar_gid = node_find tar_cn in
+        begin
+          match G_graph.add_edge_opt src_gid G_edge.empty tar_gid state.graph with
+          | None when !Global.safe_commands -> Error.run ~loc "ADD_EDGE_EXPL: there is already empty edge here"
+          | None -> state
+          | Some new_graph ->
+            {state with
+             graph = new_graph;
+             e_mapping = String_map.add edge_id (src_gid,G_edge.empty,tar_gid) state.e_mapping;
+             effective = true
+            }
+        end
 
     | Command.ADD_EDGE_ITEMS (src_cn,tar_cn,items) ->
       let src_gid = node_find src_cn in
@@ -1412,23 +1416,23 @@ module Rule = struct
       end
 
     | Command.ADD_EDGE_EXPL (src_cn,tar_cn,edge_ident) ->
-      let src_gid = node_find src_cn in
-      let tar_gid = node_find tar_cn in
-      let (_,edge,_) =
-        try String_map.find edge_ident gwh.e_mapping
-        with Not_found -> Error.run ~loc "ADD_EDGE_EXPL: the edge identifier '%s' is undefined" edge_ident in
-
-      begin
-        match G_graph.add_edge_opt src_gid edge tar_gid gwh.Graph_with_history.graph with
-        | None when !Global.safe_commands ->
-          Error.run ~loc "ADD_EDGE_EXPL: the edge '%s' already exists" (G_edge.dump edge)
-        | None -> Graph_with_history_set.singleton gwh
-        | Some new_graph -> Graph_with_history_set.singleton
-                              {gwh with
-                               Graph_with_history.graph = new_graph;
-                               delta = Delta.add_edge src_gid edge tar_gid gwh.Graph_with_history.delta;
-                              }
-      end
+      if String_map.mem edge_ident gwh.added_edges_in_rule
+      then Error.run ~loc "ADD_EDGE_EXPL: the edge name '%s' already used. Semantic of this command has changed, see [[http://grew.fr/old]]" edge_ident
+      else
+        let src_gid = node_find src_cn in
+        let tar_gid = node_find tar_cn in
+        begin
+          match G_graph.add_edge_opt src_gid G_edge.empty tar_gid gwh.Graph_with_history.graph with
+          | None when !Global.safe_commands -> Error.run ~loc "ADD_EDGE_EXPL: there is already empty edge here"
+          | None -> Graph_with_history_set.singleton gwh
+          | Some new_graph ->
+            Graph_with_history_set.singleton
+              {gwh with
+               Graph_with_history.graph = new_graph;
+               delta = Delta.add_edge src_gid G_edge.empty tar_gid gwh.Graph_with_history.delta;
+               added_edges_in_rule = String_map.add edge_ident (src_gid,G_edge.empty,tar_gid) gwh.added_edges_in_rule;
+              }
+        end
 
     | Command.ADD_EDGE_ITEMS (src_cn,tar_cn,items) ->
       let src_gid = node_find src_cn in
@@ -1548,8 +1552,12 @@ module Rule = struct
 
     | Command.UPDATE_EDGE_FEAT (edge_id, feat_name, new_value) ->
       let (src_gid,old_edge,tar_gid) =
-        try String_map.find edge_id gwh.e_mapping
-        with Not_found -> Error.run ~loc "The edge identifier '%s' is undefined" edge_id in
+        match String_map.find_opt edge_id gwh.e_mapping with
+        | Some e -> e
+        | None ->
+          match String_map.find_opt edge_id gwh.added_edges_in_rule with
+          | Some e -> e
+          | None -> Error.run ~loc "The edge identifier '%s' is undefined" edge_id in
       let new_state_opt =
         if feat_name = "label"
         then
@@ -1699,6 +1707,7 @@ module Rule = struct
         { graph_with_history with
           e_mapping = matching.Matching.e_match;
           added_gids_in_rule = [];
+          added_edges_in_rule = String_map.empty;
         } in
 
     List.fold_left

@@ -1529,10 +1529,10 @@ module Graph_with_history = struct
     added_gids: (string * Gid.t) list;
     e_mapping: (Gid.t * G_edge.t * Gid.t) String_map.t;
     added_gids_in_rule: (string * Gid.t) list;
-
+    added_edges_in_rule: (Gid.t * G_edge.t * Gid.t) String_map.t;
   }
 
-  let from_graph graph = { graph; seed=graph; delta = Delta.empty; added_gids = []; e_mapping = String_map.empty; added_gids_in_rule =[]; }
+  let from_graph graph = { graph; seed=graph; delta = Delta.empty; added_gids = []; e_mapping = String_map.empty; added_gids_in_rule =[]; added_edges_in_rule=String_map.empty}
 
   (* WARNING: compare is correct only on data with the same seed! *)
   let compare t1 t2 = Stdlib.compare (t1.delta,t1.added_gids) (t2.delta, t2.added_gids)

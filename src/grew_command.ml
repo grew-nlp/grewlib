@@ -230,7 +230,7 @@ module Command  = struct
     | (Ast.Add_edge_expl (node_i, node_j, name), loc) ->
       check_node_id loc node_i kni;
       check_node_id loc node_j kni;
-      ((ADD_EDGE_EXPL (cn_of_node_id node_i, cn_of_node_id node_j, name), loc), (kni, kei))
+      ((ADD_EDGE_EXPL (cn_of_node_id node_i, cn_of_node_id node_j, name), loc), (kni, name::kei))
 
     | (Ast.Add_edge_items (node_i, node_j, items), loc) ->
       check_node_id loc node_i kni;
@@ -326,12 +326,14 @@ module Command  = struct
         | (false, true) when feat_name = "length" ->
           Error.build ~loc "The edge feature name \"length\" is reserved and cannot be used in commands"
         | (false, true) ->
+          printf "### kei = [%s]\n%!" (String.concat ";" kei);
+          printf "##### %s\n%!" (Ast.string_of_u_command (fst ast_command));
           begin
             match ast_items with
             | [Ast.String_item s] -> ((UPDATE_EDGE_FEAT (node_or_edge_id, feat_name, typed_vos feat_name s), loc), (kni, kei))
-            | _ -> Error.build ~loc "Unknwon identifier \"%s\"" node_or_edge_id
+            | _ -> Error.build ~loc "[#1] Unknwon identifier \"%s\"" node_or_edge_id
           end
-        | _ -> Error.build ~loc "Unknwon identifier \"%s\"" node_or_edge_id
+        | _ -> Error.build ~loc "[#2] Unknwon identifier \"%s\"" node_or_edge_id
       end
 
 

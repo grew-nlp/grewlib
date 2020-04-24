@@ -18,6 +18,8 @@ open Grew_domain
 module G_edge: sig
   type t
 
+  val empty: t
+
   val from_items: (string * feature_value) list -> t
 
   val get_sub_opt: string -> t -> feature_value option

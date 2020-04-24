@@ -251,6 +251,7 @@ module Graph_with_history : sig
     added_gids: (string * Gid.t) list;
     e_mapping: (Gid.t * G_edge.t * Gid.t) String_map.t;
     added_gids_in_rule: (string * Gid.t) list;
+    added_edges_in_rule: (Gid.t * G_edge.t * Gid.t) String_map.t;
   }
 
   val from_graph: G_graph.t -> t

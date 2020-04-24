@@ -83,6 +83,8 @@ module G_edge = struct
     | Pred
     | Succ
 
+  let empty = Fs []
+
   let ordering = function
     | Pred | Succ -> true
     | _ -> false
