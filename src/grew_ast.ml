@@ -50,6 +50,16 @@ let typed_vos feat_name string_value =
     end
   else String string_value
 
+let concat_feature_values ?loc = function
+  | [one] -> one
+  | l ->
+    let rec loop = function
+      | [] -> ""
+      | String s :: tail -> s ^ (loop tail)
+      | Float _ :: _ -> Error.run ?loc "Cannot concat with numeric value" in
+    String (loop l)
+
+
 (* ================================================================================ *)
 module Ast = struct
 

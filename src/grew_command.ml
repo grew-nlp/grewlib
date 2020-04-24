@@ -57,7 +57,7 @@ module Command  = struct
     | DEL_FEAT of (command_node * string)
     | DEL_EDGE_FEAT of (string * string) (* (edge identifier, feature_name) *)
     | UPDATE_FEAT of (command_node * string * item list)
-    | UPDATE_EDGE_FEAT of (string * string * feature_value) (* edge identifier, feat_name, new_value *)
+    | UPDATE_EDGE_FEAT of (string * string * item) (* edge identifier, feat_name, new_value *)
     (* *)
     | NEW_NODE of string
     | NEW_BEFORE of (string * command_node)
@@ -166,12 +166,12 @@ module Command  = struct
                  ("label_cst", Label_cst.to_json ?domain label_cst);
                ]
               )]
-    | UPDATE_EDGE_FEAT (edge_id, feat_name, s) ->
+    | UPDATE_EDGE_FEAT (edge_id, feat_name, item) ->
       `Assoc [("update_edge_feat",
                `Assoc [
                  ("edge_id", `String edge_id);
                  ("feat_name", `String feat_name);
-                 ("feat_value", json_of_value s);
+                 ("item", item_to_json item);
                ]
               )]
     | DEL_EDGE_FEAT (edge_id, feat_name) ->
@@ -296,32 +296,32 @@ module Command  = struct
       ((UNORDER (cn_of_node_id node_n), loc), (kni, kei))
 
     | (Ast.Update_feat ((node_or_edge_id, feat_name), ast_items), loc) ->
+      let build_item = function
+        | Ast.Qfn_or_lex_item (id_or_lex,feature_name_or_lex_field) ->
+          if List.mem_assoc id_or_lex lexicons
+          then
+            begin
+              Lexicons.check ~loc id_or_lex feature_name_or_lex_field lexicons;
+              Lexical_field (id_or_lex, feature_name_or_lex_field)
+            end
+          else if List.mem id_or_lex kni
+          then
+            begin
+              Domain.check_feature_name ~loc ?domain feature_name_or_lex_field;
+              Node_feat (cn_of_node_id id_or_lex, feature_name_or_lex_field)
+            end
+          else if List.mem id_or_lex kei
+          then Edge_feat (id_or_lex, feature_name_or_lex_field)
+          else Error.build ~loc "Unknown identifier \"%s\"" id_or_lex
+        | Ast.String_item s -> String_item s in
+
       begin
         match (List.mem node_or_edge_id kni, List.mem node_or_edge_id kei) with
 
         (* [node_or_edge_id] is a node id *)
         | (true, false) when feat_name = "__id__" -> Error.build ~loc "The node feature name \"__id__\" is reserved and cannot be used in commands"
         | (true, false) ->
-          let items = List.map
-              (function
-                | Ast.Qfn_or_lex_item (id_or_lex,feature_name_or_lex_field) ->
-                  if List.mem_assoc id_or_lex lexicons
-                  then
-                    begin
-                      Lexicons.check ~loc id_or_lex feature_name_or_lex_field lexicons;
-                      Lexical_field (id_or_lex, feature_name_or_lex_field)
-                    end
-                  else if List.mem id_or_lex kni
-                  then
-                    begin
-                      Domain.check_feature_name ~loc ?domain feature_name_or_lex_field;
-                      Node_feat (cn_of_node_id id_or_lex, feature_name_or_lex_field)
-                    end
-                    else if List.mem id_or_lex kei
-                    then Edge_feat (id_or_lex, feature_name_or_lex_field)
-                    else Error.build ~loc "Unknown identifier \"%s\"" id_or_lex
-                | Ast.String_item s -> String_item s
-              ) ast_items in
+          let items = List.map build_item ast_items in
           (* check for consistency *)
           begin
             match items with
@@ -337,10 +337,11 @@ module Command  = struct
         | (false, true) ->
           printf "### kei = [%s]\n%!" (String.concat ";" kei);
           printf "##### %s\n%!" (Ast.string_of_u_command (fst ast_command));
+
           begin
             match ast_items with
-            | [Ast.String_item s] -> ((UPDATE_EDGE_FEAT (node_or_edge_id, feat_name, typed_vos feat_name s), loc), (kni, kei))
-            | _ -> Error.build ~loc "[#1] Unknwon identifier \"%s\"" node_or_edge_id
+            | [ast_item] -> ((UPDATE_EDGE_FEAT (node_or_edge_id, feat_name, build_item ast_item), loc), (kni, kei))
+            | _ -> Error.build ~loc "Cannot concat value in edge feature: \"%s\"" node_or_edge_id
           end
 
         (* other cases *)

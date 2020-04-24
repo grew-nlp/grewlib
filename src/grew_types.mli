@@ -80,12 +80,6 @@ module Lexicon : sig
   (** [unselect_opt head value] returns the sublexicon with only items where the [head] column is different to [value] if any, else returns None *)
   val unselect_opt: string -> string -> t -> t option
 
-  exception Not_functional_lexicon
-
-  (** [read head lexicon] return [value] if all items have in the [head] column equals to [value]
-      * raise [Not_functional_lexicon] if several values are defined *)
-  val read: string -> t -> string
-
   (** [read head lexicon] return the list of [value] of all items having in the [head] column equals to [value] *)
   val read_all: string -> t -> string list
 

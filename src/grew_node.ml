@@ -108,6 +108,7 @@ module G_node = struct
     | Some new_next -> Some {t with next = new_next}
     | None -> None
 
+  (* XXX: dead code ? *)
   let update_edge_opt gid_tar old_edge feat_name new_value t =
     let new_edge = G_edge.update feat_name new_value old_edge in
     if new_edge = old_edge

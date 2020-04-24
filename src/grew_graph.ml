@@ -855,7 +855,7 @@ module G_graph = struct
                  | Some (Float _) -> Error.run ?loc "[G_graph.update_feat_fil], cannot concatenate feature named \"%s\" is numeric" feat_name
                  | None -> Error.run ?loc "[G_graph.update_feat_fil], feature \"%s\" is not defined" feat_name
                 )
-              | Concat_item.Edge_feat (edge_id, feat_name) -> failwith "XXX"
+              | Concat_item.Edge_feat (edge_id, feat_name) -> failwith "XXX -> function to remove"
               | Concat_item.String s -> s
             ) item_list in String (List_.to_string (fun s->s) "" strings_to_concat) in
     (update_feat ?loc graph tar_id tar_feat_name new_feature_value, new_feature_value)

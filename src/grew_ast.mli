@@ -27,7 +27,7 @@ val json_of_value : feature_value -> Yojson.Basic.t
 val numeric_feature_values: string list
 val typed_vos : feature_name -> string -> feature_value
 
-
+val concat_feature_values: ?loc:Loc.t -> feature_value list -> feature_value
 
 module Ast : sig
 

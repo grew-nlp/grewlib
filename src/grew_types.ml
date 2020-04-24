@@ -173,13 +173,6 @@ module Lexicon = struct
     | None -> Error.build ?loc:lex.loc "[Lexicon.projection] cannot find %s in lexicon" head
     | Some index -> Line_set.fold (fun line acc -> String_set.add (List.nth line index) acc) lex.lines String_set.empty
 
-  exception Not_functional_lexicon
-  let read head lex =
-    match String_set.elements (projection head lex) with
-    | [] -> Error.bug "[Lexicon.read] a lexicon must not be empty"
-    | [one] -> one
-    | _ -> raise Not_functional_lexicon
-
   let read_all head lex =
     match String_set.elements (projection head lex) with
     | [] -> Error.bug "[Lexicon.read] a lexicon must not be empty"

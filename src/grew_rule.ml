@@ -1069,6 +1069,45 @@ module Rule = struct
   let onf_apply_command ?domain matching (command,loc) state =
     let node_find cnode = onf_find ~loc cnode (matching, state.created_nodes) in
 
+    let feature_value_of_item = function
+      | Command.String_item s -> String s
+      | Command.Node_feat (cnode, feat_name) ->
+        let gid = node_find cnode in
+        let node = G_graph.find gid state.graph in
+        let fs = G_node.get_fs node in
+        begin
+          match G_fs.get_value_opt feat_name fs with
+          | None -> Error.run ~loc "Node feature named %s is undefined" feat_name
+          | Some v -> v
+        end
+      | Command.Edge_feat (edge_id, feat_name) ->
+        begin
+          match String_map.find_opt edge_id state.e_mapping with
+          | None -> Error.bug "Cannot find edge_id %s" edge_id
+          | Some (_,edge,_) ->
+            if feat_name = "label"
+            then
+              begin
+                match G_edge.to_string_opt edge with
+                | Some s -> String s
+                | None -> Error.run "Cannot use not regular edge label as a concat item"
+              end
+            else
+              match G_edge.get_sub_opt feat_name edge with
+              | None -> Error.run ~loc "[onf_apply_command] Edge feature named %s is undefined" feat_name
+              | Some fv -> fv
+        end
+      | Command.Lexical_field (lex_id, field) ->
+        begin
+          match List.assoc_opt lex_id matching.l_param with
+          | None -> Error.run ~loc "Undefined lexicon %s" lex_id
+          | Some lexicon ->
+            match Lexicon.get_opt field lexicon with
+            | None -> Error.bug "Inconsistent lexicon lex_id=%s field=%s" lex_id field
+            | Some value -> typed_vos field value
+        end in
+
+
     match command with
     | Command.ADD_EDGE (src_cn,tar_cn,edge) ->
       let src_gid = node_find src_cn in
@@ -1169,17 +1208,21 @@ module Rule = struct
           end
       end
 
-    | Command.UPDATE_EDGE_FEAT (edge_id, feat_name, new_value) ->
-      let (src_gid,old_edge,tar_gid) =
-        try String_map.find edge_id state.e_mapping
-        with Not_found -> Error.run ~loc "The edge identifier '%s' is undefined" edge_id in
-      let new_state_opt =
-        if feat_name = "label"
-        then
-          match new_value with
-          | Float _ -> Error.run ~loc "UPDATE_EDGE_FEAT, cannot use a numeric value as an edge label on edge %s" edge_id
-          | String string_value ->
-            let new_edge = G_edge.from_string string_value in
+    | Command.UPDATE_EDGE_FEAT (edge_id, feat_name, item) ->
+      begin
+        match String_map.find_opt edge_id state.e_mapping with
+        | None -> Error.run ~loc "UPDATE_EDGE_FEAT (LHS) The edge identifier '%s' is undefined" edge_id
+        | Some (src_gid,old_edge,tar_gid) ->
+          let new_edge =
+            match (feat_name, item) with
+            | ("label", Command.Edge_feat (src_edge_id, "label")) ->
+              begin
+                match String_map.find_opt src_edge_id state.e_mapping with
+                | None -> Error.run ~loc "UPDATE_EDGE_FEAT (RHS) The edge identifier '%s' is undefined" src_edge_id
+                | Some (src_gid,edge,tar_gid) -> edge
+              end
+            | _ -> G_edge.update feat_name (feature_value_of_item item) old_edge in
+          let new_state_opt =
             if new_edge = old_edge
             then None
             else
@@ -1188,18 +1231,18 @@ module Rule = struct
               | Some tmp_graph ->
                 match G_graph.add_edge_opt src_gid new_edge tar_gid tmp_graph with
                 | None -> None
-                | Some new_graph -> Some (new_graph, new_edge)
-        else G_graph.update_edge_feature_opt ~loc edge_id feat_name new_value (src_gid,old_edge,tar_gid) state.graph in
-      begin
-        match new_state_opt with
-        | None when !Global.safe_commands -> Error.run ~loc "UPDATE_EDGE_FEAT: no changes %s" edge_id
-        | None -> state
-        | Some (new_graph, new_edge) ->
-          { state with
-            graph = new_graph;
-            effective = true;
-            e_mapping = String_map.add edge_id (src_gid,new_edge,tar_gid) state.e_mapping;
-          }
+                | Some new_graph -> Some (new_graph, new_edge) in
+          begin
+            match new_state_opt with
+            | None when !Global.safe_commands -> Error.run ~loc "UPDATE_EDGE_FEAT: no changes %s" edge_id
+            | None -> state
+            | Some (new_graph, new_edge) ->
+              { state with
+                graph = new_graph;
+                effective = true;
+                e_mapping = String_map.add edge_id (src_gid,new_edge,tar_gid) state.e_mapping;
+              }
+          end
       end
 
     | Command.DEL_NODE node_cn ->
@@ -1217,70 +1260,10 @@ module Rule = struct
 
     | Command.UPDATE_FEAT (tar_cn, tar_feat_name, item_list) ->
       let tar_gid = node_find tar_cn in
-
-      let feature_value_list =
-        List.map
-          (function
-            | Command.String_item s -> String s
-            | Command.Node_feat (cnode, feat_name) ->
-              let gid = node_find cnode in
-              let node = G_graph.find gid state.graph in
-              let fs = G_node.get_fs node in
-              begin
-                match G_fs.get_value_opt feat_name fs with
-                | None -> Error.run ~loc "Node feature named %s is undefined" feat_name
-                | Some v -> v
-              end
-            | Command.Edge_feat (edge_id, feat_name) ->
-              begin
-                match String_map.find_opt edge_id state.e_mapping with
-                | None -> Error.bug "Cannot find edge_id %s" edge_id
-                | Some (_,edge,_) ->
-                  match G_edge.get_sub_opt feat_name edge with
-                | None -> Error.run ~loc "Edge feature named %s is undefined" feat_name
-                | Some fv -> fv
-              end
-            | Command.Lexical_field (lex_id, field) ->
-              begin
-                match List.assoc_opt lex_id matching.l_param with
-                | None -> Error.run ~loc "Undefine lexicon %s" lex_id
-                | Some lexicon ->
-                  match Lexicon.get_opt field lexicon with
-                  | None -> failwith "XXX" (* TODO: test Fail in rule app !! *)
-                  | Some value -> typed_vos field value
-              end
-          ) item_list in
-
-      let new_feature_value = match feature_value_list with
-      | [one] -> one
-      | l ->
-        let rec loop = function
-        | [] -> ""
-        | String s :: tail -> s ^ (loop tail)
-        | Float _ :: _ -> Error.run "Cannot concat with numeric value" in
-        String (loop l) in
-
+      let feature_value_list = List.map feature_value_of_item item_list in
+      let new_feature_value = concat_feature_values ~loc feature_value_list in
       let new_graph = G_graph.update_feat ~loc state.graph tar_gid tar_feat_name new_feature_value in
-
-        {state with graph = new_graph; effective = true}
-      (* let rule_items = List.map
-          (function
-            | Command.Node_feat (cnode, feat_name) -> Concat_item.Node_feat (node_find cnode, feat_name)
-            | Command.Edge_feat (edge_id, feat_name) -> Concat_item.Edge_feat (edge_id, feat_name)
-            | Command.String_item s -> Concat_item.String s
-            | Command.Lexical_field (lex_id, field) ->
-              (try
-                 let lexicon = List.assoc lex_id matching.l_param in
-                 let v = Lexicon.get field lexicon in
-                 Concat_item.String v
-               with
-               | Not_found -> Error.run ~loc "UPDATE_FEAT: the lexicon '%s' does not exist" lex_id
-              )
-          ) item_list in
-      let (new_graph, new_feature_value) =
-        G_graph.update_feat_fil ~loc state.graph tar_gid tar_feat_name rule_items in *)
-
-
+      {state with graph = new_graph; effective = true}
 
     | Command.APPEND_FEATS (src_cn, tar_cn, regexp, separator) ->
       let src_gid = node_find src_cn in
@@ -1446,6 +1429,37 @@ module Rule = struct
   let gwh_apply_command ?domain (command,loc) matching gwh =
     let node_find cnode = find ~loc cnode gwh matching in
 
+    let feature_value_list_of_item tar_feat_name = function
+      | Command.String_item s -> [String s]
+      | Command.Node_feat (cnode, feat_name) ->
+        let gid = node_find cnode in
+        let node = G_graph.find gid gwh.graph in
+        let fs = G_node.get_fs node in
+        begin
+          match G_fs.get_value_opt feat_name fs with
+          | None -> Error.run ~loc "Node feature named %s is undefined" feat_name
+          | Some v -> [v]
+        end
+      | Command.Edge_feat (edge_id, feat_name) ->
+        begin
+          let (_,edge,_) =
+            match String_map.find_opt edge_id gwh.e_mapping with
+            | Some e -> e
+            | None ->
+              match String_map.find_opt edge_id gwh.added_edges_in_rule with
+              | Some e -> e
+              | None -> Error.run ~loc "The edge identifier '%s' is undefined" edge_id in
+          match G_edge.get_sub_opt feat_name edge with
+          | None -> Error.run ~loc "[gwh_apply_command] Edge feature named %s is undefined" feat_name
+          | Some fv -> [fv]
+        end
+      | Command.Lexical_field (lex_id, field) ->
+        begin
+          match List.assoc_opt lex_id matching.l_param with
+          | None -> Error.run ~loc "Undefined lexicon %s" lex_id
+          | Some lexicon -> List.map (fun x -> typed_vos tar_feat_name x) (Lexicon.read_all field lexicon)
+        end in
+
     match command with
     | Command.ADD_EDGE (src_cn,tar_cn,edge) ->
       let src_gid = node_find src_cn in
@@ -1552,41 +1566,34 @@ module Rule = struct
                              }
       )
 
+
+
+
     | Command.UPDATE_FEAT (tar_cn, tar_feat_name, item_list) ->
       let tar_gid = node_find tar_cn in
 
-      (* a list of possible rule_items is produced: there can be more than one in case of non functional lexicons *)
-      let rule_items_list =
-        List.fold_right
-          (fun item acc -> match item with
-             | Command.Node_feat (cnode, feat_name) -> List.map (fun x -> Concat_item.Node_feat (node_find cnode, feat_name)::x) acc
-             | Command.Edge_feat (edge_id, feat_name) -> List.map (fun x -> Concat_item.Edge_feat (edge_id, feat_name)::x) acc
-             | Command.String_item s -> List.map (fun x -> (Concat_item.String s) :: x) acc
-             | Command.Lexical_field (lex_id, field) ->
-               try
-                 let lexicon = List.assoc lex_id matching.l_param in
-                 let values = Lexicon.read_all field lexicon in
-                 List.fold_left
-                   (fun acc2 value ->
-                      (List.map (fun x -> (Concat_item.String value) :: x) acc) @ acc2
-                   ) [] values
-               with
-               | Not_found -> Error.run ~loc "UPDATE_FEAT: the lexicon '%s' does not exist" lex_id
-               | Lexicon.Not_functional_lexicon -> Error.run ~loc "UPDATE_FEAT: the lexicon is not functional" lex_id
-          ) item_list [[]] in
+      (* not deterministic because of non functionnal lexicons *)
+      let new_feature_value_list =
+        item_list
+        |> List.map (feature_value_list_of_item tar_feat_name)
+        |> CCList.cartesian_product
+        |> List.map concat_feature_values in
 
       let new_graphs = List.fold_left
-          (fun acc rule_items ->
-             let (new_graph, new_feature_value) =
-               G_graph.update_feat_fil ~loc gwh.Graph_with_history.graph tar_gid tar_feat_name rule_items in
+          (fun acc new_feature_value ->
+             let new_graph = G_graph.update_feat ~loc gwh.Graph_with_history.graph tar_gid tar_feat_name new_feature_value in
              Graph_with_history_set.add
                { gwh with
                  Graph_with_history.graph = new_graph;
                  delta = Delta.set_feat gwh.Graph_with_history.seed tar_gid tar_feat_name (Some new_feature_value) gwh.Graph_with_history.delta;
                }
                acc
-          ) Graph_with_history_set.empty rule_items_list in
-      new_graphs
+          ) Graph_with_history_set.empty new_feature_value_list in
+
+      if (Graph_with_history_set.is_empty new_graphs) && !Global.safe_commands
+      then Error.run ~loc "UPDATE_FEAT: no changes"
+      else new_graphs
+
 
     | Command.DEL_FEAT (tar_cn,feat_name) ->
       let tar_gid = node_find tar_cn in
@@ -1599,46 +1606,72 @@ module Rule = struct
                                                             }
       )
 
-    | Command.UPDATE_EDGE_FEAT (edge_id, feat_name, new_value) ->
-      let (src_gid,old_edge,tar_gid) =
-        match String_map.find_opt edge_id gwh.e_mapping with
-        | Some e -> e
-        | None ->
-          match String_map.find_opt edge_id gwh.added_edges_in_rule with
-          | Some e -> e
-          | None -> Error.run ~loc "The edge identifier '%s' is undefined" edge_id in
-      let new_state_opt =
-        if feat_name = "label"
-        then
-          match new_value with
-          | Float _ -> Error.run ~loc "UPDATE_EDGE_FEAT, cannot use a numeric value as an edge label on edge %s" edge_id
-          | String string_value ->
-            let new_edge = G_edge.from_string string_value in
-            if new_edge = old_edge
-            then None
-            else
-              match G_graph.del_edge_opt ~loc src_gid old_edge tar_gid gwh.Graph_with_history.graph with
-              | None -> Error.bug "Inconsistent graph structure in UPDATE_EDGE_FEAT"
-              | Some tmp_graph ->
-                match G_graph.add_edge_opt src_gid new_edge tar_gid tmp_graph with
-                | None -> None
-                | Some new_graph -> Some (new_graph, new_edge)
-        else G_graph.update_edge_feature_opt ~loc edge_id feat_name new_value (src_gid,old_edge,tar_gid) gwh.Graph_with_history.graph in
-      begin
-        match new_state_opt with
-        | None when !Global.safe_commands -> Error.run ~loc "UPDATE_EDGE_FEAT: no changes %s" edge_id
-        | None -> Graph_with_history_set.singleton gwh
-        | Some (new_graph, new_edge) ->
-          Graph_with_history_set.singleton
-            { gwh with
-              Graph_with_history.graph = new_graph;
-              delta = gwh.Graph_with_history.delta
-                      |> Delta.del_edge src_gid old_edge tar_gid
-                      |> Delta.add_edge src_gid new_edge tar_gid;
-              e_mapping = String_map.add edge_id (src_gid,new_edge,tar_gid) gwh.e_mapping;
-            }
-      end
 
+
+
+    | Command.UPDATE_EDGE_FEAT (edge_id, feat_name, item) ->
+      begin
+        let (src_gid,old_edge,tar_gid) =
+          match String_map.find_opt edge_id gwh.e_mapping with
+          | Some e -> e
+          | None ->
+            match String_map.find_opt edge_id gwh.added_edges_in_rule with
+            | Some e -> e
+            | None -> Error.run ~loc "The edge identifier '%s' is undefined" edge_id in
+
+        let new_edges =
+          match (feat_name, item) with
+          | ("label", Command.Edge_feat (src_edge_id, "label")) ->
+            let src_edge =
+              match String_map.find_opt src_edge_id gwh.e_mapping with
+              | Some (_,e,_) -> e
+              | None ->
+                match String_map.find_opt edge_id gwh.added_edges_in_rule with
+                | Some (_,e,_) -> e
+                | None -> Error.run ~loc "The edge identifier '%s' is undefined" edge_id in
+            [src_edge]
+
+          | _ ->
+            (* not deterministic because of non functionnal lexicons *)
+            let new_feature_value_list = feature_value_list_of_item feat_name item in
+            List.fold_left
+              (fun acc new_feature_value ->
+                 let test_new_edge =
+                   match (feat_name, new_feature_value) with
+                   | ("label", String s) -> G_edge.from_string s
+                   | ("label", Float _) -> Error.run "Cannot set a edge feature label as numeric"
+                   | _ -> G_edge.update feat_name new_feature_value old_edge in
+                 if test_new_edge = old_edge
+                 then acc
+                 else test_new_edge :: acc
+              ) [] new_feature_value_list in
+
+        begin
+          match new_edges with
+          | [] when !Global.safe_commands -> Error.run ~loc "UPDATE_EDGE_FEAT: no changes"
+          | _ ->
+            let new_graphs = List.fold_left
+                (fun acc new_edge ->
+                   let new_graph =
+                     match G_graph.del_edge_opt ~loc src_gid old_edge tar_gid gwh.Graph_with_history.graph with
+                     | None -> Error.bug "Inconsistent graph structure in UPDATE_EDGE_FEAT"
+                     | Some tmp_graph ->
+                       match G_graph.add_edge_opt src_gid new_edge tar_gid tmp_graph with
+                       | None -> Error.bug "the edge should be new!"
+                       | Some g -> g in
+                   Graph_with_history_set.add
+                     { gwh with
+                       Graph_with_history.graph = new_graph;
+                       delta = gwh.Graph_with_history.delta
+                               |> Delta.del_edge src_gid old_edge tar_gid
+                               |> Delta.add_edge src_gid new_edge tar_gid;
+                       e_mapping = String_map.add edge_id (src_gid,new_edge,tar_gid) gwh.e_mapping;
+                     }
+                     acc
+                ) Graph_with_history_set.empty new_edges in
+            new_graphs
+        end
+      end
     | Command.SHIFT_IN (src_cn,tar_cn,label_cst) ->
       let src_gid = node_find src_cn in
       let tar_gid = node_find tar_cn in
