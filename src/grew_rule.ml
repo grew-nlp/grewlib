@@ -1825,7 +1825,7 @@ module Rule = struct
                Matching.fulfill ?domain (pos.graph,neg.graph) graph new_partial_matching
             ) negs
         then (* all negs part are fulfilled *)
-          let init_gwh = { gwh with e_mapping = sub.Matching.e_match; added_gids_in_rule = []; } in
+          let init_gwh = { gwh with e_mapping = sub.Matching.e_match; added_gids_in_rule = []; added_edges_in_rule=String_map.empty; } in
           let rec loop_command acc_gwh = function
             | [] -> acc_gwh
             | command :: tail_commands ->
