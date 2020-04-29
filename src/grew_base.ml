@@ -203,10 +203,10 @@ module List_ = struct
     | _::t when position = 0 -> elt::t
     | x::t -> x:: (set (position-1) elt t)
 
-  let rec rm elt = function
+  let rec remove elt = function
     | [] -> raise Not_found
-    | x::t when x=elt -> t
-    | x::t -> x::(rm elt t)
+    | a::tail when a = elt -> tail
+    | a::tail -> a::(remove elt tail)
 
   let index_opt x l =
     let rec loop i = function
@@ -250,11 +250,6 @@ module List_ = struct
          (fun (acc,i) elt -> (f i acc elt, i+1))
          (init,0) l
       )
-
-  let rec remove elt = function
-    | [] -> raise Not_found
-    | a::tail when a = elt -> tail
-    | a::tail -> a::(remove elt tail)
 
   let to_string string_of_item sep = function
     | [] -> ""
@@ -488,12 +483,12 @@ module Massoc_make (Ord: OrderedType) = struct
   let replace = M.add
 
   let add_opt key elt t =
-    try
-      let list = M.find key t in
+    match M.find_opt key t with
+    | None -> Some (M.add key [elt] t)
+    | Some list ->
       match List_.usort_insert_opt elt list with
       | Some l -> Some (M.add key l t)
       | None -> None
-    with Not_found -> Some (M.add key [elt] t)
 
   let fold fct init t =
     M.fold
@@ -506,7 +501,7 @@ module Massoc_make (Ord: OrderedType) = struct
 
   let fold_on_list fct init t = M.fold (fun key list acc -> fct acc key list) t init
 
-  (* Not found raised in the value is not defined *)
+  (* [Not_found] raised in the value is not defined *)
   let remove key value t =
     match M.find key t with
     | [one] when one=value -> M.remove key t
@@ -525,7 +520,6 @@ module Massoc_make (Ord: OrderedType) = struct
   let rec mem_key key t = M.mem key t
 
   exception Not_disjoint
-
   let disjoint_union t1 t2 =
     M.fold
       (fun key list acc ->
@@ -593,6 +587,7 @@ module Id = struct
 
   type name = string
   type table = string array
+
   let build ?(loc:Loc.t option) key table =
     try Array_.dicho_find key table
     with Not_found -> Error.build ?loc "[Id.build] Identifier '%s' not found" key

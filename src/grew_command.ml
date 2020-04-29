@@ -221,7 +221,7 @@ module Command  = struct
 
     | (Ast.Del_edge_name id, loc) ->
       check_edge loc id kei;
-      (DEL_EDGE_NAME id, loc), (kni, List_.rm id kei)
+      (DEL_EDGE_NAME id, loc), (kni, List_.remove id kei)
 
     | (Ast.Add_edge (node_i, node_j, lab), loc) ->
       check_node_id loc node_i kni;
@@ -273,7 +273,7 @@ module Command  = struct
 
     | (Ast.Del_node node_n, loc) ->
       check_node_id loc node_n kni;
-      ((DEL_NODE (cn_of_node_id node_n), loc), (List_.rm node_n kni, kei))
+      ((DEL_NODE (cn_of_node_id node_n), loc), (List_.remove node_n kni, kei))
 
     | (Ast.Del_feat (node_or_edge_id, feat_name), loc) ->
       begin

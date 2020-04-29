@@ -108,9 +108,6 @@ end (* module Array_ *)
 (* ================================================================================ *)
 (* [List_] contains additional functions on the caml [list] type. *)
 module List_: sig
-  (** [rm elt list] removes the first occurence of [elt] in [list]. [Not_found] can be raised. *)
-  val rm: 'a -> 'a list -> 'a list
-
   val set: int -> 'a -> 'a list -> 'a list
 
   (** [cut size list] returns a list with the [size] first elements of [list].
