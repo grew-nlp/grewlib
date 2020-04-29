@@ -7,7 +7,7 @@
 (*    License: CeCILL (see LICENSE folder or "http://www.cecill.info")            *)
 (*    Authors: see AUTHORS file                                                   *)
 (**********************************************************************************)
-
+open CCOpt.Infix
 open Log
 open Printf
 
@@ -369,22 +369,22 @@ module Matching = struct
     | [edge_id] -> Error.build "In cluster key, the syntax \"%s\" is no more available, it must be replaced by \"%s.label\", see [[http://grew.fr/old]]" edge_id edge_id;
     | [node_or_edge_id; feature_name] ->
       begin
-        match String_map.find_opt node_or_edge_id matching.e_match with
-        | Some (_,edge,_) ->
-          if feature_name = "label"
-          then
-            begin
-              match G_edge.to_string_opt edge with
-              | Some s -> Some s
-              | None -> Error.bug "[Matching.get_string_value_opt] internal edge %s" (G_edge.dump edge)
-            end
-          else
-            begin
-              match G_edge.get_sub_opt feature_name edge with
-              | Some e -> Some (string_of_value e)
-              | None -> Error.bug "[Matching.get_string_value_opt] internal edge %s" (G_edge.dump edge)
-            end
-        | None ->
+        match (String_map.find_opt node_or_edge_id matching.e_match, feature_name) with
+        | (Some (_,edge,_), "label") ->
+          begin
+            match G_edge.to_string_opt edge with
+            | Some s -> Some s
+            | None -> Error.bug "[Matching.get_string_value_opt] internal edge %s" (G_edge.dump edge)
+          end
+        | (Some edge, "length") -> string_of_int <$> (G_graph.edge_length_opt edge graph)
+        | (Some edge, "delta") -> string_of_int <$> (G_graph.edge_delta_opt edge graph)
+        | (Some (_,edge,_), _) ->
+          begin
+            match G_edge.get_sub_opt feature_name edge with
+            | Some e -> Some (string_of_value e)
+            | None -> Error.bug "[Matching.get_string_value_opt] internal edge %s" (G_edge.dump edge)
+          end
+        | (None, _) ->
           begin
             match get_pid_by_name pattern node_or_edge_id matching.n_match with
             | None -> Error.run "[Matching.get_string_value_opt] unknown id %s" node_or_edge_id
@@ -497,11 +497,12 @@ module Matching = struct
             | None -> raise Fail (* no such feat_name here *)
           end
       | Pattern.Edge_id edge_id ->
-        let (_,g_edge,_) = String_map.find edge_id matching.e_match in
+        let (_,g_edge,_) as e = String_map.find edge_id matching.e_match in
         begin
           match feat_name with
           | "label" -> (match G_edge.to_string_opt g_edge with Some s -> Value (String s) | None -> raise Fail)
-          | "length" -> failwith "TODO not implemented"
+          | "length" -> (match G_graph.edge_length_opt e graph with Some s -> Value (Float (float_of_int s)) | None -> raise Fail)
+          | "delta" -> (match G_graph.edge_delta_opt e graph with Some s -> Value (Float (float_of_int s)) | None -> raise Fail)
           | _ ->
             match G_edge.get_sub_opt feat_name g_edge with
             | None -> raise Fail

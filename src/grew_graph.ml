@@ -340,11 +340,23 @@ module G_graph = struct
     |> (map_add_edge gid1 G_edge.succ gid2)
     |> (map_add_edge gid2 G_edge.pred gid1)
 
+  (* -------------------------------------------------------------------------------- *)
   let map_del_pred_succ gid1 gid2 map =
     map
     |> (map_del_edge gid1 G_edge.succ gid2)
     |> (map_del_edge gid2 G_edge.pred gid1)
 
+  (* -------------------------------------------------------------------------------- *)
+  let edge_length_opt (src_gid,_,tar_gid) graph =
+    match (G_node.get_position_opt (find src_gid graph), G_node.get_position_opt (find tar_gid graph)) with
+    | (Some src, Some tar) -> Some (abs (tar-src))
+    | _ -> None
+
+  (* -------------------------------------------------------------------------------- *)
+  let edge_delta_opt (src_gid,_,tar_gid) graph =
+    match (G_node.get_position_opt (find src_gid graph), G_node.get_position_opt (find tar_gid graph)) with
+    | (Some src, Some tar) -> Some (tar-src)
+    | _ -> None
 
   (* -------------------------------------------------------------------------------- *)
   let build ?domain gr_ast =
@@ -1415,6 +1427,7 @@ module G_graph = struct
         tree = !info.nontree_edges = [] && !info.back_edges = [] && nb_roots = 1;
         cyclic = !info.back_edges <> [];
       }
+
 end (* module G_graph *)
 
 

@@ -35,8 +35,9 @@ let conll_string_of_value = function
 let numeric_feature_values = [
   "level";  (* use for edges in UDtoSUD grs *)
   "freq";  (* use for nodes in POStoSSQ grs *)
-  "_start" ; "_stop";  (* nodes in Orfeo timestamps *)
-  "AlignBegin" ; "AlignEnd";  (* nodes in SUD_Naija *)
+  "_start"; "_stop";  (* nodes in Orfeo timestamps *)
+  "AlignBegin"; "AlignEnd";  (* nodes in SUD_Naija *)
+  "length"; "delta";
 ]
 
 (* Typing float/string for feature value is hardcoded, should evolve with a new domain implementation *)

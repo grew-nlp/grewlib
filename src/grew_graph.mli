@@ -99,6 +99,9 @@ module G_graph: sig
       i.e. the position of the node is strictly between the two nodes of the edge *)
   val covered: G_node.t -> (Gid.t * G_edge.t * Gid.t ) -> t -> bool
 
+  val edge_length_opt: (Gid.t * G_edge.t * Gid.t) -> t -> int option
+  val edge_delta_opt: (Gid.t * G_edge.t * Gid.t) -> t -> int option
+
   (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
   (* Build functions *)
   (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
