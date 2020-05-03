@@ -382,7 +382,7 @@ module Matching = struct
           begin
             match G_edge.get_sub_opt feature_name edge with
             | Some e -> Some (string_of_value e)
-            | None -> Error.bug "[Matching.get_string_value_opt] internal edge %s" (G_edge.dump edge)
+            | None -> None
           end
         | (None, _) ->
           begin
