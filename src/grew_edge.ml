@@ -88,6 +88,10 @@ module G_edge = struct
     | Pred | Succ -> true
     | _ -> false
 
+  let enhanced = function
+  | Fs fs when List.assoc_opt "kind" fs = Some (String "enhanced") -> true
+  | _ -> false
+
   let from_items l = Fs (fs_from_items l)
 
   let get_sub_opt feat_name = function
