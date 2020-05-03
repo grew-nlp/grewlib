@@ -22,6 +22,8 @@ module G_edge = struct
   (* [G_edge.fs] is a feature structure. The list of feature names must be ordered wrt [Stdlib.compare] *)
   type fs = (feature_name * feature_value) list
 
+  let raw_string fs = String.concat "," (List.map (fun (x,y) -> x^"="^(string_of_value y)) fs)
+
   let fs_from_items l = (List.sort (fun (x,_) (y,_) -> Stdlib.compare x y) l)
 
   (* short is "E:x:y" or "x:y@z" *)
@@ -53,7 +55,7 @@ module G_edge = struct
   let fs_to_string fs =
     match fs_to_short_opt fs with
     | Some s -> s
-    | None -> String.concat "," (List.map (fun (x,y) -> x^"="^(string_of_value y)) fs)
+    | None -> raw_string fs
 
   (* split ["a"; "b"; "c"] --> [("1","a"); ("2","b"); ("3","c")]  *)
   let split l =
@@ -68,7 +70,11 @@ module G_edge = struct
       | [i] -> (i, None)
       | [i;d] -> (i, Some ("deep",typed_vos "deep" d))
       | _ -> assert false in
-    let before_deep =
+    let before_deep = match init with
+      | "S:" -> [("kind",String "surf")]
+      | "D:" -> [("kind",String "deep")]
+      | "E:" -> [("kind",String "enhanced")]
+      | _ ->
       match Str.split (Str.regexp_string ":") init with
       | [one] -> ["1", typed_vos "1" one]
       | "S" :: l -> ("kind",String "surf") :: (split l)
@@ -88,6 +94,10 @@ module G_edge = struct
   let ordering = function
     | Pred | Succ -> true
     | _ -> false
+
+  let enhanced = function
+  | Fs fs when List.assoc_opt "kind" fs = Some (String "enhanced") -> true
+  | _ -> false
 
   let from_items l = Fs (fs_from_items l)
 
