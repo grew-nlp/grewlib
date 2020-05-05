@@ -1,3 +1,6 @@
+## 1.3.6 (2020/05/05)
+  * Fix bug in del_node implementation
+
 ## 1.3.5 (2020/03/12)
   * Avoid exception [Not_conll] in G_edge.to_dep & G_edge.to_dot
 
