@@ -1254,7 +1254,7 @@ module Rule = struct
          { state with
            graph = new_graph;
            effective = true;
-           e_mapping = String_map.filter (fun _ (s,_,t) -> s=node_gid || t=node_gid) state.e_mapping;
+           e_mapping = String_map.filter (fun _ (s,_,t) -> s<>node_gid && t<>node_gid) state.e_mapping;
          }
       )
 
@@ -1562,7 +1562,7 @@ module Rule = struct
                              { gwh with
                                Graph_with_history.graph = new_graph;
                                delta = Delta.del_node node_gid gwh.Graph_with_history.delta;
-                               e_mapping = String_map.filter (fun _ (s,_,t) -> s=node_gid || t=node_gid) gwh.e_mapping;
+                               e_mapping = String_map.filter (fun _ (s,_,t) -> s<>node_gid && t<>node_gid) gwh.e_mapping;
                              }
       )
 
