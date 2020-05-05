@@ -47,7 +47,8 @@ let typed_vos feat_name string_value =
     begin
       match float_of_string_opt string_value with
       | Some f -> Float f
-      | _ -> Error.run "The featue \"%s\" must be numeric, it cannot be associated with value: \"%s\"" feat_name string_value
+      | None when string_value = "unknown" -> Float (-1.) (* to deal with AlignBegin=unknown|AlignEnd=unknown in SUD_Naija *)
+      | None -> Error.run "The featue \"%s\" must be numeric, it cannot be associated with value: \"%s\"" feat_name string_value
     end
   else String string_value
 
