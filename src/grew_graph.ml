@@ -230,22 +230,33 @@ module G_graph = struct
 
   type t = {
     domain: Domain.t option;
-    meta: string list;            (* meta-informations *)
+    meta: (string * string) list; (* meta-informations *)
     map: G_node.t Gid_map.t;      (* node description *)
     fusion: fusion_item list;     (* the list of fusion word considered in UD conll *)
     highest_index: int;           (* the next free integer index *)
     rules: int String_map.t;
   }
 
-  let get_meta_opt key t =
-    let rec loop = function
+  let get_meta_opt key t = List.assoc_opt key t.meta
+
+  let parse_meta s =
+    match Str.bounded_full_split (Str.regexp "[#=\t ]+") s 3 with
+    | [Str.Delim _; Str.Text key; Str.Delim _; Str.Text value] -> (key,value)
+    | _ -> ("",s)
+
+  let string_of_meta = function
+  | ("", s) -> s
+  | (k,v) -> sprintf "# %s = %s" k v
+
+  (* let get_meta_opt key t =
+     let rec loop = function
       | [] -> None
       | line::tail ->
         begin
           match Str.bounded_full_split (Str.regexp "[#=\t ]+") line 3 with
           | [Str.Delim _; Str.Text k; Str.Delim _; Str.Text value] when k = key -> Some value
           | s -> loop tail
-        end in loop t.meta
+        end in loop t.meta *)
 
   let empty = { domain=None; meta=[]; map=Gid_map.empty; fusion=[]; highest_index=0; rules=String_map.empty; }
 
@@ -424,7 +435,7 @@ module G_graph = struct
 
     {
       domain;
-      meta=gr_ast.Ast.meta;
+      meta=List.map parse_meta gr_ast.Ast.meta;
       map;
       fusion = [];
       highest_index = final_index - 1;
@@ -551,7 +562,7 @@ module G_graph = struct
 
     {
       domain;
-      meta = conll.Conll.meta;
+      meta = List.map parse_meta conll.Conll.meta;
       map = map_with_nl_nodes;
       fusion;
       highest_index = free_index -1;
@@ -877,7 +888,7 @@ module G_graph = struct
     bprintf buff "graph {\n";
 
     (* meta data *)
-    List.iter (bprintf buff "  %s;\n") graph.meta;
+    List.iter (fun x -> x |> string_of_meta |> bprintf buff "  %s;\n") graph.meta;
 
     (* node_list *)
     let nodes = Gid_map.fold (fun gid node acc -> (gid,node)::acc) graph.map [] in
@@ -1225,10 +1236,10 @@ module G_graph = struct
 
     let meta =
       if !Global.track_rules
-      then graph.meta @ ["# rules = " ^ (string_rules graph)]
+      then graph.meta @ [("rules", (string_rules graph))]
       else graph.meta in
 
-    { Conll.void with Conll.meta = meta; lines; mwes; }
+    { Conll.void with Conll.meta = List.map string_of_meta meta; lines; mwes; }
 
   let to_conll_string ?cupt graph =
     let conll = to_conll graph in
