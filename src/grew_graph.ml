@@ -245,8 +245,8 @@ module G_graph = struct
     | _ -> ("",s)
 
   let string_of_meta = function
-  | ("", s) -> s
-  | (k,v) -> sprintf "# %s = %s" k v
+    | ("", s) -> s
+    | (k,v) -> sprintf "# %s = %s" k v
 
   (* let get_meta_opt key t =
      let rec loop = function
@@ -330,6 +330,7 @@ module G_graph = struct
       | Some new_node -> Some (Gid_map.add src_gid new_node map)
 
   (* -------------------------------------------------------------------------------- *)
+
   (* return input map if edge not found *)
   let map_del_edge ?loc src_gid label tar_gid map =
     match Gid_map.find_opt src_gid map with
@@ -441,6 +442,51 @@ module G_graph = struct
       highest_index = final_index - 1;
       rules = String_map.empty;
     }
+
+  (* -------------------------------------------------------------------------------- *)
+  let ast_node_of_conllx json =
+    let open Yojson.Basic.Util in
+    let id = json |> member "id" |> to_string in
+    let fs =
+      json
+      |> to_assoc
+      |> List.remove_assoc "id"
+      |> List.map
+        (fun (feat_name,json_value) ->
+          ({Ast.name= feat_name; kind = Ast.Equality [json_value |> to_string]}, Loc.empty)
+        ) in
+      let ast_node = ({ Ast.node_id=id; position=None; fs}, Loc.empty) in
+      ast_node
+
+  let ast_edge_of_conllx json =
+    let open Yojson.Basic.Util in
+    ( {
+          Ast.edge_id = None;
+          src = json |> member "src" |> to_string;
+          edge_label_cst = Ast.Pos_list [ json |> member "label" |> to_string ];
+          tar = json |> member "tar" |> to_string;
+      }, Loc.empty)
+
+  let of_conllx (json: Yojson.Basic.t) =
+    let open Yojson.Basic.Util in
+    let meta =
+      try
+        json
+        |> member "meta"
+        |> to_list
+        |> List.map
+          (fun x ->
+             (x |> member "key" |> to_string,
+              x |> member "value" |> to_string
+             )
+          )
+      with Type_error _ -> Error.build "Error in meta" in
+    let nodes = json |> member "nodes" |> to_list |> List.map ast_node_of_conllx in
+    let edges = json |> member "edges" |> to_list |> List.map ast_edge_of_conllx in
+
+    let graph_ast = { Ast.meta =[]; nodes;  edges} in
+    { (build graph_ast) with meta}
+
 
   (* -------------------------------------------------------------------------------- *)
   let of_json = function
