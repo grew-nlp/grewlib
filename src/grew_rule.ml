@@ -930,15 +930,24 @@ end (* module Matching *)
 (* ================================================================================ *)
 module Rule = struct
   (* the number of rewriting steps is bounded to stop rewriting when the system is not terminating *)
-  let max_rules = ref 10000
-  let current_rules = ref 0
-
+  let max_rules = ref 10_000
   let set_max_rules n = max_rules := n
-  let reset_rules () = current_rules := 0
-  let incr_rules () =
+
+  let nb_rule_report = 10
+
+  let current_rules = ref 0
+  let rule_report_list = ref []
+
+  let reset_rules () = current_rules := 0; rule_report_list := []
+  let incr_rules rule_name =
     incr current_rules;
-    if !current_rules > !max_rules
-    then Error.run "More than %d rewriting steps: ckeck for loops or increase max_rules value" !max_rules
+    if !current_rules > !max_rules - nb_rule_report
+    then
+      if !current_rules > !max_rules
+      then Error.run "More than %d rewriting steps: check for loops or increase max_rules value. Last rules are: […%s]"
+        !max_rules
+        (String.concat ", " (List.rev !rule_report_list))
+      else rule_report_list := rule_name :: !rule_report_list
 
 
   type t = {
@@ -1148,13 +1157,13 @@ module Rule = struct
              | [edge_id; feat_name] ->
                begin
                  match String_map.find_opt edge_id state.e_mapping with
-                 | None -> (name, value_of_string value)
+                 | None -> (name, typed_vos name value)
                  | Some (_,matched_edge,_) ->
                    match G_edge.get_sub_opt feat_name matched_edge with
                    | Some new_value -> (name, new_value)
                    | None -> Error.run "ADD_EDGE_ITEMS: no items edge feature name '%s' in matched edge '%s'" feat_name edge_id
                end
-             | _ -> (name, value_of_string value)
+             | _ -> (name, typed_vos name value)
           ) items in
       let edge = G_edge.from_items direct_items in
       begin
@@ -1359,7 +1368,7 @@ module Rule = struct
             }
             rule.commands in
         if final_state.effective
-        then (Timeout.check (); incr_rules(); Some (G_graph.push_rule (get_long_name rule) final_state.graph))
+        then (Timeout.check (); incr_rules rule.name; Some (G_graph.push_rule (get_long_name rule) final_state.graph))
         else None
     with Error.Run (msg,_) -> Error.run ~loc:rule.loc "%s" msg
 
@@ -1404,7 +1413,7 @@ module Rule = struct
           | Some {Libgrew_types.small_step; first} -> {Libgrew_types.small_step = (graph,rule_app) :: small_step; first} in
 
         if final_state.effective
-        then (Timeout.check (); incr_rules(); Some (final_state.graph, new_big_step))
+        then (Timeout.check (); incr_rules rule.name; Some (final_state.graph, new_big_step))
         else None
     with Error.Run (msg,_) -> Error.run ~loc:rule.loc "%s" msg
 
@@ -1463,13 +1472,13 @@ module Rule = struct
           | [edge_id; feat_name] ->
             begin
               match String_map.find_opt edge_id gwh.e_mapping with
-              | None -> (name, value_of_string value)
+              | None -> (name, typed_vos name value)
               | Some (_,matched_edge,_) ->
                 match G_edge.get_sub_opt feat_name matched_edge with
                 | Some new_value -> (name, new_value)
                 | None -> Error.run "ADD_EDGE_ITEMS: no items edge feature name '%s' in matched edge '%s'" feat_name edge_id
             end
-          | _ -> (name, value_of_string value)
+          | _ -> (name, typed_vos name value)
         ) items in
       let edge = G_edge.from_items direct_items in
       begin
@@ -1700,7 +1709,7 @@ module Rule = struct
   (*  ---------------------------------------------------------------------- *)
   (** [apply_rule graph_with_history matching rule] returns a new graph_with_history after the application of the rule *)
   let gwh_apply_rule ?domain graph_with_history matching rule =
-    Timeout.check (); incr_rules ();
+    Timeout.check (); incr_rules rule.name;
     let init = Graph_with_history_set.singleton
         { graph_with_history with
           e_mapping = matching.Matching.e_match;
@@ -1751,7 +1760,7 @@ module Rule = struct
               | Some next_gwh -> loop_command next_gwh tail_commands in
           try
             let new_gwh = loop_command init_gwh rule.commands in
-            Timeout.check (); incr_rules();
+            Timeout.check (); incr_rules rule.name;
             Some {new_gwh with graph = G_graph.push_rule (get_long_name rule) new_gwh.graph }
           with Dead_lock -> loop_matching tail (* failed to apply all commands -> move to the next matching *)
         else loop_matching tail (* some neg part prevents rule app -> move to the next matching *)

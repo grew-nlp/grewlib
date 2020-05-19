@@ -28,19 +28,27 @@ let json_of_value = function
   | String s -> `String s
   | Float f ->  `Float f
 
-(* the function [float_of_string] captures non numeric value like "Inf" *)
-let value_of_string s = match float_of_string_opt s with
-  | Some f ->
-    begin
-      match classify_float f with
-      | FP_normal | FP_zero -> Float f
-      | _ -> String s
-    end
-  | _ -> String s
-
 let conll_string_of_value = function
   | String s -> s
   | Float f -> sprintf "%g" f
+
+let numeric_feature_values = [
+  "level";  (* use for edges in UDtoSUD grs *)
+  "freq";  (* use for nodes in POStoSSQ grs *)
+  "_start" ; "_stop";  (* nodes in Orfeo timestamps *)
+  "AlignBegin" ; "AlignEnd";  (* nodes in SUD_Naija *)
+]
+
+(* Typing float/string for feature value is hardcoded, should evolve with a new domain implementation *)
+let typed_vos feat_name string_value =
+  if List.mem feat_name numeric_feature_values
+  then
+    begin
+      match float_of_string_opt string_value with
+      | Some f -> Float f
+      | _ -> Error.run "The featue \"%s\" must be numeric, it cannot be associated with value: \"%s\"" feat_name string_value
+    end
+  else String string_value
 
 (* ================================================================================ *)
 module Ast = struct

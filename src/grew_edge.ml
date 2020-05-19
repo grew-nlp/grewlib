@@ -58,12 +58,17 @@ module G_edge = struct
     | None -> raw_string fs
 
   (* split ["a"; "b"; "c"] --> [("1","a"); ("2","b"); ("3","c")]  *)
-  let split l = CCList.mapi (fun i elt -> (string_of_int (i+1), value_of_string elt)) l
+  let split l =
+    CCList.mapi
+      (fun i elt ->
+        let feature_name = string_of_int (i+1) in
+         (feature_name, typed_vos feature_name elt)
+      ) l
 
   let fs_from_short str =
     let (init, deep) = match Str.bounded_split (Str.regexp_string "@") str 2 with
       | [i] -> (i, None)
-      | [i;d] -> (i, Some ("deep",value_of_string d))
+      | [i;d] -> (i, Some ("deep",typed_vos "deep" d))
       | _ -> assert false in
     let before_deep = match init with
       | "S:" -> [("kind",String "surf")]
@@ -71,7 +76,7 @@ module G_edge = struct
       | "E:" -> [("kind",String "enhanced")]
       | _ ->
         match Str.split (Str.regexp_string ":") init with
-        | [one] -> ["1", value_of_string one]
+        | [one] -> ["1", typed_vos "1" one]
         | "S" :: l -> ("kind",String "surf") :: (split l)
         | "D" :: l -> ("kind",String "deep") :: (split l)
         | "E" :: l -> ("kind",String "enhanced") :: (split l)
@@ -231,8 +236,8 @@ module Label_cst = struct
     | _ -> false
 
   let build_atom = function
-    | Ast.Atom_eq (name, atoms) -> Eq (name, List.map value_of_string (List.sort Stdlib.compare atoms))
-    | Ast.Atom_diseq (name, atoms) -> Diseq (name, List.map value_of_string (List.sort Stdlib.compare atoms))
+    | Ast.Atom_eq (name, atoms) -> Eq (name, List.map (typed_vos name) (List.sort Stdlib.compare atoms))
+    | Ast.Atom_diseq (name, atoms) -> Diseq (name, List.map (typed_vos name) (List.sort Stdlib.compare atoms))
     | Ast.Atom_absent name -> Absent name
 
   let build ?loc ?domain = function
