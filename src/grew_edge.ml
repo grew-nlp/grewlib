@@ -61,7 +61,7 @@ module G_edge = struct
   let split l =
     CCList.mapi
       (fun i elt ->
-        let feature_name = string_of_int (i+1) in
+         let feature_name = string_of_int (i+1) in
          (feature_name, typed_vos feature_name elt)
       ) l
 
@@ -75,12 +75,12 @@ module G_edge = struct
       | "D:" -> [("kind",String "deep")]
       | "E:" -> [("kind",String "enhanced")]
       | _ ->
-      match Str.split (Str.regexp_string ":") init with
-      | [one] -> ["1", typed_vos "1" one]
-      | "S" :: l -> ("kind",String "surf") :: (split l)
-      | "D" :: l -> ("kind",String "deep") :: (split l)
-      | "E" :: l -> ("kind",String "enhanced") :: (split l)
-      | l -> split l in
+        match Str.split (Str.regexp_string ":") init with
+        | [one] -> ["1", typed_vos "1" one]
+        | "S" :: l -> ("kind",String "surf") :: (split l)
+        | "D" :: l -> ("kind",String "deep") :: (split l)
+        | "E" :: l -> ("kind",String "enhanced") :: (split l)
+        | l -> split l in
     fs_from_items (CCList.cons_maybe deep before_deep)
 
   type t =
@@ -96,8 +96,8 @@ module G_edge = struct
     | _ -> false
 
   let enhanced = function
-  | Fs fs when List.assoc_opt "kind" fs = Some (String "enhanced") -> true
-  | _ -> false
+    | Fs fs when List.assoc_opt "kind" fs = Some (String "enhanced") -> true
+    | _ -> false
 
   let from_items l = Fs (fs_from_items l)
 
