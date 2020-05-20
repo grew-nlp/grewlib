@@ -128,6 +128,7 @@ module Graph : sig
 
   val get_meta_opt: string -> t -> string option
 
+  val is_initial: t -> bool
 end
 
 (* ==================================================================================================== *)
@@ -172,6 +173,8 @@ module Rewrite: sig
   val set_timeout: float option -> unit
 
   val simple_rewrite: gr:Graph.t -> grs:Grs.t -> strat:string -> Graph.t list
+
+  val onf_rewrite: gr:Graph.t -> grs:Grs.t -> strat:string -> Graph.t
 end
 
 
