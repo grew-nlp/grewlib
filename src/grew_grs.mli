@@ -35,6 +35,7 @@ module Grs : sig
   val at_most_one: t -> string -> bool
 
   val simple_rewrite: t -> string -> G_graph.t -> G_graph.t list
+  val onf_rewrite: t -> string -> G_graph.t -> G_graph.t
   val wrd_rewrite: t -> string -> G_graph.t -> Libgrew_types.rew_display
 
   (* [apply grs_name t] apply a deterministic GRS of the given [name]

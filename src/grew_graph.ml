@@ -262,6 +262,8 @@ module G_graph = struct
 
   let is_empty t = Gid_map.is_empty t.map
 
+  let is_initial g = String_map.is_empty g.rules
+
   let size t = Gid_map.cardinal (t.map)
 
   let get_domain_opt t = t.domain
@@ -1280,12 +1282,7 @@ module G_graph = struct
            with Skip -> (num,acc)
         ) graph.map (1,Conll_types.Int_map.empty) in
 
-    let meta =
-      if !Global.track_rules
-      then graph.meta @ [("rules", (string_rules graph))]
-      else graph.meta in
-
-    { Conll.void with Conll.meta = List.map string_of_meta meta; lines; mwes; }
+    { Conll.void with Conll.meta = List.map string_of_meta graph.meta; lines; mwes; }
 
   let to_conll_string ?cupt graph =
     let conll = to_conll graph in

@@ -253,6 +253,11 @@ module Graph = struct
     Libgrew.handle ~name:"Graph.search_pattern" (fun () ->
         Grew_rule.Matching.match_in_graph ?domain pattern graph
       ) ()
+
+  let is_initial graph =
+    Libgrew.handle ~name:"Graph.is_initial" (fun () ->
+        Grew_graph.G_graph.is_initial graph
+      ) ()
 end
 
 (* ==================================================================================================== *)
@@ -311,6 +316,9 @@ module Rewrite = struct
 
   let simple_rewrite ~gr ~grs ~strat =
     Libgrew.handle ~name:"Rewrite.simple_rewrite" (fun () -> Grew_grs.Grs.simple_rewrite grs strat gr) ()
+
+  let onf_rewrite ~gr ~grs ~strat =
+    Libgrew.handle ~name:"Rewrite.onf_rewrite" (fun () -> Grew_grs.Grs.onf_rewrite grs strat gr) ()
 
   let at_least_one ~grs ~strat =
     Libgrew.handle ~name:"Rewrite.at_least_one" (fun () -> Grew_grs.Grs.at_least_one grs strat) ()
