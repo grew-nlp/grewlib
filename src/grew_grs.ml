@@ -365,11 +365,12 @@ module Grs = struct
 
   (* ============================================================================================= *)
   let onf_rewrite_opt grs strat_string graph =
+    Global.track_rules := true;
     let strat = Parser.strategy strat_string in
     let new_graph = onf_rewrite (top grs) strat graph in
     if G_graph.is_initial new_graph
-    then Some new_graph
-    else None
+    then None
+    else Some new_graph
 
   (* ============================================================================================= *)
   (* Rewriting in the deterministic case with Graph_with_history.t type *)
