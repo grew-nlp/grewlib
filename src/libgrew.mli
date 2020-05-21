@@ -127,6 +127,8 @@ module Graph : sig
   val search_pattern: ?domain:Domain.t -> Pattern.t -> t -> Matching.t list
 
   val get_meta_opt: string -> t -> string option
+
+  val set_meta: string -> string -> t -> t
 end
 
 (* ==================================================================================================== *)

@@ -136,6 +136,8 @@ module Graph = struct
 
   let get_meta_opt key t = Grew_graph.G_graph.get_meta_opt key t
 
+  let set_meta key value t = Grew_graph.G_graph.set_meta key value t
+
   let load_gr ?domain file =
     if not (Sys.file_exists file)
     then raise (Libgrew.Error ("File_not_found: " ^ file))

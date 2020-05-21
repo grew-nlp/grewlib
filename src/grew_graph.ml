@@ -247,6 +247,17 @@ module G_graph = struct
           | s -> loop tail
         end in loop t.meta
 
+  let set_meta key value t =
+    let new_meta = sprintf "# %s = %s" key value in
+    let rec loop = function
+      | [] -> [new_meta]
+      | line::tail ->
+        begin
+          match Str.bounded_full_split (Str.regexp "[#=\t ]+") line 3 with
+          | [Str.Delim _; Str.Text k; Str.Delim _; Str.Text value] when k = key -> new_meta::tail
+          | s -> line::(loop tail)
+        end in {t with meta = loop t.meta}
+
   let empty = { domain=None; meta=[]; map=Gid_map.empty; fusion=[]; highest_index=0; rules=String_map.empty; }
 
   let is_empty t = Gid_map.is_empty t.map
