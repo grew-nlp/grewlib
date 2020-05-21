@@ -274,6 +274,12 @@ module Grs = struct
          Grew_grs.Grs.load file
       ) ()
 
+  let parse file =
+    Libgrew.handle ~name:"Grs.parse" ~file
+      (fun () ->
+         Grew_grs.Grs.parse file
+      ) ()
+
   let dump grs =
     Libgrew.handle ~name:"Grs.dump"
       (fun () ->

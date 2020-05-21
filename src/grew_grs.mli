@@ -23,6 +23,7 @@ module Grs : sig
   val empty: t
 
   val load: string  -> t
+  val parse: string  -> t
 
   val dump: t -> unit
 

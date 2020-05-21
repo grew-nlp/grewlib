@@ -141,6 +141,8 @@ module Grs : sig
 
   val load: string -> t
 
+  val parse: string -> t
+
   val dump: t -> unit
 
   val domain_opt: t -> Domain.t option

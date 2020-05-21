@@ -141,6 +141,8 @@ module Grs = struct
 
   let load filename = from_ast filename (Loader.grs filename)
 
+  let parse string_grs = from_ast "" (Parser.grs string_grs)
+
   (* The type [pointed] is a zipper style data structure for resolving names x.y.z *)
   type pointed =
     | Top of decl list
