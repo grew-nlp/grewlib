@@ -289,6 +289,8 @@ module G_graph = struct
          sprintf "%s:%d; %s" k v acc
       ) t.rules ""
 
+  let clear_rules t = { t with rules = String_map.empty }
+
   (* is there an edge e out of node i ? *)
   let edge_out graph node_id label_cst =
     let domain = get_domain_opt graph in
