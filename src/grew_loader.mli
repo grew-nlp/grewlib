@@ -30,6 +30,8 @@ end (* module Loader *)
 module Parser : sig
   val gr: string -> Ast.gr
 
+  val grs: string -> Ast.grs
+
   val phrase_structure_tree: string -> Ast.pst
 
   val pattern: string -> Ast.pattern

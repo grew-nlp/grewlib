@@ -158,6 +158,15 @@ module Parser = struct
     with Sys_error msg -> Error.parse "[Grew_loader.Parser.gr] %s" msg
 
   (* ------------------------------------------------------------------------------------------*)
+  let grs grs_string =
+    try
+      Global.new_string ();
+      let lexbuf = Lexing.from_string grs_string in
+      let grs = parse_handle "[Grew_loader.Parser.grs]" (Grew_parser.grs Grew_lexer.global) lexbuf in
+      grs
+    with Sys_error msg -> Error.parse "[Grew_loader.Parser.grs] %s" msg
+
+  (* ------------------------------------------------------------------------------------------*)
   let phrase_structure_tree s =
     try
       Global.new_string ();

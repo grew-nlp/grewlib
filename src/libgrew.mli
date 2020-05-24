@@ -127,7 +127,7 @@ module Graph : sig
 
   val get_meta_opt: string -> t -> string option
 
-  val is_initial: t -> bool
+  val set_meta: string -> string -> t -> t
 end
 
 (* ==================================================================================================== *)
@@ -139,6 +139,8 @@ module Grs : sig
   val empty: t
 
   val load: string -> t
+
+  val parse: string -> t
 
   val dump: t -> unit
 
@@ -173,7 +175,7 @@ module Rewrite: sig
 
   val simple_rewrite: gr:Graph.t -> grs:Grs.t -> strat:string -> Graph.t list
 
-  val onf_rewrite: gr:Graph.t -> grs:Grs.t -> strat:string -> Graph.t
+  val onf_rewrite_opt: gr:Graph.t -> grs:Grs.t -> strat:string -> Graph.t option
 end
 
 

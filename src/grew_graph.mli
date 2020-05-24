@@ -94,6 +94,8 @@ module G_graph: sig
 
   val push_rule: string -> t -> t
 
+  val clear_rules: t -> t
+
   (** [edge_out t id label_cst] returns true iff there is an out-edge from the node [id] with a label compatible with [label_cst] *)
   val edge_out: t -> Gid.t -> Label_cst.t -> bool
 
@@ -226,6 +228,8 @@ module G_graph: sig
   val depth_first_search: t -> dfs_output
 
   val get_meta_opt: string -> t -> string option
+
+  val set_meta: string -> string -> t -> t
 end (* module G_graph *)
 
 (* ================================================================================ *)
