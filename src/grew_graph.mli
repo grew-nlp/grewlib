@@ -121,6 +121,7 @@ module G_graph: sig
 
   val of_pst: ?domain:Domain.t -> Ast.pst -> t
 
+  val of_conllx: Yojson.Basic.t -> t
   (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
   (* Update functions *)
   (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
@@ -213,7 +214,12 @@ module G_graph: sig
   val to_dep: ?filter: (string -> bool) -> ?main_feat:string -> ?deco:G_deco.t -> t -> string
   val to_conll: t -> Conll.t
   val to_conll_string: ?cupt:bool -> t -> string
+
   val to_json: t -> Yojson.Basic.t
+
+  val to_conllx: t -> Yojson.Basic.t
+
+
 
   val cast: ?domain:Domain.t -> t -> t
 

@@ -229,6 +229,12 @@ module Graph = struct
   let to_conll graph =
     Libgrew.handle ~name:"Graph.to_conll" (fun () -> Grew_graph.G_graph.to_conll graph) ()
 
+  let of_conllx graph =
+    Libgrew.handle ~name:"Graph.of_conllx" (fun () -> Grew_graph.G_graph.of_conllx graph) ()
+
+  let to_conllx graph =
+    Libgrew.handle ~name:"Graph.to_conllx" (fun () -> Grew_graph.G_graph.to_conllx graph) ()
+
   let to_conll_string ?cupt graph =
     Libgrew.handle ~name:"Graph.to_conll_string" (fun () -> Grew_graph.G_graph.to_conll_string ?cupt graph) ()
 

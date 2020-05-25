@@ -258,16 +258,7 @@ module G_graph = struct
           | s -> loop tail
         end in loop t.meta *)
 
-  let set_meta key value t =
-    let new_meta = sprintf "# %s = %s" key value in
-    let rec loop = function
-      | [] -> [new_meta]
-      | line::tail ->
-        begin
-          match Str.bounded_full_split (Str.regexp "[#=\t ]+") line 3 with
-          | [Str.Delim _; Str.Text k; Str.Delim _; Str.Text value] when k = key -> new_meta::tail
-          | s -> line::(loop tail)
-        end in {t with meta = loop t.meta}
+  let set_meta key value t = {t with meta = (key,value) :: List.remove_assoc key t.meta}
 
   let empty = { domain=None; meta=[]; map=Gid_map.empty; fusion=[]; highest_index=0; rules=String_map.empty; }
 
@@ -387,7 +378,6 @@ module G_graph = struct
 
   (* -------------------------------------------------------------------------------- *)
   let build ?domain gr_ast =
-
     let (ordered_nodes, unordered_nodes) =
       List.fold_left
         (fun (orderd_acc, unordered_acc) (node,loc) ->
@@ -468,19 +458,19 @@ module G_graph = struct
       |> List.remove_assoc "id"
       |> List.map
         (fun (feat_name,json_value) ->
-          ({Ast.name= feat_name; kind = Ast.Equality [json_value |> to_string]}, Loc.empty)
+           ({Ast.name= feat_name; kind = Ast.Equality [json_value |> to_string]}, Loc.empty)
         ) in
-      let ast_node = ({ Ast.node_id=id; position=None; fs}, Loc.empty) in
-      ast_node
+    let ast_node = ({ Ast.node_id=id; position=None; fs}, Loc.empty) in
+    ast_node
 
   let ast_edge_of_conllx json =
     let open Yojson.Basic.Util in
     ( {
-          Ast.edge_id = None;
-          src = json |> member "src" |> to_string;
-          edge_label_cst = Ast.Pos_list [ json |> member "label" |> to_string ];
-          tar = json |> member "tar" |> to_string;
-      }, Loc.empty)
+      Ast.edge_id = None;
+      src = json |> member "src" |> to_string;
+      edge_label_cst = Ast.Pos_list [ json |> member "label" |> to_string ];
+      tar = json |> member "tar" |> to_string;
+    }, Loc.empty)
 
   let of_conllx (json: Yojson.Basic.t) =
     let open Yojson.Basic.Util in
@@ -495,13 +485,55 @@ module G_graph = struct
               x |> member "value" |> to_string
              )
           )
-      with Type_error _ -> Error.build "Error in meta" in
+      with Type_error _ -> [] in
     let nodes = json |> member "nodes" |> to_list |> List.map ast_node_of_conllx in
     let edges = json |> member "edges" |> to_list |> List.map ast_edge_of_conllx in
 
     let graph_ast = { Ast.meta =[]; nodes;  edges} in
     { (build graph_ast) with meta}
 
+  (* -------------------------------------------------------------------------------- *)
+  let to_conllx graph =
+    let meta =
+      List.map
+        (fun (k,v) ->
+           `Assoc [("key", `String k); ("value", `String v)]
+        ) graph.meta in
+    let (nodes, gid_position_list) =
+      Gid_map.fold
+        (fun gid node (acc_nodes, acc_gpl) ->
+           let node_conllx = `Assoc (("id", `String (Gid.to_string gid)) :: (G_fs.to_conllx (G_node.get_fs node))) in
+           match G_node.get_position_opt node with
+           | None -> (node_conllx :: acc_nodes, acc_gpl)
+           | Some p -> (node_conllx :: acc_nodes, (gid,p) :: acc_gpl)
+        ) graph.map ([], []) in
+    let edges =
+      Gid_map.fold
+        (fun src_gid node acc ->
+           let src = `String (Gid.to_string src_gid) in
+           Massoc_gid.fold
+             (fun acc2 tar_gid edge ->
+                match G_edge.to_string_opt edge with
+                | None -> acc2
+                | Some label ->
+                  (`Assoc [
+                      ("src", src);
+                      ("label", `String label);
+                      ("tar", `String (Gid.to_string tar_gid));
+                    ]) :: acc2
+             ) acc (G_node.get_next node)
+        ) graph.map [] in
+    let order =
+      List.map
+        (fun (gid,_) -> `String (Gid.to_string gid))
+        (List.sort (fun (_,p1) (_,p2) -> Stdlib.compare p1 p2) gid_position_list) in
+
+    `Assoc [
+      ("meta", `List meta);
+      ("nodes", `List nodes);
+      ("edges", `List edges);
+      ("order", `List order);
+    ]
 
   (* -------------------------------------------------------------------------------- *)
   let of_json = function

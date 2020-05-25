@@ -102,6 +102,9 @@ module Graph : sig
   val of_json: Yojson.Basic.t -> t
   val to_json: t -> Yojson.Basic.t
 
+  val of_conllx: Yojson.Basic.t -> t
+  val to_conllx: t -> Yojson.Basic.t
+
   val of_brown: ?domain:Domain.t -> ?sentid:string -> string -> t
 
   val of_pst: ?domain:Domain.t -> string -> t
