@@ -366,7 +366,7 @@ module Matching = struct
   (* return the value of a feature or an edge label *)
   let get_string_value_opt request pattern graph matching =
     match Str.split (Str.regexp "\\.") request with
-    | [edge_id] -> Error.build "In cluster key, the syntax \"%s\" is no more available, it must be replaced by \"%s.label\", see [[http://grew.fr/old]]" edge_id edge_id;
+    | [edge_id] -> Error.build "For cluster key, the syntax `%s` is no more available, it must be replaced by `%s.label`, see (Grew doc)[http://grew.fr/trans_14]" edge_id edge_id;
     | [node_or_edge_id; feature_name] ->
       begin
         match (String_map.find_opt node_or_edge_id matching.e_match, feature_name) with
