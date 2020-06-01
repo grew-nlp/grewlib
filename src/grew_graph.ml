@@ -381,9 +381,10 @@ module G_graph = struct
     let (ordered_nodes, unordered_nodes) =
       List.fold_left
         (fun (orderd_acc, unordered_acc) (node,loc) ->
-           match Id.get_pos_opt node.Ast.node_id with
-           | Some p -> ((p,(node,loc)) :: orderd_acc, unordered_acc)
-           | None -> (orderd_acc, (node,loc) :: unordered_acc)
+           match (Id.get_pos_opt node.Ast.node_id, node.Ast.position) with
+           | (_,Some p) -> ((p,(node,loc)) :: orderd_acc, unordered_acc)
+           | (Some p,_) -> ((p,(node,loc)) :: orderd_acc, unordered_acc)
+           | (None, None) -> (orderd_acc, (node,loc) :: unordered_acc)
         ) ([],[]) gr_ast.Ast.nodes in
 
     let sorted_nodes = List.sort (fun (p1,_) (p2,_) -> Stdlib.compare p1 p2) ordered_nodes in
@@ -409,7 +410,7 @@ module G_graph = struct
         |> map_add_pred_succ (snd x) (snd y)
     in
 
-    let (map_with_ordered_nodes, table_ordered) = loop [] 1 sorted_nodes in
+    let (map_with_ordered_nodes, table_ordered) = loop [] 0 sorted_nodes in
 
     let map_with_ordered_nodes_succ_pred = loop_succ_pred map_with_ordered_nodes table_ordered in
 
@@ -448,8 +449,9 @@ module G_graph = struct
       rules = String_map.empty;
     }
 
+
   (* -------------------------------------------------------------------------------- *)
-  let ast_node_of_conllx json =
+  let ast_node_of_conllx ordering json =
     let open Yojson.Basic.Util in
     let id = json |> member "id" |> to_string in
     let fs =
@@ -460,7 +462,7 @@ module G_graph = struct
         (fun (feat_name,json_value) ->
            ({Ast.name= feat_name; kind = Ast.Equality [json_value |> to_string]}, Loc.empty)
         ) in
-    let ast_node = ({ Ast.node_id=id; position=None; fs}, Loc.empty) in
+    let ast_node = ({ Ast.node_id=id; position=String_map.find_opt id ordering; fs}, Loc.empty) in
     ast_node
 
   let ast_edge_of_conllx json =
@@ -486,7 +488,16 @@ module G_graph = struct
              )
           )
       with Type_error _ -> [] in
-    let nodes = json |> member "nodes" |> to_list |> List.map ast_node_of_conllx in
+
+    let order = json |> member "order" |> to_list |> List.map to_string in
+    let ordering  =
+      CCList.foldi
+        (fun acc pos node_id ->
+           String_map.add node_id (float pos) acc
+        ) String_map.empty order in
+
+    let nodes = json |> member "nodes" |> to_list |> List.map (ast_node_of_conllx ordering) in
+
     let edges = json |> member "edges" |> to_list |> List.map ast_edge_of_conllx in
 
     let graph_ast = { Ast.meta =[]; nodes;  edges} in
