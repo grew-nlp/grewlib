@@ -1649,6 +1649,7 @@ module Rule = struct
         begin
           match new_edges with
           | [] when !Global.safe_commands -> Error.run ~loc "UPDATE_EDGE_FEAT: no changes"
+          | [] -> Graph_with_history_set.singleton gwh
           | _ ->
             let new_graphs = List.fold_left
                 (fun acc new_edge ->
