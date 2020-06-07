@@ -32,6 +32,8 @@ module G_edge: sig
 
   val to_string_opt: t -> string option
 
+  val to_conllx_opt: t -> Yojson.Basic.t option
+
   (* robust printing: to be used only in error reporting *)
   val dump: t -> string
 

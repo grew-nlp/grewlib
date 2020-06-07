@@ -121,6 +121,10 @@ module G_edge = struct
     | Fs fs -> Some (fs_to_string fs)
     | _ -> None
 
+  let to_conllx_opt = function
+    | Fs fs -> Some (`Assoc (List.map (fun (k,v) -> (k, `String (string_of_value v))) fs))
+    | _ -> None
+
   let dump = function
     | Fs fs -> fs_to_string fs
     | Sub -> "__SUB__"

@@ -524,12 +524,12 @@ module G_graph = struct
            let src = `String (Gid.to_string src_gid) in
            Massoc_gid.fold
              (fun acc2 tar_gid edge ->
-                match G_edge.to_string_opt edge with
+                match G_edge.to_conllx_opt edge with
                 | None -> acc2
-                | Some label ->
+                | Some js ->
                   (`Assoc [
                       ("src", src);
-                      ("label", `String label);
+                      ("label", js);
                       ("tar", `String (Gid.to_string tar_gid));
                     ]) :: acc2
              ) acc (G_node.get_next node)
