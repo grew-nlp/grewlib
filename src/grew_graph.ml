@@ -240,8 +240,8 @@ module G_graph = struct
   let get_meta_opt key t = List.assoc_opt key t.meta
 
   let parse_meta s =
-    match Str.bounded_full_split (Str.regexp "[#=\t ]+") s 3 with
-    | [Str.Delim _; Str.Text key; Str.Delim _; Str.Text value] -> (key,value)
+    match Str.bounded_split (Str.regexp "# *\\| *= *") s 2 with
+    | [key;value] -> (key,value)
     | _ -> ("",s)
 
   let string_of_meta = function
