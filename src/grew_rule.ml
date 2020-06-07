@@ -1121,7 +1121,7 @@ module Rule = struct
       end
 
     | Command.ADD_EDGE_EXPL (src_cn,tar_cn,edge_id) ->
-      if String_map.mem edge_id state.e_mapping
+      if String_map.mem edge_id state.e_mapping (* e_mapping contains both pattern edge and previous commande edges *)
       then Error.run ~loc "ADD_EDGE_EXPL: the edge name '%s' already used. Semantic of this command has changed, see [[http://grew.fr/old]]" edge_id
       else
         let src_gid = node_find src_cn in
@@ -1478,7 +1478,7 @@ module Rule = struct
       end
 
     | Command.ADD_EDGE_EXPL (src_cn,tar_cn,edge_ident) ->
-      if String_map.mem edge_ident gwh.added_edges_in_rule
+      if String_map.mem edge_ident matching.e_match || String_map.mem edge_ident gwh.added_edges_in_rule
       then Error.run ~loc "ADD_EDGE_EXPL: the edge name '%s' already used. Semantic of this command has changed, see [[http://grew.fr/old]]" edge_ident
       else
         let src_gid = node_find src_cn in
