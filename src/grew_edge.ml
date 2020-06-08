@@ -30,18 +30,19 @@ module G_edge = struct
   exception Not_short
   let fs_to_short_opt (fs:fs) =
     try
-      let prefix = match List_.sort_assoc_opt "kind" fs with
-        | None -> ""
-        | Some (String "surf") -> "S:"
-        | Some (String "deep") -> "D:"
-        | Some (String "enhanced") -> "E:"
-        | Some _ -> raise Not_short in
+      let prefix = match (List_.sort_assoc_opt "kind" fs, List_.sort_assoc_opt "enhanced" fs) with
+        | (None,None) -> ""
+        | (Some (String "surf"), None) -> "S:"
+        | (Some (String "deep"), None) -> "D:"
+        | (None, Some (String "yes")) -> "E:"
+        | _ -> raise Not_short in
       let suffix = match List_.sort_assoc_opt "deep" fs with
         | Some value -> "@"^(string_of_value value)
         | None -> "" in
       let infix_items =
         fs
         |> (List_.sort_remove_assoc "kind")
+        |> (List_.sort_remove_assoc "enhanced")
         |> (List_.sort_remove_assoc "deep") in
       let core_strings = CCList.mapi
           (fun i (n,v) ->
@@ -73,13 +74,13 @@ module G_edge = struct
     let before_deep = match init with
       | "S:" -> [("kind",String "surf")]
       | "D:" -> [("kind",String "deep")]
-      | "E:" -> [("kind",String "enhanced")]
+      | "E:" -> [("enhanced",String "yes")]
       | _ ->
         match Str.split (Str.regexp_string ":") init with
         | [one] -> ["1", typed_vos "1" one]
         | "S" :: l -> ("kind",String "surf") :: (split l)
         | "D" :: l -> ("kind",String "deep") :: (split l)
-        | "E" :: l -> ("kind",String "enhanced") :: (split l)
+        | "E" :: l -> ("enhanced",String "yes") :: (split l)
         | l -> split l in
     fs_from_items (CCList.cons_maybe deep before_deep)
 
@@ -95,8 +96,9 @@ module G_edge = struct
     | Pred | Succ -> true
     | _ -> false
 
+  (* hardcoded edge feature value name "enhanced" *)
   let enhanced = function
-    | Fs fs when List.assoc_opt "kind" fs = Some (String "enhanced") -> true
+    | Fs fs when List.assoc_opt "enhanced" fs = Some (String "yes") -> true
     | _ -> false
 
   let from_items l = Fs (fs_from_items l)
