@@ -152,10 +152,10 @@ module G_edge = struct
   let build (ast_edge, loc) =
     match ast_edge.Ast.edge_label_cst with
     | Ast.Pos_list [one] -> from_string one
+    | Ast.Atom_list list -> Fs (List.map (function Ast.Atom_eq (x,[y]) -> (x,typed_vos x y) | _ -> Error.build "[G_edge.build] cannot interpret Atom_list") list)
     | Ast.Neg_list _ -> Error.build ~loc "Negative edge spec are forbidden in graphs"
     | Ast.Pos_list _ -> Error.build ~loc "Only atomic edge values are allowed in graphs"
     | Ast.Regexp _ -> Error.build ~loc "Regexp are not allowed in graphs"
-    | Ast.Atom_list _ -> Error.build ~loc "Non atomic edge are not allowed in graphs"
     | Ast.Pred -> Error.build ~loc "Pred in graphs"
 end (* module G_edge *)
 

@@ -470,7 +470,7 @@ module G_graph = struct
     ( {
       Ast.edge_id = None;
       src = json |> member "src" |> to_string;
-      edge_label_cst = Ast.Pos_list [ json |> member "label" |> to_string ];
+      edge_label_cst = Ast.Atom_list (json |> member "label" |> to_assoc |> List.map (fun (x,y) -> Ast.Atom_eq (x,[to_string y])));
       tar = json |> member "tar" |> to_string;
     }, Loc.empty)
 
