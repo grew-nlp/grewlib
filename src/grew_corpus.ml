@@ -1,6 +1,7 @@
 open Printf
 open Log
 open Conll
+open Conllx
 open Libamr
 
 open Grew_base
@@ -261,11 +262,11 @@ module Corpus_desc = struct
     try
       let items = match kind with
         | Conll ->
-          let conll_corpus = Conll_corpus.load_list ~tf_wf:true ?log_file complete_files in
-          grew_match_table_and_desc grew_match_dir id conll_corpus;
-          CCArray.filter_map (fun (sent_id,conll) ->
+          let conll_corpus = Conllx_corpus.load_list ~config:Conllx_config.sequoia complete_files in
+          (* grew_match_table_and_desc grew_match_dir id conll_corpus; *)
+          CCArray.filter_map (fun (sent_id,conllx) ->
               try
-                let init_graph = G_graph.of_conll ?domain conll in
+                let init_graph = G_graph.of_conllx (Conllx.to_json conllx) in
                 let graph = match preapply with
                   | Some grs -> Grs.apply grs init_graph
                   | None -> init_graph in
@@ -275,9 +276,7 @@ module Corpus_desc = struct
               sent_id
               (match loc_opt with None -> "" | Some loc -> "; " ^ (Loc.to_string loc))
               msg; None
-
-
-            ) conll_corpus
+            ) (Conllx_corpus.get_data conll_corpus)
 
         | Pst ->
           let pst_corpus = Pst_corpus.load complete_files in
@@ -307,6 +306,7 @@ module Corpus_desc = struct
       close_out out_ch
     with
     | Conll_error json -> Log.fwarning "[Conll_error] fail to load corpus %s, skip it\nexception: %s" id (Yojson.Basic.pretty_to_string json)
+    | Error.Run (msg,_) -> Log.fwarning "[Libgrew error] %s, fail to load corpus %s: skip it" msg id
     | exc -> Log.fwarning "[Error] fail to load corpus %s, skip it\nexception: %s" id (Printexc.to_string exc)
 
 
