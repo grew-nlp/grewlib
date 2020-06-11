@@ -30,7 +30,6 @@ end
 (* ==================================================================================================== *)
 module Corpus = struct
   type kind = Conll | Pst | Amr
-  let kinds = [Conll; Pst; Amr]
 
   type item = {
     sent_id: string;
@@ -72,12 +71,14 @@ module Corpus = struct
 
 end
 
+(* ==================================================================================================== *)
 module Corpus_desc = struct
 
-
   type t = {
-    kind: Corpus.kind;
     id: string;
+    kind: Corpus.kind;
+    config: Conllx_config.t option;
+    columns: Conllx_columns.t option;
     dom_file: string option;
     directory: string;
     files: string list;
@@ -87,6 +88,7 @@ module Corpus_desc = struct
   }
 
   let get_id corpus_desc = corpus_desc.id
+  let get_config corpus_desc = corpus_desc.config
   let get_directory corpus_desc = corpus_desc.directory
   let is_rtl corpus_desc = corpus_desc.rtl
   let is_audio corpus_desc = corpus_desc.audio
@@ -176,6 +178,14 @@ module Corpus_desc = struct
           | Some x -> Error.run "[Corpus.load_json] Unknown \"kind\":\"%s\" field in file: \"%s\"" x json_file
         with Type_error _ -> Error.run "[Corpus.load_json, file \"%s\"] \"kind\" must be a string" json_file in
 
+      let config =
+        try json |> member "config" |> to_string_option |> (CCOpt.map Conllx_config.build)
+        with Type_error _ -> Error.run "[Corpus.load_json, file \"%s\"] \"config\" field must be a string" json_file in
+
+      let columns =
+        try json |> member "columns" |> to_string_option |> (CCOpt.map Conllx_columns.build)
+        with Type_error _ -> Error.run "[Corpus.load_json, file \"%s\"] \"columns\" field must be a string" json_file in
+
       let dom_file =
         try json |> member "domain" |> to_string_option
         with Type_error _ -> Error.run "[Corpus.load_json, file \"%s\"] \"domain\" field must be a string" json_file in
@@ -200,17 +210,17 @@ module Corpus_desc = struct
         try json |> member "audio" |> to_bool
         with Type_error _ -> false in
 
-      { kind; id; dom_file; directory; files; rtl; audio; preapply; } in
+      { id; kind; config; columns; dom_file; directory; files; rtl; audio; preapply; } in
 
     List.map parse_one (json |> member "corpora" |> to_list)
 
   (* ---------------------------------------------------------------------------------------------------- *)
-  let grew_match_table_and_desc dir_opt name corpus =
+  let grew_match_table_and_desc ?config dir_opt name corpus =
     match dir_opt with
     | None -> ()
     | Some dir ->
-      let stat = Stat.build Stat.Upos corpus in
-      let html = Stat.to_html name stat in
+      let stat = Conllx_stat.build ?config Conllx_stat.Upos corpus in
+      let html = Conllx_stat.to_html name stat in
       let out_file = Filename.concat dir (name ^ "_table.html") in
       CCIO.with_out out_file (fun oc -> CCIO.write_line oc html);
 
@@ -225,7 +235,8 @@ module Corpus_desc = struct
           let corpus = String.sub name 0 ((String.length name) - 5) in
           sprintf "&nbsp;<a href=\"_valid/%s.valid\"><button class=\"btn btn-primary btn-results btn-sm\">Validation</button></a>" corpus
         else "" in
-      let meta = sprintf "&nbsp;[%d trees, %d tokens]%s%s" (Array.length corpus) (Conll_corpus.token_size corpus) date valid in
+      let (nb_trees, nb_tokens) = Conllx_corpus.sizes corpus in
+      let meta = sprintf "&nbsp;[%d trees, %d tokens]%s%s" nb_trees nb_tokens date valid in
       let out_file = Filename.concat dir (name ^ "_desc.html") in
       CCIO.with_out out_file (fun oc -> CCIO.write_line oc meta)
 
@@ -246,28 +257,32 @@ module Corpus_desc = struct
 
   (* ---------------------------------------------------------------------------------------------------- *)
   (* [grew_match] is a folder where tables, logs and corpus desc is stored *)
-  let build_marshal_file domain ?grew_match preapply marshal_file id kind complete_files =
+  let build_marshal_file ?grew_match corpus_desc =
+
+    let domain = build_domain corpus_desc in
+    let full_files = get_full_files corpus_desc in
+    let marshal_file = (Filename.concat corpus_desc.directory corpus_desc.id) ^ ".marshal" in
 
     let (grew_match_dir, log_file) =
-      match (kind, grew_match) with
+      match (corpus_desc.kind, grew_match) with
       | (Corpus.Amr,_) | (Pst,_) | (Conll, None) -> (None, None)
       | (Conll, Some dir) ->
         try
           ensure_dir dir;
-          let log = Filename.concat dir (sprintf "%s.log" id) in
+          let log = Filename.concat dir (sprintf "%s.log" corpus_desc.id) in
           try close_out (open_out log); (Some dir, Some log)
           with exc -> Log.fwarning "grew_match option ignored: cannot create file in dir %s (%s)" dir (Printexc.to_string exc); raise Skip
         with Skip -> (None,None) in
 
     try
-      let items = match kind with
+      let items = match corpus_desc.kind with
         | Conll ->
-          let conll_corpus = Conllx_corpus.load_list ~config:Conllx_config.sequoia complete_files in
-          (* grew_match_table_and_desc grew_match_dir id conll_corpus; *)
+          let conll_corpus = Conllx_corpus.load_list ?config:corpus_desc.config ?columns:corpus_desc.columns full_files in
+          grew_match_table_and_desc ?config:corpus_desc.config grew_match_dir corpus_desc.id conll_corpus;
           CCArray.filter_map (fun (sent_id,conllx) ->
               try
                 let init_graph = G_graph.of_conllx (Conllx.to_json conllx) in
-                let graph = match preapply with
+                let graph = match corpus_desc.preapply with
                   | Some grs -> Grs.apply grs init_graph
                   | None -> init_graph in
                 Some {Corpus.sent_id; text=G_graph.to_sentence graph; graph; kind=Conll}
@@ -279,7 +294,7 @@ module Corpus_desc = struct
             ) (Conllx_corpus.get_data conll_corpus)
 
         | Pst ->
-          let pst_corpus = Pst_corpus.load complete_files in
+          let pst_corpus = Pst_corpus.load full_files in
           CCArray.filter_map (fun (sent_id,pst) ->
               try
                 let graph = G_graph.of_pst ?domain (Parser.phrase_structure_tree pst) in
@@ -288,7 +303,7 @@ module Corpus_desc = struct
             ) pst_corpus
 
         | Amr ->
-          let amr_corpus = match complete_files with
+          let amr_corpus = match full_files with
             | [one] -> Amr_corpus.load one
             | _ -> failwith "AMR multi-files corpus is not handled"
           in
@@ -299,31 +314,22 @@ module Corpus_desc = struct
                 Some {Corpus.sent_id; text; graph; kind=Amr}
               with exc -> Log.fwarning "[id=%s] AMR skipped [exception: %s]" sent_id (Printexc.to_string exc); None
             ) amr_corpus in
-      let _ = Log.fmessage "[%s] %d graphs loaded" id (Array.length items) in
+      let _ = Log.fmessage "[%s] %d graphs loaded" corpus_desc.id (Array.length items) in
       let out_ch = open_out_bin marshal_file in
       let (data : Corpus.t) = {Corpus.domain; items} in
       Marshal.to_channel out_ch data [];
       close_out out_ch
     with
-    | Conll_error json -> Log.fwarning "[Conll_error] fail to load corpus %s, skip it\nexception: %s" id (Yojson.Basic.pretty_to_string json)
-    | Error.Run (msg,_) -> Log.fwarning "[Libgrew error] %s, fail to load corpus %s: skip it" msg id
-    | exc -> Log.fwarning "[Error] fail to load corpus %s, skip it\nexception: %s" id (Printexc.to_string exc)
+    | Conll_error json -> Log.fwarning "[Conll_error] fail to load corpus %s, skip it\nexception: %s" corpus_desc.id (Yojson.Basic.pretty_to_string json)
+    | Error.Run (msg,_) -> Log.fwarning "[Libgrew error] %s, fail to load corpus %s: skip it" msg corpus_desc.id
+    | exc -> Log.fwarning "[Error] fail to load corpus %s, skip it\nexception: %s" corpus_desc.id (Printexc.to_string exc)
 
 
   (* ---------------------------------------------------------------------------------------------------- *)
   let compile ?grew_match corpus_desc =
-    let domain = build_domain corpus_desc in
     let full_files = get_full_files corpus_desc in
     let marshal_file = (Filename.concat corpus_desc.directory corpus_desc.id) ^ ".marshal" in
-    let really_marshal () =
-      build_marshal_file
-        domain
-        ?grew_match
-        corpus_desc.preapply
-        marshal_file
-        corpus_desc.id
-        corpus_desc.kind
-        full_files in
+    let really_marshal () = build_marshal_file ?grew_match corpus_desc in
     try
       let marshal_time = (Unix.stat marshal_file).Unix.st_mtime in
       match corpus_desc.dom_file with

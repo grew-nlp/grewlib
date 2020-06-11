@@ -259,7 +259,7 @@ module G_fs = struct
 
   (* ---------------------------------------------------------------------- *)
   let get_main ?main_feat t =
-    let default_list = ["kind"; "phon"; "form"; "label"; "cat"; "upos"] in
+    let default_list = ["form"] in
     let main_list = match main_feat with
       | None -> default_list
       | Some string -> (Str.split (Str.regexp "\\( *; *\\)\\|#") string) @ default_list in
@@ -337,7 +337,7 @@ module G_fs = struct
     let (main_opt, sub) = get_main ?main_feat t in
     let sub = List.sort G_feature.print_cmp sub in
 
-    let color = match get_value_opt "kind" t with
+    let color = match get_value_opt "parseme" t with
       | Some (String "NE") -> ":C:#ff760b"
       | Some (String "MWE") -> ":C:#1d7df2"
       | _ -> "" in
@@ -357,7 +357,7 @@ module G_fs = struct
       | _ -> (sprintf "[%s]:B:#8bf56e" pid_name)::main in
 
     let word = match word_list with
-      | [] -> "_"
+      | [] -> ""
       | l ->  String.concat "#" l in
 
     let lines = List.fold_left

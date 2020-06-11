@@ -28,8 +28,6 @@ module G_edge: sig
 
   val remove_feat_opt: string -> t -> t option
 
-  val to_short_opt: t -> string option
-
   val to_string_opt: t -> string option
 
   val to_conllx_opt: t -> Yojson.Basic.t option

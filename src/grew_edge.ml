@@ -22,41 +22,48 @@ module G_edge = struct
   (* [G_edge.fs] is a feature structure. The list of feature names must be ordered wrt [Stdlib.compare] *)
   type fs = (feature_name * feature_value) list
 
-  let raw_string fs = String.concat "," (List.map (fun (x,y) -> x^"="^(string_of_value y)) fs)
+  let to_string_long fs = String.concat "," (List.map (fun (x,y) -> x^"="^(string_of_value y)) fs)
 
-  let fs_from_items l = (List.sort (fun (x,_) (y,_) -> Stdlib.compare x y) l)
+  let build_fs l = (List.sort (fun (x,_) (y,_) -> Stdlib.compare x y) l)
 
-  (* short is "E:x:y" or "x:y@z" *)
-  exception Not_short
-  let fs_to_short_opt (fs:fs) =
+  (* short is "S:x:y" or "x:y@z" *)
+  (* warning: should be related to config: temporarily hardcoded *)
+  (* the feature enhanced is ignore here… but this is just for printing *)
+  exception Long
+  let fs_to_string_opt (fs:fs) =
     try
-      let prefix = match (List_.sort_assoc_opt "kind" fs, List_.sort_assoc_opt "enhanced" fs) with
-        | (None,None) -> ""
-        | (Some (String "surf"), None) -> "S:"
-        | (Some (String "deep"), None) -> "D:"
-        | (None, Some (String "yes")) -> "E:"
-        | _ -> raise Not_short in
+      let prefix = match List_.sort_assoc_opt "kind" fs with
+        | None -> ""
+        | Some (String "surf") -> "S:"
+        | Some (String "deep") -> "D:"
+        | _ -> raise Long in
       let suffix = match List_.sort_assoc_opt "deep" fs with
         | Some value -> "@"^(string_of_value value)
         | None -> "" in
-      let infix_items =
-        fs
-        |> (List_.sort_remove_assoc "kind")
-        |> (List_.sort_remove_assoc "enhanced")
-        |> (List_.sort_remove_assoc "deep") in
-      let core_strings = CCList.mapi
-          (fun i (n,v) ->
-             if string_of_int(i+1) = n
-             then string_of_value v
-             else raise Not_short
-          ) infix_items in
-      Some (prefix ^ (String.concat ":" core_strings) ^ suffix)
-    with Not_short -> None
+      let core = match
+        (List_.sort_assoc_opt "1" fs, List_.sort_assoc_opt "2" fs, List_.sort_assoc_opt "rel" fs, List_.sort_assoc_opt "subrel" fs) with
+        | (Some rel, None, None, None)
+        | (None, None, Some rel, None) -> string_of_value rel
+        | (Some rel, Some subrel, None, None)
+        | (None, None, Some rel, Some subrel) -> (string_of_value rel) ^":"^ (string_of_value subrel)
+        | _ -> raise Long in
+      if List.filter
+        (function
+          | ("kind",_) | ("deep",_)
+          | ("1",_) | ("2",_)
+          | ("rel",_) | ("subrel",_)
+          | ("enhanced",_) -> false
+          | _ -> true)
+        fs <> []
+      then raise Long;
+      Some (prefix ^ core ^ suffix)
+    with Long -> None
 
   let fs_to_string fs =
-    match fs_to_short_opt fs with
+    match fs_to_string_opt fs with
     | Some s -> s
-    | None -> raw_string fs
+    | None -> to_string_long fs
+
 
   (* split ["a"; "b"; "c"] --> [("1","a"); ("2","b"); ("3","c")]  *)
   let split l =
@@ -82,7 +89,7 @@ module G_edge = struct
         | "D" :: l -> ("kind",String "deep") :: (split l)
         | "E" :: l -> ("enhanced",String "yes") :: (split l)
         | l -> split l in
-    fs_from_items (CCList.cons_maybe deep before_deep)
+    build_fs (CCList.cons_maybe deep before_deep)
 
   type t =
     | Fs of fs
@@ -101,7 +108,7 @@ module G_edge = struct
     | Fs fs when List.assoc_opt "enhanced" fs = Some (String "yes") -> true
     | _ -> false
 
-  let from_items l = Fs (fs_from_items l)
+  let from_items l = Fs (build_fs l)
 
   let get_sub_opt feat_name = function
     | Fs fs -> List_.sort_assoc_opt feat_name fs
@@ -116,7 +123,7 @@ module G_edge = struct
     | _ -> Error.run "[remove_feat_opt] edge is not fs"
 
   let to_short_opt = function
-    | Fs fs -> fs_to_short_opt fs
+    | Fs fs -> fs_to_string_opt fs
     | _ -> None
 
   let to_string_opt = function
@@ -137,6 +144,25 @@ module G_edge = struct
     let open CCOpt in
     Domain.label_to_dep ?domain ~deco <$> (to_string_opt t)
 
+  let to_dep_opt ?domain ?(deco=false) = function
+    | Fs fs ->
+      let styles =
+        match List_.sort_assoc_opt "kind" fs with
+        | Some (String "deep") -> ["color=blue"; "forecolor=blue"; "bottom"]
+        | Some (String "surf") -> ["color=red"; "forecolor=red"]
+        | _ ->
+          match List_.sort_assoc_opt "enhanced" fs with
+          | Some (String "yes") -> ["color=blue"; "forecolor=blue"; "bottom"]
+          | _ ->
+            match List_.sort_assoc_opt "parseme" fs with
+            | Some (String "MWE") -> ["color=#1d7df2"; "forecolor=#1d7df2"; "bottom"]
+            | Some (String "NE") -> ["color=#ff760b"; "forecolor=#ff760b"; "bottom"]
+            | _ -> [] in
+      let styles = if deco then "bgcolor=#8bf56e" :: styles else styles in
+      Some (sprintf "{ label = \"%s\"; %s }" (fs_to_string fs) (String.concat ";" styles))
+    | _ -> None
+
+
   let to_dot_opt ?domain ?(deco=false) t =
     let open CCOpt in
     Domain.label_to_dot ?domain ~deco <$> (to_string_opt t)
@@ -152,7 +178,9 @@ module G_edge = struct
   let build (ast_edge, loc) =
     match ast_edge.Ast.edge_label_cst with
     | Ast.Pos_list [one] -> from_string one
-    | Ast.Atom_list list -> Fs (List.map (function Ast.Atom_eq (x,[y]) -> (x,typed_vos x y) | _ -> Error.build "[G_edge.build] cannot interpret Atom_list") list)
+    | Ast.Atom_list list ->
+      let unordered_fs = List.map (function Ast.Atom_eq (x,[y]) -> (x,typed_vos x y) | _ -> Error.build "[G_edge.build] cannot interpret Atom_list") list in
+      Fs (List.sort (fun (f1,_) (f2,_) -> Stdlib.compare f1 f2) unordered_fs)
     | Ast.Neg_list _ -> Error.build ~loc "Negative edge spec are forbidden in graphs"
     | Ast.Pos_list _ -> Error.build ~loc "Only atomic edge values are allowed in graphs"
     | Ast.Regexp _ -> Error.build ~loc "Regexp are not allowed in graphs"
