@@ -10,86 +10,38 @@
 
 open Log
 open Printf
+open Conllx
 
 open Grew_base
 open Grew_types
 open Grew_ast
 open Grew_domain
 
+
 (* ================================================================================ *)
 module G_edge = struct
+  let current_config = ref Conllx_config.default
+
+  let update_config name =
+    try current_config := Conllx_config.build name with
+      Conllx_error msg -> Error.run "%s" (Yojson.Basic.pretty_to_string msg)
 
   (* [G_edge.fs] is a feature structure. The list of feature names must be ordered wrt [Stdlib.compare] *)
   type fs = (feature_name * feature_value) list
 
-  let to_string_long fs = String.concat "," (List.map (fun (x,y) -> x^"="^(string_of_value y)) fs)
+  let fs_from_items l = (List.sort (fun (x,_) (y,_) -> Stdlib.compare x y) l)
 
-  let build_fs l = (List.sort (fun (x,_) (y,_) -> Stdlib.compare x y) l)
+  let fs_to_conllx fs = `Assoc (List.map (fun (k,v) -> (k, `String (string_of_value v))) fs)
 
-  (* short is "S:x:y" or "x:y@z" *)
-  (* warning: should be related to config: temporarily hardcoded *)
-  (* the feature enhanced is ignore here… but this is just for printing *)
-  exception Long
-  let fs_to_string_opt (fs:fs) =
-    try
-      let prefix = match List_.sort_assoc_opt "kind" fs with
-        | None -> ""
-        | Some (String "surf") -> "S:"
-        | Some (String "deep") -> "D:"
-        | _ -> raise Long in
-      let suffix = match List_.sort_assoc_opt "deep" fs with
-        | Some value -> "@"^(string_of_value value)
-        | None -> "" in
-      let core = match
-        (List_.sort_assoc_opt "1" fs, List_.sort_assoc_opt "2" fs, List_.sort_assoc_opt "rel" fs, List_.sort_assoc_opt "subrel" fs) with
-        | (Some rel, None, None, None)
-        | (None, None, Some rel, None) -> string_of_value rel
-        | (Some rel, Some subrel, None, None)
-        | (None, None, Some rel, Some subrel) -> (string_of_value rel) ^":"^ (string_of_value subrel)
-        | _ -> raise Long in
-      if List.filter
-        (function
-          | ("kind",_) | ("deep",_)
-          | ("1",_) | ("2",_)
-          | ("rel",_) | ("subrel",_)
-          | ("enhanced",_) -> false
-          | _ -> true)
-        fs <> []
-      then raise Long;
-      Some (prefix ^ core ^ suffix)
-    with Long -> None
+  let fs_of_conllx json =
+    let open Yojson.Basic.Util in
+    json |> to_assoc |> List.map (fun (f,json_v) -> (f, typed_vos f (to_string json_v))) |> fs_from_items
 
-  let fs_to_string fs =
-    match fs_to_string_opt fs with
-    | Some s -> s
-    | None -> to_string_long fs
+  let fs_to_string_res fs = fs |> fs_to_conllx |> Conllx_label.of_json |> (Conllx_label.to_string ~config:!current_config)
 
+  let fs_to_string fs = match fs_to_string_res fs with Ok s | Error s -> s
 
-  (* split ["a"; "b"; "c"] --> [("1","a"); ("2","b"); ("3","c")]  *)
-  let split l =
-    CCList.mapi
-      (fun i elt ->
-         let feature_name = string_of_int (i+1) in
-         (feature_name, typed_vos feature_name elt)
-      ) l
-
-  let fs_from_short str =
-    let (init, deep) = match Str.bounded_split (Str.regexp_string "@") str 2 with
-      | [i] -> (i, None)
-      | [i;d] -> (i, Some ("deep",typed_vos "deep" d))
-      | _ -> assert false in
-    let before_deep = match init with
-      | "S:" -> [("kind",String "surf")]
-      | "D:" -> [("kind",String "deep")]
-      | "E:" -> [("enhanced",String "yes")]
-      | _ ->
-        match Str.split (Str.regexp_string ":") init with
-        | [one] -> ["1", typed_vos "1" one]
-        | "S" :: l -> ("kind",String "surf") :: (split l)
-        | "D" :: l -> ("kind",String "deep") :: (split l)
-        | "E" :: l -> ("enhanced",String "yes") :: (split l)
-        | l -> split l in
-    build_fs (CCList.cons_maybe deep before_deep)
+  let fs_from_string s = s |> (Conllx_label.of_string ~config:!current_config) |> Conllx_label.to_json |> fs_of_conllx
 
   type t =
     | Fs of fs
@@ -98,6 +50,9 @@ module G_edge = struct
     | Succ
 
   let empty = Fs []
+  let sub = Sub
+  let pred = Pred
+  let succ = Succ
 
   let ordering = function
     | Pred | Succ -> true
@@ -108,7 +63,9 @@ module G_edge = struct
     | Fs fs when List.assoc_opt "enhanced" fs = Some (String "yes") -> true
     | _ -> false
 
-  let from_items l = Fs (build_fs l)
+  let from_items l = Fs (fs_from_items l)
+
+  let from_string s = Fs (fs_from_string s)
 
   let get_sub_opt feat_name = function
     | Fs fs -> List_.sort_assoc_opt feat_name fs
@@ -122,16 +79,12 @@ module G_edge = struct
     | Fs fs -> (match List_.sort_remove_assoc_opt feat_name fs with None -> None | Some fs -> Some (Fs fs))
     | _ -> Error.run "[remove_feat_opt] edge is not fs"
 
-  let to_short_opt = function
-    | Fs fs -> fs_to_string_opt fs
-    | _ -> None
-
   let to_string_opt = function
     | Fs fs -> Some (fs_to_string fs)
     | _ -> None
 
-  let to_conllx_opt = function
-    | Fs fs -> Some (`Assoc (List.map (fun (k,v) -> (k, `String (string_of_value v))) fs))
+  let to_short_opt = function
+    | Fs fs -> (match fs_to_string_res fs with Ok s -> Some s | _ -> None)
     | _ -> None
 
   let dump = function
@@ -140,10 +93,11 @@ module G_edge = struct
     | Pred -> "__PRED__"
     | Succ -> "__SUCC__"
 
-  let to_dep_opt ?domain ?(deco=false) t =
-    let open CCOpt in
-    Domain.label_to_dep ?domain ~deco <$> (to_string_opt t)
+  let to_conllx_opt = function
+    | Fs fs -> Some (fs_to_conllx fs)
+    | _ -> None
 
+  (* WARNING: hardcoded version which subsumes know configs *)
   let to_dep_opt ?domain ?(deco=false) = function
     | Fs fs ->
       let styles =
@@ -162,25 +116,40 @@ module G_edge = struct
       Some (sprintf "{ label = \"%s\"; %s }" (fs_to_string fs) (String.concat ";" styles))
     | _ -> None
 
+  (* WARNING: hardcoded version which subsumes know configs *)
+  let to_dot_opt ?domain ?(deco=false) = function
+    | Fs fs ->
+      let dot_items =
+        match List_.sort_assoc_opt "kind" fs with
+        | Some (String "deep") -> ["color=blue"; "fontcolor=blue"]
+        | Some (String "surf") -> ["color=red"; "fontcolor=red"]
+        | _ ->
+          match List_.sort_assoc_opt "enhanced" fs with
+          | Some (String "yes") -> ["color=blue"; "fontcolor=blue"]
+          | _ ->
+            match List_.sort_assoc_opt "parseme" fs with
+            | Some (String "MWE") -> ["color=#1d7df2"; "fontcolor=#1d7df2"]
+            | Some (String "NE") -> ["color=#ff760b"; "fontcolor=#ff760b"]
+            | _ -> [] in
+      let label = match deco with
+        | true -> sprintf "<<TABLE BORDER=\"0\" CELLBORDER=\"0\"> <TR> <TD BGCOLOR=\"#8bf56e\">%s</TD> </TR> </TABLE>>" (fs_to_string fs)
+        | false -> sprintf "\"%s\"" (fs_to_string fs) in
+      Some (sprintf "[label=%s, %s]" label (String.concat ", " dot_items))
+    | _ -> None
 
-  let to_dot_opt ?domain ?(deco=false) t =
-    let open CCOpt in
-    Domain.label_to_dot ?domain ~deco <$> (to_string_opt t)
-
-  let from_string s = Fs (fs_from_short s)
-
-  let to_json t = match to_string_opt t with Some s -> `String s | None -> `Null
-
-  let sub = Sub
-  let pred = Pred
-  let succ = Succ
+  let to_json t = match t with
+    | Fs fs -> fs_to_conllx fs
+    | _ -> `Null
 
   let build (ast_edge, loc) =
     match ast_edge.Ast.edge_label_cst with
     | Ast.Pos_list [one] -> from_string one
     | Ast.Atom_list list ->
-      let unordered_fs = List.map (function Ast.Atom_eq (x,[y]) -> (x,typed_vos x y) | _ -> Error.build "[G_edge.build] cannot interpret Atom_list") list in
-      Fs (List.sort (fun (f1,_) (f2,_) -> Stdlib.compare f1 f2) unordered_fs)
+      let unordered_fs =
+        List.map
+          (function Ast.Atom_eq (x,[y]) -> (x,typed_vos x y) | _ -> Error.build "[G_edge.build] cannot interpret Atom_list")
+          list in
+      Fs (fs_from_items unordered_fs)
     | Ast.Neg_list _ -> Error.build ~loc "Negative edge spec are forbidden in graphs"
     | Ast.Pos_list _ -> Error.build ~loc "Only atomic edge values are allowed in graphs"
     | Ast.Regexp _ -> Error.build ~loc "Regexp are not allowed in graphs"
@@ -277,8 +246,8 @@ module Label_cst = struct
     | Ast.Atom_absent name -> Absent name
 
   let build ?loc ?domain = function
-    | Ast.Neg_list p_labels -> Neg (List.sort compare (List.map G_edge.fs_from_short p_labels))
-    | Ast.Pos_list p_labels -> Pos (List.sort compare (List.map G_edge.fs_from_short p_labels))
+    | Ast.Neg_list p_labels -> Neg (List.sort compare (List.map G_edge.fs_from_string p_labels))
+    | Ast.Pos_list p_labels -> Pos (List.sort compare (List.map G_edge.fs_from_string p_labels))
     | Ast.Regexp re -> Regexp (Str.regexp re, re)
     | Ast.Atom_list l -> Atom_list (List.map build_atom l)
     | Ast.Pred -> Error.bug "[Label_cst.build]"

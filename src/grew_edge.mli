@@ -13,44 +13,63 @@ open Grew_types
 open Grew_ast
 open Grew_domain
 
+
 (* ================================================================================ *)
 (** The module [G_edge] defines the type of Graph label edges: atomic edges *)
 module G_edge: sig
+  val update_config: string -> unit
+
+
   type t
 
   val empty: t
-
-  val from_items: (string * feature_value) list -> t
-
-  val get_sub_opt: string -> t -> feature_value option
-
-  val update: string -> feature_value -> t -> t
-
-  val remove_feat_opt: string -> t -> t option
-
-  val to_string_opt: t -> string option
-
-  val to_conllx_opt: t -> Yojson.Basic.t option
-
-  (* robust printing: to be used only in error reporting *)
-  val dump: t -> string
-
-  val to_dep_opt: ?domain: Domain.t -> ?deco:bool -> t -> string option
-
-  val to_dot_opt: ?domain: Domain.t -> ?deco:bool -> t -> string option
-
-  val from_string: string -> t
-
-  val to_json: t -> Yojson.Basic.t
-
   val sub: t
   val pred: t
   val succ: t
 
-  val build: Ast.edge -> t
-
   val ordering: t -> bool
   val enhanced: t -> bool
+
+  val from_items: (string * feature_value) list -> t
+
+  (** [from_string s] interpret [s] according to the [current_config].
+      WARNING: [s] is supposed to be a compact representation. *)
+  val from_string: string -> t
+
+  (** [get_sub_opt f t] returns Some v if (f,v) is defined in t.
+      [Error.run] is raise if [t] is a special edge *)
+  val get_sub_opt: string -> t -> feature_value option
+
+  (** [update f v t] updates of adds [(f,v)] in [t].
+      [Error.run] is raise if [t] is a special edge *)
+  val update: string -> feature_value -> t -> t
+
+  (** [remove_feat_opt f t] returns [Some t'] if [f] is defined in t, [None] else.
+      [Error.run] is raise if [t] is a special edge *)
+  val remove_feat_opt: string -> t -> t option
+
+  (** [to_string_opt t] returns [Some s] where [s] is the compact string if possible.
+      [None] is returned if [t] is a special edge *)
+  val to_string_opt: t -> string option
+
+  (* robust printing: to be used only in error reporting *)
+  val dump: t -> string
+
+  (** [to_conllx_opt t] returns [Some js] where [js] is the json data usable in Conllx
+      [None] is returned if [t] is a special edge *)
+  val to_conllx_opt: t -> Yojson.Basic.t option
+
+  (** Temp hardcoded conversion from t to dep2pict string (domain is unused) *)
+  val to_dep_opt: ?domain: Domain.t -> ?deco:bool -> t -> string option
+
+  (** Temp hardcoded conversion from t to graphviz string (domain is unused) *)
+  val to_dot_opt: ?domain: Domain.t -> ?deco:bool -> t -> string option
+
+  (** TODO: check usage of this function *)
+  val to_json: t -> Yojson.Basic.t
+
+  val build: Ast.edge -> t
+
 end (* module G_edge *)
 
 
