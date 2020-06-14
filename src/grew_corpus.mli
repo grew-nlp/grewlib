@@ -1,3 +1,5 @@
+open Conllx
+
 open Grew_base
 open Grew_domain
 open Grew_graph
@@ -24,6 +26,8 @@ module Corpus_desc : sig
 
   val build_corpus: t -> Corpus.t
   val load_corpus_opt: t -> Corpus.t option
+
+  val get_config: t -> Conllx_config.t option
 
   val is_rtl: t -> bool
   val is_audio: t -> bool

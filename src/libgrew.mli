@@ -9,6 +9,7 @@
 (**********************************************************************************)
 
 open Conll
+open Conllx
 
 (* ==================================================================================================== *)
 (** {2 General definitions} *)
@@ -212,6 +213,7 @@ module Corpus_desc: sig
 
 
 
+  val get_config: t -> Conllx_config.t option
   val is_rtl: t -> bool
   val is_audio: t -> bool
   val get_id: t -> string
