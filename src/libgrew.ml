@@ -217,8 +217,8 @@ module Graph = struct
   let to_dot ?main_feat ?(deco=Grew_graph.G_deco.empty) ?get_url graph =
     Libgrew.handle ~name:"Graph.to_dot" (fun () -> Grew_graph.G_graph.to_dot ?main_feat ?get_url graph ~deco) ()
 
-  let to_dep ?filter ?main_feat ?(deco=Grew_graph.G_deco.empty) graph =
-    Libgrew.handle ~name:"Graph.to_dep" (fun () -> Grew_graph.G_graph.to_dep ?filter ?main_feat ~deco graph) ()
+  let to_dep ?filter ?main_feat ?(deco=Grew_graph.G_deco.empty) ?config graph =
+    Libgrew.handle ~name:"Graph.to_dep" (fun () -> Grew_graph.G_graph.to_dep ?filter ?main_feat ~deco ?config graph) ()
 
   let to_gr graph =
     Libgrew.handle ~name:"Graph.to_gr" (fun () -> Grew_graph.G_graph.to_gr graph) ()

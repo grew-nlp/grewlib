@@ -37,9 +37,9 @@ module G_edge = struct
     let open Yojson.Basic.Util in
     json |> to_assoc |> List.map (fun (f,json_v) -> (f, typed_vos f (to_string json_v))) |> fs_from_items
 
-  let fs_to_string_res fs = fs |> fs_to_conllx |> Conllx_label.of_json |> (Conllx_label.to_string ~config:!current_config)
+  let fs_to_string_res ?(config = !current_config) fs = fs |> fs_to_conllx |> Conllx_label.of_json |> Conllx_label.to_string ~config
 
-  let fs_to_string fs = match fs_to_string_res fs with Ok s | Error s -> s
+  let fs_to_string ?config fs = match fs_to_string_res ?config fs with Ok s | Error s -> s
 
   let fs_from_string s = s |> (Conllx_label.of_string ~config:!current_config) |> Conllx_label.to_json |> fs_of_conllx
 
@@ -98,7 +98,7 @@ module G_edge = struct
     | _ -> None
 
   (* WARNING: hardcoded version which subsumes know configs *)
-  let to_dep_opt ?domain ?(deco=false) = function
+  let to_dep_opt ?domain ?(deco=false) ?config = function
     | Fs fs ->
       let styles =
         match List_.sort_assoc_opt "kind" fs with
@@ -113,7 +113,7 @@ module G_edge = struct
             | Some (String "NE") -> ["color=#ff760b"; "forecolor=#ff760b"; "bottom"]
             | _ -> [] in
       let styles = if deco then "bgcolor=#8bf56e" :: styles else styles in
-      Some (sprintf "{ label = \"%s\"; %s }" (fs_to_string fs) (String.concat ";" styles))
+      Some (sprintf "{ label = \"%s\"; %s }" (fs_to_string ?config fs) (String.concat ";" styles))
     | _ -> None
 
   (* WARNING: hardcoded version which subsumes know configs *)

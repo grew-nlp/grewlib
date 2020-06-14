@@ -1129,7 +1129,7 @@ module G_graph = struct
   let is_non_lexical_node node =
     let fs = G_node.get_fs node in G_fs.get_value_opt "parseme" fs <> None
 
-  let to_dep ?filter ?main_feat ?(deco=G_deco.empty) graph =
+  let to_dep ?filter ?main_feat ?(deco=G_deco.empty) ?config graph =
     let domain = get_domain_opt graph in
 
     (* split lexical // non-lexical nodes *)
@@ -1209,7 +1209,7 @@ module G_graph = struct
          Massoc_gid.iter
            (fun tar g_edge ->
               let deco = List.mem (gid,g_edge,tar) deco.G_deco.edges in
-              match G_edge.to_dep_opt ?domain ~deco g_edge with
+              match G_edge.to_dep_opt ?domain ~deco ?config g_edge with
               | None -> ()
               | Some string_edge -> bprintf buff "N_%s -> N_%s %s\n" (Gid.to_string gid) (Gid.to_string tar) string_edge
            ) (G_node.get_next elt)

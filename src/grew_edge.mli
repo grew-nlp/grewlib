@@ -8,6 +8,8 @@
 (*    Authors: see AUTHORS file                                                   *)
 (**********************************************************************************)
 
+open Conllx
+
 open Grew_base
 open Grew_types
 open Grew_ast
@@ -60,7 +62,7 @@ module G_edge: sig
   val to_conllx_opt: t -> Yojson.Basic.t option
 
   (** Temp hardcoded conversion from t to dep2pict string (domain is unused) *)
-  val to_dep_opt: ?domain: Domain.t -> ?deco:bool -> t -> string option
+  val to_dep_opt: ?domain: Domain.t -> ?deco:bool -> ?config:Conllx_config.t -> t -> string option
 
   (** Temp hardcoded conversion from t to graphviz string (domain is unused) *)
   val to_dot_opt: ?domain: Domain.t -> ?deco:bool -> t -> string option

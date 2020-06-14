@@ -9,6 +9,7 @@
 (**********************************************************************************)
 
 open Conll
+open Conllx
 
 open Grew_base
 open Grew_types
@@ -211,7 +212,7 @@ module G_graph: sig
 
   val to_orfeo: ?deco:G_deco.t -> t -> (string * (float * float) option)
 
-  val to_dep: ?filter: (string -> bool) -> ?main_feat:string -> ?deco:G_deco.t -> t -> string
+  val to_dep: ?filter: (string -> bool) -> ?main_feat:string -> ?deco:G_deco.t -> ?config:Conllx_config.t -> t -> string
   val to_conll: t -> Conll.t
   val to_conll_string: ?cupt:bool -> t -> string
 
