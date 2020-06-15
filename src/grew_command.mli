@@ -8,6 +8,7 @@
 (*    Authors: see AUTHORS file                                                   *)
 (**********************************************************************************)
 
+open Conllx
 open Grew_ast
 open Grew_base
 open Grew_types
@@ -49,11 +50,12 @@ module Command : sig
     | UNORDER of command_node
 
   type t = (p * Loc.t)
-  val to_json: ?domain:Domain.t -> t -> Yojson.Basic.t
+  val to_json: ?domain:Domain.t -> config:Conllx_config.t -> t -> Yojson.Basic.t
 
 
   val build:
     ?domain: Domain.t ->
+    config:Conllx_config.t ->
     Lexicons.t ->
     (Id.name list * string list) ->
     Id.table ->

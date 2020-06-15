@@ -10,6 +10,7 @@
 
 open Printf
 open Log
+open Conllx
 
 open Grew_fs
 open Grew_base
@@ -44,26 +45,26 @@ module Grs = struct
     ast = [];
   }
 
-  let rec decl_to_json ?domain = function
-    | Rule r -> Rule.to_json ?domain r
+  let rec decl_to_json ?domain ~config = function
+    | Rule r -> Rule.to_json ?domain ~config r
     | Strategy (name, strat) -> `Assoc [("strat_name", `String name); ("strat_def", Ast.strat_to_json strat)]
-    | Package (name, decl_list) -> `Assoc [("package_name", `String name); "decls", `List (List.map (decl_to_json ?domain) decl_list)]
+    | Package (name, decl_list) -> `Assoc [("package_name", `String name); "decls", `List (List.map (decl_to_json ?domain ~config) decl_list)]
 
   let decl_to_string ?domain = function
     | Rule r -> sprintf "RULE: %s" (Rule.get_name r)
     | Strategy (name, strat) -> sprintf "STRAT: %s" (name)
     | Package (name, decl_list) -> sprintf "PACK: %s" (name)
 
-  let to_json t =
+  let to_json ~config t =
     match t.domain with
     | None -> `Assoc [
         "filename", `String t.filename;
-        "decls", `List (List.map decl_to_json t.decls)
+        "decls", `List (List.map (fun x -> decl_to_json ~config x) t.decls)
       ]
     | Some dom -> `Assoc [
         "domain", Domain.to_json dom;
         "filename", `String t.filename;
-        "decls", `List (List.map (decl_to_json ~domain:dom) t.decls)
+        "decls", `List (List.map (decl_to_json ~domain:dom ~config) t.decls)
       ]
 
 
@@ -84,9 +85,9 @@ module Grs = struct
     printf "================ Grs ================\n%!";
     ()
 
-  let rec build_decl ?domain = function
-    | Ast.Package (loc, name, decl_list) -> Package (name, List.map (build_decl ?domain) decl_list)
-    | Ast.Rule ast_rule -> Rule (Rule.build ?domain ast_rule)
+  let rec build_decl ?domain ~config = function
+    | Ast.Package (loc, name, decl_list) -> Package (name, List.map (build_decl ?domain ~config) decl_list)
+    | Ast.Rule ast_rule -> Rule (Rule.build ?domain ~config ast_rule)
     | Ast.Strategy (loc, name, ast_strat) -> Strategy (name, ast_strat)
     | _ -> Error.bug "[build_decl] Inconsistent ast for grs"
 
@@ -97,7 +98,7 @@ module Grs = struct
       (Label_domain.build ast_domain.Ast.label_domain)
       (Feature_domain.build ast_domain.Ast.feature_domain)
 
-  let from_ast filename ast =
+  let from_ast ~config filename ast =
     let feature_domains = List_.opt_map
         (fun x -> match x with
            | Ast.Features desc -> Some desc
@@ -130,7 +131,7 @@ module Grs = struct
            | Ast.Conll_fields _ -> None
            | Ast.Import _ -> Error.bug "[load] Import: inconsistent ast for grs"
            | Ast.Include _ -> Error.bug "[load] Include: inconsistent ast for grs"
-           | x -> Some (build_decl ?domain x)
+           | x -> Some (build_decl ?domain ~config x)
         ) ast in
 
     { filename;
@@ -139,9 +140,9 @@ module Grs = struct
       decls;
     }
 
-  let load filename = from_ast filename (Loader.grs filename)
+  let load ~config filename = from_ast ~config filename (Loader.grs filename)
 
-  let parse string_grs = from_ast "" (Parser.grs string_grs)
+  let parse ~config string_grs = from_ast ~config "" (Parser.grs string_grs)
 
   (* The type [pointed] is a zipper style data structure for resolving names x.y.z *)
   type pointed =
@@ -284,11 +285,11 @@ module Grs = struct
   (* ============================================================================================= *)
 
   (* apply a package to a graph = apply only top level rules in the package *)
-  let onf_pack_rewrite ?domain decl_list graph =
+  let onf_pack_rewrite ?domain ~config decl_list graph =
     let rec loop = function
       | [] -> None
       | Rule r :: tail_decl ->
-        (match Rule.onf_apply_opt ?domain r graph with
+        (match Rule.onf_apply_opt ?domain ~config r graph with
          | Some x -> Some x
          | None -> loop tail_decl
         )
@@ -308,17 +309,17 @@ module Grs = struct
     | Some (Strategy (_,ast_strat), new_pointed) ->
       onf_strat_simple_rewrite ?domain new_pointed ast_strat graph
 
-  and onf_strat_simple_rewrite ?domain pointed strat graph =
+  and onf_strat_simple_rewrite ?domain ~config pointed strat graph =
     match strat with
-    | Ast.Ref subname -> onf_intern_simple_rewrite ?domain pointed subname graph
-    | Ast.Pick strat -> onf_strat_simple_rewrite ?domain pointed strat graph
+    | Ast.Ref subname -> onf_intern_simple_rewrite ?domain ~config pointed subname graph
+    | Ast.Pick strat -> onf_strat_simple_rewrite ?domain ~config pointed strat graph
 
     | Ast.Alt [] -> None
     | Ast.Alt strat_list ->
       let rec loop = function
         | [] -> None
         | head_strat :: tail_strat ->
-          match onf_strat_simple_rewrite ?domain pointed head_strat graph with
+          match onf_strat_simple_rewrite ?domain ~config pointed head_strat graph with
           | None -> loop tail_strat
           | Some x -> Some x in
       loop strat_list
@@ -326,48 +327,48 @@ module Grs = struct
     | Ast.Seq [] -> Some graph
     | Ast.Seq (head_strat :: tail_strat) ->
       begin
-        match onf_strat_simple_rewrite ?domain pointed head_strat graph with
+        match onf_strat_simple_rewrite ?domain ~config pointed head_strat graph with
         | None -> None
-        | Some inst -> onf_strat_simple_rewrite ?domain pointed (Ast.Seq tail_strat) inst
+        | Some inst -> onf_strat_simple_rewrite ?domain ~config pointed (Ast.Seq tail_strat) inst
       end
 
     | Ast.Iter sub_strat ->
       begin
-        match onf_strat_simple_rewrite ?domain pointed sub_strat graph with
+        match onf_strat_simple_rewrite ?domain ~config pointed sub_strat graph with
         | None -> Some graph
-        | Some inst -> onf_strat_simple_rewrite ?domain pointed strat inst
+        | Some inst -> onf_strat_simple_rewrite ?domain ~config pointed strat inst
       end
 
     | Ast.Try sub_strat ->
       begin
-        match onf_strat_simple_rewrite ?domain pointed sub_strat graph with
+        match onf_strat_simple_rewrite ?domain ~config pointed sub_strat graph with
         | None -> Some graph
         | Some i -> Some i
       end
 
     | Ast.If (s, s1, s2) ->
       begin
-        match onf_strat_simple_rewrite ?domain pointed s graph with
-        | None   -> onf_strat_simple_rewrite ?domain pointed s1 graph
-        | Some _ -> onf_strat_simple_rewrite ?domain pointed s2 graph
+        match onf_strat_simple_rewrite ?domain ~config pointed s graph with
+        | None   -> onf_strat_simple_rewrite ?domain ~config pointed s1 graph
+        | Some _ -> onf_strat_simple_rewrite ?domain ~config pointed s2 graph
       end
 
-    | Ast.Onf (s) -> onf_strat_simple_rewrite ?domain pointed s graph (* TODO check Onf (P) == 1 rule app ? *)
+    | Ast.Onf (s) -> onf_strat_simple_rewrite ?domain ~config pointed s graph (* TODO check Onf (P) == 1 rule app ? *)
 
   (* TODO: unused function, should be used for some cases like Seq (Onf(p1), Onf(p2)) *)
   (* iter until normal form *)
-  let onf_rewrite ?domain pointed strat graph =
+  let onf_rewrite ?domain ~config pointed strat graph =
     let rec loop graph2 =
-      match onf_strat_simple_rewrite ?domain pointed strat graph2 with
+      match onf_strat_simple_rewrite ?domain ~config pointed strat graph2 with
       | None -> graph2
       | Some x -> loop x in
     loop graph
 
   (* ============================================================================================= *)
-  let onf_rewrite_opt grs strat_string graph =
+  let onf_rewrite_opt ~config grs strat_string graph =
     Global.track_rules := true;
     let strat = Parser.strategy strat_string in
-    let new_graph = onf_rewrite (top grs) strat (G_graph.clear_rules graph) in
+    let new_graph = onf_rewrite ~config (top grs) strat (G_graph.clear_rules graph) in
     if G_graph.is_initial new_graph
     then None
     else Some new_graph
@@ -378,37 +379,37 @@ module Grs = struct
 
   (* NB: the next 3 functions compute one step (with option output) for correct recusice call in case of Alt *)
   (* the function [owh_rewrite] handle the iteration until normal_form *)
-  let owh_pack_rewrite ?domain decl_list gwh =
+  let owh_pack_rewrite ?domain ~config decl_list gwh =
     let rec loop = function
       | [] -> None
       | Rule r :: tail_decl ->
-        (match Rule.owh_apply_opt ?domain r gwh with
+        (match Rule.owh_apply_opt ?domain ~config r gwh with
          | Some x -> Some x
          | None -> loop tail_decl
         )
       | _ :: tail_decl -> loop tail_decl in
     loop decl_list
 
-  let rec owh_intern_simple_rewrite ?domain pointed strat_name gwh =
+  let rec owh_intern_simple_rewrite ?domain ~config pointed strat_name gwh =
     let path = Str.split (Str.regexp "\\.") strat_name in
     match search_from pointed path with
     | None -> Error.build "Simple rewrite, cannot find strat %s" strat_name
-    | Some (Rule r,_) -> Rule.owh_apply_opt ?domain r gwh
-    | Some (Package (_, decl_list), _) -> owh_pack_rewrite ?domain decl_list gwh
+    | Some (Rule r,_) -> Rule.owh_apply_opt ?domain ~config r gwh
+    | Some (Package (_, decl_list), _) -> owh_pack_rewrite ?domain ~config decl_list gwh
     | Some (Strategy (_,ast_strat), new_pointed) ->
-      owh_strat_simple_rewrite ?domain new_pointed ast_strat gwh
+      owh_strat_simple_rewrite ?domain ~config new_pointed ast_strat gwh
 
-  and owh_strat_simple_rewrite ?domain pointed strat gwh =
+  and owh_strat_simple_rewrite ?domain ~config pointed strat gwh =
     match strat with
-    | Ast.Ref subname -> owh_intern_simple_rewrite ?domain pointed subname gwh
-    | Ast.Pick strat -> owh_strat_simple_rewrite ?domain pointed strat gwh
+    | Ast.Ref subname -> owh_intern_simple_rewrite ?domain ~config pointed subname gwh
+    | Ast.Pick strat -> owh_strat_simple_rewrite ?domain ~config pointed strat gwh
 
     | Ast.Alt [] -> None
     | Ast.Alt strat_list ->
       let rec loop = function
         | [] -> None
         | head_strat :: tail_strat ->
-          match owh_strat_simple_rewrite ?domain pointed head_strat gwh with
+          match owh_strat_simple_rewrite ?domain ~config pointed head_strat gwh with
           | None -> loop tail_strat
           | Some x -> Some x in
       loop strat_list
@@ -416,28 +417,28 @@ module Grs = struct
     | Ast.Seq [] -> Some gwh
     | Ast.Seq (head_strat :: tail_strat) ->
       begin
-        match owh_strat_simple_rewrite ?domain pointed head_strat gwh with
+        match owh_strat_simple_rewrite ?domain ~config pointed head_strat gwh with
         | None -> None
-        | Some gwh2 -> owh_strat_simple_rewrite ?domain pointed (Ast.Seq tail_strat) gwh2
+        | Some gwh2 -> owh_strat_simple_rewrite ?domain ~config pointed (Ast.Seq tail_strat) gwh2
       end
 
     | Ast.Try sub_strat
     | Ast.Onf sub_strat
-    | Ast.Iter sub_strat -> owh_strat_simple_rewrite ?domain pointed sub_strat gwh
+    | Ast.Iter sub_strat -> owh_strat_simple_rewrite ?domain ~config pointed sub_strat gwh
 
     | Ast.If (s, s1, s2) ->
       begin
         (* NB: checking one real step is enough to decide… *)
-        match onf_strat_simple_rewrite ?domain pointed s gwh.Graph_with_history.graph with
-        | None   -> owh_strat_simple_rewrite ?domain pointed s1 gwh
-        | Some _ -> owh_strat_simple_rewrite ?domain pointed s2 gwh
+        match onf_strat_simple_rewrite ?domain ~config pointed s gwh.Graph_with_history.graph with
+        | None   -> owh_strat_simple_rewrite ?domain ~config pointed s1 gwh
+        | Some _ -> owh_strat_simple_rewrite ?domain ~config pointed s2 gwh
       end
 
 
   (* iter until normal form *)
-  let owh_rewrite ?domain pointed strat gwh =
+  let owh_rewrite ?domain ~config pointed strat gwh =
     let rec loop gwh2 =
-      match owh_strat_simple_rewrite ?domain pointed strat gwh2 with
+      match owh_strat_simple_rewrite ?domain ~config pointed strat gwh2 with
       | None -> gwh2
       | Some x -> loop x in
     loop gwh
@@ -447,51 +448,51 @@ module Grs = struct
   (* ============================================================================================= *)
 
   (* apply a package to an graph_with_history = apply only top level rules in the package *)
-  let gwh_pack_rewrite ?domain decl_list gwh =
+  let gwh_pack_rewrite ?domain ~config decl_list gwh =
     List.fold_left
       (fun acc decl -> match decl with
-         | Rule r -> Graph_with_history_set.union acc (Rule.gwh_apply ?domain r gwh)
+         | Rule r -> Graph_with_history_set.union acc (Rule.gwh_apply ?domain ~config r gwh)
          | _ -> acc
       ) Graph_with_history_set.empty decl_list
 
-  let rec gwh_intern_simple_rewrite ?domain pointed strat_name gwh =
+  let rec gwh_intern_simple_rewrite ?domain ~config pointed strat_name gwh =
     let path = Str.split (Str.regexp "\\.") strat_name in
     match search_from pointed path with
     | None -> Error.build "Simple rewrite, cannot find strat %s" strat_name
-    | Some (Rule r,_) -> Rule.gwh_apply r gwh
-    | Some (Package (_, decl_list), _) -> gwh_pack_rewrite decl_list gwh
+    | Some (Rule r,_) -> Rule.gwh_apply ~config r gwh
+    | Some (Package (_, decl_list), _) -> gwh_pack_rewrite ~config decl_list gwh
     | Some (Strategy (_,ast_strat), new_pointed) ->
-      gwh_strat_simple_rewrite ?domain new_pointed ast_strat gwh
+      gwh_strat_simple_rewrite ?domain ~config new_pointed ast_strat gwh
 
-  and gwh_strat_simple_rewrite ?domain pointed strat gwh =
+  and gwh_strat_simple_rewrite ?domain ~config pointed strat gwh =
     match strat with
-    | Ast.Ref subname -> gwh_intern_simple_rewrite ?domain pointed subname gwh
+    | Ast.Ref subname -> gwh_intern_simple_rewrite ?domain ~config pointed subname gwh
     | Ast.Pick strat ->
       begin
         match Graph_with_history_set.choose_opt
-                (gwh_strat_simple_rewrite ?domain pointed strat gwh) with
+                (gwh_strat_simple_rewrite ?domain ~config pointed strat gwh) with
         | None -> Graph_with_history_set.empty
         | Some x -> Graph_with_history_set.singleton x
       end
 
     | Ast.Alt [] -> Graph_with_history_set.empty
     | Ast.Alt strat_list -> List.fold_left
-                              (fun acc strat -> Graph_with_history_set.union acc (gwh_strat_simple_rewrite ?domain pointed strat gwh)
+                              (fun acc strat -> Graph_with_history_set.union acc (gwh_strat_simple_rewrite ?domain ~config pointed strat gwh)
                               ) Graph_with_history_set.empty strat_list
 
     | Ast.Seq [] -> Graph_with_history_set.singleton gwh
     | Ast.Seq (head_strat :: tail_strat) ->
-      let first_strat = gwh_strat_simple_rewrite ?domain pointed head_strat gwh in
+      let first_strat = gwh_strat_simple_rewrite ?domain ~config pointed head_strat gwh in
       Graph_with_history_set.fold
-        (fun gwh acc -> Graph_with_history_set.union acc (gwh_strat_simple_rewrite ?domain pointed (Ast.Seq tail_strat) gwh)
+        (fun gwh acc -> Graph_with_history_set.union acc (gwh_strat_simple_rewrite ?domain ~config pointed (Ast.Seq tail_strat) gwh)
         ) first_strat Graph_with_history_set.empty
 
-    | Ast.Iter s -> iter_gwh ?domain pointed s gwh
-    | Ast.Onf s ->  Graph_with_history_set.singleton (owh_rewrite ?domain pointed strat gwh)
+    | Ast.Iter s -> iter_gwh ?domain ~config pointed s gwh
+    | Ast.Onf s ->  Graph_with_history_set.singleton (owh_rewrite ?domain ~config pointed strat gwh)
 
     | Ast.Try strat ->
       begin
-        let one_step = gwh_strat_simple_rewrite ?domain pointed strat gwh in
+        let one_step = gwh_strat_simple_rewrite ?domain ~config pointed strat gwh in
         if Graph_with_history_set.is_empty one_step
         then Graph_with_history_set.singleton gwh
         else one_step
@@ -500,18 +501,18 @@ module Grs = struct
     | Ast.If (s, s1, s2) ->
       begin
         match (* TODO: is it correct to put onf_ ?*)
-          onf_strat_simple_rewrite ?domain pointed s gwh.Graph_with_history.graph with
-        | Some _ -> gwh_strat_simple_rewrite ?domain pointed s1 gwh
-        | None   -> gwh_strat_simple_rewrite ?domain pointed s2 gwh
+          onf_strat_simple_rewrite ?domain ~config pointed s gwh.Graph_with_history.graph with
+        | Some _ -> gwh_strat_simple_rewrite ?domain ~config pointed s1 gwh
+        | None   -> gwh_strat_simple_rewrite ?domain ~config pointed s2 gwh
       end
 
-  and iter_gwh ?domain pointed strat gwh =
+  and iter_gwh ?domain ~config pointed strat gwh =
     let rec loop  (todo, not_nf, nf) =
       match Graph_with_history_set.choose_opt todo with
       | None -> nf
       | Some one ->
         let new_todo = Graph_with_history_set.remove one todo in
-        let one_step = gwh_strat_simple_rewrite ?domain pointed strat one in
+        let one_step = gwh_strat_simple_rewrite ?domain ~config pointed strat one in
         if Graph_with_history_set.subset one_step (Graph_with_history_set.singleton one)
         then
           loop (
@@ -534,23 +535,23 @@ module Grs = struct
     loop (Graph_with_history_set.singleton gwh, Graph_with_history_set.empty, Graph_with_history_set.empty)
 
   (* ============================================================================================= *)
-  let gwh_simple_rewrite grs strat graph =
+  let gwh_simple_rewrite ~config grs strat graph =
     Rule.reset_rules ();
     Timeout.start ();
     let domain = domain_opt grs in
-    let casted_graph = G_graph.cast ?domain graph in
+    let casted_graph = G_graph.cast ?domain ~config graph in
     let gwh = Graph_with_history.from_graph casted_graph in
-    let set = gwh_strat_simple_rewrite ?domain (top grs) strat gwh in
+    let set = gwh_strat_simple_rewrite ?domain ~config (top grs) strat gwh in
     List.map
       (fun gwh -> gwh.Graph_with_history.graph)
       (Graph_with_history_set.elements set)
 
   (* ============================================================================================= *)
-  let simple_rewrite grs strat_string graph =
+  let simple_rewrite ~config grs strat_string graph =
     let strat = Parser.strategy strat_string in
     if (* is_without_history grs strat_string *) false (* TODO: review onf VS gwh *)
-    then [onf_rewrite (top grs) strat graph]
-    else gwh_simple_rewrite grs strat graph
+    then [onf_rewrite ~config (top grs) strat graph]
+    else gwh_simple_rewrite ~config grs strat graph
 
   (* ============================================================================================= *)
   (* production of rew_display of linear rewriting history for GUI *)
@@ -561,20 +562,20 @@ module Grs = struct
     know_normal_form: bool;
   }
 
-  let wrd_pack_rewrite ?domain decl_list graph_with_big_step =
+  let wrd_pack_rewrite ?domain ~config decl_list graph_with_big_step =
     let rec loop = function
       | [] -> None
       | Rule r :: tail_decl ->
-        (match Rule.wrd_apply_opt ?domain r graph_with_big_step with
+        (match Rule.wrd_apply_opt ?domain ~config r graph_with_big_step with
          | Some x -> Some x
          | None -> loop tail_decl
         )
       | _ :: tail_decl -> loop tail_decl in
     loop decl_list
 
-  let rec wrd_pack_iter_rewrite ?domain decl_list graph_with_big_step =
-    match (graph_with_big_step, wrd_pack_rewrite ?domain decl_list graph_with_big_step) with
-    | (_, Some (new_gr, new_bs)) -> wrd_pack_iter_rewrite ?domain decl_list (new_gr, Some new_bs)
+  let rec wrd_pack_iter_rewrite ?domain ~config decl_list graph_with_big_step =
+    match (graph_with_big_step, wrd_pack_rewrite ?domain  ~config decl_list graph_with_big_step) with
+    | (_, Some (new_gr, new_bs)) -> wrd_pack_iter_rewrite ?domain ~config decl_list (new_gr, Some new_bs)
     | ((gr, Some bs), None) -> Some (gr, bs)
     | ((gr, None), None) -> None
 
@@ -583,13 +584,13 @@ module Grs = struct
      output = list of ... transformed later into rew_display by [build_rew_display_from_linear_rd]
      [iter_flag] is set to true when rules application should be put together (in the old modules style).
   *)
-  let rec wrd_intern_simple_rewrite ?domain iter_flag pointed strat_name linear_rd =
+  let rec wrd_intern_simple_rewrite ?domain ~config iter_flag pointed strat_name linear_rd =
     let path = Str.split (Str.regexp "\\.") strat_name in
     match search_from pointed path with
     | None -> Error.build "Simple rewrite, cannot find strat %s" strat_name
     | Some (Rule r,_) when iter_flag ->
       begin (* pack iterations on one rule as one "package" *)
-        match wrd_pack_iter_rewrite ?domain [Rule r] (linear_rd.graph, None) with
+        match wrd_pack_iter_rewrite ?domain  ~config [Rule r] (linear_rd.graph, None) with
         | None -> None
         | Some (new_graph, big_step) -> Some {
             steps = (sprintf "Onf(%s)" (Rule.get_name r), linear_rd.graph, big_step) :: linear_rd.steps;
@@ -599,7 +600,7 @@ module Grs = struct
       end
     | Some (Rule r,_) ->
       begin
-        match Rule.wrd_apply_opt ?domain r (linear_rd.graph, None) with
+        match Rule.wrd_apply_opt ?domain ~config r (linear_rd.graph, None) with
         | None -> None
         | Some (new_graph, big_step) -> Some {
             steps = (Rule.get_name r, linear_rd.graph, big_step) :: linear_rd.steps;
@@ -609,7 +610,7 @@ module Grs = struct
       end
     | Some (Package (name, decl_list), _) when iter_flag ->
       begin
-        match wrd_pack_iter_rewrite ?domain decl_list (linear_rd.graph, None) with
+        match wrd_pack_iter_rewrite ?domain ~config decl_list (linear_rd.graph, None) with
         | None -> None
         | Some (new_graph, big_step) -> Some {
             steps = (name, linear_rd.graph, big_step) :: linear_rd.steps;
@@ -619,7 +620,7 @@ module Grs = struct
       end
     | Some (Package (name, decl_list), _) ->
       begin
-        match wrd_pack_rewrite ?domain decl_list (linear_rd.graph, None) with
+        match wrd_pack_rewrite ?domain ~config decl_list (linear_rd.graph, None) with
         | None -> None
         | Some (new_graph, big_step) -> Some {
             steps = (name, linear_rd.graph, big_step) :: linear_rd.steps;
@@ -628,19 +629,19 @@ module Grs = struct
           }
       end
     | Some (Strategy (_,ast_strat), new_pointed) ->
-      wrd_strat_simple_rewrite ?domain iter_flag new_pointed ast_strat linear_rd
+      wrd_strat_simple_rewrite ?domain  ~config iter_flag new_pointed ast_strat linear_rd
 
-  and wrd_strat_simple_rewrite ?domain iter_flag pointed strat linear_rd  =
+  and wrd_strat_simple_rewrite ?domain ~config iter_flag pointed strat linear_rd  =
     match strat with
-    | Ast.Ref subname -> wrd_intern_simple_rewrite iter_flag ?domain pointed subname linear_rd
-    | Ast.Pick strat -> wrd_strat_simple_rewrite iter_flag ?domain pointed strat linear_rd
+    | Ast.Ref subname -> wrd_intern_simple_rewrite iter_flag ?domain ~config pointed subname linear_rd
+    | Ast.Pick strat -> wrd_strat_simple_rewrite iter_flag ?domain ~config pointed strat linear_rd
 
     | Ast.Alt [] -> None
     | Ast.Alt strat_list ->
       let rec loop = function
         | [] -> None
         | head_strat :: tail_strat ->
-          match wrd_strat_simple_rewrite ?domain false pointed head_strat linear_rd  with
+          match wrd_strat_simple_rewrite ?domain ~config false pointed head_strat linear_rd  with
           | None -> loop tail_strat
           | Some x -> Some x in
       loop strat_list
@@ -648,57 +649,57 @@ module Grs = struct
     | Ast.Seq [] -> Some linear_rd
     | Ast.Seq (head_strat :: tail_strat) ->
       begin
-        match wrd_strat_simple_rewrite ?domain false pointed head_strat linear_rd  with
+        match wrd_strat_simple_rewrite ?domain ~config false pointed head_strat linear_rd  with
         | None -> None
-        | Some gwrd -> wrd_strat_simple_rewrite iter_flag ?domain pointed (Ast.Seq tail_strat) gwrd
+        | Some gwrd -> wrd_strat_simple_rewrite iter_flag ?domain ~config pointed (Ast.Seq tail_strat) gwrd
       end
 
     | Ast.Iter sub_strat
     | Ast.Onf sub_strat ->
       begin
-        match wrd_strat_simple_rewrite ?domain true pointed sub_strat linear_rd  with
+        match wrd_strat_simple_rewrite ?domain ~config true pointed sub_strat linear_rd  with
         | None -> Some {linear_rd with know_normal_form = true}
         | Some gwrd when gwrd.know_normal_form -> Some gwrd
-        | Some gwrd -> wrd_strat_simple_rewrite ?domain iter_flag pointed strat gwrd
+        | Some gwrd -> wrd_strat_simple_rewrite ?domain ~config iter_flag pointed strat gwrd
       end
 
     | Ast.Try sub_strat ->
       begin
-        match wrd_strat_simple_rewrite ?domain false pointed sub_strat linear_rd  with
+        match wrd_strat_simple_rewrite ?domain ~config false pointed sub_strat linear_rd  with
         | None -> Some linear_rd
         | Some i -> Some i
       end
 
     | Ast.If (s, s1, s2) ->
       begin
-        match onf_strat_simple_rewrite ?domain pointed s linear_rd.graph with
-        | Some _ -> wrd_strat_simple_rewrite iter_flag ?domain pointed s1 linear_rd
-        | None   -> wrd_strat_simple_rewrite iter_flag ?domain pointed s2 linear_rd
+        match onf_strat_simple_rewrite ?domain ~config pointed s linear_rd.graph with
+        | Some _ -> wrd_strat_simple_rewrite iter_flag ?domain ~config pointed s1 linear_rd
+        | None   -> wrd_strat_simple_rewrite iter_flag ?domain ~config pointed s2 linear_rd
       end
 
   let build_rew_display_from_linear_rd linear_rd =
     List.fold_left
       (fun acc (n,g,bs) -> Libgrew_types.Node (g, n, [Libgrew_types.swap bs, acc])) (Libgrew_types.Leaf linear_rd.graph) linear_rd.steps
 
-  let wrd_rewrite grs strat graph =
+  let wrd_rewrite ~config grs strat graph =
     Rule.reset_rules ();
     Timeout.start ();
     let domain = domain_opt grs in
-    let casted_graph = G_graph.cast ?domain graph in
-    match wrd_strat_simple_rewrite ?domain false (top grs) (Parser.strategy strat) {graph=casted_graph; steps=[]; know_normal_form=false} with
+    let casted_graph = G_graph.cast ?domain ~config graph in
+    match wrd_strat_simple_rewrite ?domain ~config false (top grs) (Parser.strategy strat) {graph=casted_graph; steps=[]; know_normal_form=false} with
     | None -> Libgrew_types.Leaf graph
     | Some linear_rd -> build_rew_display_from_linear_rd linear_rd
 
 
-  let eud2ud = load (Filename.concat DATADIR "eud2ud.grs")
-  let apply_eud2ud graph =
-    match simple_rewrite eud2ud "main" graph with
+  let eud2ud = load ~config:(Conllx_config.build "ud") (Filename.concat DATADIR "eud2ud.grs")
+  let apply_eud2ud ~config graph =
+    match simple_rewrite ~config eud2ud "main" graph with
     | [one] -> one
     | _ -> Error.run "the conversion eud2ud is not deterministic"
 
-  let apply grs_name graph =
+  let apply ~config grs_name graph =
     match grs_name with
-    | "eud2ud" -> apply_eud2ud graph
+    | "eud2ud" -> apply_eud2ud ~config graph
     | x -> Error.run "[Grs.apply] Unknown GRS \"%s\"" x
 
 

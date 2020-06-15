@@ -9,6 +9,7 @@
 (**********************************************************************************)
 
 open Conll
+open Conllx
 
 open Grew_base
 open Grew_types
@@ -42,7 +43,7 @@ module G_node: sig
 
   val is_eud_empty: t -> bool
 
-  val dump: ?domain:Domain.t -> t -> string
+  val dump: ?domain:Domain.t -> config:Conllx_config.t -> t -> string
   val to_gr: t -> string
 
 
@@ -85,7 +86,7 @@ module P_node: sig
 
   val build_from_ast: ?domain:Domain.t -> Lexicons.t -> Ast.node -> (Id.name * t)
 
-  val to_json: ?domain:Domain.t -> t -> Yojson.Basic.t
+  val to_json: ?domain:Domain.t -> config:Conllx_config.t -> t -> Yojson.Basic.t
 
   (** [unif_fs fs t] replaces the feature structure of the node
       by the unification of [t.fs] and [fs].

@@ -103,9 +103,9 @@ module Pattern = struct
     (*   N << e2   *)
     | Covered of Pid.t * string (* node_id, edge_id *)
 
-  let const_to_json ?domain = function
-    | Cst_out (pid, label_cst) -> `Assoc ["cst_out", Label_cst.to_json ?domain label_cst]
-    | Cst_in (pid, label_cst) -> `Assoc ["cst_in", Label_cst.to_json ?domain label_cst]
+  let const_to_json ?domain ~config = function
+    | Cst_out (pid, label_cst) -> `Assoc ["cst_out", Label_cst.to_json ?domain ~config label_cst]
+    | Cst_in (pid, label_cst) -> `Assoc ["cst_in", Label_cst.to_json ?domain ~config label_cst]
     | Feature_equal (id1,fn1,id2,fn2) ->
       `Assoc ["features_eq",
               `Assoc [
@@ -191,7 +191,7 @@ module Pattern = struct
              ]
     | Covered (pid1, eid2) -> `Assoc ["covered",`Assoc [("id1", `String (Pid.to_string pid1)); ("id2", `String eid2)]]
 
-  let build_constraint ?domain lexicons pos_table neg_table edge_ids const =
+  let build_constraint ?domain ~config lexicons pos_table neg_table edge_ids const =
     let parse_id loc id = match (Id.build_opt id pos_table, Id.build_opt id neg_table) with
       | (Some pid,_) -> Node_id (Pid.Pos pid)
       | (None, Some pid) -> Node_id (Pid.Neg pid)
@@ -205,9 +205,9 @@ module Pattern = struct
       | None -> Pid.Neg (Id.build ~loc node_name neg_table) in
     match const with
     | (Ast.Cst_out (id,label_cst), loc) ->
-      Cst_out (pid_of_name loc id, Label_cst.build ~loc ?domain label_cst)
+      Cst_out (pid_of_name loc id, Label_cst.build ~loc ?domain ~config label_cst)
     | (Ast.Cst_in (id,label_cst), loc) ->
-      Cst_in (pid_of_name loc id, Label_cst.build ~loc ?domain label_cst)
+      Cst_in (pid_of_name loc id, Label_cst.build ~loc ?domain ~config label_cst)
 
     | (Ast.Feature_equal ((id1, feat_name1),(id2, feat_name2)), loc) ->
       Feature_equal (parse_id loc id1, feat_name1, parse_id loc id2, feat_name2)
@@ -248,33 +248,33 @@ module Pattern = struct
     constraints: const list;
   }
 
-  let basic_to_json ?domain basic =
+  let basic_to_json ?domain ~config basic =
     `Assoc [
-      ("graph", P_graph.to_json ?domain basic.graph);
-      ("constraints", `List (List.map (const_to_json ?domain) basic.constraints));
+      ("graph", P_graph.to_json ?domain ~config basic.graph);
+      ("constraints", `List (List.map (const_to_json ?domain ~config) basic.constraints));
     ]
 
-  let build_pos_basic ?domain lexicons basic_ast =
+  let build_pos_basic ?domain ~config lexicons basic_ast =
     let (graph, pos_table, edge_ids) =
-      P_graph.build ?domain lexicons basic_ast in
+      P_graph.build ~config ?domain lexicons basic_ast in
     (
       {
         graph = graph;
-        constraints = List.map (build_constraint ?domain lexicons pos_table [||] edge_ids) basic_ast.Ast.pat_const
+        constraints = List.map (build_constraint ?domain ~config lexicons pos_table [||] edge_ids) basic_ast.Ast.pat_const
       },
       pos_table,
       edge_ids
     )
 
   (* It may raise [P_fs.Fail_unif] in case of contradiction on constraints *)
-  let build_neg_basic ?domain lexicons pos_table edge_ids basic_ast =
+  let build_neg_basic ?domain ~config lexicons pos_table edge_ids basic_ast =
     let (extension, neg_table, edge_ids) =
-      P_graph.build_extension ?domain lexicons pos_table edge_ids basic_ast.Ast.pat_nodes basic_ast.Ast.pat_edges in
+      P_graph.build_extension ?domain ~config lexicons pos_table edge_ids basic_ast.Ast.pat_nodes basic_ast.Ast.pat_edges in
 
     let filters = Pid_map.fold (fun id node acc -> Filter (id, P_node.get_fs node) :: acc) extension.P_graph.old_map [] in
     {
       graph = extension.P_graph.ext_map;
-      constraints = filters @ List.map (build_constraint ?domain lexicons pos_table neg_table edge_ids) basic_ast.Ast.pat_const ;
+      constraints = filters @ List.map (build_constraint ?domain ~config lexicons pos_table neg_table edge_ids) basic_ast.Ast.pat_const ;
     }
 
   let get_edge_ids basic =
@@ -294,15 +294,15 @@ module Pattern = struct
 
   let pid_name_list pattern = P_graph.pid_name_list pattern.pos.graph
 
-  let build ?domain ?(lexicons=[]) pattern_ast =
+  let build ?domain ~config ?(lexicons=[]) pattern_ast =
     let n_pattern = Ast.normalize_pattern pattern_ast in
     let (pos, pos_table, edge_ids) =
-      try build_pos_basic ?domain lexicons n_pattern.Ast.pat_pos
+      try build_pos_basic ~config ?domain lexicons n_pattern.Ast.pat_pos
       with P_fs.Fail_unif -> Error.build "feature structures declared in the \"match\" clause are inconsistent " in
     let negs =
       List_.try_map
         P_fs.Fail_unif (* Skip the without parts that are incompatible with the match part *)
-        (fun basic_ast -> build_neg_basic ?domain lexicons pos_table edge_ids basic_ast)
+        (fun basic_ast -> build_neg_basic ?domain ~config lexicons pos_table edge_ids basic_ast)
         n_pattern.Ast.pat_negs in
     { pos; negs; global=pattern_ast.pat_glob; }
 
@@ -364,7 +364,7 @@ module Matching = struct
     with Found pid -> Some pid
 
   (* return the value of a feature or an edge label *)
-  let get_string_value_opt request pattern graph matching =
+  let get_string_value_opt ~config request pattern graph matching =
     match Str.split (Str.regexp "\\.") request with
     | [edge_id] -> Error.build "For cluster key, the syntax `%s` is no more available, it must be replaced by `%s.label`, see [Grew doc](http://grew.fr/trans_14)" edge_id edge_id;
     | [node_or_edge_id; feature_name] ->
@@ -372,9 +372,9 @@ module Matching = struct
         match (String_map.find_opt node_or_edge_id matching.e_match, feature_name) with
         | (Some (_,edge,_), "label") ->
           begin
-            match G_edge.to_string_opt edge with
+            match G_edge.to_string_opt ~config edge with
             | Some s -> Some s
-            | None -> Error.bug "[Matching.get_string_value_opt] internal edge %s" (G_edge.dump edge)
+            | None -> Error.bug "[Matching.get_string_value_opt] internal edge %s" (G_edge.dump ~config edge)
           end
         | (Some edge, "length") -> string_of_int <$> (G_graph.edge_length_opt edge graph)
         | (Some edge, "delta") -> string_of_int <$> (G_graph.edge_delta_opt edge graph)
@@ -483,7 +483,7 @@ module Matching = struct
     | Lex of (string * string)
 
   (*  ---------------------------------------------------------------------- *)
-  let apply_cst ?domain graph matching cst : t =
+  let apply_cst ?domain ~config graph matching cst : t =
     let get_value base feat_name = match base with
       | Pattern.Node_id pid ->
         let gid = Pid_map.find pid matching.n_match in
@@ -500,7 +500,7 @@ module Matching = struct
         let (_,g_edge,_) as e = String_map.find edge_id matching.e_match in
         begin
           match feat_name with
-          | "label" -> (match G_edge.to_string_opt g_edge with Some s -> Value (String s) | None -> raise Fail)
+          | "label" -> (match G_edge.to_string_opt ~config g_edge with Some s -> Value (String s) | None -> raise Fail)
           | "length" -> (match G_graph.edge_length_opt e graph with Some s -> Value (Float (float_of_int s)) | None -> raise Fail)
           | "delta" -> (match G_graph.edge_delta_opt e graph with Some s -> Value (Float (float_of_int s)) | None -> raise Fail)
           | _ ->
@@ -513,14 +513,14 @@ module Matching = struct
     match cst with
     | Pattern.Cst_out (pid,label_cst) ->
       let gid = Pid_map.find pid matching.n_match in
-      if G_graph.edge_out graph gid label_cst
+      if G_graph.edge_out ~config graph gid label_cst
       then matching
       else raise Fail
     | Cst_in (pid,label_cst) ->
       let gid = Pid_map.find pid matching.n_match in
       if G_graph.node_exists
           (fun node ->
-             List.exists (fun e -> Label_cst.match_ ?domain label_cst e) (Massoc_gid.assoc gid (G_node.get_next node))
+             List.exists (fun e -> Label_cst.match_ ~config ?domain label_cst e) (Massoc_gid.assoc gid (G_node.get_next node))
           ) graph
       then matching
       else raise Fail
@@ -642,7 +642,7 @@ module Matching = struct
 
   (*  ---------------------------------------------------------------------- *)
   (* returns all extension of the partial input matching *)
-  let rec extend_matching ?domain (positive,neg) (graph:G_graph.t) (partial:partial) =
+  let rec extend_matching ?domain  ~config (positive,neg) (graph:G_graph.t) (partial:partial) =
     match (partial.unmatched_edges, partial.unmatched_nodes) with
     | [], [] ->
       begin
@@ -650,7 +650,7 @@ module Matching = struct
           let new_matching =
             List.fold_left
               (fun acc const ->
-                 apply_cst ?domain graph acc const
+                 apply_cst ?domain ~config graph acc const
               ) partial.sub partial.check in
           [new_matching, partial.already_matched_gids]
         with Fail -> []
@@ -664,7 +664,7 @@ module Matching = struct
             let src_gnode = G_graph.find src_gid graph in
             let g_edges = Massoc_gid.assoc tar_gid (G_node.get_next src_gnode) in
 
-            match P_edge.match_list ?domain p_edge g_edges with
+            match P_edge.match_list ?domain ~config p_edge g_edges with
             | P_edge.Fail -> (* no good edge in graph for this pattern edge -> stop here *)
               []
             | P_edge.Pass -> [ {partial with unmatched_edges = tail_ue } ]
@@ -673,14 +673,14 @@ module Matching = struct
                 (fun label ->
                    {partial with sub = e_match_add id (src_gid,label,tar_gid) partial.sub; unmatched_edges = tail_ue }
                 ) labels
-          in List_.flat_map (extend_matching ?domain (positive,neg) graph) new_partials
+          in List_.flat_map (extend_matching ?domain ~config (positive,neg) graph) new_partials
         with Not_found -> (* p_edge goes to an unmatched node *)
           let candidates = (* candidates (of type (gid, matching)) for m(tar_pid) = gid) with new partial matching m *)
             let (src_gid : Gid.t) = Pid_map.find src_pid partial.sub.n_match in
             let src_gnode = G_graph.find src_gid graph in
             Massoc_gid.fold
               (fun acc gid_next g_edge ->
-                 match P_edge.match_ ?domain p_edge g_edge with
+                 match P_edge.match_ ?domain ~config p_edge g_edge with
                  | P_edge.Fail -> (* g_edge does not fit, no new candidate *)
                    acc
                  | P_edge.Pass -> (gid_next, partial.sub) :: acc
@@ -690,18 +690,18 @@ module Matching = struct
               ) [] (G_node.get_next src_gnode) in
           List_.flat_map
             (fun (gid_next, matching) ->
-               extend_matching_from ?domain (positive,neg) graph tar_pid gid_next
+               extend_matching_from ?domain ~config (positive,neg) graph tar_pid gid_next
                  {partial with sub=matching; unmatched_edges = tail_ue}
             ) candidates
       end
     | [], pid :: _ ->
       G_graph.fold_gid
         (fun gid acc ->
-           (extend_matching_from ?domain (positive,neg) graph pid gid partial) @ acc
+           (extend_matching_from ?domain ~config (positive,neg) graph pid gid partial) @ acc
         ) graph []
 
   (*  ---------------------------------------------------------------------- *)
-  and extend_matching_from ?domain (positive,neg) (graph:G_graph.t) pid (gid : Gid.t) partial =
+  and extend_matching_from ?domain  ~config (positive,neg) (graph:G_graph.t) pid (gid : Gid.t) partial =
     if List.mem gid partial.already_matched_gids
     then [] (* the required association pid -> gid is not injective *)
     else
@@ -728,7 +728,7 @@ module Matching = struct
             already_matched_gids = gid :: partial.already_matched_gids;
             sub = {partial.sub with n_match = Pid_map.add pid gid partial.sub.n_match; l_param = new_lex_set};
           } in
-        extend_matching ?domain (positive,neg) graph new_partial
+        extend_matching ?domain ~config (positive,neg) graph new_partial
       with P_fs.Fail -> []
 
   (*  [test_locality matching created_nodes gid] checks if [gid] is a "local" node:
@@ -764,8 +764,8 @@ module Matching = struct
 
 
   (*  ---------------------------------------------------------------------- *)
-  let fulfill ?domain (pos_graph,neg_graph) graph new_partial_matching =
-    match extend_matching ?domain (pos_graph, neg_graph) graph new_partial_matching with
+  let fulfill ?domain ~config (pos_graph,neg_graph) graph new_partial_matching =
+    match extend_matching ?domain ~config (pos_graph, neg_graph) graph new_partial_matching with
     | [] -> true (* the without pattern in not found -> OK *)
     | _ -> false
 
@@ -848,8 +848,8 @@ module Matching = struct
     else false
 
   (*  ---------------------------------------------------------------------- *)
-  let match_in_graph ?domain ?lexicons { Pattern.global; pos; negs } graph =
-    let casted_graph = G_graph.cast ?domain graph in
+  let match_in_graph ?domain ~config ?lexicons { Pattern.global; pos; negs } graph =
+    let casted_graph = G_graph.cast ?domain ~config graph in
 
     if not (check_global_constraint global graph)
     then []
@@ -860,6 +860,7 @@ module Matching = struct
       let matching_list =
         extend_matching
           ?domain
+          ~config
           (pos_graph,P_graph.empty)
           casted_graph
           (init ?lexicons pos) in
@@ -871,7 +872,7 @@ module Matching = struct
                (fun without ->
                   let neg_graph = without.Pattern.graph in
                   let new_partial_matching = update_partial without (sub, already_matched_gids) in
-                  fulfill ?domain (pos_graph,neg_graph) graph new_partial_matching
+                  fulfill ?domain ~config (pos_graph,neg_graph) graph new_partial_matching
                ) negs
           ) matching_list in
       List.map fst filtered_matching_list
@@ -915,18 +916,18 @@ module Rule = struct
 
   let get_loc t = t.loc
 
-  let to_json ?domain t =
+  let to_json ?domain ~config t =
     `Assoc
       ([
         ("rule_name", `String t.name);
-        ("pattern", Pattern.basic_to_json ?domain t.pattern.pos);
-        ("without", `List (List.map (Pattern.basic_to_json ?domain) t.pattern.negs));
-        ("commands", `List (List.map (Command.to_json ?domain) t.commands))
+        ("pattern", Pattern.basic_to_json ?domain ~config t.pattern.pos);
+        ("without", `List (List.map (Pattern.basic_to_json ?domain ~config) t.pattern.negs));
+        ("commands", `List (List.map (Command.to_json ?domain ~config) t.commands))
       ]
       )
 
   (* ====================================================================== *)
-  let to_dep ?domain t =
+  let to_dep ?domain ~config t =
     let pos_basic = t.pattern.pos in
     let buff = Buffer.create 32 in
     bprintf buff "[GRAPH] { scale = 200; }\n";
@@ -965,7 +966,7 @@ module Rule = struct
               bprintf buff "  N_%s -> N_%s { label=\"%s\"}\n"
                 (Pid.to_id src_pid)
                 (Pid.to_id tar_pid)
-                (P_edge.to_string ?domain edge)
+                (P_edge.to_string ?domain ~config edge)
            )
            (P_node.get_next node)
       ) pos_basic.graph;
@@ -975,17 +976,17 @@ module Rule = struct
          match cst with
          | Pattern.Cst_out (pid, label_cst) ->
            bprintf buff "  N_%s -> C_%d {label = \"%s\"; style=dot; bottom; color=green;}\n"
-             (Pid.to_id pid) i (Label_cst.to_string ?domain label_cst)
+             (Pid.to_id pid) i (Label_cst.to_string ?domain ~config label_cst)
          | Cst_in (pid, label_cst) ->
            bprintf buff "  C_%d -> N_%s {label = \"%s\"; style=dot; bottom; color=green;}\n"
-             i (Pid.to_id pid) (Label_cst.to_string ?domain label_cst)
+             i (Pid.to_id pid) (Label_cst.to_string ?domain ~config label_cst)
          | _ -> ()
       ) pos_basic.constraints;
     bprintf buff "}\n";
     Buffer.contents buff
 
   (* ====================================================================== *)
-  let build_commands ?domain lexicons pos pos_table ast_commands =
+  let build_commands ?domain ~config lexicons pos pos_table ast_commands =
     let known_node_ids = Array.to_list pos_table in
     let known_edge_ids = Pattern.get_edge_ids pos in
 
@@ -995,6 +996,7 @@ module Rule = struct
         let (command, (new_kni, new_kei)) =
           Command.build
             ?domain
+            ~config
             lexicons
             (kni,kei)
             pos_table
@@ -1003,7 +1005,7 @@ module Rule = struct
     loop (known_node_ids, known_edge_ids) ast_commands
 
   (* ====================================================================== *)
-  let build ?domain rule_ast =
+  let build ?domain ~config rule_ast =
     let lexicons =
       List.fold_left (fun acc (name,lex) ->
           try
@@ -1014,7 +1016,7 @@ module Rule = struct
 
     let pattern = Ast.normalize_pattern rule_ast.Ast.pattern in
     let (pos, pos_table, edge_ids) =
-      try Pattern.build_pos_basic ?domain lexicons pattern.Ast.pat_pos
+      try Pattern.build_pos_basic ?domain ~config lexicons pattern.Ast.pat_pos
       with P_fs.Fail_unif ->
         Error.build ~loc:rule_ast.Ast.rule_loc
           "[Rule.build] in rule \"%s\": feature structures declared in the \"match\" clause are inconsistent"
@@ -1022,7 +1024,7 @@ module Rule = struct
     let (negs,_) =
       List.fold_left
         (fun (acc,pos) basic_ast ->
-           try ((Pattern.build_neg_basic ?domain lexicons pos_table edge_ids basic_ast) :: acc, pos+1)
+           try ((Pattern.build_neg_basic ?domain ~config lexicons pos_table edge_ids basic_ast) :: acc, pos+1)
            with P_fs.Fail_unif ->
              Error.warning ~loc:rule_ast.Ast.rule_loc "In rule \"%s\", the wihtout number %d cannot be satisfied, it is skipped"
                rule_ast.Ast.rule_id pos;
@@ -1031,7 +1033,7 @@ module Rule = struct
     {
       name = rule_ast.Ast.rule_id;
       pattern = { pos; negs; global=pattern.Ast.pat_glob; };
-      commands = build_commands ?domain lexicons pos pos_table rule_ast.Ast.commands;
+      commands = build_commands ?domain ~config lexicons pos pos_table rule_ast.Ast.commands;
       loc = rule_ast.Ast.rule_loc;
       lexicons;
       path = rule_ast.Ast.rule_path;
@@ -1067,7 +1069,7 @@ module Rule = struct
     e_mapping: (Gid.t * G_edge.t * Gid.t) String_map.t;
   }
 
-  let onf_apply_command ?domain matching (command,loc) state =
+  let onf_apply_command ?domain ~config matching (command,loc) state =
     let node_find cnode = onf_find ~loc cnode (matching, state.created_nodes) in
 
     let feature_value_of_item = function
@@ -1089,7 +1091,7 @@ module Rule = struct
             if feat_name = "label"
             then
               begin
-                match G_edge.to_string_opt edge with
+                match G_edge.to_string_opt ~config edge with
                 | Some s -> String s
                 | None -> Error.run "Cannot use not regular edge label as a concat item"
               end
@@ -1115,7 +1117,7 @@ module Rule = struct
       begin
         match G_graph.add_edge_opt src_gid edge tar_gid state.graph with
         | None when !Global.safe_commands ->
-          Error.run ~loc "ADD_EDGE: the edge '%s' already exists" (G_edge.dump edge)
+          Error.run ~loc "ADD_EDGE: the edge '%s' already exists" (G_edge.dump ~config edge)
         | None -> state
         | Some new_graph -> {state with graph = new_graph; effective = true}
       end
@@ -1161,7 +1163,7 @@ module Rule = struct
       begin
         match G_graph.add_edge_opt src_gid edge tar_gid state.graph with
         | None when !Global.safe_commands ->
-          Error.run ~loc "ADD_EDGE_ITEMS: the edge '%s' already exists" (G_edge.dump edge)
+          Error.run ~loc "ADD_EDGE_ITEMS: the edge '%s' already exists" (G_edge.dump ~config edge)
         | None -> state
         | Some new_graph -> {state with graph = new_graph; effective = true}
       end
@@ -1170,7 +1172,7 @@ module Rule = struct
       let src_gid = node_find src_cn in
       let tar_gid = node_find tar_cn in
       (match G_graph.del_edge_opt ~loc src_gid edge tar_gid state.graph with
-       | None when !Global.safe_commands -> Error.run ~loc "DEL_EDGE_EXPL: the edge '%s' does not exist" (G_edge.dump edge)
+       | None when !Global.safe_commands -> Error.run ~loc "DEL_EDGE_EXPL: the edge '%s' does not exist" (G_edge.dump ~config edge)
        | None -> state
        | Some new_graph -> {state with graph = new_graph; effective = true}
       )
@@ -1298,19 +1300,19 @@ module Rule = struct
     | Command.SHIFT_IN (src_cn,tar_cn,label_cst) ->
       let src_gid = node_find src_cn in
       let tar_gid = node_find tar_cn in
-      let (new_graph, de, ae) = G_graph.shift_in loc src_gid tar_gid (Matching.test_locality matching state.created_nodes) label_cst state.graph in
+      let (new_graph, de, ae) = G_graph.shift_in ~config loc src_gid tar_gid (Matching.test_locality matching state.created_nodes) label_cst state.graph in
       {state with graph = new_graph; effective = state.effective || de <> [] || ae <> []}
 
     | Command.SHIFT_OUT (src_cn,tar_cn,label_cst) ->
       let src_gid = node_find src_cn in
       let tar_gid = node_find tar_cn in
-      let (new_graph, de, ae) = G_graph.shift_out loc src_gid tar_gid (Matching.test_locality matching state.created_nodes) label_cst state.graph in
+      let (new_graph, de, ae) = G_graph.shift_out ~config loc src_gid tar_gid (Matching.test_locality matching state.created_nodes) label_cst state.graph in
       {state with graph = new_graph; effective = state.effective || de <> [] || ae <> []}
 
     | Command.SHIFT_EDGE (src_cn,tar_cn,label_cst) ->
       let src_gid = node_find src_cn in
       let tar_gid = node_find tar_cn in
-      let (new_graph, de, ae) = G_graph.shift_edges loc src_gid tar_gid (Matching.test_locality matching state.created_nodes) label_cst state.graph in
+      let (new_graph, de, ae) = G_graph.shift_edges ~config loc src_gid tar_gid (Matching.test_locality matching state.created_nodes) label_cst state.graph in
       {state with graph = new_graph; effective = state.effective || de <> [] || ae <> []}
 
     | Command.NEW_AFTER (created_name,base_cn) ->
@@ -1340,13 +1342,14 @@ module Rule = struct
       }
 
 
-  let onf_apply_opt ?domain rule graph =
+  let onf_apply_opt ?domain ~config rule graph =
     try
       let {Pattern.pos; negs} = rule.pattern in
       (* get the list of partial matching for positive part of the pattern *)
       let matching_list =
         Matching.extend_matching
           ?domain
+          ~config
           (pos.graph,P_graph.empty)
           graph
           (Matching.init ~lexicons:rule.lexicons pos) in
@@ -1355,14 +1358,14 @@ module Rule = struct
                  List.for_all
                    (fun neg ->
                       let new_partial_matching = Matching.update_partial neg (sub, already_matched_gids) in
-                      Matching.fulfill ?domain (pos.graph,neg.graph) graph new_partial_matching
+                      Matching.fulfill ?domain ~config (pos.graph,neg.graph) graph new_partial_matching
                    ) negs
               ) matching_list with
       | None -> None
       | Some (first_matching_where_all_witout_are_fulfilled,_) ->
         let final_state =
           List.fold_left
-            (fun state command -> onf_apply_command ?domain first_matching_where_all_witout_are_fulfilled command state)
+            (fun state command -> onf_apply_command ?domain ~config first_matching_where_all_witout_are_fulfilled command state)
             { graph;
               created_nodes = [];
               effective = false;
@@ -1374,13 +1377,14 @@ module Rule = struct
         else None
     with Error.Run (msg,_) -> Error.run ~loc:rule.loc "%s" msg
 
-  let rec wrd_apply_opt ?domain rule (graph, big_step_opt) =
+  let rec wrd_apply_opt ?domain ~config rule (graph, big_step_opt) =
     try
       let {Pattern.pos; negs} = rule.pattern in
       (* get the list of partial matching for positive part of the pattern *)
       let matching_list =
         Matching.extend_matching
           ?domain
+          ~config
           (pos.graph,P_graph.empty)
           graph
           (Matching.init ~lexicons:rule.lexicons pos) in
@@ -1389,14 +1393,14 @@ module Rule = struct
                  List.for_all
                    (fun neg ->
                       let new_partial_matching = Matching.update_partial neg (sub, already_matched_gids) in
-                      Matching.fulfill ?domain (pos.graph,neg.graph) graph new_partial_matching
+                      Matching.fulfill ?domain ~config (pos.graph,neg.graph) graph new_partial_matching
                    ) negs
               ) matching_list with
       | None -> None
       | Some (first_matching_where_all_witout_are_fulfilled,_) ->
         let final_state =
           List.fold_left
-            (fun state command -> onf_apply_command ?domain first_matching_where_all_witout_are_fulfilled command state)
+            (fun state command -> onf_apply_command ?domain ~config first_matching_where_all_witout_are_fulfilled command state)
             { graph;
               created_nodes = [];
               effective = false;
@@ -1426,7 +1430,7 @@ module Rule = struct
        with Not_found -> Error.bug ?loc "Inconsistent matching pid '%s' not found" (Pid.to_string pid))
     | Command.New name -> List.assoc name gwh.Graph_with_history.added_gids
 
-  let gwh_apply_command ?domain (command,loc) matching gwh =
+  let gwh_apply_command ?domain ~config (command,loc) matching gwh =
     let node_find cnode = find ~loc cnode gwh matching in
 
     let feature_value_list_of_item tar_feat_name = function
@@ -1467,7 +1471,7 @@ module Rule = struct
       begin
         match G_graph.add_edge_opt src_gid edge tar_gid gwh.Graph_with_history.graph with
         | None when !Global.safe_commands ->
-          Error.run ~loc "ADD_EDGE: the edge '%s' already exists" (G_edge.dump edge)
+          Error.run ~loc "ADD_EDGE: the edge '%s' already exists" (G_edge.dump ~config edge)
         | None -> Graph_with_history_set.singleton gwh
         | Some new_graph ->
           Graph_with_history_set.singleton
@@ -1517,7 +1521,7 @@ module Rule = struct
       begin
         match G_graph.add_edge_opt src_gid edge tar_gid gwh.Graph_with_history.graph with
         | None when !Global.safe_commands ->
-          Error.run ~loc "ADD_EDGE_ITEMS: the edge '%s' already exists" (G_edge.dump edge)
+          Error.run ~loc "ADD_EDGE_ITEMS: the edge '%s' already exists" (G_edge.dump ~config edge)
         | None -> Graph_with_history_set.singleton gwh
         | Some new_graph -> Graph_with_history_set.singleton
                               {gwh with
@@ -1531,7 +1535,7 @@ module Rule = struct
       let tar_gid = node_find tar_cn in
       (match G_graph.del_edge_opt ~loc src_gid edge tar_gid gwh.Graph_with_history.graph with
        | None when !Global.safe_commands ->
-         Error.run ~loc "DEL_EDGE_EXPL: the edge '%s' does not exist" (G_edge.dump edge)
+         Error.run ~loc "DEL_EDGE_EXPL: the edge '%s' does not exist" (G_edge.dump ~config edge)
        | None -> Graph_with_history_set.singleton gwh
        | Some new_graph -> Graph_with_history_set.singleton
                              {gwh with
@@ -1638,7 +1642,7 @@ module Rule = struct
               (fun acc new_feature_value ->
                  let test_new_edge =
                    match (feat_name, new_feature_value) with
-                   | ("label", String s) -> G_edge.from_string s
+                   | ("label", String s) -> G_edge.from_string ~config s
                    | ("label", Float _) -> Error.run "Cannot set a edge feature label as numeric"
                    | _ -> G_edge.update feat_name new_feature_value old_edge in
                  if test_new_edge = old_edge
@@ -1677,7 +1681,7 @@ module Rule = struct
       let src_gid = node_find src_cn in
       let tar_gid = node_find tar_cn in
       let (new_graph, del_edges, add_edges) =
-        G_graph.shift_in loc src_gid tar_gid (Matching.test_locality matching gwh.added_gids_in_rule) label_cst gwh.Graph_with_history.graph in
+        G_graph.shift_in ~config loc src_gid tar_gid (Matching.test_locality matching gwh.added_gids_in_rule) label_cst gwh.Graph_with_history.graph in
       Graph_with_history_set.singleton { gwh with
                                          Graph_with_history.graph = new_graph;
                                          delta = gwh.Graph_with_history.delta
@@ -1689,7 +1693,7 @@ module Rule = struct
       let src_gid = node_find src_cn in
       let tar_gid = node_find tar_cn in
       let (new_graph, del_edges, add_edges) =
-        G_graph.shift_out loc src_gid tar_gid (Matching.test_locality matching gwh.added_gids_in_rule) label_cst gwh.Graph_with_history.graph in
+        G_graph.shift_out ~config loc src_gid tar_gid (Matching.test_locality matching gwh.added_gids_in_rule) label_cst gwh.Graph_with_history.graph in
       Graph_with_history_set.singleton { gwh with
                                          Graph_with_history.graph = new_graph;
                                          delta = gwh.Graph_with_history.delta
@@ -1701,7 +1705,7 @@ module Rule = struct
       let src_gid = node_find src_cn in
       let tar_gid = node_find tar_cn in
       let (new_graph, del_edges, add_edges) =
-        G_graph.shift_edges loc src_gid tar_gid (Matching.test_locality matching gwh.added_gids_in_rule) label_cst gwh.Graph_with_history.graph in
+        G_graph.shift_edges ~config loc src_gid tar_gid (Matching.test_locality matching gwh.added_gids_in_rule) label_cst gwh.Graph_with_history.graph in
       Graph_with_history_set.singleton { gwh with
                                          Graph_with_history.graph = new_graph;
                                          delta = gwh.Graph_with_history.delta
@@ -1784,7 +1788,7 @@ module Rule = struct
 
   (*  ---------------------------------------------------------------------- *)
   (** [apply_rule graph_with_history matching rule] returns a new graph_with_history after the application of the rule *)
-  let gwh_apply_rule ?domain graph_with_history matching rule =
+  let gwh_apply_rule ?domain ~config graph_with_history matching rule =
     Timeout.check (); incr_rules rule.name;
     let init = Graph_with_history_set.singleton
         { graph_with_history with
@@ -1797,26 +1801,26 @@ module Rule = struct
       (fun gwh_set cmd ->
          Graph_with_history_set.fold
            (fun gwh acc ->
-              Graph_with_history_set.union (gwh_apply_command ?domain cmd matching gwh) acc
+              Graph_with_history_set.union (gwh_apply_command ~config ?domain cmd matching gwh) acc
            ) gwh_set Graph_with_history_set.empty
       ) init rule.commands
 
-  let gwh_apply ?domain rule graph_with_history =
+  let gwh_apply ?domain ~config rule graph_with_history =
     try
-      let matching_list = Matching.match_in_graph ?domain ~lexicons:rule.lexicons rule.pattern graph_with_history.Graph_with_history.graph in
+      let matching_list = Matching.match_in_graph ?domain ~config ~lexicons:rule.lexicons rule.pattern graph_with_history.Graph_with_history.graph in
       List.fold_left
         (fun acc matching ->
-           Graph_with_history_set.union (gwh_apply_rule ?domain graph_with_history matching rule) acc
+           Graph_with_history_set.union (gwh_apply_rule ?domain ~config graph_with_history matching rule) acc
         ) Graph_with_history_set.empty matching_list
     with Error.Run (msg,_) -> Error.run ~loc:rule.loc "%s" msg
 
   exception Dead_lock
-  let owh_apply_opt ?domain rule gwh =
+  let owh_apply_opt ?domain ~config rule gwh =
     let graph = gwh.Graph_with_history.graph in
     let {Pattern.pos; negs} = rule.pattern in
 
     (* get the list of matching for positive part of the pattern *)
-    let matching_list = Matching.extend_matching ?domain (pos.graph,P_graph.empty) graph (Matching.init ~lexicons:rule.lexicons pos) in
+    let matching_list = Matching.extend_matching ~config ?domain (pos.graph,P_graph.empty) graph (Matching.init ~lexicons:rule.lexicons pos) in
 
     let rec loop_matching = function
       | [] -> None
@@ -1824,14 +1828,14 @@ module Rule = struct
         if List.for_all
             (fun neg ->
                let new_partial_matching = Matching.update_partial neg (sub, already_matched_gids) in
-               Matching.fulfill ?domain (pos.graph,neg.graph) graph new_partial_matching
+               Matching.fulfill ?domain ~config (pos.graph,neg.graph) graph new_partial_matching
             ) negs
         then (* all negs part are fulfilled *)
           let init_gwh = { gwh with e_mapping = sub.Matching.e_match; added_gids_in_rule = []; added_edges_in_rule=String_map.empty; } in
           let rec loop_command acc_gwh = function
             | [] -> acc_gwh
             | command :: tail_commands ->
-              let set = gwh_apply_command ?domain command sub acc_gwh in
+              let set = gwh_apply_command ?domain ~config command sub acc_gwh in
               match Graph_with_history_set.choose_opt set with
               | None -> raise Dead_lock
               | Some next_gwh -> loop_command next_gwh tail_commands in

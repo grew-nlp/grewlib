@@ -26,6 +26,8 @@ module G_edge = struct
     try current_config := Conllx_config.build name with
       Conllx_error msg -> Error.run "%s" (Yojson.Basic.pretty_to_string msg)
 
+  let get_config () = !current_config
+
   (* [G_edge.fs] is a feature structure. The list of feature names must be ordered wrt [Stdlib.compare] *)
   type fs = (feature_name * feature_value) list
 
@@ -37,11 +39,15 @@ module G_edge = struct
     let open Yojson.Basic.Util in
     json |> to_assoc |> List.map (fun (f,json_v) -> (f, typed_vos f (to_string json_v))) |> fs_from_items
 
-  let fs_to_string_res ?(config = !current_config) fs = fs |> fs_to_conllx |> Conllx_label.of_json |> Conllx_label.to_string ~config
+  let fs_to_string_res ~config fs = fs |> fs_to_conllx |> Conllx_label.of_json |> Conllx_label.to_string ~config
 
-  let fs_to_string ?config fs = match fs_to_string_res ?config fs with Ok s | Error s -> s
+  let fs_to_string ~config fs = match fs_to_string_res ~config fs with Ok s | Error s -> s
 
-  let fs_from_string s = s |> (Conllx_label.of_string ~config:!current_config) |> Conllx_label.to_json |> fs_of_conllx
+  let fs_from_string ~config s =
+    s
+    |> (Conllx_label.of_string ~config)
+    |> Conllx_label.to_json
+    |> fs_of_conllx
 
   type t =
     | Fs of fs
@@ -65,7 +71,7 @@ module G_edge = struct
 
   let from_items l = Fs (fs_from_items l)
 
-  let from_string s = Fs (fs_from_string s)
+  let from_string ~config s = Fs (fs_from_string ~config s)
 
   let get_sub_opt feat_name = function
     | Fs fs -> List_.sort_assoc_opt feat_name fs
@@ -79,16 +85,16 @@ module G_edge = struct
     | Fs fs -> (match List_.sort_remove_assoc_opt feat_name fs with None -> None | Some fs -> Some (Fs fs))
     | _ -> Error.run "[remove_feat_opt] edge is not fs"
 
-  let to_string_opt = function
-    | Fs fs -> Some (fs_to_string fs)
+  let to_string_opt ~config = function
+    | Fs fs -> Some (fs_to_string ~config fs)
     | _ -> None
 
-  let to_short_opt = function
-    | Fs fs -> (match fs_to_string_res fs with Ok s -> Some s | _ -> None)
+  let to_short_opt ~config = function
+    | Fs fs -> (match fs_to_string_res ~config fs with Ok s -> Some s | _ -> None)
     | _ -> None
 
-  let dump = function
-    | Fs fs -> fs_to_string fs
+  let dump ~config = function
+    | Fs fs -> fs_to_string ~config fs
     | Sub -> "__SUB__"
     | Pred -> "__PRED__"
     | Succ -> "__SUCC__"
@@ -98,7 +104,7 @@ module G_edge = struct
     | _ -> None
 
   (* WARNING: hardcoded version which subsumes know configs *)
-  let to_dep_opt ?domain ?(deco=false) ?config = function
+  let to_dep_opt ?domain ?(deco=false) ~config = function
     | Fs fs ->
       let styles =
         match List_.sort_assoc_opt "kind" fs with
@@ -113,11 +119,11 @@ module G_edge = struct
             | Some (String "NE") -> ["color=#ff760b"; "forecolor=#ff760b"; "bottom"]
             | _ -> [] in
       let styles = if deco then "bgcolor=#8bf56e" :: styles else styles in
-      Some (sprintf "{ label = \"%s\"; %s }" (fs_to_string ?config fs) (String.concat ";" styles))
+      Some (sprintf "{ label = \"%s\"; %s }" (fs_to_string ~config fs) (String.concat ";" styles))
     | _ -> None
 
   (* WARNING: hardcoded version which subsumes know configs *)
-  let to_dot_opt ?domain ?(deco=false) = function
+  let to_dot_opt ?domain ?(deco=false) ~config = function
     | Fs fs ->
       let dot_items =
         match List_.sort_assoc_opt "kind" fs with
@@ -132,8 +138,8 @@ module G_edge = struct
             | Some (String "NE") -> ["color=#ff760b"; "fontcolor=#ff760b"]
             | _ -> [] in
       let label = match deco with
-        | true -> sprintf "<<TABLE BORDER=\"0\" CELLBORDER=\"0\"> <TR> <TD BGCOLOR=\"#8bf56e\">%s</TD> </TR> </TABLE>>" (fs_to_string fs)
-        | false -> sprintf "\"%s\"" (fs_to_string fs) in
+        | true -> sprintf "<<TABLE BORDER=\"0\" CELLBORDER=\"0\"> <TR> <TD BGCOLOR=\"#8bf56e\">%s</TD> </TR> </TABLE>>" (fs_to_string ~config fs)
+        | false -> sprintf "\"%s\"" (fs_to_string ~config fs) in
       Some (sprintf "[label=%s, %s]" label (String.concat ", " dot_items))
     | _ -> None
 
@@ -141,9 +147,9 @@ module G_edge = struct
     | Fs fs -> fs_to_conllx fs
     | _ -> `Null
 
-  let build (ast_edge, loc) =
+  let build ~config (ast_edge, loc) =
     match ast_edge.Ast.edge_label_cst with
-    | Ast.Pos_list [one] -> from_string one
+    | Ast.Pos_list [one] -> from_string ~config one
     | Ast.Atom_list list ->
       let unordered_fs =
         List.map
@@ -180,9 +186,9 @@ module Label_cst = struct
     | Pred
     | Succ
 
-  let to_string ?domain = function
-    | Pos fs_list -> (List_.to_string G_edge.fs_to_string "|" fs_list)
-    | Neg fs_list -> "^"^(List_.to_string G_edge.fs_to_string "|" fs_list)
+  let to_string ?domain ~config = function
+    | Pos fs_list -> (List_.to_string (G_edge.fs_to_string ~config) "|" fs_list)
+    | Neg fs_list -> "^"^(List_.to_string (G_edge.fs_to_string ~config) "|" fs_list)
     | Regexp (_,re) -> "re\""^re^"\""
     | Atom_list l ->
       String.concat ","
@@ -196,14 +202,14 @@ module Label_cst = struct
     | Pred -> "__PRED__"
     | Succ -> "__SUCC__"
 
-  let to_json ?domain = function
+  let to_json ?domain ~config = function
     | Pos l -> `Assoc
                  ["pos",
-                  `List (List.map (fun lab -> `String (G_edge.fs_to_string lab)) l)
+                  `List (List.map (fun lab -> `String (G_edge.fs_to_string ~config lab)) l)
                  ]
     | Neg l -> `Assoc
                  ["neg",
-                  `List (List.map (fun lab -> `String (G_edge.fs_to_string lab)) l)
+                  `List (List.map (fun lab -> `String (G_edge.fs_to_string ~config lab)) l)
                  ]
     | Regexp (_,re) -> `Assoc
                          ["regexp", `String re]
@@ -226,7 +232,7 @@ module Label_cst = struct
       end
     | Absent name -> not (List_.sort_mem_assoc name fs)
 
-  let match_ ?domain cst g_edge = match (cst,g_edge) with
+  let match_ ?domain ~config cst g_edge = match (cst,g_edge) with
     | (Succ, G_edge.Succ) -> true
     | (Pred, G_edge.Pred) -> true
     | (Pos fs_list, G_edge.Fs g_fs) -> List.exists (fun p_fs -> p_fs = g_fs) fs_list
@@ -234,7 +240,7 @@ module Label_cst = struct
     | (Atom_list l, G_edge.Fs fs) -> List.for_all (match_atom fs) l
     | (Regexp (re,_), g_edge)  ->
       begin
-        match G_edge.to_short_opt g_edge with
+        match G_edge.to_short_opt ~config g_edge with
         | Some s -> String_.re_match re s
         | None -> false
       end
@@ -245,9 +251,9 @@ module Label_cst = struct
     | Ast.Atom_diseq (name, atoms) -> Diseq (name, List.map (typed_vos name) (List.sort Stdlib.compare atoms))
     | Ast.Atom_absent name -> Absent name
 
-  let build ?loc ?domain = function
-    | Ast.Neg_list p_labels -> Neg (List.sort compare (List.map G_edge.fs_from_string p_labels))
-    | Ast.Pos_list p_labels -> Pos (List.sort compare (List.map G_edge.fs_from_string p_labels))
+  let build ?loc ?domain ~config = function
+    | Ast.Neg_list p_labels -> Neg (List.sort compare (List.map (G_edge.fs_from_string ~config) p_labels))
+    | Ast.Pos_list p_labels -> Pos (List.sort compare (List.map (G_edge.fs_from_string ~config) p_labels))
     | Ast.Regexp re -> Regexp (Str.regexp re, re)
     | Ast.Atom_list l -> Atom_list (List.map build_atom l)
     | Ast.Pred -> Error.bug "[Label_cst.build]"
@@ -269,20 +275,20 @@ module P_edge = struct
 
   let get_id_opt t = t.id
 
-  let to_json ?domain t =
+  let to_json ?domain ~config t =
     `Assoc (CCList.filter_map CCFun.id
               [
                 (match t.id with Some id -> Some ("edge_id", `String id) | None -> None);
-                Some ("label_cst", Label_cst.to_json ?domain t.label_cst)
+                Some ("label_cst", Label_cst.to_json ?domain ~config t.label_cst)
               ])
 
-  let build ?domain (ast_edge, loc) =
+  let build ?domain ~config (ast_edge, loc) =
     { id = (match ast_edge.Ast.edge_id with Some s -> Some s | None -> fresh_name ());
-      label_cst = Label_cst.build ~loc ?domain ast_edge.Ast.edge_label_cst
+      label_cst = Label_cst.build ~loc ?domain ~config ast_edge.Ast.edge_label_cst
     }
 
-  let to_string ?domain t =
-    let label = Label_cst.to_string ?domain t.label_cst in
+  let to_string ?domain ~config t =
+    let label = Label_cst.to_string ?domain ~config t.label_cst in
     match t.id with
     | None -> label
     | Some id when String.length id > 1 && id.[0] = '_' && id.[1] = '_' -> label
@@ -293,13 +299,13 @@ module P_edge = struct
     | Pass
     | Binds of string * G_edge.t list
 
-  let match_ ?domain p_edge g_edge =
-    if Label_cst.match_ ?domain p_edge.label_cst g_edge
+  let match_ ?domain ~config p_edge g_edge =
+    if Label_cst.match_ ?domain ~config p_edge.label_cst g_edge
     then (match p_edge.id with None -> Pass | Some l -> Binds (l, [g_edge]))
     else Fail
 
-  let match_list ?domain p_edge g_edge_list =
-    match List.filter (fun g_edge -> Label_cst.match_ ?domain p_edge.label_cst g_edge) g_edge_list with
+  let match_list ?domain ~config p_edge g_edge_list =
+    match List.filter (fun g_edge -> Label_cst.match_ ?domain ~config p_edge.label_cst g_edge) g_edge_list with
     | [] -> Fail
     | list -> (match p_edge.id with None -> Pass | Some l -> Binds (l, list))
 end (* module P_edge *)

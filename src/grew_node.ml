@@ -56,10 +56,10 @@ module G_node = struct
     | Some (String "Yes") -> true
     | _ -> false
 
-  let dump ?domain t =
+  let dump ?domain ~config t =
     Printf.sprintf "  fs=[%s]\n  next=%s\n"
       (G_fs.to_string t.fs)
-      (Massoc_gid.to_string G_edge.dump t.next)
+      (Massoc_gid.to_string (G_edge.dump ~config) t.next)
 
   let to_gr t = sprintf "[%s] " (G_fs.to_gr t.fs)
 
@@ -174,13 +174,13 @@ module P_node = struct
        loc = Some loc;
      } )
 
-  let to_json ?domain t =
+  let to_json ?domain ~config t =
     let json_next = `List (
         Massoc_pid.fold
           (fun acc pid p_edge ->
              `Assoc [
                ("id", `String (Pid.to_string pid));
-               ("label", P_edge.to_json ?domain p_edge);
+               ("label", P_edge.to_json ?domain ~config p_edge);
              ] :: acc
           ) [] t.next
       ) in

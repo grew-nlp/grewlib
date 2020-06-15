@@ -27,7 +27,7 @@ module P_graph: sig
 
   val empty: t
 
-  val to_json: ?domain:Domain.t -> t -> Yojson.Basic.t
+  val to_json: ?domain:Domain.t -> config:Conllx_config.t -> t -> Yojson.Basic.t
 
   val find: Pid.t -> t -> P_node.t
 
@@ -43,6 +43,7 @@ module P_graph: sig
   (** [P_fs.Fail_unif] exception is raised in case of inconsistent feature structures. *)
   val build:
     ?domain:Domain.t ->
+    config:Conllx_config.t ->
     Lexicons.t ->
     Ast.basic ->
     (t * Id.table * string list)
@@ -50,6 +51,7 @@ module P_graph: sig
   (** [P_fs.Fail_unif] exception is raised in case of inconsistent feature structures. *)
   val build_extension:
     ?domain:Domain.t ->
+    config:Conllx_config.t ->
     Lexicons.t ->
     Id.table ->
     string list ->
@@ -98,7 +100,7 @@ module G_graph: sig
   val clear_rules: t -> t
 
   (** [edge_out t id label_cst] returns true iff there is an out-edge from the node [id] with a label compatible with [label_cst] *)
-  val edge_out: t -> Gid.t -> Label_cst.t -> bool
+  val edge_out: config:Conllx_config.t -> t -> Gid.t -> Label_cst.t -> bool
 
   (** [covered t node edge graph] returns true iff the node is covered by the [edge]
       i.e. the position of the node is strictly between the two nodes of the edge *)
@@ -111,18 +113,18 @@ module G_graph: sig
   (* Build functions *)
   (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
 
-  val build: ?domain:Domain.t -> Ast.gr -> t
+  val build: ?domain:Domain.t -> config:Conllx_config.t -> Ast.gr -> t
 
-  val of_conll: ?domain:Domain.t -> Conll.t -> t
-  val of_json: Yojson.Basic.t -> t
+  val of_conll: ?domain:Domain.t -> config:Conllx_config.t -> Conll.t -> t
+  val of_json: config:Conllx_config.t -> Yojson.Basic.t -> t
 
   (** input : "Le/DET/le petit/ADJ/petit chat/NC/chat dort/V/dormir ./PONCT/."
       It supposes that "SUC" is defined in current relations *)
-  val of_brown: ?domain:Domain.t -> ?sentid: string -> string -> t
+  val of_brown: ?domain:Domain.t -> ?sentid: string -> config:Conllx_config.t -> string -> t
 
   val of_pst: ?domain:Domain.t -> Ast.pst -> t
 
-  val of_conllx: Yojson.Basic.t -> t
+  val of_conllx: config:Conllx_config.t -> Yojson.Basic.t -> t
   (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
   (* Update functions *)
   (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
@@ -152,6 +154,7 @@ module G_graph: sig
 
   (** shift all crown-edges ending in [src_gid] to edges ending in [tar_gid] *)
   val shift_in:
+    config:Conllx_config.t ->
     Loc.t ->            (* localization of the command *)
     Gid.t ->            (* [src_gid] the source gid of the "shift_in" *)
     Gid.t ->            (* [tar_gid] the target gid of the "shift_in" *)
@@ -165,6 +168,7 @@ module G_graph: sig
 
   (** shift all crown-edges starting from [src_gid] to edges starting from [tar_gid] *)
   val shift_out:
+    config:Conllx_config.t ->
     Loc.t ->            (* localization of the command *)
     Gid.t ->            (* [src_gid] the source gid of the "shift_out" *)
     Gid.t ->            (* [tar_gid] the target gid of the "shift_out" *)
@@ -178,6 +182,7 @@ module G_graph: sig
 
   (** move all incident crown-edges from/to [src_gid] are moved to incident edges on node [tar_gid] from graph *)
   val shift_edges:
+    config:Conllx_config.t ->
     Loc.t ->            (* localization of the command *)
     Gid.t ->            (* [src_gid] the source gid of the "shift_edges" *)
     Gid.t ->            (* [tar_gid] the target gid of the "shift_edges" *)
@@ -206,23 +211,21 @@ module G_graph: sig
   (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
   (* Output functions *)
   (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
-  val to_gr: t -> string
-  val to_dot: ?main_feat:string -> ?get_url:(string -> string option) -> ?deco:G_deco.t -> t -> string
+  val to_gr: config:Conllx_config.t -> t -> string
+  val to_dot: ?main_feat:string -> ?get_url:(string -> string option) -> ?deco:G_deco.t -> config:Conllx_config.t -> t -> string
   val to_sentence: ?pivot: string -> ?deco:G_deco.t -> t -> string
 
   val to_orfeo: ?deco:G_deco.t -> t -> (string * (float * float) option)
 
-  val to_dep: ?filter: (string -> bool) -> ?main_feat:string -> ?deco:G_deco.t -> ?config:Conllx_config.t -> t -> string
-  val to_conll: t -> Conll.t
-  val to_conll_string: ?cupt:bool -> t -> string
+  val to_dep: ?filter: (string -> bool) -> ?main_feat:string -> ?deco:G_deco.t -> config:Conllx_config.t -> t -> string
+  val to_conll: config:Conllx_config.t -> t -> Conll.t
+  val to_conll_string: ?cupt:bool -> config:Conllx_config.t -> t -> string
 
   val to_json: t -> Yojson.Basic.t
 
   val to_conllx: t -> Yojson.Basic.t
 
-
-
-  val cast: ?domain:Domain.t -> t -> t
+  val cast: ?domain:Domain.t -> config:Conllx_config.t -> t -> t
 
   val is_projective: t -> bool
 

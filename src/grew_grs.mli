@@ -8,6 +8,8 @@
 (*    Authors: see AUTHORS file                                                   *)
 (**********************************************************************************)
 
+open Conllx
+
 open Grew_base
 open Grew_types
 open Grew_ast
@@ -22,12 +24,12 @@ module Grs : sig
 
   val empty: t
 
-  val load: string  -> t
-  val parse: string  -> t
+  val load: config:Conllx_config.t -> string  -> t
+  val parse: config:Conllx_config.t -> string  -> t
 
   val dump: t -> unit
 
-  val to_json: t -> Yojson.Basic.t
+  val to_json: config:Conllx_config.t -> t -> Yojson.Basic.t
   val domain_opt: t -> Domain.t option
   val domain_build: Ast.domain -> Domain.t
 
@@ -35,13 +37,13 @@ module Grs : sig
   val at_least_one: t -> string -> bool
   val at_most_one: t -> string -> bool
 
-  val simple_rewrite: t -> string -> G_graph.t -> G_graph.t list
+  val simple_rewrite: config:Conllx_config.t -> t -> string -> G_graph.t -> G_graph.t list
 
-  val onf_rewrite_opt: t -> string -> G_graph.t -> G_graph.t option
+  val onf_rewrite_opt: config:Conllx_config.t -> t -> string -> G_graph.t -> G_graph.t option
 
-  val wrd_rewrite: t -> string -> G_graph.t -> Libgrew_types.rew_display
+  val wrd_rewrite: config:Conllx_config.t -> t -> string -> G_graph.t -> Libgrew_types.rew_display
 
   (* [apply grs_name t] apply a deterministic GRS of the given [name]
      [Error.Run] is raised if the name in unknown or the GRS application not deterministic *)
-  val apply: string -> G_graph.t -> G_graph.t
+  val apply: config:Conllx_config.t -> string -> G_graph.t -> G_graph.t
 end (* module Grs *)

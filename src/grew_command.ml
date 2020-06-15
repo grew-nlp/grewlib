@@ -71,7 +71,7 @@ module Command  = struct
 
   type t = p * Loc.t  (* remember command location to be able to localize a command failure *)
 
-  let to_json ?domain (p, _) = match p with
+  let to_json ?domain ~config (p, _) = match p with
     | DEL_NODE cn -> `Assoc [("del_node", command_node_to_json cn)]
     | DEL_EDGE_EXPL (src,tar,edge) ->
       `Assoc [("del_edge_expl",
@@ -147,7 +147,7 @@ module Command  = struct
                `Assoc [
                  ("src",command_node_to_json src);
                  ("tar",command_node_to_json tar);
-                 ("label_cst", Label_cst.to_json ?domain label_cst);
+                 ("label_cst", Label_cst.to_json ?domain ~config label_cst);
                ]
               )]
     | SHIFT_IN (src,tar,label_cst) ->
@@ -155,7 +155,7 @@ module Command  = struct
                `Assoc [
                  ("src",command_node_to_json src);
                  ("tar",command_node_to_json tar);
-                 ("label_cst", Label_cst.to_json ?domain label_cst);
+                 ("label_cst", Label_cst.to_json ?domain ~config label_cst);
                ]
               )]
     | SHIFT_OUT (src,tar,label_cst) ->
@@ -163,7 +163,7 @@ module Command  = struct
                `Assoc [
                  ("src",command_node_to_json src);
                  ("tar",command_node_to_json tar);
-                 ("label_cst", Label_cst.to_json ?domain label_cst);
+                 ("label_cst", Label_cst.to_json ?domain ~config label_cst);
                ]
               )]
     | UPDATE_EDGE_FEAT (edge_id, feat_name, item) ->
@@ -193,7 +193,7 @@ module Command  = struct
     | UNORDER cn -> `Assoc [("unorder", command_node_to_json cn)]
 
 
-  let build ?domain lexicons (kni, kei) table ast_command =
+  let build ?domain ~config lexicons (kni, kei) table ast_command =
     (* kni stands for "known node idents", kei for "known edge idents" *)
 
     let cn_of_node_id node_id =
@@ -216,7 +216,7 @@ module Command  = struct
     | (Ast.Del_edge_expl (node_i, node_j, lab), loc) ->
       check_node_id loc node_i kni;
       check_node_id loc node_j kni;
-      let edge = G_edge.from_string lab in
+      let edge = G_edge.from_string ~config lab in
       ((DEL_EDGE_EXPL (cn_of_node_id node_i, cn_of_node_id node_j, edge), loc), (kni, kei))
 
     | (Ast.Del_edge_name id, loc) ->
@@ -226,7 +226,7 @@ module Command  = struct
     | (Ast.Add_edge (node_i, node_j, lab), loc) ->
       check_node_id loc node_i kni;
       check_node_id loc node_j kni;
-      let edge = G_edge.from_string lab in
+      let edge = G_edge.from_string ~config lab in
       ((ADD_EDGE (cn_of_node_id node_i, cn_of_node_id node_j, edge), loc), (kni, kei))
 
     | (Ast.Add_edge_expl (node_i, node_j, name), loc) ->
@@ -242,17 +242,17 @@ module Command  = struct
     | (Ast.Shift_edge (node_i, node_j, label_cst), loc) ->
       check_node_id loc node_i kni;
       check_node_id loc node_j kni;
-      ((SHIFT_EDGE (cn_of_node_id node_i, cn_of_node_id node_j, Label_cst.build ~loc ?domain label_cst), loc), (kni, kei))
+      ((SHIFT_EDGE (cn_of_node_id node_i, cn_of_node_id node_j, Label_cst.build ~loc ?domain ~config label_cst), loc), (kni, kei))
 
     | (Ast.Shift_in (node_i, node_j, label_cst), loc) ->
       check_node_id loc node_i kni;
       check_node_id loc node_j kni;
-      ((SHIFT_IN (cn_of_node_id node_i, cn_of_node_id node_j, Label_cst.build ?domain ~loc label_cst), loc), (kni, kei))
+      ((SHIFT_IN (cn_of_node_id node_i, cn_of_node_id node_j, Label_cst.build ?domain ~loc ~config label_cst), loc), (kni, kei))
 
     | (Ast.Shift_out (node_i, node_j, label_cst), loc) ->
       check_node_id loc node_i kni;
       check_node_id loc node_j kni;
-      ((SHIFT_OUT (cn_of_node_id node_i, cn_of_node_id node_j, Label_cst.build ?domain ~loc label_cst), loc), (kni, kei))
+      ((SHIFT_OUT (cn_of_node_id node_i, cn_of_node_id node_j, Label_cst.build ?domain ~loc ~config label_cst), loc), (kni, kei))
 
     | (Ast.New_node new_id, loc) ->
       if List.mem new_id kni

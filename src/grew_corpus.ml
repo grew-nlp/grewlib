@@ -7,6 +7,7 @@ open Libamr
 open Grew_base
 open Grew_domain
 open Grew_loader
+open Grew_edge
 open Grew_graph
 open Grew_grs
 
@@ -128,15 +129,16 @@ module Corpus_desc = struct
   (* ---------------------------------------------------------------------------------------------------- *)
   let build_corpus corpus_desc =
     let domain = build_domain corpus_desc in
+    let config = match corpus_desc.config with Some s -> s | None -> G_edge.get_config () in
     match corpus_desc.kind with
     | Conll ->
       let conll_corpus = Conll_corpus.load_list ~tf_wf:true (get_full_files corpus_desc) in
       let items =
         CCArray.filter_map (fun (sent_id,conll) ->
             try
-              let init_graph = G_graph.of_conll ?domain conll in
+              let init_graph = G_graph.of_conll ?domain ~config conll in
               let graph = match corpus_desc.preapply with
-                | Some grs -> Grs.apply grs init_graph
+                | Some grs -> Grs.apply ~config grs init_graph
                 | None -> init_graph in
               Some {Corpus.sent_id; text=G_graph.to_sentence graph; graph; kind=Conll}
             with Error.Build (msg, loc_opt) ->
@@ -260,6 +262,7 @@ module Corpus_desc = struct
   let build_marshal_file ?grew_match corpus_desc =
 
     let domain = build_domain corpus_desc in
+    let config = match corpus_desc.config with Some c -> c | None -> G_edge.get_config () in
     let full_files = get_full_files corpus_desc in
     let marshal_file = (Filename.concat corpus_desc.directory corpus_desc.id) ^ ".marshal" in
 
@@ -281,9 +284,9 @@ module Corpus_desc = struct
           grew_match_table_and_desc ?config:corpus_desc.config grew_match_dir corpus_desc.id conll_corpus;
           CCArray.filter_map (fun (sent_id,conllx) ->
               try
-                let init_graph = G_graph.of_conllx (Conllx.to_json conllx) in
+                let init_graph = G_graph.of_conllx ~config (Conllx.to_json conllx) in
                 let graph = match corpus_desc.preapply with
-                  | Some grs -> Grs.apply grs init_graph
+                  | Some grs -> Grs.apply ~config grs init_graph
                   | None -> init_graph in
                 Some {Corpus.sent_id; text=G_graph.to_sentence graph; graph; kind=Conll}
             with Error.Build (msg, loc_opt) ->
@@ -310,7 +313,7 @@ module Corpus_desc = struct
           CCArray.filter_map (fun (sent_id,text,amr) ->
               try
                 let gr = Amr.to_gr amr in
-                let graph = G_graph.build ?domain (Parser.gr gr) in
+                let graph = G_graph.build ?domain ~config (Parser.gr gr) in
                 Some {Corpus.sent_id; text; graph; kind=Amr}
               with exc -> Log.fwarning "[id=%s] AMR skipped [exception: %s]" sent_id (Printexc.to_string exc); None
             ) amr_corpus in
