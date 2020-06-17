@@ -20,14 +20,6 @@ open Grew_domain
 
 (* ================================================================================ *)
 module G_edge = struct
-  let current_config = ref Conllx_config.default
-
-  let update_config name =
-    try current_config := Conllx_config.build name with
-      Conllx_error msg -> Error.run "%s" (Yojson.Basic.pretty_to_string msg)
-
-  let get_config () = !current_config
-
   (* [G_edge.fs] is a feature structure. The list of feature names must be ordered wrt [Stdlib.compare] *)
   type fs = (feature_name * feature_value) list
 

@@ -78,7 +78,7 @@ module Corpus_desc = struct
   type t = {
     id: string;
     kind: Corpus.kind;
-    config: Conllx_config.t option;
+    config: Conllx_config.t;
     columns: Conllx_columns.t option;
     dom_file: string option;
     directory: string;
@@ -129,7 +129,7 @@ module Corpus_desc = struct
   (* ---------------------------------------------------------------------------------------------------- *)
   let build_corpus corpus_desc =
     let domain = build_domain corpus_desc in
-    let config = match corpus_desc.config with Some s -> s | None -> G_edge.get_config () in
+    let config = corpus_desc.config in
     match corpus_desc.kind with
     | Conll ->
       let conll_corpus = Conll_corpus.load_list ~tf_wf:true (get_full_files corpus_desc) in
@@ -181,7 +181,7 @@ module Corpus_desc = struct
         with Type_error _ -> Error.run "[Corpus.load_json, file \"%s\"] \"kind\" must be a string" json_file in
 
       let config =
-        try json |> member "config" |> to_string_option |> (CCOpt.map Conllx_config.build)
+        try json |> member "config" |> to_string_option |> (function Some c -> Conllx_config.build c | None -> Conllx_config.default)
         with Type_error _ -> Error.run "[Corpus.load_json, file \"%s\"] \"config\" field must be a string" json_file in
 
       let columns =
@@ -262,7 +262,7 @@ module Corpus_desc = struct
   let build_marshal_file ?grew_match corpus_desc =
 
     let domain = build_domain corpus_desc in
-    let config = match corpus_desc.config with Some c -> c | None -> G_edge.get_config () in
+    let config = corpus_desc.config in
     let full_files = get_full_files corpus_desc in
     let marshal_file = (Filename.concat corpus_desc.directory corpus_desc.id) ^ ".marshal" in
 
@@ -280,8 +280,8 @@ module Corpus_desc = struct
     try
       let items = match corpus_desc.kind with
         | Conll ->
-          let conll_corpus = Conllx_corpus.load_list ?config:corpus_desc.config ?columns:corpus_desc.columns full_files in
-          grew_match_table_and_desc ?config:corpus_desc.config grew_match_dir corpus_desc.id conll_corpus;
+          let conll_corpus = Conllx_corpus.load_list ~config:corpus_desc.config ?columns:corpus_desc.columns full_files in
+          grew_match_table_and_desc ~config:corpus_desc.config grew_match_dir corpus_desc.id conll_corpus;
           CCArray.filter_map (fun (sent_id,conllx) ->
               try
                 let init_graph = G_graph.of_conllx ~config (Conllx.to_json conllx) in

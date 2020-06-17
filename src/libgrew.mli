@@ -20,6 +20,10 @@ module Libgrew : sig
   val set_safe_commands: bool -> unit
   val set_track_rules: bool -> unit
 
+  val update_config: string -> unit
+
+  val get_config: unit -> Conllx_config.t
+
   exception Error of string
   exception Bug of string
 end
@@ -213,7 +217,7 @@ module Corpus_desc: sig
 
 
 
-  val get_config: t -> Conllx_config.t option
+  val get_config: t -> Conllx_config.t
   val is_rtl: t -> bool
   val is_audio: t -> bool
   val get_id: t -> string

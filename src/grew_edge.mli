@@ -19,10 +19,6 @@ open Grew_domain
 (* ================================================================================ *)
 (** The module [G_edge] defines the type of Graph label edges: atomic edges *)
 module G_edge: sig
-  val update_config: string -> unit
-
-  val get_config: unit -> Conllx_config.t
-
   type t
 
   val empty: t
