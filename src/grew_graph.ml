@@ -498,7 +498,9 @@ module G_graph = struct
 
     let nodes = json |> member "nodes" |> to_list |> List.map (ast_node_of_conllx ordering) in
 
-    let edges = json |> member "edges" |> to_list |> List.map ast_edge_of_conllx in
+    let edges =
+      try json |> member "edges" |> to_list |> List.map ast_edge_of_conllx
+      with Type_error _ -> [] in
 
     let graph_ast = { Ast.meta =[]; nodes;  edges} in
     { (build ~config graph_ast) with meta}
