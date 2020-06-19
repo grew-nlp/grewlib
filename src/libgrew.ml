@@ -30,24 +30,6 @@ end
 (** {2 Exceptions} *)
 (* ==================================================================================================== *)
 module Libgrew = struct
-  let get_version () = VERSION
-
-  let set_debug_mode flag = Grew_base.Global.debug := flag
-
-  let set_safe_commands flag = Grew_base.Global.safe_commands := flag
-
-  let set_track_rules flag = Grew_base.Global.track_rules := flag
-
-  let current_config = ref Conllx_config.default
-
-  let update_config name =
-    try current_config := Conllx_config.build name with
-      Conllx_error msg -> Grew_base.Error.run "%s" (Yojson.Basic.pretty_to_string msg)
-
-  let get_config () = !current_config
-
-
-
   exception Error of string
   exception Bug of string
 
@@ -64,12 +46,21 @@ module Libgrew = struct
     | Grew_base.Error.Build (msg, None) -> raise (Error (sprintf "%s" msg))
     | Grew_base.Error.Run (msg, Some loc) -> raise (Error (sprintf "%s %s" (Loc.to_string loc) msg))
     | Grew_base.Error.Run (msg, None) -> raise (Error (sprintf "%s" msg))
-    | Conll_error msg -> raise (Error (sprintf "Conll error: %s" (Yojson.Basic.to_string msg)))
+    | Conll_error msg -> raise (Error (sprintf "Conll error: %s" (Yojson.Basic.pretty_to_string msg)))
+    | Conllx_error msg -> raise (Error (sprintf "Conllx error: %s" (Yojson.Basic.pretty_to_string msg)))
 
     | Grew_base.Error.Bug (msg, Some loc) -> raise (Bug (sprintf "%s %s" (Loc.to_string loc) msg))
     | Grew_base.Error.Bug (msg, None) -> raise (Bug (sprintf "%s" msg))
     | Grew_base.Timeout.Stop bound -> raise (Error (sprintf "Timeout (running time execeeds %g seconds)" bound))
     | exc -> raise (Bug (sprintf "[Libgrew.%s] UNCAUGHT EXCEPTION: %s" name (Printexc.to_string exc)))
+
+  let get_version () = VERSION
+
+  let set_debug_mode flag = Grew_base.Global.debug := flag
+
+  let set_safe_commands flag = Grew_base.Global.safe_commands := flag
+
+  let set_track_rules flag = Grew_base.Global.track_rules := flag
 end
 
 (* ==================================================================================================== *)
@@ -103,10 +94,10 @@ end
 module Pattern = struct
   type t = Grew_rule.Pattern.t
 
-  let load ?domain ?(config=Libgrew.get_config ()) file =
+  let load ?domain ~config file =
     Libgrew.handle ~name:"Pattern.load" (fun () -> Grew_rule.Pattern.build ?domain ~config (Grew_loader.Loader.pattern file)) ()
 
-  let parse ?domain ?(config=Libgrew.get_config ()) desc =
+  let parse ?domain ~config desc =
     Libgrew.handle ~name:"Pattern.load" (fun () -> Grew_rule.Pattern.build ?domain ~config (Grew_loader.Parser.pattern desc)) ()
 
   let pid_name_list pattern =
@@ -128,7 +119,7 @@ module Matching = struct
         Grew_rule.Matching.node_matching pattern graph matching
       ) ()
 
-  let get_value_opt ?(config=Libgrew.get_config ()) request pattern graph matching =
+  let get_value_opt ~config request pattern graph matching =
     Libgrew.handle ~name:"Matching.get_value_opt" (fun () ->
         Grew_rule.Matching.get_string_value_opt ~config request pattern graph matching
       ) ()
@@ -154,7 +145,7 @@ module Graph = struct
 
   let set_meta key value t = Grew_graph.G_graph.set_meta key value t
 
-  let load_gr ?domain ?(config=Libgrew.get_config ()) file =
+  let load_gr ?domain ~config file =
     if not (Sys.file_exists file)
     then raise (Libgrew.Error ("File_not_found: " ^ file))
     else
@@ -187,11 +178,11 @@ module Graph = struct
            Grew_graph.G_graph.of_pst ?domain const_ast
         ) ()
 
-  let load ?domain ?(config=Libgrew.get_config ()) file =
+  let load ?domain ~config file =
     Libgrew.handle ~name:"Graph.load_graph" ~file
       (fun () ->
          match Grew_base.File.get_suffix_opt file with
-         | Some ".gr" -> load_gr ?domain file
+         | Some ".gr" -> load_gr ?domain ~config file
          | Some ".conll" | Some ".conllu" -> load_conll ~config ?domain file
          | Some ".br" | Some ".melt" -> load_brown ~config ?domain file
          | Some ".cst" -> load_pst ?domain file
@@ -203,10 +194,10 @@ module Graph = struct
            loop [load_gr ~config; load_conll ~config; load_brown ~config; load_pst]
       ) ()
 
-  let of_gr ?domain ?(config=Libgrew.get_config ()) gr_string =
+  let of_gr ?domain ~config gr_string =
     Libgrew.handle ~name:"Graph.of_gr" (fun () -> Grew_graph.G_graph.build ?domain ~config (Grew_loader.Parser.gr gr_string)) ()
 
-  let of_conll ?domain ?(config=Libgrew.get_config ()) conll =
+  let of_conll ?domain ~config conll =
     Libgrew.handle ~name:"Graph.of_conll" (fun () -> Grew_graph.G_graph.of_conll ?domain ~config conll) ()
 
   let of_pst ?domain pst_string =
@@ -224,34 +215,34 @@ module Graph = struct
          Sentence.fr_clean_spaces (String.concat " " word_list)
       ) ()
 
-  let of_json ?(config=Libgrew.get_config ()) json =
+  let of_json ~config json =
     Libgrew.handle ~name:"Graph.of_json" (fun () -> Grew_graph.G_graph.of_json ~config json) ()
 
-  let of_brown ?domain ?(config=Libgrew.get_config ()) ?sentid brown =
+  let of_brown ?domain ~config ?sentid brown =
     Libgrew.handle ~name:"Graph.of_brown" (fun () -> Grew_graph.G_graph.of_brown ?domain ~config ?sentid brown) ()
 
-  let to_dot ?main_feat ?(config=Libgrew.get_config ()) ?(deco=Grew_graph.G_deco.empty) ?get_url graph =
+  let to_dot ?main_feat ~config ?(deco=Grew_graph.G_deco.empty) ?get_url graph =
     Libgrew.handle ~name:"Graph.to_dot" (fun () -> Grew_graph.G_graph.to_dot ?main_feat ?get_url ~config graph ~deco) ()
 
-  let to_dep ?filter ?main_feat ?(deco=Grew_graph.G_deco.empty) ?(config=Libgrew.get_config ()) graph =
+  let to_dep ?filter ?main_feat ?(deco=Grew_graph.G_deco.empty) ~config graph =
     Libgrew.handle ~name:"Graph.to_dep" (fun () -> Grew_graph.G_graph.to_dep ?filter ?main_feat ~deco ~config graph) ()
 
-  let to_gr ?(config=Libgrew.get_config ()) graph  =
+  let to_gr ~config graph  =
     Libgrew.handle ~name:"Graph.to_gr" (fun () -> Grew_graph.G_graph.to_gr ~config graph) ()
 
   let to_json graph =
     Libgrew.handle ~name:"Graph.to_json" (fun () -> Grew_graph.G_graph.to_json graph) ()
 
-  let to_conll ?(config=Libgrew.get_config ()) graph =
+  let to_conll ~config graph =
     Libgrew.handle ~name:"Graph.to_conll" (fun () -> Grew_graph.G_graph.to_conll ~config graph) ()
 
-  let of_conllx ?(config=Libgrew.get_config ()) graph =
+  let of_conllx ~config graph =
     Libgrew.handle ~name:"Graph.of_conllx" (fun () -> Grew_graph.G_graph.of_conllx ~config graph) ()
 
   let to_conllx graph =
     Libgrew.handle ~name:"Graph.to_conllx" (fun () -> Grew_graph.G_graph.to_conllx graph) ()
 
-  let to_conll_string ?cupt ?(config=Libgrew.get_config ()) graph =
+  let to_conll_string ?cupt ~config graph =
     Libgrew.handle ~name:"Graph.to_conll_string" (fun () -> Grew_graph.G_graph.to_conll_string ?cupt ~config graph) ()
 
   let to_sentence ?pivot ?deco gr =
@@ -266,14 +257,14 @@ module Graph = struct
          Grew_graph.G_graph.to_orfeo ?deco gr
       ) ()
 
-  (* let save_conll ?(config=Libgrew.get_config ()) filename graph =
+  (* let save_conll ~config filename graph =
      Libgrew.handle ~name:"Graph.save_conll" (fun () ->
         let out_ch = open_out filename in
         fprintf out_ch "%s" (Grew_graph.G_graph.to_conll_string ~config graph);
         close_out out_ch
       ) () *)
 
-  let search_pattern ?domain ?(config=Libgrew.get_config ()) pattern graph =
+  let search_pattern ?domain ~config pattern graph =
     Libgrew.handle ~name:"Graph.search_pattern" (fun () ->
         Grew_rule.Matching.match_in_graph ?domain ~config pattern graph
       ) ()
@@ -287,13 +278,13 @@ module Grs = struct
 
   let empty = Grew_grs.Grs.empty
 
-  let load ?(config=Libgrew.get_config ()) file =
+  let load ~config file =
     Libgrew.handle ~name:"Grs.load" ~file
       (fun () ->
          Grew_grs.Grs.load ~config file
       ) ()
 
-  let parse ?(config=Libgrew.get_config ()) file =
+  let parse ~config file =
     Libgrew.handle ~name:"Grs.parse" ~file
       (fun () ->
          Grew_grs.Grs.parse ~config file
@@ -311,7 +302,7 @@ module Grs = struct
          Grew_grs.Grs.domain_opt grs
       ) ()
 
-  let to_json ?(config=Libgrew.get_config ()) grs =
+  let to_json ~config grs =
     Libgrew.handle ~name:"Grs.to_json"
       (fun () ->
          Grew_grs.Grs.to_json ~config grs
@@ -334,15 +325,15 @@ module Rewrite = struct
 
   let set_max_rules bound = Grew_rule.Rule.set_max_rules bound
 
-  let display ?(config=Libgrew.get_config ()) gr grs strat =
+  let display ~config gr grs strat =
     Libgrew.handle ~name:"Rewrite.display" (fun () -> Grew_grs.Grs.wrd_rewrite ~config grs strat gr) ()
 
   let set_timeout t = Grew_base.Timeout.timeout := t
 
-  let simple_rewrite ?(config=Libgrew.get_config ()) gr grs strat =
+  let simple_rewrite ~config gr grs strat =
     Libgrew.handle ~name:"Rewrite.simple_rewrite" (fun () -> Grew_grs.Grs.simple_rewrite ~config grs strat gr) ()
 
-  let onf_rewrite_opt ?(config=Libgrew.get_config ()) gr grs strat =
+  let onf_rewrite_opt ~config gr grs strat =
     Libgrew.handle ~name:"Rewrite.onf_rewrite_opt" (fun () -> Grew_grs.Grs.onf_rewrite_opt ~config grs strat gr) ()
 
   let at_least_one grs strat =
