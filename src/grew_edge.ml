@@ -85,11 +85,12 @@ module G_edge = struct
     | Fs fs -> (match fs_to_string_res ~config fs with Ok s -> Some s | _ -> None)
     | _ -> None
 
-  let dump ~config = function
-    | Fs fs -> fs_to_string ~config fs
-    | Sub -> "__SUB__"
-    | Pred -> "__PRED__"
-    | Succ -> "__SUCC__"
+  let dump ?config edge = match (edge, config) with
+    | (Fs fs, Some config) -> fs_to_string ~config fs
+    | (Fs fs, None) -> String.concat "," (List.map (fun (f,v) -> sprintf "%s=%s" f (string_of_value v)) fs)
+    | (Sub, _) -> "__SUB__"
+    | (Pred, _) -> "__PRED__"
+    | (Succ, _) -> "__SUCC__"
 
   let to_conllx_opt = function
     | Fs fs -> Some (fs_to_conllx fs)

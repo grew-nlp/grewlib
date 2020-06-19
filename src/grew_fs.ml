@@ -212,6 +212,10 @@ module G_fs = struct
     let unsorted = List.map (fun feat -> G_feature.build ?domain feat) ast_fs in
     List.sort G_feature.compare unsorted
 
+  let build_from_items items =
+    let unsorted = List.map (fun (f,v) -> (f, typed_vos f v)) items in
+    List.sort G_feature.compare unsorted
+
   (* ---------------------------------------------------------------------- *)
   let of_conll ?loc ?domain line =
     let raw_list0 =

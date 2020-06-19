@@ -449,8 +449,86 @@ module G_graph = struct
       rules = String_map.empty;
     }
 
-
   (* -------------------------------------------------------------------------------- *)
+  let of_grew_json (json: Yojson.Basic.t) =
+    let open Yojson.Basic.Util in
+    let meta =
+      try
+        json |> member "meta" |> to_list
+        |> List.map (fun x -> (x |> member "key" |> to_string, x |> member "value" |> to_string))
+      with Type_error _ -> [] in
+
+    let nodes =
+      json |> member "nodes" |> to_list
+      |> List.map
+        (fun json_node ->
+           let id = try json_node |> member "id" |> to_string with Type_error _ -> Error.run "No id in node json description %s" (Yojson.Basic.pretty_to_string json_node) in
+           let fs = json |> to_assoc |> List.remove_assoc "id" |> List.map (fun (feat_name,json_value) -> (feat_name, json_value |> to_string)) in
+           (id,fs)
+        ) in
+
+    let json_edges = try json |> member "edges" |> to_list with Type_error _ -> [] in
+
+    let edges =
+      List.map
+        (fun json_edge ->
+           (
+             json |> member "src" |> to_string,
+             json |> member "label" |> to_assoc |> List.map (fun (x,y) -> (x,typed_vos x (to_string y))),
+             json |> member "tar" |> to_string
+
+           )
+        ) json_edges in
+
+    let (map_without_edges, table, final_index) =
+      List.fold_left
+        (fun (acc_map, acc_table, acc_index) (node_id, fs_items) ->
+          let fs = G_fs.build_from_items fs_items in
+           let new_node = G_node.set_fs fs (G_node.build ()) in
+           (
+             Gid_map.add acc_index new_node acc_map,
+             String_map.add node_id acc_index acc_table,
+             acc_index + 1
+           )
+        ) (Gid_map.empty, String_map.empty, 0) nodes in
+
+    let order = json |> member "order" |> to_list
+      |> List.map (fun x ->String_map.find (x |> to_string) table)  in
+
+    let rec loop_order (acc_map, acc_pos) = function
+    | [] -> acc_map
+    | gid::tail ->
+      let node = Gid_map.find gid acc_map in
+      let map_with_pos = Gid_map.add gid (G_node.set_position acc_pos node) acc_map in
+      let map_with_succ_prec =
+        match tail with
+        | [] -> map_with_pos
+        | gid_next :: _ -> map_add_pred_succ gid gid_next map_with_pos in
+      loop_order (map_with_succ_prec, acc_pos+1) tail in
+
+    let maps_with_order = loop_order (map_without_edges, 0) order in
+
+    let map =
+      List.fold_left
+        (fun acc (id_src, edge_items, id_tar) ->
+           let gid_1 = String_map.find id_src table in
+           let gid_2 = String_map.find id_tar table in
+           let edge = G_edge.from_items edge_items in
+           (match map_add_edge_opt acc gid_1 edge gid_2 with
+            | Some g -> g
+            | None -> Error.build "[G_graph.build] try to build a graph with twice the same edge %s" (G_edge.dump edge)
+           )
+        ) maps_with_order edges in
+
+    {
+      domain = None;
+      meta;
+      map;
+      fusion = [];
+      highest_index = final_index - 1;
+      rules = String_map.empty;
+    }
+
   let ast_node_of_conllx ordering json =
     let open Yojson.Basic.Util in
     let id = json |> member "id" |> to_string in
@@ -504,6 +582,19 @@ module G_graph = struct
 
     let graph_ast = { Ast.meta =[]; nodes;  edges} in
     { (build ~config graph_ast) with meta}
+
+
+  let of_conllx ~config (json: Yojson.Basic.t) = of_grew_json json
+
+
+
+
+
+
+
+
+
+
 
   (* -------------------------------------------------------------------------------- *)
   let to_conllx graph =

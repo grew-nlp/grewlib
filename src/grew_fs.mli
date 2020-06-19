@@ -62,6 +62,8 @@ module G_fs: sig
 
   val build: ?domain:Domain.t -> Ast.feature list -> t
 
+  val build_from_items: (string * string) list -> t
+
   val of_conll: ?loc:Loc.t -> ?domain:Domain.t -> Conll.line -> t
 
   val pst_leaf: ?loc:Loc.t -> ?domain:Domain.t -> string -> t

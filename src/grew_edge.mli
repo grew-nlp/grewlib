@@ -51,7 +51,7 @@ module G_edge: sig
   val to_string_opt: config:Conllx_config.t -> t -> string option
 
   (* robust printing: to be used only in error reporting *)
-  val dump: config:Conllx_config.t -> t -> string
+  val dump: ?config:Conllx_config.t -> t -> string
 
   (** [to_conllx_opt t] returns [Some js] where [js] is the json data usable in Conllx
       [None] is returned if [t] is a special edge *)
