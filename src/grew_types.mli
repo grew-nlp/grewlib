@@ -89,7 +89,7 @@ module Lexicon : sig
   (** [read_multi head lexicon] returns "v_1/…/v_k" where v_i are the values of the [head] column *)
   val read_multi: string -> t -> string
 
-  val build: ?loc:Loc.t -> Ast.lexicon -> t
+  val of_ast: ?loc:Loc.t -> Ast.lexicon -> t
 end (* module Lexicon *)
 
 (* ================================================================================ *)

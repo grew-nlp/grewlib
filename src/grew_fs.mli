@@ -60,9 +60,9 @@ module G_fs: sig
   val to_json: t -> Yojson.Basic.t
   val to_string: t -> string
 
-  val build: ?domain:Domain.t -> Ast.feature list -> t
+  val of_ast: ?domain:Domain.t -> Ast.feature list -> t
 
-  val build_from_items: (string * string) list -> t
+  val of_items: (string * string) list -> t
 
   val of_conll: ?loc:Loc.t -> ?domain:Domain.t -> Conll.line -> t
 
@@ -82,7 +82,7 @@ module P_fs: sig
 
   val empty: t
 
-  val build: ?domain:Domain.t -> Lexicons.t -> Ast.feature list -> t
+  val of_ast: ?domain:Domain.t -> Lexicons.t -> Ast.feature list -> t
 
   val to_string: t -> string
 

@@ -52,17 +52,17 @@ module P_graph = struct
     | Some new_node -> Some (Pid_map.add src_pid new_node map)
 
   (* -------------------------------------------------------------------------------- *)
-  let build ?domain ~config lexicons basic_ast =
+  let of_ast ?domain ~config lexicons basic_ast =
     let full_node_list = basic_ast.Ast.pat_nodes
     and full_edge_list = basic_ast.Ast.pat_edges in
 
     (* NB: insert searches for a previous node with the same name and uses unification rather than constraint *)
     (* NB: insertion of new node at the end of the list: not efficient but graph building is not the hard part. *)
     let rec insert (ast_node, loc) = function
-      | [] -> [P_node.build_from_ast ?domain lexicons (ast_node, loc)]
+      | [] -> [P_node.of_ast ?domain lexicons (ast_node, loc)]
       | (node_id,fs)::tail when ast_node.Ast.node_id = node_id ->
         begin
-          try (node_id, P_node.unif_fs (P_fs.build ?domain lexicons ast_node.Ast.fs) fs) :: tail
+          try (node_id, P_node.unif_fs (P_fs.of_ast ?domain lexicons ast_node.Ast.fs) fs) :: tail
           with Error.Build (msg,_) -> raise (Error.Build (msg,Some loc))
         end
       | head :: tail -> head :: (insert (ast_node, loc) tail) in
@@ -98,7 +98,7 @@ module P_graph = struct
               | None -> Error.build ~loc "[P_graph.build] try to build a graph with twice the order edge"
              )
            | _ ->
-             let edge = P_edge.build ?domain ~config (ast_edge, loc) in
+             let edge = P_edge.of_ast ?domain ~config (ast_edge, loc) in
              (match map_add_edge (Pid.Pos i1) edge (Pid.Pos i2) acc_map with
               | Some m -> (m, match ast_edge.Ast.edge_id with Some id -> id::acc_edge_ids | None -> acc_edge_ids)
               | None -> Error.build ~loc "[P_graph.build] try to build a graph with twice the same edge %s"
@@ -119,9 +119,9 @@ module P_graph = struct
 
   (* -------------------------------------------------------------------------------- *)
   (* It may raise [P_fs.Fail_unif] in case of contradiction on constraints *)
-  let build_extension ?domain ~config lexicons pos_table edge_ids full_node_list full_edge_list =
+  let of_ast_extension ?domain ~config lexicons pos_table edge_ids full_node_list full_edge_list =
 
-    let built_nodes = List.map (P_node.build_from_ast ?domain lexicons) full_node_list in
+    let built_nodes = List.map (P_node.of_ast ?domain lexicons) full_node_list in
 
     let (old_nodes, new_nodes) =
       List.partition
@@ -176,7 +176,7 @@ module P_graph = struct
               | None -> Error.build ~loc "[P_graph.build_extension] try to build a graph with twice the order edge"
              )
            | _ ->
-             let edge = P_edge.build ?domain ~config (ast_edge, loc) in
+             let edge = P_edge.of_ast ?domain ~config (ast_edge, loc) in
              (match map_add_edge i1 edge i2 acc_map with
               | Some m -> (m, match ast_edge.Ast.edge_id with Some id -> id::acc_edge_ids | None -> acc_edge_ids)
               | None -> Error.build ~loc "[P_graph.build_extension] try to build a graph with twice the same edge %s"
@@ -377,7 +377,7 @@ module G_graph = struct
     | _ -> None
 
   (* -------------------------------------------------------------------------------- *)
-  let build ?domain ~config gr_ast =
+  let of_ast ?domain ~config gr_ast =
     let (ordered_nodes, unordered_nodes) =
       List.fold_left
         (fun (orderd_acc, unordered_acc) (node,loc) ->
@@ -394,10 +394,10 @@ module G_graph = struct
       | (_, (ast_node, loc))::tail ->
         let node_id = ast_node.Ast.node_id in
         if List.mem node_id already_bound
-        then Error.build ~loc "[GRS] [G_graph.build] try to build a graph with twice the same node id '%s'" node_id
+        then Error.build ~loc "[GRS] [G_graph.of_ast] try to build a graph with twice the same node id '%s'" node_id
         else
           let (new_tail, table) = loop (node_id :: already_bound) (index+1) tail in
-          let new_node = G_node.build_from_ast ?domain ~position:index (ast_node, loc) in
+          let new_node = G_node.of_ast ?domain ~position:index (ast_node, loc) in
           (
             Gid_map.add index new_node new_tail,
             (node_id,index)::table
@@ -418,7 +418,7 @@ module G_graph = struct
       List.fold_left
         (fun (acc_map, acc_table, acc_index) (ast_node,loc) ->
            let node_id = ast_node.Ast.node_id in
-           let new_node = G_node.build_from_ast ?domain (ast_node,loc) in
+           let new_node = G_node.of_ast ?domain (ast_node,loc) in
            (
              Gid_map.add acc_index new_node acc_map,
              (node_id,acc_index)::acc_table,
@@ -435,7 +435,7 @@ module G_graph = struct
            let edge = G_edge.build ~config (ast_edge, loc) in
            (match map_add_edge_opt acc i1 edge i2 with
             | Some g -> g
-            | None -> Error.build ~loc "[G_graph.build] try to build a graph with twice the same edge %s"
+            | None -> Error.build ~loc "[G_graph.of_ast] try to build a graph with twice the same edge %s"
                         (G_edge.dump ~config edge)
            )
         ) map_without_edges gr_ast.Ast.edges in
@@ -483,8 +483,8 @@ module G_graph = struct
     let (map_without_edges, table, final_index) =
       List.fold_left
         (fun (acc_map, acc_table, acc_index) (node_id, fs_items) ->
-          let fs = G_fs.build_from_items fs_items in
-           let new_node = G_node.set_fs fs (G_node.build ()) in
+          let fs = G_fs.of_items fs_items in
+           let new_node = G_node.set_fs fs G_node.empty in
            (
              Gid_map.add acc_index new_node acc_map,
              String_map.add node_id acc_index acc_table,
@@ -516,7 +516,7 @@ module G_graph = struct
            let edge = G_edge.from_items edge_items in
            (match map_add_edge_opt acc gid_1 edge gid_2 with
             | Some g -> g
-            | None -> Error.build "[G_graph.build] try to build a graph with twice the same edge %s" (G_edge.dump edge)
+            | None -> Error.build "[G_graph.of_ast] try to build a graph with twice the same edge %s" (G_edge.dump edge)
            )
         ) maps_with_order edges in
 
@@ -581,7 +581,7 @@ module G_graph = struct
       with Type_error _ -> [] in
 
     let graph_ast = { Ast.meta =[]; nodes;  edges} in
-    { (build ~config graph_ast) with meta}
+    { (of_ast ~config graph_ast) with meta}
 
 
   let of_conllx ~config (json: Yojson.Basic.t) = of_grew_json json
@@ -661,7 +661,7 @@ module G_graph = struct
              | _ -> Error.build "[Graph.of_json] not an assoc list"
           ) ([],[]) l in
       let graph_ast = { Ast.meta=[]; nodes=ast_node_list; edges=ast_edge_list}
-      in build ~config graph_ast
+      in of_ast ~config graph_ast
     | _ -> Error.build "[Graph.of_json] not an assoc list"
 
   (* -------------------------------------------------------------------------------- *)
@@ -734,7 +734,7 @@ module G_graph = struct
            let fs3 = match mwe.Mwe.mwepos with None -> fs2 | Some p -> G_fs.set_atom ?domain "mwepos" p fs2 in
            let fs4 = match mwe.Mwe.criterion with None -> fs3 | Some c -> G_fs.set_atom ?domain "criterion" c fs3 in
 
-           let new_node = G_node.set_fs fs4 (G_node.build ()) in
+           let new_node = G_node.set_fs fs4 G_node.empty in
 
            (* add a new node *)
            let new_map_1 = (Gid_map.add free_index new_node acc) in
@@ -858,15 +858,15 @@ module G_graph = struct
       | Some p -> p in
     let shifted_map = shift_position 1 gid graph.map in
     let new_gid = graph.highest_index + 1 in
-
+    let new_node = G_node.set_position position G_node.empty in
     let new_map = match G_node.get_pred_opt node with
       | None ->
         shifted_map
-        |> (Gid_map.add new_gid (G_node.build ~position ()))
+        |> (Gid_map.add new_gid new_node)
         |> (map_add_pred_succ new_gid gid)
       | Some prec_gid ->
         shifted_map
-        |> (Gid_map.add new_gid (G_node.build ~position ()))
+        |> (Gid_map.add new_gid new_node)
         |> (map_del_pred_succ prec_gid gid)
         |> (map_add_pred_succ new_gid gid)
         |> (map_add_pred_succ prec_gid new_gid) in
@@ -880,9 +880,10 @@ module G_graph = struct
       | None -> Error.run "[G_node.append] unordered nodes"
       | Some pos -> pos + 1 in
     let new_gid = graph.highest_index + 1 in
+    let new_node = G_node.set_position position G_node.empty in
     let new_map =
       graph.map
-      |> (Gid_map.add new_gid (G_node.build ~position ()))
+      |> (Gid_map.add new_gid new_node)
       |> (map_add_pred_succ last_gid new_gid) in
     (new_gid, { graph with map=new_map; highest_index = new_gid })
 
@@ -895,7 +896,7 @@ module G_graph = struct
   (* -------------------------------------------------------------------------------- *)
   let add_unordered graph =
     let new_gid = graph.highest_index + 1 in
-    let map = Gid_map.add new_gid (G_node.build ()) graph.map in
+    let map = Gid_map.add new_gid G_node.empty graph.map in
     (new_gid, { graph with map; highest_index = new_gid })
 
   (* -------------------------------------------------------------------------------- *)

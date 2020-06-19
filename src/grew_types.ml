@@ -106,10 +106,10 @@ module Lexicon = struct
       The first list is interpreted as the column headers.
       All other lines are lexicon items.
       It is supposed that all sublist have the same length *)
-  let build_from_list ?loc items =
+  let of_item_list ?loc items =
     let real_items = List.filter (fun (_,x) -> x <> "" && x.[0] <> '%') items in
     match real_items with
-    | [] | [_] -> Error.build ?loc "[Lexicon.build] a lexicon must not be empty"
+    | [] | [_] -> Error.build ?loc "[Lexicon.of_ast] a lexicon must not be empty"
     | (linenum_h, h)::t ->
       let fields = List.map to_uname (Str.split (Str.regexp "\t") h) in
       let l = List.length fields in
@@ -124,7 +124,7 @@ module Lexicon = struct
           if List.length items <> l then
             begin
               let loc = CCOpt.map (Loc.set_line linenum) loc in
-              Error.build ?loc "[Lexicon.build] line with %d items (%d expected!!)" (List.length items) l
+              Error.build ?loc "[Lexicon.of_ast] line with %d items (%d expected!!)" (List.length items) l
             end;
           items :: (loop tail) in
       let items_list = fields ::(loop t) in
@@ -132,17 +132,17 @@ module Lexicon = struct
       try
         let sorted_tr = List.sort (fun l1 l2 -> strict_compare (List.hd l1) (List.hd l2)) tr in
         match transpose sorted_tr with
-        | [] -> Error.bug ?loc "[Lexicon.build] inconsistent data"
+        | [] -> Error.bug ?loc "[Lexicon.of_ast] inconsistent data"
         | header :: lines_list -> { header; lines = List.fold_right Line_set.add lines_list Line_set.empty; loc }
       with Equal v ->
         let loc = CCOpt.map (Loc.set_line linenum_h) loc in
-        Error.build ?loc "[Lexicon.build] the field name \"%s\" is used twice" v
+        Error.build ?loc "[Lexicon.of_ast] the field name \"%s\" is used twice" v
 
   let load ?loc file =
     try
       let lines = File.read_ln file in
       let loc = Loc.file file in
-      build_from_list ~loc lines
+      of_item_list ~loc lines
     with Sys_error _ -> Error.build ?loc "[Lexicon.load] unable to load file %s" file
 
   let union lex1 lex2 =
@@ -185,12 +185,12 @@ module Lexicon = struct
     | [] -> Error.bug "[Lexicon.read] a lexicon must not be empty"
     | l -> String.concat "/" l
 
-  let build ?loc = function
+  let of_ast ?loc = function
     | Ast.File filename ->
       if Filename.is_relative filename
       then load ?loc (Filename.concat (Global.get_dir ()) filename)
       else load ?loc filename
-    | Ast.Final (line_list) -> build_from_list ?loc line_list
+    | Ast.Final (line_list) -> of_item_list ?loc line_list
 
 end (* module Lexicon *)
 

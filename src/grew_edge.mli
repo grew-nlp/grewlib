@@ -80,7 +80,7 @@ module Label_cst : sig
   val to_json: ?domain:Domain.t -> config:Conllx_config.t -> t -> Yojson.Basic.t
   val all: t
   val match_: ?domain:Domain.t -> config:Conllx_config.t -> t -> G_edge.t -> bool
-  val build: ?loc:Loc.t -> ?domain:Domain.t -> config:Conllx_config.t -> Ast.edge_label_cst -> t
+  val of_ast: ?loc:Loc.t -> ?domain:Domain.t -> config:Conllx_config.t -> Ast.edge_label_cst -> t
 end (* module Label_cst *)
 
 
@@ -98,7 +98,7 @@ module P_edge: sig
 
   val to_string: ?domain:Domain.t -> config:Conllx_config.t -> t -> string
 
-  val build: ?domain:Domain.t -> config:Conllx_config.t -> Ast.edge -> t
+  val of_ast: ?domain:Domain.t -> config:Conllx_config.t -> Ast.edge -> t
 
   type edge_matcher =
     | Fail

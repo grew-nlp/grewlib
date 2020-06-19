@@ -244,12 +244,12 @@ module Label_cst = struct
     | Ast.Atom_diseq (name, atoms) -> Diseq (name, List.map (typed_vos name) (List.sort Stdlib.compare atoms))
     | Ast.Atom_absent name -> Absent name
 
-  let build ?loc ?domain ~config = function
+  let of_ast ?loc ?domain ~config = function
     | Ast.Neg_list p_labels -> Neg (List.sort compare (List.map (G_edge.fs_from_string ~config) p_labels))
     | Ast.Pos_list p_labels -> Pos (List.sort compare (List.map (G_edge.fs_from_string ~config) p_labels))
     | Ast.Regexp re -> Regexp (Str.regexp re, re)
     | Ast.Atom_list l -> Atom_list (List.map build_atom l)
-    | Ast.Pred -> Error.bug "[Label_cst.build]"
+    | Ast.Pred -> Error.bug "[Label_cst.of_ast]"
 end (* module Label_cst *)
 
 (* ================================================================================ *)
@@ -275,9 +275,9 @@ module P_edge = struct
                 Some ("label_cst", Label_cst.to_json ?domain ~config t.label_cst)
               ])
 
-  let build ?domain ~config (ast_edge, loc) =
+  let of_ast ?domain ~config (ast_edge, loc) =
     { id = (match ast_edge.Ast.edge_id with Some s -> Some s | None -> fresh_name ());
-      label_cst = Label_cst.build ~loc ?domain ~config ast_edge.Ast.edge_label_cst
+      label_cst = Label_cst.of_ast ~loc ?domain ~config ast_edge.Ast.edge_label_cst
     }
 
   let to_string ?domain ~config t =

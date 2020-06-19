@@ -41,7 +41,7 @@ module P_graph: sig
   }
 
   (** [P_fs.Fail_unif] exception is raised in case of inconsistent feature structures. *)
-  val build:
+  val of_ast:
     ?domain:Domain.t ->
     config:Conllx_config.t ->
     Lexicons.t ->
@@ -49,7 +49,7 @@ module P_graph: sig
     (t * Id.table * string list)
 
   (** [P_fs.Fail_unif] exception is raised in case of inconsistent feature structures. *)
-  val build_extension:
+  val of_ast_extension:
     ?domain:Domain.t ->
     config:Conllx_config.t ->
     Lexicons.t ->
@@ -113,7 +113,7 @@ module G_graph: sig
   (* Build functions *)
   (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
 
-  val build: ?domain:Domain.t -> config:Conllx_config.t -> Ast.gr -> t
+  val of_ast: ?domain:Domain.t -> config:Conllx_config.t -> Ast.gr -> t
 
   val of_conll: ?domain:Domain.t -> config:Conllx_config.t -> Conll.t -> t
   val of_json: config:Conllx_config.t -> Yojson.Basic.t -> t

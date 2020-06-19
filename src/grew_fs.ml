@@ -208,11 +208,12 @@ module G_fs = struct
   let to_conllx t = List.map G_feature.to_conllx t
 
   (* ---------------------------------------------------------------------- *)
-  let build ?domain ast_fs =
+  let of_ast ?domain ast_fs =
     let unsorted = List.map (fun feat -> G_feature.build ?domain feat) ast_fs in
     List.sort G_feature.compare unsorted
 
-  let build_from_items items =
+  (* ---------------------------------------------------------------------- *)
+  let of_items items =
     let unsorted = List.map (fun (f,v) -> (f, typed_vos f v)) items in
     List.sort G_feature.compare unsorted
 
@@ -403,7 +404,7 @@ module P_fs = struct
 
   let to_json ?domain t = `List (List.map (P_feature.to_json ?domain) t)
 
-  let build ?domain lexicons ast_fs =
+  let of_ast ?domain lexicons ast_fs =
     let unsorted = List.map (P_feature.build lexicons ?domain) ast_fs in
     List.sort P_feature.compare unsorted
 

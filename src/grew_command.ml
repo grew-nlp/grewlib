@@ -193,7 +193,7 @@ module Command  = struct
     | UNORDER cn -> `Assoc [("unorder", command_node_to_json cn)]
 
 
-  let build ?domain ~config lexicons (kni, kei) table ast_command =
+  let of_ast ?domain ~config lexicons (kni, kei) table ast_command =
     (* kni stands for "known node idents", kei for "known edge idents" *)
 
     let cn_of_node_id node_id =
@@ -242,17 +242,17 @@ module Command  = struct
     | (Ast.Shift_edge (node_i, node_j, label_cst), loc) ->
       check_node_id loc node_i kni;
       check_node_id loc node_j kni;
-      ((SHIFT_EDGE (cn_of_node_id node_i, cn_of_node_id node_j, Label_cst.build ~loc ?domain ~config label_cst), loc), (kni, kei))
+      ((SHIFT_EDGE (cn_of_node_id node_i, cn_of_node_id node_j, Label_cst.of_ast ~loc ?domain ~config label_cst), loc), (kni, kei))
 
     | (Ast.Shift_in (node_i, node_j, label_cst), loc) ->
       check_node_id loc node_i kni;
       check_node_id loc node_j kni;
-      ((SHIFT_IN (cn_of_node_id node_i, cn_of_node_id node_j, Label_cst.build ?domain ~loc ~config label_cst), loc), (kni, kei))
+      ((SHIFT_IN (cn_of_node_id node_i, cn_of_node_id node_j, Label_cst.of_ast ?domain ~loc ~config label_cst), loc), (kni, kei))
 
     | (Ast.Shift_out (node_i, node_j, label_cst), loc) ->
       check_node_id loc node_i kni;
       check_node_id loc node_j kni;
-      ((SHIFT_OUT (cn_of_node_id node_i, cn_of_node_id node_j, Label_cst.build ?domain ~loc ~config label_cst), loc), (kni, kei))
+      ((SHIFT_OUT (cn_of_node_id node_i, cn_of_node_id node_j, Label_cst.of_ast ?domain ~loc ~config label_cst), loc), (kni, kei))
 
     | (Ast.New_node new_id, loc) ->
       if List.mem new_id kni
@@ -296,7 +296,7 @@ module Command  = struct
       ((UNORDER (cn_of_node_id node_n), loc), (kni, kei))
 
     | (Ast.Update_feat ((node_or_edge_id, feat_name), ast_items), loc) ->
-      let build_item = function
+      let of_ast_item = function
         | Ast.Qfn_or_lex_item (id_or_lex,feature_name_or_lex_field) ->
           if List.mem_assoc id_or_lex lexicons
           then
@@ -321,7 +321,7 @@ module Command  = struct
         (* [node_or_edge_id] is a node id *)
         | (true, false) when feat_name = "__id__" -> Error.build ~loc "The node feature name \"__id__\" is reserved and cannot be used in commands"
         | (true, false) ->
-          let items = List.map build_item ast_items in
+          let items = List.map of_ast_item ast_items in
           (* check for consistency *)
           begin
             match items with
@@ -337,7 +337,7 @@ module Command  = struct
         | (false, true) ->
           begin
             match ast_items with
-            | [ast_item] -> ((UPDATE_EDGE_FEAT (node_or_edge_id, feat_name, build_item ast_item), loc), (kni, kei))
+            | [ast_item] -> ((UPDATE_EDGE_FEAT (node_or_edge_id, feat_name, of_ast_item ast_item), loc), (kni, kei))
             | _ -> Error.build ~loc "Cannot concat value in edge feature: \"%s\"" node_or_edge_id
           end
 

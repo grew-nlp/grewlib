@@ -71,10 +71,8 @@ module G_node = struct
     efs=[]
   }
 
-  let build ?position () = { empty with position; }
-
-  let build_from_ast ?domain ?position (ast_node, loc) =
-    let fs = G_fs.build ?domain ast_node.Ast.fs in
+  let of_ast ?domain ?position (ast_node, loc) =
+    let fs = G_fs.of_ast ?domain ast_node.Ast.fs in
     { empty with name=Some ast_node.Ast.node_id; fs; position; }
 
   let build_from_conll ?loc ?domain position line =
@@ -165,11 +163,11 @@ module P_node = struct
 
   let get_next t = t.next
 
-  let build_from_ast ?domain lexicons (ast_node, loc) =
+  let of_ast ?domain lexicons (ast_node, loc) =
     (ast_node.Ast.node_id,
      {
        name = ast_node.Ast.node_id;
-       fs = P_fs.build ?domain lexicons ast_node.Ast.fs;
+       fs = P_fs.of_ast ?domain lexicons ast_node.Ast.fs;
        next = Massoc_pid.empty;
        loc = Some loc;
      } )

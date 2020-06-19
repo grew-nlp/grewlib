@@ -87,7 +87,7 @@ module Grs = struct
 
   let rec build_decl ?domain ~config = function
     | Ast.Package (loc, name, decl_list) -> Package (name, List.map (build_decl ?domain ~config) decl_list)
-    | Ast.Rule ast_rule -> Rule (Rule.build ?domain ~config ast_rule)
+    | Ast.Rule ast_rule -> Rule (Rule.of_ast ?domain ~config ast_rule)
     | Ast.Strategy (loc, name, ast_strat) -> Strategy (name, ast_strat)
     | _ -> Error.bug "[build_decl] Inconsistent ast for grs"
 

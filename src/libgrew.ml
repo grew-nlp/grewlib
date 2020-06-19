@@ -95,10 +95,10 @@ module Pattern = struct
   type t = Grew_rule.Pattern.t
 
   let load ?domain ~config file =
-    Libgrew.handle ~name:"Pattern.load" (fun () -> Grew_rule.Pattern.build ?domain ~config (Grew_loader.Loader.pattern file)) ()
+    Libgrew.handle ~name:"Pattern.load" (fun () -> Grew_rule.Pattern.of_ast ?domain ~config (Grew_loader.Loader.pattern file)) ()
 
   let parse ?domain ~config desc =
-    Libgrew.handle ~name:"Pattern.load" (fun () -> Grew_rule.Pattern.build ?domain ~config (Grew_loader.Parser.pattern desc)) ()
+    Libgrew.handle ~name:"Pattern.load" (fun () -> Grew_rule.Pattern.of_ast ?domain ~config (Grew_loader.Parser.pattern desc)) ()
 
   let pid_name_list pattern =
     Libgrew.handle ~name:"Pattern.pid_list"
@@ -152,7 +152,7 @@ module Graph = struct
       Libgrew.handle ~name:"Graph.load_gr" ~file
         (fun () ->
            let gr_ast = Grew_loader.Loader.gr file in
-           Grew_graph.G_graph.build ?domain ~config gr_ast
+           Grew_graph.G_graph.of_ast ?domain ~config gr_ast
         ) ()
 
   let load_conll ?domain file =
@@ -195,7 +195,7 @@ module Graph = struct
       ) ()
 
   let of_gr ?domain ~config gr_string =
-    Libgrew.handle ~name:"Graph.of_gr" (fun () -> Grew_graph.G_graph.build ?domain ~config (Grew_loader.Parser.gr gr_string)) ()
+    Libgrew.handle ~name:"Graph.of_gr" (fun () -> Grew_graph.G_graph.of_ast ?domain ~config (Grew_loader.Parser.gr gr_string)) ()
 
   let of_conll ?domain ~config conll =
     Libgrew.handle ~name:"Graph.of_conll" (fun () -> Grew_graph.G_graph.of_conll ?domain ~config conll) ()

@@ -24,7 +24,7 @@ module Pattern : sig
 
   val pid_name_list: t -> Id.name list
 
-  val build: ?domain:Domain.t -> config:Conllx.Conllx_config.t -> ?lexicons: Lexicons.t -> Ast.pattern -> t
+  val of_ast: ?domain:Domain.t -> config:Conllx.Conllx_config.t -> ?lexicons: Lexicons.t -> Ast.pattern -> t
 end
 
 (* ================================================================================ *)
@@ -75,8 +75,8 @@ module Rule : sig
   (** [to_dep t] returns a string in the [dep] language describing the match basic of the rule *)
   val to_dep: ?domain:Domain.t -> config:Conllx.Conllx_config.t -> t -> string
 
-  (** [build ?domain ast_rule] returns the Rule.t value corresponding to [ast_rule] *)
-  val build: ?domain:Domain.t -> config:Conllx.Conllx_config.t -> Ast.rule -> t
+  (** [of_ast ?domain ast_rule] returns the Rule.t value corresponding to [ast_rule] *)
+  val of_ast: ?domain:Domain.t -> config:Conllx.Conllx_config.t -> Ast.rule -> t
 
   val wrd_apply_opt: ?domain: Domain.t -> config:Conllx.Conllx_config.t -> t -> (G_graph.t * Libgrew_types.big_step option) -> (G_graph.t * Libgrew_types.big_step) option
 

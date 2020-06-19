@@ -22,6 +22,8 @@ open Grew_ast
 module G_node: sig
   type t
 
+  val empty: t
+
   val compare: t -> t -> int
 
   val get_name: Gid.t -> t -> string
@@ -46,9 +48,7 @@ module G_node: sig
   val dump: ?domain:Domain.t -> config:Conllx_config.t -> t -> string
   val to_gr: t -> string
 
-
-  val build: ?position:int -> unit -> t
-  val build_from_ast: ?domain:Domain.t -> ?position:int -> Ast.node -> t
+  val of_ast: ?domain:Domain.t -> ?position:int -> Ast.node -> t
   val build_from_conll: ?loc:Loc.t -> ?domain:Domain.t -> int option -> Conll.line -> t
   val build_pst_leaf: ?loc:Loc.t -> ?domain:Domain.t -> string -> t
   val build_pst_node: ?loc:Loc.t -> ?domain:Domain.t -> string -> t
@@ -84,7 +84,7 @@ module P_node: sig
 
   val get_next: t -> P_edge.t Massoc_pid.t
 
-  val build_from_ast: ?domain:Domain.t -> Lexicons.t -> Ast.node -> (Id.name * t)
+  val of_ast: ?domain:Domain.t -> Lexicons.t -> Ast.node -> (Id.name * t)
 
   val to_json: ?domain:Domain.t -> config:Conllx_config.t -> t -> Yojson.Basic.t
 

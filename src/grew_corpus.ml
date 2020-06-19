@@ -313,7 +313,7 @@ module Corpus_desc = struct
           CCArray.filter_map (fun (sent_id,text,amr) ->
               try
                 let gr = Amr.to_gr amr in
-                let graph = G_graph.build ?domain ~config (Parser.gr gr) in
+                let graph = G_graph.of_ast ?domain ~config (Parser.gr gr) in
                 Some {Corpus.sent_id; text; graph; kind=Amr}
               with exc -> Log.fwarning "[id=%s] AMR skipped [exception: %s]" sent_id (Printexc.to_string exc); None
             ) amr_corpus in

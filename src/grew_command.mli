@@ -53,7 +53,7 @@ module Command : sig
   val to_json: ?domain:Domain.t -> config:Conllx_config.t -> t -> Yojson.Basic.t
 
 
-  val build:
+  val of_ast:
     ?domain: Domain.t ->
     config:Conllx_config.t ->
     Lexicons.t ->

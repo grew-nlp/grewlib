@@ -205,9 +205,9 @@ module Pattern = struct
       | None -> Pid.Neg (Id.build ~loc node_name neg_table) in
     match const with
     | (Ast.Cst_out (id,label_cst), loc) ->
-      Cst_out (pid_of_name loc id, Label_cst.build ~loc ?domain ~config label_cst)
+      Cst_out (pid_of_name loc id, Label_cst.of_ast ~loc ?domain ~config label_cst)
     | (Ast.Cst_in (id,label_cst), loc) ->
-      Cst_in (pid_of_name loc id, Label_cst.build ~loc ?domain ~config label_cst)
+      Cst_in (pid_of_name loc id, Label_cst.of_ast ~loc ?domain ~config label_cst)
 
     | (Ast.Feature_equal ((id1, feat_name1),(id2, feat_name2)), loc) ->
       Feature_equal (parse_id loc id1, feat_name1, parse_id loc id2, feat_name2)
@@ -256,7 +256,7 @@ module Pattern = struct
 
   let build_pos_basic ?domain ~config lexicons basic_ast =
     let (graph, pos_table, edge_ids) =
-      P_graph.build ~config ?domain lexicons basic_ast in
+      P_graph.of_ast ~config ?domain lexicons basic_ast in
     (
       {
         graph = graph;
@@ -269,7 +269,7 @@ module Pattern = struct
   (* It may raise [P_fs.Fail_unif] in case of contradiction on constraints *)
   let build_neg_basic ?domain ~config lexicons pos_table edge_ids basic_ast =
     let (extension, neg_table, edge_ids) =
-      P_graph.build_extension ?domain ~config lexicons pos_table edge_ids basic_ast.Ast.pat_nodes basic_ast.Ast.pat_edges in
+      P_graph.of_ast_extension ?domain ~config lexicons pos_table edge_ids basic_ast.Ast.pat_nodes basic_ast.Ast.pat_edges in
 
     let filters = Pid_map.fold (fun id node acc -> Filter (id, P_node.get_fs node) :: acc) extension.P_graph.old_map [] in
     {
@@ -294,7 +294,7 @@ module Pattern = struct
 
   let pid_name_list pattern = P_graph.pid_name_list pattern.pos.graph
 
-  let build ?domain ~config ?(lexicons=[]) pattern_ast =
+  let of_ast ?domain ~config ?(lexicons=[]) pattern_ast =
     let n_pattern = Ast.normalize_pattern pattern_ast in
     let (pos, pos_table, edge_ids) =
       try build_pos_basic ~config ?domain lexicons n_pattern.Ast.pat_pos
@@ -986,7 +986,7 @@ module Rule = struct
     Buffer.contents buff
 
   (* ====================================================================== *)
-  let build_commands ?domain ~config lexicons pos pos_table ast_commands =
+  let commands_of_ast ?domain ~config lexicons pos pos_table ast_commands =
     let known_node_ids = Array.to_list pos_table in
     let known_edge_ids = Pattern.get_edge_ids pos in
 
@@ -994,7 +994,7 @@ module Rule = struct
       | [] -> []
       | ast_command :: tail ->
         let (command, (new_kni, new_kei)) =
-          Command.build
+          Command.of_ast
             ?domain
             ~config
             lexicons
@@ -1005,13 +1005,13 @@ module Rule = struct
     loop (known_node_ids, known_edge_ids) ast_commands
 
   (* ====================================================================== *)
-  let build ?domain ~config rule_ast =
+  let of_ast ?domain ~config rule_ast =
     let lexicons =
       List.fold_left (fun acc (name,lex) ->
           try
             let prev = List.assoc name acc in
-            (name, (Lexicon.union prev (Lexicon.build ~loc:rule_ast.Ast.rule_loc lex))) :: (List.remove_assoc name acc)
-          with Not_found -> (name, Lexicon.build ~loc:rule_ast.Ast.rule_loc lex) :: acc
+            (name, (Lexicon.union prev (Lexicon.of_ast ~loc:rule_ast.Ast.rule_loc lex))) :: (List.remove_assoc name acc)
+          with Not_found -> (name, Lexicon.of_ast ~loc:rule_ast.Ast.rule_loc lex) :: acc
         ) [] rule_ast.Ast.lexicon_info in
 
     let pattern = Ast.normalize_pattern rule_ast.Ast.pattern in
@@ -1033,7 +1033,7 @@ module Rule = struct
     {
       name = rule_ast.Ast.rule_id;
       pattern = { pos; negs; global=pattern.Ast.pat_glob; };
-      commands = build_commands ?domain ~config lexicons pos pos_table rule_ast.Ast.commands;
+      commands = commands_of_ast ?domain ~config lexicons pos pos_table rule_ast.Ast.commands;
       loc = rule_ast.Ast.rule_loc;
       lexicons;
       path = rule_ast.Ast.rule_path;
