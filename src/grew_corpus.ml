@@ -284,7 +284,7 @@ module Corpus_desc = struct
           grew_match_table_and_desc ~config:corpus_desc.config grew_match_dir corpus_desc.id conll_corpus;
           CCArray.filter_map (fun (sent_id,conllx) ->
               try
-                let init_graph = G_graph.of_conllx ~config (Conllx.to_json conllx) in
+                let init_graph = G_graph.of_grew_json (Conllx.to_json conllx) in
                 let graph = match corpus_desc.preapply with
                   | Some grs -> Grs.apply ~config grs init_graph
                   | None -> init_graph in

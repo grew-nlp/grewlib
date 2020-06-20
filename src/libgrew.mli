@@ -103,8 +103,8 @@ module Graph : sig
   val of_json: config:Conllx_config.t -> Yojson.Basic.t -> t
   val to_json: t -> Yojson.Basic.t
 
-  val of_conllx: config:Conllx_config.t -> Yojson.Basic.t -> t
-  val to_conllx: t -> Yojson.Basic.t
+  val of_grew_json: Yojson.Basic.t -> t
+  val to_grew_json: t -> Yojson.Basic.t
 
   val of_brown: ?domain:Domain.t -> config:Conllx_config.t -> ?sentid:string -> string -> t
 
