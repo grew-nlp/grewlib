@@ -463,7 +463,8 @@ module G_graph = struct
       |> List.map
         (fun json_node ->
            let id = try json_node |> member "id" |> to_string with Type_error _ -> Error.run "No id in node json description %s" (Yojson.Basic.pretty_to_string json_node) in
-           let fs = json |> to_assoc |> List.remove_assoc "id" |> List.map (fun (feat_name,json_value) -> (feat_name, json_value |> to_string)) in
+           let fs = json_node |> to_assoc |> List.remove_assoc "id" |> List.map (fun (feat_name,json_value) ->
+               (feat_name, json_value |> to_string)) in
            (id,fs)
         ) in
 
@@ -473,9 +474,9 @@ module G_graph = struct
       List.map
         (fun json_edge ->
            (
-             json |> member "src" |> to_string,
-             json |> member "label" |> to_assoc |> List.map (fun (x,y) -> (x,typed_vos x (to_string y))),
-             json |> member "tar" |> to_string
+             json_edge |> member "src" |> to_string,
+             json_edge |> member "label" |> to_assoc |> List.map (fun (x,y) -> (x,typed_vos x (to_string y))),
+             json_edge |> member "tar" |> to_string
 
            )
         ) json_edges in
@@ -483,7 +484,7 @@ module G_graph = struct
     let (map_without_edges, table, final_index) =
       List.fold_left
         (fun (acc_map, acc_table, acc_index) (node_id, fs_items) ->
-          let fs = G_fs.of_items fs_items in
+           let fs = G_fs.of_items fs_items in
            let new_node = G_node.set_fs fs G_node.empty in
            (
              Gid_map.add acc_index new_node acc_map,
@@ -493,18 +494,18 @@ module G_graph = struct
         ) (Gid_map.empty, String_map.empty, 0) nodes in
 
     let order = json |> member "order" |> to_list
-      |> List.map (fun x ->String_map.find (x |> to_string) table)  in
+                |> List.map (fun x ->String_map.find (x |> to_string) table)  in
 
     let rec loop_order (acc_map, acc_pos) = function
-    | [] -> acc_map
-    | gid::tail ->
-      let node = Gid_map.find gid acc_map in
-      let map_with_pos = Gid_map.add gid (G_node.set_position acc_pos node) acc_map in
-      let map_with_succ_prec =
-        match tail with
-        | [] -> map_with_pos
-        | gid_next :: _ -> map_add_pred_succ gid gid_next map_with_pos in
-      loop_order (map_with_succ_prec, acc_pos+1) tail in
+      | [] -> acc_map
+      | gid::tail ->
+        let node = Gid_map.find gid acc_map in
+        let map_with_pos = Gid_map.add gid (G_node.set_position acc_pos node) acc_map in
+        let map_with_succ_prec =
+          match tail with
+          | [] -> map_with_pos
+          | gid_next :: _ -> map_add_pred_succ gid gid_next map_with_pos in
+        loop_order (map_with_succ_prec, acc_pos+1) tail in
 
     let maps_with_order = loop_order (map_without_edges, 0) order in
 
