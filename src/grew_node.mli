@@ -27,6 +27,7 @@ module G_node: sig
   val compare: t -> t -> int
 
   val get_name: Gid.t -> t -> string
+  val set_name: string -> t -> t
 
   val get_fs: t -> G_fs.t
   val set_fs: G_fs.t -> t -> t

@@ -35,6 +35,7 @@ module G_node = struct
   let get_name gid t = match t.name with
     | Some n -> n
     | None -> sprintf "_%s_" (Gid.to_string gid)
+  let set_name n t = { t with name = Some n }
 
   let get_fs t = t.fs
   let set_fs fs t = {t with fs }

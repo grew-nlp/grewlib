@@ -485,7 +485,7 @@ module G_graph = struct
       List.fold_left
         (fun (acc_map, acc_table, acc_index) (node_id, fs_items) ->
            let fs = G_fs.of_items fs_items in
-           let new_node = G_node.set_fs fs G_node.empty in
+           let new_node = G_node.set_name node_id (G_node.set_fs fs G_node.empty) in
            (
              Gid_map.add acc_index new_node acc_map,
              String_map.add node_id acc_index acc_table,
