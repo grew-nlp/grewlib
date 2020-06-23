@@ -36,12 +36,12 @@ module Corpus = struct
     sent_id: string;
     text: string;
     graph: G_graph.t;
-    kind: kind;
   }
 
   type t = {
     domain: Domain.t option;
     items: item array;
+    kind: kind;
   }
 
   let fold_left fct init t =
@@ -56,7 +56,7 @@ module Corpus = struct
   let get_graph position t = t.items.(position).graph
   let get_sent_id position t = t.items.(position).sent_id
 
-  let is_conll position t = t.items.(position).kind = Conll
+  let is_conll position t = t.kind = Conll
 
   let get_text position t = t.items.(position).text
 
@@ -140,25 +140,25 @@ module Corpus_desc = struct
               let graph = match corpus_desc.preapply with
                 | Some grs -> Grs.apply ~config grs init_graph
                 | None -> init_graph in
-              Some {Corpus.sent_id; text=G_graph.to_sentence graph; graph; kind=Conll}
+              Some {Corpus.sent_id; text=G_graph.to_sentence graph; graph }
             with Error.Build (msg, loc_opt) ->
               Log.fwarning "[build_corpus, sent_id=%s%s] skipped: %s"
-              sent_id
-              (match loc_opt with None -> "" | Some loc -> "; " ^ (Loc.to_string loc))
-              msg; None
+                sent_id
+                (match loc_opt with None -> "" | Some loc -> "; " ^ (Loc.to_string loc))
+                msg; None
           ) conll_corpus in
-      { Corpus.domain; items }
+      { Corpus.domain; items; kind=Conll }
     | _ -> Error.bug "[Corpus_desc.build_corpus] is available only on Conll format"
 
   (* ---------------------------------------------------------------------------------------------------- *)
   let load_corpus_opt corpus_desc =
     let marshal_file = (Filename.concat corpus_desc.directory corpus_desc.id) ^ ".marshal" in
-      try
-        let in_ch = open_in_bin marshal_file in
-        let data = (Marshal.from_channel in_ch : Corpus.t) in
-        close_in in_ch;
-        Some data
-      with Sys_error _ -> None
+    try
+      let in_ch = open_in_bin marshal_file in
+      let data = (Marshal.from_channel in_ch : Corpus.t) in
+      close_in in_ch;
+      Some data
+    with Sys_error _ -> None
 
 
   (* ---------------------------------------------------------------------------------------------------- *)
@@ -288,12 +288,12 @@ module Corpus_desc = struct
                 let graph = match corpus_desc.preapply with
                   | Some grs -> Grs.apply ~config grs init_graph
                   | None -> init_graph in
-                Some {Corpus.sent_id; text=G_graph.to_sentence graph; graph; kind=Conll}
-            with Error.Build (msg, loc_opt) ->
-              Log.fwarning "[build_marshal_file, sent_id=%s%s] skipped: %s"
-              sent_id
-              (match loc_opt with None -> "" | Some loc -> "; " ^ (Loc.to_string loc))
-              msg; None
+                Some {Corpus.sent_id; text=G_graph.to_sentence graph; graph }
+              with Error.Build (msg, loc_opt) ->
+                Log.fwarning "[build_marshal_file, sent_id=%s%s] skipped: %s"
+                  sent_id
+                  (match loc_opt with None -> "" | Some loc -> "; " ^ (Loc.to_string loc))
+                  msg; None
             ) (Conllx_corpus.get_data conll_corpus)
 
         | Pst ->
@@ -301,7 +301,7 @@ module Corpus_desc = struct
           CCArray.filter_map (fun (sent_id,pst) ->
               try
                 let graph = G_graph.of_pst ?domain (Parser.phrase_structure_tree pst) in
-                Some {Corpus.sent_id; text=G_graph.to_sentence graph; graph; kind=Pst}
+                Some {Corpus.sent_id; text=G_graph.to_sentence graph; graph }
               with exc -> Log.fwarning "[id=%s] PST skipped [exception: %s]" sent_id (Printexc.to_string exc); None
             ) pst_corpus
 
@@ -314,12 +314,12 @@ module Corpus_desc = struct
               try
                 let gr = Amr.to_gr amr in
                 let graph = G_graph.of_ast ?domain ~config (Parser.gr gr) in
-                Some {Corpus.sent_id; text; graph; kind=Amr}
+                Some {Corpus.sent_id; text; graph }
               with exc -> Log.fwarning "[id=%s] AMR skipped [exception: %s]" sent_id (Printexc.to_string exc); None
             ) amr_corpus in
       let _ = Log.fmessage "[%s] %d graphs loaded" corpus_desc.id (Array.length items) in
       let out_ch = open_out_bin marshal_file in
-      let (data : Corpus.t) = {Corpus.domain; items} in
+      let (data : Corpus.t) = {Corpus.domain; items; kind=corpus_desc.kind } in
       Marshal.to_channel out_ch data [];
       close_out out_ch
     with
