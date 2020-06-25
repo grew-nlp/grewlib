@@ -16,6 +16,8 @@ module Int_map : Map.S with type key = int
 
 val to_uname: string -> string
 
+val ( << ) : ('a -> 'b) -> ('c -> 'a) -> ('c -> 'b)
+
 (* ================================================================================ *)
 (* [Loc] general module to describe errors location: (file name, line number in file) *)
 module Loc: sig

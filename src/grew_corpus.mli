@@ -8,6 +8,8 @@ open Grew_graph
 module Corpus : sig
   type t
 
+  val merge: t list -> t
+
   val size: t -> int
   val get_domain_opt: t -> Domain.t option
   val get_graph: int -> t -> G_graph.t
@@ -15,9 +17,14 @@ module Corpus : sig
   val get_sent_id: int -> t -> string
   val get_text: int -> t -> string
 
-  val fold_left: ('a -> G_graph.t -> 'a) -> 'a -> t -> 'a
+  val fold_left: ('a -> string -> G_graph.t -> 'a) -> 'a -> t -> 'a
+  val iteri: (int -> string -> G_graph.t -> unit) -> t -> unit
 
   val permut_length: t -> int array
+
+  val from_stdin: ?config:Conllx_config.t -> unit -> t
+  val from_file: ?config:Conllx_config.t -> string -> t
+  val from_dir: ?config:Conllx_config.t -> string -> t
 end
 
 module Corpus_desc : sig

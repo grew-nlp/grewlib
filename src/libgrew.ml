@@ -366,7 +366,24 @@ module Corpus = struct
 
   let fold_left fct init t =
     Libgrew.handle ~name:"Corpus.fold_left" (fun () -> Grew_corpus.Corpus.fold_left fct init t) ()
+
+  let iteri fct t =
+    Libgrew.handle ~name:"Corpus.iteri" (fun () -> Grew_corpus.Corpus.iteri fct t) ()
+
+  let from_stdin ?config () =
+    Libgrew.handle ~name:"Corpus.from_stdin" (fun () -> Grew_corpus.Corpus.from_stdin ?config ()) ()
+
+  let from_file ?config file =
+    Libgrew.handle ~name:"Corpus.from_file" (fun () -> Grew_corpus.Corpus.from_file ?config file) ()
+
+  let from_dir ?config dir =
+    Libgrew.handle ~name:"Corpus.from_dir" (fun () -> Grew_corpus.Corpus.from_dir ?config dir) ()
+
+  let merge corpus_list =
+    Libgrew.handle ~name:"Corpus.merge" (fun () -> Grew_corpus.Corpus.merge corpus_list) ()
 end
+
+
 
 module Corpus_desc = struct
 

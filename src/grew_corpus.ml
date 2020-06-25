@@ -13,7 +13,7 @@ open Grew_grs
 
 (* ==================================================================================================== *)
 module Pst_corpus = struct
-  let load files =
+  let load_files files =
     let sub_corp = List.map
         (fun file ->
            let line_list = File.read file in
@@ -44,10 +44,42 @@ module Corpus = struct
     kind: kind;
   }
 
+  let merge = function
+    | [] -> Error.bug "Empty list in Corpus.merge"
+    | [one] -> one
+    | h::t ->
+      if List.exists (fun t -> t.domain <> h.domain) t
+      then Error.run "Cannot merge corpora with incompatible domains"
+      else if List.exists (fun t -> t.kind <> h.kind) t
+      then Error.run "Cannot merge corpora with incompatible kinds"
+      else {h with items = Array.concat (List.map (fun t -> t.items) (h::t)) }
+
+  let of_conllx_corpus conllx_corpus =
+    let items =
+      Array.map
+        (fun (sent_id, conllx) ->
+           let text = match List.assoc_opt "text" (Conllx.get_meta conllx) with Some t -> t | None -> "__missing text metadata__" in
+           let graph = conllx |> Conllx.to_json |> G_graph.of_grew_json in
+           { sent_id; text; graph }
+        ) (Conllx_corpus.get_data conllx_corpus) in
+    { domain = None; kind = Conll; items }
+
+  let of_amr_corpus amr_corpus =
+    let items =
+      Array.map
+        (fun (sent_id, text, amr) ->
+           { sent_id; text; graph = amr |> Amr.to_gr |> Loader.gr |> G_graph.of_ast ~config:(Conllx_config.build "basic") }
+        ) amr_corpus in
+    { domain=None; kind=Amr; items; }
+
   let fold_left fct init t =
     Array.fold_left
-      (fun acc item -> fct acc item.graph)
+      (fun acc item -> fct acc item.sent_id item.graph)
       init t.items
+
+  let iteri fct t = Array.iteri (fun i item -> fct i item.sent_id item.graph) t.items
+
+
 
   let size t = Array.length t.items
 
@@ -70,6 +102,35 @@ module Corpus = struct
         items_with_length in
     Array.map fst items_with_length
 
+  let from_stdin ?config () =
+    of_conllx_corpus (Conllx_corpus.read_stdin ?config ())
+
+  let from_file ?config file =
+    match Filename.extension file with
+    | ".conll" | ".conllu" | ".cupt" | ".orfeo" ->
+      of_conllx_corpus (Conllx_corpus.load ?config file)
+    | ".amr" | ".txt" ->
+      of_amr_corpus (Amr_corpus.load file)
+    | ext -> Error.run "Cannot load file `%s`, unknown extension `%s`" file ext
+
+  let from_dir ?config dir =
+    let files = Sys.readdir dir in
+    let (conll_files, amr_files, txt_files) =
+      Array.fold_right
+        (fun file (conll_acc, amr_acc, txt_acc) ->
+           match Filename.extension file with
+           | ".conll" | ".conllu" | ".cupt" | ".orfeo" -> (file::conll_acc, amr_acc, txt_acc)
+           | ".amr" -> (conll_acc, file::amr_acc, txt_acc)
+           | ".txt" -> (conll_acc, amr_acc, file::txt_acc)
+           | _ -> (conll_acc, amr_acc, txt_acc)
+        ) files ([],[],[]) in
+
+    (* txt files are interpreted as AMR files only if there is no conll-like files (eg: UD containts txt files in parallel to conllu) *)
+    match (conll_files, amr_files, txt_files) with
+    | ([],[],[]) -> Error.run "The directory `%s` does not contain any graphs" dir
+    | (conll_files,[],_) -> of_conllx_corpus (Conllx_corpus.load_list ?config conll_files)
+    | ([],amr_files, txt_files) -> (amr_files @ txt_files) |> List.map (of_amr_corpus << Amr_corpus.load) |> merge
+    | _ -> Error.run "The directory `%s` contains both Conll data and Amr data" dir
 end
 
 (* ==================================================================================================== *)
@@ -78,7 +139,7 @@ module Corpus_desc = struct
   type t = {
     id: string;
     kind: Corpus.kind;
-    config: Conllx_config.t;
+    config: Conllx_config.t; (* "ud" is used as the default: TODO make config mandatory in desc? *)
     columns: Conllx_columns.t option;
     dom_file: string option;
     directory: string;
@@ -181,7 +242,7 @@ module Corpus_desc = struct
         with Type_error _ -> Error.run "[Corpus.load_json, file \"%s\"] \"kind\" must be a string" json_file in
 
       let config =
-        try json |> member "config" |> to_string_option |> (function Some c -> Conllx_config.build c | None -> Conllx_config.default)
+        try json |> member "config" |> to_string_option |> (function Some c -> Conllx_config.build c | None -> Conllx_config.build "ud")
         with Type_error _ -> Error.run "[Corpus.load_json, file \"%s\"] \"config\" field must be a string" json_file in
 
       let columns =
@@ -297,7 +358,7 @@ module Corpus_desc = struct
             ) (Conllx_corpus.get_data conll_corpus)
 
         | Pst ->
-          let pst_corpus = Pst_corpus.load full_files in
+          let pst_corpus = Pst_corpus.load_files full_files in
           CCArray.filter_map (fun (sent_id,pst) ->
               try
                 let graph = G_graph.of_pst ?domain (Parser.phrase_structure_tree pst) in

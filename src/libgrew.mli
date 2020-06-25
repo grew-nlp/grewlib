@@ -199,9 +199,16 @@ module Corpus: sig
   val is_conll: int -> t -> bool
   val get_text: int -> t -> string
 
-  val fold_left: ('a -> Graph.t -> 'a) -> 'a -> t -> 'a
+  val fold_left: ('a -> string -> Graph.t -> 'a) -> 'a -> t -> 'a
+  val iteri: (int -> string -> Graph.t -> unit) -> t -> unit
 
   val permut_length: t -> int array
+
+  val from_stdin: ?config:Conllx_config.t -> unit -> t
+  val from_file: ?config:Conllx_config.t -> string -> t
+  val from_dir: ?config:Conllx_config.t -> string -> t
+
+  val merge: t list -> t
 end
 
 module Corpus_desc: sig
