@@ -441,28 +441,31 @@ module P_fs = struct
       | ((fn_pat, P_feature.Absent)::t_pat, (fn, fa)::t) when fn_pat < fn -> loop acc (t_pat, (fn, fa)::t)
 
       (* look for the second part of an Else construction*)
-      | ((_, P_feature.Else (_,fn2,fv2))::t_pat,[]) ->
-        begin
+      | ((_, P_feature.Else (_,fn2,fv2))::t_pat,[]) ->        begin
           try if (List.assoc fn2 g_fs) <> fv2 then raise Fail
           with Not_found -> raise Fail
         end; loop acc (t_pat, [])
-      | ((fn_pat, P_feature.Else (_,fn2,fv2))::t_pat,(fn, fv)::t) when fn_pat < fn ->
+
+      (* special case of Else when the first request is not satified *)
+      | ((fn_pat, P_feature.Else (_,fn2,fv2))::t_pat, (((fn, _)::_) as t)) when fn_pat < fn ->
         begin
           try if (List.assoc fn2 g_fs) <> fv2 then raise Fail
           with Not_found -> raise Fail
         end; loop acc (t_pat, t)
 
-      (* Two next cases: each feature_name present in p_fs must be in instance *)
-      | _, [] -> raise Fail
+      (* p_fs is not empty and  does not begin with and Absent request, g_fs empty ==> Fail *)
+      | _::_, [] -> raise Fail
+
+      (* the next p_fs request cannot be satisfied ==> Fail *)
       | ((fn_pat, _)::_, (fn, _)::_) when fn_pat < fn -> raise Fail
 
       (* Next cases: fn_pat = fn *)
       | ((_, P_feature.Absent)::_, (_, atom)::t) -> raise Fail
       | ((_, P_feature.Equal fv)::_, (_, atom)::t) when not (List_.sort_mem atom fv) -> raise Fail
+      | ((_, P_feature.Else (fv,_,_))::_, (_, atom)::t) when atom <> fv -> raise Fail
       | ((_, P_feature.Different fv)::_, (_, atom)::t) when List_.sort_mem atom fv -> raise Fail
 
-      | ((_, P_feature.Equal_lex (lex_id,field))::t_pat, (_, atom)::t) ->
-        begin
+      | ((_, P_feature.Equal_lex (lex_id,field))::t_pat, (_, atom)::t) ->        begin
           try
             let lexicon = List.assoc lex_id acc in
             match Lexicon.select_opt field (string_of_value atom) lexicon with
@@ -473,6 +476,8 @@ module P_fs = struct
           with
           | Not_found -> Error.bug "[P_fs.match_] Cannot find lexicon. lex_id=\"%s\"" lex_id
         end
+
+      (* We have exhausted Fail cases, head of g_fs satisties head of p_fs *)
       | (_::p_tail, _::g_tail) -> loop acc (p_tail,g_tail) in
     loop lexicons (p_fs_wo_pos,g_fs)
 
