@@ -24,7 +24,7 @@ end
 (** {2 Exceptions} *)
 (* ==================================================================================================== *)
 module Libgrew = struct
-  let get_version () = VERSION
+  let get_version () = "1.3.6.1"
 
   let set_debug_mode flag = Grew_base.Global.debug := flag
 

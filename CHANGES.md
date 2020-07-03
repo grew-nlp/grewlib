@@ -1,3 +1,6 @@
+## 1.3.6.1 (2020/07/03)
+  * remove cppo usage
+
 ## 1.3.6 (2020/05/05)
   * Fix bug in del_node implementation
 
