@@ -248,16 +248,6 @@ module G_graph = struct
     | ("", s) -> s
     | (k,v) -> sprintf "# %s = %s" k v
 
-  (* let get_meta_opt key t =
-     let rec loop = function
-      | [] -> None
-      | line::tail ->
-        begin
-          match Str.bounded_full_split (Str.regexp "[#=\t ]+") line 3 with
-          | [Str.Delim _; Str.Text k; Str.Delim _; Str.Text value] when k = key -> Some value
-          | s -> loop tail
-        end in loop t.meta *)
-
   let set_meta key value t = {t with meta = (key,value) :: List.remove_assoc key t.meta}
 
   let empty = { domain=None; meta=[]; map=Gid_map.empty; fusion=[]; highest_index=0; rules=String_map.empty; }
@@ -1045,69 +1035,58 @@ module G_graph = struct
     Buffer.contents buff
 
   (* -------------------------------------------------------------------------------- *)
-  let fusion_item_space_after fi =
-    try if List.assoc "SpaceAfter" fi.efs = "No" then "" else " "
-    with Not_found -> " "
-
-  let space_after gnode =
-    match G_fs.get_value_opt "_MISC_SpaceAfter" (G_node.get_fs gnode) with
-    | Some (String "No") -> ""
-    | _ -> " "
-
-  let esc s = Str.global_replace (Str.regexp "<") "&lt;" s
+  let space_after node =
+    match G_fs.get_value_opt "SpaceAfter" (G_node.get_fs node) with
+    | Some (String "No") -> false
+    | _ -> true
 
   let to_sentence ?pivot ?(deco=G_deco.empty) graph =
     let high_list = match pivot with
       | None -> List.map fst deco.nodes
       | Some pivot ->
-        match List.find_opt
-                (fun (gid, (pattern_id,_)) -> pattern_id = pivot
-                ) deco.nodes with
+        match List.find_opt (fun (gid, (pattern_id,_)) -> pattern_id = pivot) deco.nodes with
         | None -> Error.run "Undefined pivot %s" pivot
         | Some (gid,_) -> [gid] in
 
     let is_highlighted_gid gid = List.mem gid high_list in
 
-    let inside fusion_item gid =
-      let first = Gid_map.find fusion_item.first graph.map in
-      let last = Gid_map.find fusion_item.last graph.map in
-      let node = Gid_map.find gid graph.map in
-      match (G_node.get_position_opt first, G_node.get_position_opt node, G_node.get_position_opt last) with
-      | (Some f, Some n, Some l) when f <= n && n <= l -> true
-      | _ -> false in
+    let exception Find of Gid.t in
 
-    let is_highlighted_fusion_item fusion_item =
-      List.exists (fun gid -> inside fusion_item gid) high_list in
+    let init_gid_opt =
+      try Gid_map.iter
+            (fun gid node ->
+               match (G_node.get_pred_opt node, G_node.get_succ_opt node) with
+               | (None, Some _) -> raise (Find gid)
+               | _ -> ()
+            ) graph.map; None
+      with Find node -> Some node in
 
-    let nodes = Gid_map.fold (fun id elt acc -> (id,elt)::acc) graph.map [] in
-    let snodes = List.sort (fun (_,n1) (_,n2) -> G_node.compare n1 n2) nodes in
-
-    let rec loop skip = function
-      | [] -> ""
-      | (gid, gnode)::gtail when skip = None ->
-        begin
-          match List.find_opt (fun fusion_item -> fusion_item.first=gid) graph.fusion with
-          | Some fusion_item ->
-            (if is_highlighted_fusion_item fusion_item
-             then sprintf "<span class=\"highlight\">%s</span>" (esc fusion_item.word)
-             else (esc fusion_item.word))
-            ^ (fusion_item_space_after fusion_item)
-            ^ (loop (Some fusion_item.last) gtail)
-          | None ->
-            match G_fs.to_word_opt (G_node.get_fs gnode) with
-            | None -> (loop None gtail)
-            | Some text ->
-              (if is_highlighted_gid gid
-               then sprintf "<span class=\"highlight\">%s</span>" (esc text)
-               else esc (text))
-              ^ (space_after gnode)
-              ^ (loop None gtail)
-        end
-      | (gid, gnode)::gtail when skip = Some gid -> loop None gtail
-      | (gid, gnode)::gtail -> loop skip gtail in
-
-    Sentence.fr_clean_spaces (loop None snodes)
-
+    match init_gid_opt with
+    | None -> "Warning: no ordered node found in the sentence!"
+    | Some init_gid ->
+      let buff = Buffer.create 32 in
+      let rec loop current_form flag_highlight flag_sa gid =
+        let to_buff = function
+          | (None, _, _) -> ()
+          | (Some s, false, false) -> bprintf buff "%s" s
+          | (Some s, false, true) -> bprintf buff "%s " s
+          | (Some s, true, false) -> bprintf buff "<span class=\"highlight\">%s</span>" s
+          | (Some s, true, true) -> bprintf buff "<span class=\"highlight\">%s</span> " s
+        in
+        let node = Gid_map.find gid graph.map in
+        let fs = G_node.get_fs node in
+        let (new_current_form, new_flag_highlight, new_flag_sa) =
+          match (G_fs.get_value_opt "textform" fs, G_fs.get_value_opt "form" fs) with
+          | (Some (String "_"),_) -> (current_form, flag_highlight || (is_highlighted_gid gid), space_after node)
+          | (None, Some (String "__ROOT__")) -> (current_form, flag_highlight, false)
+          | (Some (String form), _)
+          | (None, Some (String form)) -> to_buff (current_form, flag_highlight, flag_sa); (Some form, is_highlighted_gid gid, space_after node)
+          | _ -> (current_form, flag_highlight, space_after node) in
+        match G_node.get_succ_opt node with
+        | Some succ_gid -> loop new_current_form new_flag_highlight new_flag_sa succ_gid
+        | None -> to_buff (new_current_form, new_flag_highlight, new_flag_sa) in
+      loop None false true init_gid;
+      Buffer.contents buff
 
   let start_dur gnode =
     let fs = G_node.get_fs gnode in
