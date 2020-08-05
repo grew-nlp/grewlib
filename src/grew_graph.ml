@@ -1078,7 +1078,7 @@ module G_graph = struct
         let (new_current_form, new_flag_highlight, new_flag_sa) =
           match (G_fs.get_value_opt "textform" fs, G_fs.get_value_opt "form" fs) with
           | (Some (String "_"),_) -> (current_form, flag_highlight || (is_highlighted_gid gid), space_after node)
-          | (None, Some (String "__ROOT__")) -> (current_form, flag_highlight, false)
+          | (None, Some (String "__0__")) -> (current_form, flag_highlight, false)
           | (Some (String form), _)
           | (None, Some (String form)) -> to_buff (current_form, flag_highlight, flag_sa); (Some form, is_highlighted_gid gid, space_after node)
           | _ -> (current_form, flag_highlight, space_after node) in
