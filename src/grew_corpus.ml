@@ -107,7 +107,7 @@ module Corpus = struct
 
   let from_file ?config file =
     match Filename.extension file with
-    | ".conll" | ".conllu" | ".cupt" | ".orfeo" ->
+    | ".conll" | ".conllu" | ".cupt" | ".orfeo" | ".frsemcor" ->
       of_conllx_corpus (Conllx_corpus.load ?config file)
     | ".amr" | ".txt" ->
       of_amr_corpus (Amr_corpus.load file)
