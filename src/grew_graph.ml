@@ -1080,7 +1080,9 @@ module G_graph = struct
           | (Some (String "_"),_) -> (current_form, flag_highlight || (is_highlighted_gid gid), space_after node)
           | (None, Some (String "__0__")) -> (current_form, flag_highlight, false)
           | (Some (String form), _)
-          | (None, Some (String form)) -> to_buff (current_form, flag_highlight, flag_sa); (Some form, is_highlighted_gid gid, space_after node)
+          | (None, Some (String form)) ->
+            let form = match form with "UNDERSCORE" -> "_" | x -> x in (* '_' is escaped in textform to avoid ambiguity with textform=_ in multi-word tokens *)
+            to_buff (current_form, flag_highlight, flag_sa); (Some form, is_highlighted_gid gid, space_after node)
           | _ -> (current_form, flag_highlight, space_after node) in
         match G_node.get_succ_opt node with
         | Some succ_gid -> loop new_current_form new_flag_highlight new_flag_sa succ_gid
