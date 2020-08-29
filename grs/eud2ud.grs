@@ -1,11 +1,11 @@
 package eud_to_ud {
   rule deep { % remove add enhanced relations
-    pattern { e:N -[re"E:.*"]-> M }
+    pattern { e:N -[enhanced=yes]-> M }
     commands { del_edge e}
   }
 
   rule empty { % remove empty nodes
-    pattern { N [_UD_empty=Yes] }
+    pattern { N [wordform=_, textform=_] }
     commands { del_node N }
   }
 }
