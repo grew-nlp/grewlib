@@ -236,11 +236,11 @@ module Graph = struct
   let to_conll ~config graph =
     Libgrew.handle ~name:"Graph.to_conll" (fun () -> Grew_graph.G_graph.to_conll ~config graph) ()
 
-  let of_grew_json graph =
-    Libgrew.handle ~name:"Graph.of_grew_json" (fun () -> Grew_graph.G_graph.of_grew_json graph) ()
+  let of_json graph =
+    Libgrew.handle ~name:"Graph.of_json" (fun () -> Grew_graph.G_graph.of_json graph) ()
 
-  let to_grew_json graph =
-    Libgrew.handle ~name:"Graph.to_grew_json" (fun () -> Grew_graph.G_graph.to_grew_json graph) ()
+  let to_json graph =
+    Libgrew.handle ~name:"Graph.to_json" (fun () -> Grew_graph.G_graph.to_json graph) ()
 
   let to_conll_string ?cupt ~config graph =
     Libgrew.handle ~name:"Graph.to_conll_string" (fun () -> Grew_graph.G_graph.to_conll_string ?cupt ~config graph) ()

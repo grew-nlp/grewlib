@@ -53,9 +53,9 @@ module G_edge: sig
   (* robust printing: to be used only in error reporting *)
   val dump: ?config:Conllx_config.t -> t -> string
 
-  (** [to_grew_json_opt t] returns [Some js] where [js] is the json data usable in Conllx
+  (** [to_json_opt t] returns [Some js] where [js] is the json data usable in Conllx
       [None] is returned if [t] is a special edge *)
-  val to_grew_json_opt: t -> Yojson.Basic.t option
+  val to_json_opt: t -> Yojson.Basic.t option
 
   (** Temp hardcoded conversion from t to dep2pict string (domain is unused) *)
   val to_dep_opt: ?domain: Domain.t -> ?deco:bool -> config:Conllx_config.t -> t -> string option

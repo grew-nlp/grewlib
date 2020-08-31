@@ -25,13 +25,13 @@ module G_edge = struct
 
   let fs_of_items l = (List.sort (fun (x,_) (y,_) -> Stdlib.compare x y) l)
 
-  let fs_to_grew_json fs = `Assoc (List.map (fun (k,v) -> (k, `String (string_of_value v))) fs)
+  let fs_to_json fs = `Assoc (List.map (fun (k,v) -> (k, `String (string_of_value v))) fs)
 
-  let fs_of_grew_json json =
+  let fs_of_json json =
     let open Yojson.Basic.Util in
     json |> to_assoc |> List.map (fun (f,json_v) -> (f, typed_vos f (to_string json_v))) |> fs_of_items
 
-  let fs_to_string_res ~config fs = fs |> fs_to_grew_json |> Conllx_label.of_json |> Conllx_label.to_string ~config
+  let fs_to_string_res ~config fs = fs |> fs_to_json |> Conllx_label.of_json |> Conllx_label.to_string ~config
 
   let fs_to_string ~config fs = match fs_to_string_res ~config fs with Ok s | Error s -> s
 
@@ -39,7 +39,7 @@ module G_edge = struct
     s
     |> (Conllx_label.of_string ~config)
     |> Conllx_label.to_json
-    |> fs_of_grew_json
+    |> fs_of_json
 
   type t =
     | Fs of fs
@@ -92,8 +92,8 @@ module G_edge = struct
     | (Pred, _) -> "__PRED__"
     | (Succ, _) -> "__SUCC__"
 
-  let to_grew_json_opt = function
-    | Fs fs -> Some (fs_to_grew_json fs)
+  let to_json_opt = function
+    | Fs fs -> Some (fs_to_json fs)
     | _ -> None
 
   (* WARNING: hardcoded version which subsumes know configs *)
@@ -137,7 +137,7 @@ module G_edge = struct
     | _ -> None
 
   let to_json t = match t with
-    | Fs fs -> fs_to_grew_json fs
+    | Fs fs -> fs_to_json fs
     | _ -> `Null
 
   let build ~config (ast_edge, loc) =

@@ -57,7 +57,7 @@ module G_feature = struct
 
   let to_gr (feat_name, feat_val) = sprintf "%s=\"%s\"" feat_name (string_of_value feat_val)
 
-  let to_grew_json (feat_name, feat_val) = (feat_name, `String (conll_string_of_value feat_val))
+  let to_json (feat_name, feat_val) = (feat_name, `String (conll_string_of_value feat_val))
 
   let to_dot (feat_name, feat_val) =
     let string_val = string_of_value feat_val in
@@ -205,7 +205,7 @@ module G_fs = struct
   let to_gr t = List_.to_string G_feature.to_gr ", " t
 
   (* ---------------------------------------------------------------------- *)
-  let to_grew_json t = List.map G_feature.to_grew_json t
+  let to_json t = List.map G_feature.to_json t
 
   (* ---------------------------------------------------------------------- *)
   let of_ast ?domain ast_fs =

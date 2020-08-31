@@ -59,7 +59,7 @@ module Corpus = struct
       Array.map
         (fun (sent_id, conllx) ->
            let text = match List.assoc_opt "text" (Conllx.get_meta conllx) with Some t -> t | None -> "__missing text metadata__" in
-           let graph = conllx |> Conllx.to_json |> G_graph.of_grew_json in
+           let graph = conllx |> Conllx.to_json |> G_graph.of_json in
            { sent_id; text; graph }
         ) (Conllx_corpus.get_data conllx_corpus) in
     { domain = None; kind = Conll; items }
@@ -347,7 +347,7 @@ module Corpus_desc = struct
           grew_match_table_and_desc ~config:corpus_desc.config grew_match_dir corpus_desc.id conll_corpus;
           CCArray.filter_map (fun (sent_id,conllx) ->
               try
-                let init_graph = G_graph.of_grew_json (Conllx.to_json conllx) in
+                let init_graph = G_graph.of_json (Conllx.to_json conllx) in
                 let graph = match corpus_desc.preapply with
                   | Some grs -> Grs.apply ~config grs init_graph
                   | None -> init_graph in

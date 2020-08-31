@@ -124,7 +124,7 @@ module G_graph: sig
 
   val of_pst: ?domain:Domain.t -> Ast.pst -> t
 
-  val of_grew_json: Yojson.Basic.t -> t
+  val of_json: Yojson.Basic.t -> t
   (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
   (* Update functions *)
   (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
@@ -223,7 +223,7 @@ module G_graph: sig
 
   val to_json_python: t -> Yojson.Basic.t
 
-  val to_grew_json: t -> Yojson.Basic.t
+  val to_json: t -> Yojson.Basic.t
 
   val cast: ?domain:Domain.t -> config:Conllx_config.t -> t -> t
 

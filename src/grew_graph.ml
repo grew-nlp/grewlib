@@ -440,7 +440,7 @@ module G_graph = struct
     }
 
   (* -------------------------------------------------------------------------------- *)
-  let of_grew_json (json: Yojson.Basic.t) =
+  let of_json (json: Yojson.Basic.t) =
     let open Yojson.Basic.Util in
     let meta =
       try
@@ -521,7 +521,7 @@ module G_graph = struct
     }
 
   (* -------------------------------------------------------------------------------- *)
-  let to_grew_json graph =
+  let to_json graph =
     let meta =
       List.map
         (fun (k,v) ->
@@ -530,7 +530,7 @@ module G_graph = struct
     let (nodes, gid_position_list) =
       Gid_map.fold
         (fun gid node (acc_nodes, acc_gpl) ->
-           let node_conllx = `Assoc (("id", `String (Gid.to_string gid)) :: (G_fs.to_grew_json (G_node.get_fs node))) in
+           let node_conllx = `Assoc (("id", `String (Gid.to_string gid)) :: (G_fs.to_json (G_node.get_fs node))) in
            match G_node.get_position_opt node with
            | None -> (node_conllx :: acc_nodes, acc_gpl)
            | Some p -> (node_conllx :: acc_nodes, (gid,p) :: acc_gpl)
@@ -541,7 +541,7 @@ module G_graph = struct
            let src = `String (Gid.to_string src_gid) in
            Massoc_gid.fold
              (fun acc2 tar_gid edge ->
-                match G_edge.to_grew_json_opt edge with
+                match G_edge.to_json_opt edge with
                 | None -> acc2
                 | Some js ->
                   (`Assoc [
