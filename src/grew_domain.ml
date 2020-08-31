@@ -43,7 +43,7 @@ module Label_domain = struct
     String_map.iter (fun label _ -> Printf.printf " - %s\n" label) label_domain;
     Printf.printf "==================================\n%!"
 
-  let to_json label_domain = `List (String_map.fold (fun k _ acc -> (`String k) :: acc) label_domain [])
+  let to_json_python label_domain = `List (String_map.fold (fun k _ acc -> (`String k) :: acc) label_domain [])
 
 
   (** [decl] is the type for a label declaration: the name and a list of display styles *)
@@ -139,7 +139,7 @@ module Feature_domain = struct
       ) t.decls;
     Printf.printf "==================================\n%!"
 
-  let to_json t =
+  let to_json_python t =
     `Assoc (
       List.map (function
           | Ast.Closed (fn, values) -> (fn, `List (List.map (fun x -> `String x) values))
@@ -252,9 +252,9 @@ module Domain = struct
     | Some Label ld -> Label_domain.dump ld
     | Some Feature fd -> Feature_domain.dump fd
 
-  let to_json = function
-    | Both (ld, fd) -> `Assoc [("Label_domain", Label_domain.to_json ld); ("feature_domain", `Null);]
-    | Label ld -> `Assoc [("Label_domain", Label_domain.to_json ld)]
+  let to_json_python = function
+    | Both (ld, fd) -> `Assoc [("Label_domain", Label_domain.to_json_python ld); ("feature_domain", `Null);]
+    | Label ld -> `Assoc [("Label_domain", Label_domain.to_json_python ld)]
     | Feature fd -> `Assoc [("feature_domain", `Null);]
 
   let build ld fd = Both (ld, fd)

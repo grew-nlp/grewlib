@@ -29,7 +29,7 @@ module Grs : sig
 
   val dump: t -> unit
 
-  val to_json: config:Conllx_config.t -> t -> Yojson.Basic.t
+  val to_json_python: config:Conllx_config.t -> t -> Yojson.Basic.t
   val domain_opt: t -> Domain.t option
   val domain_build: Ast.domain -> Domain.t
 

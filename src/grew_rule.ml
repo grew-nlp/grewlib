@@ -104,8 +104,8 @@ module Pattern = struct
     | Covered of Pid.t * string (* node_id, edge_id *)
 
   let const_to_json ?domain ~config = function
-    | Cst_out (pid, label_cst) -> `Assoc ["cst_out", Label_cst.to_json ?domain ~config label_cst]
-    | Cst_in (pid, label_cst) -> `Assoc ["cst_in", Label_cst.to_json ?domain ~config label_cst]
+    | Cst_out (pid, label_cst) -> `Assoc ["cst_out", Label_cst.to_json_python ?domain ~config label_cst]
+    | Cst_in (pid, label_cst) -> `Assoc ["cst_in", Label_cst.to_json_python ?domain ~config label_cst]
     | Feature_equal (id1,fn1,id2,fn2) ->
       `Assoc ["features_eq",
               `Assoc [
@@ -171,7 +171,7 @@ module Pattern = struct
       `Assoc ["filter",
               `Assoc [
                 ("id", `String (Pid.to_string pid));
-                ("fs", P_fs.to_json ?domain p_fs);
+                ("fs", P_fs.to_json_python ?domain p_fs);
               ]
              ]
     | Node_large_prec (pid1, pid2) ->
@@ -250,7 +250,7 @@ module Pattern = struct
 
   let basic_to_json ?domain ~config basic =
     `Assoc [
-      ("graph", P_graph.to_json ?domain ~config basic.graph);
+      ("graph", P_graph.to_json_python ?domain ~config basic.graph);
       ("constraints", `List (List.map (const_to_json ?domain ~config) basic.constraints));
     ]
 
@@ -916,13 +916,13 @@ module Rule = struct
 
   let get_loc t = t.loc
 
-  let to_json ?domain ~config t =
+  let to_json_python ?domain ~config t =
     `Assoc
       ([
         ("rule_name", `String t.name);
         ("pattern", Pattern.basic_to_json ?domain ~config t.pattern.pos);
         ("without", `List (List.map (Pattern.basic_to_json ?domain ~config) t.pattern.negs));
-        ("commands", `List (List.map (Command.to_json ?domain ~config) t.commands))
+        ("commands", `List (List.map (Command.to_json_python ?domain ~config) t.commands))
       ]
       )
 

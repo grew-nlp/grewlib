@@ -104,7 +104,7 @@ module P_feature = struct
 
     printf "%!"
 
-  let to_json ?domain (feature_name, p_feature_value) =
+  let to_json_python ?domain (feature_name, p_feature_value) =
     `Assoc [
       ("feature_name", `String feature_name);
       ( match p_feature_value with
@@ -391,7 +391,7 @@ module G_fs = struct
         reduced_t in
     List.map (fun (fn, fv) -> (fn, string_of_value fv)) ud_ordering
 
-  let to_json t = `Assoc (List.map (fun (fn, fv) -> (fn, `String (string_of_value fv))) t)
+  let to_json_python t = `Assoc (List.map (fun (fn, fv) -> (fn, `String (string_of_value fv))) t)
 
 end (* module G_fs *)
 
@@ -402,7 +402,7 @@ module P_fs = struct
 
   let empty = []
 
-  let to_json ?domain t = `List (List.map (P_feature.to_json ?domain) t)
+  let to_json_python ?domain t = `List (List.map (P_feature.to_json_python ?domain) t)
 
   let of_ast ?domain lexicons ast_fs =
     let unsorted = List.map (P_feature.build lexicons ?domain) ast_fs in

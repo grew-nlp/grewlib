@@ -27,7 +27,7 @@ module P_graph: sig
 
   val empty: t
 
-  val to_json: ?domain:Domain.t -> config:Conllx_config.t -> t -> Yojson.Basic.t
+  val to_json_python: ?domain:Domain.t -> config:Conllx_config.t -> t -> Yojson.Basic.t
 
   val find: Pid.t -> t -> P_node.t
 
@@ -116,7 +116,7 @@ module G_graph: sig
   val of_ast: ?domain:Domain.t -> config:Conllx_config.t -> Ast.gr -> t
 
   val of_conll: ?domain:Domain.t -> config:Conllx_config.t -> Conll.t -> t
-  val of_json: config:Conllx_config.t -> Yojson.Basic.t -> t
+  val of_json_python: config:Conllx_config.t -> Yojson.Basic.t -> t
 
   (** input : "Le/DET/le petit/ADJ/petit chat/NC/chat dort/V/dormir ./PONCT/."
       It supposes that "SUC" is defined in current relations *)
@@ -221,7 +221,7 @@ module G_graph: sig
   val to_conll: config:Conllx_config.t -> t -> Conll.t
   val to_conll_string: ?cupt:bool -> config:Conllx_config.t -> t -> string
 
-  val to_json: t -> Yojson.Basic.t
+  val to_json_python: t -> Yojson.Basic.t
 
   val to_grew_json: t -> Yojson.Basic.t
 

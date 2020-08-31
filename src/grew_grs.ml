@@ -46,7 +46,7 @@ module Grs = struct
   }
 
   let rec decl_to_json ?domain ~config = function
-    | Rule r -> Rule.to_json ?domain ~config r
+    | Rule r -> Rule.to_json_python ?domain ~config r
     | Strategy (name, strat) -> `Assoc [("strat_name", `String name); ("strat_def", Ast.strat_to_json strat)]
     | Package (name, decl_list) -> `Assoc [("package_name", `String name); "decls", `List (List.map (decl_to_json ?domain ~config) decl_list)]
 
@@ -55,14 +55,14 @@ module Grs = struct
     | Strategy (name, strat) -> sprintf "STRAT: %s" (name)
     | Package (name, decl_list) -> sprintf "PACK: %s" (name)
 
-  let to_json ~config t =
+  let to_json_python ~config t =
     match t.domain with
     | None -> `Assoc [
         "filename", `String t.filename;
         "decls", `List (List.map (fun x -> decl_to_json ~config x) t.decls)
       ]
     | Some dom -> `Assoc [
-        "domain", Domain.to_json dom;
+        "domain", Domain.to_json_python dom;
         "filename", `String t.filename;
         "decls", `List (List.map (decl_to_json ~domain:dom ~config) t.decls)
       ]

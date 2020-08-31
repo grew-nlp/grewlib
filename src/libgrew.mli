@@ -100,8 +100,8 @@ module Graph : sig
 
   val of_conll: ?domain:Domain.t -> config:Conllx_config.t -> Conll.t -> t
 
-  val of_json: config:Conllx_config.t -> Yojson.Basic.t -> t
-  val to_json: t -> Yojson.Basic.t
+  val of_json_python: config:Conllx_config.t -> Yojson.Basic.t -> t
+  val to_json_python: t -> Yojson.Basic.t
 
   val of_grew_json: Yojson.Basic.t -> t
   val to_grew_json: t -> Yojson.Basic.t
@@ -150,7 +150,7 @@ module Grs : sig
 
   val domain_opt: t -> Domain.t option
 
-  val to_json: config:Conllx_config.t -> t -> Yojson.Basic.t
+  val to_json_python: config:Conllx_config.t -> t -> Yojson.Basic.t
 
   val get_strat_list: t -> string list
 end

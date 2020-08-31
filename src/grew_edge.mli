@@ -63,7 +63,6 @@ module G_edge: sig
   (** Temp hardcoded conversion from t to graphviz string (domain is unused) *)
   val to_dot_opt: ?domain: Domain.t -> ?deco:bool -> config:Conllx_config.t -> t -> string option
 
-  (** TODO: check usage of this function *)
   val to_json: t -> Yojson.Basic.t
 
   val build: config:Conllx_config.t -> Ast.edge -> t
@@ -77,7 +76,7 @@ module Label_cst : sig
   type t
 
   val to_string: ?domain:Domain.t -> config:Conllx_config.t -> t -> string
-  val to_json: ?domain:Domain.t -> config:Conllx_config.t -> t -> Yojson.Basic.t
+  val to_json_python: ?domain:Domain.t -> config:Conllx_config.t -> t -> Yojson.Basic.t
   val all: t
   val match_: ?domain:Domain.t -> config:Conllx_config.t -> t -> G_edge.t -> bool
   val of_ast: ?loc:Loc.t -> ?domain:Domain.t -> config:Conllx_config.t -> Ast.edge_label_cst -> t
@@ -92,7 +91,7 @@ module P_edge: sig
   val pred: t
   val succ: t
 
-  val to_json: ?domain:Domain.t -> config:Conllx_config.t -> t -> Yojson.Basic.t
+  val to_json_python: ?domain:Domain.t -> config:Conllx_config.t -> t -> Yojson.Basic.t
 
   val get_id_opt: t -> string option
 

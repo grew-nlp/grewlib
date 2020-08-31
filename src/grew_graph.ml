@@ -31,13 +31,13 @@ module P_graph = struct
 
   let pid_name_list t = Pid_map.fold (fun _ node acc -> (P_node.get_name node)::acc) t []
 
-  let to_json ?domain ~config t =
+  let to_json_python ?domain ~config t =
     `List (
       Pid_map.fold
         (fun pid p_node acc ->
            (`Assoc [
                ("id", `String (Pid.to_string pid));
-               ("node", P_node.to_json ?domain ~config p_node)
+               ("node", P_node.to_json_python ?domain ~config p_node)
              ]) :: acc
         ) t []
     )
@@ -564,29 +564,29 @@ module G_graph = struct
     ]
 
   (* -------------------------------------------------------------------------------- *)
-  let of_json ~config = function
+  let of_json_python ~config = function
     | `Assoc (l : (string * Yojson.Basic.t) list) ->
       let (ast_node_list, ast_edge_list) = List.fold_left
           (fun (acc_node, acc_edge) -> function
              | (id, `List [`Assoc feat_json_list; `List succ]) ->
                let fs = List.map (function
                    | (feat_name, `String value) -> ({Ast.name= feat_name; kind = Ast.Equality [value]}, Loc.empty)
-                   | _ -> Error.build "[Graph.of_json] not an valid feature structure"
+                   | _ -> Error.build "[Graph.of_json_python] not an valid feature structure"
                  ) feat_json_list in
                let new_edges = List.map
                    (function
                      | `List [`String rel; `String tar] -> ({Ast.edge_id=None; edge_label_cst=Ast.Pos_list [rel]; src=id; tar},Loc.empty)
-                     | _ -> Error.build "[Graph.of_json] not an valid succ list"
+                     | _ -> Error.build "[Graph.of_json_python] not an valid succ list"
                    ) succ in
                (
                  ({ Ast.node_id=id; position=None; fs}, Loc.empty) :: acc_node,
                  new_edges @ acc_edge
                )
-             | _ -> Error.build "[Graph.of_json] not an assoc list"
+             | _ -> Error.build "[Graph.of_json_python] not an assoc list"
           ) ([],[]) l in
       let graph_ast = { Ast.meta=[]; nodes=ast_node_list; edges=ast_edge_list}
       in of_ast ~config graph_ast
-    | _ -> Error.build "[Graph.of_json] not an assoc list"
+    | _ -> Error.build "[Graph.of_json_python] not an assoc list"
 
   (* -------------------------------------------------------------------------------- *)
   let of_conll ?domain ~config conll =
@@ -987,7 +987,7 @@ module G_graph = struct
     | None -> None
 
   (* -------------------------------------------------------------------------------- *)
-  let to_json graph =
+  let to_json_python graph =
     let gr_id id = G_node.get_name id (Gid_map.find id graph.map) in
 
     let nodes = Gid_map.fold
@@ -999,7 +999,7 @@ module G_graph = struct
                (fun acc tar edge ->
                   (`List [G_edge.to_json edge; `String (gr_id tar)]) :: acc
                ) [] (G_node.get_next node) in
-           (node_id,`List [G_fs.to_json fs; `List succ])::acc
+           (node_id,`List [G_fs.to_json_python fs; `List succ])::acc
         ) graph.map [] in
 
     `Assoc nodes

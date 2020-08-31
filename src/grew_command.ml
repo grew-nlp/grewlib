@@ -71,7 +71,7 @@ module Command  = struct
 
   type t = p * Loc.t  (* remember command location to be able to localize a command failure *)
 
-  let to_json ?domain ~config (p, _) = match p with
+  let to_json_python ?domain ~config (p, _) = match p with
     | DEL_NODE cn -> `Assoc [("del_node", command_node_to_json cn)]
     | DEL_EDGE_EXPL (src,tar,edge) ->
       `Assoc [("del_edge_expl",
@@ -147,7 +147,7 @@ module Command  = struct
                `Assoc [
                  ("src",command_node_to_json src);
                  ("tar",command_node_to_json tar);
-                 ("label_cst", Label_cst.to_json ?domain ~config label_cst);
+                 ("label_cst", Label_cst.to_json_python ?domain ~config label_cst);
                ]
               )]
     | SHIFT_IN (src,tar,label_cst) ->
@@ -155,7 +155,7 @@ module Command  = struct
                `Assoc [
                  ("src",command_node_to_json src);
                  ("tar",command_node_to_json tar);
-                 ("label_cst", Label_cst.to_json ?domain ~config label_cst);
+                 ("label_cst", Label_cst.to_json_python ?domain ~config label_cst);
                ]
               )]
     | SHIFT_OUT (src,tar,label_cst) ->
@@ -163,7 +163,7 @@ module Command  = struct
                `Assoc [
                  ("src",command_node_to_json src);
                  ("tar",command_node_to_json tar);
-                 ("label_cst", Label_cst.to_json ?domain ~config label_cst);
+                 ("label_cst", Label_cst.to_json_python ?domain ~config label_cst);
                ]
               )]
     | UPDATE_EDGE_FEAT (edge_id, feat_name, item) ->

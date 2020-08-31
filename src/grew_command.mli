@@ -50,7 +50,7 @@ module Command : sig
     | UNORDER of command_node
 
   type t = (p * Loc.t)
-  val to_json: ?domain:Domain.t -> config:Conllx_config.t -> t -> Yojson.Basic.t
+  val to_json_python: ?domain:Domain.t -> config:Conllx_config.t -> t -> Yojson.Basic.t
 
 
   val of_ast:

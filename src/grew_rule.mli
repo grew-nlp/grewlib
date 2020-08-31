@@ -70,7 +70,7 @@ module Rule : sig
   (** [get_loc t] returns the file location of the rule [t]. *)
   val get_loc: t -> Loc.t
 
-  val to_json: ?domain:Domain.t -> config:Conllx.Conllx_config.t -> t -> Yojson.Basic.t
+  val to_json_python: ?domain:Domain.t -> config:Conllx.Conllx_config.t -> t -> Yojson.Basic.t
 
   (** [to_dep t] returns a string in the [dep] language describing the match basic of the rule *)
   val to_dep: ?domain:Domain.t -> config:Conllx.Conllx_config.t -> t -> string

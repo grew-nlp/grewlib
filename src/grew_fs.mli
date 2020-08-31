@@ -57,7 +57,7 @@ module G_fs: sig
     string
 
   val to_conll: ?exclude: string list -> t -> (string * string) list
-  val to_json: t -> Yojson.Basic.t
+  val to_json_python: t -> Yojson.Basic.t
   val to_string: t -> string
 
   val of_ast: ?domain:Domain.t -> Ast.feature list -> t
@@ -78,7 +78,7 @@ end (* module G_fs *)
 module P_fs: sig
   type t
 
-  val to_json: ?domain:Domain.t -> t -> Yojson.Basic.t
+  val to_json_python: ?domain:Domain.t -> t -> Yojson.Basic.t
 
   val empty: t
 

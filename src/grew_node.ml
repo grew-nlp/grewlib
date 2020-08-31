@@ -173,19 +173,19 @@ module P_node = struct
        loc = Some loc;
      } )
 
-  let to_json ?domain ~config t =
+  let to_json_python ?domain ~config t =
     let json_next = `List (
         Massoc_pid.fold
           (fun acc pid p_edge ->
              `Assoc [
                ("id", `String (Pid.to_string pid));
-               ("label", P_edge.to_json ?domain ~config p_edge);
+               ("label", P_edge.to_json_python ?domain ~config p_edge);
              ] :: acc
           ) [] t.next
       ) in
     `Assoc [
       ("node_name", `String t.name);
-      ("fs", P_fs.to_json ?domain t.fs);
+      ("fs", P_fs.to_json_python ?domain t.fs);
       ("next", json_next)
     ]
 

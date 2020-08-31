@@ -195,7 +195,7 @@ module Label_cst = struct
     | Pred -> "__PRED__"
     | Succ -> "__SUCC__"
 
-  let to_json ?domain ~config = function
+  let to_json_python ?domain ~config = function
     | Pos l -> `Assoc
                  ["pos",
                   `List (List.map (fun lab -> `String (G_edge.fs_to_string ~config lab)) l)
@@ -268,11 +268,11 @@ module P_edge = struct
 
   let get_id_opt t = t.id
 
-  let to_json ?domain ~config t =
+  let to_json_python ?domain ~config t =
     `Assoc (CCList.filter_map CCFun.id
               [
                 (match t.id with Some id -> Some ("edge_id", `String id) | None -> None);
-                Some ("label_cst", Label_cst.to_json ?domain ~config t.label_cst)
+                Some ("label_cst", Label_cst.to_json_python ?domain ~config t.label_cst)
               ])
 
   let of_ast ?domain ~config (ast_edge, loc) =

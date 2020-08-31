@@ -215,8 +215,8 @@ module Graph = struct
          Sentence.fr_clean_spaces (String.concat " " word_list)
       ) ()
 
-  let of_json ~config json =
-    Libgrew.handle ~name:"Graph.of_json" (fun () -> Grew_graph.G_graph.of_json ~config json) ()
+  let of_json_python ~config json =
+    Libgrew.handle ~name:"Graph.of_json_python" (fun () -> Grew_graph.G_graph.of_json_python ~config json) ()
 
   let of_brown ?domain ~config ?sentid brown =
     Libgrew.handle ~name:"Graph.of_brown" (fun () -> Grew_graph.G_graph.of_brown ?domain ~config ?sentid brown) ()
@@ -230,8 +230,8 @@ module Graph = struct
   let to_gr ~config graph  =
     Libgrew.handle ~name:"Graph.to_gr" (fun () -> Grew_graph.G_graph.to_gr ~config graph) ()
 
-  let to_json graph =
-    Libgrew.handle ~name:"Graph.to_json" (fun () -> Grew_graph.G_graph.to_json graph) ()
+  let to_json_python graph =
+    Libgrew.handle ~name:"Graph.to_json_python" (fun () -> Grew_graph.G_graph.to_json_python graph) ()
 
   let to_conll ~config graph =
     Libgrew.handle ~name:"Graph.to_conll" (fun () -> Grew_graph.G_graph.to_conll ~config graph) ()
@@ -302,10 +302,10 @@ module Grs = struct
          Grew_grs.Grs.domain_opt grs
       ) ()
 
-  let to_json ~config grs =
-    Libgrew.handle ~name:"Grs.to_json"
+  let to_json_python ~config grs =
+    Libgrew.handle ~name:"Grs.to_json_python"
       (fun () ->
-         Grew_grs.Grs.to_json ~config grs
+         Grew_grs.Grs.to_json_python ~config grs
       ) ()
 
   let get_strat_list grs =
