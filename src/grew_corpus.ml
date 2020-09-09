@@ -30,7 +30,7 @@ end
 
 (* ==================================================================================================== *)
 module Corpus = struct
-  type kind = Conll | Pst | Amr
+  type kind = Conll | Pst | Amr | Raw
 
   type item = {
     sent_id: string;
@@ -42,6 +42,10 @@ module Corpus = struct
     domain: Domain.t option;
     items: item array;
     kind: kind;
+  }
+
+  let singleton graph = {
+    domain= None; kind=Raw; items = [| { sent_id="_"; text="_"; graph } |]
   }
 
   let merge = function
@@ -111,6 +115,12 @@ module Corpus = struct
       of_conllx_corpus (Conllx_corpus.load ?config file)
     | ".amr" | ".txt" ->
       of_amr_corpus (Amr_corpus.load file)
+    | ".json" ->
+        begin
+          try file |> Yojson.Basic.from_file |> G_graph.of_json |> singleton with
+          | Yojson.Json_error msg -> Error.run ~loc:(Loc.file file) "Error in the JSON file format: %s" msg
+          | Yojson.Basic.Util.Type_error (msg,_) -> Error.run ~loc:(Loc.file file) "Cannot interpret JSON data: %s" msg
+        end
     | ext -> Error.run "Cannot load file `%s`, unknown extension `%s`" file ext
 
   let from_dir ?config dir =
@@ -161,6 +171,7 @@ module Corpus_desc = struct
     | Corpus.Conll -> [".conll"; ".conllu"; ".cupt"; ".orfeo"]
     | Amr -> [".amr"; ".txt"]
     | Pst -> [".const"]
+    | Raw -> [".json"]
 
 
   (* ---------------------------------------------------------------------------------------------------- *)
@@ -331,7 +342,7 @@ module Corpus_desc = struct
 
     let (grew_match_dir, log_file) =
       match (corpus_desc.kind, grew_match) with
-      | (Corpus.Amr,_) | (Pst,_) | (Conll, None) -> (None, None)
+      | (Corpus.Amr,_) | (Pst,_) | (Raw,_) | (Conll, None) -> (None, None)
       | (Conll, Some dir) ->
         try
           ensure_dir dir;
@@ -379,7 +390,8 @@ module Corpus_desc = struct
                 let graph = G_graph.of_ast ?domain ~config (Parser.gr gr) in
                 Some {Corpus.sent_id; text; graph }
               with exc -> Log.fwarning "[id=%s] AMR skipped [exception: %s]" sent_id (Printexc.to_string exc); None
-            ) amr_corpus in
+            ) amr_corpus
+        | Raw -> Error.run "raw corpora are not supported in file compilation" in
       let _ = Log.fmessage "[%s] %d graphs loaded" corpus_desc.id (Array.length items) in
       let out_ch = open_out_bin marshal_file in
       let (data : Corpus.t) = {Corpus.domain; items; kind=corpus_desc.kind } in

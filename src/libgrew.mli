@@ -209,6 +209,8 @@ module Corpus: sig
   val from_dir: ?config:Conllx_config.t -> string -> t
 
   val merge: t list -> t
+
+  val singleton: Graph.t -> t
 end
 
 module Corpus_desc: sig
@@ -217,8 +219,6 @@ module Corpus_desc: sig
 
   val build_corpus: t -> Corpus.t
   val load_corpus_opt: t -> Corpus.t option
-
-
 
   val get_config: t -> Conllx_config.t
   val is_rtl: t -> bool
