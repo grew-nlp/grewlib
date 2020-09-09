@@ -483,8 +483,9 @@ module G_graph = struct
            )
         ) (Gid_map.empty, String_map.empty, 0) nodes in
 
-    let order = json |> member "order" |> to_list
-                |> List.map (fun x ->String_map.find (x |> to_string) table)  in
+    let order =
+      try json |> member "order" |> to_list |> List.map (fun x ->String_map.find (x |> to_string) table)
+      with Type_error _ -> [] in
 
     let rec loop_order (acc_map, acc_pos) = function
       | [] -> acc_map
