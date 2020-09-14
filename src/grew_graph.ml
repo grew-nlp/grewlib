@@ -1184,8 +1184,8 @@ module G_graph = struct
 
          let style = match G_fs.get_value_opt "void" fs with
            | Some (String "y") -> "; forecolor=red; subcolor=red; "
-           | _ -> match G_fs.get_value_opt "_UD_empty" fs with
-             | Some (String "Yes") -> "; forecolor=purple; subcolor=purple; "
+           | _ -> match G_fs.get_value_opt "wordform" fs with
+             | Some (String "__EMPTY__") -> "; forecolor=purple; subcolor=purple; "
              | _ -> "" in
 
          bprintf buff "N_%s { %s%s }\n"
