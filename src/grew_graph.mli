@@ -239,6 +239,8 @@ module G_graph: sig
 
   val get_meta_opt: string -> t -> string option
 
+  val get_meta_list: t -> (string * string) list
+
   val set_meta: string -> string -> t -> t
 end (* module G_graph *)
 
