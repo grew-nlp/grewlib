@@ -1139,7 +1139,8 @@ module G_graph = struct
 
   (* -------------------------------------------------------------------------------- *)
   let is_non_lexical_node node =
-    let fs = G_node.get_fs node in G_fs.get_value_opt "parseme" fs <> None
+    let fs = G_node.get_fs node in
+    (G_fs.get_value_opt "parseme" fs <> None) || (G_fs.get_value_opt "frsemcor" fs <> None)
 
   let to_dep ?filter ?main_feat ?(deco=G_deco.empty) ~config graph =
     let domain = get_domain_opt graph in

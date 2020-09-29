@@ -342,9 +342,10 @@ module G_fs = struct
     let (main_opt, sub) = get_main ?main_feat t in
     let sub = List.sort G_feature.print_cmp sub in
 
-    let color = match get_value_opt "parseme" t with
-      | Some (String "NE") -> ":C:#ff760b"
-      | Some (String "MWE") -> ":C:#1d7df2"
+    let color = match (get_value_opt "parseme" t, get_value_opt "frsemcor" t) with
+      | (Some (String "NE"), None) -> ":C:#ff760b"
+      | (Some (String "MWE"), None) -> ":C:#1d7df2"
+      | (None, Some _) -> ":C:#12CD56"
       | _ -> "" in
 
     let main = match main_opt with
