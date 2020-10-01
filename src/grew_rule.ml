@@ -55,8 +55,8 @@ module Pattern = struct
       let (l1, r1) = min_max pos_src1 pos_tar1 in
       let (l2, r2) = min_max pos_src2 pos_tar2 in
       build_relative_postion l1 r1 l2 r2 = erp
-      |> (fun b -> printf "### %s e1 = [%d, %d]    e2 = [%d, %d] --> %b\n%!"
-             (Yojson.Basic.to_string (json_of_edge_relative_position erp)) l1 r1 l2 r2 b; b)
+      (* |> (fun b -> printf "### %s e1 = [%d, %d]    e2 = [%d, %d] --> %b\n%!"
+             (Yojson.Basic.to_string (json_of_edge_relative_position erp)) l1 r1 l2 r2 b; b) *)
     | _ -> false
 
   type base =
