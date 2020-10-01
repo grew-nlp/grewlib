@@ -275,7 +275,10 @@ module Ast = struct
 
   let complete_basic aux basic =
     let new_pat_nodes = List.fold_left
-        (fun acc ({src; tar}, loc) ->
+        (fun acc ({src; edge_label_cst; tar}, loc) ->
+          if edge_label_cst = Pred
+          then acc
+          else
            acc
            |> (add_implicit_node loc aux src)
            |> (add_implicit_node loc aux tar)
