@@ -56,6 +56,17 @@ module P_graph = struct
     let full_node_list = basic_ast.Ast.pat_nodes
     and full_edge_list = basic_ast.Ast.pat_edges in
 
+    let nodes_id = List.map (fun ({Ast.node_id},_) -> node_id) full_node_list in
+    let edges_id = CCList.filter_map (fun ({Ast.edge_id},_) -> edge_id) full_edge_list in
+
+    begin
+      match List_.intersect nodes_id edges_id with
+      | [] -> ()
+      | id::_ ->
+        let loc = snd (List.find (fun ({Ast.node_id},_) -> node_id = id) full_node_list) in
+      Error.build ~loc "The same identifier `%s` cannot be used both as a node identifier and as an edge identifier" id
+    end;
+
     (* NB: insert searches for a previous node with the same name and uses unification rather than constraint *)
     (* NB: insertion of new node at the end of the list: not efficient but graph building is not the hard part. *)
     let rec insert (ast_node, loc) = function

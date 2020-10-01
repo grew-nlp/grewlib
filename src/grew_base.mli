@@ -134,6 +134,9 @@ module List_: sig
 
   val foldi_left: (int -> 'a -> 'b -> 'a) -> 'a -> 'b list -> 'a
 
+  (* list intersection. Not efficient, do not use on large list *)
+  val intersect: 'a list -> 'a list -> 'a list
+
   (** [disjoint_list] returns true iff the two strictly ordered list are disjoint *)
   val sort_disjoint: 'a list -> 'a list -> bool
 

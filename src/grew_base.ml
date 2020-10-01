@@ -250,6 +250,12 @@ module List_ = struct
          (init,0) l
       )
 
+  (* list intersection. Not efficient, do not use on large list *)
+  let intersect l1 l2 =
+    List.fold_left
+      (fun acc x -> if (List.exists (fun y -> y = x) l1) then x::acc else acc
+      ) [] l2
+
   let to_string string_of_item sep = function
     | [] -> ""
     | h::t -> List.fold_left (fun acc elt -> acc ^ sep ^ (string_of_item elt)) (string_of_item h) t
