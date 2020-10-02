@@ -1,4 +1,4 @@
-## 1.4.0 (2020/10/xx)
+## 1.4.0 (2020/10/02)
   * :warning: change pattern syntax (see http://grew.fr/doc/upgrade)
   * add new constraints in pattern syntax
   * new implementation of Conll handling
