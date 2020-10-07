@@ -17,6 +17,7 @@ depends: [
   "containers"
   "ANSITerminal"
   "libcaml-log"
+  "libcaml-amr"
   "libcaml-conll"
 ]
 synopsis: "A graph rewriting library for NLP applications (see http://grew.fr)
