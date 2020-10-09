@@ -121,6 +121,15 @@ module Corpus = struct
           | Yojson.Json_error msg -> Error.run ~loc:(Loc.file file) "Error in the JSON file format: %s" msg
           | Yojson.Basic.Util.Type_error (msg,_) -> Error.run ~loc:(Loc.file file) "Cannot interpret JSON data: %s" msg
         end
+    | ".melt" | ".brown" ->
+      let lines = File.read file in
+      let config = match config with Some c -> c | None -> Conllx_config.build "ud" in
+      let items = List.mapi (fun i line -> {
+        sent_id= sprintf "%05d" (i + 1);
+        text= "__No_text__";
+        graph= G_graph.of_brown config line;
+      }) lines |> Array.of_list in
+      { domain= None; items; kind=Conll }
     | ext -> Error.run "Cannot load file `%s`, unknown extension `%s`" file ext
 
   let from_dir ?config dir =
