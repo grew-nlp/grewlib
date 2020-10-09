@@ -55,8 +55,8 @@ module Pattern = struct
       let (l1, r1) = min_max pos_src1 pos_tar1 in
       let (l2, r2) = min_max pos_src2 pos_tar2 in
       build_relative_postion l1 r1 l2 r2 = erp
-      (* |> (fun b -> printf "### %s e1 = [%d, %d]    e2 = [%d, %d] --> %b\n%!"
-             (Yojson.Basic.to_string (json_of_edge_relative_position erp)) l1 r1 l2 r2 b; b) *)
+    (* |> (fun b -> printf "### %s e1 = [%d, %d]    e2 = [%d, %d] --> %b\n%!"
+           (Yojson.Basic.to_string (json_of_edge_relative_position erp)) l1 r1 l2 r2 b; b) *)
     | _ -> false
 
   type base =
@@ -1263,7 +1263,17 @@ module Rule = struct
     | Command.UPDATE_FEAT (tar_cn, tar_feat_name, item_list) ->
       let tar_gid = node_find tar_cn in
       let feature_value_list = List.map feature_value_of_item item_list in
-      let new_feature_value = concat_feature_values ~loc feature_value_list in
+      let new_feature_value =
+        if List.mem tar_feat_name numeric_feature_values
+        then
+          begin
+            match feature_value_list with
+            | [String one] -> typed_vos tar_feat_name one
+            | [one] -> one
+            | _ -> Error.run ~loc "Cannot use a contatenation for a numeric feature `%s`" tar_feat_name
+          end
+        else concat_feature_values ~loc feature_value_list in
+      printf "[onf_apply_command] Command.UPDATE_FEAT %s=%s\n%!" tar_feat_name (string_of_value new_feature_value);
       let new_graph = G_graph.update_feat ~loc state.graph tar_gid tar_feat_name new_feature_value in
       {state with graph = new_graph; effective = true}
 
@@ -1577,11 +1587,20 @@ module Rule = struct
       let tar_gid = node_find tar_cn in
 
       (* not deterministic because of non functionnal lexicons *)
-      let new_feature_value_list =
+      let new_feature_value_list_list =
         item_list
         |> List.map (feature_value_list_of_item tar_feat_name)
-        |> CCList.cartesian_product
-        |> List.map concat_feature_values in
+        |> CCList.cartesian_product in
+
+      let new_feature_value_list =
+        if List.mem tar_feat_name numeric_feature_values
+        then List.map (
+            function
+            | [String one] -> typed_vos tar_feat_name one
+            | [one] -> one
+            | _ -> Error.run ~loc "Cannot use a contatenation for a numeric feature `%s`" tar_feat_name
+          ) new_feature_value_list_list
+        else List.map concat_feature_values new_feature_value_list_list in
 
       let new_graphs = List.fold_left
           (fun acc new_feature_value ->

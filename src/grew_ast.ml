@@ -34,7 +34,7 @@ let conll_string_of_value = function
 
 let numeric_feature_values = [
   "level";  (* use for edges in UDtoSUD grs *)
-  "freq";  (* use for nodes in POStoSSQ grs *)
+  "freq"; "freq_old"; "freq_new"; (* use for nodes in POStoSSQ grs *)
   "_start"; "_stop";  (* nodes in Orfeo timestamps *)
   "AlignBegin"; "AlignEnd";  (* nodes in SUD_Naija *)
   "length"; "delta";
@@ -276,12 +276,12 @@ module Ast = struct
   let complete_basic aux basic =
     let new_pat_nodes = List.fold_left
         (fun acc ({src; edge_label_cst; tar}, loc) ->
-          if edge_label_cst = Pred
-          then acc
-          else
-           acc
-           |> (add_implicit_node loc aux src)
-           |> (add_implicit_node loc aux tar)
+           if edge_label_cst = Pred
+           then acc
+           else
+             acc
+             |> (add_implicit_node loc aux src)
+             |> (add_implicit_node loc aux tar)
         ) basic.pat_nodes basic.pat_edges in
     {basic with pat_nodes=new_pat_nodes}
 
