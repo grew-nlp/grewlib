@@ -711,15 +711,17 @@ module G_graph = struct
 
   let of_brown ?domain ?sentid ~config brown =
     let units = Str.split (Str.regexp " ") brown in
-    let conll_lines = List.mapi
-        (fun i item -> match Str.full_split re item with
-           | [Str.Text form; Str.Delim pos; Str.Text lemma] ->
-             let pos = String.sub pos 1 ((String.length pos)-2) in
-             Conll.build_line ~id:(i+1,None) ~form ~lemma ~xpos:pos ~feats:[] ~deps:([((i,None), "SUC")]) ()
-           | _ -> Error.build "[Graph.of_brown] Cannot parse Brown item >>>%s<<< (expected \"phon/POS/lemma\") in >>>%s<<<" item brown
-        ) units in
-    let meta = match sentid with Some id -> ["# sent_id = "^id] | None -> [] in
-    of_conll ?domain ~config { Conll.file=None; meta; lines=conll_lines; multiwords=[]; mwes=Conll_types.Int_map.empty; }
+    let json_nodes =
+    (`Assoc [("id", `String "0"); ("form", `String "__0__")])
+    :: List.mapi (
+      fun i item -> match Str.full_split re item with
+         | [Str.Text form; Str.Delim pos; Str.Text lemma] ->
+           let pos = String.sub pos 1 ((String.length pos)-2) in
+          `Assoc [("id", `String (string_of_int (i+1))); ("form", `String form); ("xpos", `String pos); ("lemma", `String lemma)]
+         | _ -> Error.build "[Graph.of_brown] Cannot parse Brown item >>>%s<<< (expected \"phon/POS/lemma\") in >>>%s<<<" item brown
+      ) units in
+      let order = List.map (Yojson.Basic.Util.member "id") json_nodes in
+      of_json (`Assoc [("nodes", `List json_nodes); ("order", `List order)])
 
   (* -------------------------------------------------------------------------------- *)
   let of_pst ?domain pst =
