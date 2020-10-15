@@ -16,7 +16,7 @@ open Conllx
 
 
 
-
+module String_set = Grew_base.String_set
 
 (* ==================================================================================================== *)
 (** {2 Location} *)
@@ -270,6 +270,9 @@ module Graph = struct
     Libgrew.handle ~name:"Graph.search_pattern" (fun () ->
         Grew_rule.Matching.match_in_graph ?domain ~config pattern graph
       ) ()
+
+  let get_feature_values feature_name t =
+    Grew_graph.G_graph.get_feature_values feature_name t
 end
 
 (* ==================================================================================================== *)

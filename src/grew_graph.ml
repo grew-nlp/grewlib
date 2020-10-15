@@ -1430,6 +1430,14 @@ module G_graph = struct
     bprintf buff "}\n";
     Buffer.contents buff
 
+  let get_feature_values feature_name t =
+    Gid_map.fold
+      (fun _ node acc ->
+          match G_fs.get_value_opt feature_name (G_node.get_fs node) with
+          | None -> acc
+          | Some v -> String_set.add (string_of_value v) acc
+      ) t.map String_set.empty
+
   let cast ?domain ~config graph = match (domain, graph.domain) with
     | (None, _) -> graph
     | (Some new_domain, Some dom) when dom == new_domain ->

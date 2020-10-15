@@ -11,6 +11,8 @@
 open Conll
 open Conllx
 
+module String_set : Set.S with type elt = string
+
 (* ==================================================================================================== *)
 (** {2 General definitions} *)
 (* ==================================================================================================== *)
@@ -134,6 +136,8 @@ module Graph : sig
   val get_meta_list: t -> (string * string) list
 
   val set_meta: string -> string -> t -> t
+
+  val get_feature_values: string -> t -> String_set.t
 end
 
 (* ==================================================================================================== *)
