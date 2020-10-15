@@ -106,33 +106,33 @@ module Corpus = struct
         items_with_length in
     Array.map fst items_with_length
 
-  let from_stdin ?config () =
-    of_conllx_corpus (Conllx_corpus.read_stdin ?config ())
+  let from_stdin ?log_file ?config () =
+    of_conllx_corpus (Conllx_corpus.read_stdin ?log_file ?config ())
 
-  let from_file ?config file =
+  let from_file ?log_file ?config file =
     match Filename.extension file with
     | ".conll" | ".conllu" | ".cupt" | ".orfeo" | ".frsemcor" ->
-      of_conllx_corpus (Conllx_corpus.load ?config file)
+      of_conllx_corpus (Conllx_corpus.load ?log_file ?config file)
     | ".amr" | ".txt" ->
       of_amr_corpus (Amr_corpus.load file)
     | ".json" ->
-        begin
-          try file |> Yojson.Basic.from_file |> G_graph.of_json |> singleton with
-          | Yojson.Json_error msg -> Error.run ~loc:(Loc.file file) "Error in the JSON file format: %s" msg
-          | Yojson.Basic.Util.Type_error (msg,_) -> Error.run ~loc:(Loc.file file) "Cannot interpret JSON data: %s" msg
-        end
+      begin
+        try file |> Yojson.Basic.from_file |> G_graph.of_json |> singleton with
+        | Yojson.Json_error msg -> Error.run ~loc:(Loc.file file) "Error in the JSON file format: %s" msg
+        | Yojson.Basic.Util.Type_error (msg,_) -> Error.run ~loc:(Loc.file file) "Cannot interpret JSON data: %s" msg
+      end
     | ".melt" | ".brown" ->
       let lines = File.read file in
       let config = match config with Some c -> c | None -> Conllx_config.build "ud" in
       let items = List.mapi (fun i line -> {
-        sent_id= sprintf "%05d" (i + 1);
-        text= "__No_text__";
-        graph= G_graph.of_brown config line;
-      }) lines |> Array.of_list in
+            sent_id= sprintf "%05d" (i + 1);
+            text= "__No_text__";
+            graph= G_graph.of_brown config line;
+          }) lines |> Array.of_list in
       { domain= None; items; kind=Conll }
     | ext -> Error.run "Cannot load file `%s`, unknown extension `%s`" file ext
 
-  let from_dir ?config dir =
+  let from_dir ?log_file ?config dir =
     let files = Sys.readdir dir in
     let (conll_files, amr_files, txt_files) =
       Array.fold_right
@@ -147,7 +147,7 @@ module Corpus = struct
     (* txt files are interpreted as AMR files only if there is no conll-like files (eg: UD containts txt files in parallel to conllu) *)
     match (conll_files, amr_files, txt_files) with
     | ([],[],[]) -> Error.run "The directory `%s` does not contain any graphs" dir
-    | (conll_files,[],_) -> of_conllx_corpus (Conllx_corpus.load_list ?config conll_files)
+    | (conll_files,[],_) -> of_conllx_corpus (Conllx_corpus.load_list ?log_file ?config conll_files)
     | ([],amr_files, txt_files) -> (amr_files @ txt_files) |> List.map (of_amr_corpus << Amr_corpus.load) |> merge
     | _ -> Error.run "The directory `%s` contains both Conll data and Amr data" dir
 end
@@ -209,7 +209,7 @@ module Corpus_desc = struct
 
   (* ---------------------------------------------------------------------------------------------------- *)
   let build_corpus corpus_desc =
-    let domain = build_domain corpus_desc in
+    let domain = None in
     let config = corpus_desc.config in
     match corpus_desc.kind with
     | Conll ->
@@ -343,7 +343,6 @@ module Corpus_desc = struct
   (* ---------------------------------------------------------------------------------------------------- *)
   (* [grew_match] is a folder where tables, logs and corpus desc is stored *)
   let build_marshal_file ?grew_match corpus_desc =
-
     let domain = build_domain corpus_desc in
     let config = corpus_desc.config in
     let full_files = get_full_files corpus_desc in
@@ -363,7 +362,7 @@ module Corpus_desc = struct
     try
       let items = match corpus_desc.kind with
         | Conll ->
-          let conll_corpus = Conllx_corpus.load_list ~config:corpus_desc.config ?columns:corpus_desc.columns full_files in
+          let conll_corpus = Conllx_corpus.load_list ?log_file ~config:corpus_desc.config ?columns:corpus_desc.columns full_files in
           grew_match_table_and_desc ~config:corpus_desc.config grew_match_dir corpus_desc.id conll_corpus;
           CCArray.filter_map (fun (sent_id,conllx) ->
               try
