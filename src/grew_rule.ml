@@ -701,7 +701,7 @@ module Matching = struct
         ) graph []
 
   (*  ---------------------------------------------------------------------- *)
-  and extend_matching_from ?domain  ~config (positive,neg) (graph:G_graph.t) pid (gid : Gid.t) partial =
+  and extend_matching_from ?domain ~config (positive,neg) (graph:G_graph.t) pid (gid : Gid.t) partial =
     if List.mem gid partial.already_matched_gids
     then [] (* the required association pid -> gid is not injective *)
     else
