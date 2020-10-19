@@ -100,8 +100,6 @@ module Graph : sig
 
   val of_gr: ?domain:Domain.t -> config:Conllx_config.t -> string -> t
 
-  val of_conll: ?domain:Domain.t -> config:Conllx_config.t -> Conll.t -> t
-
   val of_json_python: config:Conllx_config.t -> Yojson.Basic.t -> t
   val to_json_python: t -> Yojson.Basic.t
 
@@ -123,10 +121,6 @@ module Graph : sig
   val to_dep : ?filter: (string -> bool) -> ?main_feat:string -> ?deco:Deco.t -> config:Conllx_config.t -> t -> string
 
   val to_gr: config:Conllx_config.t -> t -> string
-
-  val to_conll: config:Conllx_config.t -> t -> Conll.t
-
-  val to_conll_string: ?cupt:bool -> config:Conllx_config.t -> t -> string
 
   (** [search_pattern pattern graph] returns the list of the possible matching of [pattern] in [graph] *)
   val search_pattern: ?domain:Domain.t -> config:Conllx_config.t -> Pattern.t -> t -> Matching.t list

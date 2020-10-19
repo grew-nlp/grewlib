@@ -218,21 +218,6 @@ module G_fs = struct
     List.sort G_feature.compare unsorted
 
   (* ---------------------------------------------------------------------- *)
-  let of_conll ?loc ?domain line =
-    let raw_list0 =
-      ("form", String line.Conll.form)
-      :: ("upos", Feature_value.build_value ?loc ?domain "upos" line.Conll.upos)
-      :: (List.map (fun (f,v) -> (f, Feature_value.build_value ?loc ?domain f v)) line.Conll.feats) in
-    let raw_list1 = match line.Conll.xpos with
-      | "" | "_" -> raw_list0
-      | s -> ("xpos", Feature_value.build_value ?loc ?domain "xpos" s) :: raw_list0 in
-    let raw_list2 = match line.Conll.lemma with
-      | "" | "_" -> raw_list1
-      | s -> ("lemma", String s) :: raw_list1 in
-    List.sort G_feature.compare raw_list2
-
-
-  (* ---------------------------------------------------------------------- *)
   let pst_leaf ?loc ?domain form = [("form", Feature_value.build_value ?loc ?domain "form" form)]
   let pst_node ?loc ?domain upos = [("upos", Feature_value.build_value ?loc ?domain "upos" upos)]
 

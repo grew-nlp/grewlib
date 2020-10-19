@@ -157,17 +157,17 @@ module Graph = struct
            Grew_graph.G_graph.of_ast ?domain ~config gr_ast
         ) ()
 
-  let load_conll ?domain file =
+  let load_conll ?domain ~config file =
     Libgrew.handle ~name:"Graph.load_conll" ~file
       (fun () ->
-         Grew_graph.G_graph.of_conll ?domain (Conll.load file)
+        Conllx.load ~config file |> Conllx.to_json |> Grew_graph.G_graph.of_json
       ) ()
 
-  let load_brown ?domain file =
+  let load_brown ?domain ~config file =
     Libgrew.handle ~name:"Graph.load_brown"
       (fun () ->
          let brown = Grew_base.File.load file in
-         Grew_graph.G_graph.of_brown ?domain brown
+         Grew_graph.G_graph.of_brown ?domain ~config brown
       ) ()
 
   let load_pst ?domain file =
@@ -185,8 +185,8 @@ module Graph = struct
       (fun () ->
          match Grew_base.File.get_suffix_opt file with
          | Some ".gr" -> load_gr ?domain ~config file
-         | Some ".conll" | Some ".conllu" -> load_conll ~config ?domain file
-         | Some ".br" | Some ".melt" -> load_brown ~config ?domain file
+         | Some ".conll" | Some ".conllu" -> load_conll ?domain ~config file
+         | Some ".br" | Some ".melt" -> load_brown ?domain ~config file
          | Some ".cst" -> load_pst ?domain file
          | _ ->
            Grew_base.Error.warning "Unknown file format for input graph '%s', try to guess..." file;
@@ -198,9 +198,6 @@ module Graph = struct
 
   let of_gr ?domain ~config gr_string =
     Libgrew.handle ~name:"Graph.of_gr" (fun () -> Grew_graph.G_graph.of_ast ?domain ~config (Grew_loader.Parser.gr gr_string)) ()
-
-  let of_conll ?domain ~config conll =
-    Libgrew.handle ~name:"Graph.of_conll" (fun () -> Grew_graph.G_graph.of_conll ?domain ~config conll) ()
 
   let of_pst ?domain pst_string =
     Libgrew.handle ~name:"of_pst"
@@ -235,17 +232,11 @@ module Graph = struct
   let to_json_python graph =
     Libgrew.handle ~name:"Graph.to_json_python" (fun () -> Grew_graph.G_graph.to_json_python graph) ()
 
-  let to_conll ~config graph =
-    Libgrew.handle ~name:"Graph.to_conll" (fun () -> Grew_graph.G_graph.to_conll ~config graph) ()
-
   let of_json graph =
     Libgrew.handle ~name:"Graph.of_json" (fun () -> Grew_graph.G_graph.of_json graph) ()
 
   let to_json graph =
     Libgrew.handle ~name:"Graph.to_json" (fun () -> Grew_graph.G_graph.to_json graph) ()
-
-  let to_conll_string ?cupt ~config graph =
-    Libgrew.handle ~name:"Graph.to_conll_string" (fun () -> Grew_graph.G_graph.to_conll_string ?cupt ~config graph) ()
 
   let to_sentence ?pivot ?deco gr =
     Libgrew.handle ~name:"Graph.to_sentence"

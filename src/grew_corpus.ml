@@ -213,11 +213,11 @@ module Corpus_desc = struct
     let config = corpus_desc.config in
     match corpus_desc.kind with
     | Conll ->
-      let conll_corpus = Conll_corpus.load_list ~tf_wf:true (get_full_files corpus_desc) in
+      let conll_corpus = Conllx_corpus.load_list ~config (get_full_files corpus_desc) in
       let items =
         CCArray.filter_map (fun (sent_id,conll) ->
             try
-              let init_graph = G_graph.of_conll ?domain ~config conll in
+              let init_graph = G_graph.of_json (Conllx.to_json conll) in
               let graph = match corpus_desc.preapply with
                 | Some grs -> Grs.apply ~config grs init_graph
                 | None -> init_graph in
@@ -227,7 +227,7 @@ module Corpus_desc = struct
                 sent_id
                 (match loc_opt with None -> "" | Some loc -> "; " ^ (Loc.to_string loc))
                 msg; None
-          ) conll_corpus in
+          ) (Conllx_corpus.get_data conll_corpus) in
       { Corpus.domain; items; kind=Conll }
     | _ -> Error.bug "[Corpus_desc.build_corpus] is available only on Conll format"
 

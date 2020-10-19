@@ -50,7 +50,6 @@ module G_node: sig
   val to_gr: t -> string
 
   val of_ast: ?domain:Domain.t -> ?position:int -> Ast.node -> t
-  val build_from_conll: ?loc:Loc.t -> ?domain:Domain.t -> int option -> Conll.line -> t
   val build_pst_leaf: ?loc:Loc.t -> ?domain:Domain.t -> string -> t
   val build_pst_node: ?loc:Loc.t -> ?domain:Domain.t -> string -> t
 

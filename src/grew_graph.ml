@@ -232,18 +232,10 @@ end (* module G_deco *)
 
 (* ================================================================================ *)
 module G_graph = struct
-  type fusion_item = {
-    first: Gid.t;
-    last: Gid.t;
-    word: string;
-    efs: (string * string) list;
-  }
-
   type t = {
     domain: Domain.t option;
     meta: (string * string) list; (* meta-informations *)
     map: G_node.t Gid_map.t;      (* node description *)
-    fusion: fusion_item list;     (* the list of fusion word considered in UD conll *)
     highest_index: int;           (* the next free integer index *)
     rules: int String_map.t;
   }
@@ -263,7 +255,7 @@ module G_graph = struct
 
   let set_meta key value t = {t with meta = (key,value) :: List.remove_assoc key t.meta}
 
-  let empty = { domain=None; meta=[]; map=Gid_map.empty; fusion=[]; highest_index=0; rules=String_map.empty; }
+  let empty = { domain=None; meta=[]; map=Gid_map.empty; highest_index=0; rules=String_map.empty; }
 
   let is_empty t = Gid_map.is_empty t.map
 
@@ -447,7 +439,6 @@ module G_graph = struct
       domain;
       meta=List.map parse_meta gr_ast.Ast.meta;
       map;
-      fusion = [];
       highest_index = final_index - 1;
       rules = String_map.empty;
     }
@@ -529,7 +520,6 @@ module G_graph = struct
       domain = None;
       meta;
       map;
-      fusion = [];
       highest_index = final_index - 1;
       rules = String_map.empty;
     }
@@ -603,108 +593,6 @@ module G_graph = struct
     | _ -> Error.build "[Graph.of_json_python] not an assoc list"
 
   (* -------------------------------------------------------------------------------- *)
-  let of_conll ?domain ~config conll =
-    let sorted_lines = Conll.root :: (List.sort Conll.compare conll.Conll.lines) in
-
-    (* [gtable] maps *)
-    let gtable = (
-      Array.of_list (List.map (fun line -> line.Conll.id) sorted_lines),
-      Conll.Id.to_dot
-    ) in
-
-    let rec loop index pred = function
-      | [] -> Gid_map.empty
-      | [last] ->
-        let loc = Loc.file_opt_line conll.Conll.file last.Conll.line_num in
-        let node =
-          G_node.build_from_conll ~loc ?domain (Some index) last
-          |> (fun x -> match pred with None -> x | Some p -> G_node.add_edge G_edge.pred p x)
-        in
-        Gid_map.add index node Gid_map.empty
-      | line::tail ->
-        let loc = Loc.file_opt_line conll.Conll.file line.Conll.line_num in
-        let node =
-          G_node.build_from_conll ~loc ?domain (Some index) line
-          |> (fun x -> match pred with None -> x | Some p -> G_node.add_edge G_edge.pred p x)
-          |> G_node.add_edge G_edge.succ (index+1)
-        in
-        Gid_map.add index node (loop (index+1) (Some index) tail) in
-
-    let map_without_edges = loop 0 None sorted_lines in
-
-    let map_with_edges =
-      List.fold_left
-        (fun acc line ->
-           let loc = Loc.file_opt_line conll.Conll.file line.Conll.line_num in
-           let dep_id = Id.gbuild ~loc line.Conll.id gtable in
-           List.fold_left
-             (fun acc2 (gov, dep_lab) ->
-                let gov_id = Id.gbuild ~loc gov gtable in
-                let edge = G_edge.from_string ~config dep_lab in
-                (match map_add_edge_opt acc2 gov_id edge dep_id with
-                 | Some g -> g
-                 | None -> Error.build ~loc "[Graph.of_conll] try to build a graph with twice the same edge %s"
-                             (G_edge.dump ~config edge)
-                )
-             ) acc line.Conll.deps
-        ) map_without_edges conll.Conll.lines in
-
-    let fusion =
-      List.map
-        (fun {Conll.first; last; fusion; mw_line_num; mw_efs} ->
-           let loc = Loc.file_opt_line_opt conll.Conll.file mw_line_num in
-           (
-             {
-               first = Id.gbuild ~loc (first,None) gtable;
-               last = Id.gbuild ~loc (last, None) gtable;
-               word = fusion;
-               efs = mw_efs;
-             }
-           )
-        ) conll.Conll.multiwords in
-
-    let (map_with_nl_nodes, free_index) =
-      Conll_types.Int_map.fold
-        (fun key mwe (acc, free_index) ->
-           let kind = match mwe.Mwe.kind with Mwe.Ne -> "NE" | Mwe.Mwe -> "MWE" in
-           let fs1 = G_fs.set_atom ?domain "kind" kind G_fs.empty in
-           let fs2 = match mwe.Mwe.label with None -> fs1 | Some p -> G_fs.set_atom ?domain "label" p fs1 in
-           let fs3 = match mwe.Mwe.mwepos with None -> fs2 | Some p -> G_fs.set_atom ?domain "mwepos" p fs2 in
-           let fs4 = match mwe.Mwe.criterion with None -> fs3 | Some c -> G_fs.set_atom ?domain "criterion" c fs3 in
-
-           let new_node = G_node.set_fs fs4 G_node.empty in
-
-           (* add a new node *)
-           let new_map_1 = (Gid_map.add free_index new_node acc) in
-           (* add a link to the first component *)
-           let new_map_2 = map_add_edge free_index (G_edge.from_string ~config kind) (Id.gbuild (fst mwe.Mwe.first) gtable) new_map_1 in
-           let new_map_3 = match snd mwe.Mwe.first with
-             | None -> new_map_2
-             | Some i -> map_add_edge free_index (G_edge.from_string ~config (sprintf "%d" i)) (Id.gbuild (fst mwe.Mwe.first) gtable) new_map_2 in
-
-           (* add a link to each other component *)
-           let new_map_4 =
-             Id_with_proj_set.fold (
-               fun item acc2 ->
-                 let tmp = map_add_edge free_index (G_edge.from_string ~config kind) (Id.gbuild (fst item) gtable) acc2 in
-                 match snd item with
-                 | None -> tmp
-                 | Some i -> map_add_edge free_index (G_edge.from_string ~config (sprintf "%d" i)) (Id.gbuild (fst item) gtable) tmp
-             ) mwe.Mwe.items new_map_3 in
-
-           (new_map_4, free_index+1)
-        ) conll.Conll.mwes (map_with_edges, List.length sorted_lines) in
-
-    {
-      domain;
-      meta = List.map parse_meta conll.Conll.meta;
-      map = map_with_nl_nodes;
-      fusion;
-      highest_index = free_index -1;
-      rules = String_map.empty;
-    }
-
-  (* -------------------------------------------------------------------------------- *)
   (** input : "Le/DET/le petit/ADJ/petit chat/NC/chat dort/V/dormir ./PONCT/." *)
 
   let re = Str.regexp "/\\(ADJ\\|ADJWH\\|ADV\\|ADVWH\\|CC\\|CLO\\|CLR\\|CLS\\|CS\\|DET\\|DETWH\\|ET\\|I\\|NC\\|NPP\\|P\\|P\\+D\\|P\\+PRO\\|PONCT\\|PREF\\|PRO\\|PROREL\\|PROWH\\|V\\|VIMP\\|VINF\\|VPP\\|VPR\\|VS\\)/"
@@ -763,7 +651,6 @@ module G_graph = struct
       domain;
       meta=[];
       map=prec_loop 1 map (List.rev !leaf_list);
-      fusion = [];
       highest_index = !cpt;
       rules = String_map.empty;
     }
@@ -1253,124 +1140,6 @@ module G_graph = struct
     in loop 0
 
   (* -------------------------------------------------------------------------------- *)
-  exception Skip
-
-  let to_conll ~config graph =
-    let ordered_nodes = Gid_map.fold
-        (fun id node acc ->
-           if G_node.get_position_opt node <> None
-           then (id,node)::acc
-           else acc
-        ) graph.map [] in
-
-    (* sort nodes wrt position *)
-    let sorted_nodes = List.sort (fun (_,n1) (_,n2) -> G_node.compare n1 n2) ordered_nodes in
-
-    (* [mapping] associated gid to Conll.Id.t *)
-    let (_,_,mapping) = List.fold_left
-        (fun (acc_pos, acc_empty, acc) (gid,node) ->
-           if G_node.get_position_opt node = Some 0
-           then (acc_pos, acc_empty, Gid_map.add gid (0,None) acc)
-           else
-           if G_node.is_eud_empty node
-           then
-             let new_empty = match acc_empty with
-               | None -> Some 1
-               | Some 9 -> Error.run ("Too much empty nodes")
-               | Some i -> Some (i+1) in
-             (acc_pos, new_empty, Gid_map.add gid (acc_pos,new_empty) acc)
-           else
-             (acc_pos+1, None, Gid_map.add gid (acc_pos+1,None) acc)
-        ) (0, None, Gid_map.empty) sorted_nodes in
-
-    let all_govs = List.fold_left
-        (fun acc (src_gid, node) ->
-           Massoc_gid.fold
-             (fun acc2 tar_gid edge ->
-                match G_edge.to_string_opt ~config edge with
-                | None -> acc2
-                | Some string_edge ->
-                  let old = try Gid_map.find tar_gid acc2 with Not_found -> [] in
-                  Gid_map.add tar_gid ((Gid_map.find src_gid mapping, string_edge) :: old) acc2
-             ) acc (G_node.get_next node)
-        ) Gid_map.empty sorted_nodes in
-
-
-    let lines = List.map
-        (fun (gid,node) ->
-           let fs = G_node.get_fs node in
-           let string_feat feat_name =
-             match G_fs.get_value_opt feat_name fs with Some value -> conll_string_of_value value | None -> "_" in
-           let deps = try Gid_map.find gid all_govs with Not_found -> [] in
-
-           Conll.build_line
-             ~id: (Gid_map.find gid mapping)
-             ~form: (string_feat "form")
-             ~lemma: (string_feat "lemma")
-             ~upos: (string_feat "upos")
-             ~xpos: (string_feat "xpos")
-             ~feats: (G_fs.to_conll ~exclude: ["form"; "lemma"; "upos"; "xpos"] fs)
-             ~deps
-             ()
-        )
-        (match sorted_nodes with
-         | (_,h)::t when G_node.get_position_opt h = Some 0 -> t (* the first element in the Conll_root which must not be displayed *)
-         | l -> l
-        ) in
-
-    let (_,mwes) = Gid_map.fold
-        (fun _ node (num,acc) ->
-           try
-             let fs = G_node.get_fs node in
-             let kind = match G_fs.get_value_opt "kind" fs with
-               | Some (String "NE") -> Mwe.Ne
-               | Some (String "MWE") -> Mwe.Mwe
-               | _ -> raise Skip in
-             let nexts = G_node.get_next node in
-             let next_list =
-               List.sort_uniq
-                 (fun gid1 gid2 ->
-                    let n1 = List.assoc gid1 sorted_nodes
-                    and n2 = List.assoc gid2 sorted_nodes in
-                    match (G_node.get_position_opt n1, G_node.get_position_opt n2) with
-                    | (Some i, Some j) -> Stdlib.compare i j
-                    | _ -> 0
-                 )
-                 (Massoc_gid.fold (fun acc2 k _ -> k::acc2) [] nexts) in
-             match next_list with
-             | [] -> Error.bug "[G_graph.to_conll] mwe node with no next node"
-             | head_gid::tail_gids ->
-               let head_conll_id = Gid_map.find head_gid mapping in
-               let head_proj = CCList.find_map
-                   (fun e -> match G_edge.to_string_opt ~config e with Some s -> int_of_string_opt s | None -> None)
-                   (Massoc_gid.assoc head_gid nexts) in
-               let items = List.fold_left
-                   (fun acc gid ->
-                      let conll_id = Gid_map.find gid mapping in
-                      let proj = CCList.find_map
-                          (fun e -> match G_edge.to_string_opt ~config e with Some s -> int_of_string_opt s | None -> None)
-                          (Massoc_gid.assoc gid nexts) in
-                      Id_with_proj_set.add (conll_id, proj) acc
-                   ) Id_with_proj_set.empty tail_gids in
-               let mwe = {
-                 Mwe.kind;
-                 Mwe.mwepos = CCOpt.map string_of_value (G_fs.get_value_opt "mwepos" fs);
-                 Mwe.label = CCOpt.map string_of_value (G_fs.get_value_opt "label" fs);
-                 Mwe.criterion = CCOpt.map string_of_value (G_fs.get_value_opt "criterion" fs);
-                 first = (head_conll_id,head_proj);
-                 items;
-               } in
-               (num+1, Conll_types.Int_map.add num mwe acc)
-           with Skip -> (num,acc)
-        ) graph.map (1,Conll_types.Int_map.empty) in
-
-    { Conll.void with Conll.meta = List.map string_of_meta graph.meta; lines; mwes; }
-
-  let to_conll_string ?cupt ~config graph =
-    let conll = to_conll ~config graph in
-    Conll.to_string ?cupt (Conll.normalize_multiwords conll)
-
-  (* -------------------------------------------------------------------------------- *)
   let to_dot ?main_feat ?(get_url = fun _ -> None) ?(deco=G_deco.empty) ~config graph =
     let domain = get_domain_opt graph in
     let buff = Buffer.create 32 in
@@ -1443,7 +1212,7 @@ module G_graph = struct
     | (Some new_domain, Some dom) when dom == new_domain ->
       (* ====== NO CAST NEEDED ====== *) graph
     | _ ->
-      (* ====== CASTING NEEDED ====== *) of_conll ?domain ~config (to_conll ~config graph)
+      (* ====== CASTING NEEDED ====== *) failwith "OBSOLETE casting"
 
   let is_projective t =
     let (arc_positions, pos_to_gid_map) =

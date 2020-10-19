@@ -76,16 +76,6 @@ module G_node = struct
     let fs = G_fs.of_ast ?domain ast_node.Ast.fs in
     { empty with name=Some ast_node.Ast.node_id; fs; position; }
 
-  let build_from_conll ?loc ?domain position line =
-    if line = Conll.root
-    then { empty with position=Some 0; name = Some "ROOT" }
-    else { empty with
-           fs = G_fs.of_conll ?loc ?domain line;
-           position;
-           efs=line.Conll.efs;
-           name = Some (Conll_types.Id.to_string line.Conll.id)
-         }
-
   let build_pst_leaf ?loc ?domain phon =
     { empty with fs = G_fs.pst_leaf ?loc ?domain phon }
 

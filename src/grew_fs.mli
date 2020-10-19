@@ -64,8 +64,6 @@ module G_fs: sig
 
   val of_items: (string * string) list -> t
 
-  val of_conll: ?loc:Loc.t -> ?domain:Domain.t -> Conll.line -> t
-
   val pst_leaf: ?loc:Loc.t -> ?domain:Domain.t -> string -> t
   val pst_node: ?loc:Loc.t -> ?domain:Domain.t -> string -> t
 

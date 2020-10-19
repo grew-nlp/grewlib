@@ -115,7 +115,6 @@ module G_graph: sig
 
   val of_ast: ?domain:Domain.t -> config:Conllx_config.t -> Ast.gr -> t
 
-  val of_conll: ?domain:Domain.t -> config:Conllx_config.t -> Conll.t -> t
   val of_json_python: config:Conllx_config.t -> Yojson.Basic.t -> t
 
   (** input : "Le/DET/le petit/ADJ/petit chat/NC/chat dort/V/dormir ./PONCT/."
@@ -218,8 +217,6 @@ module G_graph: sig
   val to_orfeo: ?deco:G_deco.t -> t -> (string * (float * float) option)
 
   val to_dep: ?filter: (string -> bool) -> ?main_feat:string -> ?deco:G_deco.t -> config:Conllx_config.t -> t -> string
-  val to_conll: config:Conllx_config.t -> t -> Conll.t
-  val to_conll_string: ?cupt:bool -> config:Conllx_config.t -> t -> string
 
   val to_json_python: t -> Yojson.Basic.t
 
