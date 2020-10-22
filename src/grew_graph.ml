@@ -64,7 +64,7 @@ module P_graph = struct
       | [] -> ()
       | id::_ ->
         let loc = snd (List.find (fun ({Ast.node_id},_) -> node_id = id) full_node_list) in
-      Error.build ~loc "The same identifier `%s` cannot be used both as a node identifier and as an edge identifier" id
+        Error.build ~loc "The same identifier `%s` cannot be used both as a node identifier and as an edge identifier" id
     end;
 
     (* NB: insert searches for a previous node with the same name and uses unification rather than constraint *)
@@ -238,6 +238,7 @@ module G_graph = struct
     map: G_node.t Gid_map.t;      (* node description *)
     highest_index: int;           (* the next free integer index *)
     rules: int String_map.t;
+    trace: (string * t) option;   (* if the rewriting history is kept *)
   }
 
   let get_meta_opt key t = List.assoc_opt key t.meta
@@ -255,7 +256,7 @@ module G_graph = struct
 
   let set_meta key value t = {t with meta = (key,value) :: List.remove_assoc key t.meta}
 
-  let empty = { domain=None; meta=[]; map=Gid_map.empty; highest_index=0; rules=String_map.empty; }
+  let empty = { domain=None; meta=[]; map=Gid_map.empty; highest_index=0; rules=String_map.empty; trace=None}
 
   let is_empty t = Gid_map.is_empty t.map
 
@@ -273,12 +274,23 @@ module G_graph = struct
   let fold_gid fct t init =
     Gid_map.fold (fun gid _ acc -> fct gid acc) t.map init
 
-  let push_rule rule_name t =
-    if !Global.track_rules
-    then
-      let old = try String_map.find rule_name t.rules with Not_found -> 0 in
-      { t with rules = String_map.add rule_name (old+1) t.rules }
-    else t
+  let track rule_name previous_graph t =
+    let tmp_graph =
+      if !Global.track_rules
+      then
+        let old = try String_map.find rule_name t.rules with Not_found -> 0 in
+        { t with rules = String_map.add rule_name (old+1) t.rules }
+      else t in
+    if !Global.track_history
+    then { tmp_graph with trace = Some (rule_name, previous_graph) }
+    else tmp_graph
+
+  let get_history graph =
+    let rec loop g =
+    match g.trace with
+     | None -> []
+     | Some (r,g') -> (r,g') :: (loop g') in
+     List.rev (loop graph)
 
   let string_rules t =
     String_map.fold
@@ -441,6 +453,7 @@ module G_graph = struct
       map;
       highest_index = final_index - 1;
       rules = String_map.empty;
+      trace=None
     }
 
   (* -------------------------------------------------------------------------------- *)
@@ -522,6 +535,7 @@ module G_graph = struct
       map;
       highest_index = final_index - 1;
       rules = String_map.empty;
+      trace= None;
     }
 
   (* -------------------------------------------------------------------------------- *)
@@ -600,16 +614,16 @@ module G_graph = struct
   let of_brown ?domain ?sentid ~config brown =
     let units = Str.split (Str.regexp " ") brown in
     let json_nodes =
-    (`Assoc [("id", `String "0"); ("form", `String "__0__")])
-    :: List.mapi (
-      fun i item -> match Str.full_split re item with
-         | [Str.Text form; Str.Delim pos; Str.Text lemma] ->
-           let pos = String.sub pos 1 ((String.length pos)-2) in
-          `Assoc [("id", `String (string_of_int (i+1))); ("form", `String form); ("xpos", `String pos); ("lemma", `String lemma)]
-         | _ -> Error.build "[Graph.of_brown] Cannot parse Brown item >>>%s<<< (expected \"phon/POS/lemma\") in >>>%s<<<" item brown
+      (`Assoc [("id", `String "0"); ("form", `String "__0__")])
+      :: List.mapi (
+        fun i item -> match Str.full_split re item with
+          | [Str.Text form; Str.Delim pos; Str.Text lemma] ->
+            let pos = String.sub pos 1 ((String.length pos)-2) in
+            `Assoc [("id", `String (string_of_int (i+1))); ("form", `String form); ("xpos", `String pos); ("lemma", `String lemma)]
+          | _ -> Error.build "[Graph.of_brown] Cannot parse Brown item >>>%s<<< (expected \"phon/POS/lemma\") in >>>%s<<<" item brown
       ) units in
-      let order = List.map (Yojson.Basic.Util.member "id") json_nodes in
-      of_json (`Assoc [("nodes", `List json_nodes); ("order", `List order)])
+    let order = List.map (Yojson.Basic.Util.member "id") json_nodes in
+    of_json (`Assoc [("nodes", `List json_nodes); ("order", `List order)])
 
   (* -------------------------------------------------------------------------------- *)
   let of_pst ?domain pst =
@@ -653,6 +667,7 @@ module G_graph = struct
       map=prec_loop 1 map (List.rev !leaf_list);
       highest_index = !cpt;
       rules = String_map.empty;
+      trace=None
     }
 
   let del_edge_feature_opt ?loc edge_id feat_name (src_gid,edge,tar_gid) graph =
@@ -1202,9 +1217,9 @@ module G_graph = struct
   let get_feature_values feature_name t =
     Gid_map.fold
       (fun _ node acc ->
-          match G_fs.get_value_opt feature_name (G_node.get_fs node) with
-          | None -> acc
-          | Some v -> String_set.add (string_of_value v) acc
+         match G_fs.get_value_opt feature_name (G_node.get_fs node) with
+         | None -> acc
+         | Some v -> String_set.add (string_of_value v) acc
       ) t.map String_set.empty
 
   let cast ?domain ~config graph = match (domain, graph.domain) with

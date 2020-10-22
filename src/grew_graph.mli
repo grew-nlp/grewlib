@@ -95,7 +95,9 @@ module G_graph: sig
 
   val fold_gid: (Gid.t -> 'a -> 'a) -> t -> 'a -> 'a
 
-  val push_rule: string -> t -> t
+  val track: string -> t -> t -> t
+
+  val get_history: t -> (string * t) list
 
   val clear_rules: t -> t
 

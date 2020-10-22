@@ -1383,7 +1383,12 @@ module Rule = struct
             }
             rule.commands in
         if final_state.effective
-        then (Timeout.check (); incr_rules rule.name; Some (G_graph.push_rule (get_long_name rule) final_state.graph))
+        then
+          begin
+            Timeout.check ();
+            incr_rules rule.name;
+            Some (G_graph.track (get_long_name rule) graph final_state.graph)
+          end
         else None
     with Error.Run (msg,_) -> Error.run ~loc:rule.loc "%s" msg
 
@@ -1429,7 +1434,12 @@ module Rule = struct
           | Some {Libgrew_types.small_step; first} -> {Libgrew_types.small_step = (graph,rule_app) :: small_step; first} in
 
         if final_state.effective
-        then (Timeout.check (); incr_rules rule.name; Some (final_state.graph, new_big_step))
+        then
+          begin
+            Timeout.check ();
+            incr_rules rule.name;
+            Some (final_state.graph, new_big_step)
+          end
         else None
     with Error.Run (msg,_) -> Error.run ~loc:rule.loc "%s" msg
 
@@ -1808,7 +1818,8 @@ module Rule = struct
   (*  ---------------------------------------------------------------------- *)
   (** [apply_rule graph_with_history matching rule] returns a new graph_with_history after the application of the rule *)
   let gwh_apply_rule ?domain ~config graph_with_history matching rule =
-    Timeout.check (); incr_rules rule.name;
+    Timeout.check ();
+    incr_rules rule.name;
     let init = Graph_with_history_set.singleton
         { graph_with_history with
           e_mapping = matching.Matching.e_match;
@@ -1816,13 +1827,18 @@ module Rule = struct
           added_edges_in_rule = String_map.empty;
         } in
 
-    List.fold_left
-      (fun gwh_set cmd ->
-         Graph_with_history_set.fold
-           (fun gwh acc ->
-              Graph_with_history_set.union (gwh_apply_command ~config ?domain cmd matching gwh) acc
-           ) gwh_set Graph_with_history_set.empty
-      ) init rule.commands
+    let new_graphs =
+      List.fold_left
+        (fun gwh_set cmd ->
+           Graph_with_history_set.fold
+             (fun gwh acc ->
+                Graph_with_history_set.union (gwh_apply_command ~config ?domain cmd matching gwh) acc
+             ) gwh_set Graph_with_history_set.empty
+        ) init rule.commands in
+
+        if !Global.track_history
+        then Graph_with_history_set.map (fun g -> {g with graph = G_graph.track rule.name graph_with_history.graph g.graph} ) new_graphs
+        else new_graphs
 
   let gwh_apply ?domain ~config rule graph_with_history =
     try
@@ -1832,6 +1848,8 @@ module Rule = struct
            Graph_with_history_set.union (gwh_apply_rule ?domain ~config graph_with_history matching rule) acc
         ) Graph_with_history_set.empty matching_list
     with Error.Run (msg,_) -> Error.run ~loc:rule.loc "%s" msg
+
+
 
   exception Dead_lock
   let owh_apply_opt ?domain ~config rule gwh =
@@ -1860,8 +1878,9 @@ module Rule = struct
               | Some next_gwh -> loop_command next_gwh tail_commands in
           try
             let new_gwh = loop_command init_gwh rule.commands in
-            Timeout.check (); incr_rules rule.name;
-            Some {new_gwh with graph = G_graph.push_rule (get_long_name rule) new_gwh.graph }
+            Timeout.check ();
+            incr_rules rule.name;
+            Some {new_gwh with graph = G_graph.track (get_long_name rule) graph new_gwh.graph }
           with Dead_lock -> loop_matching tail (* failed to apply all commands -> move to the next matching *)
         else loop_matching tail (* some neg part prevents rule app -> move to the next matching *)
     in loop_matching matching_list

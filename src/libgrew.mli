@@ -21,6 +21,7 @@ module Libgrew : sig
   val set_debug_mode: bool -> unit
   val set_safe_commands: bool -> unit
   val set_track_rules: bool -> unit
+  val set_track_history: bool -> unit
 
   exception Error of string
   exception Bug of string
@@ -132,6 +133,9 @@ module Graph : sig
   val set_meta: string -> string -> t -> t
 
   val get_feature_values: string -> t -> String_set.t
+
+  val get_history: t -> (string * t) list
+
 end
 
 (* ==================================================================================================== *)

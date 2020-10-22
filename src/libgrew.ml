@@ -61,6 +61,7 @@ module Libgrew = struct
   let set_safe_commands flag = Grew_base.Global.safe_commands := flag
 
   let set_track_rules flag = Grew_base.Global.track_rules := flag
+  let set_track_history flag = Grew_base.Global.track_history:= flag
 end
 
 (* ==================================================================================================== *)
@@ -264,6 +265,9 @@ module Graph = struct
 
   let get_feature_values feature_name t =
     Grew_graph.G_graph.get_feature_values feature_name t
+
+  let get_history t =
+    Grew_graph.G_graph.get_history t
 end
 
 (* ==================================================================================================== *)
