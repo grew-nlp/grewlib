@@ -134,7 +134,7 @@ module Graph : sig
 
   val get_feature_values: string -> t -> String_set.t
 
-  val get_history: t -> (string * t) list
+  val get_history: t -> (Deco.t * string * Deco.t * t) list
 
 end
 

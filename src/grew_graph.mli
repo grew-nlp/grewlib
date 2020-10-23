@@ -95,9 +95,9 @@ module G_graph: sig
 
   val fold_gid: (Gid.t -> 'a -> 'a) -> t -> 'a -> 'a
 
-  val track: string -> t -> t -> t
+  val track: G_deco.t -> string -> G_deco.t -> t -> t -> t
 
-  val get_history: t -> (string * t) list
+  val get_history: t -> (G_deco.t * string * G_deco.t * t) list
 
   val clear_rules: t -> t
 

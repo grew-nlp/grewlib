@@ -232,13 +232,16 @@ end (* module G_deco *)
 
 (* ================================================================================ *)
 module G_graph = struct
-  type t = {
+
+  type trace_item = G_deco.t * string * G_deco.t * t
+
+  and t = {
     domain: Domain.t option;
     meta: (string * string) list; (* meta-informations *)
     map: G_node.t Gid_map.t;      (* node description *)
     highest_index: int;           (* the next free integer index *)
     rules: int String_map.t;
-    trace: (string * t) option;   (* if the rewriting history is kept *)
+    trace: trace_item option;   (* if the rewriting history is kept *)
   }
 
   let get_meta_opt key t = List.assoc_opt key t.meta
@@ -274,7 +277,7 @@ module G_graph = struct
   let fold_gid fct t init =
     Gid_map.fold (fun gid _ acc -> fct gid acc) t.map init
 
-  let track rule_name previous_graph t =
+  let track up rule_name down previous_graph t =
     let tmp_graph =
       if !Global.track_rules
       then
@@ -282,14 +285,14 @@ module G_graph = struct
         { t with rules = String_map.add rule_name (old+1) t.rules }
       else t in
     if !Global.track_history
-    then { tmp_graph with trace = Some (rule_name, previous_graph) }
+    then { tmp_graph with trace = Some (up, rule_name, down, previous_graph) }
     else tmp_graph
 
   let get_history graph =
     let rec loop g =
     match g.trace with
      | None -> []
-     | Some (r,g') -> (r,g') :: (loop g') in
+     | Some (u,r,d,g') -> (u,r,d,g') :: (loop g') in
      List.rev (loop graph)
 
   let string_rules t =

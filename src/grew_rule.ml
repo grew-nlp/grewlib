@@ -1387,7 +1387,9 @@ module Rule = struct
           begin
             Timeout.check ();
             incr_rules rule.name;
-            Some (G_graph.track (get_long_name rule) graph final_state.graph)
+            let up = Matching.match_deco rule.pattern first_matching_where_all_witout_are_fulfilled in
+            let down = Matching.down_deco (first_matching_where_all_witout_are_fulfilled, final_state.created_nodes) rule.commands in
+            Some (G_graph.track up (get_long_name rule) down graph final_state.graph)
           end
         else None
     with Error.Run (msg,_) -> Error.run ~loc:rule.loc "%s" msg
@@ -1827,18 +1829,25 @@ module Rule = struct
           added_edges_in_rule = String_map.empty;
         } in
 
-    let new_graphs =
-      List.fold_left
-        (fun gwh_set cmd ->
-           Graph_with_history_set.fold
-             (fun gwh acc ->
-                Graph_with_history_set.union (gwh_apply_command ~config ?domain cmd matching gwh) acc
-             ) gwh_set Graph_with_history_set.empty
-        ) init rule.commands in
+    List.fold_left
+      (fun gwh_set cmd ->
+         Graph_with_history_set.fold
+           (fun gwh acc ->
+              let new_graphs = gwh_apply_command ~config ?domain cmd matching gwh in
+              let new_graphs_with_tracking =
+                if !Global.track_history
+                then Graph_with_history_set.map
+                    (fun g ->
+                       let up = Matching.match_deco rule.pattern matching in
+                       let down = Matching.down_deco (matching, g.added_gids_in_rule) rule.commands in
+                       {g with graph = G_graph.track up rule.name down graph_with_history.graph g.graph}
+                    ) new_graphs
+                else new_graphs in
 
-        if !Global.track_history
-        then Graph_with_history_set.map (fun g -> {g with graph = G_graph.track rule.name graph_with_history.graph g.graph} ) new_graphs
-        else new_graphs
+              Graph_with_history_set.union new_graphs_with_tracking acc
+           ) gwh_set Graph_with_history_set.empty
+      ) init rule.commands
+
 
   let gwh_apply ?domain ~config rule graph_with_history =
     try
@@ -1880,7 +1889,9 @@ module Rule = struct
             let new_gwh = loop_command init_gwh rule.commands in
             Timeout.check ();
             incr_rules rule.name;
-            Some {new_gwh with graph = G_graph.track (get_long_name rule) graph new_gwh.graph }
+            let up = Matching.match_deco rule.pattern sub in
+            let down = Matching.down_deco (sub, new_gwh.added_gids_in_rule) rule.commands in
+            Some {new_gwh with graph = G_graph.track up (get_long_name rule) down graph new_gwh.graph }
           with Dead_lock -> loop_matching tail (* failed to apply all commands -> move to the next matching *)
         else loop_matching tail (* some neg part prevents rule app -> move to the next matching *)
     in loop_matching matching_list
