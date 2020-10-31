@@ -62,6 +62,7 @@ module Libgrew = struct
 
   let set_track_rules flag = Grew_base.Global.track_rules := flag
   let set_track_history flag = Grew_base.Global.track_history:= flag
+  let set_track_impact flag = Grew_base.Global.track_impact:= flag
 end
 
 (* ==================================================================================================== *)

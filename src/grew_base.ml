@@ -661,6 +661,7 @@ module Global = struct
 
   let track_rules = ref false
   let track_history = ref false
+  let track_impact = ref false
 end (* module Global *)
 
 module Dependencies = struct

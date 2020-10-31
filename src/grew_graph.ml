@@ -228,6 +228,18 @@ module G_deco = struct
   }
 
   let empty = {nodes=[]; edges=[]; }
+
+  let merge deco1 deco2 =
+    {
+      nodes =
+        List.fold_left
+          (fun acc ((gid2, (_,hf_list2)) as item2) ->
+             match List.assoc_opt gid2 acc with
+             | None -> item2 :: acc
+             | Some (pid1,hf_list1) -> (gid2, (pid1, hf_list1 @ hf_list2)) :: (List.remove_assoc gid2 acc)
+          ) deco1.nodes deco2.nodes;
+      edges = deco1.edges @ deco2.edges;
+    }
 end (* module G_deco *)
 
 (* ================================================================================ *)
@@ -242,6 +254,7 @@ module G_graph = struct
     highest_index: int;           (* the next free integer index *)
     rules: int String_map.t;
     trace: trace_item option;   (* if the rewriting history is kept *)
+    impact: G_deco.t;
   }
 
   let get_meta_opt key t = List.assoc_opt key t.meta
@@ -259,7 +272,7 @@ module G_graph = struct
 
   let set_meta key value t = {t with meta = (key,value) :: List.remove_assoc key t.meta}
 
-  let empty = { domain=None; meta=[]; map=Gid_map.empty; highest_index=0; rules=String_map.empty; trace=None}
+  let empty = { domain=None; meta=[]; map=Gid_map.empty; highest_index=0; rules=String_map.empty; trace=None; impact=G_deco.empty}
 
   let is_empty t = Gid_map.is_empty t.map
 
@@ -277,23 +290,35 @@ module G_graph = struct
   let fold_gid fct t init =
     Gid_map.fold (fun gid _ acc -> fct gid acc) t.map init
 
-  let track up rule_name down previous_graph t =
-    let tmp_graph =
-      if !Global.track_rules
-      then
-        let old = try String_map.find rule_name t.rules with Not_found -> 0 in
-        { t with rules = String_map.add rule_name (old+1) t.rules }
-      else t in
+  let track_rules rule_name t =
+    if !Global.track_rules
+    then
+      let old = try String_map.find rule_name t.rules with Not_found -> 0 in
+      { t with rules = String_map.add rule_name (old+1) t.rules }
+    else t
+
+  let track_history up rule_name down previous_graph t =
     if !Global.track_history
-    then { tmp_graph with trace = Some (up, rule_name, down, previous_graph) }
-    else tmp_graph
+    then { t with trace = Some (up, rule_name, down, previous_graph) }
+    else t
+
+  let track_impact down t =
+    if !Global.track_impact
+    then { t with impact = G_deco.merge t.impact down }
+    else t
+
+  let track up rule_name down previous_graph t =
+    t
+    |> track_rules rule_name
+    |> track_history up rule_name down previous_graph
+    |> track_impact down
 
   let get_history graph =
     let rec loop g =
-    match g.trace with
-     | None -> []
-     | Some (u,r,d,g') -> (u,r,d,g') :: (loop g') in
-     List.rev (loop graph)
+      match g.trace with
+      | None -> []
+      | Some (u,r,d,g') -> (u,r,d,g') :: (loop g') in
+    List.rev (loop graph)
 
   let string_rules t =
     String_map.fold
@@ -450,13 +475,11 @@ module G_graph = struct
            )
         ) map_without_edges gr_ast.Ast.edges in
 
-    {
+    { empty with
       domain;
       meta=List.map parse_meta gr_ast.Ast.meta;
       map;
       highest_index = final_index - 1;
-      rules = String_map.empty;
-      trace=None
     }
 
   (* -------------------------------------------------------------------------------- *)
@@ -532,13 +555,10 @@ module G_graph = struct
            )
         ) maps_with_order edges in
 
-    {
-      domain = None;
+    { empty with
       meta;
       map;
       highest_index = final_index - 1;
-      rules = String_map.empty;
-      trace= None;
     }
 
   (* -------------------------------------------------------------------------------- *)
@@ -548,6 +568,7 @@ module G_graph = struct
         (fun (k,v) ->
            `Assoc [("key", `String k); ("value", `String v)]
         ) graph.meta in
+
     let (nodes, gid_position_list) =
       Gid_map.fold
         (fun gid node (acc_nodes, acc_gpl) ->
@@ -556,6 +577,7 @@ module G_graph = struct
            | None -> (node_conllx :: acc_nodes, acc_gpl)
            | Some p -> (node_conllx :: acc_nodes, (gid,p) :: acc_gpl)
         ) graph.map ([], []) in
+
     let edges =
       Gid_map.fold
         (fun src_gid node acc ->
@@ -572,16 +594,31 @@ module G_graph = struct
                     ]) :: acc2
              ) acc (G_node.get_next node)
         ) graph.map [] in
+
     let order =
       List.map
         (fun (gid,_) -> `String (Gid.to_string gid))
         (List.sort (fun (_,p1) (_,p2) -> Stdlib.compare p1 p2) gid_position_list) in
 
-    `Assoc [
+    let modified_nodes =
+      List.map
+        (fun (gid,(_,hf_list)) ->
+           `Assoc [("id", `String (Gid.to_string gid)); ("features", `List (List.map (fun (fn, _) -> `String fn) hf_list))]
+        ) graph.impact.nodes in
+
+    let modified_edges =
+      List.map
+        (fun (gid1,edge,gid2) ->
+          `Assoc [("src", `String (Gid.to_string gid1)); ("edge", G_edge.to_json edge); ("tar", `String (Gid.to_string gid2))]
+        ) graph.impact.edges in
+
+      `Assoc [
       ("meta", `List meta);
       ("nodes", `List nodes);
       ("edges", `List edges);
       ("order", `List order);
+      ("modified_nodes", `List modified_nodes);
+      ("modified_edges", `List modified_edges);
     ]
 
   (* -------------------------------------------------------------------------------- *)
@@ -664,13 +701,10 @@ module G_graph = struct
         new_map
         |> (map_add_pred_succ gid1 gid2)
         |> (Gid_map.add gid1 new_node1) in
-    {
+    { empty with
       domain;
-      meta=[];
       map=prec_loop 1 map (List.rev !leaf_list);
       highest_index = !cpt;
-      rules = String_map.empty;
-      trace=None
     }
 
   let del_edge_feature_opt ?loc edge_id feat_name (src_gid,edge,tar_gid) graph =

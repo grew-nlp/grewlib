@@ -367,6 +367,7 @@ module Grs = struct
   (* ============================================================================================= *)
   let onf_rewrite_opt ~config grs strat_string graph =
     Global.track_rules := true;
+    Global.track_impact := true;
     let strat = Parser.strategy strat_string in
     let new_graph = onf_rewrite ~config (top grs) strat (G_graph.clear_rules graph) in
     if G_graph.is_initial new_graph

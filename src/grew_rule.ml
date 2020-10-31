@@ -426,7 +426,6 @@ module Matching = struct
     let feat_to_highlight = List.fold_left
         (fun acc -> function
            | (Command.UPDATE_FEAT (tar_cn,feat_name,_),loc) ->
-             (* | (Command.SHIFT_EDGE (_,tar_cn),loc) *)
              let gid = find tar_cn (matching, created_nodes) in
              let old_feat_list = try Gid_map.find gid acc with Not_found -> [] in
              Gid_map.add gid (feat_name :: old_feat_list) acc
@@ -434,14 +433,24 @@ module Matching = struct
         ) Gid_map.empty commands in
 
     {
-      G_deco.nodes = List.map (fun (gid,feat_list) ->
-          (gid, ("", (List.map (fun x -> (x,None)) feat_list)))
-        ) (Gid_map.bindings feat_to_highlight);
-      G_deco.edges = List.fold_left (fun acc -> function
-          | (Command.ADD_EDGE (src_cn,tar_cn,edge),loc) ->
-            (find src_cn (matching, created_nodes), edge, find tar_cn (matching, created_nodes)) :: acc
-          | _ -> acc
-        ) [] commands;
+      G_deco.nodes =
+        List.map
+          (fun (gid,feat_list) ->
+             (gid, ("", (List.map (fun x -> (x,None)) feat_list)))
+          ) (Gid_map.bindings feat_to_highlight);
+      G_deco.edges =
+        List.fold_left
+          (fun acc -> function
+             | (Command.ADD_EDGE (src_cn,tar_cn,edge),loc) ->
+               (find src_cn (matching, created_nodes), edge, find tar_cn (matching, created_nodes)) :: acc
+             | (Command.UPDATE_EDGE_FEAT (edge_id,_,_), loc) ->
+               begin
+                 match String_map.find_opt edge_id matching.e_match with
+                 | None -> Error.bug ~loc "inconsistent command UPDATE_EDGE_FEAT"
+                 | Some edge -> edge :: acc
+               end
+             | _ -> acc
+          ) [] commands;
     }
 
   exception Fail
@@ -1273,7 +1282,6 @@ module Rule = struct
             | _ -> Error.run ~loc "Cannot use a contatenation for a numeric feature `%s`" tar_feat_name
           end
         else concat_feature_values ~loc feature_value_list in
-      printf "[onf_apply_command] Command.UPDATE_FEAT %s=%s\n%!" tar_feat_name (string_of_value new_feature_value);
       let new_graph = G_graph.update_feat ~loc state.graph tar_gid tar_feat_name new_feature_value in
       {state with graph = new_graph; effective = true}
 

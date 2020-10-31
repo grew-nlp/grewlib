@@ -22,6 +22,7 @@ module Libgrew : sig
   val set_safe_commands: bool -> unit
   val set_track_rules: bool -> unit
   val set_track_history: bool -> unit
+  val set_track_impact: bool -> unit
 
   exception Error of string
   exception Bug of string

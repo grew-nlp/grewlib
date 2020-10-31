@@ -96,7 +96,7 @@ module G_edge = struct
     | Fs fs -> Some (fs_to_json fs)
     | _ -> None
 
-  (* WARNING: hardcoded version which subsumes know configs *)
+  (* WARNING: hardcoded version which subsumes known configs *)
   let to_dep_opt ?domain ?(deco=false) ~config = function
     | Fs fs ->
       let styles =
@@ -118,7 +118,7 @@ module G_edge = struct
       Some (sprintf "{ label = \"%s\"; %s }" (fs_to_string ~config fs) (String.concat ";" styles))
     | _ -> None
 
-  (* WARNING: hardcoded version which subsumes know configs *)
+  (* WARNING: hardcoded version which subsumes known configs *)
   let to_dot_opt ?domain ?(deco=false) ~config = function
     | Fs fs ->
       let dot_items =

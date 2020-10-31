@@ -302,6 +302,7 @@ module Global: sig
   val safe_commands: bool ref
   val track_rules: bool ref
   val track_history: bool ref
+  val track_impact: bool ref
 end
 
 (* ================================================================================ *)
