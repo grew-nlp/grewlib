@@ -267,6 +267,12 @@ module Graph = struct
   let get_feature_values feature_name t =
     Grew_graph.G_graph.get_feature_values feature_name t
 
+  let get_relations ~config t =
+    Grew_graph.G_graph.get_relations ~config t
+
+  let get_features t =
+    Grew_graph.G_graph.get_features t
+
   let get_history t =
     Grew_graph.G_graph.get_history t
 end

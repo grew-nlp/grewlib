@@ -179,6 +179,9 @@ module G_fs = struct
   let empty = []
 
   (* ---------------------------------------------------------------------- *)
+  let get_features t = List.fold_left (fun acc (feat_name,_) -> String_set.add feat_name acc) String_set.empty t
+
+  (* ---------------------------------------------------------------------- *)
   let set_value ?loc ?domain feature_name value t =
     let rec loop = function
       | [] -> [(feature_name, value)]

@@ -134,6 +134,8 @@ module Graph : sig
   val set_meta: string -> string -> t -> t
 
   val get_feature_values: string -> t -> String_set.t
+  val get_relations: config:Conllx_config.t -> t -> String_set.t
+  val get_features: t -> String_set.t
 
   val get_history: t -> (Deco.t * string * Deco.t * t) list
 

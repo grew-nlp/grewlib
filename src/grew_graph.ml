@@ -253,7 +253,7 @@ module G_graph = struct
     map: G_node.t Gid_map.t;      (* node description *)
     highest_index: int;           (* the next free integer index *)
     rules: int String_map.t;
-    trace: trace_item option;   (* if the rewriting history is kept *)
+    trace: trace_item option;     (* if the rewriting history is kept *)
     impact: G_deco.t;
   }
 
@@ -609,10 +609,10 @@ module G_graph = struct
     let modified_edges =
       List.map
         (fun (gid1,edge,gid2) ->
-          `Assoc [("src", `String (Gid.to_string gid1)); ("edge", G_edge.to_json edge); ("tar", `String (Gid.to_string gid2))]
+           `Assoc [("src", `String (Gid.to_string gid1)); ("edge", G_edge.to_json edge); ("tar", `String (Gid.to_string gid2))]
         ) graph.impact.edges in
 
-      `Assoc [
+    `Assoc [
       ("meta", `List meta);
       ("nodes", `List nodes);
       ("edges", `List edges);
@@ -1257,6 +1257,28 @@ module G_graph = struct
          match G_fs.get_value_opt feature_name (G_node.get_fs node) with
          | None -> acc
          | Some v -> String_set.add (string_of_value v) acc
+      ) t.map String_set.empty
+
+  let get_relations ~config t =
+    Gid_map.fold
+      (fun _ node acc ->
+         Massoc_gid.fold_on_list
+           (fun acc2 key edges ->
+              List.fold_left
+                (fun acc3 edge ->
+                   match G_edge.to_string_opt ~config edge with
+                   | None -> acc3
+                   | Some e -> String_set.add e acc3
+                ) acc2 edges
+           ) acc (G_node.get_next node)
+      ) t.map String_set.empty
+
+  let get_features t =
+    Gid_map.fold
+      (fun _ node acc ->
+         String_set.union
+           (G_fs.get_features (G_node.get_fs node))
+           acc
       ) t.map String_set.empty
 
   let cast ?domain ~config graph = match (domain, graph.domain) with

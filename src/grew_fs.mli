@@ -30,6 +30,8 @@ module G_fs: sig
 
   val empty: t
 
+  val get_features: t -> String_set.t
+
   (** [set_atom domain feature_name atom t] adds the feature ([feature_name],[atom]) in [t].
       If [t] already contains a feature named [feature_name], the old value is erased by the new one. *)
   val set_atom: ?loc:Loc.t -> ?domain:Domain.t -> feature_name -> string -> t ->  t
