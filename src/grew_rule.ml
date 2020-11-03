@@ -422,7 +422,7 @@ module Matching = struct
       (try List.assoc name created_nodes
        with Not_found -> Error.run ?loc "Identifier '%s' not found" name)
 
-  let down_deco (matching,created_nodes) commands =
+  let down_deco (added_edges_in_rule,matching,created_nodes) commands =
     let feat_to_highlight = List.fold_left
         (fun acc -> function
            | (Command.UPDATE_FEAT (tar_cn,feat_name,_),loc) ->
@@ -445,9 +445,9 @@ module Matching = struct
                (find src_cn (matching, created_nodes), edge, find tar_cn (matching, created_nodes)) :: acc
              | (Command.UPDATE_EDGE_FEAT (edge_id,_,_), loc) ->
                begin
-                 match String_map.find_opt edge_id matching.e_match with
-                 | None -> Error.bug ~loc "inconsistent command UPDATE_EDGE_FEAT"
-                 | Some edge -> edge :: acc
+                 match (String_map.find_opt edge_id added_edges_in_rule, String_map.find_opt edge_id matching.e_match) with
+                 | (None, None) -> Error.bug ~loc "inconsistent command UPDATE_EDGE_FEAT edge_id=%s" edge_id
+                 | (_, Some edge) | (Some edge, _) -> edge :: acc
                end
              | _ -> acc
           ) [] commands;
@@ -1144,7 +1144,7 @@ module Rule = struct
           | Some new_graph ->
             {state with
              graph = new_graph;
-             e_mapping = String_map.add edge_id (src_gid,G_edge.empty,tar_gid) state.e_mapping;
+             e_mapping = (printf "+++%s+++\n%!" edge_id; String_map.add edge_id (src_gid,G_edge.empty,tar_gid) state.e_mapping);
              effective = true
             }
         end
@@ -1396,7 +1396,7 @@ module Rule = struct
             Timeout.check ();
             incr_rules rule.name;
             let up = Matching.match_deco rule.pattern first_matching_where_all_witout_are_fulfilled in
-            let down = Matching.down_deco (first_matching_where_all_witout_are_fulfilled, final_state.created_nodes) rule.commands in
+            let down = Matching.down_deco (String_map.empty, first_matching_where_all_witout_are_fulfilled, final_state.created_nodes) rule.commands in
             Some (G_graph.track up (get_long_name rule) down graph final_state.graph)
           end
         else None
@@ -1436,7 +1436,7 @@ module Rule = struct
         let rule_app = {
           Libgrew_types.rule_name = rule.name;
           up = Matching.match_deco rule.pattern first_matching_where_all_witout_are_fulfilled;
-          down = Matching.down_deco (first_matching_where_all_witout_are_fulfilled,final_state.created_nodes) rule.commands
+          down = Matching.down_deco (String_map.empty, first_matching_where_all_witout_are_fulfilled,final_state.created_nodes) rule.commands
         } in
 
         let new_big_step = match big_step_opt with
@@ -1847,7 +1847,7 @@ module Rule = struct
                 then Graph_with_history_set.map
                     (fun g ->
                        let up = Matching.match_deco rule.pattern matching in
-                       let down = Matching.down_deco (matching, g.added_gids_in_rule) rule.commands in
+                       let down = Matching.down_deco (g.added_edges_in_rule, matching, g.added_gids_in_rule) rule.commands in
                        {g with graph = G_graph.track up rule.name down graph_with_history.graph g.graph}
                     ) new_graphs
                 else new_graphs in
@@ -1898,7 +1898,7 @@ module Rule = struct
             Timeout.check ();
             incr_rules rule.name;
             let up = Matching.match_deco rule.pattern sub in
-            let down = Matching.down_deco (sub, new_gwh.added_gids_in_rule) rule.commands in
+            let down = Matching.down_deco (new_gwh.added_edges_in_rule, sub, new_gwh.added_gids_in_rule) rule.commands in
             Some {new_gwh with graph = G_graph.track up (get_long_name rule) down graph new_gwh.graph }
           with Dead_lock -> loop_matching tail (* failed to apply all commands -> move to the next matching *)
         else loop_matching tail (* some neg part prevents rule app -> move to the next matching *)
