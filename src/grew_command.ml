@@ -13,7 +13,6 @@ open Log
 
 open Grew_base
 open Grew_types
-open Grew_domain
 open Grew_ast
 open Grew_edge
 open Grew_fs
@@ -71,7 +70,7 @@ module Command  = struct
 
   type t = p * Loc.t  (* remember command location to be able to localize a command failure *)
 
-  let to_json_python ?domain ~config (p, _) = match p with
+  let to_json_python ~config (p, _) = match p with
     | DEL_NODE cn -> `Assoc [("del_node", command_node_to_json cn)]
     | DEL_EDGE_EXPL (src,tar,edge) ->
       `Assoc [("del_edge_expl",
@@ -193,7 +192,7 @@ module Command  = struct
     | UNORDER cn -> `Assoc [("unorder", command_node_to_json cn)]
 
 
-  let of_ast ?domain ~config lexicons (kni, kei) table ast_command =
+  let of_ast ~config lexicons (kni, kei) table ast_command =
     (* kni stands for "known node idents", kei for "known edge idents" *)
 
     let cn_of_node_id node_id =
@@ -279,7 +278,6 @@ module Command  = struct
       begin
         match (List.mem node_or_edge_id kni, List.mem node_or_edge_id kei) with
         | (true, false) ->
-          Domain.check_feature_name ~loc ?domain feat_name;
           ((DEL_FEAT (cn_of_node_id node_or_edge_id, feat_name), loc), (kni, kei))
         | (false, true) ->
           ((DEL_EDGE_FEAT (node_or_edge_id, feat_name), loc), (kni, kei))
@@ -307,7 +305,6 @@ module Command  = struct
           else if List.mem id_or_lex kni
           then
             begin
-              Domain.check_feature_name ~loc ?domain feature_name_or_lex_field;
               Node_feat (cn_of_node_id id_or_lex, feature_name_or_lex_field)
             end
           else if List.mem id_or_lex kei
@@ -322,13 +319,6 @@ module Command  = struct
         | (true, false) when feat_name = "__id__" -> Error.build ~loc "The node feature name \"__id__\" is reserved and cannot be used in commands"
         | (true, false) ->
           let items = List.map of_ast_item ast_items in
-          (* check for consistency *)
-          begin
-            match items with
-            | _ when Domain.is_open_feature ?domain feat_name -> ()
-            | [String_item s] -> Domain.check_feature ~loc ?domain feat_name s
-            | _ -> ()
-          end;
           ((UPDATE_FEAT (cn_of_node_id node_or_edge_id, feat_name, items), loc), (kni, kei))
 
         (* [node_or_edge_id] is a edge id *)

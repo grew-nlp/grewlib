@@ -103,7 +103,7 @@ module Pattern = struct
     (*   N << e2   *)
     | Covered of Pid.t * string (* node_id, edge_id *)
 
-  let const_to_json ?domain ~config = function
+  let const_to_json ~config = function
     | Cst_out (pid, label_cst) -> `Assoc ["cst_out", Label_cst.to_json_python ~config label_cst]
     | Cst_in (pid, label_cst) -> `Assoc ["cst_in", Label_cst.to_json_python ~config label_cst]
     | Feature_equal (id1,fn1,id2,fn2) ->
@@ -248,10 +248,10 @@ module Pattern = struct
     constraints: const list;
   }
 
-  let basic_to_json ?domain ~config basic =
+  let basic_to_json ~config basic =
     `Assoc [
-      ("graph", P_graph.to_json_python ?domain ~config basic.graph);
-      ("constraints", `List (List.map (const_to_json ?domain ~config) basic.constraints));
+      ("graph", P_graph.to_json_python ~config basic.graph);
+      ("constraints", `List (List.map (const_to_json ~config) basic.constraints));
     ]
 
   let build_pos_basic ?domain ~config lexicons basic_ast =
@@ -929,9 +929,9 @@ module Rule = struct
     `Assoc
       ([
         ("rule_name", `String t.name);
-        ("pattern", Pattern.basic_to_json ?domain ~config t.pattern.pos);
-        ("without", `List (List.map (Pattern.basic_to_json ?domain ~config) t.pattern.negs));
-        ("commands", `List (List.map (Command.to_json_python ?domain ~config) t.commands))
+        ("pattern", Pattern.basic_to_json ~config t.pattern.pos);
+        ("without", `List (List.map (Pattern.basic_to_json ~config) t.pattern.negs));
+        ("commands", `List (List.map (Command.to_json_python ~config) t.commands))
       ]
       )
 
@@ -1004,7 +1004,6 @@ module Rule = struct
       | ast_command :: tail ->
         let (command, (new_kni, new_kei)) =
           Command.of_ast
-            ?domain
             ~config
             lexicons
             (kni,kei)
