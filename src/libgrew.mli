@@ -155,8 +155,6 @@ module Grs : sig
 
   val dump: t -> unit
 
-  val domain_opt: t -> Domain.t option
-
   val to_json_python: config:Conllx_config.t -> t -> Yojson.Basic.t
 
   val get_strat_list: t -> string list

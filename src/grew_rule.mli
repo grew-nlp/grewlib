@@ -10,7 +10,6 @@
 
 open Grew_base
 open Grew_types
-open Grew_domain
 open Grew_graph
 open Grew_command
 open Grew_edge
@@ -74,7 +73,7 @@ module Rule : sig
   (** [to_dep t] returns a string in the [dep] language describing the match basic of the rule *)
   val to_dep: config:Conllx.Conllx_config.t -> t -> string
 
-  (** [of_ast ?domain ast_rule] returns the Rule.t value corresponding to [ast_rule] *)
+  (** [of_ast ast_rule] returns the Rule.t value corresponding to [ast_rule] *)
   val of_ast: config:Conllx.Conllx_config.t -> Ast.rule -> t
 
   val wrd_apply_opt: config:Conllx.Conllx_config.t -> t -> (G_graph.t * Libgrew_types.big_step option) -> (G_graph.t * Libgrew_types.big_step) option

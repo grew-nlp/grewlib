@@ -14,7 +14,6 @@ open Printf
 open Grew_base
 open Grew_types
 open Grew_ast
-open Grew_domain
 open Grew_edge
 open Grew_fs
 open Grew_node
@@ -462,10 +461,6 @@ module Matching = struct
     check: Pattern.const list (* constraints to verify at the end of the matching *)
   }
 
-  (* PREREQUISITES:
-     - all partial matching have the same ?domain
-     - the ?domain of the pattern P is the disjoint union of ?domain([sub]) and [unmatched_nodes]
-  *)
   (*  ---------------------------------------------------------------------- *)
   let init ?lexicons basic =
     let roots = P_graph.roots basic.Pattern.graph in
@@ -492,7 +487,7 @@ module Matching = struct
     | Lex of (string * string)
 
   (*  ---------------------------------------------------------------------- *)
-  let apply_cst ?domain ~config graph matching cst : t =
+  let apply_cst ~config graph matching cst : t =
     let get_value base feat_name = match base with
       | Pattern.Node_id pid ->
         let gid = Pid_map.find pid matching.n_match in
@@ -651,7 +646,7 @@ module Matching = struct
 
   (*  ---------------------------------------------------------------------- *)
   (* returns all extension of the partial input matching *)
-  let rec extend_matching ?domain  ~config (positive,neg) (graph:G_graph.t) (partial:partial) =
+  let rec extend_matching ~config (positive,neg) (graph:G_graph.t) (partial:partial) =
     match (partial.unmatched_edges, partial.unmatched_nodes) with
     | [], [] ->
       begin
@@ -659,7 +654,7 @@ module Matching = struct
           let new_matching =
             List.fold_left
               (fun acc const ->
-                 apply_cst ?domain ~config graph acc const
+                 apply_cst ~config graph acc const
               ) partial.sub partial.check in
           [new_matching, partial.already_matched_gids]
         with Fail -> []
@@ -682,7 +677,7 @@ module Matching = struct
                 (fun label ->
                    {partial with sub = e_match_add id (src_gid,label,tar_gid) partial.sub; unmatched_edges = tail_ue }
                 ) labels
-          in List_.flat_map (extend_matching ?domain ~config (positive,neg) graph) new_partials
+          in List_.flat_map (extend_matching ~config (positive,neg) graph) new_partials
         with Not_found -> (* p_edge goes to an unmatched node *)
           let candidates = (* candidates (of type (gid, matching)) for m(tar_pid) = gid) with new partial matching m *)
             let (src_gid : Gid.t) = Pid_map.find src_pid partial.sub.n_match in
@@ -699,18 +694,18 @@ module Matching = struct
               ) [] (G_node.get_next src_gnode) in
           List_.flat_map
             (fun (gid_next, matching) ->
-               extend_matching_from ?domain ~config (positive,neg) graph tar_pid gid_next
+               extend_matching_from ~config (positive,neg) graph tar_pid gid_next
                  {partial with sub=matching; unmatched_edges = tail_ue}
             ) candidates
       end
     | [], pid :: _ ->
       G_graph.fold_gid
         (fun gid acc ->
-           (extend_matching_from ?domain ~config (positive,neg) graph pid gid partial) @ acc
+           (extend_matching_from ~config (positive,neg) graph pid gid partial) @ acc
         ) graph []
 
   (*  ---------------------------------------------------------------------- *)
-  and extend_matching_from ?domain ~config (positive,neg) (graph:G_graph.t) pid (gid : Gid.t) partial =
+  and extend_matching_from ~config (positive,neg) (graph:G_graph.t) pid (gid : Gid.t) partial =
     if List.mem gid partial.already_matched_gids
     then [] (* the required association pid -> gid is not injective *)
     else
@@ -737,7 +732,7 @@ module Matching = struct
             already_matched_gids = gid :: partial.already_matched_gids;
             sub = {partial.sub with n_match = Pid_map.add pid gid partial.sub.n_match; l_param = new_lex_set};
           } in
-        extend_matching ?domain ~config (positive,neg) graph new_partial
+        extend_matching ~config (positive,neg) graph new_partial
       with P_fs.Fail -> []
 
   (*  [test_locality matching created_nodes gid] checks if [gid] is a "local" node:
@@ -773,8 +768,8 @@ module Matching = struct
 
 
   (*  ---------------------------------------------------------------------- *)
-  let fulfill ?domain ~config (pos_graph,neg_graph) graph new_partial_matching =
-    match extend_matching ?domain ~config (pos_graph, neg_graph) graph new_partial_matching with
+  let fulfill ~config (pos_graph,neg_graph) graph new_partial_matching =
+    match extend_matching ~config (pos_graph, neg_graph) graph new_partial_matching with
     | [] -> true (* the without pattern in not found -> OK *)
     | _ -> false
 
@@ -994,7 +989,7 @@ module Rule = struct
     Buffer.contents buff
 
   (* ====================================================================== *)
-  let commands_of_ast ?domain ~config lexicons pos pos_table ast_commands =
+  let commands_of_ast ~config lexicons pos pos_table ast_commands =
     let known_node_ids = Array.to_list pos_table in
     let known_edge_ids = Pattern.get_edge_ids pos in
 
@@ -1076,7 +1071,7 @@ module Rule = struct
     e_mapping: (Gid.t * G_edge.t * Gid.t) String_map.t;
   }
 
-  let onf_apply_command ?domain ~config matching (command,loc) state =
+  let onf_apply_command ~config matching (command,loc) state =
     let node_find cnode = onf_find ~loc cnode (matching, state.created_nodes) in
 
     let feature_value_of_item = function

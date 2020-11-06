@@ -33,40 +33,31 @@ module Grs = struct
 
   type t = {
     filename: string;
-    domain: Domain.t option;
     decls: decl list;
     ast: Ast.grs;
   }
 
   let empty = {
     filename = "";
-    domain = None;
     decls = [Strategy ("main", Ast.Seq [])];
     ast = [];
   }
 
-  let rec decl_to_json ?domain ~config = function
+  let rec decl_to_json ~config = function
     | Rule r -> Rule.to_json_python ~config r
     | Strategy (name, strat) -> `Assoc [("strat_name", `String name); ("strat_def", Ast.strat_to_json strat)]
-    | Package (name, decl_list) -> `Assoc [("package_name", `String name); "decls", `List (List.map (decl_to_json ?domain ~config) decl_list)]
+    | Package (name, decl_list) -> `Assoc [("package_name", `String name); "decls", `List (List.map (decl_to_json ~config) decl_list)]
 
-  let decl_to_string ?domain = function
+  let decl_to_string = function
     | Rule r -> sprintf "RULE: %s" (Rule.get_name r)
     | Strategy (name, strat) -> sprintf "STRAT: %s" (name)
     | Package (name, decl_list) -> sprintf "PACK: %s" (name)
 
   let to_json_python ~config t =
-    match t.domain with
-    | None -> `Assoc [
-        "filename", `String t.filename;
-        "decls", `List (List.map (fun x -> decl_to_json ~config x) t.decls)
-      ]
-    | Some dom -> `Assoc [
-        "domain", Domain.to_json_python dom;
-        "filename", `String t.filename;
-        "decls", `List (List.map (decl_to_json ~domain:dom ~config) t.decls)
-      ]
-
+    `Assoc [
+      "filename", `String t.filename;
+      "decls", `List (List.map (fun x -> decl_to_json ~config x) t.decls)
+    ]
 
   let get_strat_list grs = Grew_ast.Ast.strat_list grs.ast
 
@@ -79,8 +70,6 @@ module Grs = struct
 
   let dump t =
     printf "================ Grs ================\n";
-    Domain.dump t.domain;
-    printf "-----------------------\n";
     List.iter (dump_decl 0) t.decls;
     printf "================ Grs ================\n%!";
     ()
@@ -91,7 +80,6 @@ module Grs = struct
     | Ast.Strategy (loc, name, ast_strat) -> Strategy (name, ast_strat)
     | _ -> Error.bug "[build_decl] Inconsistent ast for grs"
 
-  let domain_opt t = t.domain
 
   let domain_build ast_domain =
     Domain.build
@@ -99,31 +87,6 @@ module Grs = struct
       (Feature_domain.build ast_domain.Ast.feature_domain)
 
   let from_ast ~config filename ast =
-    let feature_domains = List_.opt_map
-        (fun x -> match x with
-           | Ast.Features desc -> Some desc
-           | _ -> None
-        ) ast in
-
-    let feature_domain = match feature_domains with
-      | [] -> None
-      | h::t -> Some (Feature_domain.build (List.fold_left Feature_domain.merge h t)) in
-
-    let label_domains = List_.opt_map
-        (fun x -> match x with
-           | Ast.Labels desc -> Some desc
-           | _ -> None
-        ) ast in
-    let label_domain = match label_domains with
-      | [] -> None
-      | h::t -> Some (Label_domain.build (List.fold_left Label_domain.merge h t)) in
-
-    let domain = match (label_domain, feature_domain) with
-      | (None, None) -> None
-      | (Some ld, None) -> Some (Domain.build_labels_only ld)
-      | (None, Some fd) -> Some (Domain.build_features_only fd)
-      | (Some ld, Some fd) -> Some (Domain.build ld fd) in
-
     let decls = List_.opt_map
         (fun x -> match x with
            | Ast.Features _ -> None
@@ -136,7 +99,6 @@ module Grs = struct
 
     { filename;
       ast;
-      domain;
       decls;
     }
 

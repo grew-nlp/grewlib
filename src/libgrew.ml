@@ -303,12 +303,6 @@ module Grs = struct
          Grew_grs.Grs.dump grs
       ) ()
 
-  let domain_opt grs =
-    Libgrew.handle ~name:"Grs.domain"
-      (fun () ->
-         Grew_grs.Grs.domain_opt grs
-      ) ()
-
   let to_json_python ~config grs =
     Libgrew.handle ~name:"Grs.to_json_python"
       (fun () ->
