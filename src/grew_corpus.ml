@@ -39,22 +39,19 @@ module Corpus = struct
   }
 
   type t = {
-    domain: Domain.t option;
     items: item array;
     kind: kind;
   }
 
   let singleton graph = {
-    domain= None; kind=Raw; items = [| { sent_id="_"; text="_"; graph } |]
+    kind=Raw; items = [| { sent_id="_"; text="_"; graph } |]
   }
 
   let merge = function
     | [] -> Error.bug "Empty list in Corpus.merge"
     | [one] -> one
     | h::t ->
-      if List.exists (fun t -> t.domain <> h.domain) t
-      then Error.run "Cannot merge corpora with incompatible domains"
-      else if List.exists (fun t -> t.kind <> h.kind) t
+      if List.exists (fun t -> t.kind <> h.kind) t
       then Error.run "Cannot merge corpora with incompatible kinds"
       else {h with items = Array.concat (List.map (fun t -> t.items) (h::t)) }
 
@@ -66,7 +63,7 @@ module Corpus = struct
            let graph = conllx |> Conllx.to_json |> G_graph.of_json in
            { sent_id; text; graph }
         ) (Conllx_corpus.get_data conllx_corpus) in
-    { domain = None; kind = Conll; items }
+    { kind = Conll; items }
 
   let of_amr_corpus amr_corpus =
     let items =
@@ -74,7 +71,7 @@ module Corpus = struct
         (fun (sent_id, text, amr) ->
            { sent_id; text; graph = amr |> Amr.to_gr |> Loader.gr |> G_graph.of_ast ~config:(Conllx_config.build "basic") }
         ) amr_corpus in
-    { domain=None; kind=Amr; items; }
+    { kind=Amr; items; }
 
   let fold_left fct init t =
     Array.fold_left
@@ -86,8 +83,6 @@ module Corpus = struct
 
 
   let size t = Array.length t.items
-
-  let get_domain_opt t = t.domain
 
   let get_graph position t = t.items.(position).graph
   let get_sent_id position t = t.items.(position).sent_id
@@ -130,7 +125,7 @@ module Corpus = struct
             text= "__No_text__";
             graph= G_graph.of_brown config line;
           }) lines |> Array.of_list in
-      { domain= None; items; kind=Conll }
+      { items; kind=Conll }
     | ext -> Error.run "Cannot load file `%s`, unknown extension `%s`" file ext
 
   let from_dir ?log_file ?config dir =
@@ -210,7 +205,6 @@ module Corpus_desc = struct
 
   (* ---------------------------------------------------------------------------------------------------- *)
   let build_corpus corpus_desc =
-    let domain = None in
     let config = corpus_desc.config in
     match corpus_desc.kind with
     | Conll ->
@@ -229,7 +223,7 @@ module Corpus_desc = struct
                 (match loc_opt with None -> "" | Some loc -> "; " ^ (Loc.to_string loc))
                 msg; None
           ) (Conllx_corpus.get_data conll_corpus) in
-      { Corpus.domain; items; kind=Conll }
+      { Corpus.items; kind=Conll }
     | _ -> Error.bug "[Corpus_desc.build_corpus] is available only on Conll format"
 
   (* ---------------------------------------------------------------------------------------------------- *)
@@ -403,7 +397,7 @@ module Corpus_desc = struct
         | Raw -> Error.run "raw corpora are not supported in file compilation" in
       let _ = Log.fmessage "[%s] %d graphs loaded" corpus_desc.id (Array.length items) in
       let out_ch = open_out_bin marshal_file in
-      let (data : Corpus.t) = {Corpus.domain; items; kind=corpus_desc.kind } in
+      let (data : Corpus.t) = {Corpus.items; kind=corpus_desc.kind } in
       Marshal.to_channel out_ch data [];
       close_out out_ch
     with

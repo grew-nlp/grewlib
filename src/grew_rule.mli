@@ -24,7 +24,7 @@ module Pattern : sig
 
   val pid_name_list: t -> Id.name list
 
-  val of_ast: ?domain:Domain.t -> config:Conllx.Conllx_config.t -> ?lexicons: Lexicons.t -> Ast.pattern -> t
+  val of_ast: config:Conllx.Conllx_config.t -> ?lexicons: Lexicons.t -> Ast.pattern -> t
 end
 
 (* ================================================================================ *)
@@ -38,7 +38,7 @@ module Matching : sig
   val node_matching: Pattern.t -> G_graph.t -> t -> (string * string) list
 
   (** [match_in_graph pattern graph] returns the list of matching of the [pattern] into the [graph] *)
-  val match_in_graph: ?domain:Domain.t -> config:Conllx.Conllx_config.t -> ?lexicons: Lexicons.t -> Pattern.t -> G_graph.t -> t list
+  val match_in_graph: config:Conllx.Conllx_config.t -> ?lexicons: Lexicons.t -> Pattern.t -> G_graph.t -> t list
 
   (** [match_deco rule matching] builds the decoration of the [graph] illustrating the given [matching] of the [rule] *)
   (* NB: it can be computed independly from the graph itself! *)
@@ -69,20 +69,20 @@ module Rule : sig
   (** [get_loc t] returns the file location of the rule [t]. *)
   val get_loc: t -> Loc.t
 
-  val to_json_python: ?domain:Domain.t -> config:Conllx.Conllx_config.t -> t -> Yojson.Basic.t
+  val to_json_python: config:Conllx.Conllx_config.t -> t -> Yojson.Basic.t
 
   (** [to_dep t] returns a string in the [dep] language describing the match basic of the rule *)
-  val to_dep: ?domain:Domain.t -> config:Conllx.Conllx_config.t -> t -> string
+  val to_dep: config:Conllx.Conllx_config.t -> t -> string
 
   (** [of_ast ?domain ast_rule] returns the Rule.t value corresponding to [ast_rule] *)
-  val of_ast: ?domain:Domain.t -> config:Conllx.Conllx_config.t -> Ast.rule -> t
+  val of_ast: config:Conllx.Conllx_config.t -> Ast.rule -> t
 
-  val wrd_apply_opt: ?domain: Domain.t -> config:Conllx.Conllx_config.t -> t -> (G_graph.t * Libgrew_types.big_step option) -> (G_graph.t * Libgrew_types.big_step) option
+  val wrd_apply_opt: config:Conllx.Conllx_config.t -> t -> (G_graph.t * Libgrew_types.big_step option) -> (G_graph.t * Libgrew_types.big_step) option
 
-  val onf_apply_opt: ?domain: Domain.t -> config:Conllx.Conllx_config.t -> t -> G_graph.t -> G_graph.t option
+  val onf_apply_opt: config:Conllx.Conllx_config.t -> t -> G_graph.t -> G_graph.t option
 
-  val gwh_apply: ?domain: Domain.t -> config:Conllx.Conllx_config.t -> t -> Graph_with_history.t -> Graph_with_history_set.t
+  val gwh_apply: config:Conllx.Conllx_config.t -> t -> Graph_with_history.t -> Graph_with_history_set.t
 
-  val owh_apply_opt: ?domain: Domain.t -> config:Conllx.Conllx_config.t -> t -> Graph_with_history.t -> Graph_with_history.t option
+  val owh_apply_opt: config:Conllx.Conllx_config.t -> t -> Graph_with_history.t -> Graph_with_history.t option
 
 end (* module Rule *)

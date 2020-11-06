@@ -200,7 +200,6 @@ module Corpus: sig
   (* [size t] returns the number of graphs in the corpus *)
   val size: t -> int
 
-  val get_domain_opt: t -> Domain.t option
   val get_graph: int -> t -> Graph.t
   val get_sent_id: int -> t -> string
   val is_conll: int -> t -> bool

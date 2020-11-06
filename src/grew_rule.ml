@@ -254,13 +254,13 @@ module Pattern = struct
       ("constraints", `List (List.map (const_to_json ~config) basic.constraints));
     ]
 
-  let build_pos_basic ?domain ~config lexicons basic_ast =
+  let build_pos_basic ~config lexicons basic_ast =
     let (graph, pos_table, edge_ids) =
-      P_graph.of_ast ~config ?domain lexicons basic_ast in
+      P_graph.of_ast ~config lexicons basic_ast in
     (
       {
         graph = graph;
-        constraints = List.map (build_constraint ?domain ~config lexicons pos_table [||] edge_ids) basic_ast.Ast.pat_const
+        constraints = List.map (build_constraint ~config lexicons pos_table [||] edge_ids) basic_ast.Ast.pat_const
       },
       pos_table,
       edge_ids
@@ -294,15 +294,15 @@ module Pattern = struct
 
   let pid_name_list pattern = P_graph.pid_name_list pattern.pos.graph
 
-  let of_ast ?domain ~config ?(lexicons=[]) pattern_ast =
+  let of_ast ~config ?(lexicons=[]) pattern_ast =
     let n_pattern = Ast.normalize_pattern pattern_ast in
     let (pos, pos_table, edge_ids) =
-      try build_pos_basic ~config ?domain lexicons n_pattern.Ast.pat_pos
+      try build_pos_basic ~config lexicons n_pattern.Ast.pat_pos
       with P_fs.Fail_unif -> Error.build "feature structures declared in the \"match\" clause are inconsistent " in
     let negs =
       List_.try_map
         P_fs.Fail_unif (* Skip the without parts that are incompatible with the match part *)
-        (fun basic_ast -> build_neg_basic ?domain ~config lexicons pos_table edge_ids basic_ast)
+        (fun basic_ast -> build_neg_basic ~config lexicons pos_table edge_ids basic_ast)
         n_pattern.Ast.pat_negs in
     { pos; negs; global=pattern_ast.pat_glob; }
 
@@ -857,8 +857,8 @@ module Matching = struct
     else false
 
   (*  ---------------------------------------------------------------------- *)
-  let match_in_graph ?domain ~config ?lexicons { Pattern.global; pos; negs } graph =
-    let casted_graph = G_graph.cast ?domain ~config graph in
+  let match_in_graph ~config ?lexicons { Pattern.global; pos; negs } graph =
+    let casted_graph = G_graph.cast ~config graph in
 
     if not (check_global_constraint global graph)
     then []
@@ -868,7 +868,6 @@ module Matching = struct
       (* get the list of partial matching for positive part of the pattern *)
       let matching_list =
         extend_matching
-          ?domain
           ~config
           (pos_graph,P_graph.empty)
           casted_graph
@@ -881,7 +880,7 @@ module Matching = struct
                (fun without ->
                   let neg_graph = without.Pattern.graph in
                   let new_partial_matching = update_partial without (sub, already_matched_gids) in
-                  fulfill ?domain ~config (pos_graph,neg_graph) graph new_partial_matching
+                  fulfill ~config (pos_graph,neg_graph) graph new_partial_matching
                ) negs
           ) matching_list in
       List.map fst filtered_matching_list
@@ -925,7 +924,7 @@ module Rule = struct
 
   let get_loc t = t.loc
 
-  let to_json_python ?domain ~config t =
+  let to_json_python ~config t =
     `Assoc
       ([
         ("rule_name", `String t.name);
@@ -936,7 +935,7 @@ module Rule = struct
       )
 
   (* ====================================================================== *)
-  let to_dep ?domain ~config t =
+  let to_dep ~config t =
     let pos_basic = t.pattern.pos in
     let buff = Buffer.create 32 in
     bprintf buff "[GRAPH] { scale = 200; }\n";
@@ -1013,7 +1012,7 @@ module Rule = struct
     loop (known_node_ids, known_edge_ids) ast_commands
 
   (* ====================================================================== *)
-  let of_ast ?domain ~config rule_ast =
+  let of_ast ~config rule_ast =
     let lexicons =
       List.fold_left (fun acc (name,lex) ->
           try
@@ -1024,7 +1023,7 @@ module Rule = struct
 
     let pattern = Ast.normalize_pattern rule_ast.Ast.pattern in
     let (pos, pos_table, edge_ids) =
-      try Pattern.build_pos_basic ?domain ~config lexicons pattern.Ast.pat_pos
+      try Pattern.build_pos_basic ~config lexicons pattern.Ast.pat_pos
       with P_fs.Fail_unif ->
         Error.build ~loc:rule_ast.Ast.rule_loc
           "[Rule.build] in rule \"%s\": feature structures declared in the \"match\" clause are inconsistent"
@@ -1032,7 +1031,7 @@ module Rule = struct
     let (negs,_) =
       List.fold_left
         (fun (acc,pos) basic_ast ->
-           try ((Pattern.build_neg_basic ?domain ~config lexicons pos_table edge_ids basic_ast) :: acc, pos+1)
+           try ((Pattern.build_neg_basic ~config lexicons pos_table edge_ids basic_ast) :: acc, pos+1)
            with P_fs.Fail_unif ->
              Error.warning ~loc:rule_ast.Ast.rule_loc "In rule \"%s\", the wihtout number %d cannot be satisfied, it is skipped"
                rule_ast.Ast.rule_id pos;
@@ -1041,7 +1040,7 @@ module Rule = struct
     {
       name = rule_ast.Ast.rule_id;
       pattern = { pos; negs; global=pattern.Ast.pat_glob; };
-      commands = commands_of_ast ?domain ~config lexicons pos pos_table rule_ast.Ast.commands;
+      commands = commands_of_ast ~config lexicons pos pos_table rule_ast.Ast.commands;
       loc = rule_ast.Ast.rule_loc;
       lexicons;
       path = rule_ast.Ast.rule_path;
@@ -1359,13 +1358,12 @@ module Rule = struct
       }
 
 
-  let onf_apply_opt ?domain ~config rule graph =
+  let onf_apply_opt ~config rule graph =
     try
       let {Pattern.pos; negs} = rule.pattern in
       (* get the list of partial matching for positive part of the pattern *)
       let matching_list =
         Matching.extend_matching
-          ?domain
           ~config
           (pos.graph,P_graph.empty)
           graph
@@ -1375,14 +1373,14 @@ module Rule = struct
                  List.for_all
                    (fun neg ->
                       let new_partial_matching = Matching.update_partial neg (sub, already_matched_gids) in
-                      Matching.fulfill ?domain ~config (pos.graph,neg.graph) graph new_partial_matching
+                      Matching.fulfill ~config (pos.graph,neg.graph) graph new_partial_matching
                    ) negs
               ) matching_list with
       | None -> None
       | Some (first_matching_where_all_witout_are_fulfilled,_) ->
         let final_state =
           List.fold_left
-            (fun state command -> onf_apply_command ?domain ~config first_matching_where_all_witout_are_fulfilled command state)
+            (fun state command -> onf_apply_command ~config first_matching_where_all_witout_are_fulfilled command state)
             { graph;
               created_nodes = [];
               effective = false;
@@ -1401,13 +1399,12 @@ module Rule = struct
         else None
     with Error.Run (msg,_) -> Error.run ~loc:rule.loc "%s" msg
 
-  let rec wrd_apply_opt ?domain ~config rule (graph, big_step_opt) =
+  let rec wrd_apply_opt ~config rule (graph, big_step_opt) =
     try
       let {Pattern.pos; negs} = rule.pattern in
       (* get the list of partial matching for positive part of the pattern *)
       let matching_list =
         Matching.extend_matching
-          ?domain
           ~config
           (pos.graph,P_graph.empty)
           graph
@@ -1417,14 +1414,14 @@ module Rule = struct
                  List.for_all
                    (fun neg ->
                       let new_partial_matching = Matching.update_partial neg (sub, already_matched_gids) in
-                      Matching.fulfill ?domain ~config (pos.graph,neg.graph) graph new_partial_matching
+                      Matching.fulfill ~config (pos.graph,neg.graph) graph new_partial_matching
                    ) negs
               ) matching_list with
       | None -> None
       | Some (first_matching_where_all_witout_are_fulfilled,_) ->
         let final_state =
           List.fold_left
-            (fun state command -> onf_apply_command ?domain ~config first_matching_where_all_witout_are_fulfilled command state)
+            (fun state command -> onf_apply_command ~config first_matching_where_all_witout_are_fulfilled command state)
             { graph;
               created_nodes = [];
               effective = false;
@@ -1459,7 +1456,7 @@ module Rule = struct
        with Not_found -> Error.bug ?loc "Inconsistent matching pid '%s' not found" (Pid.to_string pid))
     | Command.New name -> List.assoc name gwh.Graph_with_history.added_gids
 
-  let gwh_apply_command ?domain ~config (command,loc) matching gwh =
+  let gwh_apply_command ~config (command,loc) matching gwh =
     let node_find cnode = find ~loc cnode gwh matching in
 
     let feature_value_list_of_item tar_feat_name = function
@@ -1826,7 +1823,7 @@ module Rule = struct
 
   (*  ---------------------------------------------------------------------- *)
   (** [apply_rule graph_with_history matching rule] returns a new graph_with_history after the application of the rule *)
-  let gwh_apply_rule ?domain ~config graph_with_history matching rule =
+  let gwh_apply_rule ~config graph_with_history matching rule =
     Timeout.check ();
     incr_rules rule.name;
     let init = Graph_with_history_set.singleton
@@ -1840,7 +1837,7 @@ module Rule = struct
       (fun gwh_set cmd ->
          Graph_with_history_set.fold
            (fun gwh acc ->
-              let new_graphs = gwh_apply_command ~config ?domain cmd matching gwh in
+              let new_graphs = gwh_apply_command ~config cmd matching gwh in
               let new_graphs_with_tracking =
                 if !Global.track_history
                 then Graph_with_history_set.map
@@ -1856,24 +1853,24 @@ module Rule = struct
       ) init rule.commands
 
 
-  let gwh_apply ?domain ~config rule graph_with_history =
+  let gwh_apply ~config rule graph_with_history =
     try
-      let matching_list = Matching.match_in_graph ?domain ~config ~lexicons:rule.lexicons rule.pattern graph_with_history.Graph_with_history.graph in
+      let matching_list = Matching.match_in_graph ~config ~lexicons:rule.lexicons rule.pattern graph_with_history.Graph_with_history.graph in
       List.fold_left
         (fun acc matching ->
-           Graph_with_history_set.union (gwh_apply_rule ?domain ~config graph_with_history matching rule) acc
+           Graph_with_history_set.union (gwh_apply_rule ~config graph_with_history matching rule) acc
         ) Graph_with_history_set.empty matching_list
     with Error.Run (msg,_) -> Error.run ~loc:rule.loc "%s" msg
 
 
 
   exception Dead_lock
-  let owh_apply_opt ?domain ~config rule gwh =
+  let owh_apply_opt ~config rule gwh =
     let graph = gwh.Graph_with_history.graph in
     let {Pattern.pos; negs} = rule.pattern in
 
     (* get the list of matching for positive part of the pattern *)
-    let matching_list = Matching.extend_matching ~config ?domain (pos.graph,P_graph.empty) graph (Matching.init ~lexicons:rule.lexicons pos) in
+    let matching_list = Matching.extend_matching ~config (pos.graph,P_graph.empty) graph (Matching.init ~lexicons:rule.lexicons pos) in
 
     let rec loop_matching = function
       | [] -> None
@@ -1881,14 +1878,14 @@ module Rule = struct
         if List.for_all
             (fun neg ->
                let new_partial_matching = Matching.update_partial neg (sub, already_matched_gids) in
-               Matching.fulfill ?domain ~config (pos.graph,neg.graph) graph new_partial_matching
+               Matching.fulfill ~config (pos.graph,neg.graph) graph new_partial_matching
             ) negs
         then (* all negs part are fulfilled *)
           let init_gwh = { gwh with e_mapping = sub.Matching.e_match; added_gids_in_rule = []; added_edges_in_rule=String_map.empty; } in
           let rec loop_command acc_gwh = function
             | [] -> acc_gwh
             | command :: tail_commands ->
-              let set = gwh_apply_command ?domain ~config command sub acc_gwh in
+              let set = gwh_apply_command ~config command sub acc_gwh in
               match Graph_with_history_set.choose_opt set with
               | None -> raise Dead_lock
               | Some next_gwh -> loop_command next_gwh tail_commands in

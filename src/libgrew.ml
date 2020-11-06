@@ -97,10 +97,10 @@ module Pattern = struct
   type t = Grew_rule.Pattern.t
 
   let load ?domain ~config file =
-    Libgrew.handle ~name:"Pattern.load" (fun () -> Grew_rule.Pattern.of_ast ?domain ~config (Grew_loader.Loader.pattern file)) ()
+    Libgrew.handle ~name:"Pattern.load" (fun () -> Grew_rule.Pattern.of_ast ~config (Grew_loader.Loader.pattern file)) ()
 
   let parse ?domain ~config desc =
-    Libgrew.handle ~name:"Pattern.load" (fun () -> Grew_rule.Pattern.of_ast ?domain ~config (Grew_loader.Parser.pattern desc)) ()
+    Libgrew.handle ~name:"Pattern.load" (fun () -> Grew_rule.Pattern.of_ast ~config (Grew_loader.Parser.pattern desc)) ()
 
   let pid_name_list pattern =
     Libgrew.handle ~name:"Pattern.pid_list"
@@ -261,7 +261,7 @@ module Graph = struct
 
   let search_pattern ?domain ~config pattern graph =
     Libgrew.handle ~name:"Graph.search_pattern" (fun () ->
-        Grew_rule.Matching.match_in_graph ?domain ~config pattern graph
+        Grew_rule.Matching.match_in_graph ~config pattern graph
       ) ()
 
   let get_feature_values feature_name t =
@@ -356,7 +356,6 @@ module Corpus = struct
   type t = Grew_corpus.Corpus.t
 
   let size = Grew_corpus.Corpus.size
-  let get_domain_opt = Grew_corpus.Corpus.get_domain_opt
   let permut_length = Grew_corpus.Corpus.permut_length
 
   let get_graph position t =

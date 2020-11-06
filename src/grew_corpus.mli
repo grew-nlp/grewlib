@@ -13,7 +13,6 @@ module Corpus : sig
   val singleton: G_graph.t -> t
 
   val size: t -> int
-  val get_domain_opt: t -> Domain.t option
   val get_graph: int -> t -> G_graph.t
   val is_conll: int -> t -> bool
   val get_sent_id: int -> t -> string
