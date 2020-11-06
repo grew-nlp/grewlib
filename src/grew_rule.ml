@@ -104,8 +104,8 @@ module Pattern = struct
     | Covered of Pid.t * string (* node_id, edge_id *)
 
   let const_to_json ?domain ~config = function
-    | Cst_out (pid, label_cst) -> `Assoc ["cst_out", Label_cst.to_json_python ?domain ~config label_cst]
-    | Cst_in (pid, label_cst) -> `Assoc ["cst_in", Label_cst.to_json_python ?domain ~config label_cst]
+    | Cst_out (pid, label_cst) -> `Assoc ["cst_out", Label_cst.to_json_python ~config label_cst]
+    | Cst_in (pid, label_cst) -> `Assoc ["cst_in", Label_cst.to_json_python ~config label_cst]
     | Feature_equal (id1,fn1,id2,fn2) ->
       `Assoc ["features_eq",
               `Assoc [
@@ -205,9 +205,9 @@ module Pattern = struct
       | None -> Pid.Neg (Id.build ~loc node_name neg_table) in
     match const with
     | (Ast.Cst_out (id,label_cst), loc) ->
-      Cst_out (pid_of_name loc id, Label_cst.of_ast ~loc ?domain ~config label_cst)
+      Cst_out (pid_of_name loc id, Label_cst.of_ast ~loc ~config label_cst)
     | (Ast.Cst_in (id,label_cst), loc) ->
-      Cst_in (pid_of_name loc id, Label_cst.of_ast ~loc ?domain ~config label_cst)
+      Cst_in (pid_of_name loc id, Label_cst.of_ast ~loc ~config label_cst)
 
     | (Ast.Feature_equal ((id1, feat_name1),(id2, feat_name2)), loc) ->
       Feature_equal (parse_id loc id1, feat_name1, parse_id loc id2, feat_name2)
@@ -529,7 +529,7 @@ module Matching = struct
       let gid = Pid_map.find pid matching.n_match in
       if G_graph.node_exists
           (fun node ->
-             List.exists (fun e -> Label_cst.match_ ~config ?domain label_cst e) (Massoc_gid.assoc gid (G_node.get_next node))
+             List.exists (fun e -> Label_cst.match_ ~config label_cst e) (Massoc_gid.assoc gid (G_node.get_next node))
           ) graph
       then matching
       else raise Fail
@@ -673,7 +673,7 @@ module Matching = struct
             let src_gnode = G_graph.find src_gid graph in
             let g_edges = Massoc_gid.assoc tar_gid (G_node.get_next src_gnode) in
 
-            match P_edge.match_list ?domain ~config p_edge g_edges with
+            match P_edge.match_list ~config p_edge g_edges with
             | P_edge.Fail -> (* no good edge in graph for this pattern edge -> stop here *)
               []
             | P_edge.Pass -> [ {partial with unmatched_edges = tail_ue } ]
@@ -689,7 +689,7 @@ module Matching = struct
             let src_gnode = G_graph.find src_gid graph in
             Massoc_gid.fold
               (fun acc gid_next g_edge ->
-                 match P_edge.match_ ?domain ~config p_edge g_edge with
+                 match P_edge.match_ ~config p_edge g_edge with
                  | P_edge.Fail -> (* g_edge does not fit, no new candidate *)
                    acc
                  | P_edge.Pass -> (gid_next, partial.sub) :: acc
@@ -975,7 +975,7 @@ module Rule = struct
               bprintf buff "  N_%s -> N_%s { label=\"%s\"}\n"
                 (Pid.to_id src_pid)
                 (Pid.to_id tar_pid)
-                (P_edge.to_string ?domain ~config edge)
+                (P_edge.to_string ~config edge)
            )
            (P_node.get_next node)
       ) pos_basic.graph;
@@ -985,10 +985,10 @@ module Rule = struct
          match cst with
          | Pattern.Cst_out (pid, label_cst) ->
            bprintf buff "  N_%s -> C_%d {label = \"%s\"; style=dot; bottom; color=green;}\n"
-             (Pid.to_id pid) i (Label_cst.to_string ?domain ~config label_cst)
+             (Pid.to_id pid) i (Label_cst.to_string ~config label_cst)
          | Cst_in (pid, label_cst) ->
            bprintf buff "  C_%d -> N_%s {label = \"%s\"; style=dot; bottom; color=green;}\n"
-             i (Pid.to_id pid) (Label_cst.to_string ?domain ~config label_cst)
+             i (Pid.to_id pid) (Label_cst.to_string ~config label_cst)
          | _ -> ()
       ) pos_basic.constraints;
     bprintf buff "}\n";

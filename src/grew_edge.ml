@@ -15,7 +15,6 @@ open Conllx
 open Grew_base
 open Grew_types
 open Grew_ast
-open Grew_domain
 
 
 (* ================================================================================ *)
@@ -97,7 +96,7 @@ module G_edge = struct
     | _ -> None
 
   (* WARNING: hardcoded version which subsumes known configs *)
-  let to_dep_opt ?domain ?(deco=false) ~config = function
+  let to_dep_opt ?(deco=false) ~config = function
     | Fs fs ->
       let styles =
         match List_.sort_assoc_opt "kind" fs with
@@ -119,7 +118,7 @@ module G_edge = struct
     | _ -> None
 
   (* WARNING: hardcoded version which subsumes known configs *)
-  let to_dot_opt ?domain ?(deco=false) ~config = function
+  let to_dot_opt ?(deco=false) ~config = function
     | Fs fs ->
       let dot_items =
         match List_.sort_assoc_opt "kind" fs with
@@ -182,7 +181,7 @@ module Label_cst = struct
     | Pred
     | Succ
 
-  let to_string ?domain ~config = function
+  let to_string ~config = function
     | Pos fs_list -> (List_.to_string (G_edge.fs_to_string ~config) "|" fs_list)
     | Neg fs_list -> "^"^(List_.to_string (G_edge.fs_to_string ~config) "|" fs_list)
     | Regexp (_,re) -> "re\""^re^"\""
@@ -198,7 +197,7 @@ module Label_cst = struct
     | Pred -> "__PRED__"
     | Succ -> "__SUCC__"
 
-  let to_json_python ?domain ~config = function
+  let to_json_python ~config = function
     | Pos l -> `Assoc
                  ["pos",
                   `List (List.map (fun lab -> `String (G_edge.fs_to_string ~config lab)) l)
@@ -228,7 +227,7 @@ module Label_cst = struct
       end
     | Absent name -> not (List_.sort_mem_assoc name fs)
 
-  let match_ ?domain ~config cst g_edge = match (cst,g_edge) with
+  let match_ ~config cst g_edge = match (cst,g_edge) with
     | (Succ, G_edge.Succ) -> true
     | (Pred, G_edge.Pred) -> true
     | (Pos fs_list, G_edge.Fs g_fs) -> List.exists (fun p_fs -> p_fs = g_fs) fs_list
@@ -247,7 +246,7 @@ module Label_cst = struct
     | Ast.Atom_diseq (name, atoms) -> Diseq (name, List.map (typed_vos name) (List.sort Stdlib.compare atoms))
     | Ast.Atom_absent name -> Absent name
 
-  let of_ast ?loc ?domain ~config = function
+  let of_ast ?loc ~config = function
     | Ast.Neg_list p_labels -> Neg (List.sort compare (List.map (G_edge.fs_from_string ~config) p_labels))
     | Ast.Pos_list p_labels -> Pos (List.sort compare (List.map (G_edge.fs_from_string ~config) p_labels))
     | Ast.Regexp re -> Regexp (Str.regexp re, re)
@@ -271,20 +270,20 @@ module P_edge = struct
 
   let get_id_opt t = t.id
 
-  let to_json_python ?domain ~config t =
+  let to_json_python ~config t =
     `Assoc (CCList.filter_map CCFun.id
               [
                 (match t.id with Some id -> Some ("edge_id", `String id) | None -> None);
-                Some ("label_cst", Label_cst.to_json_python ?domain ~config t.label_cst)
+                Some ("label_cst", Label_cst.to_json_python ~config t.label_cst)
               ])
 
-  let of_ast ?domain ~config (ast_edge, loc) =
+  let of_ast ~config (ast_edge, loc) =
     { id = (match ast_edge.Ast.edge_id with Some s -> Some s | None -> fresh_name ());
-      label_cst = Label_cst.of_ast ~loc ?domain ~config ast_edge.Ast.edge_label_cst
+      label_cst = Label_cst.of_ast ~loc ~config ast_edge.Ast.edge_label_cst
     }
 
-  let to_string ?domain ~config t =
-    let label = Label_cst.to_string ?domain ~config t.label_cst in
+  let to_string ~config t =
+    let label = Label_cst.to_string ~config t.label_cst in
     match t.id with
     | None -> label
     | Some id when String.length id > 1 && id.[0] = '_' && id.[1] = '_' -> label
@@ -295,13 +294,13 @@ module P_edge = struct
     | Pass
     | Binds of string * G_edge.t list
 
-  let match_ ?domain ~config p_edge g_edge =
-    if Label_cst.match_ ?domain ~config p_edge.label_cst g_edge
+  let match_ ~config p_edge g_edge =
+    if Label_cst.match_ ~config p_edge.label_cst g_edge
     then (match p_edge.id with None -> Pass | Some l -> Binds (l, [g_edge]))
     else Fail
 
-  let match_list ?domain ~config p_edge g_edge_list =
-    match List.filter (fun g_edge -> Label_cst.match_ ?domain ~config p_edge.label_cst g_edge) g_edge_list with
+  let match_list ~config p_edge g_edge_list =
+    match List.filter (fun g_edge -> Label_cst.match_ ~config p_edge.label_cst g_edge) g_edge_list with
     | [] -> Fail
     | list -> (match p_edge.id with None -> Pass | Some l -> Binds (l, list))
 end (* module P_edge *)

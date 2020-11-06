@@ -109,11 +109,11 @@ module P_graph = struct
               | None -> Error.build ~loc "[P_graph.build] try to build a graph with twice the order edge"
              )
            | _ ->
-             let edge = P_edge.of_ast ?domain ~config (ast_edge, loc) in
+             let edge = P_edge.of_ast ~config (ast_edge, loc) in
              (match map_add_edge (Pid.Pos i1) edge (Pid.Pos i2) acc_map with
               | Some m -> (m, match ast_edge.Ast.edge_id with Some id -> id::acc_edge_ids | None -> acc_edge_ids)
               | None -> Error.build ~loc "[P_graph.build] try to build a graph with twice the same edge %s"
-                          (P_edge.to_string ?domain ~config edge)
+                          (P_edge.to_string ~config edge)
              )
         ) (map_without_edges,[]) full_edge_list in
 
@@ -187,11 +187,11 @@ module P_graph = struct
               | None -> Error.build ~loc "[P_graph.build_extension] try to build a graph with twice the order edge"
              )
            | _ ->
-             let edge = P_edge.of_ast ?domain ~config (ast_edge, loc) in
+             let edge = P_edge.of_ast ~config (ast_edge, loc) in
              (match map_add_edge i1 edge i2 acc_map with
               | Some m -> (m, match ast_edge.Ast.edge_id with Some id -> id::acc_edge_ids | None -> acc_edge_ids)
               | None -> Error.build ~loc "[P_graph.build_extension] try to build a graph with twice the same edge %s"
-                          (P_edge.to_string ?domain ~config edge)
+                          (P_edge.to_string ~config edge)
              )
         ) (ext_map_without_edges, edge_ids) full_edge_list in
     ({ext_map = ext_map_with_all_edges; old_map = old_map_without_edges}, new_table, new_edge_ids)
@@ -330,9 +330,8 @@ module G_graph = struct
 
   (* is there an edge e out of node i ? *)
   let edge_out ~config graph node_id label_cst =
-    let domain = get_domain_opt graph in
     let node = Gid_map.find node_id graph.map in
-    Massoc_gid.exists (fun _ e -> Label_cst.match_ ?domain ~config label_cst e) (G_node.get_next node)
+    Massoc_gid.exists (fun _ e -> Label_cst.match_ ~config label_cst e) (G_node.get_next node)
 
   let covered node (gid1, _, gid2) graph =
     let node1 = find gid1 graph in
@@ -833,7 +832,6 @@ module G_graph = struct
   (* -------------------------------------------------------------------------------- *)
   (* move out-edges (which respect cst [labels,neg]) from [src_gid] are moved to out-edges out off node [tar_gid] *)
   let shift_out ~config loc src_gid tar_gid is_gid_local label_cst graph =
-    let domain = get_domain_opt graph in
     let del_edges = ref [] and add_edges = ref [] in
 
     let src_node = Gid_map.find src_gid graph.map in
@@ -845,7 +843,7 @@ module G_graph = struct
     let (new_src_next, new_tar_next) =
       Massoc_gid.fold
         (fun (acc_src_next,acc_tar_next) next_gid edge ->
-           if Label_cst.match_ ?domain ~config label_cst edge && not (is_gid_local next_gid)
+           if Label_cst.match_ ~config label_cst edge && not (is_gid_local next_gid)
            then
              match Massoc_gid.add_opt next_gid edge acc_tar_next with
              | None when !Global.safe_commands -> Error.run ~loc "The [shift_out] command tries to build a duplicate edge (with label \"%s\")" (G_edge.dump ~config  edge)
@@ -869,7 +867,6 @@ module G_graph = struct
 
   (* -------------------------------------------------------------------------------- *)
   let shift_in ~config loc src_gid tar_gid is_gid_local label_cst graph =
-    let domain = get_domain_opt graph in
     let del_edges = ref [] and add_edges = ref [] in
     let new_map =
       Gid_map.mapi
@@ -885,7 +882,7 @@ module G_graph = struct
                let (new_node_src_edges, new_node_tar_edges) =
                  List.fold_left
                    (fun (acc_node_src_edges,acc_node_tar_edges) edge ->
-                      if Label_cst.match_ ?domain ~config label_cst edge
+                      if Label_cst.match_ ~config label_cst edge
                       then
                         match List_.usort_insert_opt edge acc_node_tar_edges with
                         | None when !Global.safe_commands ->
@@ -1095,7 +1092,6 @@ module G_graph = struct
     (G_fs.get_value_opt "parseme" fs <> None) || (G_fs.get_value_opt "frsemcor" fs <> None)
 
   let to_dep ?filter ?main_feat ?(deco=G_deco.empty) ~config graph =
-    let domain = get_domain_opt graph in
 
     (* split lexical // non-lexical nodes *)
     let (nodes, nl_nodes) = Gid_map.fold
@@ -1174,7 +1170,7 @@ module G_graph = struct
          Massoc_gid.iter
            (fun tar g_edge ->
               let deco = List.mem (gid,g_edge,tar) deco.G_deco.edges in
-              match G_edge.to_dep_opt ?domain ~deco ~config g_edge with
+              match G_edge.to_dep_opt ~deco ~config g_edge with
               | None -> ()
               | Some string_edge -> bprintf buff "N_%s -> N_%s %s\n" (Gid.to_string gid) (Gid.to_string tar) string_edge
            ) (G_node.get_next elt)
@@ -1193,7 +1189,6 @@ module G_graph = struct
 
   (* -------------------------------------------------------------------------------- *)
   let to_dot ?main_feat ?(get_url = fun _ -> None) ?(deco=G_deco.empty) ~config graph =
-    let domain = get_domain_opt graph in
     let buff = Buffer.create 32 in
 
     bprintf buff "digraph G {\n";
@@ -1229,7 +1224,7 @@ module G_graph = struct
               if g_edge = G_edge.sub
               then bprintf buff "  N_%s -> N_%s [dir=none];\n" (Gid.to_string id) (Gid.to_string tar)
               else
-                match G_edge.to_dot_opt ?domain ~config ~deco g_edge with
+                match G_edge.to_dot_opt ~config ~deco g_edge with
                 | None -> ()
                 | Some string_edge -> bprintf buff "  N_%s -> N_%s%s;\n" (Gid.to_string id) (Gid.to_string tar) string_edge
            ) (G_node.get_next node)

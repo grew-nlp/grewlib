@@ -169,7 +169,7 @@ module P_node = struct
           (fun acc pid p_edge ->
              `Assoc [
                ("id", `String (Pid.to_string pid));
-               ("label", P_edge.to_json_python ?domain ~config p_edge);
+               ("label", P_edge.to_json_python ~config p_edge);
              ] :: acc
           ) [] t.next
       ) in

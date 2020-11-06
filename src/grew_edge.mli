@@ -13,8 +13,6 @@ open Conllx
 open Grew_base
 open Grew_types
 open Grew_ast
-open Grew_domain
-
 
 (* ================================================================================ *)
 (** The module [G_edge] defines the type of Graph label edges: atomic edges *)
@@ -58,10 +56,10 @@ module G_edge: sig
   val to_json_opt: t -> Yojson.Basic.t option
 
   (** Temp hardcoded conversion from t to dep2pict string (domain is unused) *)
-  val to_dep_opt: ?domain: Domain.t -> ?deco:bool -> config:Conllx_config.t -> t -> string option
+  val to_dep_opt: ?deco:bool -> config:Conllx_config.t -> t -> string option
 
   (** Temp hardcoded conversion from t to graphviz string (domain is unused) *)
-  val to_dot_opt: ?domain: Domain.t -> ?deco:bool -> config:Conllx_config.t -> t -> string option
+  val to_dot_opt: ?deco:bool -> config:Conllx_config.t -> t -> string option
 
   val to_json: t -> Yojson.Basic.t
 
@@ -75,11 +73,11 @@ end (* module G_edge *)
 module Label_cst : sig
   type t
 
-  val to_string: ?domain:Domain.t -> config:Conllx_config.t -> t -> string
-  val to_json_python: ?domain:Domain.t -> config:Conllx_config.t -> t -> Yojson.Basic.t
+  val to_string: config:Conllx_config.t -> t -> string
+  val to_json_python: config:Conllx_config.t -> t -> Yojson.Basic.t
   val all: t
-  val match_: ?domain:Domain.t -> config:Conllx_config.t -> t -> G_edge.t -> bool
-  val of_ast: ?loc:Loc.t -> ?domain:Domain.t -> config:Conllx_config.t -> Ast.edge_label_cst -> t
+  val match_: config:Conllx_config.t -> t -> G_edge.t -> bool
+  val of_ast: ?loc:Loc.t -> config:Conllx_config.t -> Ast.edge_label_cst -> t
 end (* module Label_cst *)
 
 
@@ -91,20 +89,20 @@ module P_edge: sig
   val pred: t
   val succ: t
 
-  val to_json_python: ?domain:Domain.t -> config:Conllx_config.t -> t -> Yojson.Basic.t
+  val to_json_python: config:Conllx_config.t -> t -> Yojson.Basic.t
 
   val get_id_opt: t -> string option
 
-  val to_string: ?domain:Domain.t -> config:Conllx_config.t -> t -> string
+  val to_string: config:Conllx_config.t -> t -> string
 
-  val of_ast: ?domain:Domain.t -> config:Conllx_config.t -> Ast.edge -> t
+  val of_ast: config:Conllx_config.t -> Ast.edge -> t
 
   type edge_matcher =
     | Fail
     | Pass
     | Binds of string * G_edge.t list
 
-  val match_: ?domain:Domain.t -> config:Conllx_config.t -> t -> G_edge.t -> edge_matcher
+  val match_: config:Conllx_config.t -> t -> G_edge.t -> edge_matcher
 
-  val match_list: ?domain:Domain.t -> config:Conllx_config.t -> t -> G_edge.t list -> edge_matcher
+  val match_list: config:Conllx_config.t -> t -> G_edge.t list -> edge_matcher
 end (* module P_edge *)

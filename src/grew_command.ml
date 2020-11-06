@@ -147,7 +147,7 @@ module Command  = struct
                `Assoc [
                  ("src",command_node_to_json src);
                  ("tar",command_node_to_json tar);
-                 ("label_cst", Label_cst.to_json_python ?domain ~config label_cst);
+                 ("label_cst", Label_cst.to_json_python ~config label_cst);
                ]
               )]
     | SHIFT_IN (src,tar,label_cst) ->
@@ -155,7 +155,7 @@ module Command  = struct
                `Assoc [
                  ("src",command_node_to_json src);
                  ("tar",command_node_to_json tar);
-                 ("label_cst", Label_cst.to_json_python ?domain ~config label_cst);
+                 ("label_cst", Label_cst.to_json_python ~config label_cst);
                ]
               )]
     | SHIFT_OUT (src,tar,label_cst) ->
@@ -163,7 +163,7 @@ module Command  = struct
                `Assoc [
                  ("src",command_node_to_json src);
                  ("tar",command_node_to_json tar);
-                 ("label_cst", Label_cst.to_json_python ?domain ~config label_cst);
+                 ("label_cst", Label_cst.to_json_python ~config label_cst);
                ]
               )]
     | UPDATE_EDGE_FEAT (edge_id, feat_name, item) ->
@@ -242,17 +242,17 @@ module Command  = struct
     | (Ast.Shift_edge (node_i, node_j, label_cst), loc) ->
       check_node_id loc node_i kni;
       check_node_id loc node_j kni;
-      ((SHIFT_EDGE (cn_of_node_id node_i, cn_of_node_id node_j, Label_cst.of_ast ~loc ?domain ~config label_cst), loc), (kni, kei))
+      ((SHIFT_EDGE (cn_of_node_id node_i, cn_of_node_id node_j, Label_cst.of_ast ~loc ~config label_cst), loc), (kni, kei))
 
     | (Ast.Shift_in (node_i, node_j, label_cst), loc) ->
       check_node_id loc node_i kni;
       check_node_id loc node_j kni;
-      ((SHIFT_IN (cn_of_node_id node_i, cn_of_node_id node_j, Label_cst.of_ast ?domain ~loc ~config label_cst), loc), (kni, kei))
+      ((SHIFT_IN (cn_of_node_id node_i, cn_of_node_id node_j, Label_cst.of_ast ~loc ~config label_cst), loc), (kni, kei))
 
     | (Ast.Shift_out (node_i, node_j, label_cst), loc) ->
       check_node_id loc node_i kni;
       check_node_id loc node_j kni;
-      ((SHIFT_OUT (cn_of_node_id node_i, cn_of_node_id node_j, Label_cst.of_ast ?domain ~loc ~config label_cst), loc), (kni, kei))
+      ((SHIFT_OUT (cn_of_node_id node_i, cn_of_node_id node_j, Label_cst.of_ast ~loc ~config label_cst), loc), (kni, kei))
 
     | (Ast.New_node new_id, loc) ->
       if List.mem new_id kni
