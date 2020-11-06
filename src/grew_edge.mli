@@ -55,10 +55,10 @@ module G_edge: sig
       [None] is returned if [t] is a special edge *)
   val to_json_opt: t -> Yojson.Basic.t option
 
-  (** Temp hardcoded conversion from t to dep2pict string (domain is unused) *)
+  (** Temp hardcoded conversion from t to dep2pict string *)
   val to_dep_opt: ?deco:bool -> config:Conllx_config.t -> t -> string option
 
-  (** Temp hardcoded conversion from t to graphviz string (domain is unused) *)
+  (** Temp hardcoded conversion from t to graphviz string *)
   val to_dot_opt: ?deco:bool -> config:Conllx_config.t -> t -> string option
 
   val to_json: t -> Yojson.Basic.t

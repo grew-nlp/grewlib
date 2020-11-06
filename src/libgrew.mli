@@ -29,25 +29,15 @@ module Libgrew : sig
 end
 
 (* ==================================================================================================== *)
-(** {2 Domain} *)
-(* ==================================================================================================== *)
-module Domain : sig
-  type t
-  val load: string -> t
-  val dump: t option -> unit
-  val feature_names: t -> string list
-end
-
-(* ==================================================================================================== *)
 (** {2 Patterns} *)
 (* ==================================================================================================== *)
 module Pattern : sig
   type t
 
-  (** [load_pattern domain filename] returns the pattern described in the file *)
+  (** [load_pattern filename] returns the pattern described in the file *)
   val load: config:Conllx_config.t -> string -> t
 
-  (** [load_pattern domain description] returns the pattern described in the [descriprion] string *)
+  (** [load_pattern description] returns the pattern described in the [descriprion] string *)
   val parse: config:Conllx_config.t -> string -> t
 
   val pid_name_list: t -> string list

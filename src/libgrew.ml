@@ -66,31 +66,6 @@ module Libgrew = struct
 end
 
 (* ==================================================================================================== *)
-(** {2 Domain} *)
-(* ==================================================================================================== *)
-module Domain = struct
-  type t = Grew_domain.Domain.t
-
-  let load filename =
-    Libgrew.handle ~name:"Domain.load"
-      (fun () ->
-         let ast = Grew_loader.Loader.domain filename in
-         Grew_grs.Grs.domain_build ast
-      ) ()
-
-  let feature_names domain =
-    Libgrew.handle ~name:"Domain.feature_names"
-      (fun () -> Grew_domain.Domain.feature_names domain)
-      ()
-
-  let dump domain =
-    Libgrew.handle ~name:"Domain.dump"
-      (fun () -> Grew_domain.Domain.dump domain)
-      ()
-
-end
-
-(* ==================================================================================================== *)
 (** {2 Patterns} *)
 (* ==================================================================================================== *)
 module Pattern = struct

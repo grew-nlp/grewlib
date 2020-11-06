@@ -14,7 +14,6 @@ open Conllx
 open Grew_base
 open Grew_types
 open Grew_ast
-open Grew_domain
 open Grew_fs
 open Grew_edge
 open Grew_node

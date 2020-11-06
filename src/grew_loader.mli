@@ -15,8 +15,6 @@ open Grew_ast
 
 (* ================================================================================ *)
 module Loader: sig
-  val domain: string -> Ast.domain
-
   val grs: string -> Ast.grs
 
   val gr: string -> Ast.gr

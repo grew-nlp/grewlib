@@ -16,7 +16,6 @@ open Grew_fs
 open Grew_base
 open Grew_types
 open Grew_ast
-open Grew_domain
 open Grew_edge
 open Grew_command
 open Grew_graph
@@ -79,12 +78,6 @@ module Grs = struct
     | Ast.Rule ast_rule -> Rule (Rule.of_ast ~config ast_rule)
     | Ast.Strategy (loc, name, ast_strat) -> Strategy (name, ast_strat)
     | _ -> Error.bug "[build_decl] Inconsistent ast for grs"
-
-
-  let domain_build ast_domain =
-    Domain.build
-      (Label_domain.build ast_domain.Ast.label_domain)
-      (Feature_domain.build ast_domain.Ast.feature_domain)
 
   let from_ast ~config filename ast =
     let decls = List_.opt_map
@@ -319,7 +312,7 @@ module Grs = struct
 
   (* TODO: unused function, should be used for some cases like Seq (Onf(p1), Onf(p2)) *)
   (* iter until normal form *)
-  let onf_rewrite ?domain ~config pointed strat graph =
+  let onf_rewrite ~config pointed strat graph =
     let rec loop graph2 =
       match onf_strat_simple_rewrite ~config pointed strat graph2 with
       | None -> graph2
@@ -352,26 +345,26 @@ module Grs = struct
       | _ :: tail_decl -> loop tail_decl in
     loop decl_list
 
-  let rec owh_intern_simple_rewrite ?domain ~config pointed strat_name gwh =
+  let rec owh_intern_simple_rewrite ~config pointed strat_name gwh =
     let path = Str.split (Str.regexp "\\.") strat_name in
     match search_from pointed path with
     | None -> Error.build "Simple rewrite, cannot find strat %s" strat_name
     | Some (Rule r,_) -> Rule.owh_apply_opt ~config r gwh
     | Some (Package (_, decl_list), _) -> owh_pack_rewrite ~config decl_list gwh
     | Some (Strategy (_,ast_strat), new_pointed) ->
-      owh_strat_simple_rewrite ?domain ~config new_pointed ast_strat gwh
+      owh_strat_simple_rewrite ~config new_pointed ast_strat gwh
 
-  and owh_strat_simple_rewrite ?domain ~config pointed strat gwh =
+  and owh_strat_simple_rewrite ~config pointed strat gwh =
     match strat with
-    | Ast.Ref subname -> owh_intern_simple_rewrite ?domain ~config pointed subname gwh
-    | Ast.Pick strat -> owh_strat_simple_rewrite ?domain ~config pointed strat gwh
+    | Ast.Ref subname -> owh_intern_simple_rewrite ~config pointed subname gwh
+    | Ast.Pick strat -> owh_strat_simple_rewrite ~config pointed strat gwh
 
     | Ast.Alt [] -> None
     | Ast.Alt strat_list ->
       let rec loop = function
         | [] -> None
         | head_strat :: tail_strat ->
-          match owh_strat_simple_rewrite ?domain ~config pointed head_strat gwh with
+          match owh_strat_simple_rewrite ~config pointed head_strat gwh with
           | None -> loop tail_strat
           | Some x -> Some x in
       loop strat_list
@@ -468,7 +461,7 @@ module Grs = struct
         | None   -> gwh_strat_simple_rewrite ~config pointed s2 gwh
       end
 
-  and iter_gwh ?domain ~config pointed strat gwh =
+  and iter_gwh ~config pointed strat gwh =
     let rec loop  (todo, not_nf, nf) =
       match Graph_with_history_set.choose_opt todo with
       | None -> nf

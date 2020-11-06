@@ -17,7 +17,6 @@ open Grew_ast
 open Grew_types
 
 open Grew_edge
-open Grew_domain
 open Grew_fs
 open Grew_node
 
@@ -248,7 +247,6 @@ module G_graph = struct
   type trace_item = G_deco.t * string * G_deco.t * t
 
   and t = {
-    domain: Domain.t option;
     meta: (string * string) list; (* meta-informations *)
     map: G_node.t Gid_map.t;      (* node description *)
     highest_index: int;           (* the next free integer index *)
@@ -272,15 +270,13 @@ module G_graph = struct
 
   let set_meta key value t = {t with meta = (key,value) :: List.remove_assoc key t.meta}
 
-  let empty = { domain=None; meta=[]; map=Gid_map.empty; highest_index=0; rules=String_map.empty; trace=None; impact=G_deco.empty}
+  let empty = { meta=[]; map=Gid_map.empty; highest_index=0; rules=String_map.empty; trace=None; impact=G_deco.empty}
 
   let is_empty t = Gid_map.is_empty t.map
 
   let is_initial g = String_map.is_empty g.rules
 
   let size t = Gid_map.cardinal (t.map)
-
-  let get_domain_opt t = t.domain
 
   let find node_id graph = Gid_map.find node_id graph.map
   let find_opt node_id graph = Gid_map.find_opt node_id graph.map

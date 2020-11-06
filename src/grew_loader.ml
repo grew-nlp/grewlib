@@ -25,15 +25,6 @@ let parse_handle fct_name fct lexbuf =
 (* ================================================================================ *)
 module Loader = struct
   (* ------------------------------------------------------------------------------------------*)
-  let domain file =
-    try
-      Global.new_file file;
-      let in_ch = open_in file in
-      let lexbuf = Lexing.from_channel in_ch in
-      let gr = parse_handle "[Grew_loader.Loader.domain]" (Grew_parser.domain Grew_lexer.global) lexbuf in
-      close_in in_ch;
-      gr
-    with Sys_error msg -> Error.parse ~loc:(Loc.file file) "[Grew_loader.Loader.domain] %s" msg
 
   let rec check_duplicate_id id = function
     | [] -> None

@@ -13,7 +13,6 @@ open Conllx
 open Grew_base
 open Grew_types
 open Grew_ast
-open Grew_domain
 open Grew_graph
 open Grew_rule
 
@@ -30,7 +29,6 @@ module Grs : sig
   val dump: t -> unit
 
   val to_json_python: config:Conllx_config.t -> t -> Yojson.Basic.t
-  val domain_build: Ast.domain -> Domain.t
 
   val get_strat_list: t -> string list
   val at_least_one: t -> string -> bool
