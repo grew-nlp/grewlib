@@ -15,14 +15,14 @@ open Conll
 open Grew_base
 open Grew_types
 open Grew_ast
-open Grew_domain
 
 let decode_feat_name s = Str.global_replace (Str.regexp "__\\([0-9a-z]+\\)$") "[\\1]" s
 
 (* ================================================================================ *)
 module Feature_value = struct
   let build_disj ?loc name unsorted_values =
-    Domain.build_disj ?loc name unsorted_values
+    let values = List.sort Stdlib.compare unsorted_values in
+    List.map (fun s -> typed_vos name s) values (* no check on feat_name starting with '_' *)
 
   let build_value ?loc name value =
     match build_disj ?loc name [value] with

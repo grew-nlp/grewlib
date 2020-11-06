@@ -5,7 +5,6 @@ open Conllx
 open Libamr
 
 open Grew_base
-open Grew_domain
 open Grew_loader
 open Grew_edge
 open Grew_graph
@@ -156,7 +155,6 @@ module Corpus_desc = struct
     kind: Corpus.kind;
     config: Conllx_config.t; (* "ud" is used as the default: TODO make config mandatory in desc? *)
     columns: Conllx_columns.t option;
-    dom_file: string option;
     directory: string;
     files: string list;
     rtl: bool;
@@ -193,15 +191,6 @@ module Corpus_desc = struct
         end
       | l -> l in
     List.map (fun f -> Filename.concat directory f) file_list
-
-  (* ---------------------------------------------------------------------------------------------------- *)
-  let build_domain corpus_desc = match corpus_desc.dom_file with
-    | None -> None
-    | Some file ->
-      try Some (Grs.domain_build (Grew_loader.Loader.domain file))
-      with _ ->
-        Log.fwarning "corpus \"%s\", fail to load domain \"%s\", load corpus without domain" corpus_desc.id file;
-        None
 
   (* ---------------------------------------------------------------------------------------------------- *)
   let build_corpus corpus_desc =
@@ -266,10 +255,6 @@ module Corpus_desc = struct
         try json |> member "columns" |> to_string_option |> (CCOpt.map Conllx_columns.build)
         with Type_error _ -> Error.run "[Corpus.load_json, file \"%s\"] \"columns\" field must be a string" json_file in
 
-      let dom_file =
-        try json |> member "domain" |> to_string_option
-        with Type_error _ -> Error.run "[Corpus.load_json, file \"%s\"] \"domain\" field must be a string" json_file in
-
       let directory =
         try json |> member "directory" |> to_string
         with Type_error _ -> Error.run "[Corpus.load_json, file \"%s\"] \"directory\" field is mandatory and must be a string" json_file in
@@ -290,7 +275,7 @@ module Corpus_desc = struct
         try json |> member "audio" |> to_bool
         with Type_error _ -> false in
 
-      { id; kind; config; columns; dom_file; directory; files; rtl; audio; preapply; } in
+      { id; kind; config; columns; directory; files; rtl; audio; preapply; } in
 
     List.map parse_one (json |> member "corpora" |> to_list)
 
@@ -413,21 +398,16 @@ module Corpus_desc = struct
     let really_marshal () = build_marshal_file ?grew_match corpus_desc in
     try
       let marshal_time = (Unix.stat marshal_file).Unix.st_mtime in
-      match corpus_desc.dom_file with
-      | Some f when (Unix.stat f).Unix.st_mtime > marshal_time ->
-        (* the domain file is more recent than the marshal file *)
-        really_marshal ()
-      | _ when List.exists (fun f -> (Unix.stat f).Unix.st_mtime > marshal_time) full_files ->
-        (* one of the data files is more recent than the marshal file *)
-        really_marshal ()
-      | _ -> Log.fmessage "--> %s is uptodate" corpus_desc.id
+      if List.exists (fun f -> (Unix.stat f).Unix.st_mtime > marshal_time) full_files
+      then really_marshal () (* one of the data files is more recent than the marshal file *)
+      else Log.fmessage "--> %s is uptodate" corpus_desc.id
     with
     | Unix.Unix_error _ ->
       (* the marshal file does not exists *)
       really_marshal ()
 
   (* ---------------------------------------------------------------------------------------------------- *)
-  let clean {kind; id; dom_file; directory; files; preapply}  =
+  let clean {kind; id; directory; files; preapply}  =
     let marshal_file = (Filename.concat directory id) ^ ".marshal" in
     if Sys.file_exists marshal_file then Unix.unlink marshal_file
 end
