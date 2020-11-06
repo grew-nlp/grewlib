@@ -500,8 +500,7 @@ module Grs = struct
   let gwh_simple_rewrite ~config grs strat graph =
     Rule.reset_rules ();
     Timeout.start ();
-    let casted_graph = G_graph.cast ~config graph in
-    let gwh = Graph_with_history.from_graph casted_graph in
+    let gwh = Graph_with_history.from_graph graph in
     let set = gwh_strat_simple_rewrite ~config (top grs) strat gwh in
     List.map
       (fun gwh -> gwh.Graph_with_history.graph)
@@ -645,8 +644,7 @@ module Grs = struct
   let wrd_rewrite ~config grs strat graph =
     Rule.reset_rules ();
     Timeout.start ();
-    let casted_graph = G_graph.cast ~config graph in
-    match wrd_strat_simple_rewrite ~config false (top grs) (Parser.strategy strat) {graph=casted_graph; steps=[]; know_normal_form=false} with
+    match wrd_strat_simple_rewrite ~config false (top grs) (Parser.strategy strat) {graph; steps=[]; know_normal_form=false} with
     | None -> Libgrew_types.Leaf graph
     | Some linear_rd -> build_rew_display_from_linear_rd linear_rd
 

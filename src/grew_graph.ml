@@ -1273,13 +1273,6 @@ module G_graph = struct
            acc
       ) t.map String_set.empty
 
-  let cast ?domain ~config graph = match (domain, graph.domain) with
-    | (None, _) -> graph
-    | (Some new_domain, Some dom) when dom == new_domain ->
-      (* ====== NO CAST NEEDED ====== *) graph
-    | _ ->
-      (* ====== CASTING NEEDED ====== *) failwith "OBSOLETE casting"
-
   let is_projective t =
     let (arc_positions, pos_to_gid_map) =
       Gid_map.fold (fun src_gid src_node (acc, acc_map) ->

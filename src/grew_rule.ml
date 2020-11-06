@@ -853,7 +853,6 @@ module Matching = struct
 
   (*  ---------------------------------------------------------------------- *)
   let match_in_graph ~config ?lexicons { Pattern.global; pos; negs } graph =
-    let casted_graph = G_graph.cast ~config graph in
 
     if not (check_global_constraint global graph)
     then []
@@ -865,7 +864,7 @@ module Matching = struct
         extend_matching
           ~config
           (pos_graph,P_graph.empty)
-          casted_graph
+          graph
           (init ?lexicons pos) in
 
       let filtered_matching_list =
