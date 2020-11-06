@@ -96,10 +96,10 @@ end
 module Pattern = struct
   type t = Grew_rule.Pattern.t
 
-  let load ?domain ~config file =
+  let load ~config file =
     Libgrew.handle ~name:"Pattern.load" (fun () -> Grew_rule.Pattern.of_ast ~config (Grew_loader.Loader.pattern file)) ()
 
-  let parse ?domain ~config desc =
+  let parse ~config desc =
     Libgrew.handle ~name:"Pattern.load" (fun () -> Grew_rule.Pattern.of_ast ~config (Grew_loader.Parser.pattern desc)) ()
 
   let pid_name_list pattern =
@@ -149,66 +149,66 @@ module Graph = struct
 
   let set_meta key value t = Grew_graph.G_graph.set_meta key value t
 
-  let load_gr ?domain ~config file =
+  let load_gr ~config file =
     if not (Sys.file_exists file)
     then raise (Libgrew.Error ("File_not_found: " ^ file))
     else
       Libgrew.handle ~name:"Graph.load_gr" ~file
         (fun () ->
            let gr_ast = Grew_loader.Loader.gr file in
-           Grew_graph.G_graph.of_ast ?domain ~config gr_ast
+           Grew_graph.G_graph.of_ast ~config gr_ast
         ) ()
 
-  let load_conll ?domain ~config file =
+  let load_conll ~config file =
     Libgrew.handle ~name:"Graph.load_conll" ~file
       (fun () ->
         Conllx.load ~config file |> Conllx.to_json |> Grew_graph.G_graph.of_json
       ) ()
 
-  let load_brown ?domain ~config file =
+  let load_brown ~config file =
     Libgrew.handle ~name:"Graph.load_brown"
       (fun () ->
          let brown = Grew_base.File.load file in
-         Grew_graph.G_graph.of_brown ?domain ~config brown
+         Grew_graph.G_graph.of_brown ~config brown
       ) ()
 
-  let load_pst ?domain file =
+  let load_pst file =
     if not (Sys.file_exists file)
     then raise (Libgrew.Error ("File_not_found: " ^ file))
     else
       Libgrew.handle ~name:"load_pst" ~file
         (fun () ->
            let const_ast = Grew_loader.Loader.phrase_structure_tree file in
-           Grew_graph.G_graph.of_pst ?domain const_ast
+           Grew_graph.G_graph.of_pst const_ast
         ) ()
 
-  let load ?domain ~config file =
+  let load ~config file =
     Libgrew.handle ~name:"Graph.load_graph" ~file
       (fun () ->
          match Grew_base.File.get_suffix_opt file with
-         | Some ".gr" -> load_gr ?domain ~config file
-         | Some ".conll" | Some ".conllu" -> load_conll ?domain ~config file
-         | Some ".br" | Some ".melt" -> load_brown ?domain ~config file
-         | Some ".cst" -> load_pst ?domain file
+         | Some ".gr" -> load_gr ~config file
+         | Some ".conll" | Some ".conllu" -> load_conll ~config file
+         | Some ".br" | Some ".melt" -> load_brown ~config file
+         | Some ".cst" -> load_pst file
          | _ ->
            Grew_base.Error.warning "Unknown file format for input graph '%s', try to guess..." file;
            let rec loop = function
              | [] -> Grew_base.Error.bug "[Libgrew.load_graph] Cannot guess input file format of file '%s'." file
-             | load_fct :: tail -> try load_fct ?domain file with _ -> loop tail in
+             | load_fct :: tail -> try load_fct file with _ -> loop tail in
            loop [load_gr ~config; load_conll ~config; load_brown ~config; load_pst]
       ) ()
 
-  let of_gr ?domain ~config gr_string =
-    Libgrew.handle ~name:"Graph.of_gr" (fun () -> Grew_graph.G_graph.of_ast ?domain ~config (Grew_loader.Parser.gr gr_string)) ()
+  let of_gr ~config gr_string =
+    Libgrew.handle ~name:"Graph.of_gr" (fun () -> Grew_graph.G_graph.of_ast ~config (Grew_loader.Parser.gr gr_string)) ()
 
-  let of_pst ?domain pst_string =
+  let of_pst pst_string =
     Libgrew.handle ~name:"of_pst"
       (fun () ->
          let pst_ast = Grew_loader.Parser.phrase_structure_tree pst_string in
-         (Grew_graph.G_graph.of_pst ?domain pst_ast)
+         (Grew_graph.G_graph.of_pst pst_ast)
       ) ()
 
-  let sentence_of_pst ?domain pst_string =
+  let sentence_of_pst pst_string =
     Libgrew.handle ~name:"of_pst"
       (fun () ->
          let pst_ast = Grew_loader.Parser.phrase_structure_tree pst_string in
@@ -219,8 +219,8 @@ module Graph = struct
   let of_json_python ~config json =
     Libgrew.handle ~name:"Graph.of_json_python" (fun () -> Grew_graph.G_graph.of_json_python ~config json) ()
 
-  let of_brown ?domain ~config ?sentid brown =
-    Libgrew.handle ~name:"Graph.of_brown" (fun () -> Grew_graph.G_graph.of_brown ?domain ~config ?sentid brown) ()
+  let of_brown ~config ?sentid brown =
+    Libgrew.handle ~name:"Graph.of_brown" (fun () -> Grew_graph.G_graph.of_brown ~config ?sentid brown) ()
 
   let to_dot ?main_feat ~config ?(deco=Grew_graph.G_deco.empty) ?get_url graph =
     Libgrew.handle ~name:"Graph.to_dot" (fun () -> Grew_graph.G_graph.to_dot ?main_feat ?get_url ~config graph ~deco) ()
@@ -259,7 +259,7 @@ module Graph = struct
         close_out out_ch
       ) () *)
 
-  let search_pattern ?domain ~config pattern graph =
+  let search_pattern ~config pattern graph =
     Libgrew.handle ~name:"Graph.search_pattern" (fun () ->
         Grew_rule.Matching.match_in_graph ~config pattern graph
       ) ()

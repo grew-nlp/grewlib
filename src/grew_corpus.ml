@@ -338,7 +338,6 @@ module Corpus_desc = struct
   (* ---------------------------------------------------------------------------------------------------- *)
   (* [grew_match] is a folder where tables, logs and corpus desc is stored *)
   let build_marshal_file ?grew_match corpus_desc =
-    let domain = build_domain corpus_desc in
     let config = corpus_desc.config in
     let full_files = get_full_files corpus_desc in
     let marshal_file = (Filename.concat corpus_desc.directory corpus_desc.id) ^ ".marshal" in
@@ -377,7 +376,7 @@ module Corpus_desc = struct
           let pst_corpus = Pst_corpus.load_files full_files in
           CCArray.filter_map (fun (sent_id,pst) ->
               try
-                let graph = G_graph.of_pst ?domain (Parser.phrase_structure_tree pst) in
+                let graph = G_graph.of_pst (Parser.phrase_structure_tree pst) in
                 Some {Corpus.sent_id; text=G_graph.to_sentence graph; graph }
               with exc -> Log.fwarning "[id=%s] PST skipped [exception: %s]" sent_id (Printexc.to_string exc); None
             ) pst_corpus
@@ -390,7 +389,7 @@ module Corpus_desc = struct
           CCArray.filter_map (fun (sent_id,text,amr) ->
               try
                 let gr = Amr.to_gr amr in
-                let graph = G_graph.of_ast ?domain ~config (Parser.gr gr) in
+                let graph = G_graph.of_ast ~config (Parser.gr gr) in
                 Some {Corpus.sent_id; text; graph }
               with exc -> Log.fwarning "[id=%s] AMR skipped [exception: %s]" sent_id (Printexc.to_string exc); None
             ) amr_corpus

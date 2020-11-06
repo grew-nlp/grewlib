@@ -27,7 +27,7 @@ module P_graph: sig
 
   val empty: t
 
-  val to_json_python: ?domain:Domain.t -> config:Conllx_config.t -> t -> Yojson.Basic.t
+  val to_json_python: config:Conllx_config.t -> t -> Yojson.Basic.t
 
   val find: Pid.t -> t -> P_node.t
 
@@ -42,7 +42,6 @@ module P_graph: sig
 
   (** [P_fs.Fail_unif] exception is raised in case of inconsistent feature structures. *)
   val of_ast:
-    ?domain:Domain.t ->
     config:Conllx_config.t ->
     Lexicons.t ->
     Ast.basic ->
@@ -50,7 +49,6 @@ module P_graph: sig
 
   (** [P_fs.Fail_unif] exception is raised in case of inconsistent feature structures. *)
   val of_ast_extension:
-    ?domain:Domain.t ->
     config:Conllx_config.t ->
     Lexicons.t ->
     Id.table ->
@@ -115,15 +113,15 @@ module G_graph: sig
   (* Build functions *)
   (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
 
-  val of_ast: ?domain:Domain.t -> config:Conllx_config.t -> Ast.gr -> t
+  val of_ast: config:Conllx_config.t -> Ast.gr -> t
 
   val of_json_python: config:Conllx_config.t -> Yojson.Basic.t -> t
 
   (** input : "Le/DET/le petit/ADJ/petit chat/NC/chat dort/V/dormir ./PONCT/."
       It supposes that "SUC" is defined in current relations *)
-  val of_brown: ?domain:Domain.t -> ?sentid: string -> config:Conllx_config.t -> string -> t
+  val of_brown: ?sentid: string -> config:Conllx_config.t -> string -> t
 
-  val of_pst: ?domain:Domain.t -> Ast.pst -> t
+  val of_pst: Ast.pst -> t
 
   val of_json: Yojson.Basic.t -> t
   (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)

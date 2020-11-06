@@ -31,7 +31,7 @@ module P_graph = struct
 
   let pid_name_list t = Pid_map.fold (fun _ node acc -> (P_node.get_name node)::acc) t []
 
-  let to_json_python ?domain ~config t =
+  let to_json_python ~config t =
     `List (
       Pid_map.fold
         (fun pid p_node acc ->
@@ -52,7 +52,7 @@ module P_graph = struct
     | Some new_node -> Some (Pid_map.add src_pid new_node map)
 
   (* -------------------------------------------------------------------------------- *)
-  let of_ast ?domain ~config lexicons basic_ast =
+  let of_ast ~config lexicons basic_ast =
     let full_node_list = basic_ast.Ast.pat_nodes
     and full_edge_list = basic_ast.Ast.pat_edges in
 
@@ -130,7 +130,7 @@ module P_graph = struct
 
   (* -------------------------------------------------------------------------------- *)
   (* It may raise [P_fs.Fail_unif] in case of contradiction on constraints *)
-  let of_ast_extension ?domain ~config lexicons pos_table edge_ids full_node_list full_edge_list =
+  let of_ast_extension ~config lexicons pos_table edge_ids full_node_list full_edge_list =
 
     let built_nodes = List.map (P_node.of_ast lexicons) full_node_list in
 
@@ -411,7 +411,7 @@ module G_graph = struct
     | _ -> None
 
   (* -------------------------------------------------------------------------------- *)
-  let of_ast ?domain ~config gr_ast =
+  let of_ast ~config gr_ast =
     let (ordered_nodes, unordered_nodes) =
       List.fold_left
         (fun (orderd_acc, unordered_acc) (node,loc) ->
@@ -475,7 +475,6 @@ module G_graph = struct
         ) map_without_edges gr_ast.Ast.edges in
 
     { empty with
-      domain;
       meta=List.map parse_meta gr_ast.Ast.meta;
       map;
       highest_index = final_index - 1;
@@ -650,7 +649,7 @@ module G_graph = struct
 
   let re = Str.regexp "/\\(ADJ\\|ADJWH\\|ADV\\|ADVWH\\|CC\\|CLO\\|CLR\\|CLS\\|CS\\|DET\\|DETWH\\|ET\\|I\\|NC\\|NPP\\|P\\|P\\+D\\|P\\+PRO\\|PONCT\\|PREF\\|PRO\\|PROREL\\|PROWH\\|V\\|VIMP\\|VINF\\|VPP\\|VPR\\|VS\\)/"
 
-  let of_brown ?domain ?sentid ~config brown =
+  let of_brown ?sentid ~config brown =
     let units = Str.split (Str.regexp " ") brown in
     let json_nodes =
       (`Assoc [("id", `String "0"); ("form", `String "__0__")])
@@ -665,7 +664,7 @@ module G_graph = struct
     of_json (`Assoc [("nodes", `List json_nodes); ("order", `List order)])
 
   (* -------------------------------------------------------------------------------- *)
-  let of_pst ?domain pst =
+  let of_pst pst =
     let cpt = ref 0 in
     let fresh_id () = incr cpt; !cpt - 1 in
 
@@ -701,7 +700,6 @@ module G_graph = struct
         |> (map_add_pred_succ gid1 gid2)
         |> (Gid_map.add gid1 new_node1) in
     { empty with
-      domain;
       map=prec_loop 1 map (List.rev !leaf_list);
       highest_index = !cpt;
     }

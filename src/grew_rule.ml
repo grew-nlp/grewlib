@@ -191,7 +191,7 @@ module Pattern = struct
              ]
     | Covered (pid1, eid2) -> `Assoc ["covered",`Assoc [("id1", `String (Pid.to_string pid1)); ("id2", `String eid2)]]
 
-  let build_constraint ?domain ~config lexicons pos_table neg_table edge_ids const =
+  let build_constraint ~config lexicons pos_table neg_table edge_ids const =
     let parse_id loc id = match (Id.build_opt id pos_table, Id.build_opt id neg_table) with
       | (Some pid,_) -> Node_id (Pid.Pos pid)
       | (None, Some pid) -> Node_id (Pid.Neg pid)
@@ -267,14 +267,14 @@ module Pattern = struct
     )
 
   (* It may raise [P_fs.Fail_unif] in case of contradiction on constraints *)
-  let build_neg_basic ?domain ~config lexicons pos_table edge_ids basic_ast =
+  let build_neg_basic ~config lexicons pos_table edge_ids basic_ast =
     let (extension, neg_table, edge_ids) =
-      P_graph.of_ast_extension ?domain ~config lexicons pos_table edge_ids basic_ast.Ast.pat_nodes basic_ast.Ast.pat_edges in
+      P_graph.of_ast_extension ~config lexicons pos_table edge_ids basic_ast.Ast.pat_nodes basic_ast.Ast.pat_edges in
 
     let filters = Pid_map.fold (fun id node acc -> Filter (id, P_node.get_fs node) :: acc) extension.P_graph.old_map [] in
     {
       graph = extension.P_graph.ext_map;
-      constraints = filters @ List.map (build_constraint ?domain ~config lexicons pos_table neg_table edge_ids) basic_ast.Ast.pat_const ;
+      constraints = filters @ List.map (build_constraint ~config lexicons pos_table neg_table edge_ids) basic_ast.Ast.pat_const ;
     }
 
   let get_edge_ids basic =

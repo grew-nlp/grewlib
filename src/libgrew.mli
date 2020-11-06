@@ -45,10 +45,10 @@ module Pattern : sig
   type t
 
   (** [load_pattern domain filename] returns the pattern described in the file *)
-  val load: ?domain:Domain.t -> config:Conllx_config.t -> string -> t
+  val load: config:Conllx_config.t -> string -> t
 
   (** [load_pattern domain description] returns the pattern described in the [descriprion] string *)
-  val parse: ?domain:Domain.t -> config:Conllx_config.t -> string -> t
+  val parse: config:Conllx_config.t -> string -> t
 
   val pid_name_list: t -> string list
 
@@ -98,9 +98,9 @@ module Graph : sig
       File extension should be '.gr' or '.conll'.
       @raise Parsing_err if libgrew can't parse the file
       @raise File_not_found if the file doesn't exists. *)
-  val load: ?domain:Domain.t -> config:Conllx_config.t -> string -> t
+  val load: config:Conllx_config.t -> string -> t
 
-  val of_gr: ?domain:Domain.t -> config:Conllx_config.t -> string -> t
+  val of_gr: config:Conllx_config.t -> string -> t
 
   val of_json_python: config:Conllx_config.t -> Yojson.Basic.t -> t
   val to_json_python: t -> Yojson.Basic.t
@@ -108,11 +108,11 @@ module Graph : sig
   val of_json: Yojson.Basic.t -> t
   val to_json: t -> Yojson.Basic.t
 
-  val of_brown: ?domain:Domain.t -> config:Conllx_config.t -> ?sentid:string -> string -> t
+  val of_brown: config:Conllx_config.t -> ?sentid:string -> string -> t
 
-  val of_pst: ?domain:Domain.t -> string -> t
+  val of_pst: string -> t
 
-  val sentence_of_pst: ?domain:Domain.t -> string -> string
+  val sentence_of_pst: string -> string
 
   val to_sentence: ?pivot: string -> ?deco:Deco.t -> t -> string
 
@@ -125,7 +125,7 @@ module Graph : sig
   val to_gr: config:Conllx_config.t -> t -> string
 
   (** [search_pattern pattern graph] returns the list of the possible matching of [pattern] in [graph] *)
-  val search_pattern: ?domain:Domain.t -> config:Conllx_config.t -> Pattern.t -> t -> Matching.t list
+  val search_pattern: config:Conllx_config.t -> Pattern.t -> t -> Matching.t list
 
   val get_meta_opt: string -> t -> string option
 
