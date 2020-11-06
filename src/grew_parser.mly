@@ -38,8 +38,6 @@ let get_loc () = Global.get_loc ()
 let localize t = (t,get_loc ())
 %}
 
-%token DUMMY
-
 %token LACC                        /* { */
 %token RACC                        /* } */
 %token LBRACKET                    /* [ */
@@ -49,7 +47,6 @@ let localize t = (t,get_loc ())
 %token DDOT                        /* : */
 %token COMMA                       /* , */
 %token SEMIC                       /* ; */
-%token SHARP                       /* # */
 %token PLUS                        /* + */
 %token EQUAL                       /* = */
 %token DISEQUAL                    /* <> */
@@ -81,9 +78,7 @@ let localize t = (t,get_loc ())
 
 %token INCL                        /* include */
 %token IMPORT                      /* import */
-%token FEATURES                    /* features */
 %token FROM                        /* from */
-%token LABELS                      /* labels */
 %token PATTERN                     /* pattern */
 %token WITHOUT                     /* without */
 %token COMMANDS                    /* commands */
@@ -113,9 +108,6 @@ let localize t = (t,get_loc ())
 %token EMPTY                       /* Empty */
 %token TRY                         /* Try */
 
-%token <string> AROBAS_ID          /* @id */
-%token <string> COLOR              /* @#89abCD */
-
 %token <string> ID   /* the general notion of id */
 
 /* %token <Grew_ast.Ast.complex_id>   COMPLEX_ID*/
@@ -130,7 +122,6 @@ let localize t = (t,get_loc ())
 
 %start <Grew_ast.Ast.gr> gr
 %start <Grew_ast.Ast.pattern> isolated_pattern
-%start <Grew_ast.Ast.domain> domain
 
 %start <Grew_ast.Ast.grs> grs
 %start <Grew_ast.Ast.strat> strat_alone
@@ -238,60 +229,6 @@ gr_item:
         | n1_loc=node_id_with_loc label=delimited(LTR_EDGE_LEFT,label_ident,LTR_EDGE_RIGHT) n2=node_id
             { Graph_edge ({Ast.edge_id = None; src=fst n1_loc; edge_label_cst=Ast.Pos_list [label]; tar=n2}, snd n1_loc) }
 
-/*=============================================================================================*/
-/*  DOMAIN DEFINITION                                                                          */
-/*=============================================================================================*/
-domain:
-        | c=option(DUMMY) f=feature_group g=labels EOF
-            {
-              {  Ast.feature_domain = f;
-                 label_domain = g;
-              }
-            }
-
-/*=============================================================================================*/
-/* FEATURES DOMAIN DEFINITION                                                                  */
-/*=============================================================================================*/
-feature_group:
-        | FEATURES x=features { x }
-
-features:
-        | LACC x=separated_nonempty_list_final_opt(SEMIC,feature) RACC { x }
-
-feature:
-        /*   pos=#   */
-        /*   m: ind,inf,part,subj,imp   */
-        | feature_name=feature_name DDOT feature_values=feature_values
-            {
-              match feature_values with
-                | ["#"] -> Ast.Num feature_name
-                | _ -> Ast.build_closed feature_name feature_values
-            }
-
-        /*   phon:*   */
-        | feature_name=feature_name DDOT STAR
-            { Ast.Open feature_name }
-
-feature_name:
-        | ci=ID { to_uname ci }
-
-feature_values:
-        | SHARP                                         { ["#"] }
-        | x=separated_nonempty_list(COMMA,feature_value) { x }
-
-/*=============================================================================================*/
-/* GLOBAL LABELS DEFINITION                                                                    */
-/*=============================================================================================*/
-labels:
-        /*   labels { OBJ, SUBJ, DE_OBJ, ANT }   */
-        | LABELS x=delimited(LACC,separated_nonempty_list_final_opt(COMMA,label),RACC) { x }
-
-label:
-        | x=label_ident display_list=list(display)  { (x, display_list) }
-
-display:
-        | dis=AROBAS_ID   { dis }
-        | col=COLOR       { col }
 
 /*=============================================================================================*/
 /* RULES DEFINITION                                                                            */
@@ -924,8 +861,6 @@ grs:
   | decls = list(decl) EOF { decls }
 
 decl:
-  | f=feature_group                                           { Ast.Features f                           }
-  | l=labels                                                  { Ast.Labels l                             }
   | r=rule                                                    { Ast.Rule r                               }
   | IMPORT f=STRING                                           { Ast.Import f                             }
   | INCL f=STRING                                             { Ast.Include f                            }

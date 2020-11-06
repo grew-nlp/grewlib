@@ -222,11 +222,6 @@ module Ast : sig
 
   val build_closed: feature_name -> string list -> feature_spec
 
-  type domain = {
-    feature_domain: feature_spec list;
-    label_domain: label_spec list;
-  }
-
   type gr = {
     meta: string list;
     nodes: node list;

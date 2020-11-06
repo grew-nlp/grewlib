@@ -40,7 +40,7 @@ let numeric_feature_values = [
   "length"; "delta";
 ]
 
-(* Typing float/string for feature value is hardcoded, should evolve with a new domain implementation *)
+(* Typing float/string for feature value is hardcoded, should evolve with a new config implementation *)
 let typed_vos feat_name string_value =
   if List.mem feat_name numeric_feature_values
   then
@@ -394,11 +394,6 @@ module Ast = struct
         | x::tail -> x:: (loop tail)
       in loop sorted_list in
     Closed (feature_name, without_duplicate)
-
-  type domain = {
-    feature_domain: feature_spec list;
-    label_domain: label_spec list;
-  }
 
   type gr = {
     meta: string list;

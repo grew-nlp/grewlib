@@ -145,9 +145,6 @@ and label_parser target = parse
 | "!"   { BANG }
 | "<>"  { DISEQUAL }
 
-| '@' general_ident as cmd_var     { AROBAS_ID cmd_var }
-| "@#" color as col        { COLOR col }
-
 | label_ident as id { ID id }
 | '"'      { Buffer.clear buff; string_lex false global lexbuf }
 | "re\""   { Buffer.clear buff; string_lex true global lexbuf }
@@ -175,10 +172,9 @@ and standard target = parse
 
 | "include"       { INCL }
 | "import"        { IMPORT }
-| "features"      { FEATURES }
-| "conll_fields"  { Error.warning ~loc:(Global.get_loc ()) "\"conll_fields\" is deprecated, ignored"; DUMMY }
+| "features"      { Error.build ~loc:(Global.get_loc ()) "`features` is obsolete, see https://grew.fr/doc/grs" }
+| "labels"        { Error.build ~loc:(Global.get_loc ()) "`labels` is obsolete, see https://grew.fr/doc/grs" }
 | "from"          { FROM }
-| "labels"        { Global.label_flag := true; LABELS }
 
 | "match"         { Error.warning ~loc:(Global.get_loc ()) "%s \"match\" is deprecated, please use \"pattern\" instead" (Global.loc_string ()); PATTERN }
 | "pattern"       { PATTERN }
@@ -218,8 +214,6 @@ and standard target = parse
 | digit+ ('.' digit*)? as number  { FLOAT (float_of_string number) }
 
 | '$' general_ident      { raise (Error "Syntax of lexicon has changed! Please read grew.fr/lexicons_change for updating instructions") }
-| '@' general_ident as cmd_var     { AROBAS_ID cmd_var }
-| "@#" color as col        { COLOR col }
 
 | '*'   { STAR }
 | general_ident as id { ID id }
@@ -234,7 +228,6 @@ and standard target = parse
 | ';'   { SEMIC }
 | ','   { COMMA }
 | '+'   { PLUS }
-| '#'   { SHARP }
 | '='   { EQUAL }
 | "!"   { BANG }
 | "<>"  { DISEQUAL }
