@@ -16,7 +16,7 @@ open Grew_ast
 let parse_handle fct_name fct lexbuf =
   try fct lexbuf with
   | Grew_lexer.Error msg ->        Error.parse ~loc:(Global.get_loc ()) "%s, Lexing error: %s" fct_name msg
-  | Grew_parser.Error ->           Error.parse ~loc:(Global.get_loc ()) "%s, Syntax error: %s" fct_name (Lexing.lexeme lexbuf)
+  | Grew_parser.Error ->           Error.parse ~loc:(Global.get_loc ()) "%s, Parsing error: %s" fct_name (Lexing.lexeme lexbuf)
   | Error.Build (msg, None) ->     Error.parse ~loc:(Global.get_loc ()) "%s, Syntax error: %s" fct_name msg
   | Error.Build (msg, Some loc) -> Error.parse ~loc "%s, Syntax error: %s" fct_name msg
   | Failure msg ->                 Error.parse ~loc:(Global.get_loc ()) "%s, Failure: %s" fct_name msg

@@ -115,6 +115,7 @@ module Corpus = struct
       of_conllx_corpus (Conllx_corpus.load ?log_file ?config file)
     | ".amr" | ".txt" ->
       of_amr_corpus (Amr_corpus.load file)
+    | ".gr" -> Loader.gr file |> G_graph.of_ast ~config:(Conllx_config.build "basic") |> singleton
     | ".json" ->
       begin
         try file |> Yojson.Basic.from_file |> G_graph.of_json |> singleton with
