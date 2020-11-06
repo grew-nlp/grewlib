@@ -57,7 +57,7 @@ module G_node = struct
     | Some (String "Yes") -> true
     | _ -> false
 
-  let dump ?domain ~config t =
+  let dump ~config t =
     Printf.sprintf "  fs=[%s]\n  next=%s\n"
       (G_fs.to_string t.fs)
       (Massoc_gid.to_string (G_edge.dump ~config) t.next)
@@ -72,15 +72,15 @@ module G_node = struct
     efs=[]
   }
 
-  let of_ast ?domain ?position (ast_node, loc) =
-    let fs = G_fs.of_ast ?domain ast_node.Ast.fs in
+  let of_ast ?position (ast_node, loc) =
+    let fs = G_fs.of_ast ast_node.Ast.fs in
     { empty with name=Some ast_node.Ast.node_id; fs; position; }
 
-  let build_pst_leaf ?loc ?domain phon =
-    { empty with fs = G_fs.pst_leaf ?loc ?domain phon }
+  let build_pst_leaf ?loc phon =
+    { empty with fs = G_fs.pst_leaf ?loc phon }
 
-  let build_pst_node ?loc ?domain cat =
-    { empty with fs = G_fs.pst_node ?loc ?domain cat }
+  let build_pst_node ?loc cat =
+    { empty with fs = G_fs.pst_node ?loc cat }
 
 
   let add_edge g_edge gid_tar t =
@@ -154,16 +154,16 @@ module P_node = struct
 
   let get_next t = t.next
 
-  let of_ast ?domain lexicons (ast_node, loc) =
+  let of_ast lexicons (ast_node, loc) =
     (ast_node.Ast.node_id,
      {
        name = ast_node.Ast.node_id;
-       fs = P_fs.of_ast ?domain lexicons ast_node.Ast.fs;
+       fs = P_fs.of_ast lexicons ast_node.Ast.fs;
        next = Massoc_pid.empty;
        loc = Some loc;
      } )
 
-  let to_json_python ?domain ~config t =
+  let to_json_python ~config t =
     let json_next = `List (
         Massoc_pid.fold
           (fun acc pid p_edge ->
@@ -175,7 +175,7 @@ module P_node = struct
       ) in
     `Assoc [
       ("node_name", `String t.name);
-      ("fs", P_fs.to_json_python ?domain t.fs);
+      ("fs", P_fs.to_json_python t.fs);
       ("next", json_next)
     ]
 

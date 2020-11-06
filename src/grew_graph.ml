@@ -37,7 +37,7 @@ module P_graph = struct
         (fun pid p_node acc ->
            (`Assoc [
                ("id", `String (Pid.to_string pid));
-               ("node", P_node.to_json_python ?domain ~config p_node)
+               ("node", P_node.to_json_python ~config p_node)
              ]) :: acc
         ) t []
     )
@@ -70,10 +70,10 @@ module P_graph = struct
     (* NB: insert searches for a previous node with the same name and uses unification rather than constraint *)
     (* NB: insertion of new node at the end of the list: not efficient but graph building is not the hard part. *)
     let rec insert (ast_node, loc) = function
-      | [] -> [P_node.of_ast ?domain lexicons (ast_node, loc)]
+      | [] -> [P_node.of_ast lexicons (ast_node, loc)]
       | (node_id,fs)::tail when ast_node.Ast.node_id = node_id ->
         begin
-          try (node_id, P_node.unif_fs (P_fs.of_ast ?domain lexicons ast_node.Ast.fs) fs) :: tail
+          try (node_id, P_node.unif_fs (P_fs.of_ast lexicons ast_node.Ast.fs) fs) :: tail
           with Error.Build (msg,_) -> raise (Error.Build (msg,Some loc))
         end
       | head :: tail -> head :: (insert (ast_node, loc) tail) in
@@ -132,7 +132,7 @@ module P_graph = struct
   (* It may raise [P_fs.Fail_unif] in case of contradiction on constraints *)
   let of_ast_extension ?domain ~config lexicons pos_table edge_ids full_node_list full_edge_list =
 
-    let built_nodes = List.map (P_node.of_ast ?domain lexicons) full_node_list in
+    let built_nodes = List.map (P_node.of_ast lexicons) full_node_list in
 
     let (old_nodes, new_nodes) =
       List.partition
@@ -431,7 +431,7 @@ module G_graph = struct
         then Error.build ~loc "[GRS] [G_graph.of_ast] try to build a graph with twice the same node id '%s'" node_id
         else
           let (new_tail, table) = loop (node_id :: already_bound) (index+1) tail in
-          let new_node = G_node.of_ast ?domain ~position:index (ast_node, loc) in
+          let new_node = G_node.of_ast ~position:index (ast_node, loc) in
           (
             Gid_map.add index new_node new_tail,
             (node_id,index)::table
@@ -452,7 +452,7 @@ module G_graph = struct
       List.fold_left
         (fun (acc_map, acc_table, acc_index) (ast_node,loc) ->
            let node_id = ast_node.Ast.node_id in
-           let new_node = G_node.of_ast ?domain (ast_node,loc) in
+           let new_node = G_node.of_ast (ast_node,loc) in
            (
              Gid_map.add acc_index new_node acc_map,
              (node_id,acc_index)::acc_table,
@@ -674,13 +674,13 @@ module G_graph = struct
     let rec loop nodes = function
       | Ast.Leaf (loc, phon) ->
         let fid = fresh_id () in
-        let node = G_node.build_pst_leaf ~loc ?domain phon in
+        let node = G_node.build_pst_leaf ~loc phon in
         leaf_list := fid :: ! leaf_list;
         (fid, Gid_map.add fid node nodes)
 
       | Ast.T (loc, cat, daughters) ->
         let fid = fresh_id () in
-        let new_node = G_node.build_pst_node ~loc ?domain cat in
+        let new_node = G_node.build_pst_node ~loc cat in
         let with_mother = Gid_map.add fid new_node nodes in
         let new_nodes = List.fold_left
             (fun map daughter ->
@@ -916,9 +916,8 @@ module G_graph = struct
 
   (* -------------------------------------------------------------------------------- *)
   let update_feat ?loc graph node_id feat_name new_value =
-    let domain = get_domain_opt graph in
     let node = Gid_map.find node_id graph.map in
-    let new_fs = G_fs.set_value ?loc ?domain feat_name new_value (G_node.get_fs node) in
+    let new_fs = G_fs.set_value ?loc feat_name new_value (G_node.get_fs node) in
     let new_node = G_node.set_fs new_fs node in
     { graph with map = Gid_map.add node_id new_node graph.map }
 

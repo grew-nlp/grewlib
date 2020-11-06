@@ -13,13 +13,12 @@ open Conll
 open Grew_base
 open Grew_types
 open Grew_ast
-open Grew_domain
 
 (* ================================================================================ *)
 module Feature_value: sig
-  val build_disj: ?loc:Loc.t -> ?domain: Domain.t -> feature_name -> string list -> feature_value list
+  val build_disj: ?loc:Loc.t -> feature_name -> string list -> feature_value list
 
-  val build_value: ?loc:Loc.t -> ?domain: Domain.t -> feature_name -> string -> feature_value
+  val build_value: ?loc:Loc.t -> feature_name -> string -> feature_value
 end (* module Feature_value *)
 
 
@@ -34,9 +33,9 @@ module G_fs: sig
 
   (** [set_atom domain feature_name atom t] adds the feature ([feature_name],[atom]) in [t].
       If [t] already contains a feature named [feature_name], the old value is erased by the new one. *)
-  val set_atom: ?loc:Loc.t -> ?domain:Domain.t -> feature_name -> string -> t ->  t
+  val set_atom: ?loc:Loc.t -> feature_name -> string -> t ->  t
 
-  val set_value: ?loc:Loc.t -> ?domain:Domain.t -> feature_name -> feature_value -> t ->  t
+  val set_value: ?loc:Loc.t -> feature_name -> feature_value -> t ->  t
 
   (** [del_feat_opt feature_name t] remove the feature with name [feature_name] in [t].
       If [t] does not contain such a feature, None is returned. *)
@@ -62,12 +61,12 @@ module G_fs: sig
   val to_json_python: t -> Yojson.Basic.t
   val to_string: t -> string
 
-  val of_ast: ?domain:Domain.t -> Ast.feature list -> t
+  val of_ast: Ast.feature list -> t
 
   val of_items: (string * string) list -> t
 
-  val pst_leaf: ?loc:Loc.t -> ?domain:Domain.t -> string -> t
-  val pst_node: ?loc:Loc.t -> ?domain:Domain.t -> string -> t
+  val pst_leaf: ?loc:Loc.t -> string -> t
+  val pst_node: ?loc:Loc.t -> string -> t
 
   val append_feats_opt: ?loc:Loc.t -> t -> t -> string -> string -> (t * (string * feature_value) list) option
 
@@ -78,11 +77,11 @@ end (* module G_fs *)
 module P_fs: sig
   type t
 
-  val to_json_python: ?domain:Domain.t -> t -> Yojson.Basic.t
+  val to_json_python: t -> Yojson.Basic.t
 
   val empty: t
 
-  val of_ast: ?domain:Domain.t -> Lexicons.t -> Ast.feature list -> t
+  val of_ast: Lexicons.t -> Ast.feature list -> t
 
   val to_string: t -> string
 

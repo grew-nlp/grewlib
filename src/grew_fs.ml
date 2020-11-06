@@ -21,11 +21,11 @@ let decode_feat_name s = Str.global_replace (Str.regexp "__\\([0-9a-z]+\\)$") "[
 
 (* ================================================================================ *)
 module Feature_value = struct
-  let build_disj ?loc ?domain name unsorted_values =
-    Domain.build_disj ?loc ?domain name unsorted_values
+  let build_disj ?loc name unsorted_values =
+    Domain.build_disj ?loc name unsorted_values
 
-  let build_value ?loc ?domain name value =
-    match build_disj ?loc ?domain name [value] with
+  let build_value ?loc name value =
+    match build_disj ?loc name [value] with
     | [x] -> x
     | _ -> Error.bug ?loc "[Feature_value.build_value]"
 end (* module Feature_value *)
@@ -48,9 +48,9 @@ module G_feature = struct
     | (None, Some j) -> 1
     | (None, None) -> Stdlib.compare name1 name2
 
-  let build ?domain = function
+  let build = function
     | ({Ast.kind=Ast.Equality [atom]; name=name},loc) ->
-      (name, Feature_value.build_value ~loc ?domain name atom)
+      (name, Feature_value.build_value ~loc name atom)
     | (uf,loc) -> Error.build ~loc "in graph nodes, features must follow the shape \"name = value\" (error on feature: \"%s\")" (Ast.u_feature_to_string uf)
 
   let to_string (feat_name, feat_val) = sprintf "%s=%s" feat_name (string_of_value feat_val)
@@ -104,7 +104,7 @@ module P_feature = struct
 
     printf "%!"
 
-  let to_json_python ?domain (feature_name, p_feature_value) =
+  let to_json_python (feature_name, p_feature_value) =
     `Assoc [
       ("feature_name", `String feature_name);
       ( match p_feature_value with
@@ -150,14 +150,13 @@ module P_feature = struct
     | (feat_name, Different_lex (lex,fn)) -> sprintf "%s<>%s.%s" feat_name lex fn
     | (feat_name, Else (fv1,fn2,fv2)) -> sprintf "%s=%s/%s=%s" feat_name (string_of_value fv1) fn2 (string_of_value fv2)
 
-  let build ?domain lexicons = function
+  let build lexicons = function
     | ({Ast.kind=Ast.Absent; name=name}, loc) ->
-      Domain.check_feature_name ~loc ?domain name;
       (name, Absent)
     | ({Ast.kind=Ast.Equality unsorted_values; name=name}, loc) ->
-      let values = Feature_value.build_disj ~loc ?domain name unsorted_values in (name, Equal values)
+      let values = Feature_value.build_disj ~loc name unsorted_values in (name, Equal values)
     | ({Ast.kind=Ast.Disequality unsorted_values; name=name}, loc) ->
-      let values = Feature_value.build_disj ~loc ?domain name unsorted_values in (name, Different values)
+      let values = Feature_value.build_disj ~loc name unsorted_values in (name, Different values)
     | ({Ast.kind=Ast.Equal_lex (lex,fn); name=name}, loc) ->
       Lexicons.check ~loc lex fn lexicons;
       (name, Equal_lex (lex,fn) )
@@ -165,8 +164,8 @@ module P_feature = struct
       Lexicons.check ~loc lex fn lexicons;
       (name, Different_lex (lex,fn) )
     | ({Ast.kind=Ast.Else (fv1,fn2,fv2); name=name}, loc) ->
-      let v1 = match Feature_value.build_disj ~loc ?domain name [fv1] with [one] -> one | _ -> failwith "BUG Else" in
-      let v2 = match Feature_value.build_disj ~loc ?domain name [fv2] with [one] -> one | _ -> failwith "BUG Else" in
+      let v1 = match Feature_value.build_disj ~loc name [fv1] with [one] -> one | _ -> failwith "BUG Else" in
+      let v2 = match Feature_value.build_disj ~loc name [fv2] with [one] -> one | _ -> failwith "BUG Else" in
       (name, Else (v1,fn2,v2))
 end (* module P_feature *)
 
@@ -182,7 +181,7 @@ module G_fs = struct
   let get_features t = List.fold_left (fun acc (feat_name,_) -> String_set.add feat_name acc) String_set.empty t
 
   (* ---------------------------------------------------------------------- *)
-  let set_value ?loc ?domain feature_name value t =
+  let set_value ?loc feature_name value t =
     let rec loop = function
       | [] -> [(feature_name, value)]
       | ((fn,_)::_) as t when feature_name < fn -> (feature_name, value)::t
@@ -191,9 +190,9 @@ module G_fs = struct
     in loop t
 
   (* ---------------------------------------------------------------------- *)
-  let set_atom ?loc ?domain feature_name atom t =
-    let value = Feature_value.build_value ?loc ?domain feature_name atom in
-    set_value ?loc ?domain feature_name value t
+  let set_atom ?loc feature_name atom t =
+    let value = Feature_value.build_value ?loc feature_name atom in
+    set_value ?loc feature_name value t
 
   (* ---------------------------------------------------------------------- *)
   let del_feat_opt = List_.sort_remove_assoc_opt
@@ -211,8 +210,8 @@ module G_fs = struct
   let to_json t = List.map G_feature.to_json t
 
   (* ---------------------------------------------------------------------- *)
-  let of_ast ?domain ast_fs =
-    let unsorted = List.map (fun feat -> G_feature.build ?domain feat) ast_fs in
+  let of_ast ast_fs =
+    let unsorted = List.map (fun feat -> G_feature.build feat) ast_fs in
     List.sort G_feature.compare unsorted
 
   (* ---------------------------------------------------------------------- *)
@@ -221,8 +220,8 @@ module G_fs = struct
     List.sort G_feature.compare unsorted
 
   (* ---------------------------------------------------------------------- *)
-  let pst_leaf ?loc ?domain form = [("form", Feature_value.build_value ?loc ?domain "form" form)]
-  let pst_node ?loc ?domain upos = [("upos", Feature_value.build_value ?loc ?domain "upos" upos)]
+  let pst_leaf ?loc form = [("form", Feature_value.build_value ?loc "form" form)]
+  let pst_node ?loc upos = [("upos", Feature_value.build_value ?loc "upos" upos)]
 
   (* ---------------------------------------------------------------------- *)
   let concat_values ?loc separator v1 v2 =
@@ -391,10 +390,10 @@ module P_fs = struct
 
   let empty = []
 
-  let to_json_python ?domain t = `List (List.map (P_feature.to_json_python ?domain) t)
+  let to_json_python t = `List (List.map (P_feature.to_json_python) t)
 
-  let of_ast ?domain lexicons ast_fs =
-    let unsorted = List.map (P_feature.build lexicons ?domain) ast_fs in
+  let of_ast lexicons ast_fs =
+    let unsorted = List.map (P_feature.build lexicons) ast_fs in
     List.sort P_feature.compare unsorted
 
   let feat_list t =

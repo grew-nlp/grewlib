@@ -16,7 +16,6 @@ open Grew_base
 open Grew_types
 open Grew_ast
 
-
 (* ================================================================================ *)
 module G_edge = struct
   (* [G_edge.fs] is a feature structure. The list of feature names must be ordered wrt [Stdlib.compare] *)

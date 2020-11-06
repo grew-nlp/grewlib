@@ -171,7 +171,7 @@ module Pattern = struct
       `Assoc ["filter",
               `Assoc [
                 ("id", `String (Pid.to_string pid));
-                ("fs", P_fs.to_json_python ?domain p_fs);
+                ("fs", P_fs.to_json_python p_fs);
               ]
              ]
     | Node_large_prec (pid1, pid2) ->

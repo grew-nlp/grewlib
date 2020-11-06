@@ -13,7 +13,6 @@ open Conllx
 
 open Grew_base
 open Grew_types
-open Grew_domain
 open Grew_fs
 open Grew_edge
 open Grew_ast
@@ -46,12 +45,12 @@ module G_node: sig
 
   val is_eud_empty: t -> bool
 
-  val dump: ?domain:Domain.t -> config:Conllx_config.t -> t -> string
+  val dump: config:Conllx_config.t -> t -> string
   val to_gr: t -> string
 
-  val of_ast: ?domain:Domain.t -> ?position:int -> Ast.node -> t
-  val build_pst_leaf: ?loc:Loc.t -> ?domain:Domain.t -> string -> t
-  val build_pst_node: ?loc:Loc.t -> ?domain:Domain.t -> string -> t
+  val of_ast: ?position:int -> Ast.node -> t
+  val build_pst_leaf: ?loc:Loc.t -> string -> t
+  val build_pst_node: ?loc:Loc.t -> string -> t
 
 
   val remove_edge_opt: Gid.t -> G_edge.t -> t -> t option
@@ -84,9 +83,9 @@ module P_node: sig
 
   val get_next: t -> P_edge.t Massoc_pid.t
 
-  val of_ast: ?domain:Domain.t -> Lexicons.t -> Ast.node -> (Id.name * t)
+  val of_ast: Lexicons.t -> Ast.node -> (Id.name * t)
 
-  val to_json_python: ?domain:Domain.t -> config:Conllx_config.t -> t -> Yojson.Basic.t
+  val to_json_python: config:Conllx_config.t -> t -> Yojson.Basic.t
 
   (** [unif_fs fs t] replaces the feature structure of the node
       by the unification of [t.fs] and [fs].
