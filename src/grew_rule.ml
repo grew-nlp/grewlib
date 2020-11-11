@@ -267,12 +267,11 @@ module Pattern = struct
 
   (* It may raise [P_fs.Fail_unif] in case of contradiction on constraints *)
   let build_neg_basic ~config lexicons pos_table edge_ids basic_ast =
-    let (extension, neg_table, edge_ids) =
-      P_graph.of_ast_extension ~config lexicons pos_table edge_ids basic_ast.Ast.pat_nodes basic_ast.Ast.pat_edges in
+    let (graph, filter_map, neg_table, edge_ids) = P_graph.of_ast_extension ~config lexicons pos_table edge_ids basic_ast.Ast.pat_nodes basic_ast.Ast.pat_edges in
 
-    let filters = Pid_map.fold (fun id node acc -> Filter (id, P_node.get_fs node) :: acc) extension.P_graph.old_map [] in
+    let filters = Pid_map.fold (fun id p_fs acc -> Filter (id, p_fs) :: acc) filter_map [] in
     {
-      graph = extension.P_graph.ext_map;
+      graph;
       constraints = filters @ List.map (build_constraint ~config lexicons pos_table neg_table edge_ids) basic_ast.Ast.pat_const ;
     }
 
@@ -294,15 +293,14 @@ module Pattern = struct
   let pid_name_list pattern = P_graph.pid_name_list pattern.pos.graph
 
   let of_ast ~config ?(lexicons=[]) pattern_ast =
-    let n_pattern = Ast.normalize_pattern pattern_ast in
     let (pos, pos_table, edge_ids) =
-      try build_pos_basic ~config lexicons n_pattern.Ast.pat_pos
+      try build_pos_basic ~config lexicons pattern_ast.Ast.pat_pos
       with P_fs.Fail_unif -> Error.build "feature structures declared in the \"match\" clause are inconsistent " in
     let negs =
       List_.try_map
         P_fs.Fail_unif (* Skip the without parts that are incompatible with the match part *)
         (fun basic_ast -> build_neg_basic ~config lexicons pos_table edge_ids basic_ast)
-        n_pattern.Ast.pat_negs in
+        pattern_ast.Ast.pat_negs in
     { pos; negs; global=pattern_ast.pat_glob; }
 
 
@@ -1015,9 +1013,8 @@ module Rule = struct
           with Not_found -> (name, Lexicon.of_ast ~loc:rule_ast.Ast.rule_loc lex) :: acc
         ) [] rule_ast.Ast.lexicon_info in
 
-    let pattern = Ast.normalize_pattern rule_ast.Ast.pattern in
     let (pos, pos_table, edge_ids) =
-      try Pattern.build_pos_basic ~config lexicons pattern.Ast.pat_pos
+      try Pattern.build_pos_basic ~config lexicons rule_ast.Ast.pattern.Ast.pat_pos
       with P_fs.Fail_unif ->
         Error.build ~loc:rule_ast.Ast.rule_loc
           "[Rule.build] in rule \"%s\": feature structures declared in the \"match\" clause are inconsistent"
@@ -1030,10 +1027,10 @@ module Rule = struct
              Error.warning ~loc:rule_ast.Ast.rule_loc "In rule \"%s\", the wihtout number %d cannot be satisfied, it is skipped"
                rule_ast.Ast.rule_id pos;
              (acc, pos+1)
-        ) ([],1) pattern.Ast.pat_negs in
+        ) ([],1) rule_ast.Ast.pattern.Ast.pat_negs in
     {
       name = rule_ast.Ast.rule_id;
-      pattern = { pos; negs; global=pattern.Ast.pat_glob; };
+      pattern = { pos; negs; global=rule_ast.Ast.pattern.Ast.pat_glob; };
       commands = commands_of_ast ~config lexicons pos pos_table rule_ast.Ast.commands;
       loc = rule_ast.Ast.rule_loc;
       lexicons;

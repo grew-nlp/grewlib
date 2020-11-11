@@ -34,11 +34,6 @@ module P_graph: sig
 
   val pid_name_list: t -> Id.name list
 
-  type extension = {
-    ext_map: P_node.t Pid_map.t; (* node description for new nodes and for edge "Old -> New"  *)
-    old_map: P_node.t Pid_map.t; (* a partial map for new constraints on old nodes "Old [...]" *)
-  }
-
   (** [P_fs.Fail_unif] exception is raised in case of inconsistent feature structures. *)
   val of_ast:
     config:Conllx_config.t ->
@@ -54,7 +49,17 @@ module P_graph: sig
     string list ->
     Ast.node list ->
     Ast.edge list ->
-    (extension * Id.table * string list)
+    (
+      (* description for new nodes and for all edges (Old -> New, Old -> Old or New -> New)
+         Old nodes used as source in a edges (Old -> New, Old -> Old2) are also defined in this maps *)
+      t *
+      (* encoding of N[…] when N is already defined in core pattern: just consider the new fs as a filter *)
+      P_fs.t Pid_map.t *
+      (* table of indentifier for nodes specific to the extension *)
+      Id.table *
+      (* full set of edge identifier *)
+      string list
+    )
 end (* module P_graph *)
 
 (* ================================================================================ *)

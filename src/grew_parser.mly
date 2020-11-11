@@ -822,7 +822,7 @@ pattern:
           | Global i -> i @ acc
           | _ -> acc
           ) [] l in
-      Ast.complete_pattern {
+      Ast.complete_and_check_pattern {
           Ast.pat_glob = glob;
           Ast.pat_pos = pos;
           Ast.pat_negs = negs;

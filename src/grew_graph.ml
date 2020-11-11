@@ -42,10 +42,11 @@ module P_graph = struct
     )
 
   (* -------------------------------------------------------------------------------- *)
-  let map_add_edge src_pid label tar_pid map =
+  let map_add_edge_opt src_pid label tar_pid map =
     let src_node =
-      (* Not found can be raised when adding an edge from pos to neg *)
-      try Pid_map.find src_pid map with Not_found -> P_node.empty in
+      match Pid_map.find_opt src_pid map with
+      | None -> P_node.empty (* adding an edge from pos to neg *)
+      | Some p_node -> p_node in
     match P_node.add_edge_opt label tar_pid src_node with
     | None -> None
     | Some new_node -> Some (Pid_map.add src_pid new_node map)
@@ -77,7 +78,7 @@ module P_graph = struct
         end
       | head :: tail -> head :: (insert (ast_node, loc) tail) in
 
-    let (named_nodes : (Id.name * P_node.t) list) =
+    let named_nodes =
       List.fold_left
         (fun acc ast_node -> insert ast_node acc)
         [] full_node_list in
@@ -93,41 +94,36 @@ module P_graph = struct
         (fun i acc elt -> Pid_map.add (Pid.Pos i) elt acc)
         Pid_map.empty node_list in
 
-    let (map,edge_ids : t * string list) =
+    let (map,edge_ids) =
       List.fold_left
         (fun (acc_map,acc_edge_ids) (ast_edge, loc) ->
-           let i1 = Id.build ~loc ast_edge.Ast.src pos_table in
-           let i2 = Id.build ~loc ast_edge.Ast.tar pos_table in
+           let src_pid = Pid.Pos (Id.build ~loc ast_edge.Ast.src pos_table) in
+           let tar_pid = Pid.Pos (Id.build ~loc ast_edge.Ast.tar pos_table) in
            match ast_edge.Ast.edge_label_cst with
-           | Ast.Pred -> (* when a Pred is declared, add two edges pred & succ *)
-             (match map_add_edge (Pid.Pos i1) P_edge.succ (Pid.Pos i2) acc_map with
-              | Some acc2 -> (match map_add_edge (Pid.Pos i2) P_edge.pred (Pid.Pos i1) acc_map with
-                  | Some m -> (m, acc_edge_ids)
-                  | None -> Error.build ~loc "[P_graph.build] try to build a graph with twice the order edge"
-                )
-              | None -> Error.build ~loc "[P_graph.build] try to build a graph with twice the order edge"
-             )
+           | Ast.Pred -> (* X < Y *)
+             begin
+               match map_add_edge_opt src_pid P_edge.succ tar_pid acc_map with
+               | None -> Error.build ~loc "[P_graph.build] try to build a graph with twice the order edge"
+               | Some acc2 ->
+                 begin
+                   match map_add_edge_opt tar_pid P_edge.pred src_pid acc2 with
+                   | None -> Error.build ~loc "[P_graph.build] try to build a graph with twice the order edge"
+                   | Some m -> (m, acc_edge_ids)
+                 end
+             end
            | _ ->
              let edge = P_edge.of_ast ~config (ast_edge, loc) in
-             (match map_add_edge (Pid.Pos i1) edge (Pid.Pos i2) acc_map with
-              | Some m -> (m, match ast_edge.Ast.edge_id with Some id -> id::acc_edge_ids | None -> acc_edge_ids)
-              | None -> Error.build ~loc "[P_graph.build] try to build a graph with twice the same edge %s"
-                          (P_edge.to_string ~config edge)
-             )
+             begin
+               match map_add_edge_opt src_pid edge tar_pid acc_map with
+               | Some m -> (m, match ast_edge.Ast.edge_id with Some id -> id::acc_edge_ids | None -> acc_edge_ids)
+               | None -> Error.build ~loc "[P_graph.build] try to build a graph with twice the same edge %s" (P_edge.to_string ~config edge)
+             end
         ) (map_without_edges,[]) full_edge_list in
 
     (map, pos_table, edge_ids)
 
-
   (* -------------------------------------------------------------------------------- *)
-  (* a type for extension of graph (a former graph exists):
-     in grew the former is a positive basic and an extension is a negative basic ("without") *)
-  type extension = {
-    ext_map: t; (* node description for new nodes and for edge "Old -> New"  *)
-    old_map: t; (* a partial map for new constraints on old nodes "Old [...]" *)
-  }
 
-  (* -------------------------------------------------------------------------------- *)
   (* It may raise [P_fs.Fail_unif] in case of contradiction on constraints *)
   let of_ast_extension ~config lexicons pos_table edge_ids full_node_list full_edge_list =
 
@@ -152,14 +148,15 @@ module P_graph = struct
         Pid_map.empty
         new_node_list in
 
-    let old_map_without_edges =
+    (* let old_map_without_edges = *)
+    let filter_on_old_edges =
       List.fold_left
         (fun acc (id,node) ->
            let pid_pos = Pid.Pos (Array_.dicho_find id pos_table) in
-           try
-             let old = Pid_map.find pid_pos acc in
-             Pid_map.add pid_pos (P_node.unif_fs (P_node.get_fs node) old) acc
-           with Not_found -> Pid_map.add pid_pos node acc
+           let p_fs = P_node.get_fs node in
+           match Pid_map.find_opt pid_pos acc with
+           | None -> Pid_map.add pid_pos p_fs acc
+           | Some old_p_fs -> Pid_map.add pid_pos (P_fs.unif old_p_fs p_fs) acc
         ) Pid_map.empty old_nodes in
 
     let (ext_map_with_all_edges, new_edge_ids) =
@@ -167,19 +164,19 @@ module P_graph = struct
         (fun (acc_map, acc_edge_ids) (ast_edge, loc) ->
            let src = ast_edge.Ast.src
            and tar = ast_edge.Ast.tar in
-           let i1 =
+           let src_pid =
              match Id.build_opt src pos_table with
              | Some i -> Pid.Pos i
              | None -> Pid.Neg (Id.build ~loc src new_table) in
-           let i2 =
+           let tar_pid =
              match Id.build_opt tar pos_table with
              | Some i -> Pid.Pos i
              | None -> Pid.Neg (Id.build ~loc tar new_table) in
 
            match ast_edge.Ast.edge_label_cst with
            | Ast.Pred ->
-             (match map_add_edge i1 P_edge.succ i2 acc_map with
-              | Some acc2 -> (match map_add_edge i2 P_edge.pred i1 acc_map with
+             (match map_add_edge_opt src_pid P_edge.succ tar_pid acc_map with
+              | Some acc2 -> (match map_add_edge_opt tar_pid P_edge.pred src_pid acc_map with
                   | Some m -> (m, acc_edge_ids)
                   | None -> Error.build ~loc "[P_graph.build_extension] try to build a graph with twice the order edge"
                 )
@@ -187,16 +184,17 @@ module P_graph = struct
              )
            | _ ->
              let edge = P_edge.of_ast ~config (ast_edge, loc) in
-             (match map_add_edge i1 edge i2 acc_map with
+             (match map_add_edge_opt src_pid edge tar_pid acc_map with
               | Some m -> (m, match ast_edge.Ast.edge_id with Some id -> id::acc_edge_ids | None -> acc_edge_ids)
               | None -> Error.build ~loc "[P_graph.build_extension] try to build a graph with twice the same edge %s"
                           (P_edge.to_string ~config edge)
              )
         ) (ext_map_without_edges, edge_ids) full_edge_list in
-    ({ext_map = ext_map_with_all_edges; old_map = old_map_without_edges}, new_table, new_edge_ids)
 
+    (ext_map_with_all_edges, filter_on_old_edges, new_table, new_edge_ids)
 
   (* -------------------------------------------------------------------------------- *)
+
   (* return the list of [pid] of nodes without in edges (Pred & Succ are taken into account) *)
   let roots (p_graph: t) =
     let not_root_set =

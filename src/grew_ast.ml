@@ -253,19 +253,16 @@ module Ast = struct
     pat_negs: basic list;
   }
 
-  let check_duplicate_edge_identifier basic =
+  let check_dup_edge_in_pattern pattern =
     let ids = List_.opt_map
         (function ({edge_id= Some e},loc) -> Some (e, loc) | _ -> None)
-        basic.pat_edges in
+        pattern.pat_pos.pat_edges in
     let rec loop = function
       | [] -> ()
       | (x,loc)::t when List.exists (fun (y,_) -> x=y) t ->
         Error.build ~loc "The identifier '%s' is used twice" x
       | _::t -> loop t in
     loop ids
-
-  let normalize_pattern pattern =
-    check_duplicate_edge_identifier pattern.pat_pos; pattern
 
   let add_implicit_node loc aux name pat_nodes =
     if (List.exists (fun ({node_id},_) -> node_id=name) pat_nodes)
@@ -285,7 +282,8 @@ module Ast = struct
         ) basic.pat_nodes basic.pat_edges in
     {basic with pat_nodes=new_pat_nodes}
 
-  let complete_pattern pattern =
+  let complete_and_check_pattern pattern =
+    check_dup_edge_in_pattern pattern;
     let new_pat_pos = complete_basic [] pattern.pat_pos in
     let aux = new_pat_pos.pat_nodes in
     let new_pat_negs = List.map (complete_basic aux) pattern.pat_negs in

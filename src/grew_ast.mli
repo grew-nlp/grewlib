@@ -159,11 +159,8 @@ module Ast : sig
     pat_negs: basic list;
   }
 
-  (* [check for duplicate edge identifier in pos part and
-     remove edge identifier in neg part] *)
-  val normalize_pattern : pattern -> pattern
-
-  val complete_pattern : pattern -> pattern
+  (* [complete with implicit nodes and check for duplicate edge identifier in pos part] *)
+  val complete_and_check_pattern : pattern -> pattern
 
   type concat_item =
     | Qfn_or_lex_item of (string * string)

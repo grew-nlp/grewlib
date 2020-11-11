@@ -181,8 +181,8 @@ module P_node = struct
 
   let unif_fs fs t = { t with fs = P_fs.unif fs t.fs }
 
-  let add_edge_opt p_edge pid_tar t =
-    match Massoc_pid.add_opt pid_tar p_edge t.next with
+  let add_edge_opt p_edge tar_pid t =
+    match Massoc_pid.add_opt tar_pid p_edge t.next with
     | Some l -> Some {t with next = l}
     | None -> None
 
