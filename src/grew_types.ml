@@ -18,17 +18,17 @@ open Grew_ast
 (* ================================================================================ *)
 module Pid = struct
   (* type t = int *)
-  type t = Pos of int | Neg of int
+  type t = Ker of int | Ext of int
 
   let compare = Stdlib.compare
 
   let to_id = function
-    | Pos i -> sprintf "p_%d" i
-    | Neg i -> sprintf "n_%d" i
+    | Ker i -> sprintf "p_%d" i
+    | Ext i -> sprintf "n_%d" i
 
   let to_string = function
-    | Pos i -> sprintf "Pos %d" i
-    | Neg i -> sprintf "Neg %d" i
+    | Ker i -> sprintf "Ker %d" i
+    | Ext i -> sprintf "Ext %d" i
 end (* module Pid *)
 
 (* ================================================================================ *)

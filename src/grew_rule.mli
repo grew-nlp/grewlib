@@ -45,8 +45,8 @@ module Matching : sig
 
   (* [get_string_value_opt request pattern graph matching] returns the value corresponding to the request in the result of a previou result of match
      [request] can be:
-    * the name of a feature value [N.feat] where [N] is a node declared in the positive part of the pattern
-    * the name of an edge featue [E.feat] where [e] is a edge declared in the positive part of the pattern
+    * the name of a feature value [N.feat] where [N] is a node declared in the kernel part of the pattern
+    * the name of an edge featue [E.feat] where [e] is a edge declared in the kernel part of the pattern
     * one of the pseudo features [e.label], [e.length] or [e.delta]
   *)
   val get_string_value_opt: config:Conllx.Conllx_config.t -> string -> Pattern.t -> G_graph.t -> t -> string option

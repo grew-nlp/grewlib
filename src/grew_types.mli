@@ -14,7 +14,7 @@ open Grew_ast
 (* ================================================================================ *)
 (* [Pid] describes identifier used in pattern graphs *)
 module Pid : sig
-  type t = Pos of int | Neg of int
+  type t = Ker of int | Ext of int
   val compare: t -> t -> int
   val to_id: t -> string
   val to_string: t -> string

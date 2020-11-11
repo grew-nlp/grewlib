@@ -197,7 +197,7 @@ module Command  = struct
 
     let cn_of_node_id node_id =
       match Id.build_opt node_id table with
-      | Some x -> Pat (Pid.Pos x)
+      | Some x -> Pat (Pid.Ker x)
       | None   -> New node_id in
 
     let check_node_id_msg loc msg node_id kni =

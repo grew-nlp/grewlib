@@ -45,7 +45,7 @@ module P_graph = struct
   let map_add_edge_opt src_pid label tar_pid map =
     let src_node =
       match Pid_map.find_opt src_pid map with
-      | None -> P_node.empty (* adding an edge from pos to neg *)
+      | None -> P_node.empty (* adding an edge from ker to ext *)
       | Some p_node -> p_node in
     match P_node.add_edge_opt label tar_pid src_node with
     | None -> None
@@ -86,19 +86,19 @@ module P_graph = struct
     let sorted_nodes = List.sort (fun (id1,_) (id2,_) -> Stdlib.compare id1 id2) named_nodes in
     let (sorted_ids, node_list) = List.split sorted_nodes in
 
-    (* [pos_table] contains the sorted list of node ids *)
-    let pos_table = Array.of_list sorted_ids in
+    (* [ker_table] contains the sorted list of node ids *)
+    let ker_table = Array.of_list sorted_ids in
 
     (* the nodes, in the same order *)
     let map_without_edges = List_.foldi_left
-        (fun i acc elt -> Pid_map.add (Pid.Pos i) elt acc)
+        (fun i acc elt -> Pid_map.add (Pid.Ker i) elt acc)
         Pid_map.empty node_list in
 
     let (map,edge_ids) =
       List.fold_left
         (fun (acc_map,acc_edge_ids) (ast_edge, loc) ->
-           let src_pid = Pid.Pos (Id.build ~loc ast_edge.Ast.src pos_table) in
-           let tar_pid = Pid.Pos (Id.build ~loc ast_edge.Ast.tar pos_table) in
+           let src_pid = Pid.Ker (Id.build ~loc ast_edge.Ast.src ker_table) in
+           let tar_pid = Pid.Ker (Id.build ~loc ast_edge.Ast.tar ker_table) in
            match ast_edge.Ast.edge_label_cst with
            | Ast.Pred -> (* X < Y *)
              begin
@@ -120,18 +120,18 @@ module P_graph = struct
              end
         ) (map_without_edges,[]) full_edge_list in
 
-    (map, pos_table, edge_ids)
+    (map, ker_table, edge_ids)
 
   (* -------------------------------------------------------------------------------- *)
 
   (* It may raise [P_fs.Fail_unif] in case of contradiction on constraints *)
-  let of_ast_extension ~config lexicons pos_table edge_ids full_node_list full_edge_list =
+  let of_ast_extension ~config lexicons ker_table edge_ids full_node_list full_edge_list =
 
     let built_nodes = List.map (P_node.of_ast lexicons) full_node_list in
 
     let (old_nodes, new_nodes) =
       List.partition
-        (function (id,_) when Array_.dicho_mem id pos_table -> true | _ -> false)
+        (function (id,_) when Array_.dicho_mem id ker_table -> true | _ -> false)
         built_nodes in
 
     let new_sorted_nodes = List.sort (fun (id1,_) (id2,_) -> Stdlib.compare id1 id2) new_nodes in
@@ -139,12 +139,12 @@ module P_graph = struct
     let (new_sorted_ids, new_node_list) = List.split new_sorted_nodes in
 
     (* table contains the sorted list of node ids *)
-    let new_table = Array.of_list new_sorted_ids in
+    let ext_table = Array.of_list new_sorted_ids in
 
     (* the nodes, in the same order stored with index -1, -2, ... -N TODO check ?? *)
     let ext_map_without_edges =
       List_.foldi_left
-        (fun i acc elt -> Pid_map.add (Pid.Neg i) elt acc)
+        (fun i acc elt -> Pid_map.add (Pid.Ext i) elt acc)
         Pid_map.empty
         new_node_list in
 
@@ -152,11 +152,11 @@ module P_graph = struct
     let filter_on_old_edges =
       List.fold_left
         (fun acc (id,node) ->
-           let pid_pos = Pid.Pos (Array_.dicho_find id pos_table) in
+           let ker_pid = Pid.Ker (Array_.dicho_find id ker_table) in
            let p_fs = P_node.get_fs node in
-           match Pid_map.find_opt pid_pos acc with
-           | None -> Pid_map.add pid_pos p_fs acc
-           | Some old_p_fs -> Pid_map.add pid_pos (P_fs.unif old_p_fs p_fs) acc
+           match Pid_map.find_opt ker_pid acc with
+           | None -> Pid_map.add ker_pid p_fs acc
+           | Some old_p_fs -> Pid_map.add ker_pid (P_fs.unif old_p_fs p_fs) acc
         ) Pid_map.empty old_nodes in
 
     let (ext_map_with_all_edges, new_edge_ids) =
@@ -165,13 +165,13 @@ module P_graph = struct
            let src = ast_edge.Ast.src
            and tar = ast_edge.Ast.tar in
            let src_pid =
-             match Id.build_opt src pos_table with
-             | Some i -> Pid.Pos i
-             | None -> Pid.Neg (Id.build ~loc src new_table) in
+             match Id.build_opt src ker_table with
+             | Some i -> Pid.Ker i
+             | None -> Pid.Ext (Id.build ~loc src ext_table) in
            let tar_pid =
-             match Id.build_opt tar pos_table with
-             | Some i -> Pid.Pos i
-             | None -> Pid.Neg (Id.build ~loc tar new_table) in
+             match Id.build_opt tar ker_table with
+             | Some i -> Pid.Ker i
+             | None -> Pid.Ext (Id.build ~loc tar ext_table) in
 
            match ast_edge.Ast.edge_label_cst with
            | Ast.Pred ->
@@ -191,7 +191,7 @@ module P_graph = struct
              )
         ) (ext_map_without_edges, edge_ids) full_edge_list in
 
-    (ext_map_with_all_edges, filter_on_old_edges, new_table, new_edge_ids)
+    (ext_map_with_all_edges, filter_on_old_edges, ext_table, new_edge_ids)
 
   (* -------------------------------------------------------------------------------- *)
 
@@ -522,16 +522,16 @@ module G_graph = struct
       try json |> member "order" |> to_list |> List.map (fun x ->String_map.find (x |> to_string) table)
       with Type_error _ -> [] in
 
-    let rec loop_order (acc_map, acc_pos) = function
+    let rec loop_order (acc_map, acc_position) = function
       | [] -> acc_map
       | gid::tail ->
         let node = Gid_map.find gid acc_map in
-        let map_with_pos = Gid_map.add gid (G_node.set_position acc_pos node) acc_map in
+        let map_with_position = Gid_map.add gid (G_node.set_position acc_position node) acc_map in
         let map_with_succ_prec =
           match tail with
-          | [] -> map_with_pos
-          | gid_next :: _ -> map_add_pred_succ gid gid_next map_with_pos in
-        loop_order (map_with_succ_prec, acc_pos+1) tail in
+          | [] -> map_with_position
+          | gid_next :: _ -> map_add_pred_succ gid gid_next map_with_position in
+        loop_order (map_with_succ_prec, acc_position+1) tail in
 
     let maps_with_order = loop_order (map_without_edges, 0) order in
 
@@ -649,9 +649,9 @@ module G_graph = struct
       (`Assoc [("id", `String "0"); ("form", `String "__0__")])
       :: List.mapi (
         fun i item -> match Str.full_split re item with
-          | [Str.Text form; Str.Delim pos; Str.Text lemma] ->
-            let pos = String.sub pos 1 ((String.length pos)-2) in
-            `Assoc [("id", `String (string_of_int (i+1))); ("form", `String form); ("xpos", `String pos); ("lemma", `String lemma)]
+          | [Str.Text form; Str.Delim xpos_string; Str.Text lemma] ->
+            let xpos = String.sub xpos_string 1 ((String.length xpos_string)-2) in
+            `Assoc [("id", `String (string_of_int (i+1))); ("form", `String form); ("xpos", `String xpos); ("lemma", `String lemma)]
           | _ -> Error.build "[Graph.of_brown] Cannot parse Brown item >>>%s<<< (expected \"phon/POS/lemma\") in >>>%s<<<" item brown
       ) units in
     let order = List.map (Yojson.Basic.Util.member "id") json_nodes in
@@ -748,7 +748,7 @@ module G_graph = struct
     let last_node = Gid_map.find last_gid graph.map in
     let position = match G_node.get_position_opt last_node with
       | None -> Error.run "[G_node.append] unordered nodes"
-      | Some pos -> pos + 1 in
+      | Some p -> p + 1 in
     let new_gid = graph.highest_index + 1 in
     let new_node = G_node.set_position position G_node.empty in
     let new_map =
@@ -822,7 +822,7 @@ module G_graph = struct
       Some { graph with map = new_map }
 
   (* -------------------------------------------------------------------------------- *)
-  (* move out-edges (which respect cst [labels,neg]) from [src_gid] are moved to out-edges out off node [tar_gid] *)
+  (* move out-edges (which respect [label_csl]) from [src_gid] are moved to out-edges out off node [tar_gid] *)
   let shift_out ~config loc src_gid tar_gid is_gid_local label_cst graph =
     let del_edges = ref [] and add_edges = ref [] in
 
@@ -1274,14 +1274,14 @@ module G_graph = struct
       Gid_map.fold (fun src_gid src_node (acc, acc_map) ->
           match G_node.get_position_opt src_node with
           | None -> (acc, acc_map)
-          | Some src_pos ->
+          | Some src_position ->
             let new_acc = Massoc_gid.fold (fun acc2 tar_gid edge ->
                 let tar_node = find tar_gid t in
                 match G_node.get_position_opt tar_node with
                 | None -> acc2
-                | Some tar_pos -> (min src_pos tar_pos, max src_pos tar_pos) :: acc2
+                | Some tar_position -> (min src_position tar_position, max src_position tar_position) :: acc2
               ) acc (G_node.get_next_without_pred_succ_enhanced src_node) in
-            (new_acc, Int_map.add src_pos src_gid acc_map)
+            (new_acc, Int_map.add src_position src_gid acc_map)
         ) t.map ([], Int_map.empty) in
     Dependencies.is_projective arc_positions
 

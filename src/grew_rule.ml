@@ -34,7 +34,7 @@ module Pattern = struct
 
   let min_max x y = if x < y then (x,y) else (y,x)
 
-  let build_relative_postion l1 r1 l2 r2 =
+  let build_relative_position l1 r1 l2 r2 =
     if r1 <= l2 || r2 <= l1
     then Disjoint
     else if l1 <= l2 && r2 <= r1
@@ -53,7 +53,7 @@ module Pattern = struct
     | (Some pos_src1, Some pos_tar1, Some pos_src2, Some pos_tar2) ->
       let (l1, r1) = min_max pos_src1 pos_tar1 in
       let (l2, r2) = min_max pos_src2 pos_tar2 in
-      build_relative_postion l1 r1 l2 r2 = erp
+      build_relative_position l1 r1 l2 r2 = erp
     (* |> (fun b -> printf "### %s e1 = [%d, %d]    e2 = [%d, %d] --> %b\n%!"
            (Yojson.Basic.to_string (json_of_edge_relative_position erp)) l1 r1 l2 r2 b; b) *)
     | _ -> false
@@ -91,7 +91,7 @@ module Pattern = struct
     (*   e1.level < 3   *)
     | Feature_ineq_cst of Ast.ineq * base * string * float
     (*   N [upos=VERB]   *)
-    (* ⚠ used only when a without impose a fs on a node also defined by the positive pattern part *)
+    (* ⚠ used only when a extension imposes a fs on a node also defined by the kernel pattern part *)
     | Filter of Pid.t * P_fs.t
     (*   N << M   *)
     | Node_large_prec of Pid.t * Pid.t
@@ -190,18 +190,18 @@ module Pattern = struct
              ]
     | Covered (pid1, eid2) -> `Assoc ["covered",`Assoc [("id1", `String (Pid.to_string pid1)); ("id2", `String eid2)]]
 
-  let build_constraint ~config lexicons pos_table neg_table edge_ids const =
-    let parse_id loc id = match (Id.build_opt id pos_table, Id.build_opt id neg_table) with
-      | (Some pid,_) -> Node_id (Pid.Pos pid)
-      | (None, Some pid) -> Node_id (Pid.Neg pid)
+  let build_constraint ~config lexicons ker_table ext_table edge_ids const =
+    let parse_id loc id = match (Id.build_opt id ker_table, Id.build_opt id ext_table) with
+      | (Some pid,_) -> Node_id (Pid.Ker pid)
+      | (None, Some pid) -> Node_id (Pid.Ext pid)
       | (None, None) when List.mem id edge_ids -> Edge_id id
       | (None, None) when List.mem_assoc id lexicons -> Lexicon_id id
       | _ -> Error.build ~loc "[Pattern.build_constraint] Identifier '%s' not found" id in
 
     let pid_of_name loc node_name =
-      match Id.build_opt node_name pos_table with
-      | Some i -> Pid.Pos i
-      | None -> Pid.Neg (Id.build ~loc node_name neg_table) in
+      match Id.build_opt node_name ker_table with
+      | Some i -> Pid.Ker i
+      | None -> Pid.Ext (Id.build ~loc node_name ext_table) in
     match const with
     | (Ast.Cst_out (id,label_cst), loc) ->
       Cst_out (pid_of_name loc id, Label_cst.of_ast ~loc ~config label_cst)
@@ -253,26 +253,26 @@ module Pattern = struct
       ("constraints", `List (List.map (const_to_json ~config) basic.constraints));
     ]
 
-  let build_pos_basic ~config lexicons basic_ast =
-    let (graph, pos_table, edge_ids) =
+  let build_ker_basic ~config lexicons basic_ast =
+    let (graph, ker_table, edge_ids) =
       P_graph.of_ast ~config lexicons basic_ast in
     (
       {
         graph = graph;
-        constraints = List.map (build_constraint ~config lexicons pos_table [||] edge_ids) basic_ast.Ast.pat_const
+        constraints = List.map (build_constraint ~config lexicons ker_table [||] edge_ids) basic_ast.Ast.pat_const
       },
-      pos_table,
+      ker_table,
       edge_ids
     )
 
   (* It may raise [P_fs.Fail_unif] in case of contradiction on constraints *)
-  let build_neg_basic ~config lexicons pos_table edge_ids basic_ast =
-    let (graph, filter_map, neg_table, edge_ids) = P_graph.of_ast_extension ~config lexicons pos_table edge_ids basic_ast.Ast.pat_nodes basic_ast.Ast.pat_edges in
+  let build_ext_basic ~config lexicons ker_table edge_ids basic_ast =
+    let (graph, filter_map, ext_table, edge_ids) = P_graph.of_ast_extension ~config lexicons ker_table edge_ids basic_ast.Ast.pat_nodes basic_ast.Ast.pat_edges in
 
     let filters = Pid_map.fold (fun id p_fs acc -> Filter (id, p_fs) :: acc) filter_map [] in
     {
       graph;
-      constraints = filters @ List.map (build_constraint ~config lexicons pos_table neg_table edge_ids) basic_ast.Ast.pat_const ;
+      constraints = filters @ List.map (build_constraint ~config lexicons ker_table ext_table edge_ids) basic_ast.Ast.pat_const ;
     }
 
   let get_edge_ids basic =
@@ -283,25 +283,25 @@ module Pattern = struct
            acc (P_node.get_next node)
       ) basic.graph []
 
-  (* a [pattern] is described by the positive basic and a list of negative basics. *)
+  (* a [pattern] is described by the kernel basic and a list of extention basics. *)
   type t = {
     global: Ast.glob list;
-    pos: basic;
-    negs: basic list;
+    ker: basic;
+    exts: (basic * bool) list;
   }
 
-  let pid_name_list pattern = P_graph.pid_name_list pattern.pos.graph
+  let pid_name_list pattern = P_graph.pid_name_list pattern.ker.graph
 
   let of_ast ~config ?(lexicons=[]) pattern_ast =
-    let (pos, pos_table, edge_ids) =
-      try build_pos_basic ~config lexicons pattern_ast.Ast.pat_pos
+    let (ker, ker_table, edge_ids) =
+      try build_ker_basic ~config lexicons pattern_ast.Ast.pat_pos
       with P_fs.Fail_unif -> Error.build "feature structures declared in the \"match\" clause are inconsistent " in
-    let negs =
+    let exts =
       List_.try_map
         P_fs.Fail_unif (* Skip the without parts that are incompatible with the match part *)
-        (fun basic_ast -> build_neg_basic ~config lexicons pos_table edge_ids basic_ast)
+        (fun basic_ast -> (build_ext_basic ~config lexicons ker_table edge_ids basic_ast, false))
         pattern_ast.Ast.pat_negs in
-    { pos; negs; global=pattern_ast.pat_glob; }
+    { ker; exts; global=pattern_ast.pat_glob; }
 
 
 end (* module Pattern *)
@@ -324,7 +324,7 @@ module Matching = struct
   let to_json ?(all_edges=false) pattern graph m =
     let node_name gid = G_node.get_name gid (G_graph.find gid graph) in
     let nodes = Pid_map.fold (fun pid gid acc ->
-        let pnode = P_graph.find pid pattern.Pattern.pos.graph in
+        let pnode = P_graph.find pid pattern.Pattern.ker.graph in
         (P_node.get_name pnode, `String (node_name gid))::acc
       ) m.n_match [] in
     let edges = String_map.fold (fun id (src,lab,tar) acc ->
@@ -344,7 +344,7 @@ module Matching = struct
   let node_matching pattern graph { n_match } =
     Pid_map.fold
       (fun pid gid acc ->
-         let pnode = P_graph.find pid pattern.Pattern.pos.graph in
+         let pnode = P_graph.find pid pattern.Pattern.ker.graph in
          let gnode = G_graph.find gid graph in
          (P_node.get_name pnode, G_node.get_name gid gnode) :: acc
       ) n_match []
@@ -354,7 +354,7 @@ module Matching = struct
     try
       Pid_map.iter
         (fun pid _ ->
-           if P_node.get_name (P_graph.find pid pattern.Pattern.pos.graph) = name
+           if P_node.get_name (P_graph.find pid pattern.Pattern.ker.graph) = name
            then raise (Found pid)
         ) n_match;
       None
@@ -403,7 +403,7 @@ module Matching = struct
     { G_deco.nodes =
         Pid_map.fold
           (fun pid gid acc ->
-             let pnode = P_graph.find pid pattern.Pattern.pos.graph in
+             let pnode = P_graph.find pid pattern.Pattern.ker.graph in
              let pattern_feat_list = P_fs.feat_list (P_node.get_fs pnode) in
              (gid, (P_node.get_name pnode, pattern_feat_list)) :: acc
           ) matching.n_match [];
@@ -644,7 +644,7 @@ module Matching = struct
 
   (*  ---------------------------------------------------------------------- *)
   (* returns all extension of the partial input matching *)
-  let rec extend_matching ~config (positive,neg) (graph:G_graph.t) (partial:partial) =
+  let rec extend_matching ~config (ker,ext) (graph:G_graph.t) (partial:partial) =
     match (partial.unmatched_edges, partial.unmatched_nodes) with
     | [], [] ->
       begin
@@ -675,7 +675,7 @@ module Matching = struct
                 (fun label ->
                    {partial with sub = e_match_add id (src_gid,label,tar_gid) partial.sub; unmatched_edges = tail_ue }
                 ) labels
-          in List_.flat_map (extend_matching ~config (positive,neg) graph) new_partials
+          in List_.flat_map (extend_matching ~config (ker,ext) graph) new_partials
         with Not_found -> (* p_edge goes to an unmatched node *)
           let candidates = (* candidates (of type (gid, matching)) for m(tar_pid) = gid) with new partial matching m *)
             let (src_gid : Gid.t) = Pid_map.find src_pid partial.sub.n_match in
@@ -692,25 +692,25 @@ module Matching = struct
               ) [] (G_node.get_next src_gnode) in
           List_.flat_map
             (fun (gid_next, matching) ->
-               extend_matching_from ~config (positive,neg) graph tar_pid gid_next
+               extend_matching_from ~config (ker,ext) graph tar_pid gid_next
                  {partial with sub=matching; unmatched_edges = tail_ue}
             ) candidates
       end
     | [], pid :: _ ->
       G_graph.fold_gid
         (fun gid acc ->
-           (extend_matching_from ~config (positive,neg) graph pid gid partial) @ acc
+           (extend_matching_from ~config (ker,ext) graph pid gid partial) @ acc
         ) graph []
 
   (*  ---------------------------------------------------------------------- *)
-  and extend_matching_from ~config (positive,neg) (graph:G_graph.t) pid (gid : Gid.t) partial =
+  and extend_matching_from ~config (ker,ext) (graph:G_graph.t) pid (gid : Gid.t) partial =
     if List.mem gid partial.already_matched_gids
     then [] (* the required association pid -> gid is not injective *)
     else
       let p_node =
-        try P_graph.find pid positive
+        try P_graph.find pid ker
         with Not_found ->
-        try P_graph.find pid neg
+        try P_graph.find pid ext
         with Not_found -> Error.bug "[Grew_rule.extend_matching_from] cannot find node" in
 
       let g_node = try G_graph.find gid graph with Not_found -> Error.bug "[extend_matching_from] cannot find gid in graph" in
@@ -730,7 +730,7 @@ module Matching = struct
             already_matched_gids = gid :: partial.already_matched_gids;
             sub = {partial.sub with n_match = Pid_map.add pid gid partial.sub.n_match; l_param = new_lex_set};
           } in
-        extend_matching ~config (positive,neg) graph new_partial
+        extend_matching ~config (ker,ext) graph new_partial
       with P_fs.Fail -> []
 
   (*  [test_locality matching created_nodes gid] checks if [gid] is a "local" node:
@@ -738,38 +738,33 @@ module Matching = struct
   let test_locality matching created_nodes gid =
     (Pid_map.exists (fun _ id -> id=gid) matching.n_match) || (List.exists (fun (_,id) -> id=gid) created_nodes)
 
-
-  (*  ---------------------------------------------------------------------- *)
-  let update_partial without (sub, already_matched_gids) =
-    let neg_graph = without.Pattern.graph in
+  (* test_extension returns [true] iff the matching (sub, already_matched_gids) of [ker_graph] into [graph] can be extended with [ext] *)
+  let test_extension ~config ker_graph graph ext (sub, already_matched_gids) =
     let unmatched_nodes =
       Pid_map.fold
-        (fun pid _ acc -> match pid with Pid.Neg _ -> pid::acc | _ -> acc)
-        neg_graph [] in
+        (fun pid _ acc -> match pid with Pid.Ext _ -> pid::acc | _ -> acc)
+        ext.Pattern.graph [] in
     let unmatched_edges =
       Pid_map.fold
         (fun pid node acc ->
            match pid with
-           | Pid.Neg _ -> acc
-           | Pid.Pos i ->
+           | Pid.Ext _ -> acc
+           | Pid.Ker i ->
              Massoc_pid.fold
                (fun acc2 pid_next p_edge -> (pid, p_edge, pid_next) :: acc2)
                acc (P_node.get_next node)
-        ) neg_graph [] in
-    {
-      sub;
-      unmatched_nodes = unmatched_nodes;
-      unmatched_edges = unmatched_edges;
-      already_matched_gids;
-      check = without.constraints;
-    }
-
-
-  (*  ---------------------------------------------------------------------- *)
-  let fulfill ~config (pos_graph,neg_graph) graph new_partial_matching =
-    match extend_matching ~config (pos_graph, neg_graph) graph new_partial_matching with
-    | [] -> true (* the without pattern in not found -> OK *)
-    | _ -> false
+        ) ext.Pattern.graph [] in
+    let new_partial_matching =
+      {
+        sub;
+        unmatched_nodes = unmatched_nodes;
+        unmatched_edges = unmatched_edges;
+        already_matched_gids;
+        check = ext.constraints;
+      } in
+    match extend_matching ~config (ker_graph, ext.graph) graph new_partial_matching with
+    | [] -> false (* fail to extend the matching to ext *)
+    | _ -> true
 
   (* returns true iff the graph verify all structure constraints give in the list *)
   let test_structure_constraints graph = function
@@ -850,30 +845,28 @@ module Matching = struct
     else false
 
   (*  ---------------------------------------------------------------------- *)
-  let match_in_graph ~config ?lexicons { Pattern.global; pos; negs } graph =
+  let match_in_graph ~config ?lexicons { Pattern.global; ker; exts } graph =
 
     if not (check_global_constraint global graph)
     then []
     else
-      let pos_graph = pos.graph in
+      let ker_graph = ker.graph in
 
-      (* get the list of partial matching for positive part of the pattern *)
+      (* get the list of partial matching for kernel part of the pattern *)
       let matching_list =
         extend_matching
           ~config
-          (pos_graph,P_graph.empty)
+          (ker_graph,P_graph.empty)
           graph
-          (init ?lexicons pos) in
+          (init ?lexicons ker) in
 
       let filtered_matching_list =
         List.filter
           (fun (sub, already_matched_gids) ->
              List.for_all
-               (fun without ->
-                  let neg_graph = without.Pattern.graph in
-                  let new_partial_matching = update_partial without (sub, already_matched_gids) in
-                  fulfill ~config (pos_graph,neg_graph) graph new_partial_matching
-               ) negs
+               (fun (ext,polarity) ->
+                  test_extension ~config ker_graph graph ext (sub, already_matched_gids) = polarity
+               ) exts
           ) matching_list in
       List.map fst filtered_matching_list
 end (* module Matching *)
@@ -920,15 +913,15 @@ module Rule = struct
     `Assoc
       ([
         ("rule_name", `String t.name);
-        ("pattern", Pattern.basic_to_json ~config t.pattern.pos);
-        ("without", `List (List.map (Pattern.basic_to_json ~config) t.pattern.negs));
+        ("pattern", Pattern.basic_to_json ~config t.pattern.ker);
+        ("without", `List (List.map (fun (ext,pol) -> Pattern.basic_to_json ~config ext) t.pattern.exts)); (* TODO take into account pol *)
         ("commands", `List (List.map (Command.to_json_python ~config) t.commands))
       ]
       )
 
   (* ====================================================================== *)
   let to_dep ~config t =
-    let pos_basic = t.pattern.pos in
+    let ker_basic = t.pattern.ker in
     let buff = Buffer.create 32 in
     bprintf buff "[GRAPH] { scale = 200; }\n";
 
@@ -939,7 +932,7 @@ module Rule = struct
               (Pid.to_id id) (P_node.get_name node) (P_fs.to_dep (P_node.get_fs node))
            )
            :: acc
-        ) pos_basic.graph [] in
+        ) ker_basic.graph [] in
 
     (* nodes are sorted to appear in the same order in dep picture and in input file *)
     let sorted_nodes = List.sort (fun (n1,_) (n2,_) -> P_node.compare_pos n1 n2) nodes in
@@ -954,7 +947,7 @@ module Rule = struct
          match cst with
          | Pattern.Cst_out _ | Cst_in _ -> bprintf buff "  C_%d { word=\"*\"}\n" i
          | _ -> ()
-      ) pos_basic.constraints;
+      ) ker_basic.constraints;
     bprintf buff "}\n";
 
     bprintf buff "[EDGES] {\n";
@@ -969,7 +962,7 @@ module Rule = struct
                 (P_edge.to_string ~config edge)
            )
            (P_node.get_next node)
-      ) pos_basic.graph;
+      ) ker_basic.graph;
 
     List.iteri
       (fun i cst ->
@@ -981,14 +974,14 @@ module Rule = struct
            bprintf buff "  C_%d -> N_%s {label = \"%s\"; style=dot; bottom; color=green;}\n"
              i (Pid.to_id pid) (Label_cst.to_string ~config label_cst)
          | _ -> ()
-      ) pos_basic.constraints;
+      ) ker_basic.constraints;
     bprintf buff "}\n";
     Buffer.contents buff
 
   (* ====================================================================== *)
-  let commands_of_ast ~config lexicons pos pos_table ast_commands =
-    let known_node_ids = Array.to_list pos_table in
-    let known_edge_ids = Pattern.get_edge_ids pos in
+  let commands_of_ast ~config lexicons ker ker_table ast_commands =
+    let known_node_ids = Array.to_list ker_table in
+    let known_edge_ids = Pattern.get_edge_ids ker in
 
     let rec loop (kni,kei) = function
       | [] -> []
@@ -998,7 +991,7 @@ module Rule = struct
             ~config
             lexicons
             (kni,kei)
-            pos_table
+            ker_table
             ast_command in
         command :: (loop (new_kni,new_kei) tail) in
     loop (known_node_ids, known_edge_ids) ast_commands
@@ -1013,25 +1006,25 @@ module Rule = struct
           with Not_found -> (name, Lexicon.of_ast ~loc:rule_ast.Ast.rule_loc lex) :: acc
         ) [] rule_ast.Ast.lexicon_info in
 
-    let (pos, pos_table, edge_ids) =
-      try Pattern.build_pos_basic ~config lexicons rule_ast.Ast.pattern.Ast.pat_pos
+    let (ker, ker_table, edge_ids) =
+      try Pattern.build_ker_basic ~config lexicons rule_ast.Ast.pattern.Ast.pat_pos
       with P_fs.Fail_unif ->
         Error.build ~loc:rule_ast.Ast.rule_loc
           "[Rule.build] in rule \"%s\": feature structures declared in the \"match\" clause are inconsistent"
           rule_ast.Ast.rule_id in
-    let (negs,_) =
+    let (exts,_) =
       List.fold_left
-        (fun (acc,pos) basic_ast ->
-           try ((Pattern.build_neg_basic ~config lexicons pos_table edge_ids basic_ast) :: acc, pos+1)
+        (fun (acc,position) basic_ast ->
+           try ((Pattern.build_ext_basic ~config lexicons ker_table edge_ids basic_ast, false) :: acc, position+1)
            with P_fs.Fail_unif ->
              Error.warning ~loc:rule_ast.Ast.rule_loc "In rule \"%s\", the wihtout number %d cannot be satisfied, it is skipped"
-               rule_ast.Ast.rule_id pos;
-             (acc, pos+1)
+               rule_ast.Ast.rule_id position;
+             (acc, position+1)
         ) ([],1) rule_ast.Ast.pattern.Ast.pat_negs in
     {
       name = rule_ast.Ast.rule_id;
-      pattern = { pos; negs; global=rule_ast.Ast.pattern.Ast.pat_glob; };
-      commands = commands_of_ast ~config lexicons pos pos_table rule_ast.Ast.commands;
+      pattern = { ker; exts; global=rule_ast.Ast.pattern.Ast.pat_glob; };
+      commands = commands_of_ast ~config lexicons ker ker_table rule_ast.Ast.commands;
       loc = rule_ast.Ast.rule_loc;
       lexicons;
       path = rule_ast.Ast.rule_path;
@@ -1351,21 +1344,20 @@ module Rule = struct
 
   let onf_apply_opt ~config rule graph =
     try
-      let {Pattern.pos; negs} = rule.pattern in
-      (* get the list of partial matching for positive part of the pattern *)
+      let {Pattern.ker; exts} = rule.pattern in
+      (* get the list of partial matching for kernel part of the pattern *)
       let matching_list =
         Matching.extend_matching
           ~config
-          (pos.graph,P_graph.empty)
+          (ker.graph,P_graph.empty)
           graph
-          (Matching.init ~lexicons:rule.lexicons pos) in
+          (Matching.init ~lexicons:rule.lexicons ker) in
       match List.find_opt
               (fun (sub, already_matched_gids) ->
                  List.for_all
-                   (fun neg ->
-                      let new_partial_matching = Matching.update_partial neg (sub, already_matched_gids) in
-                      Matching.fulfill ~config (pos.graph,neg.graph) graph new_partial_matching
-                   ) negs
+                   (fun (ext, polarity) ->
+                      Matching.test_extension ~config ker.graph graph ext (sub, already_matched_gids) = polarity
+                   ) exts
               ) matching_list with
       | None -> None
       | Some (first_matching_where_all_witout_are_fulfilled,_) ->
@@ -1392,21 +1384,20 @@ module Rule = struct
 
   let rec wrd_apply_opt ~config rule (graph, big_step_opt) =
     try
-      let {Pattern.pos; negs} = rule.pattern in
-      (* get the list of partial matching for positive part of the pattern *)
+      let {Pattern.ker; exts} = rule.pattern in
+      (* get the list of partial matching for kernel part of the pattern *)
       let matching_list =
         Matching.extend_matching
           ~config
-          (pos.graph,P_graph.empty)
+          (ker.graph,P_graph.empty)
           graph
-          (Matching.init ~lexicons:rule.lexicons pos) in
+          (Matching.init ~lexicons:rule.lexicons ker) in
       match List.find_opt
               (fun (sub, already_matched_gids) ->
                  List.for_all
-                   (fun neg ->
-                      let new_partial_matching = Matching.update_partial neg (sub, already_matched_gids) in
-                      Matching.fulfill ~config (pos.graph,neg.graph) graph new_partial_matching
-                   ) negs
+                   (fun (ext,polarity) ->
+                      Matching.test_extension ~config ker.graph graph ext (sub, already_matched_gids) = polarity
+                   ) exts
               ) matching_list with
       | None -> None
       | Some (first_matching_where_all_witout_are_fulfilled,_) ->
@@ -1858,20 +1849,19 @@ module Rule = struct
   exception Dead_lock
   let owh_apply_opt ~config rule gwh =
     let graph = gwh.Graph_with_history.graph in
-    let {Pattern.pos; negs} = rule.pattern in
+    let {Pattern.ker; exts} = rule.pattern in
 
-    (* get the list of matching for positive part of the pattern *)
-    let matching_list = Matching.extend_matching ~config (pos.graph,P_graph.empty) graph (Matching.init ~lexicons:rule.lexicons pos) in
+    (* get the list of matching for kernel part of the pattern *)
+    let matching_list = Matching.extend_matching ~config (ker.graph,P_graph.empty) graph (Matching.init ~lexicons:rule.lexicons ker) in
 
     let rec loop_matching = function
       | [] -> None
       | (sub, already_matched_gids) :: tail ->
         if List.for_all
-            (fun neg ->
-               let new_partial_matching = Matching.update_partial neg (sub, already_matched_gids) in
-               Matching.fulfill ~config (pos.graph,neg.graph) graph new_partial_matching
-            ) negs
-        then (* all negs part are fulfilled *)
+            (fun (ext,polarity) ->
+               Matching.test_extension ~config ker.graph graph ext (sub, already_matched_gids) = polarity
+            ) exts
+        then (* all exts are fulfilled *)
           let init_gwh = { gwh with e_mapping = sub.Matching.e_match; added_gids_in_rule = []; added_edges_in_rule=String_map.empty; } in
           let rec loop_command acc_gwh = function
             | [] -> acc_gwh
@@ -1888,6 +1878,6 @@ module Rule = struct
             let down = Matching.down_deco (new_gwh.added_edges_in_rule, sub, new_gwh.added_gids_in_rule) rule.commands in
             Some {new_gwh with graph = G_graph.track up (get_long_name rule) down graph new_gwh.graph }
           with Dead_lock -> loop_matching tail (* failed to apply all commands -> move to the next matching *)
-        else loop_matching tail (* some neg part prevents rule app -> move to the next matching *)
+        else loop_matching tail (* some ext part prevents rule app -> move to the next matching *)
     in loop_matching matching_list
 end (* module Rule *)
