@@ -19,11 +19,15 @@ open Grew_ast
 
 (* ================================================================================ *)
 module Pattern : sig
+  type basic
+
   type t
 
   val pid_name_list: t -> Id.name list
 
   val of_ast: config:Conllx.Conllx_config.t -> ?lexicons: Lexicons.t -> Ast.pattern -> t
+
+  val build_whether: config:Conllx.Conllx_config.t -> t -> Ast.basic -> basic
 end
 
 (* ================================================================================ *)
@@ -50,6 +54,8 @@ module Matching : sig
     * one of the pseudo features [e.label], [e.length] or [e.delta]
   *)
   val get_string_value_opt: config:Conllx.Conllx_config.t -> string -> Pattern.t -> G_graph.t -> t -> string option
+
+  val whether: config:Conllx.Conllx_config.t -> Pattern.basic -> Pattern.t -> G_graph.t -> t -> bool
 end
 
 (* ================================================================================ *)

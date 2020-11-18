@@ -34,11 +34,16 @@ end
 module Pattern : sig
   type t
 
-  (** [load_pattern filename] returns the pattern described in the file *)
+  type basic
+
+  (** [load filename] returns the pattern described in the file *)
   val load: config:Conllx_config.t -> string -> t
 
-  (** [load_pattern description] returns the pattern described in the [descriprion] string *)
+  (** [parse description] returns the pattern described in the [descriprion] string *)
   val parse: config:Conllx_config.t -> string -> t
+
+  (** [parse_basic description] returns the pattern described in the [descriprion] string *)
+  val parse_basic: config:Conllx_config.t -> t -> string -> basic
 
   val pid_name_list: t -> string list
 
@@ -60,6 +65,8 @@ module Matching: sig
       * the name of an edge featue [e.feat] where [e] is a edge declared in the kernel part of the pattern
   *)
   val get_value_opt: config:Conllx_config.t -> string -> Pattern.t -> Grew_graph.G_graph.t -> t -> string option
+
+  val whether: config:Conllx_config.t -> Pattern.basic -> Pattern.t -> Grew_graph.G_graph.t -> t -> bool
 end
 
 (* ==================================================================================================== *)

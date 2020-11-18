@@ -112,6 +112,17 @@ module Loader = struct
       gr
     with Sys_error msg -> Error.parse ~loc:(Loc.file file) "[Grew_loader.Loader.gr] %s" msg
 
+  (* ------------------------------------------------------------------------------------------*)
+  let basic file =
+    try
+      Global.new_file file;
+      let in_ch = open_in file in
+      let lexbuf = Lexing.from_channel in_ch in
+      let basic = parse_handle "[Grew_loader.Loader.basic]" (Grew_parser.basic Grew_lexer.global) lexbuf in
+      close_in in_ch;
+      basic
+    with Sys_error msg -> Error.parse ~loc:(Loc.file file) "[Grew_loader.Loader.basic] %s" msg
+
 
   (* ------------------------------------------------------------------------------------------*)
   let pattern file =
@@ -147,6 +158,15 @@ module Parser = struct
       let gr = parse_handle "[Grew_loader.Parser.gr]" (Grew_parser.gr Grew_lexer.global) lexbuf in
       gr
     with Sys_error msg -> Error.parse "[Grew_loader.Parser.gr] %s" msg
+
+  (* ------------------------------------------------------------------------------------------*)
+  let basic basic_string =
+    try
+      Global.new_string ();
+      let lexbuf = Lexing.from_string basic_string in
+      let basic = parse_handle "[Grew_loader.Parser.basic]" (Grew_parser.basic Grew_lexer.global) lexbuf in
+      basic
+    with Sys_error msg -> Error.parse "[Grew_loader.Parser.basic] %s" msg
 
   (* ------------------------------------------------------------------------------------------*)
   let grs grs_string =

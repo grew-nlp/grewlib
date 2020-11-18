@@ -19,6 +19,8 @@ module Loader: sig
 
   val gr: string -> Ast.gr
 
+  val basic: string -> Ast.basic
+
   val pattern: string -> Ast.pattern
 
   val phrase_structure_tree: string -> Ast.pst
@@ -27,6 +29,8 @@ end (* module Loader *)
 (* ================================================================================ *)
 module Parser : sig
   val gr: string -> Ast.gr
+
+  val basic: string -> Ast.basic
 
   val grs: string -> Ast.grs
 

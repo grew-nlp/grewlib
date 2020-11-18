@@ -121,10 +121,12 @@ let localize t = (t,get_loc ())
 %token EOF                         /* end of file */
 
 %start <Grew_ast.Ast.gr> gr
+%start <Grew_ast.Ast.basic> basic
 %start <Grew_ast.Ast.pattern> isolated_pattern
 
 %start <Grew_ast.Ast.grs> grs
 %start <Grew_ast.Ast.strat> strat_alone
+
 
 /* parsing of the string representation of the constituent representation of Sequoia */
 /* EX: "( (SENT (NP (NC Amélioration) (PP (P de) (NP (DET la) (NC sécurité))))))"    */
@@ -283,12 +285,12 @@ glob_item:
 
 
 pos_item:
-        | PATTERN i=pn_item { i }
+        | PATTERN i=basic { i }
 
 neg_item:
-        | WITHOUT i=pn_item { i }
+        | WITHOUT i=basic { i }
 
-pn_item:
+basic:
         | l=delimited(LACC,separated_list_final_opt(SEMIC,pat_item),RACC)
             {
              {
@@ -299,7 +301,7 @@ pn_item:
            }
 
 /*=============================================================================================*/
-/* PATTERN DEFINITION                                                                            */
+/* PATTERN DEFINITION                                                                          */
 /*=============================================================================================*/
 
 edge_item:

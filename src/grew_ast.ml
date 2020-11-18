@@ -175,11 +175,12 @@ module Ast = struct
   type edge_label = string
 
   type edge_label_cst =
-    | Pos_list of edge_label list           (*  X|Y|Z    *)
-    | Neg_list of edge_label list           (*  ^X|Y|Z   *)
-    | Regexp of string                      (*  re"a.*"  *)
-    | Atom_list of atom_edge_label_cst list (* 1=subj, 2 *)
-    | Pred
+    | Pos_list of edge_label list           (*  A -[X|Y|Z]-> B      *)
+    | Neg_list of edge_label list           (*  A -[^X|Y|Z]-> B     *)
+    | Regexp of string                      (*  A -[re"a.*"]-> B    *)
+    | Atom_list of atom_edge_label_cst list (*  A -[1=subj, 2]-> B  *)
+    | Pred                                  (*  A < B               *)
+
   let string_of_edge_label_cst = function
     | Neg_list [] -> ""
     | Pos_list labels -> sprintf "[%s]" (List_.to_string (fun x->x) "|" labels)

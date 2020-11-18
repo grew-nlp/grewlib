@@ -71,11 +71,18 @@ end
 module Pattern = struct
   type t = Grew_rule.Pattern.t
 
+  type basic = Grew_rule.Pattern.basic
+
   let load ~config file =
     Libgrew.handle ~name:"Pattern.load" (fun () -> Grew_rule.Pattern.of_ast ~config (Grew_loader.Loader.pattern file)) ()
 
   let parse ~config desc =
-    Libgrew.handle ~name:"Pattern.load" (fun () -> Grew_rule.Pattern.of_ast ~config (Grew_loader.Parser.pattern desc)) ()
+    Libgrew.handle ~name:"Pattern.parse" (fun () -> Grew_rule.Pattern.of_ast ~config (Grew_loader.Parser.pattern desc)) ()
+
+  let parse_basic ~config pattern desc =
+    Libgrew.handle
+      ~name:"Pattern.parse_basic"
+      (fun () -> Grew_rule.Pattern.build_whether ~config pattern (Grew_loader.Parser.basic desc)) ()
 
   let pid_name_list pattern =
     Libgrew.handle ~name:"Pattern.pid_list"
@@ -99,6 +106,11 @@ module Matching = struct
   let get_value_opt ~config request pattern graph matching =
     Libgrew.handle ~name:"Matching.get_value_opt" (fun () ->
         Grew_rule.Matching.get_string_value_opt ~config request pattern graph matching
+      ) ()
+
+  let whether ~config extension pattern graph matching =
+    Libgrew.handle ~name:"Matching.whether" (fun () ->
+        Grew_rule.Matching.whether ~config extension pattern graph matching
       ) ()
 end
 
@@ -137,7 +149,7 @@ module Graph = struct
   let load_conll ~config file =
     Libgrew.handle ~name:"Graph.load_conll" ~file
       (fun () ->
-        Conllx.load ~config file |> Conllx.to_json |> Grew_graph.G_graph.of_json
+         Conllx.load ~config file |> Conllx.to_json |> Grew_graph.G_graph.of_json
       ) ()
 
   let load_brown ~config file =
