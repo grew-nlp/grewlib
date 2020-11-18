@@ -284,8 +284,8 @@ module Corpus_desc = struct
     match dir_opt with
     | None -> ()
     | Some dir ->
-      let stat = Conllx_stat.build ?config ("ExtPos", Some "upos") corpus in
-      let html = Conllx_stat.to_html name ("ExtPos", Some "upos")  stat in
+      let stat = Conllx_stat.build ?config ("upos", None) ("ExtPos", Some "upos") corpus in
+      let html = Conllx_stat.to_html name ("upos", None) ("ExtPos", Some "upos")  stat in
       let out_file = Filename.concat dir (name ^ "_table.html") in
       CCIO.with_out out_file (fun oc -> CCIO.write_line oc html);
 
