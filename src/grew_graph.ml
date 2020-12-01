@@ -474,7 +474,7 @@ module G_graph = struct
       with Type_error _ -> [] in
 
     let nodes =
-      json |> member "nodes" |> to_list
+      (try json |> member "nodes" |> to_list with Type_error _ -> [])
       |> List.map
         (fun json_node ->
            let id = try json_node |> member "id" |> to_string with Type_error _ -> Error.run "No id in node json description %s" (Yojson.Basic.pretty_to_string json_node) in
@@ -594,14 +594,17 @@ module G_graph = struct
            `Assoc [("src", `String (Gid.to_string gid1)); ("edge", G_edge.to_json edge); ("tar", `String (Gid.to_string gid2))]
         ) graph.impact.edges in
 
-    `Assoc [
+    let full_assoc_list = [
       ("meta", `List meta);
       ("nodes", `List nodes);
       ("edges", `List edges);
       ("order", `List order);
       ("modified_nodes", `List modified_nodes);
       ("modified_edges", `List modified_edges);
-    ]
+    ] in
+
+    `Assoc (List.filter (function (_,`List []) -> false | _ -> true) full_assoc_list)
+
 
   (* -------------------------------------------------------------------------------- *)
   let of_json_python ~config = function
