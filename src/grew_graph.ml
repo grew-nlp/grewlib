@@ -1185,7 +1185,7 @@ module G_graph = struct
     let buff = Buffer.create 32 in
 
     bprintf buff "digraph G {\n";
-    bprintf buff "  node [shape=Record];\n";
+    bprintf buff "  node [shape=box];\n";
 
     (* nodes *)
     Gid_map.iter
