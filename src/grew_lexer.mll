@@ -229,6 +229,7 @@ and standard target = parse
 | ','   { COMMA }
 | '+'   { PLUS }
 | '='   { EQUAL }
+| '#'   { SHARP }
 | "!"   { BANG }
 | "<>"  { DISEQUAL }
 

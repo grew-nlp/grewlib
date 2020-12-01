@@ -61,6 +61,16 @@ let concat_feature_values ?loc = function
       | Float _ :: _ -> Error.run ?loc "Cannot concat with numeric value" in
     String (loop l)
 
+let parse_meta s =
+  match Str.bounded_split (Str.regexp "# *\\| *= *") s 2 with
+  | [key;value] -> (key,value)
+  | _ -> ("",s)
+
+let string_of_meta = function
+  | ("", s) -> s
+  | (k,v) -> sprintf "# %s = %s" k v
+
+
 
 (* ================================================================================ *)
 module Ast = struct
@@ -394,7 +404,7 @@ module Ast = struct
     Closed (feature_name, without_duplicate)
 
   type gr = {
-    meta: string list;
+    meta: (string * string) list;
     nodes: node list;
     edges: edge list;
   }

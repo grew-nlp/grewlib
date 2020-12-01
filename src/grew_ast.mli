@@ -29,6 +29,9 @@ val typed_vos : feature_name -> string -> feature_value
 
 val concat_feature_values: ?loc:Loc.t -> feature_value list -> feature_value
 
+val parse_meta: string -> string * string
+val string_of_meta: string * string -> string
+
 module Ast : sig
 
   (* ---------------------------------------------------------------------- *)
@@ -219,7 +222,7 @@ module Ast : sig
   val build_closed: feature_name -> string list -> feature_spec
 
   type gr = {
-    meta: string list;
+    meta: (string * string) list;
     nodes: node list;
     edges: edge list;
   }

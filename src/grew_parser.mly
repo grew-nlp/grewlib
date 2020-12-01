@@ -21,7 +21,7 @@ type pat_item =
   | Pat_const of Ast.const
 
 type graph_item =
-  | Graph_meta of string
+  | Graph_meta of (string * string)
   | Graph_node of Ast.node
   | Graph_edge of Ast.edge
 
@@ -49,6 +49,7 @@ let localize t = (t,get_loc ())
 %token SEMIC                       /* ; */
 %token PLUS                        /* + */
 %token EQUAL                       /* = */
+%token SHARP                       /* # */
 %token DISEQUAL                    /* <> */
 %token BANG                        /* ! */
 %token SLASH                       /* / */
@@ -214,8 +215,8 @@ gr:
 
 gr_item:
         /*  sentence = "Jean dort."   */
-        | id=simple_id EQUAL value=feature_value
-            { Graph_meta (id ^ " = " ^ value) }
+        | SHARP id=simple_id EQUAL value=feature_value
+            { Graph_meta (id, value) }
 
         /*  B [phon="pense", lemma="penser", cat=v, mood=ind ]   */
         | id_loc=node_id_with_loc position=option(delimited(LPAREN, FLOAT ,RPAREN)) feats=delimited(LBRACKET,separated_list_final_opt(COMMA,node_features),RBRACKET)

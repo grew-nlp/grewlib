@@ -257,15 +257,6 @@ module G_graph = struct
 
   let get_meta_list t = t.meta
 
-  let parse_meta s =
-    match Str.bounded_split (Str.regexp "# *\\| *= *") s 2 with
-    | [key;value] -> (key,value)
-    | _ -> ("",s)
-
-  let string_of_meta = function
-    | ("", s) -> s
-    | (k,v) -> sprintf "# %s = %s" k v
-
   let set_meta key value t = {t with meta = (key,value) :: List.remove_assoc key t.meta}
 
   let empty = { meta=[]; map=Gid_map.empty; highest_index=0; rules=String_map.empty; trace=None; impact=G_deco.empty}
@@ -468,7 +459,7 @@ module G_graph = struct
         ) map_without_edges gr_ast.Ast.edges in
 
     { empty with
-      meta=List.map parse_meta gr_ast.Ast.meta;
+      meta=gr_ast.Ast.meta;
       map;
       highest_index = final_index - 1;
     }
@@ -954,7 +945,7 @@ module G_graph = struct
     bprintf buff "graph {\n";
 
     (* meta data *)
-    List.iter (fun x -> x |> string_of_meta |> bprintf buff "  %s;\n") graph.meta;
+    List.iter (fun (key, value) -> bprintf buff "# %s = \"%s\";\n" key value) graph.meta;
 
     (* node_list *)
     let nodes = Gid_map.fold (fun gid node acc -> (gid,node)::acc) graph.map [] in
