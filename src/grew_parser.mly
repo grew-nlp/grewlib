@@ -217,20 +217,18 @@ gr_item:
         | id=simple_id EQUAL value=feature_value
             { Graph_meta (id ^ " = " ^ value) }
 
-        /*  B (1) [phon="pense", lemma="penser", cat=v, mood=ind ]   */
         /*  B [phon="pense", lemma="penser", cat=v, mood=ind ]   */
         | id_loc=node_id_with_loc position=option(delimited(LPAREN, FLOAT ,RPAREN)) feats=delimited(LBRACKET,separated_list_final_opt(COMMA,node_features),RBRACKET)
             { let (id,loc) = id_loc in
-              Graph_node ({Ast.node_id = id; position=position; fs=feats}, loc) }
+              Graph_node ({Ast.node_id = id; fs=feats}, loc) }
         /*   A   */
         | id_loc=node_id_with_loc
             { let (id,loc) = id_loc in
-              Graph_node ({Ast.node_id = id; position=None; fs=Ast.default_fs ~loc id}, loc) }
+              Graph_node ({Ast.node_id = id; fs=Ast.default_fs ~loc id}, loc) }
 
         /*   A -[x]-> B   */
         | n1_loc=node_id_with_loc label=delimited(LTR_EDGE_LEFT,label_ident,LTR_EDGE_RIGHT) n2=node_id
             { Graph_edge ({Ast.edge_id = None; src=fst n1_loc; edge_label_cst=Ast.Pos_list [label]; tar=n2}, snd n1_loc) }
-
 
 /*=============================================================================================*/
 /* RULES DEFINITION                                                                            */
@@ -320,7 +318,7 @@ pat_item:
         /* =================================== */
         /*   R [cat=V, lemma=$lemma]   */
         | id_loc=simple_id_with_loc feats=delimited(LBRACKET,separated_list_final_opt(COMMA,node_features),RBRACKET)
-            { Pat_node ({Ast.node_id = fst id_loc; position=None; fs= feats}, snd id_loc) }
+            { Pat_node ({Ast.node_id = fst id_loc; fs= feats}, snd id_loc) }
 
         /* =================================== */
         /* edge                                */

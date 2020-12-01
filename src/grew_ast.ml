@@ -157,7 +157,6 @@ module Ast = struct
 
   type u_node = {
     node_id: Id.name;
-    position: float option;
     fs: feature list;
   }
   type node = u_node * Loc.t
@@ -269,7 +268,7 @@ module Ast = struct
     if (List.exists (fun ({node_id},_) -> node_id=name) pat_nodes)
     || (List.exists (fun ({node_id},_) -> node_id=name) aux)
     then pat_nodes
-    else ({node_id=name; position=None; fs=[]}, loc) :: pat_nodes
+    else ({node_id=name; fs=[]}, loc) :: pat_nodes
 
   let complete_basic aux basic =
     let new_pat_nodes = List.fold_left
@@ -402,7 +401,7 @@ module Ast = struct
 
   let complete id nodes =
     let rec loop n = match n with
-      | [] -> [{node_id=id; position=None; fs=default_fs id},Loc.empty]
+      | [] -> [{node_id=id; fs=default_fs id},Loc.empty]
       | ({ node_id = head_id },_)::_ when head_id = id -> n
       | head::tail -> head :: (loop tail)
     in loop nodes

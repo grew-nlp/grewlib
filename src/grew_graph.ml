@@ -409,10 +409,9 @@ module G_graph = struct
     let (ordered_nodes, unordered_nodes) =
       List.fold_left
         (fun (orderd_acc, unordered_acc) (node,loc) ->
-           match (Id.get_pos_opt node.Ast.node_id, node.Ast.position) with
-           | (_,Some p) -> ((p,(node,loc)) :: orderd_acc, unordered_acc)
-           | (Some p,_) -> ((p,(node,loc)) :: orderd_acc, unordered_acc)
-           | (None, None) -> (orderd_acc, (node,loc) :: unordered_acc)
+           match Id.get_pos_opt node.Ast.node_id with
+           | Some p -> ((p,(node,loc)) :: orderd_acc, unordered_acc)
+           | None -> (orderd_acc, (node,loc) :: unordered_acc)
         ) ([],[]) gr_ast.Ast.nodes in
 
     let sorted_nodes = List.sort (fun (p1,_) (p2,_) -> Stdlib.compare p1 p2) ordered_nodes in
@@ -629,7 +628,7 @@ module G_graph = struct
                      | _ -> Error.build "[Graph.of_json_python] not an valid succ list"
                    ) succ in
                (
-                 ({ Ast.node_id=id; position=None; fs}, Loc.empty) :: acc_node,
+                 ({ Ast.node_id=id; fs}, Loc.empty) :: acc_node,
                  new_edges @ acc_edge
                )
              | _ -> Error.build "[Graph.of_json_python] not an assoc list"

@@ -87,7 +87,6 @@ module Ast : sig
 
   type u_node = {
     node_id: Id.name;
-    position: float option;
     fs: feature list;
   }
   type node = u_node * Loc.t
