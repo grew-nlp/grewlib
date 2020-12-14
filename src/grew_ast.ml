@@ -280,7 +280,7 @@ module Ast = struct
     then pat_nodes
     else ({node_id=name; fs=[]}, loc) :: pat_nodes
 
-  let complete_basic aux basic =
+  let complete_basic_aux aux basic =
     let new_pat_nodes = List.fold_left
         (fun acc ({src; edge_label_cst; tar}, loc) ->
            if edge_label_cst = Pred
@@ -292,11 +292,13 @@ module Ast = struct
         ) basic.pat_nodes basic.pat_edges in
     {basic with pat_nodes=new_pat_nodes}
 
+  let complete_basic = complete_basic_aux []
+
   let complete_and_check_pattern pattern =
     check_dup_edge_in_pattern pattern;
-    let new_pat_pos = complete_basic [] pattern.pat_pos in
+    let new_pat_pos = complete_basic_aux [] pattern.pat_pos in
     let aux = new_pat_pos.pat_nodes in
-    let new_pat_negs = List.map (complete_basic aux) pattern.pat_negs in
+    let new_pat_negs = List.map (complete_basic_aux aux) pattern.pat_negs in
     { pattern with pat_pos = new_pat_pos; pat_negs = new_pat_negs;}
 
   type concat_item =

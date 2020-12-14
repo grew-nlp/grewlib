@@ -146,6 +146,8 @@ module Ast : sig
 
   val concat_basic: basic -> basic -> basic
 
+  val complete_basic: basic -> basic
+
   type u_glob =
     | Glob_cst of string
     | Glob_eq_list of string * string list

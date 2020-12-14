@@ -42,7 +42,7 @@ module Pattern : sig
   (** [parse description] returns the pattern described in the [descriprion] string *)
   val parse: config:Conllx_config.t -> string -> t
 
-  (** [parse_basic description] returns the pattern described in the [descriprion] string *)
+  (** [parse_basic description] returns the basic described in the [descriprion] string *)
   val parse_basic: config:Conllx_config.t -> t -> string -> basic
 
   val pid_name_list: t -> string list

@@ -307,7 +307,7 @@ module Pattern = struct
     { ker; exts; global=pattern_ast.pat_glob; table=ker_table; edge_ids; }
 
   let build_whether ~config pattern basic_ast =
-    build_ext_basic ~config [] pattern.table pattern.edge_ids basic_ast
+    build_ext_basic ~config [] pattern.table pattern.edge_ids (Ast.complete_basic basic_ast)
 end (* module Pattern *)
 
 (* ================================================================================ *)
