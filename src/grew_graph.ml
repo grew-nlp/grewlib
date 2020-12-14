@@ -528,13 +528,15 @@ module G_graph = struct
     let map =
       List.fold_left
         (fun acc (id_src, edge_items, id_tar) ->
-           let gid_1 = String_map.find id_src table in
-           let gid_2 = String_map.find id_tar table in
-           let edge = G_edge.from_items edge_items in
-           (match map_add_edge_opt acc gid_1 edge gid_2 with
-            | Some g -> g
-            | None -> Error.build "[G_graph.of_ast] try to build a graph with twice the same edge %s" (G_edge.dump edge)
-           )
+          match (String_map.find_opt id_src table, String_map.find_opt id_tar table) with
+          | (Some gid_1, Some gid_2) ->
+            let edge = G_edge.from_items edge_items in
+            (match map_add_edge_opt acc gid_1 edge gid_2 with
+              | Some g -> g
+              | None -> Error.build "[G_graph.of_json] try to build a graph with twice the same edge %s" (G_edge.dump edge)
+              )
+          | (None, _) -> Error.build "[G_graph.of_json] undefined node id `%s` used as `src` in edges" id_src
+          | (_, None) -> Error.build "[G_graph.of_json] undefined node id `%s` used as `tar` in edges" id_tar
         ) maps_with_order edges in
 
     { empty with
