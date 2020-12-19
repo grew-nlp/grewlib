@@ -305,6 +305,11 @@ module G_graph = struct
       | Some (u,r,d,g') -> (u,r,d,g') :: (loop g') in
     List.rev (loop graph)
 
+  let rec trace_depth graph =
+    match graph.trace with
+    | None -> 0
+    | Some (_,_,_,g) -> 1 + (trace_depth g)
+
   let string_rules t =
     String_map.fold
       (fun k v acc ->

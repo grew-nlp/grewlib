@@ -101,6 +101,8 @@ module G_graph: sig
 
   val get_history: t -> (G_deco.t * string * G_deco.t * t) list
 
+  val trace_depth: t -> int
+
   val clear_rules: t -> t
 
   (** [edge_out t id label_cst] returns true iff there is an out-edge from the node [id] with a label compatible with [label_cst] *)

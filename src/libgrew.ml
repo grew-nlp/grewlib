@@ -262,6 +262,9 @@ module Graph = struct
 
   let get_history t =
     Grew_graph.G_graph.get_history t
+
+  let trace_depth t =
+    Grew_graph.G_graph.trace_depth t
 end
 
 (* ==================================================================================================== *)
