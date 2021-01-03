@@ -29,7 +29,7 @@ end
 
 (* ==================================================================================================== *)
 module Corpus = struct
-  type kind = Conll | Pst | Amr | Raw
+  type kind = Conll | Pst | Amr | Gr | Json
 
   type item = {
     sent_id: string;
@@ -42,9 +42,16 @@ module Corpus = struct
     kind: kind;
   }
 
-  let singleton graph = {
-    kind=Raw; items = [| { sent_id="_"; text="_"; graph } |]
-  }
+  let item_of_graph graph =
+    let sent_id =
+      match G_graph.get_meta_opt "sent_id" graph with
+      | Some s -> s
+      | None -> "_" in
+    let text =
+      match G_graph.get_meta_opt "text" graph with
+      | Some s -> s
+      | None -> "_" in
+    { sent_id; text; graph }
 
   let merge = function
     | [] -> Error.bug "Empty list in Corpus.merge"
@@ -109,10 +116,22 @@ module Corpus = struct
       of_conllx_corpus (Conllx_corpus.load ?log_file ?config file)
     | ".amr" | ".txt" ->
       of_amr_corpus (Amr_corpus.load file)
-    | ".gr" -> Loader.gr file |> G_graph.of_ast ~config:(Conllx_config.build "basic") |> singleton
+    | ".gr" ->
+      let item = Loader.gr file |> G_graph.of_ast ~config:(Conllx_config.build "basic") |> item_of_graph in
+      { kind= Gr; items = [| item |] }
     | ".json" ->
       begin
-        try file |> Yojson.Basic.from_file |> G_graph.of_json |> singleton with
+        try
+          let items =
+            match Yojson.Basic.from_file file with
+            | `List jsons ->
+              Array.of_list (
+                List.map (fun json -> json |> G_graph.of_json |> item_of_graph) jsons
+              )
+            | json -> [| json |> G_graph.of_json |> item_of_graph |] in
+          { kind = Json; items }
+
+        with
         | Yojson.Json_error msg -> Error.run ~loc:(Loc.file file) "Error in the JSON file format: %s" msg
         | Yojson.Basic.Util.Type_error (msg,_) -> Error.run ~loc:(Loc.file file) "Cannot interpret JSON data: %s" msg
       end
@@ -174,7 +193,8 @@ module Corpus_desc = struct
     | Corpus.Conll -> [".conll"; ".conllu"; ".cupt"; ".orfeo"]
     | Amr -> [".amr"; ".txt"]
     | Pst -> [".const"]
-    | Raw -> [".json"]
+    | Json -> [".json"]
+    | Gr -> [".gr"]
 
 
   (* ---------------------------------------------------------------------------------------------------- *)
@@ -329,14 +349,16 @@ module Corpus_desc = struct
 
     let (grew_match_dir, log_file) =
       match (corpus_desc.kind, grew_match) with
-      | (Corpus.Amr,_) | (Pst,_) | (Raw,_) | (Conll, None) -> (None, None)
       | (Conll, Some dir) ->
-        try
-          ensure_dir dir;
-          let log = Filename.concat dir (sprintf "%s.log" corpus_desc.id) in
-          try close_out (open_out log); (Some dir, Some log)
-          with exc -> Log.fwarning "grew_match option ignored: cannot create file in dir %s (%s)" dir (Printexc.to_string exc); raise Skip
-        with Skip -> (None,None) in
+        begin
+          try
+            ensure_dir dir;
+            let log = Filename.concat dir (sprintf "%s.log" corpus_desc.id) in
+            try close_out (open_out log); (Some dir, Some log)
+            with exc -> Log.fwarning "grew_match option ignored: cannot create file in dir %s (%s)" dir (Printexc.to_string exc); raise Skip
+          with Skip -> (None,None)
+        end
+      | _ -> (None, None) in
 
     try
       let items = match corpus_desc.kind with
@@ -378,7 +400,8 @@ module Corpus_desc = struct
                 Some {Corpus.sent_id; text; graph }
               with exc -> Log.fwarning "[id=%s] AMR skipped [exception: %s]" sent_id (Printexc.to_string exc); None
             ) amr_corpus
-        | Raw -> Error.run "raw corpora are not supported in file compilation" in
+        | Json -> Error.run "Json corpora are not supported in file compilation"
+        | Gr -> Error.run "Gr corpora are not supported in file compilation" in
       let _ = Log.fmessage "[%s] %d graphs loaded" corpus_desc.id (Array.length items) in
       let out_ch = open_out_bin marshal_file in
       let (data : Corpus.t) = {Corpus.items; kind=corpus_desc.kind } in

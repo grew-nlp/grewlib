@@ -9,8 +9,6 @@ module Corpus : sig
 
   val merge: t list -> t
 
-  val singleton: G_graph.t -> t
-
   val size: t -> int
   val get_graph: int -> t -> G_graph.t
   val is_conll: int -> t -> bool

@@ -371,9 +371,6 @@ module Corpus = struct
 
   let merge corpus_list =
     Libgrew.handle ~name:"Corpus.merge" (fun () -> Grew_corpus.Corpus.merge corpus_list) ()
-
-  let singleton graph =
-    Libgrew.handle ~name:"Corpus.singleton" (fun () -> Grew_corpus.Corpus.singleton graph) ()
 end
 
 

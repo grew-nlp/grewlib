@@ -190,7 +190,7 @@ end
 (** {2 Corpus} *)
 (* ==================================================================================================== *)
 module Corpus: sig
-  type t = Grew_corpus.Corpus.t
+  type t
 
   (* [size t] returns the number of graphs in the corpus *)
   val size: t -> int
@@ -210,8 +210,6 @@ module Corpus: sig
   val from_dir: ?config:Conllx_config.t -> string -> t
 
   val merge: t list -> t
-
-  val singleton: Graph.t -> t
 end
 
 module Corpus_desc: sig
