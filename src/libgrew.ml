@@ -232,8 +232,8 @@ module Graph = struct
   let to_gr ~config graph  =
     Libgrew.handle ~name:"Graph.to_gr" (fun () -> Grew_graph.G_graph.to_gr ~config graph) ()
 
-  let to_json_python graph =
-    Libgrew.handle ~name:"Graph.to_json_python" (fun () -> Grew_graph.G_graph.to_json_python graph) ()
+  let to_json_python ~config graph =
+    Libgrew.handle ~name:"Graph.to_json_python" (fun () -> Grew_graph.G_graph.to_json_python ~config graph) ()
 
   let to_conll ~config graph =
     Libgrew.handle ~name:"Graph.to_conll" (fun () -> Grew_graph.G_graph.to_conll ~config graph) ()

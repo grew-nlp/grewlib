@@ -221,7 +221,7 @@ module G_graph: sig
   val to_conll: config:Conllx_config.t -> t -> Conll.t
   val to_conll_string: ?cupt:bool -> config:Conllx_config.t -> t -> string
 
-  val to_json_python: t -> Yojson.Basic.t
+  val to_json_python: config:Conllx_config.t -> t -> Yojson.Basic.t
 
   val to_json: t -> Yojson.Basic.t
 
