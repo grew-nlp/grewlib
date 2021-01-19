@@ -1,3 +1,6 @@
+## 1.4.1 (2021/01/19)
+  * add config in to_json_python (bug in grewpy)
+
 ## 1.4.0 (2020/10/02)
   * :warning: change pattern syntax (see http://grew.fr/doc/upgrade)
   * add new constraints in pattern syntax
