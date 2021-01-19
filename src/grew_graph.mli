@@ -224,7 +224,7 @@ module G_graph: sig
 
   val to_dep: ?filter: (string -> bool) -> ?main_feat:string -> ?deco:G_deco.t -> config:Conllx_config.t -> t -> string
 
-  val to_json_python: t -> Yojson.Basic.t
+  val to_json_python: config:Conllx_config.t -> t -> Yojson.Basic.t
 
   val to_json: t -> Yojson.Basic.t
 

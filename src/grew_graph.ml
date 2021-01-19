@@ -930,7 +930,7 @@ module G_graph = struct
     | None -> None
 
   (* -------------------------------------------------------------------------------- *)
-  let to_json_python graph =
+  let to_json_python ~config graph =
     let gr_id id = G_node.get_name id (Gid_map.find id graph.map) in
 
     let nodes = Gid_map.fold
@@ -940,9 +940,9 @@ module G_graph = struct
            and succ =
              Massoc_gid.fold
                (fun acc tar edge ->
-                  match G_edge.to_json_opt edge with
+                  match G_edge.to_string_opt ~config edge with
                   | None -> acc
-                  | Some e -> (`List [e; `String (gr_id tar)]) :: acc
+                  | Some s -> (`List [`String s; `String (gr_id tar)]) :: acc
                ) [] (G_node.get_next node) in
            (node_id,`List [G_fs.to_json_python fs; `List succ])::acc
         ) graph.map [] in

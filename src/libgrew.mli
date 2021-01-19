@@ -100,7 +100,7 @@ module Graph : sig
   val of_gr: config:Conllx_config.t -> string -> t
 
   val of_json_python: config:Conllx_config.t -> Yojson.Basic.t -> t
-  val to_json_python: t -> Yojson.Basic.t
+  val to_json_python: config:Conllx_config.t -> t -> Yojson.Basic.t
 
   val of_json: Yojson.Basic.t -> t
   val to_json: t -> Yojson.Basic.t
