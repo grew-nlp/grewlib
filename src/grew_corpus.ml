@@ -110,6 +110,18 @@ module Corpus = struct
   let from_stdin ?log_file ?config () =
     of_conllx_corpus (Conllx_corpus.read_stdin ?log_file ?config ())
 
+  let from_json ?loc json =
+    try
+      match json with
+      | `List jsons ->
+        Array.of_list (
+          List.map (fun json -> json |> G_graph.of_json |> item_of_graph) jsons
+        )
+      | json -> [| json |> G_graph.of_json |> item_of_graph |]
+    with
+    | Yojson.Json_error msg -> Error.run ?loc "Error in the JSON file format: %s" msg
+
+
   let from_file ?log_file ?config file =
     match Filename.extension file with
     | ".conll" | ".conllu" | ".cupt" | ".orfeo" | ".frsemcor" ->
@@ -121,19 +133,8 @@ module Corpus = struct
       { kind= Gr; items = [| item |] }
     | ".json" ->
       begin
-        try
-          let items =
-            match Yojson.Basic.from_file file with
-            | `List jsons ->
-              Array.of_list (
-                List.map (fun json -> json |> G_graph.of_json |> item_of_graph) jsons
-              )
-            | json -> [| json |> G_graph.of_json |> item_of_graph |] in
-          { kind = Json; items }
-
-        with
-        | Yojson.Json_error msg -> Error.run ~loc:(Loc.file file) "Error in the JSON file format: %s" msg
-        | Yojson.Basic.Util.Type_error (msg,_) -> Error.run ~loc:(Loc.file file) "Cannot interpret JSON data: %s" msg
+        try { kind=Json; items = from_json ~loc: (Loc.file file) (Yojson.Basic.from_file file)}
+        with Yojson.Json_error msg -> Error.run ~loc:(Loc.file file) "Error in the JSON file format: %s" msg
       end
     | ".melt" | ".brown" ->
       let lines = File.read file in
@@ -264,6 +265,7 @@ module Corpus_desc = struct
           | None | Some "conll" -> Corpus.Conll
           | Some "pst" -> Pst
           | Some "amr" -> Amr
+          | Some "json" -> Json
           | Some x -> Error.run "[Corpus.load_json] Unknown \"kind\":\"%s\" field in file: \"%s\"" x json_file
         with Type_error _ -> Error.run "[Corpus.load_json, file \"%s\"] \"kind\" must be a string" json_file in
 
@@ -400,7 +402,16 @@ module Corpus_desc = struct
                 Some {Corpus.sent_id; text; graph }
               with exc -> Log.fwarning "[id=%s] AMR skipped [exception: %s]" sent_id (Printexc.to_string exc); None
             ) amr_corpus
-        | Json -> Error.run "Json corpora are not supported in file compilation"
+        | Json ->
+          begin
+            match full_files with
+            | [file] ->
+              begin
+                try Corpus.from_json ~loc: (Loc.file file) (Yojson.Basic.from_file file)
+                with Yojson.Json_error msg -> Error.run ~loc:(Loc.file file) "Error in the JSON file format: %s" msg
+              end
+            | _ -> Error.run "Json multi-files corpora are not supported in file compilation"
+          end
         | Gr -> Error.run "Gr corpora are not supported in file compilation" in
       let _ = Log.fmessage "[%s] %d graphs loaded" corpus_desc.id (Array.length items) in
       let out_ch = open_out_bin marshal_file in

@@ -621,12 +621,12 @@ module G_graph = struct
              | (id, `List [`Assoc feat_json_list; `List succ]) ->
                let fs = List.map (function
                    | (feat_name, `String value) -> ({Ast.name= feat_name; kind = Ast.Equality [value]}, Loc.empty)
-                   | _ -> Error.build "[Graph.of_json_python] not an valid feature structure"
+                   | (feat_name, json) -> Error.build "[Graph.of_json_python] invalid feature structure. feat_name=`%s` json=`%s`" feat_name (Yojson.Basic.pretty_to_string json)
                  ) feat_json_list in
                let new_edges = List.map
                    (function
                      | `List [`String rel; `String tar] -> ({Ast.edge_id=None; edge_label_cst=Ast.Pos_list [rel]; src=id; tar},Loc.empty)
-                     | _ -> Error.build "[Graph.of_json_python] not an valid succ list"
+                     | _ -> Error.build "[Graph.of_json_python] invalid succ list"
                    ) succ in
                (
                  ({ Ast.node_id=id; fs}, Loc.empty) :: acc_node,
