@@ -403,15 +403,13 @@ module Corpus_desc = struct
               with exc -> Log.fwarning "[id=%s] AMR skipped [exception: %s]" sent_id (Printexc.to_string exc); None
             ) amr_corpus
         | Json ->
-          begin
-            match full_files with
-            | [file] ->
-              begin
+          Array.concat (
+            List.map (
+              fun file ->
                 try Corpus.from_json ~loc: (Loc.file file) (Yojson.Basic.from_file file)
                 with Yojson.Json_error msg -> Error.run ~loc:(Loc.file file) "Error in the JSON file format: %s" msg
-              end
-            | _ -> Error.run "Json multi-files corpora are not supported in file compilation"
-          end
+            ) full_files
+          )
         | Gr -> Error.run "Gr corpora are not supported in file compilation" in
       let _ = Log.fmessage "[%s] %d graphs loaded" corpus_desc.id (Array.length items) in
       let out_ch = open_out_bin marshal_file in
