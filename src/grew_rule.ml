@@ -1821,8 +1821,8 @@ module Rule = struct
           added_edges_in_rule = String_map.empty;
         } in
 
-    List.fold_left
-      (fun gwh_set cmd ->
+    CCList.foldi
+      (fun gwh_set cmp_nb cmd ->
          Graph_with_history_set.fold
            (fun gwh acc ->
               let new_graphs = gwh_apply_command ~config cmd matching gwh in
@@ -1831,7 +1831,7 @@ module Rule = struct
                 then Graph_with_history_set.map
                     (fun g ->
                        let up = Matching.match_deco rule.pattern matching in
-                       let down = Matching.down_deco (g.added_edges_in_rule, matching, g.added_gids_in_rule) rule.commands in
+                       let down = Matching.down_deco (g.added_edges_in_rule, matching, g.added_gids_in_rule) (CCList.take (cmp_nb+1) rule.commands) in
                        {g with graph = G_graph.track up rule.name down graph_with_history.graph g.graph}
                     ) new_graphs
                 else new_graphs in
