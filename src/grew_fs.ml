@@ -59,16 +59,10 @@ module G_feature = struct
 
   let to_json (feat_name, feat_val) = (feat_name, `String (conll_string_of_value feat_val))
 
-  let to_dot (feat_name, feat_val) =
-    let string_val = string_of_value feat_val in
-    match Str.split (Str.regexp ":C:") string_val with
-    | [] -> Error.bug "[G_feature.to_dot] feature value '%s'" string_val
-    | fv::_ -> sprintf "%s=%s" feat_name fv
-
   let buff_dot buff (feat_name, feat_val) =
     let string_val = string_of_value feat_val in
     match Str.split (Str.regexp ":C:") string_val with
-    | [] -> Error.bug "[G_feature.to_dot] feature value '%s'" string_val
+    | [] -> bprintf buff "<TR><TD ALIGN=\"right\">%s</TD><TD>=</TD><TD ALIGN=\"left\"></TD></TR>\n" (decode_feat_name feat_name)
     | fv::_ -> bprintf buff "<TR><TD ALIGN=\"right\">%s</TD><TD>=</TD><TD ALIGN=\"left\">%s</TD></TR>\n" (decode_feat_name feat_name) fv
 end (* module G_feature *)
 

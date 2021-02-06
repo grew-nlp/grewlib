@@ -1077,7 +1077,7 @@ module Rule = struct
         let fs = G_node.get_fs node in
         begin
           match G_fs.get_value_opt feat_name fs with
-          | None -> Error.run ~loc "Node feature named %s is undefined" feat_name
+          | None -> Error.run ~loc "Node feature named `%s` is undefined" feat_name
           | Some v -> v
         end
       | Command.Edge_feat (edge_id, feat_name) ->
@@ -1455,7 +1455,7 @@ module Rule = struct
         let fs = G_node.get_fs node in
         begin
           match G_fs.get_value_opt feat_name fs with
-          | None -> Error.run ~loc "Node feature named %s is undefined" feat_name
+          | None -> Error.run ~loc "Node feature named `%s` is undefined" feat_name
           | Some v -> [v]
         end
       | Command.Edge_feat (edge_id, feat_name) ->

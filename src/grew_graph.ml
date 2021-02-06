@@ -1216,9 +1216,12 @@ module G_graph = struct
                | Some url -> Some (lab,url)
              end
            | _ -> None in
-         bprintf buff "  N_%s [label=<%s>%s]\n"
+
+          match G_fs.to_dot ~decorated_feat ?main_feat fs with
+          | "" -> bprintf buff "  N_%s [label=\"\"]\n" (Gid.to_string id)
+          | s -> bprintf buff "  N_%s [label=<%s>%s]\n"
            (Gid.to_string id)
-           (G_fs.to_dot ~decorated_feat ?main_feat fs)
+           s
            (match lab_url with None -> "" | Some (lab,url) -> sprintf ", URL=\"%s\", target=_blank, tooltip=\"%s\", shape=record" url lab)
       ) graph.map;
 
