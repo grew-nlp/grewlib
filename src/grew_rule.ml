@@ -298,7 +298,7 @@ module Pattern = struct
   let of_ast ~config ?(lexicons=[]) pattern_ast =
     let (ker, ker_table, edge_ids) =
       try build_ker_basic ~config lexicons pattern_ast.Ast.pat_pos
-      with P_fs.Fail_unif -> Error.build "feature structures declared in the \"match\" clause are inconsistent " in
+      with P_fs.Fail_unif -> Error.build "feature structures declared in the `pattern` clause are inconsistent " in
     let exts =
       List_.try_map
         P_fs.Fail_unif (* Skip the without parts that are incompatible with the match part *)
@@ -1016,7 +1016,7 @@ module Rule = struct
       try Pattern.build_ker_basic ~config lexicons rule_ast.Ast.pattern.Ast.pat_pos
       with P_fs.Fail_unif ->
         Error.build ~loc:rule_ast.Ast.rule_loc
-          "[Rule.build] in rule \"%s\": feature structures declared in the \"match\" clause are inconsistent"
+          "[Rule.build] in rule \"%s\": feature structures declared in the `pattern` clause are inconsistent"
           rule_ast.Ast.rule_id in
     let (exts,_) =
       List.fold_left
