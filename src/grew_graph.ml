@@ -533,15 +533,15 @@ module G_graph = struct
     let map =
       List.fold_left
         (fun acc (id_src, edge_items, id_tar) ->
-          match (String_map.find_opt id_src table, String_map.find_opt id_tar table) with
-          | (Some gid_1, Some gid_2) ->
-            let edge = G_edge.from_items edge_items in
-            (match map_add_edge_opt acc gid_1 edge gid_2 with
+           match (String_map.find_opt id_src table, String_map.find_opt id_tar table) with
+           | (Some gid_1, Some gid_2) ->
+             let edge = G_edge.from_items edge_items in
+             (match map_add_edge_opt acc gid_1 edge gid_2 with
               | Some g -> g
               | None -> Error.build "[G_graph.of_json] try to build a graph with twice the same edge %s" (G_edge.dump edge)
-              )
-          | (None, _) -> Error.build "[G_graph.of_json] undefined node id `%s` used as `src` in edges" id_src
-          | (_, None) -> Error.build "[G_graph.of_json] undefined node id `%s` used as `tar` in edges" id_tar
+             )
+           | (None, _) -> Error.build "[G_graph.of_json] undefined node id `%s` used as `src` in edges" id_src
+           | (_, None) -> Error.build "[G_graph.of_json] undefined node id `%s` used as `tar` in edges" id_tar
         ) maps_with_order edges in
 
     { empty with
@@ -614,15 +614,20 @@ module G_graph = struct
 
 
   (* -------------------------------------------------------------------------------- *)
-  let of_json_python ~config = function
+  let of_json_python ~config json =
+    match json with
     | `Assoc (l : (string * Yojson.Basic.t) list) ->
       let (ast_node_list, ast_edge_list) = List.fold_left
           (fun (acc_node, acc_edge) -> function
-             | (id, `List [`Assoc feat_json_list; `List succ]) ->
-               let fs = List.map (function
-                   | (feat_name, `String value) -> ({Ast.name= feat_name; kind = Ast.Equality [value]}, Loc.empty)
-                   | (feat_name, json) -> Error.build "[Graph.of_json_python] invalid feature structure. feat_name=`%s` json=`%s`" feat_name (Yojson.Basic.pretty_to_string json)
-                 ) feat_json_list in
+             | (id, `List [json_fs; `List succ]) ->
+               let fs = match json_fs with
+                 | `Assoc feat_json_list ->
+                   List.map (function
+                       | (feat_name, `String value) -> ({Ast.name= feat_name; kind = Ast.Equality [value]}, Loc.empty)
+                       | (feat_name, json) -> Error.build "[Graph.of_json_python] invalid feature structure. feat_name=`%s` json=`%s`" feat_name (Yojson.Basic.pretty_to_string json)
+                     ) feat_json_list
+                 |  `String one -> [({Ast.name= "form"; kind = Ast.Equality [one]}, Loc.empty)]
+                 | _ -> Error.build "[Graph.of_json_python] invalid fs" in
                let new_edges = List.map
                    (function
                      | `List [`String rel; `String tar] -> ({Ast.edge_id=None; edge_label_cst=Ast.Pos_list [rel]; src=id; tar},Loc.empty)
@@ -632,11 +637,12 @@ module G_graph = struct
                  ({ Ast.node_id=id; fs}, Loc.empty) :: acc_node,
                  new_edges @ acc_edge
                )
-             | _ -> Error.build "[Graph.of_json_python] not an assoc list"
+             | (_,x) -> Error.build "[Graph.of_json_python] <1> ill formed graph\n%s" (Yojson.Basic.pretty_to_string x)
           ) ([],[]) l in
       let graph_ast = { Ast.meta=[]; nodes=ast_node_list; edges=ast_edge_list}
       in of_ast ~config graph_ast
-    | _ -> Error.build "[Graph.of_json_python] not an assoc list"
+    | x -> Error.build "[Graph.of_json_python]  <2> ill formed graph\n%s" (Yojson.Basic.pretty_to_string x)
+
 
   (* -------------------------------------------------------------------------------- *)
   (** input : "Le/DET/le petit/ADJ/petit chat/NC/chat dort/V/dormir ./PONCT/." *)
@@ -961,9 +967,9 @@ module G_graph = struct
     let (orderd_nodes, non_ordered_nodes) =
       Gid_map.fold
         (fun gid node (acc_on, acc_non) ->
-          match G_node.get_position_opt node with
-          | None -> (acc_on, (gid,node)::acc_non)
-          | Some _ -> ((gid,node)::acc_on, acc_non)
+           match G_node.get_position_opt node with
+           | None -> (acc_on, (gid,node)::acc_non)
+           | Some _ -> ((gid,node)::acc_on, acc_non)
         ) graph.map ([],[]) in
     let sorted_ordered_nodes = List.sort (fun (_,n1) (_,n2) -> G_node.compare n1 n2) orderd_nodes in
 
@@ -1217,12 +1223,12 @@ module G_graph = struct
              end
            | _ -> None in
 
-          match G_fs.to_dot ~decorated_feat ?main_feat fs with
-          | "" -> bprintf buff "  N_%s [label=\"\"]\n" (Gid.to_string id)
-          | s -> bprintf buff "  N_%s [label=<%s>%s]\n"
-           (Gid.to_string id)
-           s
-           (match lab_url with None -> "" | Some (lab,url) -> sprintf ", URL=\"%s\", target=_blank, tooltip=\"%s\", shape=record" url lab)
+         match G_fs.to_dot ~decorated_feat ?main_feat fs with
+         | "" -> bprintf buff "  N_%s [label=\"\"]\n" (Gid.to_string id)
+         | s -> bprintf buff "  N_%s [label=<%s>%s]\n"
+                  (Gid.to_string id)
+                  s
+                  (match lab_url with None -> "" | Some (lab,url) -> sprintf ", URL=\"%s\", target=_blank, tooltip=\"%s\", shape=record" url lab)
       ) graph.map;
 
     (* edges *)
