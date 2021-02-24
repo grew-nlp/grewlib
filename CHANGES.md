@@ -1,3 +1,10 @@
+## 1.4.2 (2021/02/24)
+  * Remove obsolete domain handling:
+    * keywords “features” and “labels” obsolete
+  * add whether handling for Grew-match
+  * new fct: Graph.get_feature_values, Graph.get_history, Graph.get_relation and Graph.get_features
+  * remove old Conll code
+
 ## 1.4.1 (2021/01/19)
   * add config in to_json_python (bug in grewpy)
 
