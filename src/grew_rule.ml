@@ -1132,7 +1132,7 @@ module Rule = struct
           | Some new_graph ->
             {state with
              graph = new_graph;
-             e_mapping = (printf "+++%s+++\n%!" edge_id; String_map.add edge_id (src_gid,G_edge.empty,tar_gid) state.e_mapping);
+             e_mapping = (String_map.add edge_id (src_gid,G_edge.empty,tar_gid) state.e_mapping);
              effective = true
             }
         end
@@ -1678,24 +1678,25 @@ module Rule = struct
           | [] when !Global.safe_commands -> Error.run ~loc "UPDATE_EDGE_FEAT: no changes"
           | [] -> Graph_with_history_set.singleton gwh
           | _ ->
-            let new_graphs = List.fold_left
+            let new_graphs =
+              List.fold_left
                 (fun acc new_edge ->
-                   let new_graph =
-                     match G_graph.del_edge_opt ~loc src_gid old_edge tar_gid gwh.Graph_with_history.graph with
-                     | None -> Error.bug "Inconsistent graph structure in UPDATE_EDGE_FEAT"
-                     | Some tmp_graph ->
-                       match G_graph.add_edge_opt src_gid new_edge tar_gid tmp_graph with
-                       | None -> Error.bug "the edge should be new!"
-                       | Some g -> g in
-                   Graph_with_history_set.add
-                     { gwh with
-                       Graph_with_history.graph = new_graph;
-                       delta = gwh.Graph_with_history.delta
-                               |> Delta.del_edge src_gid old_edge tar_gid
-                               |> Delta.add_edge src_gid new_edge tar_gid;
-                       e_mapping = String_map.add edge_id (src_gid,new_edge,tar_gid) gwh.e_mapping;
-                     }
-                     acc
+                   match G_graph.del_edge_opt ~loc src_gid old_edge tar_gid gwh.Graph_with_history.graph with
+                   | None -> Error.bug "Inconsistent graph structure in UPDATE_EDGE_FEAT"
+                   | Some tmp_graph ->
+                     match G_graph.add_edge_opt src_gid new_edge tar_gid tmp_graph with
+                     | None when !Global.safe_commands -> Error.run ~loc "UPDATE_EDGE_FEAT: the new edge alredy exists"
+                     | None -> acc
+                     | Some new_graph ->
+                       Graph_with_history_set.add
+                         { gwh with
+                           Graph_with_history.graph = new_graph;
+                           delta = gwh.Graph_with_history.delta
+                                   |> Delta.del_edge src_gid old_edge tar_gid
+                                   |> Delta.add_edge src_gid new_edge tar_gid;
+                           e_mapping = String_map.add edge_id (src_gid,new_edge,tar_gid) gwh.e_mapping;
+                         }
+                         acc
                 ) Graph_with_history_set.empty new_edges in
             new_graphs
         end
