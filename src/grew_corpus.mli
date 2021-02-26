@@ -40,7 +40,7 @@ module Corpus_desc : sig
   val get_directory: t -> string
   val load_json: string -> t list
 
-  val compile: ?grew_match: string ->  t -> unit
+  val compile: ?force:bool -> ?grew_match: string ->  t -> unit
 
   val clean: t -> unit
 end

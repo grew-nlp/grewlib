@@ -424,19 +424,22 @@ module Corpus_desc = struct
 
 
   (* ---------------------------------------------------------------------------------------------------- *)
-  let compile ?grew_match corpus_desc =
+  let compile ?(force=false) ?grew_match corpus_desc =
     let full_files = get_full_files corpus_desc in
     let marshal_file = (Filename.concat corpus_desc.directory corpus_desc.id) ^ ".marshal" in
     let really_marshal () = build_marshal_file ?grew_match corpus_desc in
-    try
-      let marshal_time = (Unix.stat marshal_file).Unix.st_mtime in
-      if List.exists (fun f -> (Unix.stat f).Unix.st_mtime > marshal_time) full_files
-      then really_marshal () (* one of the data files is more recent than the marshal file *)
-      else Log.fmessage "--> %s is uptodate" corpus_desc.id
-    with
-    | Unix.Unix_error _ ->
-      (* the marshal file does not exists *)
-      really_marshal ()
+    if force
+    then really_marshal ()
+    else
+      try
+        let marshal_time = (Unix.stat marshal_file).Unix.st_mtime in
+        if List.exists (fun f -> (Unix.stat f).Unix.st_mtime > marshal_time) full_files
+        then really_marshal () (* one of the data files is more recent than the marshal file *)
+        else Log.fmessage "--> %s is uptodate" corpus_desc.id
+      with
+      | Unix.Unix_error _ ->
+        (* the marshal file does not exists *)
+        really_marshal ()
 
   (* ---------------------------------------------------------------------------------------------------- *)
   let clean {kind; id; directory; files; preapply}  =

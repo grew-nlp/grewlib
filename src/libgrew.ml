@@ -394,8 +394,8 @@ module Corpus_desc = struct
   let load_json grs =
     Libgrew.handle ~name:"Corpus.load_json" (fun () -> Grew_corpus.Corpus_desc.load_json grs) ()
 
-  let compile ?grew_match t =
-    Libgrew.handle ~name:"Corpus.compile" (fun () -> Grew_corpus.Corpus_desc.compile ?grew_match t) ()
+  let compile ?force ?grew_match t =
+    Libgrew.handle ~name:"Corpus.compile" (fun () -> Grew_corpus.Corpus_desc.compile ?force ?grew_match t) ()
 
   let clean t =
     Libgrew.handle ~name:"Corpus.clean" (fun () -> Grew_corpus.Corpus_desc.clean t) ()
