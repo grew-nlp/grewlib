@@ -56,7 +56,7 @@ module Command  = struct
     | DEL_FEAT of (command_node * string)
     | DEL_EDGE_FEAT of (string * string) (* (edge identifier, feature_name) *)
     | UPDATE_FEAT of (command_node * string * item list)
-    | UPDATE_EDGE_FEAT of (string * string * item) (* edge identifier, feat_name, new_value *)
+    | UPDATE_EDGE_FEAT of (string * string * item list) (* edge identifier, feat_name, new_value *)
     (* *)
     | NEW_NODE of string
     | NEW_BEFORE of (string * command_node)
@@ -165,12 +165,12 @@ module Command  = struct
                  ("label_cst", Label_cst.to_json_python ~config label_cst);
                ]
               )]
-    | UPDATE_EDGE_FEAT (edge_id, feat_name, item) ->
+    | UPDATE_EDGE_FEAT (edge_id, feat_name, items) ->
       `Assoc [("update_edge_feat",
                `Assoc [
                  ("edge_id", `String edge_id);
                  ("feat_name", `String feat_name);
-                 ("item", item_to_json item);
+                 ("items", `List (List.map item_to_json items));
                ]
               )]
     | DEL_EDGE_FEAT (edge_id, feat_name) ->
@@ -325,11 +325,8 @@ module Command  = struct
         | (false, true) when List.mem feat_name ["length"; "delta"] ->
           Error.build ~loc "The edge feature name \"%s\" is reserved and cannot be used in commands" feat_name
         | (false, true) ->
-          begin
-            match ast_items with
-            | [ast_item] -> ((UPDATE_EDGE_FEAT (node_or_edge_id, feat_name, of_ast_item ast_item), loc), (kni, kei))
-            | _ -> Error.build ~loc "Cannot concat value in edge feature: \"%s\"" node_or_edge_id
-          end
+          let items = List.map of_ast_item ast_items in
+          ((UPDATE_EDGE_FEAT (node_or_edge_id, feat_name, items), loc), (kni, kei))
 
         (* other cases *)
         | (true,true) -> Error.build ~loc "Identifier conflict: \"%s\" is used both for a node and an edeg" node_or_edge_id

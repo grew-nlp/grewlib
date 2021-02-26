@@ -1207,20 +1207,23 @@ module Rule = struct
           end
       end
 
-    | Command.UPDATE_EDGE_FEAT (edge_id, feat_name, item) ->
+    | Command.UPDATE_EDGE_FEAT (edge_id, feat_name, item_list) ->
       begin
         match String_map.find_opt edge_id state.e_mapping with
         | None -> Error.run ~loc "UPDATE_EDGE_FEAT (LHS) The edge identifier '%s' is undefined" edge_id
         | Some (src_gid,old_edge,tar_gid) ->
           let new_edge =
-            match (feat_name, item) with
-            | ("label", Command.Edge_feat (src_edge_id, "label")) ->
+            match (feat_name, item_list) with
+            | ("label", [Command.Edge_feat (src_edge_id, "label")]) -> (* special case of label copy "e.label = f.label" *)
               begin
                 match String_map.find_opt src_edge_id state.e_mapping with
                 | None -> Error.run ~loc "UPDATE_EDGE_FEAT (RHS) The edge identifier '%s' is undefined" src_edge_id
                 | Some (src_gid,edge,tar_gid) -> edge
               end
-            | _ -> G_edge.update feat_name (feature_value_of_item item) old_edge in
+            | _ ->
+              let feature_value_list = List.map feature_value_of_item item_list in
+              let new_feature_value = concat_feature_values ~loc feature_value_list in
+              G_edge.update feat_name new_feature_value old_edge in
           let new_state_opt =
             if new_edge = old_edge
             then None
@@ -1590,7 +1593,7 @@ module Rule = struct
     | Command.UPDATE_FEAT (tar_cn, tar_feat_name, item_list) ->
       let tar_gid = node_find tar_cn in
 
-      (* not deterministic because of non functionnal lexicons *)
+      (* not deterministic because of non functional lexicons *)
       let new_feature_value_list_list =
         item_list
         |> List.map (feature_value_list_of_item tar_feat_name)
@@ -1636,7 +1639,7 @@ module Rule = struct
 
 
 
-    | Command.UPDATE_EDGE_FEAT (edge_id, feat_name, item) ->
+    | Command.UPDATE_EDGE_FEAT (edge_id, feat_name, item_list) ->
       begin
         let (src_gid,old_edge,tar_gid) =
           match String_map.find_opt edge_id gwh.e_mapping with
@@ -1647,8 +1650,8 @@ module Rule = struct
             | None -> Error.run ~loc "The edge identifier '%s' is undefined" edge_id in
 
         let new_edges =
-          match (feat_name, item) with
-          | ("label", Command.Edge_feat (src_edge_id, "label")) ->
+          match (feat_name, item_list) with
+          | ("label", [Command.Edge_feat (src_edge_id, "label")]) ->
             let src_edge =
               match String_map.find_opt src_edge_id gwh.e_mapping with
               | Some (_,e,_) -> e
@@ -1659,8 +1662,13 @@ module Rule = struct
             [src_edge]
 
           | _ ->
-            (* not deterministic because of non functionnal lexicons *)
-            let new_feature_value_list = feature_value_list_of_item feat_name item in
+            (* not deterministic because of non functional lexicons *)
+            let new_feature_value_list_list =
+              item_list
+              |> List.map (feature_value_list_of_item feat_name)
+              |> CCList.cartesian_product in
+
+            let new_feature_value_list = List.map concat_feature_values new_feature_value_list_list in
             List.fold_left
               (fun acc new_feature_value ->
                  let test_new_edge =

@@ -1,3 +1,6 @@
+## 1.4.3 (2021/02/26)
+  * more general UPDATE_EDGE_FEAT handling (see https://grew.fr/gallery/update_edge_feature)
+
 ## 1.4.2 (2021/02/24)
   * Remove obsolete domain handling:
     * keywords “features” and “labels” obsolete
