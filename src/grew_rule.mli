@@ -69,8 +69,6 @@ module Rule : sig
   (** [get_name t] returns the name of the rule [t]. *)
   val get_name: t -> string
 
-  val get_long_name: t -> string
-
   (** [get_loc t] returns the file location of the rule [t]. *)
   val get_loc: t -> Loc.t
 

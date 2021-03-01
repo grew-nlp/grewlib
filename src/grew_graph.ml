@@ -242,7 +242,7 @@ end (* module G_deco *)
 (* ================================================================================ *)
 module G_graph = struct
 
-  type trace_item = G_deco.t * string * G_deco.t * t
+  type trace_item = G_deco.t * (string * int) * G_deco.t * t
 
   and t = {
     meta: (string * string) list; (* meta-informations *)
@@ -275,16 +275,16 @@ module G_graph = struct
   let fold_gid fct t init =
     Gid_map.fold (fun gid _ acc -> fct gid acc) t.map init
 
-  let track_rules rule_name t =
+  let track_rules (rule_name,_) t =
     if !Global.track_rules
     then
       let old = try String_map.find rule_name t.rules with Not_found -> 0 in
       { t with rules = String_map.add rule_name (old+1) t.rules }
     else t
 
-  let track_history up rule_name down previous_graph t =
+  let track_history up rule_info down previous_graph t =
     if !Global.track_history
-    then { t with trace = Some (up, rule_name, down, previous_graph) }
+    then { t with trace = Some (up, rule_info, down, previous_graph) }
     else t
 
   let track_impact down t =
@@ -292,10 +292,10 @@ module G_graph = struct
     then { t with impact = G_deco.merge t.impact down }
     else t
 
-  let track up rule_name down previous_graph t =
+  let track up rule_info down previous_graph t =
     t
-    |> track_rules rule_name
-    |> track_history up rule_name down previous_graph
+    |> track_rules rule_info
+    |> track_history up rule_info down previous_graph
     |> track_impact down
 
   let get_history graph =

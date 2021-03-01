@@ -35,6 +35,8 @@ module Loc = struct
   let file_opt_line_opt fo lo = (fo, lo)
   let set_line l (x,_) = (x, Some l)
 
+  let get_line_opt = snd
+
   let to_string = function
     | (Some file, Some line) -> sprintf "[file: %s, line: %d]" (Filename.basename file) line
     | (None, Some line) -> sprintf "[line: %d]" line

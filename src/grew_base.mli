@@ -31,6 +31,8 @@ module Loc: sig
 
   val set_line: int -> t -> t
 
+  val get_line_opt: t -> int option
+
   val to_string: t -> string
 end
 

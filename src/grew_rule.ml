@@ -911,7 +911,9 @@ module Rule = struct
 
   let get_name t = t.name
 
-  let get_long_name t = t.path ^ t.name
+  let get_rule_info t =
+    (t.path ^ t.name,
+     match Loc.get_line_opt t.loc with Some l -> l | None -> 0)
 
   let get_loc t = t.loc
 
@@ -1386,7 +1388,7 @@ module Rule = struct
             incr_rules rule.name;
             let up = Matching.match_deco rule.pattern first_matching_where_all_witout_are_fulfilled in
             let down = Matching.down_deco (String_map.empty, first_matching_where_all_witout_are_fulfilled, final_state.created_nodes) rule.commands in
-            Some (G_graph.track up (get_long_name rule) down graph final_state.graph)
+            Some (G_graph.track up (get_rule_info rule) down graph final_state.graph)
           end
         else None
     with Error.Run (msg,_) -> Error.run ~loc:rule.loc "%s" msg
@@ -1841,7 +1843,7 @@ module Rule = struct
                     (fun g ->
                        let up = Matching.match_deco rule.pattern matching in
                        let down = Matching.down_deco (g.added_edges_in_rule, matching, g.added_gids_in_rule) (CCList.take (cmp_nb+1) rule.commands) in
-                       {g with graph = G_graph.track up rule.name down graph_with_history.graph g.graph}
+                       {g with graph = G_graph.track up (get_rule_info rule) down graph_with_history.graph g.graph}
                     ) new_graphs
                 else new_graphs in
 
@@ -1891,7 +1893,7 @@ module Rule = struct
             incr_rules rule.name;
             let up = Matching.match_deco rule.pattern sub in
             let down = Matching.down_deco (new_gwh.added_edges_in_rule, sub, new_gwh.added_gids_in_rule) rule.commands in
-            Some {new_gwh with graph = G_graph.track up (get_long_name rule) down graph new_gwh.graph }
+            Some {new_gwh with graph = G_graph.track up (get_rule_info rule) down graph new_gwh.graph }
           with Dead_lock -> loop_matching tail (* failed to apply all commands -> move to the next matching *)
         else loop_matching tail (* some ext part prevents rule app -> move to the next matching *)
     in loop_matching matching_list
