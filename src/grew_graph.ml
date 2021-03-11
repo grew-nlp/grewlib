@@ -477,11 +477,10 @@ module G_graph = struct
       with Type_error _ -> [] in
 
     let nodes =
-      (try json |> member "nodes" |> to_list with Type_error _ -> [])
+      (try json |> member "nodes" |> to_assoc with Type_error _ -> [])
       |> List.map
-        (fun json_node ->
-           let id = try json_node |> member "id" |> to_string with Type_error _ -> Error.run "No id in node json description %s" (Yojson.Basic.pretty_to_string json_node) in
-           let fs = json_node |> to_assoc |> List.remove_assoc "id" |> List.map (fun (feat_name,json_value) ->
+        (fun (id,json_node) ->
+           let fs = json_node |> to_assoc |> List.map (fun (feat_name,json_value) ->
                (feat_name, json_value |> to_string)) in
            (id,fs)
         ) in
@@ -555,10 +554,10 @@ module G_graph = struct
     let (nodes, gid_position_list) =
       Gid_map.fold
         (fun gid node (acc_nodes, acc_gpl) ->
-           let node_conllx = `Assoc (("id", `String (Gid.to_string gid)) :: (G_fs.to_json (G_node.get_fs node))) in
+          let item = (Gid.to_string gid, `Assoc (G_fs.to_json (G_node.get_fs node))) in
            match G_node.get_position_opt node with
-           | None -> (node_conllx :: acc_nodes, acc_gpl)
-           | Some p -> (node_conllx :: acc_nodes, (gid,p) :: acc_gpl)
+           | None -> (item :: acc_nodes, acc_gpl)
+           | Some p -> (item :: acc_nodes, (gid,p) :: acc_gpl)
         ) graph.map ([], []) in
 
     let edges =
@@ -597,7 +596,7 @@ module G_graph = struct
 
     let full_assoc_list = [
       ("meta", meta);
-      ("nodes", `List nodes);
+      ("nodes", `Assoc nodes);
       ("edges", `List edges);
       ("order", `List order);
       ("modified_nodes", `List modified_nodes);
@@ -646,16 +645,16 @@ module G_graph = struct
   let of_brown ?sentid ~config brown =
     let units = Str.split (Str.regexp " ") brown in
     let json_nodes =
-      (`Assoc [("id", `String "0"); ("form", `String "__0__")])
-      :: List.mapi (
+      ("0", `Assoc [("form", `String "__0__")]) ::
+      List.mapi (
         fun i item -> match Str.full_split re item with
           | [Str.Text form; Str.Delim xpos_string; Str.Text lemma] ->
             let xpos = String.sub xpos_string 1 ((String.length xpos_string)-2) in
-            `Assoc [("id", `String (string_of_int (i+1))); ("form", `String form); ("xpos", `String xpos); ("lemma", `String lemma)]
+            (string_of_int (i+1), `Assoc [("form", `String form); ("xpos", `String xpos); ("lemma", `String lemma)])
           | _ -> Error.build "[Graph.of_brown] Cannot parse Brown item >>>%s<<< (expected \"phon/POS/lemma\") in >>>%s<<<" item brown
       ) units in
-    let order = List.map (Yojson.Basic.Util.member "id") json_nodes in
-    of_json (`Assoc [("nodes", `List json_nodes); ("order", `List order)])
+    let order = List.map (fun (id,_) -> `String id) json_nodes in
+    of_json (`Assoc [("nodes", `Assoc json_nodes); ("order", `List order)])
 
   (* -------------------------------------------------------------------------------- *)
   let of_pst pst =
