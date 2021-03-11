@@ -473,9 +473,7 @@ module G_graph = struct
   let of_json (json: Yojson.Basic.t) =
     let open Yojson.Basic.Util in
     let meta =
-      try
-        json |> member "meta" |> to_list
-        |> List.map (fun x -> (x |> member "key" |> to_string, x |> member "value" |> to_string))
+      try json |> member "meta" |> to_assoc |> List.map (fun (k,v) -> (k, v |> to_string))
       with Type_error _ -> [] in
 
     let nodes =
@@ -552,11 +550,7 @@ module G_graph = struct
 
   (* -------------------------------------------------------------------------------- *)
   let to_json graph =
-    let meta =
-      List.map
-        (fun (k,v) ->
-           `Assoc [("key", `String k); ("value", `String v)]
-        ) graph.meta in
+    let meta = `Assoc (List.map (fun (k,v) -> (k, `String v)) graph.meta) in
 
     let (nodes, gid_position_list) =
       Gid_map.fold
@@ -602,7 +596,7 @@ module G_graph = struct
         ) graph.impact.edges in
 
     let full_assoc_list = [
-      ("meta", `List meta);
+      ("meta", meta);
       ("nodes", `List nodes);
       ("edges", `List edges);
       ("order", `List order);
