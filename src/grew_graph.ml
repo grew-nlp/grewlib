@@ -477,27 +477,40 @@ module G_graph = struct
       with Type_error _ -> [] in
 
     let nodes =
-      (try json |> member "nodes" |> to_assoc with Type_error _ -> [])
-      |> List.map
-        (fun (id,json_node) ->
-           let fs = json_node |> to_assoc |> List.map (fun (feat_name,json_value) ->
-               (feat_name, json_value |> to_string)) in
-           (id,fs)
-        ) in
+      match json |> member "nodes" with
+      | `Null -> [] (* no nodes field *)
+      | json_nodes ->
+        try
+          json_nodes
+          |> to_assoc
+          |> List.map
+            (fun (id,json_node) ->
+               let fs =
+                 try [("label", json_node |> to_string)]
+                 with Type_error _ ->
+                   json_node
+                   |> to_assoc
+                   |> List.map (fun (feat_name,json_value) -> (feat_name, json_value |> to_string)) in
+               (id,fs)
+            )
+        with Type_error _ ->
+          Error.build
+            "[G_graph.of_json] Cannot parse field `nodes` (See https://grew.fr/doc/json):\n%s"
+            (Yojson.Basic.pretty_to_string json_nodes) in
 
     let json_edges = try json |> member "edges" |> to_list with Type_error _ -> [] in
 
     let edges =
       List.map
         (fun json_edge ->
-          let fs =
-            (* if [json_edge] is of type string, it is interpreted as [1=value] *)
-            try [("1", typed_vos "1" (json_edge |> member "label" |> to_string))]
-            with Type_error _ ->
-              json_edge
-              |> member "label"
-              |> to_assoc
-              |> List.map (fun (x,y) -> (x,typed_vos x (to_string y))) in
+           let fs =
+             (* if [json_edge] is of type string, it is interpreted as [1=value] *)
+             try [("1", typed_vos "1" (json_edge |> member "label" |> to_string))]
+             with Type_error _ ->
+               json_edge
+               |> member "label"
+               |> to_assoc
+               |> List.map (fun (x,y) -> (x,typed_vos x (to_string y))) in
            (json_edge |> member "src" |> to_string, fs, json_edge |> member "tar" |> to_string)
         ) json_edges in
 
@@ -557,7 +570,7 @@ module G_graph = struct
     let (nodes, gid_position_list) =
       Gid_map.fold
         (fun gid node (acc_nodes, acc_gpl) ->
-          let item = (Gid.to_string gid, `Assoc (G_fs.to_json (G_node.get_fs node))) in
+           let item = (Gid.to_string gid, G_fs.to_json (G_node.get_fs node)) in
            match G_node.get_position_opt node with
            | None -> (item :: acc_nodes, acc_gpl)
            | Some p -> (item :: acc_nodes, (gid,p) :: acc_gpl)

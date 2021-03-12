@@ -47,7 +47,7 @@ module G_fs: sig
   val to_dot: ?decorated_feat:(string * (string * string option) list) -> ?main_feat: string -> t -> string
   val to_word_opt: t -> string option
 
-  val to_json: t -> (string * Yojson.Basic.t) list
+  val to_json: t -> Yojson.Basic.t
 
   val to_dep:
     ?decorated_feat:(string * (string * string option) list) ->

@@ -201,7 +201,9 @@ module G_fs = struct
   let to_gr t = List_.to_string G_feature.to_gr ", " t
 
   (* ---------------------------------------------------------------------- *)
-  let to_json t = List.map G_feature.to_json t
+  let to_json = function
+    | ["label", String label] -> `String label
+    | feat_list -> `Assoc (List.map G_feature.to_json feat_list)
 
   (* ---------------------------------------------------------------------- *)
   let of_ast ast_fs =
@@ -245,7 +247,7 @@ module G_fs = struct
 
   (* ---------------------------------------------------------------------- *)
   let get_main ?main_feat t =
-    let default_list = ["form"] in
+    let default_list = ["label"] in
     let main_list = match main_feat with
       | None -> default_list
       | Some string -> (Str.split (Str.regexp "\\( *; *\\)\\|#") string) @ default_list in
