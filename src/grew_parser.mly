@@ -654,7 +654,7 @@ node_features:
 /* COMMANDS DEFINITION                                                                         */
 /*=============================================================================================*/
 commands:
-        | COMMANDS x=delimited(LACC,separated_nonempty_list_final_opt(SEMIC,command),RACC) { x }
+        | COMMANDS x=delimited(LACC,separated_list_final_opt(SEMIC,command),RACC) { x }
 
 sub_edges:
         | name=simple_id_or_float EQUAL value=edge_item { (name, value) }
