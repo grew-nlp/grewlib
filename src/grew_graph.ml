@@ -490,12 +490,15 @@ module G_graph = struct
     let edges =
       List.map
         (fun json_edge ->
-           (
-             json_edge |> member "src" |> to_string,
-             json_edge |> member "label" |> to_assoc |> List.map (fun (x,y) -> (x,typed_vos x (to_string y))),
-             json_edge |> member "tar" |> to_string
-
-           )
+          let fs =
+            (* if [json_edge] is of type string, it is interpreted as [1=value] *)
+            try [("1", typed_vos "1" (json_edge |> member "label" |> to_string))]
+            with Type_error _ ->
+              json_edge
+              |> member "label"
+              |> to_assoc
+              |> List.map (fun (x,y) -> (x,typed_vos x (to_string y))) in
+           (json_edge |> member "src" |> to_string, fs, json_edge |> member "tar" |> to_string)
         ) json_edges in
 
     let (map_without_edges, table, final_index) =

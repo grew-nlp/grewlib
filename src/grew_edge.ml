@@ -23,7 +23,9 @@ module G_edge = struct
 
   let fs_of_items l = (List.sort (fun (x,_) (y,_) -> Stdlib.compare x y) l)
 
-  let fs_to_json fs = `Assoc (List.map (fun (k,v) -> (k, `String (string_of_value v))) fs)
+  let fs_to_json = function
+    | [("1",s)] -> `String (string_of_value s)
+    | fs -> `Assoc (List.map (fun (k,v) -> (k, `String (string_of_value v))) fs)
 
   let fs_of_json json =
     let open Yojson.Basic.Util in
