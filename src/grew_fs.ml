@@ -230,7 +230,7 @@ module G_fs = struct
     match List.filter
             (fun (feature_name,_) ->
                match feature_name with
-               | "form" | "lemma" | "upos" | "xpos" -> false
+               | "form" | "lemma" | "upos" | "xpos" | "wordform" | "textform" -> false
                | _ -> String_.re_match (Str.regexp regexp) feature_name
             ) src with
     | [] -> None
@@ -247,7 +247,7 @@ module G_fs = struct
 
   (* ---------------------------------------------------------------------- *)
   let get_main ?main_feat t =
-    let default_list = ["label"] in
+    let default_list = ["form"; "label"] in
     let main_list = match main_feat with
       | None -> default_list
       | Some string -> (Str.split (Str.regexp "\\( *; *\\)\\|#") string) @ default_list in

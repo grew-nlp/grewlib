@@ -619,7 +619,14 @@ module G_graph = struct
       ("modified_edges", `List modified_edges);
     ] in
 
-    `Assoc (List.filter (function (_,`List []) -> false | _ -> true) full_assoc_list)
+    (* remove fields with empty data *)
+    `Assoc (
+      List.filter (function
+          | (_,`List []) -> false
+          | (_,`Assoc []) -> false
+          | _ -> true
+        ) full_assoc_list
+    )
 
 
   (* -------------------------------------------------------------------------------- *)
