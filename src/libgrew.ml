@@ -209,8 +209,8 @@ module Graph = struct
   let of_brown ~config ?sentid brown =
     Libgrew.handle ~name:"Graph.of_brown" (fun () -> Grew_graph.G_graph.of_brown ~config ?sentid brown) ()
 
-  let to_dot ?main_feat ~config ?(deco=Grew_graph.G_deco.empty) ?get_url graph =
-    Libgrew.handle ~name:"Graph.to_dot" (fun () -> Grew_graph.G_graph.to_dot ?main_feat ?get_url ~config graph ~deco) ()
+  let to_dot ?main_feat ~config ?(deco=Grew_graph.G_deco.empty) graph =
+    Libgrew.handle ~name:"Graph.to_dot" (fun () -> Grew_graph.G_graph.to_dot ?main_feat ~config graph ~deco) ()
 
   let to_dep ?filter ?main_feat ?(deco=Grew_graph.G_deco.empty) ~config graph =
     Libgrew.handle ~name:"Graph.to_dep" (fun () -> Grew_graph.G_graph.to_dep ?filter ?main_feat ~deco ~config graph) ()

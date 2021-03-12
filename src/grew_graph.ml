@@ -1210,7 +1210,7 @@ module G_graph = struct
     in loop 0
 
   (* -------------------------------------------------------------------------------- *)
-  let to_dot ?main_feat ?(get_url = fun _ -> None) ?(deco=G_deco.empty) ~config graph =
+  let to_dot ?main_feat ?(deco=G_deco.empty) ~config graph =
     let buff = Buffer.create 32 in
 
     bprintf buff "digraph G {\n";
@@ -1223,21 +1223,12 @@ module G_graph = struct
            try List.assoc id deco.G_deco.nodes
            with Not_found -> ("",[]) in
          let fs = G_node.get_fs node in
-         let lab_url = match G_fs.get_value_opt "label" fs with
-           | Some (String lab) ->
-             begin
-               match get_url lab with
-               | None -> None
-               | Some url -> Some (lab,url)
-             end
-           | _ -> None in
 
          match G_fs.to_dot ~decorated_feat ?main_feat fs with
          | "" -> bprintf buff "  N_%s [label=\"\"]\n" (Gid.to_string id)
-         | s -> bprintf buff "  N_%s [label=<%s>%s]\n"
+         | s -> bprintf buff "  N_%s [label=<%s>]\n"
                   (Gid.to_string id)
                   s
-                  (match lab_url with None -> "" | Some (lab,url) -> sprintf ", URL=\"%s\", target=_blank, tooltip=\"%s\", shape=record" url lab)
       ) graph.map;
 
     (* edges *)
