@@ -247,7 +247,7 @@ module G_fs = struct
 
   (* ---------------------------------------------------------------------- *)
   let get_main ?main_feat t =
-    let default_list = ["form"; "label"] in
+    let default_list = ["form"; "lemma"; "gpred"; "label"] in
     let main_list = match main_feat with
       | None -> default_list
       | Some string -> (Str.split (Str.regexp "\\( *; *\\)\\|#") string) @ default_list in
