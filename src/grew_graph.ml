@@ -502,8 +502,8 @@ module G_graph = struct
         ) json_edges in
 
     let (map_without_edges, table, final_index) =
-      List.fold_left
-        (fun (acc_map, acc_table, acc_index) (node_id, fs_items) ->
+      List.fold_right
+        (fun (node_id, fs_items) (acc_map, acc_table, acc_index) ->
            let fs = G_fs.of_items fs_items in
            let new_node = G_node.set_name node_id (G_node.set_fs fs G_node.empty) in
            (
@@ -511,7 +511,7 @@ module G_graph = struct
              String_map.add node_id acc_index acc_table,
              acc_index + 1
            )
-        ) (Gid_map.empty, String_map.empty, 0) nodes in
+        ) nodes (Gid_map.empty, String_map.empty, 0) in
 
     let order =
       try json |> member "order" |> to_list |> List.map (fun x ->String_map.find (x |> to_string) table)
@@ -1027,7 +1027,12 @@ module G_graph = struct
       with Find node -> Some node in
 
     match init_gid_opt with
-    | None -> "Warning: no ordered node found in the sentence!"
+    | None ->
+      begin
+        match get_meta_opt "text" graph with
+        | Some t -> t
+        | None -> "*** Cannot find text metadata ***"
+      end
     | Some init_gid ->
       let buff = Buffer.create 32 in
       let rec loop current_form flag_highlight flag_sa gid =

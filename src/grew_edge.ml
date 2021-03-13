@@ -109,9 +109,12 @@ module G_edge = struct
             | Some (String "MWE") -> ["color=#1d7df2"; "forecolor=#1d7df2"; "bottom"]
             | Some (String "NE") -> ["color=#ff760b"; "forecolor=#ff760b"; "bottom"]
             | _ ->
-            match List_.sort_assoc_opt "frsemcor" fs with
-            | Some (String _) -> ["color=#12cd56"; "forecolor=#12cd56"; "bottom"]
-            | _ -> [] in
+              match List_.sort_assoc_opt "frsemcor" fs with
+              | Some (String _) -> ["color=#12cd56"; "forecolor=#12cd56"; "bottom"]
+              | _ ->
+                match List_.sort_assoc_opt "1" fs with
+                | Some (String "RSTR") -> ["bottom"]
+                | _ ->[] in
       let styles = if deco then "bgcolor=#8bf56e" :: styles else styles in
       Some (sprintf "{ label = \"%s\"; %s }" (fs_to_string ~config fs) (String.concat ";" styles))
     | _ -> None

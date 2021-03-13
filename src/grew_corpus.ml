@@ -29,7 +29,7 @@ end
 
 (* ==================================================================================================== *)
 module Corpus = struct
-  type kind = Conll | Pst | Amr | Gr | Json
+  type kind = Conll | Pst | Amr | Gr | Json | Dmrs
 
   type item = {
     sent_id: string;
@@ -93,7 +93,9 @@ module Corpus = struct
   let get_graph position t = t.items.(position).graph
   let get_sent_id position t = t.items.(position).sent_id
 
-  let is_conll position t = t.kind = Conll
+  let is_conll position t = match t.kind with
+    | Conll | Dmrs -> true
+    | _ -> false
 
   let get_text position t = t.items.(position).text
 
@@ -196,7 +198,7 @@ module Corpus_desc = struct
     | Pst -> [".const"]
     | Json -> [".json"]
     | Gr -> [".gr"]
-
+    | Dmrs -> [".json"]
 
   (* ---------------------------------------------------------------------------------------------------- *)
   (* if [files] is empty, all files of the directory with correct suffix are considered *)
@@ -265,6 +267,7 @@ module Corpus_desc = struct
           | None | Some "conll" -> Corpus.Conll
           | Some "pst" -> Pst
           | Some "amr" -> Amr
+          | Some "dmrs" -> Dmrs
           | Some "json" -> Json
           | Some x -> Error.run "[Corpus.load_json] Unknown \"kind\":\"%s\" field in file: \"%s\"" x json_file
         with Type_error _ -> Error.run "[Corpus.load_json, file \"%s\"] \"kind\" must be a string" json_file in
@@ -402,7 +405,7 @@ module Corpus_desc = struct
                 Some {Corpus.sent_id; text; graph }
               with exc -> Log.fwarning "[id=%s] AMR skipped [exception: %s]" sent_id (Printexc.to_string exc); None
             ) amr_corpus
-        | Json ->
+        | Json | Dmrs ->
           Array.concat (
             List.map (
               fun file ->
