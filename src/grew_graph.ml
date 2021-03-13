@@ -1183,7 +1183,7 @@ module G_graph = struct
              | None -> ()
              | Some s -> bprintf buff "N_%s -> N_%s { label=\"__SUCC__\"; bottom; style=dot; color=lightblue; forecolor=lightblue; }\n" (Gid.to_string id) (Gid.to_string s)
            end
-        ) snodes;
+        ) sorted_lexical_nodes;
 
     Gid_map.iter
       (fun gid elt ->
