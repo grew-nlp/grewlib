@@ -515,8 +515,8 @@ module G_graph = struct
         ) json_edges in
 
     let (map_without_edges, table, final_index) =
-      List.fold_right
-        (fun (node_id, fs_items) (acc_map, acc_table, acc_index) ->
+      List.fold_left
+        (fun (acc_map, acc_table, acc_index) (node_id, fs_items) ->
            let fs = G_fs.of_items fs_items in
            let new_node = G_node.set_name node_id (G_node.set_fs fs G_node.empty) in
            (
@@ -524,7 +524,7 @@ module G_graph = struct
              String_map.add node_id acc_index acc_table,
              acc_index + 1
            )
-        ) nodes (Gid_map.empty, String_map.empty, 0) in
+        ) (Gid_map.empty, String_map.empty, 0) nodes in
 
     let order =
       try json |> member "order" |> to_list |> List.map (fun x ->String_map.find (x |> to_string) table)
@@ -567,7 +567,7 @@ module G_graph = struct
   let to_json graph =
     let meta = `Assoc (List.map (fun (k,v) -> (k, `String v)) graph.meta) in
 
-    let (nodes, gid_position_list) =
+    let (nodes_rev, gid_position_list) =
       Gid_map.fold
         (fun gid node (acc_nodes, acc_gpl) ->
            let item = (Gid.to_string gid, G_fs.to_json (G_node.get_fs node)) in
@@ -575,6 +575,8 @@ module G_graph = struct
            | None -> (item :: acc_nodes, acc_gpl)
            | Some p -> (item :: acc_nodes, (gid,p) :: acc_gpl)
         ) graph.map ([], []) in
+
+    let nodes = List.rev nodes_rev in
 
     let edges =
       Gid_map.fold
@@ -1121,34 +1123,34 @@ module G_graph = struct
 
 
   (* -------------------------------------------------------------------------------- *)
-  let is_non_lexical_node node =
-    let fs = G_node.get_fs node in
-    (G_fs.get_value_opt "parseme" fs <> None) || (G_fs.get_value_opt "frsemcor" fs <> None)
-
   let to_dep ?filter ?main_feat ?(deco=G_deco.empty) ~config graph =
 
     (* split lexical // non-lexical nodes *)
-    let (nodes, nl_nodes) = Gid_map.fold
-        (fun id elt (acc1, acc2) ->
-           if is_non_lexical_node elt
-           then (acc1, (id,elt)::acc2)
-           else ((id,elt)::acc1, acc2)
+    let (lexical_nodes, non_lexical_nodes) = Gid_map.fold
+        (fun gid node (acc1, acc2) ->
+           match G_node.get_position_opt node with
+           | None -> (acc1, (gid,node)::acc2)
+           | Some _ -> ((gid,node)::acc1, acc2)
         ) graph.map ([],[]) in
 
-    let snodes = List.sort (fun (_,n1) (_,n2) -> G_node.compare n1 n2) nodes in
+    let sorted_lexical_nodes = List.sort (fun (_,n1) (_,n2) -> G_node.compare n1 n2) lexical_nodes in
 
-    let insert (mid,mwe) nodes =
-      let next_ids = Massoc_gid.fold (fun acc gid _ -> gid::acc) [] (G_node.get_next mwe) in
-      let rec loop = function
-        | [] -> [(mid,mwe)]
-        | (h,n)::t when List.mem h next_ids -> (mid,mwe)::(h,n)::t
-        | h::t -> h :: (loop t) in
-      loop nodes in
+    let insert (gid,node) nodes =
+      match (G_fs.get_value_opt "parseme" (G_node.get_fs node), G_fs.get_value_opt "frsemcor" (G_node.get_fs node)) with
+      | (None, None) -> (* dmrs node *)
+        (gid,node) :: nodes
+      | _ -> (* parseme / frsemcor node --> place it before its first lexical item *)
+        let next_ids = Massoc_gid.fold (fun acc gid _ -> gid::acc) [] (G_node.get_next node) in
+        let rec loop = function
+          | [] -> [(gid,node)]
+          | (h,n)::t when List.mem h next_ids -> (gid,node)::(h,n)::t
+          | h::t -> h :: (loop t) in
+        loop nodes in
 
-    let all_nodes = List.fold_left (
-        fun acc mwe -> insert mwe acc
-      ) snodes nl_nodes
-    in
+    (* insertion of non lexical node to a sensible position in the linear order *)
+    let nodes = List.fold_left (
+        fun acc gid_node -> insert gid_node acc
+      ) sorted_lexical_nodes non_lexical_nodes in
 
     let buff = Buffer.create 32 in
     bprintf buff "[GRAPH] { opacity=0; scale = 200; fontname=\"Arial\"; }\n";
@@ -1177,7 +1179,7 @@ module G_graph = struct
            (Gid.to_string id)
            dep_fs
            style
-      ) all_nodes;
+      ) nodes;
     bprintf buff "} \n";
 
     (* edges *)
