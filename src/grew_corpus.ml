@@ -74,8 +74,11 @@ module Corpus = struct
   let of_amr_corpus amr_corpus =
     let items =
       Array.map
-        (fun (sent_id, text, amr) ->
-           { sent_id; text; graph = amr |> Amr.to_gr |> Loader.gr |> G_graph.of_ast ~config:(Conllx_config.build "basic") }
+        (fun (sent_id, amr) ->
+          let json = Amr.to_json amr in
+          let graph = G_graph.of_json json in
+          let text = match G_graph.get_meta_opt "text" graph with Some t -> t | None -> "__missing text metadata__" in
+          { sent_id; text; graph }
         ) amr_corpus in
     { kind=Amr; items; }
 
@@ -398,10 +401,11 @@ module Corpus_desc = struct
             | [one] -> Amr_corpus.load one
             | _ -> failwith "AMR multi-files corpus is not handled"
           in
-          CCArray.filter_map (fun (sent_id,text,amr) ->
+          CCArray.filter_map (fun (sent_id,amr) ->
               try
-                let gr = Amr.to_gr amr in
-                let graph = G_graph.of_ast ~config (Parser.gr gr) in
+                let json = Amr.to_json amr in
+                let graph = G_graph.of_json json in
+                let text = match G_graph.get_meta_opt "text" graph with Some t -> t | None -> "__missing text metadata__" in
                 Some {Corpus.sent_id; text; graph }
               with exc -> Log.fwarning "[id=%s] AMR skipped [exception: %s]" sent_id (Printexc.to_string exc); None
             ) amr_corpus
