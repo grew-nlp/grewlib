@@ -1,10 +1,10 @@
 (**********************************************************************************)
 (*    Libcaml-grew - a Graph Rewriting library dedicated to NLP applications      *)
 (*                                                                                *)
-(*    Copyright 2011-2018 Inria, Université de Lorraine                           *)
+(*    Copyright 2011-2021 Inria, Université de Lorraine                           *)
 (*                                                                                *)
-(*    Webpage: http://grew.fr                                                     *)
-(*    License: CeCILL (see LICENSE folder or "http://www.cecill.info")            *)
+(*    Webpage: https://grew.fr                                                     *)
+(*    License: CeCILL (see LICENSE folder or "http://cecill.info/")            *)
 (*    Authors: see AUTHORS file                                                   *)
 (**********************************************************************************)
 
@@ -560,7 +560,7 @@ pat_item:
         | id1_loc=simple_id_with_loc LPAREN n1=simple_id RPAREN LT id2=simple_id LPAREN n2=simple_id RPAREN
             { let (id1,loc) = id1_loc in
               match (id1, id2) with
-              | ("id", "id") -> Error.build ~loc "The syntax `id(N) < id(M)` is no more available, see [Grew doc](http://grew.fr/trans_14)";
+              | ("id", "id") -> Error.build ~loc "The syntax `id(N) < id(M)` is no more available, see [Grew doc](https://grew.fr/trans_14)";
               | ("id", n) | (n, "id") -> Error.build ~loc "Unexpected operator '%s'" n
               | (n, m) -> Error.build ~loc "Unexpected operators '%s' and '%s'" n m
             }
@@ -569,7 +569,7 @@ pat_item:
         | id1_loc=simple_id_with_loc LPAREN n1=simple_id RPAREN GT id2=simple_id LPAREN n2=simple_id RPAREN
             { let (id1,loc) = id1_loc in
               match (id1, id2) with
-              | ("id", "id") -> Error.build ~loc "The syntax `id(N) > id(M)` is no more available, see [Grew doc](http://grew.fr/trans_14)";
+              | ("id", "id") -> Error.build ~loc "The syntax `id(N) > id(M)` is no more available, see [Grew doc](https://grew.fr/trans_14)";
               | ("id", n) | (n, "id") -> Error.build ~loc "Unexpected operator '%s'" n
               | (n, m) -> Error.build ~loc "Unexpected operators '%s' and '%s'" n m
             }
@@ -578,7 +578,7 @@ pat_item:
         | id1_loc=simple_id_with_loc LPAREN n1=simple_id RPAREN EQUAL id2=simple_id LPAREN n2=simple_id RPAREN
             { let (id1,loc) = id1_loc in
               match (id1, id2) with
-              | ("label", "label") -> Error.build ~loc "The syntax `label(N) = label(M)` is no more available, see [Grew doc](http://grew.fr/trans_14)";
+              | ("label", "label") -> Error.build ~loc "The syntax `label(N) = label(M)` is no more available, see [Grew doc](https://grew.fr/trans_14)";
               | ("label", n) | (n, "label") -> Error.build ~loc "Unexpected operator '%s'" n
               | (n, m) -> Error.build ~loc "Unexpected operators '%s' and '%s'" n m
             }
@@ -588,7 +588,7 @@ pat_item:
         | id1_loc=simple_id_with_loc LPAREN n1=simple_id RPAREN DISEQUAL id2=simple_id LPAREN n2=simple_id RPAREN
             { let (id1,loc) = id1_loc in
               match (id1, id2) with
-              | ("label", "label") -> Error.build ~loc "The syntax `label(N) <> label(M)` is no more available, see [Grew doc](http://grew.fr/trans_14)";
+              | ("label", "label") -> Error.build ~loc "The syntax `label(N) <> label(M)` is no more available, see [Grew doc](https://grew.fr/trans_14)";
               | ("label", n) | (n, "label") -> Error.build ~loc "Unexpected operator '%s'" n
               | (n, m) -> Error.build ~loc "Unexpected operators '%s' and '%s'" n m
             }

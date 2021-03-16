@@ -1,10 +1,10 @@
 (**********************************************************************************)
 (*    Libcaml-grew - a Graph Rewriting library dedicated to NLP applications      *)
 (*                                                                                *)
-(*    Copyright 2011-2018 Inria, Université de Lorraine                           *)
+(*    Copyright 2011-2021 Inria, Université de Lorraine                           *)
 (*                                                                                *)
-(*    Webpage: http://grew.fr                                                     *)
-(*    License: CeCILL (see LICENSE folder or "http://www.cecill.info")            *)
+(*    Webpage: https://grew.fr                                                     *)
+(*    License: CeCILL (see LICENSE folder or "http://cecill.info/")            *)
 (*    Authors: see AUTHORS file                                                   *)
 (**********************************************************************************)
 open CCOpt.Infix
@@ -367,7 +367,7 @@ module Matching = struct
   (* return the value of a feature or an edge label *)
   let get_string_value_opt ~config request pattern graph matching =
     match Str.split (Str.regexp "\\.") request with
-    | [edge_id] -> Error.build "For cluster key, the syntax `%s` is no more available, it must be replaced by `%s.label`, see [Grew doc](http://grew.fr/trans_14)" edge_id edge_id;
+    | [edge_id] -> Error.build "For cluster key, the syntax `%s` is no more available, it must be replaced by `%s.label`, see [Grew doc](https://grew.fr/trans_14)" edge_id edge_id;
     | [node_or_edge_id; feature_name] ->
       begin
         match (String_map.find_opt node_or_edge_id matching.e_match, feature_name) with
@@ -1123,7 +1123,7 @@ module Rule = struct
 
     | Command.ADD_EDGE_EXPL (src_cn,tar_cn,edge_id) ->
       if String_map.mem edge_id state.e_mapping (* e_mapping contains both pattern edge and previous commande edges *)
-      then Error.run ~loc "ADD_EDGE_EXPL: the edge name '%s' already used. Semantic of this command has changed, see [[http://grew.fr/old]]" edge_id
+      then Error.run ~loc "ADD_EDGE_EXPL: the edge name '%s' already used. Semantic of this command has changed, see [[https://grew.fr/old]]" edge_id
       else
         let src_gid = node_find src_cn in
         let tar_gid = node_find tar_cn in
@@ -1502,7 +1502,7 @@ module Rule = struct
 
     | Command.ADD_EDGE_EXPL (src_cn,tar_cn,edge_ident) ->
       if String_map.mem edge_ident matching.e_match || String_map.mem edge_ident gwh.added_edges_in_rule
-      then Error.run ~loc "ADD_EDGE_EXPL: the edge name '%s' already used. Semantic of this command has changed, see [[http://grew.fr/old]]" edge_ident
+      then Error.run ~loc "ADD_EDGE_EXPL: the edge name '%s' already used. Semantic of this command has changed, see [[https://grew.fr/old]]" edge_ident
       else
         let src_gid = node_find src_cn in
         let tar_gid = node_find tar_cn in
