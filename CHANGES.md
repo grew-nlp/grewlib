@@ -1,3 +1,6 @@
+# 1.5.0 (2021/03/16)
+  * Change JSON encoding of graphs
+
 ## 1.4.3 (2021/02/26)
   * more general UPDATE_EDGE_FEAT handling (see https://grew.fr/gallery/update_edge_feature)
 
@@ -11,8 +14,8 @@
 ## 1.4.1 (2021/01/19)
   * add config in to_json_python (bug in grewpy)
 
-## 1.4.0 (2020/10/02)
-  * :warning: change pattern syntax (see http://grew.fr/doc/upgrade)
+# 1.4.0 (2020/10/02)
+  * :warning: change pattern syntax (see https://grew.fr/doc/upgrade)
   * add new constraints in pattern syntax
   * new implementation of Conll handling
 
@@ -138,7 +141,7 @@
   * Fix bug “undefined domain”
 
 # 0.44.0 (2017/09/05)
-  * /!\ new grs syntax (with package and strategies), see [http://grew.fr/grs](http://grew.fr/grs)
+  * /!\ new grs syntax (with package and strategies), see [https://grew.fr/grs](https://grew.fr/grs)
   * /!\ remove function `Rewrite.write_annot`
   * adapt to libcaml-conll 0.14.0
 
