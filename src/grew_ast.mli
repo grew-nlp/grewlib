@@ -260,6 +260,13 @@ module Ast : sig
 
   val strat_to_json: strat -> Yojson.Basic.t
 
+  (* return the list of strategies declared at the top level *)
   val strat_list: grs -> string list
+
+  (* return the list of packages declared at the top level *)
+  val package_list: grs -> string list
+
+  (* return the list of rules declared at the top level *)
+  val rule_list: grs -> string list
 
 end (* module Ast *)

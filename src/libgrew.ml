@@ -304,6 +304,18 @@ module Grs = struct
       (fun () ->
          Grew_grs.Grs.get_strat_list grs
       ) ()
+
+  let get_package_list grs =
+    Libgrew.handle ~name:"Grs.get_package_list"
+      (fun () ->
+         Grew_grs.Grs.get_package_list grs
+      ) ()
+
+  let get_rule_list grs =
+    Libgrew.handle ~name:"Grs.get_rule_list"
+      (fun () ->
+         Grew_grs.Grs.get_rule_list grs
+      ) ()
 end
 
 (* ==================================================================================================== *)

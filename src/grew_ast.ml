@@ -470,17 +470,24 @@ module Ast = struct
     | Try s -> `Assoc [("Try", strat_to_json s)]
 
   let strat_list grs =
-    let rec loop pref = function
-      | [] -> []
-      | Strategy (_,name,_) :: tail -> name :: (loop pref tail)
-      | Package (_,pack_name,decl_list) :: tail -> (loop (pref^"."^pack_name) decl_list) @  (loop pref tail)
-      | _ :: tail -> loop pref tail
-    in loop "" grs
+    List.fold_left
+      (fun acc -> function
+        | Strategy (_,name,_) -> name :: acc
+        | _ -> acc
+      ) [] grs
+
+  let package_list grs =
+    List.fold_left
+      (fun acc -> function
+        | Package (_,name,_) -> name :: acc
+        | _ -> acc
+      ) [] grs
+
+  let rule_list grs =
+    List.fold_left
+      (fun acc -> function
+        | Rule {rule_id} -> rule_id :: acc
+        | _ -> acc
+      ) [] grs
 
 end (* module Ast *)
-
-
-
-
-
-
