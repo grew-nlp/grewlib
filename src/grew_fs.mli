@@ -39,7 +39,11 @@ module G_fs: sig
 
   (** [del_feat_opt feature_name t] remove the feature with name [feature_name] in [t].
       If [t] does not contain such a feature, None is returned. *)
-  val del_feat_opt:  string -> t ->  t option
+  val del_feat_opt:  string -> t -> t option
+
+  (** [del_feat_opt feature_name t] remove the feature with name [feature_name] in [t].
+      If [t] does not contain such a feature, [t] is returned unchanged. *)
+  val del_feat:  string -> t -> t
 
   val get_value_opt: string -> t -> feature_value option
 

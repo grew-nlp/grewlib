@@ -476,6 +476,11 @@ module G_graph = struct
       try json |> member "meta" |> to_assoc |> List.map (fun (k,v) -> (k, v |> to_string))
       with Type_error _ -> [] in
 
+    (* for error reporting *)
+    let sent_id_text () = match List.assoc_opt "sent_id" meta with
+    | Some id -> sprintf ", sent_id=%s" id
+    | None -> "" in
+
     let nodes =
       match json |> member "nodes" with
       | `Null -> [] (* no nodes field *)
@@ -495,7 +500,8 @@ module G_graph = struct
             )
         with Type_error _ ->
           Error.build
-            "[G_graph.of_json] Cannot parse field `nodes` (See https://grew.fr/doc/json):\n%s"
+            "[G_graph.of_json, %s] Cannot parse field `nodes` (See https://grew.fr/doc/json):\n%s"
+            (sent_id_text ())
             (Yojson.Basic.pretty_to_string json_nodes) in
 
     let json_edges = try json |> member "edges" |> to_list with Type_error _ -> [] in
@@ -551,10 +557,10 @@ module G_graph = struct
              let edge = G_edge.from_items edge_items in
              (match map_add_edge_opt acc gid_1 edge gid_2 with
               | Some g -> g
-              | None -> Error.build "[G_graph.of_json] try to build a graph with twice the same edge %s" (G_edge.dump edge)
+              | None -> Error.build "[G_graph.of_json%s] try to build a graph with twice the same edge %s" (sent_id_text ()) (G_edge.dump edge)
              )
-           | (None, _) -> Error.build "[G_graph.of_json] undefined node id `%s` used as `src` in edges" id_src
-           | (_, None) -> Error.build "[G_graph.of_json] undefined node id `%s` used as `tar` in edges" id_tar
+           | (None, _) -> Error.build "[G_graph.of_json%s] undefined node id `%s` used as `src` in edges" (sent_id_text ()) id_src
+           | (_, None) -> Error.build "[G_graph.of_json%s] undefined node id `%s` used as `tar` in edges" (sent_id_text ()) id_tar
         ) maps_with_order edges in
 
     { empty with
@@ -1223,6 +1229,8 @@ module G_graph = struct
       | _::t -> loop (n+1) t
     in loop 0
 
+  module Layers = Map.Make (struct type t = string option let compare = Stdlib.compare end)
+
   (* -------------------------------------------------------------------------------- *)
   let to_dot ?main_feat ?(deco=G_deco.empty) ~config graph =
     let buff = Buffer.create 32 in
@@ -1230,20 +1238,34 @@ module G_graph = struct
     bprintf buff "digraph G {\n";
     bprintf buff "  node [shape=box];\n";
 
-    (* nodes *)
-    Gid_map.iter
-      (fun id node ->
-         let decorated_feat =
-           try List.assoc id deco.G_deco.nodes
-           with Not_found -> ("",[]) in
-         let fs = G_node.get_fs node in
+    let layers = Gid_map.fold
+        (fun id node acc ->
+           let layer_opt = G_fs.get_value_opt "layer" (G_node.get_fs node) |> CCOpt.map string_of_value in
+           let prev = match Layers.find_opt layer_opt acc with
+             | None -> []
+             | Some l -> l in
+           Layers.add layer_opt ((id,node) :: prev) acc
+        ) graph.map Layers.empty in
 
-         match G_fs.to_dot ~decorated_feat ?main_feat fs with
-         | "" -> bprintf buff "  N_%s [label=\"\"]\n" (Gid.to_string id)
-         | s -> bprintf buff "  N_%s [label=<%s>]\n"
-                  (Gid.to_string id)
-                  s
-      ) graph.map;
+    (* nodes *)
+    Layers.iter
+      (fun layer_opt node_list ->
+         CCOpt.iter (fun l -> bprintf buff "	subgraph cluster_%s {\n" l) layer_opt;
+         List.iter (
+           fun (id,node) ->
+             let decorated_feat =
+               try List.assoc id deco.G_deco.nodes
+               with Not_found -> ("",[]) in
+             let fs = G_node.get_fs node |> G_fs.del_feat "layer" in
+
+             match G_fs.to_dot ~decorated_feat ?main_feat fs with
+             | "" -> bprintf buff "  N_%s [label=\"\"]\n" (Gid.to_string id)
+             | s -> bprintf buff "  N_%s [label=<%s>]\n"
+                      (Gid.to_string id)
+                      s
+         ) node_list;
+         CCOpt.iter (fun _ -> bprintf buff "	}\n") layer_opt
+      ) layers;
 
     (* edges *)
     Gid_map.iter
@@ -1260,15 +1282,14 @@ module G_graph = struct
            ) (G_node.get_next node)
       ) graph.map;
 
-    (* Set "rank=same" and more edge in debug modes *)
+    (* more edge in debug modes *)
     Gid_map.iter
       (fun id node ->
          begin
            match G_node.get_succ_opt node with
            | Some s when !Global.debug ->
-             bprintf buff "  N_%s -> N_%s [label=\"SUCC\", style=dotted, fontcolor=lightblue, color=lightblue]; {rank=same; N_%s; N_%s };\n"
-               (Gid.to_string id) (Gid.to_string s) (Gid.to_string id) (Gid.to_string s)
-           | Some s -> bprintf buff " {rank=same; N_%s; N_%s };\n" (Gid.to_string id) (Gid.to_string s)
+             bprintf buff "  N_%s -> N_%s [label=\"SUCC\", style=dotted, fontcolor=lightblue, color=lightblue];\n"
+               (Gid.to_string id) (Gid.to_string s)
            | _ -> ()
          end
       ) graph.map;
@@ -1276,6 +1297,7 @@ module G_graph = struct
     bprintf buff "}\n";
     Buffer.contents buff
 
+  (* -------------------------------------------------------------------------------- *)
   let get_feature_values feature_name t =
     Gid_map.fold
       (fun _ node acc ->
