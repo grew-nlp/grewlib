@@ -128,6 +128,8 @@ module Graph : sig
 
   val get_meta_list: t -> (string * string) list
 
+  val get_code_opt: t -> string option
+
   val set_meta: string -> string -> t -> t
 
   val get_feature_values: string -> t -> String_set.t

@@ -134,6 +134,8 @@ module Graph = struct
 
   let get_meta_list t = Grew_graph.G_graph.get_meta_list t
 
+  let get_code_opt t = Grew_graph.G_graph.get_code_opt t
+
   let set_meta key value t = Grew_graph.G_graph.set_meta key value t
 
   let load_gr ~config file =
