@@ -1632,10 +1632,12 @@ module Rule = struct
       (match G_graph.del_feat_opt gwh.Graph_with_history.graph tar_gid feat_name with
        | None when !Global.safe_commands -> Error.run ~loc "DEL_FEAT: the feat does not exist"
        | None -> Graph_with_history_set.singleton gwh
-       | Some new_graph -> Graph_with_history_set.singleton { gwh with
-                                                              Graph_with_history.graph = new_graph;
-                                                              delta = Delta.set_feat gwh.Graph_with_history.seed tar_gid feat_name None gwh.Graph_with_history.delta;
-                                                            }
+       | Some new_graph ->
+         Graph_with_history_set.singleton
+           { gwh with
+             Graph_with_history.graph = new_graph;
+             delta = Delta.set_feat gwh.Graph_with_history.seed tar_gid feat_name None gwh.Graph_with_history.delta;
+           }
       )
 
 
@@ -1782,11 +1784,15 @@ module Rule = struct
             match G_graph.del_edge_feature_opt ~loc edge_id feat_name (src_gid,old_edge,tar_gid) gwh.Graph_with_history.graph with
             | None when !Global.safe_commands -> Error.run ~loc "DEL_EDGE_FEAT: the edge feature name '%s' does not exist" feat_name
             | None -> Graph_with_history_set.singleton gwh
-            | Some (new_graph, new_edge) -> Graph_with_history_set.singleton
-                                              {gwh with
-                                               Graph_with_history.graph = new_graph;
-                                               e_mapping = String_map.add edge_id (src_gid,new_edge,tar_gid) gwh.e_mapping;
-                                              }
+            | Some (new_graph, new_edge) ->
+              Graph_with_history_set.singleton
+                {gwh with
+                 Graph_with_history.graph = new_graph;
+                 delta = gwh.Graph_with_history.delta
+                         |> Delta.del_edge src_gid old_edge tar_gid
+                         |> Delta.add_edge src_gid new_edge tar_gid;
+                 e_mapping = String_map.add edge_id (src_gid,new_edge,tar_gid) gwh.e_mapping;
+                }
           end
       end
 
