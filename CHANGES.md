@@ -1,3 +1,7 @@
+## 1.5.1 (2021/04/23)
+  * Fix bug in the graph history tracking
+  * Fix bug in default behaviour with unsafe command (https://gitlab.inria.fr/grew/libcaml-grew/-/issues/26)
+
 # 1.5.0 (2021/03/16)
   * Change JSON encoding of graphs
 
