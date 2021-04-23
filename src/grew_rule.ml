@@ -1698,7 +1698,14 @@ module Rule = struct
                    | Some tmp_graph ->
                      match G_graph.add_edge_opt src_gid new_edge tar_gid tmp_graph with
                      | None when !Global.safe_commands -> Error.run ~loc "UPDATE_EDGE_FEAT: the new edge alredy exists"
-                     | None -> acc
+                     | None -> (* Case of edge capture: TODO doc + warn *)
+                       Graph_with_history_set.add
+                         { gwh with
+                           Graph_with_history.graph = tmp_graph;
+                           delta = Delta.del_edge src_gid old_edge tar_gid gwh.Graph_with_history.delta;
+                           e_mapping = String_map.add edge_id (src_gid,new_edge,tar_gid) gwh.e_mapping;
+                         }
+                         acc
                      | Some new_graph ->
                        Graph_with_history_set.add
                          { gwh with
