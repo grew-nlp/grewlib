@@ -52,6 +52,11 @@ module Corpus = struct
     kind: kind;
   }
 
+  let graph_of_sent_id sent_id corpus =
+    match CCArray.find_idx (fun item -> item.sent_id = sent_id) corpus.items with
+    | Some (_,item) -> Some item.graph
+    | None -> None
+
   let item_of_graph graph =
     let sent_id =
       match G_graph.get_meta_opt "sent_id" graph with
@@ -106,7 +111,7 @@ module Corpus = struct
   let get_graph position t = t.items.(position).graph
   let get_sent_id position t = t.items.(position).sent_id
 
-  let is_conll position t = match t.kind with
+  let is_conll t = match t.kind with
     | Conll | Dmrs -> true
     | _ -> false
 

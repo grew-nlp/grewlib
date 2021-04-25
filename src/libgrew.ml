@@ -356,14 +356,17 @@ module Corpus = struct
   let size = Grew_corpus.Corpus.size
   let permut_length = Grew_corpus.Corpus.permut_length
 
+  let graph_of_sent_id sent_id t =
+    Libgrew.handle ~name:"Corpus.graph_of_sent_id" (fun () -> Grew_corpus.Corpus.graph_of_sent_id sent_id t) ()
+
   let get_graph position t =
     Libgrew.handle ~name:"Corpus.get_graph" (fun () -> Grew_corpus.Corpus.get_graph position t) ()
 
   let get_sent_id position t =
     Libgrew.handle ~name:"Corpus.get_sent_id" (fun () -> Grew_corpus.Corpus.get_sent_id position t) ()
 
-  let is_conll position t =
-    Libgrew.handle ~name:"Corpus.is_conll" (fun () -> Grew_corpus.Corpus.is_conll position t) ()
+  let is_conll t =
+    Libgrew.handle ~name:"Corpus.is_conll" (fun () -> Grew_corpus.Corpus.is_conll t) ()
 
   let get_text position t =
     Libgrew.handle ~name:"Corpus.get_text" (fun () -> Grew_corpus.Corpus.get_text position t) ()
