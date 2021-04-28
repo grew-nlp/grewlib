@@ -1294,6 +1294,7 @@ module G_graph = struct
            | Some s when !Global.debug ->
              bprintf buff "  N_%s -> N_%s [label=\"SUCC\", style=dotted, fontcolor=lightblue, color=lightblue];\n"
                (Gid.to_string id) (Gid.to_string s)
+           | Some s -> bprintf buff " { rank=same; N_%s; N_%s; }" (Gid.to_string id) (Gid.to_string s)
            | _ -> ()
          end
       ) graph.map;
