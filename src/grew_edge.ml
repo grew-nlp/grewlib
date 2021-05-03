@@ -137,7 +137,8 @@ module G_edge = struct
             | Some (String "NE") -> ["color=#ff760b"; "fontcolor=#ff760b"]
             | _ ->
               match List_.sort_assoc_opt "1" fs with
-              | Some (String "unscoped") | Some (String "wider") -> ["color=\"red\""; "fontcolor=\"red\""]
+              | Some (String "unscoped") | Some (String "wider") | Some (String "equal") | Some (String "dual") ->
+              ["color=\"red\""; "fontcolor=\"red\""]
               | _ -> [] in
       let multi_line_label = Str.global_replace (Str.regexp_string ",") "\n" (fs_to_string ~config fs) in
       let label = match deco with
