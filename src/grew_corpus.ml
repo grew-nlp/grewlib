@@ -128,7 +128,8 @@ module Corpus = struct
     Array.map fst items_with_length
 
   let from_stdin ?log_file ?config () =
-    of_conllx_corpus (Conllx_corpus.read_stdin ?log_file ?config ())
+    let lines = CCIO.read_lines_l stdin in
+    of_conllx_corpus (Conllx_corpus.of_lines ?log_file ?config lines)
 
   let from_json ?loc json =
     try
