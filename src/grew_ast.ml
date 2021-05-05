@@ -112,7 +112,7 @@ module Ast = struct
   let parse_feature_ident s =
     check_special "feature ident" ["."] s;
     match Str.full_split (Str.regexp "\\.") s with
-    | [Str.Text base; Str.Delim "."; Str.Text fn] -> (base, to_uname fn)
+    | [Str.Text base; Str.Delim "."; Str.Text fn] -> (base, fn)
     | _ -> Error.build "The identifier '%s' must be a feature identifier (with exactly one '.' symbol, like \"V.cat\" for instance)" s
 
   (* ---------------------------------------------------------------------- *)
@@ -128,7 +128,7 @@ module Ast = struct
     check_special "feature ident" ["."] s;
     match Str.split (Str.regexp "\\.") s with
     | [base] -> Simple base
-    | [s1; s2] -> Pointed (s1, to_uname s2)
+    | [s1; s2] -> Pointed (s1, s2)
     | _ -> Error.build "The identifier '%s' must be a feature identifier or a lexical reference (with at most one '.' symbol, like \"V\", \"V.cat\" or \"lex.cat\" for instance)" s
 
 

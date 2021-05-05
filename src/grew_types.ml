@@ -111,7 +111,7 @@ module Lexicon = struct
     match real_items with
     | [] | [_] -> Error.build ?loc "[Lexicon.of_ast] a lexicon must not be empty"
     | (linenum_h, h)::t ->
-      let fields = List.map to_uname (Str.split (Str.regexp "\t") h) in
+      let fields = Str.split (Str.regexp "\t") h in
       let l = List.length fields in
       let rec loop = function
         | [] -> []
