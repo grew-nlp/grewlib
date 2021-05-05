@@ -1,3 +1,9 @@
+# 1.6.0 (2021/05/05)
+  * new function Corpus.graph_of_sent_id
+  * ⚠️ new type for Corpus.is_conll
+  * get rid of of CoNLL implementation
+  * ⚠️ stop backward compatibility `pos`, `cat` and `phon`
+
 ## 1.5.1 (2021/04/23)
   * Fix bug in the graph history tracking
   * Fix bug in default behaviour with unsafe command (https://gitlab.inria.fr/grew/libcaml-grew/-/issues/26)
