@@ -8,7 +8,6 @@
 (*    Authors: see AUTHORS file                                                   *)
 (**********************************************************************************)
 
-open Conll
 open Conllx
 
 module String_set : Set.S with type elt = string
@@ -199,9 +198,11 @@ module Corpus: sig
   (* [size t] returns the number of graphs in the corpus *)
   val size: t -> int
 
+  val graph_of_sent_id: string -> t -> Graph.t option
+
   val get_graph: int -> t -> Graph.t
   val get_sent_id: int -> t -> string
-  val is_conll: int -> t -> bool
+  val is_conll: t -> bool
   val get_text: int -> t -> string
 
   val fold_left: ('a -> string -> Graph.t -> 'a) -> 'a -> t -> 'a

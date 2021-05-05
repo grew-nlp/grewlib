@@ -8,8 +8,6 @@
 (*    Authors: see AUTHORS file                                                   *)
 (**********************************************************************************)
 
-open Conll
-
 open Grew_base
 open Grew_types
 open Grew_ast

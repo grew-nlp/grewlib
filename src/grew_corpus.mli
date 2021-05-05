@@ -19,9 +19,11 @@ module Corpus : sig
 
   val merge: t list -> t
 
+  val graph_of_sent_id: string -> t -> G_graph.t option
+
   val size: t -> int
   val get_graph: int -> t -> G_graph.t
-  val is_conll: int -> t -> bool
+  val is_conll: t -> bool
   val get_sent_id: int -> t -> string
   val get_text: int -> t -> string
 

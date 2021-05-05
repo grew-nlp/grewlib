@@ -1655,6 +1655,7 @@ module Rule = struct
 
         let new_edges =
           match (feat_name, item_list) with
+          (* special behavior for "f.label = e.label" *)
           | ("label", [Command.Edge_feat (src_edge_id, "label")]) ->
             let src_edge =
               match String_map.find_opt src_edge_id gwh.e_mapping with

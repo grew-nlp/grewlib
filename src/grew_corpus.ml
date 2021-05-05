@@ -10,7 +10,6 @@
 
 open Printf
 open Log
-open Conll
 open Conllx
 open Libamr
 
@@ -51,6 +50,11 @@ module Corpus = struct
     items: item array;
     kind: kind;
   }
+
+  let graph_of_sent_id sent_id corpus =
+    match CCArray.find_idx (fun item -> item.sent_id = sent_id) corpus.items with
+    | Some (_,item) -> Some item.graph
+    | None -> None
 
   let item_of_graph graph =
     let sent_id =
@@ -106,7 +110,7 @@ module Corpus = struct
   let get_graph position t = t.items.(position).graph
   let get_sent_id position t = t.items.(position).sent_id
 
-  let is_conll position t = match t.kind with
+  let is_conll t = match t.kind with
     | Conll | Dmrs -> true
     | _ -> false
 
@@ -123,7 +127,8 @@ module Corpus = struct
     Array.map fst items_with_length
 
   let from_stdin ?log_file ?config () =
-    of_conllx_corpus (Conllx_corpus.read_stdin ?log_file ?config ())
+    let lines = CCIO.read_lines_l stdin in
+    of_conllx_corpus (Conllx_corpus.of_lines ?log_file ?config lines)
 
   let from_json ?loc json =
     try
@@ -434,7 +439,6 @@ module Corpus_desc = struct
       Marshal.to_channel out_ch data [];
       close_out out_ch
     with
-    | Conll_error json -> Log.fwarning "[Conll_error] fail to load corpus %s, skip it\nexception: %s" corpus_desc.id (Yojson.Basic.pretty_to_string json)
     | Conllx_error json -> Log.fwarning "[Conllx_error] fail to load corpus %s, skip it\nexception: %s" corpus_desc.id (Yojson.Basic.pretty_to_string json)
     | Error.Run (msg,_) -> Log.fwarning "[Libgrew error] %s, fail to load corpus %s: skip it" msg corpus_desc.id
     | exc -> Log.fwarning "[Error] fail to load corpus %s, skip it\nexception: %s" corpus_desc.id (Printexc.to_string exc)

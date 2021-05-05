@@ -116,7 +116,7 @@ module G_edge = struct
               | _ ->
                 match List_.sort_assoc_opt "1" fs with
                 | Some (String "RSTR") -> ["bottom"]
-                | _ ->[] in
+                | _ -> [] in
       let styles = if deco then "bgcolor=#8bf56e" :: styles else styles in
       Some (sprintf "{ label = \"%s\"; %s }" (fs_to_string ~config fs) (String.concat ";" styles))
     | _ -> None
@@ -135,10 +135,15 @@ module G_edge = struct
             match List_.sort_assoc_opt "parseme" fs with
             | Some (String "MWE") -> ["color=#1d7df2"; "fontcolor=#1d7df2"]
             | Some (String "NE") -> ["color=#ff760b"; "fontcolor=#ff760b"]
-            | _ -> [] in
+            | _ ->
+              match List_.sort_assoc_opt "1" fs with
+              | Some (String "unscoped") | Some (String "wider") | Some (String "equal") | Some (String "dual") ->
+              ["color=\"red\""; "fontcolor=\"red\""]
+              | _ -> [] in
+      let multi_line_label = Str.global_replace (Str.regexp_string ",") "\n" (fs_to_string ~config fs) in
       let label = match deco with
-        | true -> sprintf "<<TABLE BORDER=\"0\" CELLBORDER=\"0\"> <TR> <TD BGCOLOR=\"#8bf56e\">%s</TD> </TR> </TABLE>>" (fs_to_string ~config fs)
-        | false -> sprintf "\"%s\"" (fs_to_string ~config fs) in
+        | true -> sprintf "<<TABLE BORDER=\"0\" CELLBORDER=\"0\"> <TR> <TD BGCOLOR=\"#8bf56e\">%s</TD> </TR> </TABLE>>" multi_line_label
+        | false -> sprintf "\"%s\"" multi_line_label in
       Some (sprintf "[label=%s, %s]" label (String.concat ", " dot_items))
     | _ -> None
 
