@@ -10,7 +10,6 @@
 
 open Printf
 open Log
-open Conll
 open Conllx
 
 
@@ -46,7 +45,6 @@ module Libgrew = struct
     | Grew_base.Error.Build (msg, None) -> raise (Error (sprintf "%s" msg))
     | Grew_base.Error.Run (msg, Some loc) -> raise (Error (sprintf "%s %s" (Loc.to_string loc) msg))
     | Grew_base.Error.Run (msg, None) -> raise (Error (sprintf "%s" msg))
-    | Conll_error msg -> raise (Error (sprintf "Conll error: %s" (Yojson.Basic.pretty_to_string msg)))
     | Conllx_error msg -> raise (Error (sprintf "Conllx error: %s" (Yojson.Basic.pretty_to_string msg)))
 
     | Grew_base.Error.Bug (msg, Some loc) -> raise (Bug (sprintf "%s %s" (Loc.to_string loc) msg))
@@ -202,7 +200,7 @@ module Graph = struct
       (fun () ->
          let pst_ast = Grew_loader.Parser.phrase_structure_tree pst_string in
          let word_list = Grew_ast.Ast.word_list pst_ast in
-         Sentence.fr_clean_spaces (String.concat " " word_list)
+         String.concat " " word_list
       ) ()
 
   let of_json_python ~config json =

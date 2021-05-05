@@ -10,7 +10,6 @@
 
 open Printf
 open Log
-open Conll
 
 open Grew_base
 open Grew_ast

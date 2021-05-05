@@ -9,7 +9,6 @@
 (**********************************************************************************)
 
 open Printf
-open Conll
 
 open Grew_base
 open Grew_types

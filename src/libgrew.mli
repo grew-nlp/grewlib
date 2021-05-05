@@ -8,7 +8,6 @@
 (*    Authors: see AUTHORS file                                                   *)
 (**********************************************************************************)
 
-open Conll
 open Conllx
 
 module String_set : Set.S with type elt = string

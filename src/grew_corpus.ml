@@ -10,7 +10,6 @@
 
 open Printf
 open Log
-open Conll
 open Conllx
 open Libamr
 
@@ -440,7 +439,6 @@ module Corpus_desc = struct
       Marshal.to_channel out_ch data [];
       close_out out_ch
     with
-    | Conll_error json -> Log.fwarning "[Conll_error] fail to load corpus %s, skip it\nexception: %s" corpus_desc.id (Yojson.Basic.pretty_to_string json)
     | Conllx_error json -> Log.fwarning "[Conllx_error] fail to load corpus %s, skip it\nexception: %s" corpus_desc.id (Yojson.Basic.pretty_to_string json)
     | Error.Run (msg,_) -> Log.fwarning "[Libgrew error] %s, fail to load corpus %s: skip it" msg corpus_desc.id
     | exc -> Log.fwarning "[Error] fail to load corpus %s, skip it\nexception: %s" corpus_desc.id (Printexc.to_string exc)
