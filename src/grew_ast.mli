@@ -194,6 +194,9 @@ module Ast : sig
     | Append_feats of (Id.name * Id.name * string * string)
     | Unorder of Id.name
 
+    | Insert_before of (Id.name * Id.name)
+    | Insert_after of (Id.name * Id.name)
+
   val string_of_u_command:  u_command -> string
   type command = u_command * Loc.t
 

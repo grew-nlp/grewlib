@@ -67,6 +67,8 @@ module Command  = struct
     | SHIFT_OUT of (command_node * command_node * Label_cst.t)
     | APPEND_FEATS of (command_node * command_node * string * string)
     | UNORDER of command_node
+    | INSERT_BEFORE of (command_node * command_node)
+    | INSERT_AFTER of (command_node * command_node)
 
   type t = p * Loc.t  (* remember command location to be able to localize a command failure *)
 
@@ -190,6 +192,9 @@ module Command  = struct
                ]
               )]
     | UNORDER cn -> `Assoc [("unorder", command_node_to_json cn)]
+    | INSERT_BEFORE (cn1,cn2) -> `Assoc [("insert_before", `Assoc [("inserted", command_node_to_json cn1); ("site", command_node_to_json cn2)])]
+    | INSERT_AFTER (cn1,cn2) -> `Assoc [("insert_after", `Assoc [("inserted", command_node_to_json cn1); ("site", command_node_to_json cn2)])]
+
 
 
   let of_ast ~config lexicons (kni, kei) table ast_command =
@@ -292,6 +297,15 @@ module Command  = struct
     | (Ast.Unorder node_n, loc) ->
       check_node_id loc node_n kni;
       ((UNORDER (cn_of_node_id node_n), loc), (kni, kei))
+
+    | (Ast.Insert_before (id1, id2), loc) ->
+      check_node_id loc id1 kni;
+      check_node_id loc id2 kni;
+      ((INSERT_BEFORE (cn_of_node_id id1,cn_of_node_id id2), loc), (kni, kei))
+    | (Ast.Insert_after (id1, id2), loc) ->
+      check_node_id loc id1 kni;
+      check_node_id loc id2 kni;
+      ((INSERT_AFTER (cn_of_node_id id1,cn_of_node_id id2), loc), (kni, kei))
 
     | (Ast.Update_feat ((node_or_edge_id, feat_name), ast_items), loc) ->
       let of_ast_item = function

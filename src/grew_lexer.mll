@@ -194,6 +194,7 @@ and standard target = parse
 | "del_feat"      { DEL_FEAT }
 | "append_feats"  { APPEND_FEATS }
 | "unorder"       { UNORDER }
+| "insert"        { INSERT }
 
 | "package"       { PACKAGE }
 | "rule"          { RULE }

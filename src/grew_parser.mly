@@ -99,6 +99,7 @@ let localize t = (t,get_loc ())
 %token DEL_FEAT                    /* del_feat */
 %token APPEND_FEATS                /* append_feats */
 %token UNORDER                     /* unorder */
+%token INSERT                      /* insert */
 
 %token PICK                        /* Pick */
 %token ALT                         /* Alt */
@@ -781,6 +782,15 @@ command:
         /*   unorder N   */
         | UNORDER node_id_loc=simple_id_with_loc
             { let (node_id,loc) = node_id_loc in (Ast.Unorder node_id, loc) }
+
+        /*   insert n :< m   */
+        | INSERT ci1_loc=simple_id_with_loc BEFORE ci2=simple_id
+            { let (ci1,loc) = ci1_loc in (Ast.Insert_before (ci1,ci2), loc) }
+
+        /*   insert n :> m   */
+        | INSERT ci1_loc=simple_id_with_loc AFTER ci2=simple_id
+            { let (ci1,loc) = ci1_loc in (Ast.Insert_after (ci1,ci2), loc) }
+
 
 concat_item:
         | gi=ID

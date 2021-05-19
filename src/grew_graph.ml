@@ -480,8 +480,8 @@ module G_graph = struct
 
     (* for error reporting *)
     let sent_id_text () = match List.assoc_opt "sent_id" meta with
-    | Some id -> sprintf ", sent_id=%s" id
-    | None -> "" in
+      | Some id -> sprintf ", sent_id=%s" id
+      | None -> "" in
 
     let nodes =
       match json |> member "nodes" with
@@ -573,19 +573,27 @@ module G_graph = struct
     }
 
   (* -------------------------------------------------------------------------------- *)
+  let get_ordered_gids graph =
+    let gid_position_list =
+      Gid_map.fold
+        (fun gid node acc ->
+           match G_node.get_position_opt node with
+           | None -> acc
+           | Some p -> (gid,p) :: acc
+        ) graph.map [] in
+    List.map fst (List.sort (fun (_,p1) (_,p2) -> Stdlib.compare p1 p2) gid_position_list)
+
+  (* -------------------------------------------------------------------------------- *)
   let to_json graph =
     let meta = `Assoc (List.map (fun (k,v) -> (k, `String v)) graph.meta) in
 
-    let (nodes_rev, gid_position_list) =
+    let nodes =
       Gid_map.fold
-        (fun gid node (acc_nodes, acc_gpl) ->
+        (fun gid node acc ->
            let item = (Gid.to_string gid, G_fs.to_json (G_node.get_fs node)) in
-           match G_node.get_position_opt node with
-           | None -> (item :: acc_nodes, acc_gpl)
-           | Some p -> (item :: acc_nodes, (gid,p) :: acc_gpl)
-        ) graph.map ([], []) in
-
-    let nodes = List.rev nodes_rev in
+           item :: acc
+        ) graph.map []
+      |> List.rev in
 
     let edges =
       Gid_map.fold
@@ -604,10 +612,7 @@ module G_graph = struct
              ) acc (G_node.get_next node)
         ) graph.map [] in
 
-    let order =
-      List.map
-        (fun (gid,_) -> `String (Gid.to_string gid))
-        (List.sort (fun (_,p1) (_,p2) -> Stdlib.compare p1 p2) gid_position_list) in
+    let order = List.map (fun s -> `String (Gid.to_string s)) (get_ordered_gids graph) in
 
     let modified_nodes =
       List.map
@@ -754,10 +759,56 @@ module G_graph = struct
       | Some next_gid -> shift_position delta next_gid next_map
 
   (* -------------------------------------------------------------------------------- *)
+  let insert_before inserted_gid site_gid graph = 
+    let inserted_node = Gid_map.find inserted_gid graph.map
+    and site_node = Gid_map.find site_gid graph.map in
+    match (G_node.get_position_opt inserted_node, G_node.get_position_opt site_node) with
+    | (None, Some p) -> 
+      let shifted_map = shift_position 1 site_gid graph.map in
+      let new_node = G_node.set_position p inserted_node in
+      let new_map = match G_node.get_pred_opt site_node with
+        | None ->
+          shifted_map
+          |> (Gid_map.add inserted_gid new_node)
+          |> (map_add_pred_succ inserted_gid site_gid)
+        | Some prec_gid ->
+          shifted_map
+          |> (Gid_map.add inserted_gid new_node)
+          |> (map_del_pred_succ prec_gid site_gid)
+          |> (map_add_pred_succ inserted_gid site_gid)
+          |> (map_add_pred_succ prec_gid inserted_gid) in
+      { graph with map=new_map }
+    | (Some _,_) -> Error.run "[G_node.insert_before] node already ordered"
+    | (_,None) -> Error.run "[G_node.insert_before] unordered node"
+
+  (* -------------------------------------------------------------------------------- *)
+  let insert_after inserted_gid site_gid graph = 
+    let inserted_node = Gid_map.find inserted_gid graph.map
+    and site_node = Gid_map.find site_gid graph.map in
+    match (G_node.get_position_opt inserted_node, G_node.get_position_opt site_node) with
+    | (None, Some p) -> 
+      let new_node = G_node.set_position (p+1) inserted_node in
+      let new_map = match G_node.get_succ_opt site_node with
+        | None ->
+          graph.map
+          |> (Gid_map.add inserted_gid new_node)
+          |> (map_add_pred_succ site_gid inserted_gid)
+        | Some succ_gid ->
+          let shifted_map = shift_position 1 succ_gid graph.map in
+          shifted_map
+          |> (Gid_map.add inserted_gid new_node)
+          |> (map_del_pred_succ site_gid succ_gid)
+          |> (map_add_pred_succ site_gid inserted_gid )
+          |> (map_add_pred_succ inserted_gid succ_gid) in
+      { graph with map=new_map }
+    | (Some _,_) -> Error.run "[G_node.insert_after] node already ordered"
+    | (_,None) -> Error.run "[G_node.insert_after] unordered node"
+
+  (* -------------------------------------------------------------------------------- *)
   let add_before gid graph =
     let node = Gid_map.find gid graph.map in
     let position = match G_node.get_position_opt node with
-      | None -> Error.run "[G_node.insert_before] unordered node"
+      | None -> Error.run "[G_node.add_before] unordered node"
       | Some p -> p in
     let shifted_map = shift_position 1 gid graph.map in
     let new_gid = graph.highest_index + 1 in
@@ -1474,19 +1525,19 @@ module Delta = struct
   (* the three list are ordered *)
   type t = {
     del_nodes: Gid.t list;
-    unordered_nodes: Gid.t list;
+    ordered_nodes: Gid.t list;
     edges: ((Gid.t * G_edge.t * Gid.t) * status) list;
     feats: ((Gid.t * feature_name) * (feature_value option)) list;
   }
 
-  let empty = { del_nodes=[]; unordered_nodes=[]; edges=[]; feats=[]; }
+  let init ordered_nodes = { del_nodes=[]; ordered_nodes; edges=[]; feats=[]; }
 
   let del_node gid t =
     match List_.usort_insert_opt gid t.del_nodes with
     | None -> raise (Inconsistent "del_node")
     | Some new_del_nodes -> {
         del_nodes= new_del_nodes;
-        unordered_nodes = List.filter (fun g -> g <> gid) t.unordered_nodes;
+        ordered_nodes = List.filter (fun g -> g <> gid) t.ordered_nodes;
         edges = List.filter (fun ((g1,_,g2),_) -> g1 <> gid && g2 <> gid) t.edges;
         feats = List.filter (fun ((g,_),_) -> g <> gid) t.feats;
       }
@@ -1524,10 +1575,21 @@ module Delta = struct
       | ((g,f),_)::tail (* when (g,f)=(gid,feat_name) *)               -> ((g,f), new_val_opt) :: tail in
     { t with feats = loop t.feats }
 
-  let unorder gid t =
-    match List_.usort_insert_opt gid t.unordered_nodes with
-    | None -> raise (Inconsistent "unorder")
-    | Some new_unordered_nodes -> { t with unordered_nodes = new_unordered_nodes }
+  let unorder gid t = { t with ordered_nodes = CCList.remove (=) gid t.ordered_nodes } 
+
+  let insert_after inserted_gid site_gid t =
+    let rec loop = function
+      | [] -> Error.bug "Delta.insert_after"
+      | x::t when x = site_gid -> x :: inserted_gid :: t
+      | x::t -> x::(loop t) in
+    { t with ordered_nodes = loop t.ordered_nodes }
+
+  let insert_before inserted_gid site_gid t =
+    let rec loop = function
+      | [] -> Error.bug "Delta.insert_before"
+      | x::t when x = site_gid -> inserted_gid :: x :: t
+      | x::t -> x::(loop t) in
+    { t with ordered_nodes = loop t.ordered_nodes }
 end (* module Delta *)
 
 (* ================================================================================ *)
@@ -1542,7 +1604,7 @@ module Graph_with_history = struct
     added_edges_in_rule: (Gid.t * G_edge.t * Gid.t) String_map.t;
   }
 
-  let from_graph graph = { graph; seed=graph; delta = Delta.empty; added_gids = []; e_mapping = String_map.empty; added_gids_in_rule =[]; added_edges_in_rule=String_map.empty}
+  let from_graph graph = { graph; seed=graph; delta = Delta.init (G_graph.get_ordered_gids graph); added_gids = []; e_mapping = String_map.empty; added_gids_in_rule =[]; added_edges_in_rule=String_map.empty}
 
   (* WARNING: compare is correct only on data with the same seed! *)
   let compare t1 t2 = Stdlib.compare (t1.delta,t1.added_gids) (t2.delta, t2.added_gids)

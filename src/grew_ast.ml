@@ -333,6 +333,9 @@ module Ast = struct
     | Append_feats of (Id.name * Id.name * string * string)
     | Unorder of Id.name
 
+    | Insert_before of (Id.name * Id.name)
+    | Insert_after of (Id.name * Id.name)
+
   type command = u_command * Loc.t
 
   let string_of_u_command u_command = match u_command with
@@ -366,7 +369,8 @@ module Ast = struct
     | Append_feats (src, tar, regexp, separator) ->
       sprintf "append_feats \"%s\" %s =%s=> %s" separator src regexp tar
     | Unorder n -> sprintf "unorder %s" n
-
+    | Insert_before (n1,n2) -> sprintf "insert %s :< %s" n1 n2
+    | Insert_after (n1,n2) -> sprintf "insert %s :> %s" n1 n2
 
   type lexicon =
     | File of string

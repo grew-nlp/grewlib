@@ -1299,6 +1299,24 @@ module Rule = struct
          }
       )
 
+    | Command.INSERT_BEFORE (inserted_cn, site_cn) ->
+      let inserted_gid = node_find inserted_cn in
+      let site_gid = node_find site_cn in
+      let new_graph = G_graph.insert_before inserted_gid site_gid state.graph in
+      { state with
+        graph=new_graph;
+        effective = true;
+      }
+
+    | Command.INSERT_AFTER (inserted_cn, site_cn) ->
+      let inserted_gid = node_find inserted_cn in
+      let site_gid = node_find site_cn in
+      let new_graph = G_graph.insert_after inserted_gid site_gid state.graph in
+      { state with
+        graph=new_graph;
+        effective = true;
+      }
+
     | Command.DEL_FEAT (tar_cn,feat_name) ->
       let tar_gid = node_find tar_cn in
       (match G_graph.del_feat_opt state.graph tar_gid feat_name with
@@ -1832,7 +1850,25 @@ module Rule = struct
                              }
       )
 
+    | Command.INSERT_BEFORE (inserted_cn, site_cn) ->
+      let inserted_gid = node_find inserted_cn in
+      let site_gid = node_find site_cn in
+      let new_graph = G_graph.insert_before inserted_gid site_gid gwh.Graph_with_history.graph in
+      Graph_with_history_set.singleton
+        { gwh with
+          Graph_with_history.graph = new_graph;
+          delta = Delta.insert_before inserted_gid site_gid gwh.Graph_with_history.delta;
+        }
 
+    | Command.INSERT_AFTER (inserted_cn, site_cn) ->
+      let inserted_gid = node_find inserted_cn in
+      let site_gid = node_find site_cn in
+      let new_graph = G_graph.insert_after inserted_gid site_gid gwh.Graph_with_history.graph in
+      Graph_with_history_set.singleton
+        { gwh with
+          Graph_with_history.graph = new_graph;
+          delta = Delta.insert_after inserted_gid site_gid gwh.Graph_with_history.delta;
+        }
 
   (*  ---------------------------------------------------------------------- *)
   (** [apply_rule graph_with_history matching rule] returns a new graph_with_history after the application of the rule *)
