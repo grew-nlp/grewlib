@@ -1,3 +1,6 @@
+## 1.6.1 (2021/05/22)
+  * add new commands `unorder` and `insert` (⚠️ in old GRS which used `unorder` or `insert` as identifier, a renaming in needed)
+
 # 1.6.0 (2021/05/05)
   * new function Corpus.graph_of_sent_id
   * ⚠️ new type for Corpus.is_conll
