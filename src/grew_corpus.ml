@@ -89,10 +89,10 @@ module Corpus = struct
     let items =
       Array.map
         (fun (sent_id, amr) ->
-          let json = Amr.to_json amr in
-          let graph = G_graph.of_json json in
-          let text = match G_graph.get_meta_opt "text" graph with Some t -> t | None -> "__missing text metadata__" in
-          { sent_id; text; graph }
+           let json = Amr.to_json amr in
+           let graph = G_graph.of_json json in
+           let text = match G_graph.get_meta_opt "text" graph with Some t -> t | None -> "__missing text metadata__" in
+           { sent_id; text; graph }
         ) amr_corpus in
     { kind=Amr; items; }
 
@@ -126,10 +126,6 @@ module Corpus = struct
         items_with_length in
     Array.map fst items_with_length
 
-  let from_stdin ?log_file ?config () =
-    let lines = CCIO.read_lines_l stdin in
-    of_conllx_corpus (Conllx_corpus.of_lines ?log_file ?config lines)
-
   let from_json ?loc json =
     try
       match json with
@@ -142,8 +138,27 @@ module Corpus = struct
     | Yojson.Json_error msg -> Error.run ?loc "Error in the JSON file format: %s" msg
 
 
-  let from_file ?log_file ?config file =
-    match Filename.extension file with
+  let from_stdin ?ext ?log_file ?config () =
+    match ext with
+    | Some ".json" -> 
+      let s = CCIO.read_all stdin in
+      { kind=Json; items = from_json (Yojson.Basic.from_string s)}
+    | Some ".conll" | Some ".conllu" | Some ".cupt" | Some ".orfeo" | Some ".frsemcor" 
+    | _ -> (* TODO: use Conll by default --> more robust stuff needed *)
+      let lines = CCIO.read_lines_l stdin in
+      of_conllx_corpus (Conllx_corpus.of_lines ?log_file ?config lines)
+
+  let from_string ?ext ?log_file ?config s =
+    match ext with
+    | Some ".json" -> { kind=Json; items = from_json (Yojson.Basic.from_string s)}
+    | Some ".conll" | Some ".conllu" | Some ".cupt" | Some ".orfeo" | Some ".frsemcor" 
+    | _ -> (* TODO: use Conll by default --> more robust stuff needed *)
+      let lines = Str.split (Str.regexp "\n") s in
+      of_conllx_corpus (Conllx_corpus.of_lines ?log_file ?config lines)
+
+  let from_file ?ext ?log_file ?config file =
+    let extension = match ext with Some e -> e | None -> Filename.extension file in
+    match extension with
     | ".conll" | ".conllu" | ".cupt" | ".orfeo" | ".frsemcor" ->
       of_conllx_corpus (Conllx_corpus.load ?log_file ?config file)
     | ".amr" | ".txt" ->
@@ -211,7 +226,7 @@ module Corpus_desc = struct
 
   (* ---------------------------------------------------------------------------------------------------- *)
   let extensions = function
-    | Corpus.Conll -> [".conll"; ".conllu"; ".cupt"; ".orfeo"]
+    | Corpus.Conll -> [".conll"; ".conllu"; ".cupt"; ".orfeo"; "frsemcor"]
     | Amr -> [".amr"; ".txt"]
     | Pst -> [".const"]
     | Json -> [".json"]

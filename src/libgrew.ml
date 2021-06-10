@@ -375,11 +375,14 @@ module Corpus = struct
   let iteri fct t =
     Libgrew.handle ~name:"Corpus.iteri" (fun () -> Grew_corpus.Corpus.iteri fct t) ()
 
-  let from_stdin ?config () =
-    Libgrew.handle ~name:"Corpus.from_stdin" (fun () -> Grew_corpus.Corpus.from_stdin ?config ()) ()
+  let from_stdin ?ext ?config () =
+    Libgrew.handle ~name:"Corpus.from_stdin" (fun () -> Grew_corpus.Corpus.from_stdin ?ext ?config ()) ()
 
-  let from_file ?config file =
-    Libgrew.handle ~name:"Corpus.from_file" (fun () -> Grew_corpus.Corpus.from_file ?config file) ()
+  let from_string ?ext ?config s =
+    Libgrew.handle ~name:"Corpus.from_string" (fun () -> Grew_corpus.Corpus.from_string ?ext ?config s) ()
+
+  let from_file ?ext ?config file =
+    Libgrew.handle ~name:"Corpus.from_file" (fun () -> Grew_corpus.Corpus.from_file ?ext ?config file) ()
 
   let from_dir ?config dir =
     Libgrew.handle ~name:"Corpus.from_dir" (fun () -> Grew_corpus.Corpus.from_dir ?config dir) ()

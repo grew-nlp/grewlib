@@ -32,8 +32,9 @@ module Corpus : sig
 
   val permut_length: t -> int array
 
-  val from_stdin: ?log_file: string -> ?config:Conllx_config.t -> unit -> t
-  val from_file: ?log_file: string -> ?config:Conllx_config.t -> string -> t
+  val from_stdin: ?ext:string -> ?log_file: string -> ?config:Conllx_config.t -> unit -> t
+  val from_string: ?ext:string -> ?log_file: string -> ?config:Conllx_config.t -> string -> t
+  val from_file: ?ext:string -> ?log_file: string -> ?config:Conllx_config.t -> string -> t
   val from_dir: ?log_file: string -> ?config:Conllx_config.t -> string -> t
 end
 
