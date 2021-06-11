@@ -372,17 +372,20 @@ module Corpus = struct
   let fold_left fct init t =
     Libgrew.handle ~name:"Corpus.fold_left" (fun () -> Grew_corpus.Corpus.fold_left fct init t) ()
 
+  let fold_right fct t init =
+    Libgrew.handle ~name:"Corpus.fold_left" (fun () -> Grew_corpus.Corpus.fold_right fct t init) ()
+
   let iteri fct t =
     Libgrew.handle ~name:"Corpus.iteri" (fun () -> Grew_corpus.Corpus.iteri fct t) ()
 
-  let from_stdin ?ext ?config () =
-    Libgrew.handle ~name:"Corpus.from_stdin" (fun () -> Grew_corpus.Corpus.from_stdin ?ext ?config ()) ()
+  let from_stdin ?ext ?log_file ?config () =
+    Libgrew.handle ~name:"Corpus.from_stdin" (fun () -> Grew_corpus.Corpus.from_stdin ?ext ?log_file ?config ()) ()
 
-  let from_string ?ext ?config s =
-    Libgrew.handle ~name:"Corpus.from_string" (fun () -> Grew_corpus.Corpus.from_string ?ext ?config s) ()
+  let from_string ?ext ?log_file ?config s =
+    Libgrew.handle ~name:"Corpus.from_string" (fun () -> Grew_corpus.Corpus.from_string ?ext ?log_file ?config s) ()
 
-  let from_file ?ext ?config file =
-    Libgrew.handle ~name:"Corpus.from_file" (fun () -> Grew_corpus.Corpus.from_file ?ext ?config file) ()
+  let from_file ?ext ?log_file ?config file =
+    Libgrew.handle ~name:"Corpus.from_file" (fun () -> Grew_corpus.Corpus.from_file ?ext ?log_file ?config file) ()
 
   let from_dir ?config dir =
     Libgrew.handle ~name:"Corpus.from_dir" (fun () -> Grew_corpus.Corpus.from_dir ?config dir) ()

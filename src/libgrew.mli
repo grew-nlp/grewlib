@@ -206,13 +206,14 @@ module Corpus: sig
   val get_text: int -> t -> string
 
   val fold_left: ('a -> string -> Graph.t -> 'a) -> 'a -> t -> 'a
+  val fold_right: (string -> Graph.t -> 'a -> 'a) -> t -> 'a -> 'a
   val iteri: (int -> string -> Graph.t -> unit) -> t -> unit
 
   val permut_length: t -> int array
 
-  val from_stdin: ?ext:string -> ?config:Conllx_config.t -> unit -> t
-  val from_string: ?ext:string -> ?config:Conllx_config.t -> string -> t
-  val from_file: ?ext:string -> ?config:Conllx_config.t -> string -> t
+  val from_stdin: ?ext:string -> ?log_file:string -> ?config:Conllx_config.t -> unit -> t
+  val from_string: ?ext:string -> ?log_file:string -> ?config:Conllx_config.t -> string -> t
+  val from_file: ?ext:string -> ?log_file:string -> ?config:Conllx_config.t -> string -> t
   val from_dir: ?config:Conllx_config.t -> string -> t
 
   val merge: t list -> t

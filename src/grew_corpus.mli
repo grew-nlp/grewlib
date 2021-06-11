@@ -28,6 +28,7 @@ module Corpus : sig
   val get_text: int -> t -> string
 
   val fold_left: ('a -> string -> G_graph.t -> 'a) -> 'a -> t -> 'a
+  val fold_right: (string -> G_graph.t -> 'a -> 'a) -> t -> 'a -> 'a
   val iteri: (int -> string -> G_graph.t -> unit) -> t -> unit
 
   val permut_length: t -> int array

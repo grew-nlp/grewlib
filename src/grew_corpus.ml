@@ -101,6 +101,12 @@ module Corpus = struct
       (fun acc item -> fct acc item.sent_id item.graph)
       init t.items
 
+  let fold_right fct t init =
+    Array.fold_right
+      (fun item acc -> fct item.sent_id item.graph acc)
+      t.items init
+
+
   let iteri fct t = Array.iteri (fun i item -> fct i item.sent_id item.graph) t.items
 
 
