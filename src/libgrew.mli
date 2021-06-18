@@ -116,7 +116,7 @@ module Graph : sig
 
   val to_dot : ?main_feat:string -> config:Conllx_config.t -> ?deco:Deco.t -> t -> string
 
-  val to_dep : ?filter: (string -> bool) -> ?main_feat:string -> ?deco:Deco.t -> config:Conllx_config.t -> t -> string
+  val to_dep : ?filter: (string -> bool) -> ?no_root:bool -> ?main_feat:string -> ?deco:Deco.t -> config:Conllx_config.t -> t -> string
 
   val to_gr: config:Conllx_config.t -> t -> string
 

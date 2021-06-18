@@ -1183,7 +1183,25 @@ module G_graph = struct
 
 
   (* -------------------------------------------------------------------------------- *)
-  let to_dep ?filter ?main_feat ?(deco=G_deco.empty) ~config graph =
+  let to_dep ?filter ?(no_root=false) ?main_feat ?(deco=G_deco.empty) ~config graph =
+
+    let graph = 
+      if no_root
+      then 
+        begin
+          let exception Find of Gid.t in
+          try 
+            Gid_map.iter 
+              (fun gid node -> 
+                 if G_fs.get_value_opt "form" (G_node.get_fs node) = Some (String "__0__")
+                 then raise (Find gid) 
+              )  graph.map; graph
+          with Find gid_root -> match del_node_opt gid_root graph with
+            | Some g -> g
+            | None -> graph
+        end
+      else graph in
+
 
     (* split lexical // non-lexical nodes *)
     let (lexical_nodes, non_lexical_nodes) = Gid_map.fold
