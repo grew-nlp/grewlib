@@ -500,6 +500,7 @@ module Grs = struct
     List.map
       (fun gwh -> gwh.Graph_with_history.graph)
       (Graph_with_history_set.elements set)
+    |> (fun x -> Timeout.stop (); x)
 
   (* ============================================================================================= *)
   let simple_rewrite ~config grs strat_string graph =
@@ -639,9 +640,12 @@ module Grs = struct
   let wrd_rewrite ~config grs strat graph =
     Rule.reset_rules ();
     Timeout.start ();
-    match wrd_strat_simple_rewrite ~config false (top grs) (Parser.strategy strat) {graph; steps=[]; know_normal_form=false} with
-    | None -> Libgrew_types.Leaf graph
-    | Some linear_rd -> build_rew_display_from_linear_rd linear_rd
+    begin
+      match wrd_strat_simple_rewrite ~config false (top grs) (Parser.strategy strat) {graph; steps=[]; know_normal_form=false} with
+      | None -> Libgrew_types.Leaf graph
+      | Some linear_rd -> build_rew_display_from_linear_rd linear_rd
+    end
+    |> (fun x -> Timeout.stop (); x)
 
 
   let eud2ud = load ~config:(Conllx_config.build "ud") (Filename.concat DATADIR "eud2ud.grs")

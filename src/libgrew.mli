@@ -184,6 +184,8 @@ module Rewrite: sig
 
   val simple_rewrite: config:Conllx_config.t -> Graph.t -> Grs.t -> string -> Graph.t list
 
+  val log_rewrite: unit -> Yojson.Basic.t
+
   val onf_rewrite_opt: config:Conllx_config.t -> Graph.t -> Grs.t -> string -> Graph.t option
 end
 

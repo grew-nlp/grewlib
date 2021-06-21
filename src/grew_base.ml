@@ -621,9 +621,11 @@ module Timeout = struct
   exception Stop of float
 
   let counter = ref 0.
+  let duration = ref 0.
   let timeout = ref None
 
   let start () = counter := Unix.gettimeofday ()
+  let stop () = duration := Unix.gettimeofday () -. !counter
 
   let check () =
     match !timeout with
@@ -631,6 +633,9 @@ module Timeout = struct
     | Some delay ->
       if Unix.gettimeofday () -. !counter > delay
       then raise (Stop delay)
+  
+  let get_duration () = !duration
+    
 end (* module Timeout *)
 
 (* ================================================================================ *)

@@ -282,8 +282,11 @@ module Timeout: sig
 
   val timeout: float option ref
   val start: unit -> unit
+  val stop: unit -> unit
 
   val check: unit -> unit
+  
+  val get_duration: unit -> float
 end
 
 (* ================================================================================ *)

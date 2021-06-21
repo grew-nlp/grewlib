@@ -336,6 +336,9 @@ module Rewrite = struct
   let simple_rewrite ~config gr grs strat =
     Libgrew.handle ~name:"Rewrite.simple_rewrite" (fun () -> Grew_grs.Grs.simple_rewrite ~config grs strat gr) ()
 
+  let log_rewrite () =
+    `Assoc [("rules", `Int (Grew_rule.Rule.get_nb_rules ())); ("time", `Float (Grew_base.Timeout.get_duration()))]
+
   let onf_rewrite_opt ~config gr grs strat =
     Libgrew.handle ~name:"Rewrite.onf_rewrite_opt" (fun () -> Grew_grs.Grs.onf_rewrite_opt ~config grs strat gr) ()
 

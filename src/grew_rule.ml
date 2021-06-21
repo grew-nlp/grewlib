@@ -899,6 +899,7 @@ module Rule = struct
           (String.concat ", " (List.rev !rule_report_list))
       else rule_report_list := rule_name :: !rule_report_list
 
+  let get_nb_rules () = !current_rules
 
   type t = {
     name: string;
