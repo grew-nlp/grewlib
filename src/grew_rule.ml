@@ -1072,8 +1072,8 @@ module Rule = struct
   let onf_apply_command ~config matching (command,loc) state =
     let node_find cnode = onf_find ~loc cnode (matching, state.created_nodes) in
 
-    let feature_value_of_item = function
-      | Command.String_item s -> String s
+    let feature_value_of_item feat_name = function
+      | Command.String_item s -> typed_vos feat_name s
       | Command.Node_feat (cnode, feat_name) ->
         let gid = node_find cnode in
         let node = G_graph.find gid state.graph in
@@ -1107,7 +1107,7 @@ module Rule = struct
           | Some lexicon ->
             match Lexicon.get_opt field lexicon with
             | None -> Error.bug "Inconsistent lexicon lex_id=%s field=%s" lex_id field
-            | Some value -> typed_vos field value
+            | Some value -> typed_vos feat_name value
         end in
 
     match command with
@@ -1224,7 +1224,7 @@ module Rule = struct
                 | Some (src_gid,edge,tar_gid) -> edge
               end
             | _ ->
-              let feature_value_list = List.map feature_value_of_item item_list in
+              let feature_value_list = List.map (feature_value_of_item feat_name) item_list in
               let new_feature_value = concat_feature_values ~loc feature_value_list in
               G_edge.update feat_name new_feature_value old_edge in
           let new_state_opt =
@@ -1265,17 +1265,8 @@ module Rule = struct
 
     | Command.UPDATE_FEAT (tar_cn, tar_feat_name, item_list) ->
       let tar_gid = node_find tar_cn in
-      let feature_value_list = List.map feature_value_of_item item_list in
-      let new_feature_value =
-        if List.mem tar_feat_name numeric_feature_values
-        then
-          begin
-            match feature_value_list with
-            | [String one] -> typed_vos tar_feat_name one
-            | [one] -> one
-            | _ -> Error.run ~loc "Cannot use a contatenation for a numeric feature `%s`" tar_feat_name
-          end
-        else concat_feature_values ~loc feature_value_list in
+      let feature_value_list = List.map (feature_value_of_item tar_feat_name) item_list in
+      let new_feature_value = concat_feature_values ~loc feature_value_list in
       let new_graph = G_graph.update_feat ~loc state.graph tar_gid tar_feat_name new_feature_value in
       {state with graph = new_graph; effective = true}
 
@@ -1471,8 +1462,8 @@ module Rule = struct
   let gwh_apply_command ~config (command,loc) matching gwh =
     let node_find cnode = find ~loc cnode gwh matching in
 
-    let feature_value_list_of_item tar_feat_name = function
-      | Command.String_item s -> [String s]
+    let feature_value_list_of_item feat_name = function
+      | Command.String_item s -> [typed_vos feat_name s]
       | Command.Node_feat (cnode, feat_name) ->
         let gid = node_find cnode in
         let node = G_graph.find gid gwh.graph in
@@ -1499,7 +1490,7 @@ module Rule = struct
         begin
           match List.assoc_opt lex_id matching.l_param with
           | None -> Error.run ~loc "Undefined lexicon %s" lex_id
-          | Some lexicon -> List.map (fun x -> typed_vos tar_feat_name x) (Lexicon.read_all field lexicon)
+          | Some lexicon -> List.map (fun x -> typed_vos feat_name x) (Lexicon.read_all field lexicon)
         end in
 
     match command with
@@ -1620,15 +1611,7 @@ module Rule = struct
         |> List.map (feature_value_list_of_item tar_feat_name)
         |> CCList.cartesian_product in
 
-      let new_feature_value_list =
-        if List.mem tar_feat_name numeric_feature_values
-        then List.map (
-            function
-            | [String one] -> typed_vos tar_feat_name one
-            | [one] -> one
-            | _ -> Error.run ~loc "Cannot use a contatenation for a numeric feature `%s`" tar_feat_name
-          ) new_feature_value_list_list
-        else List.map concat_feature_values new_feature_value_list_list in
+      let new_feature_value_list = List.map concat_feature_values new_feature_value_list_list in
 
       let new_graphs = List.fold_left
           (fun acc new_feature_value ->
