@@ -1151,11 +1151,11 @@ module Rule = struct
              | [edge_id; feat_name] ->
                begin
                  match String_map.find_opt edge_id state.e_mapping with
-                 | None -> (name, typed_vos name value)
+                 | None -> Error.run ~loc "ADD_EDGE_ITEMS: undefined edge '%s'" edge_id
                  | Some (_,matched_edge,_) ->
                    match G_edge.get_sub_opt feat_name matched_edge with
                    | Some new_value -> (name, new_value)
-                   | None -> Error.run "ADD_EDGE_ITEMS: no items edge feature name '%s' in matched edge '%s'" feat_name edge_id
+                   | None -> Error.run ~loc "ADD_EDGE_ITEMS: no items edge feature name '%s' in matched edge '%s'" feat_name edge_id
                end
              | _ -> (name, typed_vos name value)
           ) items in
@@ -1538,11 +1538,11 @@ module Rule = struct
           | [edge_id; feat_name] ->
             begin
               match String_map.find_opt edge_id gwh.e_mapping with
-              | None -> (name, typed_vos name value)
+              | None -> Error.run ~loc "ADD_EDGE_ITEMS: undefined edge '%s'" edge_id
               | Some (_,matched_edge,_) ->
                 match G_edge.get_sub_opt feat_name matched_edge with
                 | Some new_value -> (name, new_value)
-                | None -> Error.run "ADD_EDGE_ITEMS: no items edge feature name '%s' in matched edge '%s'" feat_name edge_id
+                | None -> Error.run ~loc "ADD_EDGE_ITEMS: no items edge feature name '%s' in matched edge '%s'" feat_name edge_id
             end
           | _ -> (name, typed_vos name value)
         ) items in
