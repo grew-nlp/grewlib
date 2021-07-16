@@ -1,5 +1,10 @@
+## 1.6.2 (2021/07/16)
+  * add few functions
+  * deal with `$` extension of Naija
+  * stricter application of UPDATE_EDGE_FEAT
+
 ## 1.6.1 (2021/05/22)
-  * add new commands `unorder` and `insert` (⚠️ in old GRS which used `unorder` or `insert` as identifier, a renaming in needed)
+  * add new commands `unorder` and `insert` (⚠️ in old GRS which used `unorder` or `insert` as identifier, a renaming is needed)
 
 # 1.6.0 (2021/05/05)
   * new function Corpus.graph_of_sent_id
