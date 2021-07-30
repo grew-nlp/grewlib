@@ -185,10 +185,11 @@ module Lexicon = struct
     | [] -> Error.bug "[Lexicon.read] a lexicon must not be empty"
     | l -> String.concat "/" l
 
-  let of_ast ?loc = function
+  let of_ast ?loc dir_opt = function
     | Ast.File filename ->
+      let dir = match dir_opt with Some s -> s | None -> Sys.getcwd () in
       if Filename.is_relative filename
-      then load ?loc (Filename.concat (Global.get_dir ()) filename)
+      then load ?loc (Filename.concat dir filename)
       else load ?loc filename
     | Ast.Final (line_list) -> of_item_list ?loc line_list
 

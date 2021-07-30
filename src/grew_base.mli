@@ -297,7 +297,6 @@ module Global: sig
 
   val get_loc: unit -> Loc.t
   val get_line_opt: unit -> int option
-  val get_dir: unit -> string
   val loc_string: unit -> string
   val label_flag: bool ref
 

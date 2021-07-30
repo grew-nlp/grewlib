@@ -1011,8 +1011,8 @@ module Rule = struct
       List.fold_left (fun acc (name,lex) ->
           try
             let prev = List.assoc name acc in
-            (name, (Lexicon.union prev (Lexicon.of_ast ~loc:rule_ast.Ast.rule_loc lex))) :: (List.remove_assoc name acc)
-          with Not_found -> (name, Lexicon.of_ast ~loc:rule_ast.Ast.rule_loc lex) :: acc
+            (name, (Lexicon.union prev (Lexicon.of_ast ~loc:rule_ast.Ast.rule_loc rule_ast.Ast.rule_dir lex))) :: (List.remove_assoc name acc)
+          with Not_found -> (name, Lexicon.of_ast ~loc:rule_ast.Ast.rule_loc rule_ast.Ast.rule_dir lex) :: acc
         ) [] rule_ast.Ast.lexicon_info in
 
     let (ker, ker_table, edge_ids) =

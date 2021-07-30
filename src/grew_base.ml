@@ -642,16 +642,13 @@ end (* module Timeout *)
 module Global = struct
   let current_loc = ref Loc.empty
   let label_flag = ref false
-  let current_dir = ref "."
 
   let get_loc () = !current_loc
   let loc_string () = Loc.to_string !current_loc
 
   let get_line_opt () = snd (get_loc ())
 
-  let get_dir () = !current_dir
   let new_file filename =
-    current_dir := Filename.dirname filename;
     current_loc := (Some filename, Some 1);
     label_flag := false
 
