@@ -1,3 +1,6 @@
+## 1.6.3 (2021/08/03)
+  * Fix bug with lexicon folder finding
+
 ## 1.6.2 (2021/07/16)
   * add few functions
   * deal with `$` extension of Naija
