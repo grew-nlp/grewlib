@@ -323,6 +323,7 @@ module Grs = struct
 
   (* ============================================================================================= *)
   let onf_rewrite_opt ~config grs strat_string graph =
+    Rule.reset_rules ();
     Global.track_rules := true; (* This is needed for [G_graph.is_initial] to work properly below *)
     let strat = Parser.strategy strat_string in
     let new_graph = onf_rewrite ~config (top grs) strat (G_graph.clear_rules graph) in
