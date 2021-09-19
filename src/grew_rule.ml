@@ -76,9 +76,8 @@ module Pattern = struct
     (*   N.upos = M.upos   *)
     (*   e1.2 = e2.2   *)
     (*   N.upos = lex.pos   *)
-    | Feature_equal of base * string * base * string
     (*   N.upos <> M.upos   *)
-    | Feature_diff of base * string * base * string
+    | Feature_cmp of cmp * base * string * base * string
     (*   N.upos = VERB   *)
     (*   e.2 = comp   *)
     (*   e.2 <> comp   *)
@@ -104,21 +103,13 @@ module Pattern = struct
   let const_to_json ~config = function
     | Cst_out (pid, label_cst) -> `Assoc ["cst_out", Label_cst.to_json_python ~config label_cst]
     | Cst_in (pid, label_cst) -> `Assoc ["cst_in", Label_cst.to_json_python ~config label_cst]
-    | Feature_equal (id1,fn1,id2,fn2) ->
-      `Assoc ["features_eq",
+    | Feature_cmp (cmp,id1,fn1,id2,fn2) ->
+      `Assoc ["features_cmp",
               `Assoc [
+                ("cmp", `String (string_of_cmp cmp));
                 ("id1", json_of_base id1);
                 ("feature_name_1", `String fn1);
                 ("id2", json_of_base id1);
-                ("feature_name_2", `String fn2);
-              ]
-             ]
-    | Feature_diff (id1,fn1,id2,fn2) ->
-      `Assoc ["features_diseq",
-              `Assoc [
-                ("id1", json_of_base id1);
-                ("feature_name_1", `String fn1);
-                ("id2", json_of_base id2);
                 ("feature_name_2", `String fn2);
               ]
              ]
@@ -200,11 +191,8 @@ module Pattern = struct
     | (Ast.Cst_in (id,label_cst), loc) ->
       Cst_in (pid_of_name loc id, Label_cst.of_ast ~loc ~config label_cst)
 
-    | (Ast.Feature_equal ((id1, feat_name1),(id2, feat_name2)), loc) ->
-      Feature_equal (parse_id loc id1, feat_name1, parse_id loc id2, feat_name2)
-
-    | (Ast.Feature_diff ((id1, feat_name1),(id2, feat_name2)), loc)  ->
-      Feature_diff (parse_id loc id1, feat_name1, parse_id loc id2, feat_name2)
+    | (Ast.Feature_cmp (cmp, (id1, feat_name1),(id2, feat_name2)), loc)  ->
+      Feature_cmp (cmp, parse_id loc id1, feat_name1, parse_id loc id2, feat_name2)
 
     | (Ast.Feature_ineq (ineq, (id1, feat_name1), (id2, feat_name2)), loc) ->
       Feature_ineq (ineq, parse_id loc id1, feat_name1, parse_id loc id2, feat_name2)
@@ -530,29 +518,15 @@ module Matching = struct
           {matching with l_param = new_param }
         with P_fs.Fail -> raise Fail
       end
-    | Feature_equal (base1, feat_name1, base2, feat_name2) ->
+    | Feature_cmp (cmp, base1, feat_name1, base2, feat_name2) ->
       begin
         match (get_value base1 feat_name1, get_value base2 feat_name2) with
-        | (Value v1, Value v2) -> if v1 = v2 then matching else raise Fail
+        | (Value v1, Value v2) -> if cmp_fct cmp v1 v2 then matching else raise Fail
         | (Value v, Lex (lexicon,field))
         | (Lex (lexicon,field), Value v) ->
           let old_lex = List.assoc lexicon matching.l_param in
           begin
-            match Lexicon.filter_opt Eq field (string_of_value v) old_lex with
-            | None -> raise Fail
-            | Some new_lex -> {matching with l_param = (lexicon, new_lex) :: (List.remove_assoc lexicon matching.l_param) }
-          end
-        | _ -> Error.run "[Matching.apply_cst] cannot compare two lexicon fields"
-      end
-    | Feature_diff (base1, feat_name1, base2, feat_name2) ->
-      begin
-        match (get_value base1 feat_name1, get_value base2 feat_name2) with
-        | (Value v1, Value v2) -> if v1 <> v2 then matching else raise Fail
-        | (Value v, Lex (lexicon,field))
-        | (Lex (lexicon,field), Value v) ->
-          let old_lex = List.assoc lexicon matching.l_param in
-          begin
-            match Lexicon.filter_opt Neq field (string_of_value v) old_lex with
+            match Lexicon.filter_opt cmp field (string_of_value v) old_lex with
             | None -> raise Fail
             | Some new_lex -> {matching with l_param = (lexicon, new_lex) :: (List.remove_assoc lexicon matching.l_param) }
           end

@@ -423,7 +423,7 @@ pat_item:
               | Ast.Simple value ->
                 Pat_const (Ast.Feature_cmp_value (Eq,feat_id1, String value), loc)
               | Ast.Pointed (s1, s2) ->
-                Pat_const (Ast.Feature_equal (feat_id1, (s1, s2)), loc)
+                Pat_const (Ast.Feature_cmp (Eq, feat_id1, (s1, s2)), loc)
              }
 
         /*   X.cat = "value"   */
@@ -444,7 +444,7 @@ pat_item:
               | ((Ast.Pointed feat_id,loc), Ast.Simple value) ->
                 Pat_const (Ast.Feature_cmp_value (Neq, feat_id, String value), loc)
               | ((Ast.Pointed feat_id,loc), Ast.Pointed (s1, s2)) ->
-                Pat_const (Ast.Feature_diff (feat_id, (s1, s2)), loc)
+                Pat_const (Ast.Feature_cmp (Neq, feat_id, (s1, s2)), loc)
               | ((Ast.Simple edge_id1,loc), Ast.Simple edge_id2) ->
                 Pat_const (Ast.Edge_disjoint (edge_id1, edge_id2), loc)
               | ((_,loc),_) -> Error.build ~loc "syntax error in constraint"

@@ -222,8 +222,7 @@ module Ast = struct
   type u_const =
     | Cst_out of Id.name * edge_label_cst
     | Cst_in of Id.name * edge_label_cst
-    | Feature_equal of feature_ident * feature_ident
-    | Feature_diff of feature_ident * feature_ident
+    | Feature_cmp of cmp * feature_ident * feature_ident
     | Feature_ineq of ineq * feature_ident * feature_ident
     | Feature_ineq_cst of ineq * feature_ident * float
     | Feature_equal_regexp of feature_ident * string
