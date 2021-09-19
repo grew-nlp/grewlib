@@ -547,7 +547,7 @@ module Matching = struct
         | (Lex (lexicon,field), Value v) ->
           let old_lex = List.assoc lexicon matching.l_param in
           begin
-            match Lexicon.select_opt field (string_of_value v) old_lex with
+            match Lexicon.filter_opt Eq field (string_of_value v) old_lex with
             | None -> raise Fail
             | Some new_lex -> {matching with l_param = (lexicon, new_lex) :: (List.remove_assoc lexicon matching.l_param) }
           end
@@ -561,7 +561,7 @@ module Matching = struct
         | (Lex (lexicon,field), Value v) ->
           let old_lex = List.assoc lexicon matching.l_param in
           begin
-            match Lexicon.unselect_opt field (string_of_value v) old_lex with
+            match Lexicon.filter_opt Neq field (string_of_value v) old_lex with
             | None -> raise Fail
             | Some new_lex -> {matching with l_param = (lexicon, new_lex) :: (List.remove_assoc lexicon matching.l_param) }
           end
@@ -574,7 +574,7 @@ module Matching = struct
         | Lex (lexicon,field) ->
           let old_lex = List.assoc lexicon matching.l_param in
           begin
-            match Lexicon.select_opt field (string_of_value value) old_lex with
+            match Lexicon.filter_opt Eq field (string_of_value value) old_lex with
             | None -> raise Fail
             | Some new_lex -> {matching with l_param = (lexicon, new_lex) :: (List.remove_assoc lexicon matching.l_param) }
           end
@@ -587,7 +587,7 @@ module Matching = struct
         | Lex (lexicon,field) ->
           let old_lex = List.assoc lexicon matching.l_param in
           begin
-            match Lexicon.unselect_opt field (string_of_value value) old_lex with
+            match Lexicon.filter_opt Neq field (string_of_value value) old_lex with
             | None -> raise Fail
             | Some new_lex -> {matching with l_param = (lexicon, new_lex) :: (List.remove_assoc lexicon matching.l_param) }
           end

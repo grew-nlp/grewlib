@@ -69,11 +69,9 @@ end (* module G_feature *)
 module P_feature = struct
 
   type p_feature_value =
+    | Pfv_list of cmp * feature_value list (* value (Eq,[]) must not be used *)
+    | Pfv_lex of cmp * string * string
     | Absent
-    | Equal of feature_value list     (* with Equal constr, the list MUST never be empty *)
-    | Different of feature_value list
-    | Equal_lex of string * string
-    | Different_lex of string * string
     | Else of (feature_value * feature_name * feature_value)
 
   type t = feature_name * p_feature_value
@@ -87,24 +85,19 @@ module P_feature = struct
     printf "%s%s\n"
       feature_name
       (match p_feature_value with
-       | Different [] -> "=*"
-       | Different l -> "≠" ^ (String.concat "|" (List.map string_of_value l))
-       | Equal l -> "=" ^ (String.concat "|" (List.map string_of_value l))
-       | Equal_lex (lex,fn) -> sprintf "= %s.%s" lex fn
-       | Different_lex (lex,fn) -> sprintf "≠ %s.%s" lex fn
+       | Pfv_list (Neq, []) -> "=*"
+       | Pfv_list (cmp,l) -> sprintf "%s%s" (string_of_cmp cmp) (String.concat "|" (List.map string_of_value l))
+       | Pfv_lex (cmp,lex,fn) -> sprintf "%s %s.%s" (string_of_cmp cmp) lex fn
        | Absent -> " must be Absent!"
        | Else (fv1,fn2,fv2) -> sprintf " = %s/%s = %s" (string_of_value fv1) fn2 (string_of_value fv2));
-
     printf "%!"
 
   let to_json_python (feature_name, p_feature_value) =
     `Assoc [
       ("feature_name", `String feature_name);
       ( match p_feature_value with
-        | Equal val_list -> ("equal", `List (List.map (fun x -> `String (string_of_value x)) val_list))
-        | Different val_list -> ("different", `List (List.map (fun x -> `String (string_of_value x)) val_list))
-        | Equal_lex (lex,fn) -> ("equal_lex", `String (sprintf "%s.%s" lex fn))
-        | Different_lex (lex,fn) -> ("different_lex", `String (sprintf "%s.%s" lex fn))
+        | Pfv_list (cmp,val_list) -> (string_of_cmp cmp, `List (List.map (fun x -> `String (string_of_value x)) val_list))
+        | Pfv_lex (cmp,lex,fn) -> (string_of_cmp cmp, `String (sprintf "%s.%s" lex fn))
         | Absent -> ("absent", `Null)
         | Else (fv1,fn2,fv2) -> ("else", `List [`String (string_of_value fv1); `String fn2; `String (string_of_value fv2)]);
       )
@@ -118,42 +111,37 @@ module P_feature = struct
     | (Absent, Absent) -> v1
     | (Absent, _)
     | (_, Absent) -> raise Fail_unif
-    | (Equal l1, Equal l2) ->
+    | (Pfv_list (Eq,l1), Pfv_list (Eq,l2)) ->
       begin
         match List_.sort_inter l1 l2 with
         | [] -> raise Fail_unif
-        | l -> Equal l
+        | l -> Pfv_list (Eq,l)
       end
-    | (Equal l1, Different l2)
-    | (Different l2, Equal l1) ->
+    | (Pfv_list (Eq,l1), Pfv_list (Neq,l2))
+    | (Pfv_list (Neq,l2), Pfv_list (Eq,l1)) ->
       begin
         match List_.sort_diff l1 l2 with
         | [] -> raise Fail_unif
-        | l -> Equal l
+        | l -> Pfv_list (Eq,l)
       end
-    | (Different l1, Different l2) -> Different (List_.sort_union l1 l2)
+    | (Pfv_list (Neq,l1), Pfv_list (Neq,l2)) -> Pfv_list (Neq,List_.sort_union l1 l2)
     | _ -> Error.bug "[P_feature.unif_value] inconsistent match case" (* HHH : change message error run not handled... *)
 
   let to_string = function
-    | (feat_name, Equal atoms) -> sprintf "%s=%s" feat_name (List_.to_string string_of_value "|" atoms)
-    | (feat_name, Different []) -> sprintf "%s=*" feat_name
-    | (feat_name, Different atoms) -> sprintf "%s≠%s" feat_name (List_.to_string string_of_value "|" atoms)
-    | (feat_name, Equal_lex (lex,fn)) -> sprintf "%s=%s.%s" feat_name lex fn
-    | (feat_name, Different_lex (lex,fn)) -> sprintf "%s<>%s.%s" feat_name lex fn
+    | (feat_name, Pfv_list (Neq,[])) -> sprintf "%s=*" feat_name
+    | (feat_name, Pfv_list (cmp,atoms)) -> sprintf "%s%s%s" feat_name (string_of_cmp cmp) (List_.to_string string_of_value "|" atoms)
+    | (feat_name, Pfv_lex (cmp,lex,fn)) -> sprintf "%s%s%s.%s" feat_name (string_of_cmp cmp) lex fn
     | (feat_name, Absent) -> sprintf "!%s" feat_name
     | (feat_name, Else (fv1,fn2,fv2)) -> sprintf "%s=%s/%s=%s" feat_name (string_of_value fv1) fn2 (string_of_value fv2)
 
   let build lexicons = function
-    | ({Ast.kind=Ast.Feat_kind_list (Eq,unsorted_values); name=name}, loc) ->
-      let values = Feature_value.build_disj ~loc name unsorted_values in (name, Equal values)
-    | ({Ast.kind=Ast.Feat_kind_list (Neq,unsorted_values); name=name}, loc) ->
-      let values = Feature_value.build_disj ~loc name unsorted_values in (name, Different values)
-    | ({Ast.kind=Ast.Feat_kind_lex (Eq,lex,fn); name=name}, loc) ->
+    | ({Ast.kind=Ast.Feat_kind_list (cmp,unsorted_values); name=name}, loc) ->
+      let values = Feature_value.build_disj ~loc name unsorted_values in (name, Pfv_list (cmp,values))
+
+    | ({Ast.kind=Ast.Feat_kind_lex (cmp,lex,fn); name=name}, loc) ->
       Lexicons.check ~loc lex fn lexicons;
-      (name, Equal_lex (lex,fn) )
-    | ({Ast.kind=Ast.Feat_kind_lex (Neq,lex,fn); name=name}, loc) ->
-      Lexicons.check ~loc lex fn lexicons;
-      (name, Different_lex (lex,fn) )  (* HHH: merge with prev *)
+      (name, Pfv_lex (cmp,lex,fn) )
+
     | ({Ast.kind=Ast.Absent; name=name}, loc) ->
       (name, Absent)
     | ({Ast.kind=Ast.Else (fv1,fn2,fv2); name=name}, loc) ->
@@ -448,15 +436,17 @@ module P_fs = struct
 
       (* Next cases: fn_pat = fn *)
       | ((_, P_feature.Absent)::_, (_, atom)::t) -> raise Fail
-      | ((_, P_feature.Equal fv)::_, (_, atom)::t) when not (List_.sort_mem atom fv) -> raise Fail
-      | ((_, P_feature.Else (fv,_,_))::_, (_, atom)::t) when atom <> fv -> raise Fail
-      | ((_, P_feature.Different fv)::_, (_, atom)::t) when List_.sort_mem atom fv -> raise Fail
 
-      | ((_, P_feature.Equal_lex (lex_id,field))::t_pat, (_, atom)::t) ->
+      | ((_, P_feature.Pfv_list (Eq,fv))::_, (_, atom)::t) when not (List_.sort_mem atom fv) -> raise Fail
+      | ((_, P_feature.Pfv_list (Neq,fv))::_, (_, atom)::t) when (List_.sort_mem atom fv) -> raise Fail
+
+      | ((_, P_feature.Else (fv,_,_))::_, (_, atom)::t) when atom <> fv -> raise Fail
+
+      | ((_, P_feature.Pfv_lex (cmp,lex_id,field))::t_pat, (_, atom)::t) ->
         begin
           try
             let lexicon = List.assoc lex_id acc in
-            match Lexicon.select_opt field (string_of_value atom) lexicon with
+            match Lexicon.filter_opt cmp field (string_of_value atom) lexicon with
             | None -> raise Fail
             | Some new_lexicon ->
               let new_acc = (lex_id, new_lexicon) :: (List.remove_assoc lex_id acc) in
@@ -464,8 +454,6 @@ module P_fs = struct
           with
           | Not_found -> Error.bug "[P_fs.match_] Cannot find lexicon. lex_id=\"%s\"" lex_id
         end
-
-      (* HHH: Disequal_lex !!! *)
 
       (* We have exhausted Fail cases, head of g_fs satisties head of p_fs *)
       | (_::p_tail, _::g_tail) -> loop acc (p_tail,g_tail) in

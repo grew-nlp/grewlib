@@ -74,11 +74,8 @@ module Lexicon : sig
       It supposed that the two lexicons define the same columns *)
   val union: t -> t -> t
 
-  (** [select_opt head value] returns the sublexicon with only items where the [head] column is equal to [value] if any, else returns None *)
-  val select_opt: string -> string -> t -> t option
-
-  (** [unselect_opt head value] returns the sublexicon with only items where the [head] column is different to [value] if any, else returns None *)
-  val unselect_opt: string -> string -> t -> t option
+  (** [filter_opt head value] returns the sublexicon with only items where the [head] column is match (Eq or Neq) to [value] if any, else returns None *)
+  val filter_opt: cmp -> string -> string -> t -> t option
 
   (** [read head lexicon] return the list of [value] of all items having in the [head] column equals to [value] *)
   val read_all: string -> t -> string list

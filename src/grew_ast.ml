@@ -70,6 +70,9 @@ let string_of_meta = function
   | ("", s) -> s
   | (k,v) -> sprintf "# %s = %s" k v
 
+type cmp = Eq | Neq
+let string_of_cmp = function Eq -> "=" | Neq -> "<>"
+  
 
 
 (* ================================================================================ *)
@@ -133,9 +136,6 @@ module Ast = struct
 
 
   (* ---------------------------------------------------------------------- *)
-  type cmp = Eq | Neq
-  let string_of_cmp = function Eq -> "=" | Neq -> "<>"
-  
   type feature_kind =
     | Feat_kind_list of cmp * string_feature_value list
     | Feat_kind_lex of cmp * string * string

@@ -150,20 +150,12 @@ module Lexicon = struct
     { lex1 with lines = Line_set.union lex1.lines lex2.lines }
   (* NOTE: the loc field of a union may be not accurate *)
 
-  let select_opt head value lex =
+  let filter_opt cmp head value lex =
+    let cmp_fct = match cmp with Eq -> (=) | Neq -> (<>) in
     match List_.index_opt head lex.header with
-    | None -> Error.build ?loc:lex.loc "[Lexicon.select_opt] cannot find %s in lexicon" head
+    | None -> Error.build ?loc:lex.loc "[Lexicon.filter_opt] cannot find the fiels \"%s\" in lexicon" head
     | Some index ->
-      let new_set = Line_set.filter (fun line -> List.nth line index = value) lex.lines in
-      if Line_set.is_empty new_set
-      then None
-      else Some { lex with lines = new_set }
-
-  let unselect_opt head value lex =
-    match List_.index_opt head lex.header with
-    | None -> Error.build ?loc:lex.loc "[Lexicon.unselect_opt] cannot find the fiels \"%s\" in lexicon" head
-    | Some index ->
-      let new_set = Line_set.filter (fun line -> List.nth line index <> value) lex.lines in
+      let new_set = Line_set.filter (fun line -> cmp_fct (List.nth line index) value) lex.lines in
       if Line_set.is_empty new_set
       then None
       else Some { lex with lines = new_set }

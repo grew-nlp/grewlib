@@ -32,6 +32,9 @@ val concat_feature_values: ?loc:Loc.t -> feature_value list -> feature_value
 val parse_meta: string -> string * string
 val string_of_meta: string * string -> string
 
+type cmp = Eq | Neq
+val string_of_cmp: cmp -> string
+
 module Ast : sig
 
   (* ---------------------------------------------------------------------- *)
@@ -70,8 +73,6 @@ module Ast : sig
   val parse_simple_or_pointed: string -> simple_or_pointed
 
   (* ---------------------------------------------------------------------- *)
-  type cmp = Eq | Neq
-
   type feature_kind =
     | Feat_kind_list of cmp * string_feature_value list
     | Feat_kind_lex of cmp * string * string
