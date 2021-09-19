@@ -48,7 +48,7 @@ module G_feature = struct
     | (None, None) -> Stdlib.compare name1 name2
 
   let build = function
-    | ({Ast.kind=Ast.Equality [atom]; name=name},loc) ->
+    | ({Ast.kind=Ast.Feat_kind_list (Eq,[atom]); name=name},loc) ->
       (name, Feature_value.build_value ~loc name atom)
     | (uf,loc) -> Error.build ~loc "in graph nodes, features must follow the shape \"name = value\" (error on feature: \"%s\")" (Ast.u_feature_to_string uf)
 
@@ -101,11 +101,11 @@ module P_feature = struct
     `Assoc [
       ("feature_name", `String feature_name);
       ( match p_feature_value with
-        | Absent -> ("absent", `Null)
         | Equal val_list -> ("equal", `List (List.map (fun x -> `String (string_of_value x)) val_list))
         | Different val_list -> ("different", `List (List.map (fun x -> `String (string_of_value x)) val_list))
         | Equal_lex (lex,fn) -> ("equal_lex", `String (sprintf "%s.%s" lex fn))
         | Different_lex (lex,fn) -> ("different_lex", `String (sprintf "%s.%s" lex fn))
+        | Absent -> ("absent", `Null)
         | Else (fv1,fn2,fv2) -> ("else", `List [`String (string_of_value fv1); `String fn2; `String (string_of_value fv2)]);
       )
     ]
@@ -132,30 +132,30 @@ module P_feature = struct
         | l -> Equal l
       end
     | (Different l1, Different l2) -> Different (List_.sort_union l1 l2)
-    | _ -> Error.bug "[P_feature.unif_value] inconsistent match case"
+    | _ -> Error.bug "[P_feature.unif_value] inconsistent match case" (* HHH : change message error run not handled... *)
 
   let to_string = function
-    | (feat_name, Absent) -> sprintf "!%s" feat_name
     | (feat_name, Equal atoms) -> sprintf "%s=%s" feat_name (List_.to_string string_of_value "|" atoms)
     | (feat_name, Different []) -> sprintf "%s=*" feat_name
     | (feat_name, Different atoms) -> sprintf "%s≠%s" feat_name (List_.to_string string_of_value "|" atoms)
     | (feat_name, Equal_lex (lex,fn)) -> sprintf "%s=%s.%s" feat_name lex fn
     | (feat_name, Different_lex (lex,fn)) -> sprintf "%s<>%s.%s" feat_name lex fn
+    | (feat_name, Absent) -> sprintf "!%s" feat_name
     | (feat_name, Else (fv1,fn2,fv2)) -> sprintf "%s=%s/%s=%s" feat_name (string_of_value fv1) fn2 (string_of_value fv2)
 
   let build lexicons = function
-    | ({Ast.kind=Ast.Absent; name=name}, loc) ->
-      (name, Absent)
-    | ({Ast.kind=Ast.Equality unsorted_values; name=name}, loc) ->
+    | ({Ast.kind=Ast.Feat_kind_list (Eq,unsorted_values); name=name}, loc) ->
       let values = Feature_value.build_disj ~loc name unsorted_values in (name, Equal values)
-    | ({Ast.kind=Ast.Disequality unsorted_values; name=name}, loc) ->
+    | ({Ast.kind=Ast.Feat_kind_list (Neq,unsorted_values); name=name}, loc) ->
       let values = Feature_value.build_disj ~loc name unsorted_values in (name, Different values)
-    | ({Ast.kind=Ast.Equal_lex (lex,fn); name=name}, loc) ->
+    | ({Ast.kind=Ast.Feat_kind_lex (Eq,lex,fn); name=name}, loc) ->
       Lexicons.check ~loc lex fn lexicons;
       (name, Equal_lex (lex,fn) )
-    | ({Ast.kind=Ast.Disequal_lex (lex,fn); name=name}, loc) ->
+    | ({Ast.kind=Ast.Feat_kind_lex (Neq,lex,fn); name=name}, loc) ->
       Lexicons.check ~loc lex fn lexicons;
-      (name, Different_lex (lex,fn) )
+      (name, Different_lex (lex,fn) )  (* HHH: merge with prev *)
+    | ({Ast.kind=Ast.Absent; name=name}, loc) ->
+      (name, Absent)
     | ({Ast.kind=Ast.Else (fv1,fn2,fv2); name=name}, loc) ->
       let v1 = match Feature_value.build_disj ~loc name [fv1] with [one] -> one | _ -> failwith "BUG Else" in
       let v2 = match Feature_value.build_disj ~loc name [fv2] with [one] -> one | _ -> failwith "BUG Else" in
@@ -426,8 +426,9 @@ module P_fs = struct
       | ((fn_pat, P_feature.Absent)::t_pat, []) -> loop acc (t_pat, [])
       | ((fn_pat, P_feature.Absent)::t_pat, (fn, fa)::t) when fn_pat < fn -> loop acc (t_pat, (fn, fa)::t)
 
-      (* look for the second part of an Else construction*)
-      | ((_, P_feature.Else (_,fn2,fv2))::t_pat,[]) ->        begin
+      (* look for the second part of an Else construction *)
+      | ((_, P_feature.Else (_,fn2,fv2))::t_pat,[]) ->
+        begin
           try if (List.assoc fn2 g_fs) <> fv2 then raise Fail
           with Not_found -> raise Fail
         end; loop acc (t_pat, [])
@@ -451,7 +452,8 @@ module P_fs = struct
       | ((_, P_feature.Else (fv,_,_))::_, (_, atom)::t) when atom <> fv -> raise Fail
       | ((_, P_feature.Different fv)::_, (_, atom)::t) when List_.sort_mem atom fv -> raise Fail
 
-      | ((_, P_feature.Equal_lex (lex_id,field))::t_pat, (_, atom)::t) ->        begin
+      | ((_, P_feature.Equal_lex (lex_id,field))::t_pat, (_, atom)::t) ->
+        begin
           try
             let lexicon = List.assoc lex_id acc in
             match Lexicon.select_opt field (string_of_value atom) lexicon with
@@ -462,6 +464,8 @@ module P_fs = struct
           with
           | Not_found -> Error.bug "[P_fs.match_] Cannot find lexicon. lex_id=\"%s\"" lex_id
         end
+
+      (* HHH: Disequal_lex !!! *)
 
       (* We have exhausted Fail cases, head of g_fs satisties head of p_fs *)
       | (_::p_tail, _::g_tail) -> loop acc (p_tail,g_tail) in

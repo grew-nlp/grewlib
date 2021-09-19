@@ -3,8 +3,8 @@
 (*                                                                                *)
 (*    Copyright 2011-2021 Inria, Université de Lorraine                           *)
 (*                                                                                *)
-(*    Webpage: https://grew.fr                                                     *)
-(*    License: CeCILL (see LICENSE folder or "http://cecill.info/")            *)
+(*    Webpage: https://grew.fr                                                    *)
+(*    License: CeCILL (see LICENSE folder or "http://cecill.info/")               *)
 (*    Authors: see AUTHORS file                                                   *)
 (**********************************************************************************)
 
@@ -605,25 +605,25 @@ node_features:
               let (name,loc) = name_loc in
               match values with
               | [Ast.Simple "*"] ->
-                ({Ast.kind = Ast.Disequality []; name},loc)
+                ({Ast.kind = Ast.Feat_kind_list (Neq,[]); name},loc)
               | [Ast.Pointed (lex,fn)] ->
-                ({Ast.kind = Ast.Equal_lex (lex,fn); name }, loc)
+                ({Ast.kind = Ast.Feat_kind_lex (Eq,lex,fn); name }, loc)
               | l ->
                 let value_list = List.map (function
                   | Ast.Simple x -> x
                   | Ast.Pointed (lex,fn) -> Error.build "Lexical reference '%s.%s' cannot be used in a disjunction" lex fn
-                ) l in ({Ast.kind = Ast.Equality value_list; name }, loc)
+                ) l in ({Ast.kind = Ast.Feat_kind_list (Eq,value_list); name }, loc)
             }
 
         /*   cat = *   */
         | name_loc=simple_id_with_loc EQUAL STAR
             { let (name,loc) = name_loc in
-              ({Ast.kind = Ast.Disequality []; name},loc) }
+              ({Ast.kind = Ast.Feat_kind_list (Neq,[]); name},loc) }
 
         /*   cat   */
         | name_loc=simple_id_with_loc
             { let (name,loc) = name_loc in
-              ({Ast.kind = Ast.Disequality []; name},loc) }
+              ({Ast.kind = Ast.Feat_kind_list (Neq,[]); name},loc) }
 
         /*    cat<>n|v|adj   */
         | name_loc=simple_id_with_loc DISEQUAL values=separated_nonempty_list(PIPE,pattern_feature_value)
@@ -631,12 +631,12 @@ node_features:
               let (name,loc) = name_loc in
               match values with
               | [Ast.Pointed (lex,fn)] ->
-                ({Ast.kind = Ast.Disequal_lex (lex,fn); name }, loc)
+                ({Ast.kind = Ast.Feat_kind_lex (Neq, lex,fn); name }, loc)
               | l ->
                 let value_list = List.map (function
                   | Ast.Simple x -> x
                   | Ast.Pointed (lex,fn) -> Error.build "Lexical reference '%s.%s' cannot be used in a disjunction" lex fn
-                ) l in ({Ast.kind = Ast.Disequality value_list; name }, loc)
+                ) l in ({Ast.kind = Ast.Feat_kind_list (Neq,value_list); name }, loc)
             }
 
 

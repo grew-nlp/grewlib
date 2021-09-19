@@ -133,20 +133,19 @@ module Ast = struct
 
 
   (* ---------------------------------------------------------------------- *)
+  type cmp = Eq | Neq
+  let string_of_cmp = function Eq -> "=" | Neq -> "<>"
+  
   type feature_kind =
-    | Equality of string_feature_value list
-    | Disequality of string_feature_value list
-    | Equal_lex of string * string
-    | Disequal_lex of string * string
+    | Feat_kind_list of cmp * string_feature_value list
+    | Feat_kind_lex of cmp * string * string
     | Absent
     | Else of (string_feature_value * feature_name * string_feature_value)
 
   let feature_kind_to_string = function
-    | Equality fv_list -> sprintf " = %s" (String.concat "|" fv_list)
-    | Disequality [] -> ""
-    | Disequality fv_list -> sprintf " <> %s" (String.concat "|" fv_list)
-    | Equal_lex (lex,fn) -> sprintf " = %s.%s" lex fn
-    | Disequal_lex (lex,fn) -> sprintf " <> %s.%s" lex fn
+    | Feat_kind_list (Neq, []) -> ""
+    | Feat_kind_list (cmp, fv_list) -> sprintf " %s %s" (string_of_cmp cmp) (String.concat "|" fv_list)
+    | Feat_kind_lex (cmp,lex,fn) -> sprintf " %s %s.%s" (string_of_cmp cmp) lex fn
     | Absent -> " <> *"
     | Else (fv1, fn2, fv2) -> sprintf " = %s/%s = %s" fv1 fn2 fv2
 
@@ -162,8 +161,8 @@ module Ast = struct
 
   let default_fs ?loc lab =
     match loc with
-    | None -> [({name="label"; kind=Equality [lab]}, Loc.empty)]
-    | Some l -> [({name="label"; kind=Equality [lab]}, l)]
+    | None -> [({name="label"; kind=Feat_kind_list (Eq, [lab])}, Loc.empty)]
+    | Some l -> [({name="label"; kind=Feat_kind_list (Eq, [lab])}, l)]
 
   type u_node = {
     node_id: Id.name;

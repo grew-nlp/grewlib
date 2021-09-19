@@ -70,11 +70,11 @@ module Ast : sig
   val parse_simple_or_pointed: string -> simple_or_pointed
 
   (* ---------------------------------------------------------------------- *)
+  type cmp = Eq | Neq
+
   type feature_kind =
-    | Equality of string_feature_value list
-    | Disequality of string_feature_value list
-    | Equal_lex of string * string
-    | Disequal_lex of string * string
+    | Feat_kind_list of cmp * string_feature_value list
+    | Feat_kind_lex of cmp * string * string
     | Absent
     | Else of (string_feature_value * feature_name * string_feature_value)
 

@@ -655,10 +655,10 @@ module G_graph = struct
                let fs = match json_fs with
                  | `Assoc feat_json_list ->
                    List.map (function
-                       | (feat_name, `String value) -> ({Ast.name= feat_name; kind = Ast.Equality [value]}, Loc.empty)
+                       | (feat_name, `String value) -> ({Ast.name= feat_name; kind = Ast.Feat_kind_list (Eq,[value])}, Loc.empty)
                        | (feat_name, json) -> Error.build "[Graph.of_json_python] invalid feature structure. feat_name=`%s` json=`%s`" feat_name (Yojson.Basic.pretty_to_string json)
                      ) feat_json_list
-                 |  `String one -> [({Ast.name= "form"; kind = Ast.Equality [one]}, Loc.empty)]
+                 |  `String one -> [({Ast.name= "form"; kind = Ast.Feat_kind_list (Eq,[one])}, Loc.empty)]
                  | _ -> Error.build "[Graph.of_json_python] invalid fs" in
                let new_edges = List.map
                    (function
