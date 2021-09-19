@@ -225,7 +225,7 @@ module Ast = struct
     | Feature_cmp of cmp * feature_ident * feature_ident
     | Feature_ineq of ineq * feature_ident * feature_ident
     | Feature_ineq_cst of ineq * feature_ident * float
-    | Feature_equal_regexp of feature_ident * string
+    | Feature_cmp_regexp of cmp * feature_ident * string
     | Feature_cmp_value of cmp * feature_ident * feature_value
     | Large_prec of Id.name * Id.name
     | Edge_disjoint of Id.name * Id.name

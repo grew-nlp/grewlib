@@ -434,7 +434,6 @@ pat_item:
         | feat_id1_loc=feature_ident_with_loc EQUAL rhs=FLOAT
             { let (feat_id1,loc)=feat_id1_loc in Pat_const (Ast.Feature_cmp_value (Eq, feat_id1, Float rhs), loc) }
 
-
         /*   X.cat <> value   */
         /*   X.cat <> Y.cat   */
         /*   X.cat <> lex.value   */
@@ -450,7 +449,7 @@ pat_item:
               | ((_,loc),_) -> Error.build ~loc "syntax error in constraint"
              }
 
-        /* NB: the two next clauses use [simple_or_pointed_with_loc] instead of [feature_ident_with_loc] to avoid a Menhir conflict */
+        /* NB: the three next clauses use [simple_or_pointed_with_loc] instead of [feature_ident_with_loc] to avoid a Menhir conflict */
         /*   X.cat <> "value"   */
         | lhs_loc=simple_or_pointed_with_loc DISEQUAL rhs=STRING
             { match lhs_loc with
@@ -465,9 +464,16 @@ pat_item:
               | (_,loc) -> Error.build ~loc "syntax error in constraint"
             }
 
+        /*   X.cat <> re"regexp"   */
+        | lhs_loc=simple_or_pointed_with_loc DISEQUAL regexp=REGEXP
+            { match lhs_loc with
+              | (Ast.Pointed feat_id, loc) -> Pat_const (Ast.Feature_cmp_regexp (Neq, feat_id, regexp), loc)
+              | (_,loc) -> Error.build ~loc "syntax error in constraint"
+            }
+
         /*   X.cat = re"regexp"   */
         | feat_id_loc=feature_ident_with_loc EQUAL regexp=REGEXP
-            { let (feat_id,loc)=feat_id_loc in Pat_const (Ast.Feature_equal_regexp (feat_id, regexp), loc) }
+            { let (feat_id,loc)=feat_id_loc in Pat_const (Ast.Feature_cmp_regexp (Eq, feat_id, regexp), loc) }
 
         /*   X.feat < Y.feat    */
         /*   X < Y     */

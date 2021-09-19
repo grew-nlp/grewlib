@@ -83,7 +83,7 @@ module Pattern = struct
     (*   e.2 <> comp   *)
     | Feature_cmp_value of cmp *base * string * feature_value
     (*   e.2 = re"…"   *)
-    | Feature_equal_regexp of base * string * string
+    | Feature_cmp_regexp of cmp * base * string * string
     (*   e1.level < e2.level   *)
     | Feature_ineq of Ast.ineq * base * string * base * string
     (*   e1.level < 3   *)
@@ -122,9 +122,10 @@ module Pattern = struct
                 ("value", json_of_value value);
               ]
              ]
-    | Feature_equal_regexp (id,fn,regexp) ->
+    | Feature_cmp_regexp (cmp,id,fn,regexp) ->
       `Assoc ["feature_eq_regexp",
               `Assoc [
+                ("cmp", `String (string_of_cmp cmp));
                 ("id", json_of_base id);
                 ("feature_name", `String fn);
                 ("regexp", `String regexp);
@@ -200,8 +201,8 @@ module Pattern = struct
     | (Ast.Feature_ineq_cst (ineq, (id1, feat_name1), constant), loc) ->
       Feature_ineq_cst (ineq, parse_id loc id1, feat_name1, constant)
 
-    | (Ast.Feature_equal_regexp ((id, feat_name), regexp), loc) ->
-      Feature_equal_regexp (parse_id loc id, feat_name, regexp)
+    | (Ast.Feature_cmp_regexp (cmp, (id, feat_name), regexp), loc) ->
+      Feature_cmp_regexp (cmp, parse_id loc id, feat_name, regexp)
 
     | (Ast.Feature_cmp_value (cmp, (id, feat_name), value), loc) ->
       Feature_cmp_value (cmp, parse_id loc id, feat_name, value)
@@ -561,14 +562,16 @@ module Matching = struct
         | _ -> Error.run "[Matching.apply_cst] Cannot check inequality on feature value %s (available only on numeric values)" feat_name
       end
 
-    | Feature_equal_regexp (id, feat_name, regexp) ->
+    | Feature_cmp_regexp (cmp, id, feat_name, regexp) ->
       begin
         match get_value id feat_name with
         | Lex _ -> Error.run "[Matching.apply_cst] test regexp against lexicon is not available"
         | Value (Float _) -> Error.run "[Matching.apply_cst] test regexp against numeric value is not available"
         | Value (String string_feat) ->
           let re = Str.regexp regexp in
-          if String_.re_match re string_feat then matching else raise Fail
+          match (cmp, String_.re_match re string_feat) with
+          | (Eq, true) | (Neq, false) -> matching
+          | _ -> raise Fail
       end
 
     | Node_large_prec (pid1, pid2) ->
