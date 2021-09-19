@@ -81,9 +81,8 @@ module Pattern = struct
     | Feature_diff of base * string * base * string
     (*   N.upos = VERB   *)
     (*   e.2 = comp   *)
-    | Feature_equal_value of base * string * feature_value
     (*   e.2 <> comp   *)
-    | Feature_diff_value of base * string * feature_value
+    | Feature_cmp_value of cmp *base * string * feature_value
     (*   e.2 = re"…"   *)
     | Feature_equal_regexp of base * string * string
     (*   e1.level < e2.level   *)
@@ -123,17 +122,10 @@ module Pattern = struct
                 ("feature_name_2", `String fn2);
               ]
              ]
-    | Feature_equal_value (id,fn,value) ->
-      `Assoc ["feature_eq_cst",
+    | Feature_cmp_value (cmp,id,fn,value) ->
+      `Assoc ["feature_cmp_cst",
               `Assoc [
-                ("id", json_of_base id);
-                ("feature_name_", `String fn);
-                ("value", json_of_value value);
-              ]
-             ]
-    | Feature_diff_value (id,fn,value) ->
-      `Assoc ["feature_diff_cst",
-              `Assoc [
+                ("cmp", `String (string_of_cmp cmp));
                 ("id", json_of_base id);
                 ("feature_name_", `String fn);
                 ("value", json_of_value value);
@@ -223,10 +215,9 @@ module Pattern = struct
     | (Ast.Feature_equal_regexp ((id, feat_name), regexp), loc) ->
       Feature_equal_regexp (parse_id loc id, feat_name, regexp)
 
-    | (Ast.Feature_equal_value ((id, feat_name), value), loc) ->
-      Feature_equal_value (parse_id loc id, feat_name, value)
-    | (Ast.Feature_diff_value ((id, feat_name), value), loc) ->
-      Feature_diff_value (parse_id loc id, feat_name, value)
+    | (Ast.Feature_cmp_value (cmp, (id, feat_name), value), loc) ->
+      Feature_cmp_value (cmp, parse_id loc id, feat_name, value)
+
     | (Ast.Large_prec (id1, id2), loc) ->
       begin
         match (parse_id loc id1, parse_id loc id2) with
@@ -567,32 +558,20 @@ module Matching = struct
           end
         | _ -> Error.run "[Matching.apply_cst] cannot compare two lexicon fields"
       end
-    | Feature_equal_value (id1, feat_name1, value) ->
+    | Feature_cmp_value (cmp, id1, feat_name1, value) ->
       begin
         match get_value id1 feat_name1 with
-        | Value fv when fv = value -> matching
+        | Value fv when cmp_fct cmp fv value -> matching
         | Lex (lexicon,field) ->
           let old_lex = List.assoc lexicon matching.l_param in
           begin
-            match Lexicon.filter_opt Eq field (string_of_value value) old_lex with
+            match Lexicon.filter_opt cmp field (string_of_value value) old_lex with
             | None -> raise Fail
             | Some new_lex -> {matching with l_param = (lexicon, new_lex) :: (List.remove_assoc lexicon matching.l_param) }
           end
         | _ -> raise Fail
       end
-    | Feature_diff_value (id1, feat_name1, value) ->
-      begin
-        match get_value id1 feat_name1 with
-        | Value fv when fv <> value -> matching
-        | Lex (lexicon,field) ->
-          let old_lex = List.assoc lexicon matching.l_param in
-          begin
-            match Lexicon.filter_opt Neq field (string_of_value value) old_lex with
-            | None -> raise Fail
-            | Some new_lex -> {matching with l_param = (lexicon, new_lex) :: (List.remove_assoc lexicon matching.l_param) }
-          end
-        | _ -> raise Fail
-      end
+
     | Feature_ineq (ineq, base1, feat_name1, base2, feat_name2) ->
       begin
         match (get_value base1 feat_name1, get_value base2 feat_name2) with

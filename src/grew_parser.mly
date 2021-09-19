@@ -421,18 +421,18 @@ pat_item:
              { let (feat_id1,loc)=feat_id1_loc in
               match Ast.parse_simple_or_pointed rhs with
               | Ast.Simple value ->
-                Pat_const (Ast.Feature_equal_value (feat_id1, String value), loc)
+                Pat_const (Ast.Feature_cmp_value (Eq,feat_id1, String value), loc)
               | Ast.Pointed (s1, s2) ->
                 Pat_const (Ast.Feature_equal (feat_id1, (s1, s2)), loc)
              }
 
         /*   X.cat = "value"   */
         | feat_id1_loc=feature_ident_with_loc EQUAL rhs=STRING
-            { let (feat_id1,loc)=feat_id1_loc in Pat_const (Ast.Feature_equal_value (feat_id1, String rhs), loc) }
+            { let (feat_id1,loc)=feat_id1_loc in Pat_const (Ast.Feature_cmp_value (Eq, feat_id1, String rhs), loc) }
 
         /*   X.cat = 12.34   */
         | feat_id1_loc=feature_ident_with_loc EQUAL rhs=FLOAT
-            { let (feat_id1,loc)=feat_id1_loc in Pat_const (Ast.Feature_equal_value (feat_id1, Float rhs), loc) }
+            { let (feat_id1,loc)=feat_id1_loc in Pat_const (Ast.Feature_cmp_value (Eq, feat_id1, Float rhs), loc) }
 
 
         /*   X.cat <> value   */
@@ -442,7 +442,7 @@ pat_item:
         | lhs_loc=simple_or_pointed_with_loc DISEQUAL rhs =simple_or_pointed
              {  match (lhs_loc,rhs) with
               | ((Ast.Pointed feat_id,loc), Ast.Simple value) ->
-                Pat_const (Ast.Feature_diff_value (feat_id, String value), loc)
+                Pat_const (Ast.Feature_cmp_value (Neq, feat_id, String value), loc)
               | ((Ast.Pointed feat_id,loc), Ast.Pointed (s1, s2)) ->
                 Pat_const (Ast.Feature_diff (feat_id, (s1, s2)), loc)
               | ((Ast.Simple edge_id1,loc), Ast.Simple edge_id2) ->
@@ -454,14 +454,14 @@ pat_item:
         /*   X.cat <> "value"   */
         | lhs_loc=simple_or_pointed_with_loc DISEQUAL rhs=STRING
             { match lhs_loc with
-              | (Ast.Pointed feat_id, loc) -> Pat_const (Ast.Feature_diff_value (feat_id, String rhs), loc)
+              | (Ast.Pointed feat_id, loc) -> Pat_const (Ast.Feature_cmp_value (Neq, feat_id, String rhs), loc)
               | (_,loc) -> Error.build ~loc "syntax error in constraint"
             }
 
         /*   X.cat <> 12.34   */
         | lhs_loc=simple_or_pointed_with_loc DISEQUAL rhs=FLOAT
             { match lhs_loc with
-              | (Ast.Pointed feat_id, loc) -> Pat_const (Ast.Feature_diff_value (feat_id, Float rhs), loc)
+              | (Ast.Pointed feat_id, loc) -> Pat_const (Ast.Feature_cmp_value (Neq, feat_id, Float rhs), loc)
               | (_,loc) -> Error.build ~loc "syntax error in constraint"
             }
 

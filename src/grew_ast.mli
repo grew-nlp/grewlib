@@ -34,6 +34,7 @@ val string_of_meta: string * string -> string
 
 type cmp = Eq | Neq
 val string_of_cmp: cmp -> string
+val cmp_fct: cmp -> ('a -> 'a -> bool)
 
 module Ast : sig
 
@@ -129,8 +130,7 @@ module Ast : sig
     | Feature_ineq of ineq * feature_ident * feature_ident
     | Feature_ineq_cst of ineq * feature_ident * float
     | Feature_equal_regexp of feature_ident * string
-    | Feature_equal_value of feature_ident * feature_value
-    | Feature_diff_value of feature_ident * feature_value
+    | Feature_cmp_value of cmp * feature_ident * feature_value
     | Large_prec of Id.name * Id.name
     | Edge_disjoint of Id.name * Id.name
     | Edge_crossing of Id.name * Id.name
