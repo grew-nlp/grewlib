@@ -1,3 +1,6 @@
+# 1.7.0 (2021/09/20)
+  * Add syntax with regexp in node declaration
+
 ## 1.6.3 (2021/08/03)
   * Fix bug with lexicon folder finding
 
