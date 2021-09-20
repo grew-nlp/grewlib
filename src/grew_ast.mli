@@ -77,6 +77,7 @@ module Ast : sig
   type feature_kind =
     | Feat_kind_list of cmp * string_feature_value list
     | Feat_kind_lex of cmp * string * string
+    | Feat_kind_re of cmp * string
     | Absent
     | Else of (string_feature_value * feature_name * string_feature_value)
 

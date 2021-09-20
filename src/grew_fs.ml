@@ -71,6 +71,7 @@ module P_feature = struct
   type p_feature_value =
     | Pfv_list of cmp * feature_value list (* value (Eq,[]) must not be used *)
     | Pfv_lex of cmp * string * string
+    | Pfv_re of cmp * string
     | Absent
     | Else of (feature_value * feature_name * feature_value)
 
@@ -88,6 +89,7 @@ module P_feature = struct
        | Pfv_list (Neq, []) -> "=*"
        | Pfv_list (cmp,l) -> sprintf "%s%s" (string_of_cmp cmp) (String.concat "|" (List.map string_of_value l))
        | Pfv_lex (cmp,lex,fn) -> sprintf "%s %s.%s" (string_of_cmp cmp) lex fn
+       | Pfv_re (cmp,re) -> sprintf "%s re\"%s\"" (string_of_cmp cmp) re
        | Absent -> " must be Absent!"
        | Else (fv1,fn2,fv2) -> sprintf " = %s/%s = %s" (string_of_value fv1) fn2 (string_of_value fv2));
     printf "%!"
@@ -98,6 +100,7 @@ module P_feature = struct
       ( match p_feature_value with
         | Pfv_list (cmp,val_list) -> (string_of_cmp cmp, `List (List.map (fun x -> `String (string_of_value x)) val_list))
         | Pfv_lex (cmp,lex,fn) -> (string_of_cmp cmp, `String (sprintf "%s.%s" lex fn))
+        | Pfv_re (cmp,re) -> (string_of_cmp cmp, `String (sprintf "re\"%s\"" re))
         | Absent -> ("absent", `Null)
         | Else (fv1,fn2,fv2) -> ("else", `List [`String (string_of_value fv1); `String fn2; `String (string_of_value fv2)]);
       )
@@ -131,6 +134,7 @@ module P_feature = struct
     | (feat_name, Pfv_list (Neq,[])) -> sprintf "%s=*" feat_name
     | (feat_name, Pfv_list (cmp,atoms)) -> sprintf "%s%s%s" feat_name (string_of_cmp cmp) (List_.to_string string_of_value "|" atoms)
     | (feat_name, Pfv_lex (cmp,lex,fn)) -> sprintf "%s%s%s.%s" feat_name (string_of_cmp cmp) lex fn
+    | (feat_name, Pfv_re (cmp,re)) -> sprintf "%s%sre\"%s\"" feat_name (string_of_cmp cmp) re
     | (feat_name, Absent) -> sprintf "!%s" feat_name
     | (feat_name, Else (fv1,fn2,fv2)) -> sprintf "%s=%s/%s=%s" feat_name (string_of_value fv1) fn2 (string_of_value fv2)
 
@@ -141,6 +145,8 @@ module P_feature = struct
     | ({Ast.kind=Ast.Feat_kind_lex (cmp,lex,fn); name=name}, loc) ->
       Lexicons.check ~loc lex fn lexicons;
       (name, Pfv_lex (cmp,lex,fn) )
+
+    | ({Ast.kind=Ast.Feat_kind_re (cmp,re); name=name}, loc) -> (name, Pfv_re (cmp,re) )
 
     | ({Ast.kind=Ast.Absent; name=name}, loc) ->
       (name, Absent)
@@ -439,6 +445,9 @@ module P_fs = struct
 
       | ((_, P_feature.Pfv_list (Eq,fv))::_, (_, atom)::t) when not (List_.sort_mem atom fv) -> raise Fail
       | ((_, P_feature.Pfv_list (Neq,fv))::_, (_, atom)::t) when (List_.sort_mem atom fv) -> raise Fail
+
+      | ((_, P_feature.Pfv_re (Eq,re))::_, (_, atom)::t) when not (String_.re_match (Str.regexp re) (string_of_value atom)) -> raise Fail
+      | ((_, P_feature.Pfv_re (Neq,re))::_, (_, atom)::t) when (String_.re_match (Str.regexp re) (string_of_value atom)) -> raise Fail
 
       | ((_, P_feature.Else (fv,_,_))::_, (_, atom)::t) when atom <> fv -> raise Fail
 

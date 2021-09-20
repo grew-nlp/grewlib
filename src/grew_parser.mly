@@ -645,6 +645,15 @@ node_features:
                 ) l in ({Ast.kind = Ast.Feat_kind_list (Neq,value_list); name }, loc)
             }
 
+        /*   form = re".*ing"   */
+        | name_loc=simple_id_with_loc EQUAL regexp=REGEXP
+            { let (name,loc) = name_loc in
+              ({Ast.kind = Ast.Feat_kind_re (Eq, regexp); name},loc) }
+
+        /*   form <> re".*ing"   */
+        | name_loc=simple_id_with_loc DISEQUAL regexp=REGEXP
+            { let (name,loc) = name_loc in
+              ({Ast.kind = Ast.Feat_kind_re (Neq, regexp); name},loc) }
 
         /*   !lemma   */
         | BANG name_loc=simple_id_with_loc

@@ -138,6 +138,7 @@ module Ast = struct
   type feature_kind =
     | Feat_kind_list of cmp * string_feature_value list
     | Feat_kind_lex of cmp * string * string
+    | Feat_kind_re of cmp * string
     | Absent
     | Else of (string_feature_value * feature_name * string_feature_value)
 
@@ -145,6 +146,7 @@ module Ast = struct
     | Feat_kind_list (Neq, []) -> ""
     | Feat_kind_list (cmp, fv_list) -> sprintf " %s %s" (string_of_cmp cmp) (String.concat "|" fv_list)
     | Feat_kind_lex (cmp,lex,fn) -> sprintf " %s %s.%s" (string_of_cmp cmp) lex fn
+    | Feat_kind_re (cmp,re) -> sprintf " %s re\"%s\"" (string_of_cmp cmp) re
     | Absent -> " <> *"
     | Else (fv1, fn2, fv2) -> sprintf " = %s/%s = %s" fv1 fn2 fv2
 
