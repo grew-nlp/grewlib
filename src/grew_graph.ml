@@ -1424,7 +1424,7 @@ module G_graph = struct
      The algorithm is modified:
      - first search the roots
      - then apply the depth_first_search starting from these roots
-       Tree detection is easier (is_tree <=> back_edges=0 and nontree_edges=0
+       Tree detection is easier (is_tree <=> back_edges=0 and nontree_edges=0)
   *)
   (* --------------------------------------------------------------- *)
   let dfs_debug = false
