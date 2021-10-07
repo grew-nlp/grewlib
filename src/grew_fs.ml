@@ -276,9 +276,10 @@ module G_fs = struct
       match get_main ?main_feat t with
       | (None, sub) -> sub
       | (Some (feat_name,atom), sub) ->
+        let s = match string_of_value atom with "" -> "_" | x -> x in (* Bug in dot if empty *)
         if is_highlithed feat_name
-        then bprintf buff "<TR><TD COLSPAN=\"3\" BGCOLOR=\"#00FF00\"><B>%s</B></TD></TR>\n" (string_of_value atom)
-        else bprintf buff "<TR><TD COLSPAN=\"3\"><B>%s</B></TD></TR>\n" (string_of_value atom);
+        then bprintf buff "<TR><TD COLSPAN=\"3\" BGCOLOR=\"#00FF00\"><B>%s</B></TD></TR>\n" s
+        else bprintf buff "<TR><TD COLSPAN=\"3\"><B>%s</B></TD></TR>\n" s;
         sub in
     let next = List.sort G_feature.print_cmp next in
     List.iter
