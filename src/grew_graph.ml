@@ -483,6 +483,14 @@ module G_graph = struct
       | Some id -> sprintf ", sent_id=%s" id
       | None -> "" in
 
+    (* check that there is no unknown fields *)
+    List.iter
+      (function 
+        | "meta" | "nodes" | "edges" | "order" | "code" -> ()
+        | x -> 
+          Error.warning "[G_graph.of_json%s] Unknown field `%s` (See https://grew.fr/doc/json)" (sent_id_text ()) x 
+      ) (keys json);
+
     let nodes =
       match json |> member "nodes" with
       | `Null -> [] (* no nodes field *)
@@ -502,26 +510,65 @@ module G_graph = struct
             )
         with Type_error _ ->
           Error.build
-            "[G_graph.of_json, %s] Cannot parse field `nodes` (See https://grew.fr/doc/json):\n%s"
+            "[G_graph.of_json%s] Cannot parse field `nodes` (See https://grew.fr/doc/json):\n%s"
             (sent_id_text ())
             (Yojson.Basic.pretty_to_string json_nodes) in
 
-    let json_edges = try json |> member "edges" |> to_list with Type_error _ -> [] in
+    let edges = match json |> member "edges" with
+      | `Null -> []
+      | json_edges -> 
+        try 
+          json_edges
+          |> to_list 
+          |> List.map
+            (fun json_edge ->
+               let fs =
+                 try
+                   (* if [json_edge] is of type string, it is interpreted as [1=value] *)
+                   try [("1", typed_vos "1" (json_edge |> member "label" |> to_string))]
+                   with Type_error _ ->
+                     json_edge
+                     |> member "label"
+                     |> to_assoc
+                     |> List.map (fun (x,y) -> (x,typed_vos x (to_string y))) 
+                 with Type_error _ -> 
+                   Error.build
+                     "[G_graph.of_json%s] Cannot parse field json `edge` (See https://grew.fr/doc/json):\n%s"
+                     (sent_id_text ())
+                     (Yojson.Basic.pretty_to_string json_edge) in
+               let src = match json_edge |> member "src" with
+                 | `String s -> s
+                 | `Null ->
+                   Error.build
+                     "[G_graph.of_json%s] Missing field `src` in json `edge` (See https://grew.fr/doc/json):\n%s"
+                     (sent_id_text ())
+                     (Yojson.Basic.pretty_to_string json_edge) 
+                 | _ ->
+                   Error.build
+                     "[G_graph.of_json%s] `src` must be a string in json `edge` (See https://grew.fr/doc/json):\n%s"
+                     (sent_id_text ())
+                     (Yojson.Basic.pretty_to_string json_edge) in
+               let tar = match json_edge |> member "tar" with
+                 | `String s -> s
+                 | `Null ->
+                   Error.build
+                     "[G_graph.of_json%s] Missing field `tar` in json `edge` (See https://grew.fr/doc/json):\n%s"
+                     (sent_id_text ())
+                     (Yojson.Basic.pretty_to_string json_edge) 
+                 | _ ->
+                   Error.build
+                     "[G_graph.of_json%s] `tar` must be a string in json `edge` (See https://grew.fr/doc/json):\n%s"
+                     (sent_id_text ())
+                     (Yojson.Basic.pretty_to_string json_edge) in
+               (src,fs,tar)
+            ) 
+        with Type_error _ -> 
+          Error.build
+            "[G_graph.of_json%s] Cannot parse field `edges` (See https://grew.fr/doc/json):\n%s"
+            (sent_id_text ())
+            (Yojson.Basic.pretty_to_string json_edges) in
 
-    let edges =
-      List.map
-        (fun json_edge ->
-           let fs =
-             (* if [json_edge] is of type string, it is interpreted as [1=value] *)
-             try [("1", typed_vos "1" (json_edge |> member "label" |> to_string))]
-             with Type_error _ ->
-               json_edge
-               |> member "label"
-               |> to_assoc
-               |> List.map (fun (x,y) -> (x,typed_vos x (to_string y))) in
-           (json_edge |> member "src" |> to_string, fs, json_edge |> member "tar" |> to_string)
-        ) json_edges in
-
+    (* build a map with nodes only *)
     let (map_without_edges, table, final_index) =
       List.fold_left
         (fun (acc_map, acc_table, acc_index) (node_id, fs_items) ->
@@ -534,9 +581,27 @@ module G_graph = struct
            )
         ) (Gid_map.empty, String_map.empty, 0) nodes in
 
-    let order =
-      try json |> member "order" |> to_list |> List.map (fun x ->String_map.find (x |> to_string) table)
-      with Type_error _ -> [] in
+    let order = match json |> member "order" with
+      | `Null -> [] (* No "order" field *)
+      | json_order -> 
+        try 
+          json_order 
+          |> to_list 
+          |> List.map 
+            (fun x -> 
+               try String_map.find (x |> to_string) table
+               with Not_found ->
+                 Error.build 
+                   "[G_graph.of_json%s] unknown node identifier `%s` used in `order`"
+                   (sent_id_text ()) 
+                   (x |> to_string)
+            )
+        with
+        | Type_error _ -> 
+          Error.build 
+            "[G_graph.of_json%s] cannot parse `order` field, it should be a list of string but is:\n%s"
+            (sent_id_text ()) 
+            (Yojson.Basic.pretty_to_string json_order) in
 
     let rec loop_order (acc_map, acc_position) = function
       | [] -> acc_map
@@ -549,8 +614,10 @@ module G_graph = struct
           | gid_next :: _ -> map_add_pred_succ gid gid_next map_with_position in
         loop_order (map_with_succ_prec, acc_position+1) tail in
 
+    (* build a map with nodes + order *)
     let maps_with_order = loop_order (map_without_edges, 0) order in
 
+    (* build a map with nodes + order + edges *)
     let map =
       List.fold_left
         (fun acc (id_src, edge_items, id_tar) ->
