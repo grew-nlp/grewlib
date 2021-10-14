@@ -156,7 +156,14 @@ module Grs : sig
   val to_json_python: config:Conllx_config.t -> t -> Yojson.Basic.t
 
   val get_strat_list: t -> string list
+
+  (** [get_strat_lists grs] returns two lists:
+      * the full list of strategies defined
+      * the sublist of "top" strategies: the ones not used as a substrat elsewhere *)
+  val get_strat_lists: t -> (string list * string list)
+
   val get_package_list: t -> string list
+
   val get_rule_list: t -> string list
 end
 

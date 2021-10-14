@@ -267,6 +267,9 @@ module Ast : sig
   (* return the list of strategies declared at the top level *)
   val strat_list: grs -> string list
 
+  (* return the list of strategies declared at the top level *)
+  val strat_lists: grs -> (string list * string list)  (* (full_list, not_used_as_substrat) *)
+
   (* return the list of packages declared at the top level *)
   val package_list: grs -> string list
 

@@ -31,6 +31,7 @@ module Grs : sig
   val to_json_python: config:Conllx_config.t -> t -> Yojson.Basic.t
 
   val get_strat_list: t -> string list
+  val get_strat_lists: t -> (string list * string list)
   val get_package_list: t -> string list
   val get_rule_list: t -> string list
 

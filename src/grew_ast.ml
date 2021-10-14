@@ -478,6 +478,26 @@ module Ast = struct
         | _ -> acc
       ) [] grs
 
+  let rec fold_sub_strat fct init = 
+    let rec loop acc = function
+    | Ref name -> fct name acc
+    | Pick s | Iter s | Onf s | Try s -> loop acc s
+    | Alt l | Seq l -> List.fold_left (fun acc2 s -> loop acc2 s) acc l
+    | If (s1, s2, s3) -> List.fold_left (fun acc2 s -> loop acc2 s) acc [s1;s2;s3]
+    in loop init
+
+  let strat_lists grs =
+    let (strat_list, sub_strat_set) = 
+      List.fold_left
+      (fun (acc_strat_list, acc_sub_strat_set) -> function
+        | Strategy (_,name,strat) ->
+          let new_acc_sub_strat_set = fold_sub_strat String_set.add acc_sub_strat_set strat in
+          (name :: acc_strat_list, new_acc_sub_strat_set)
+        | _ -> (acc_strat_list, acc_sub_strat_set)
+      ) ([],String_set.empty) grs in
+      (strat_list, List.filter (fun x -> not (String_set.mem x sub_strat_set)) strat_list)
+
+
   let package_list grs =
     List.fold_left
       (fun acc -> function
