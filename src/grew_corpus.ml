@@ -294,7 +294,10 @@ module Corpus_desc = struct
 
     let json =
       try Yojson.Basic.from_file json_file
-      with Sys_error _ -> Error.run "[Corpus.load_json] file `%s` not found" json_file in
+      with 
+        | Sys_error _ -> Error.run "[Corpus.load_json] file `%s` not found" json_file
+        | Yojson.Json_error msg -> Error.run "[Corpus.load_json] invalid JSON file `%s`:\n%s" json_file msg
+        in
 
     let parse_one json =
       let id =
