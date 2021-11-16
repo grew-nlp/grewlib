@@ -475,7 +475,14 @@ module G_graph = struct
   let of_json (json: Yojson.Basic.t) =
     let open Yojson.Basic.Util in
     let meta =
-      try json |> member "meta" |> to_assoc |> List.map (fun (k,v) -> (k, v |> to_string))
+      try json |> member "meta" |> to_assoc 
+      |> CCList.filter_map (fun (k,v) -> 
+        match v with 
+        | `String s -> Some (k,s)
+        | `Int i -> Some (k, string_of_int i)
+        | `Float f -> Some (k, string_of_float f)
+        | _ -> None
+      )
       with Type_error _ -> [] in
 
     (* for error reporting *)
