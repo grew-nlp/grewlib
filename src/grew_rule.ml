@@ -359,12 +359,7 @@ module Matching = struct
           end
         | (Some edge, "length") -> string_of_int <$> (G_graph.edge_length_opt edge graph)
         | (Some edge, "delta") -> string_of_int <$> (G_graph.edge_delta_opt edge graph)
-        | (Some (_,edge,_), _) ->
-          begin
-            match G_edge.get_sub_opt feature_name edge with
-            | Some e -> Some (string_of_value e)
-            | None -> None
-          end
+        | (Some (_,edge,_), _) -> string_of_value <$> (G_edge.get_sub_opt feature_name edge)
         | (None, _) ->
           begin
             match get_pid_by_name pattern node_or_edge_id matching.n_match with
