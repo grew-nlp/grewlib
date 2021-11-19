@@ -9,6 +9,7 @@
 (**********************************************************************************)
 
 open Printf
+open CCOpt.Infix
 
 open Grew_base
 open Grew_types
@@ -51,6 +52,8 @@ module G_node = struct
   let get_position_opt t = t.position
   let set_position p t = { t with position = Some p }
   let unset_position t = { t with position = None }
+
+  let is_conll_zero t = G_fs.get_value_opt "form" t.fs = Some (String "__0__")
 
   let is_eud_empty t = match G_fs.get_value_opt "_UD_empty" t.fs with
     | Some (String "Yes") -> true
@@ -134,6 +137,10 @@ module G_node = struct
     | (Some name, None) -> { t with name }
     | _ -> Error.run "[G_node.unshift] Inconsistent data"
 
+  let insert_proj keys t proj =
+    let fs = get_fs t in
+    let values = List.map (fun k -> string_of_value <$> (G_fs.get_value_opt k fs)) keys in
+    Projection.insert values proj
 end (* module G_node *)
 
 (* ================================================================================ *)

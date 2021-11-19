@@ -95,3 +95,18 @@ module Lexicons : sig
 
   val check: ?loc:Loc.t -> string -> string -> t -> unit
 end (* module Lexicons *)
+
+(* ================================================================================ *)
+module Projection : sig
+  type t
+
+  val empty: t
+
+  val cardinal: t -> int
+  
+  val insert: string option list -> t -> t
+  
+  val prune_unambiguous: int -> t -> t
+
+  val to_json: string list -> t -> Yojson.Basic.t
+end (* module Projection *)

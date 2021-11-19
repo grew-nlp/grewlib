@@ -232,6 +232,9 @@ module G_graph: sig
 
   val to_json: t -> Yojson.Basic.t
 
+  val insert_proj: string list -> t -> Projection.t -> Projection.t
+
+
   val is_projective: t -> bool
 
   type dfs_output = {

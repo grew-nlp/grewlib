@@ -42,6 +42,7 @@ module G_node: sig
   val set_position: int -> t -> t
   val unset_position: t -> t
 
+  val is_conll_zero: t -> bool
   val is_eud_empty: t -> bool
 
   val dump: config:Conllx_config.t -> t -> string
@@ -67,6 +68,8 @@ module G_node: sig
   val append_feats_opt: ?loc:Loc.t -> t -> t -> string -> string -> (t * (string * feature_value) list) option
   val shift: string -> int -> t -> t
   val unshift: string -> t -> t
+
+  val insert_proj: (string list) -> t -> Projection.t -> Projection.t
 
 end (* module G_node *)
 

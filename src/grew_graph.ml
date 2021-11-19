@@ -277,6 +277,9 @@ module G_graph = struct
   let fold_gid fct t init =
     Gid_map.fold (fun gid _ acc -> fct gid acc) t.map init
 
+  let fold_node fct t init =
+    Gid_map.fold (fun _ node acc -> fct node acc) t.map init
+
   let track_rules (rule_name,_) t =
     if !Global.track_rules
     then
@@ -476,13 +479,13 @@ module G_graph = struct
     let open Yojson.Basic.Util in
     let meta =
       try json |> member "meta" |> to_assoc 
-      |> CCList.filter_map (fun (k,v) -> 
-        match v with 
-        | `String s -> Some (k,s)
-        | `Int i -> Some (k, string_of_int i)
-        | `Float f -> Some (k, string_of_float f)
-        | _ -> None
-      )
+          |> CCList.filter_map (fun (k,v) -> 
+              match v with 
+              | `String s -> Some (k,s)
+              | `Int i -> Some (k, string_of_int i)
+              | `Float f -> Some (k, string_of_float f)
+              | _ -> None
+            )
       with Type_error _ -> [] in
 
     (* for error reporting *)
@@ -1267,7 +1270,7 @@ module G_graph = struct
           try 
             Gid_map.iter 
               (fun gid node -> 
-                 if G_fs.get_value_opt "form" (G_node.get_fs node) = Some (String "__0__")
+                 if G_node.is_conll_zero node
                  then raise (Find gid) 
               )  graph.map; graph
           with Find gid_root -> match del_node_opt gid_root graph with
@@ -1474,6 +1477,14 @@ module G_graph = struct
            (G_fs.get_features (G_node.get_fs node))
            acc
       ) t.map String_set.empty
+
+  let insert_proj keys t proj = 
+    fold_node 
+      (fun node acc -> 
+         if G_node.is_conll_zero node
+         then acc
+         else G_node.insert_proj keys node acc 
+      ) t proj 
 
   let is_projective t =
     let (arc_positions, pos_to_gid_map) =

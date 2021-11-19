@@ -27,6 +27,22 @@ module Libgrew : sig
   exception Bug of string
 end
 
+
+(* ==================================================================================================== *)
+(** {2 Projection} *)
+(* ==================================================================================================== *)
+module Projection : sig
+  type t
+
+  val empty: t
+
+  val prune_unambiguous: int -> t -> t
+
+  val to_json: string list -> t -> Yojson.Basic.t
+end 
+
+
+
 (* ==================================================================================================== *)
 (** {2 Patterns} *)
 (* ==================================================================================================== *)
@@ -130,6 +146,8 @@ module Graph : sig
   val get_code_opt: t -> string option
 
   val set_meta: string -> string -> t -> t
+
+  val insert_proj: string list -> t -> Projection.t -> Projection.t
 
   val get_feature_values: string -> t -> String_set.t
   val get_relations: config:Conllx_config.t -> t -> String_set.t

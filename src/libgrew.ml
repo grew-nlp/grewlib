@@ -25,6 +25,7 @@ module Loc = struct
   let to_string = Grew_base.Loc.to_string
 end
 
+
 (* ==================================================================================================== *)
 (** {2 Exceptions} *)
 (* ==================================================================================================== *)
@@ -61,6 +62,19 @@ module Libgrew = struct
   let set_track_rules flag = Grew_base.Global.track_rules := flag
   let set_track_history flag = Grew_base.Global.track_history:= flag
   let set_track_impact flag = Grew_base.Global.track_impact:= flag
+end
+
+(* ==================================================================================================== *)
+(** {2 Projection} *)
+(* ==================================================================================================== *)
+module Projection = struct
+  type t = Grew_types.Projection.t
+
+  let empty = Grew_types.Projection.empty
+  
+  let prune_unambiguous = Grew_types.Projection.prune_unambiguous
+  
+  let to_json = Grew_types.Projection.to_json
 end
 
 (* ==================================================================================================== *)
@@ -135,6 +149,8 @@ module Graph = struct
   let get_code_opt t = Grew_graph.G_graph.get_code_opt t
 
   let set_meta key value t = Grew_graph.G_graph.set_meta key value t
+
+  let insert_proj keys t proj = Grew_graph.G_graph.insert_proj keys t proj
 
   let load_gr ~config file =
     if not (Sys.file_exists file)
@@ -265,6 +281,9 @@ module Graph = struct
 
   let trace_depth t =
     Grew_graph.G_graph.trace_depth t
+    
+  let insert_proj keys t proj =
+    Grew_graph.G_graph.insert_proj keys t proj
 end
 
 (* ==================================================================================================== *)
