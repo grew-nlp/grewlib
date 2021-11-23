@@ -244,13 +244,13 @@ module Projection = struct
   let to_json keys t = 
     let rec loop acc keys partial t =
       match (keys, t) with
-      | ([], Leaf n) -> (`Assoc (("freq", `Int n) :: partial)) :: acc
+      | ([], Leaf n) -> (`Assoc (List.rev (("freq", `Int n) :: partial))) :: acc
       | (key :: tail, Node map) ->
         String_opt_map.fold
           (fun value sub_t acc2 ->
              let new_partial = (key, match value with Some s -> `String s | _ -> `Null) :: partial in
              loop acc2 tail new_partial sub_t
           ) map acc
-      | _ -> Error.bug "[Projection.insert] inconsitent data" in
+      | _ -> Error.bug "[Projection.to_json] inconsitent data" in
     `List (loop [] keys [] t)
 end
