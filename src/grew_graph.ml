@@ -1613,6 +1613,32 @@ module G_graph = struct
         cyclic = !info.back_edges <> [];
       }
 
+  (* -------------------------------------------------------------------------------- *)
+  let to_raw ~config graph =
+    let nodes = Gid_map.fold (fun id elt acc -> (id,elt)::acc) graph.map [] in
+    let snodes = List.sort
+        (fun (_,n1) (_,n2) ->
+           match (G_node.get_position_opt n1, G_node.get_position_opt n2) with
+           | (Some p1, Some p2) -> Stdlib.compare p1 p2
+           | _ -> 0
+        ) nodes in
+    let raw_nodes = List.map (fun (gid,node) -> (gid, G_fs.to_raw (G_node.get_fs node))) snodes in
+
+    let get_num gid = list_num (fun (x,_) -> x=gid) raw_nodes in
+    let edge_list = ref [] in
+    Gid_map.iter
+      (fun src_gid node ->
+         Massoc_gid.iter
+           (fun tar_gid edge ->
+              match G_edge.to_string_opt ~config edge with
+              | Some e -> edge_list := (get_num src_gid, e, get_num tar_gid) :: !edge_list
+              | None -> edge_list := (get_num src_gid, G_edge.dump edge, get_num tar_gid) :: !edge_list
+           )
+           (G_node.get_next node)
+      )
+      graph.map;
+    (graph.meta, List.map snd raw_nodes, !edge_list)
+
 end (* module G_graph *)
 
 

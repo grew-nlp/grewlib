@@ -71,9 +71,9 @@ module Projection = struct
   type t = Grew_types.Projection.t
 
   let empty = Grew_types.Projection.empty
-  
+
   let prune_unambiguous = Grew_types.Projection.prune_unambiguous
-  
+
   let to_json = Grew_types.Projection.to_json
 end
 
@@ -281,9 +281,12 @@ module Graph = struct
 
   let trace_depth t =
     Grew_graph.G_graph.trace_depth t
-    
+
   let insert_proj keys t proj =
     Grew_graph.G_graph.insert_proj keys t proj
+
+  let to_raw ~config graph =
+    Libgrew.handle ~name:"Graph.to_raw" (fun () -> Grew_graph.G_graph.to_raw ~config graph) ()
 end
 
 (* ==================================================================================================== *)

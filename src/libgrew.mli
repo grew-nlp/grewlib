@@ -174,6 +174,8 @@ module Graph : sig
 
   val get_history: t -> (Deco.t * (string * int) * Deco.t * t) list
   val trace_depth: t -> int
+
+  val to_raw: config:Conllx_config.t -> t -> (string * string) list * (string * string) list list * (int * string * int) list
 end
 
 (* ==================================================================================================== *)

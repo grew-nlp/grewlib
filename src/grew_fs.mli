@@ -72,6 +72,7 @@ module G_fs: sig
 
   val append_feats_opt: ?loc:Loc.t -> t -> t -> string -> string -> (t * (string * feature_value) list) option
 
+  val to_raw: t -> (string * string) list
 end (* module G_fs *)
 
 (* ================================================================================ *)

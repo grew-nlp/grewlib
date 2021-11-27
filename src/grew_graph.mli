@@ -255,6 +255,8 @@ module G_graph: sig
   val get_relations:  config:Conllx_config.t -> t -> String_set.t
   val get_features: t -> String_set.t
 
+  val to_raw: config:Conllx_config.t -> t -> (string * string) list * (string * string) list list * (int * string * int) list
+
 end (* module G_graph *)
 
 (* ================================================================================ *)
