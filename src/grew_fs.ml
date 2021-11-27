@@ -408,9 +408,6 @@ module P_fs = struct
   exception Fail
 
   let match_ ?(lexicons=[]) p_fs g_fs =
-    let p_fs_wo_pos =
-      try List.remove_assoc "position" p_fs
-      with Not_found -> p_fs in
     let rec loop acc = function
       | [], _ -> acc
 
@@ -467,7 +464,7 @@ module P_fs = struct
 
       (* We have exhausted Fail cases, head of g_fs satisties head of p_fs *)
       | (_::p_tail, _::g_tail) -> loop acc (p_tail,g_tail) in
-    loop lexicons (p_fs_wo_pos,g_fs)
+    loop lexicons (p_fs,g_fs)
 
   exception Fail_unif
   let unif fs1 fs2 =
