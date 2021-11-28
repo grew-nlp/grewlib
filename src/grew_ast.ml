@@ -307,6 +307,8 @@ module Ast = struct
     | Qfn_or_lex_item pointed -> sprintf "%s.%s" (fst pointed) (snd pointed)
     | String_item s -> sprintf "\"%s\"" s
 
+  type side = Prepend | Append
+
   type u_command =
     | Del_edge_expl of (Id.name * Id.name * edge_label)
     | Del_edge_name of string
@@ -327,8 +329,8 @@ module Ast = struct
 
     | Del_feat of feature_ident
     | Update_feat of feature_ident * concat_item list
-    (* Append_feats (src, tar, regexp, separator)*)
-    | Append_feats of (Id.name * Id.name * string * string)
+    (* Concat_feats (side, src, tar, regexp, separator)*)
+    | Concat_feats of (side * Id.name * Id.name * string * string)
     | Unorder of Id.name
 
     | Insert_before of (Id.name * Id.name)
@@ -362,10 +364,14 @@ module Ast = struct
       sprintf "%s.%s = %s" act_id feat_name (List_.to_string string_of_concat_item " + " item_list)
     | Del_feat (act_id, feat_name) ->
       sprintf "del_feat %s.%s" act_id feat_name
-    | Append_feats (src, tar, regexp, "") ->
+    | Concat_feats (Append, src, tar, regexp, "") ->
       sprintf "append_feats %s =%s=> %s" src regexp tar
-    | Append_feats (src, tar, regexp, separator) ->
+    | Concat_feats (Append, src, tar, regexp, separator) ->
       sprintf "append_feats \"%s\" %s =%s=> %s" separator src regexp tar
+    | Concat_feats (Prepend, src, tar, regexp, "") ->
+      sprintf "prepend_feats %s =%s=> %s" src regexp tar
+    | Concat_feats (Prepend, src, tar, regexp, separator) ->
+      sprintf "prepend_feats \"%s\" %s =%s=> %s" separator src regexp tar
     | Unorder n -> sprintf "unorder %s" n
     | Insert_before (n1,n2) -> sprintf "insert %s :< %s" n1 n2
     | Insert_after (n1,n2) -> sprintf "insert %s :> %s" n1 n2

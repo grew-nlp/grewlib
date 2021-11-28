@@ -171,6 +171,8 @@ module Ast : sig
     | Qfn_or_lex_item of (string * string)
     | String_item of string
 
+  type side = Prepend | Append
+
   type u_command =
     | Del_edge_expl of (Id.name * Id.name * edge_label)
     | Del_edge_name of string
@@ -192,7 +194,7 @@ module Ast : sig
     | Del_feat of feature_ident
     | Update_feat of feature_ident * concat_item list
 
-    | Append_feats of (Id.name * Id.name * string * string)
+    | Concat_feats of (side * Id.name * Id.name * string * string)
     | Unorder of Id.name
 
     | Insert_before of (Id.name * Id.name)

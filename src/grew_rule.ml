@@ -1221,11 +1221,11 @@ module Rule = struct
       let new_graph = G_graph.update_feat ~loc state.graph tar_gid tar_feat_name new_feature_value in
       {state with graph = new_graph; effective = true}
 
-    | Command.APPEND_FEATS (src_cn, tar_cn, regexp, separator) ->
+    | Command.CONCAT_FEATS (side, src_cn, tar_cn, regexp, separator) ->
       let src_gid = node_find src_cn in
       let tar_gid = node_find tar_cn in
-      (match G_graph.append_feats_opt state.graph src_gid tar_gid separator regexp with
-       | None when !Global.safe_commands -> Error.run ~loc "APPEND_FEATS uneffective"
+      (match G_graph.concat_feats_opt state.graph side src_gid tar_gid separator regexp with
+       | None when !Global.safe_commands -> Error.run ~loc "CONCAT_FEATS uneffective"
        | None -> state
        | Some (new_graph,_) -> {state with graph = new_graph; effective = true}
       )
@@ -1708,12 +1708,12 @@ module Rule = struct
           end
       end
 
-    | Command.APPEND_FEATS (src_cn, tar_cn, regexp, separator) ->
+    | Command.CONCAT_FEATS (side, src_cn, tar_cn, regexp, separator) ->
       let src_gid = node_find src_cn in
       let tar_gid = node_find tar_cn in
       begin
-        match G_graph.append_feats_opt gwh.Graph_with_history.graph src_gid tar_gid separator regexp with
-        | None when !Global.safe_commands -> Error.run ~loc "APPEND_FEATS uneffective"
+        match G_graph.concat_feats_opt gwh.Graph_with_history.graph side src_gid tar_gid separator regexp with
+        | None when !Global.safe_commands -> Error.run ~loc "CONCAT_FEATS uneffective"
         | None -> Graph_with_history_set.singleton gwh
         | Some (new_graph, updated_edges) ->
           Graph_with_history_set.singleton { gwh with

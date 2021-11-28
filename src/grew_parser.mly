@@ -98,6 +98,7 @@ let localize t = (t,get_loc ())
 %token ADD_NODE                    /* add_node */
 %token DEL_FEAT                    /* del_feat */
 %token APPEND_FEATS                /* append_feats */
+%token PREPEND_FEATS               /* append_feats */
 %token UNORDER                     /* unorder */
 %token INSERT                      /* insert */
 
@@ -780,19 +781,35 @@ command:
 
         /*   append_feats M ==> N   */
         | APPEND_FEATS src_loc=simple_id_with_loc ARROW tar=simple_id
-            { let (src,loc) = src_loc in (Ast.Append_feats (src, tar, ".*", ""), loc) }
+            { let (src,loc) = src_loc in (Ast.Concat_feats (Append, src, tar, ".*", ""), loc) }
+
+        /*   append_feats M ==> N   */
+        | PREPEND_FEATS src_loc=simple_id_with_loc ARROW tar=simple_id
+            { let (src,loc) = src_loc in (Ast.Concat_feats (Prepend, src, tar, ".*", ""), loc) }
 
         /*   append_feats "+" M ==> N   */
         | APPEND_FEATS sep=STRING src_loc=simple_id_with_loc ARROW tar=simple_id
-            { let (src,loc) = src_loc in (Ast.Append_feats (src, tar, ".*", sep), loc) }
+            { let (src,loc) = src_loc in (Ast.Concat_feats (Append, src, tar, ".*", sep), loc) }
+
+        /*   append_feats "+" M ==> N   */
+        | PREPEND_FEATS sep=STRING src_loc=simple_id_with_loc ARROW tar=simple_id
+            { let (src,loc) = src_loc in (Ast.Concat_feats (Prepend, src, tar, ".*", sep), loc) }
 
         /*   append_feats M =[re"_MISC_.*"]=> N   */
         | APPEND_FEATS src_loc=simple_id_with_loc ARROW_LEFT regexp=REGEXP ARROW_RIGHT tar=simple_id
-            { let (src,loc) = src_loc in (Ast.Append_feats (src, tar, regexp, ""), loc) }
+            { let (src,loc) = src_loc in (Ast.Concat_feats (Append, src, tar, regexp, ""), loc) }
+
+        /*   append_feats M =[re"_MISC_.*"]=> N   */
+        | PREPEND_FEATS src_loc=simple_id_with_loc ARROW_LEFT regexp=REGEXP ARROW_RIGHT tar=simple_id
+            { let (src,loc) = src_loc in (Ast.Concat_feats (Prepend, src, tar, regexp, ""), loc) }
 
         /*   append_feats "+" M =[re"_MISC_.*"]=> N   */
         | APPEND_FEATS sep=STRING src_loc=simple_id_with_loc ARROW_LEFT regexp=REGEXP ARROW_RIGHT tar=simple_id
-            { let (src,loc) = src_loc in (Ast.Append_feats (src, tar, regexp, sep), loc) }
+            { let (src,loc) = src_loc in (Ast.Concat_feats (Append, src, tar, regexp, sep), loc) }
+
+        /*   append_feats "+" M =[re"_MISC_.*"]=> N   */
+        | PREPEND_FEATS sep=STRING src_loc=simple_id_with_loc ARROW_LEFT regexp=REGEXP ARROW_RIGHT tar=simple_id
+            { let (src,loc) = src_loc in (Ast.Concat_feats (Prepend, src, tar, regexp, sep), loc) }
 
         /*   unorder N   */
         | UNORDER node_id_loc=simple_id_with_loc

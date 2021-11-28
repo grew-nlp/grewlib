@@ -216,13 +216,14 @@ module G_fs = struct
   let pst_node ?loc upos = [("upos", Feature_value.build_value ?loc "upos" upos)]
 
   (* ---------------------------------------------------------------------- *)
-  let concat_values ?loc separator v1 v2 =
-    match (v1, v2) with
-    | (String v1, String v2) -> String (v1 ^ separator ^ v2)
+  let concat_values ?loc side separator v1 v2 =
+    match (side, v1, v2) with
+    | (Ast.Append, String v1, String v2) -> String (v1 ^ separator ^ v2)
+    | (Ast.Prepend, String v1, String v2) -> String (v2 ^ separator ^ v1)
     | _ -> Error.run "Cannot concat numerical values"
 
   (* ---------------------------------------------------------------------- *)
-  let append_feats_opt ?loc src tar separator regexp =
+  let concat_feats_opt ?loc side src tar separator regexp =
     match List.filter
             (fun (feature_name,_) ->
                match feature_name with
@@ -236,7 +237,7 @@ module G_fs = struct
              match List_.sort_assoc_opt feat tar with
              | None -> (set_value ?loc feat value acc_tar, (feat, value)::acc_updated_feats)
              | Some v ->
-               let new_value = concat_values ?loc separator v value in
+               let new_value = concat_values ?loc side separator v value in
                (set_value ?loc feat new_value acc_tar, (feat, new_value)::acc_updated_feats)
           ) (tar,[]) sub_src in
       Some (new_tar, updated_feats)

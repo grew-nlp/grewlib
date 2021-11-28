@@ -65,7 +65,7 @@ module Command  = struct
     | SHIFT_EDGE of (command_node * command_node * Label_cst.t)
     | SHIFT_IN of (command_node * command_node * Label_cst.t)
     | SHIFT_OUT of (command_node * command_node * Label_cst.t)
-    | APPEND_FEATS of (command_node * command_node * string * string)
+    | CONCAT_FEATS of (Ast.side * command_node * command_node * string * string)
     | UNORDER of command_node
     | INSERT_BEFORE of (command_node * command_node)
     | INSERT_AFTER of (command_node * command_node)
@@ -182,8 +182,8 @@ module Command  = struct
                  ("feat_name", `String feat_name)
                ]
               )]
-    | APPEND_FEATS (src, tar, regexp, separator) ->
-      `Assoc [("appen_feats",
+    | CONCAT_FEATS (side, src, tar, regexp, separator) ->
+      `Assoc [((match side with Append -> "appen_feats" | Prepend -> "prepend"),
                `Assoc [
                  ("src", command_node_to_json src);
                  ("tar", command_node_to_json tar);
@@ -289,10 +289,10 @@ module Command  = struct
         | _ -> Error.build ~loc "Unknwon identifier \"%s\"" node_or_edge_id
       end
 
-    | (Ast.Append_feats ((src_id, tar_id, regexp, separator)), loc) ->
+    | (Ast.Concat_feats ((side, src_id, tar_id, regexp, separator)), loc) ->
       check_node_id loc src_id kni;
       check_node_id loc tar_id kni;
-      ((APPEND_FEATS (cn_of_node_id src_id, cn_of_node_id tar_id, regexp, separator), loc), (kni, kei))
+      ((CONCAT_FEATS (side, cn_of_node_id src_id, cn_of_node_id tar_id, regexp, separator), loc), (kni, kei))
 
     | (Ast.Unorder node_n, loc) ->
       check_node_id loc node_n kni;

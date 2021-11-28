@@ -114,10 +114,10 @@ module G_node = struct
 
   let rename mapping n = {n with next = Massoc_gid.rename mapping n.next}
 
-  let append_feats_opt ?loc src tar separator regexp =
+  let concat_feats_opt ?loc side src tar separator regexp =
     let src_fs = get_fs src in
     let tar_fs = get_fs tar in
-    match G_fs.append_feats_opt ?loc src_fs tar_fs separator regexp with
+    match G_fs.concat_feats_opt ?loc side src_fs tar_fs separator regexp with
     | Some (new_tar_fs, updated_feats) -> Some (set_fs new_tar_fs tar, updated_feats)
     | None -> None
 

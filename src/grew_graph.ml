@@ -1075,10 +1075,10 @@ module G_graph = struct
     { graph with map = Gid_map.add node_id new_node graph.map }
 
   (* -------------------------------------------------------------------------------- *)
-  let append_feats_opt ?loc graph src_id tar_id separator regexp =
+  let concat_feats_opt ?loc graph side src_id tar_id separator regexp =
     let src_node = Gid_map.find src_id graph.map in
     let tar_node = Gid_map.find tar_id graph.map in
-    match G_node.append_feats_opt ?loc src_node tar_node separator regexp with
+    match G_node.concat_feats_opt ?loc side src_node tar_node separator regexp with
     | Some (new_tar_node, updated_feats) ->
       Some ({ graph with map = Gid_map.add tar_id new_tar_node graph.map }, updated_feats)
     | None -> None

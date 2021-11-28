@@ -45,7 +45,7 @@ module Command : sig
     | SHIFT_EDGE of (command_node * command_node * Label_cst.t)
     | SHIFT_IN of (command_node * command_node * Label_cst.t)
     | SHIFT_OUT of (command_node * command_node * Label_cst.t)
-    | APPEND_FEATS of (command_node * command_node * string * string)
+    | CONCAT_FEATS of (Ast.side * command_node * command_node * string * string)
     | UNORDER of command_node
     | INSERT_BEFORE of (command_node * command_node)
     | INSERT_AFTER of (command_node * command_node)

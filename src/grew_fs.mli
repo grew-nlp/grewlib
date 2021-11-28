@@ -70,7 +70,7 @@ module G_fs: sig
   val pst_leaf: ?loc:Loc.t -> string -> t
   val pst_node: ?loc:Loc.t -> string -> t
 
-  val append_feats_opt: ?loc:Loc.t -> t -> t -> string -> string -> (t * (string * feature_value) list) option
+  val concat_feats_opt: ?loc:Loc.t -> Ast.side -> t -> t -> string -> string -> (t * (string * feature_value) list) option
 
   val to_raw: t -> (string * string) list
 end (* module G_fs *)
