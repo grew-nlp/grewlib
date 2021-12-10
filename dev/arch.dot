@@ -4,7 +4,6 @@ digraph grew {
   grew_base [label="grew_base|String_set\nString_map\nInt_set\nInt_map\nLoc\nError\nString_\nFile\nArray_\nList_\nMassoc_make()\nId\nTimeout\nGlobal"]
   grew_types [label="grew_types|Pid\nPid_set\nPid_map\nGid\nGid_map\nMassoc_gid\nMassoc_pid\nMassoc_string\nLexicon\nLexicons"]
   grew_ast [label="grew_ast|Ast"]
-  grew_domain [label="grew_domain|Label_domain\nFeature_domain\nDomain"]
   grew_loader [label="grew_loader|Loader\nParser"]
   grew_fs [label="grew_fs|Feature_value\nG_fs\nP_fs|[P_feature]\n[G_feature]"]
   grew_edge [label="grew_edge|G_edge\nLabel_cst\nP_edge"]
@@ -15,21 +14,19 @@ digraph grew {
   grew_grs [label="grew_grs|Grs"]
   grew_corpus [label="grew_corpus|Corpus\nCorpus_desc"]
 
-grew_domain -> grew_types -> grew_ast -> grew_base
-grew_edge -> grew_domain
-grew_fs -> grew_domain
+grew_types -> grew_ast -> grew_base
+grew_edge -> grew_types
+grew_fs -> grew_types
 grew_command -> grew_edge
 grew_command -> grew_fs
 grew_node -> grew_edge
 grew_node -> grew_fs
 grew_graph -> grew_node
-grew_graph -> grew_command
-libgrew_types -> grew_graph
-grew_rule -> libgrew_types
+grew_rule -> grew_command
+grew_rule -> grew_graph
 grew_grs -> grew_rule
-grew_grs -> grew_loader -> grew_lexer -> grew_parser -> grew_ast
+grew_grs -> grew_loader -> grew_lexer -> grew_parser -> grew_types
 grew_corpus -> grew_grs
 libgrew -> grew_corpus
 
-libgrew -> libgrew_types [style=dotted]
 }
