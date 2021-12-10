@@ -347,12 +347,12 @@ module Corpus_desc = struct
     List.map parse_one (json |> member "corpora" |> to_list)
 
   (* ---------------------------------------------------------------------------------------------------- *)
-  let grew_match_table_and_desc ?config dir_opt name corpus =
+  let grew_match_table_and_desc ?config ~tmp_gm2 dir_opt name corpus =
     match dir_opt with
     | None -> ()
     | Some dir ->
       let stat = Conllx_stat.build ?config ("upos", None) ("ExtPos", Some "upos") corpus in
-      let html = Conllx_stat.to_html name ("upos", None) ("ExtPos", Some "upos")  stat in
+      let html = Conllx_stat.to_html ~tmp_gm2 name ("upos", None) ("ExtPos", Some "upos")  stat in
       let out_file = Filename.concat dir (name ^ "_table.html") in
       CCIO.with_out out_file (fun oc -> CCIO.write_line oc html);
 
@@ -389,7 +389,7 @@ module Corpus_desc = struct
 
   (* ---------------------------------------------------------------------------------------------------- *)
   (* [grew_match] is a folder where tables, logs and corpus desc is stored *)
-  let build_marshal_file ?grew_match corpus_desc =
+  let build_marshal_file ?grew_match ~tmp_gm2 corpus_desc =
     let config = corpus_desc.config in
     let full_files = get_full_files corpus_desc in
     let marshal_file = (Filename.concat corpus_desc.directory corpus_desc.id) ^ ".marshal" in
@@ -411,7 +411,7 @@ module Corpus_desc = struct
       let items = match corpus_desc.kind with
         | Conll ->
           let conll_corpus = Conllx_corpus.load_list ?log_file ~config:corpus_desc.config ?columns:corpus_desc.columns full_files in
-          grew_match_table_and_desc ~config:corpus_desc.config grew_match_dir corpus_desc.id conll_corpus;
+          grew_match_table_and_desc ~config:corpus_desc.config ~tmp_gm2 grew_match_dir corpus_desc.id conll_corpus;
           CCArray.filter_map (fun (sent_id,conllx) ->
               try
                 let init_graph = G_graph.of_json (Conllx.to_json conllx) in
@@ -469,10 +469,10 @@ module Corpus_desc = struct
 
 
   (* ---------------------------------------------------------------------------------------------------- *)
-  let compile ?(force=false) ?grew_match corpus_desc =
+  let compile ?(force=false) ?grew_match ?(tmp_gm2=false) corpus_desc =
     let full_files = get_full_files corpus_desc in
     let marshal_file = (Filename.concat corpus_desc.directory corpus_desc.id) ^ ".marshal" in
-    let really_marshal () = build_marshal_file ?grew_match corpus_desc in
+    let really_marshal () = build_marshal_file ?grew_match ~tmp_gm2 corpus_desc in
     if force
     then really_marshal ()
     else
