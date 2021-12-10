@@ -359,11 +359,6 @@ module Rewrite = struct
 
   let onf_rewrite_opt ~config gr grs strat =
     Libgrew.handle ~name:"Rewrite.onf_rewrite_opt" (fun () -> Grew_grs.Grs.onf_rewrite_opt ~config grs strat gr) ()
-
-  let at_least_one grs strat =
-    Libgrew.handle ~name:"Rewrite.at_least_one" (fun () -> Grew_grs.Grs.at_least_one grs strat) ()
-  let at_most_one grs strat =
-    Libgrew.handle ~name:"Rewrite.at_most_one" (fun () -> Grew_grs.Grs.at_most_one grs strat) ()
 end
 
 (* ==================================================================================================== *)

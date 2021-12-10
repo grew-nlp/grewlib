@@ -159,52 +159,6 @@ module Grs = struct
        | Pack (_,mother) -> search_from mother path
       )
 
-
-  (* return true if strat always return at least one graph *)
-  let at_least_one grs strat_string =
-    let rec loop pointed strat =
-      match strat with
-      | Ast.Ref strat_name ->
-        begin
-          let path = Str.split (Str.regexp "\\.") strat_name in
-          match search_from pointed path with
-          | None -> Error.build "cannot find strat %s" strat_name
-          | Some (Rule _,_)
-          | Some (Package _, _) -> false
-          | Some (Strategy (_,ast_strat), new_pointed) -> loop new_pointed ast_strat
-        end
-      | Ast.Pick s -> loop pointed s
-      | Ast.Onf s -> true
-      | Ast.Alt l -> List.exists (fun s -> loop pointed s) l
-      | Ast.Seq l -> List.for_all (fun s -> loop pointed s) l
-      | Ast.Iter _ -> true
-      | Ast.If (_,s1, s2) -> (loop pointed s1) && (loop pointed s2)
-      | Ast.Try (s) -> loop pointed s in
-    loop (top grs) (Parser.strategy strat_string)
-
-  (* return true if strat always return at most one graph *)
-  let at_most_one grs strat_string =
-    let rec loop pointed strat =
-      match strat with
-      | Ast.Ref strat_name ->
-        begin
-          let path = Str.split (Str.regexp "\\.") strat_name in
-          match search_from pointed path with
-          | None -> Error.build "cannot find strat %s" strat_name
-          | Some (Rule _,_)
-          | Some (Package _, _) -> false
-          | Some (Strategy (_,ast_strat), new_pointed) -> loop new_pointed ast_strat
-        end
-      | Ast.Pick s -> true
-      | Ast.Onf s -> true
-      | Ast.Alt [one] -> loop pointed one
-      | Ast.Alt _ -> false
-      | Ast.Seq l -> List.for_all (fun s -> loop pointed s) l
-      | Ast.Iter s -> loop pointed s
-      | Ast.If (_,s1, s2) -> (loop pointed s1) || (loop pointed s2)
-      | Ast.Try (s) -> loop pointed s in
-    loop (top grs) (Parser.strategy strat_string)
-
   let is_without_history grs strat_string =
     let rec loop pointed strat =
       match strat with

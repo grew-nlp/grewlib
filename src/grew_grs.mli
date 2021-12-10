@@ -35,9 +35,6 @@ module Grs : sig
   val get_package_list: t -> string list
   val get_rule_list: t -> string list
 
-  val at_least_one: t -> string -> bool
-  val at_most_one: t -> string -> bool
-
   val simple_rewrite: config:Conllx_config.t -> t -> string -> G_graph.t -> G_graph.t list
 
   val onf_rewrite_opt: config:Conllx_config.t -> t -> string -> G_graph.t -> G_graph.t option

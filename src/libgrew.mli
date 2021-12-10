@@ -210,22 +210,21 @@ end
 module Rewrite: sig
   val set_max_rules: int -> unit
 
-  (** [display gr grs seq] builds the [display] (datatype used by the GUI) given by
+  val set_timeout: float option -> unit
+
+  (** [simple_rewrite config gr grs strat] builds the set of graphs given by
       the rewriting of graph [gr] with the strategy [strat] of [grs].
       @param gr the graph to rewrite
       @param grs the graph rewriting system
-      @param strat the name of the strategy to apply *)
-
-  val at_least_one: Grs.t -> string -> bool
-  val at_most_one: Grs.t -> string -> bool
-
-  val set_timeout: float option -> unit
-
+      @param strat the name of the strategy to apply
+  *)
   val simple_rewrite: config:Conllx_config.t -> Graph.t -> Grs.t -> string -> Graph.t list
 
-  val log_rewrite: unit -> Yojson.Basic.t
 
   val onf_rewrite_opt: config:Conllx_config.t -> Graph.t -> Grs.t -> string -> Graph.t option
+
+  (** [log_rewrite ())] outputs a JSON describing the number of rules applies and the time for the last rewrite call *)
+  val log_rewrite: unit -> Yojson.Basic.t
 end
 
 
