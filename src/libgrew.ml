@@ -347,14 +347,7 @@ end
 (** {2 Rewrite} *)
 (* ==================================================================================================== *)
 module Rewrite = struct
-  type display = Libgrew_types.rew_display
-
-  let size = Libgrew_types.rew_display_size
-
   let set_max_rules bound = Grew_rule.Rule.set_max_rules bound
-
-  let display ~config gr grs strat =
-    Libgrew.handle ~name:"Rewrite.display" (fun () -> Grew_grs.Grs.wrd_rewrite ~config grs strat gr) ()
 
   let set_timeout t = Grew_base.Timeout.timeout := t
 

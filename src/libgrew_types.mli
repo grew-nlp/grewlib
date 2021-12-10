@@ -26,12 +26,3 @@ type big_step = {
 }
 
 val swap : big_step -> big_step
-
-(** the main type for display the result of a rewriting *)
-type rew_display =
-  | Empty (* pour les besoin du dev *)
-  | Leaf of G_graph.t
-  | Local_normal_form of G_graph.t * step_name * rew_display
-  | Node of G_graph.t * step_name * (big_step * rew_display) list
-
-val rew_display_size: rew_display -> int

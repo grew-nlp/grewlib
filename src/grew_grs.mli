@@ -42,8 +42,6 @@ module Grs : sig
 
   val onf_rewrite_opt: config:Conllx_config.t -> t -> string -> G_graph.t -> G_graph.t option
 
-  val wrd_rewrite: config:Conllx_config.t -> t -> string -> G_graph.t -> Libgrew_types.rew_display
-
   (* [apply grs_name t] apply a deterministic GRS of the given [name]
      [Error.Run] is raised if the name in unknown or the GRS application not deterministic *)
   val apply: config:Conllx_config.t -> string -> G_graph.t -> G_graph.t

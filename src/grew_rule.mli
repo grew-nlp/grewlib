@@ -82,8 +82,6 @@ module Rule : sig
   (** [of_ast ast_rule] returns the Rule.t value corresponding to [ast_rule] *)
   val of_ast: config:Conllx.Conllx_config.t -> Ast.rule -> t
 
-  val wrd_apply_opt: config:Conllx.Conllx_config.t -> t -> (G_graph.t * Libgrew_types.big_step option) -> (G_graph.t * Libgrew_types.big_step) option
-
   val onf_apply_opt: config:Conllx.Conllx_config.t -> t -> G_graph.t -> G_graph.t option
 
   val gwh_apply: config:Conllx.Conllx_config.t -> t -> Graph_with_history.t -> Graph_with_history_set.t

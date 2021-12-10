@@ -1354,55 +1354,6 @@ module Rule = struct
         else None
     with Error.Run (msg,_) -> Error.run ~loc:rule.loc "%s" msg
 
-  let rec wrd_apply_opt ~config rule (graph, big_step_opt) =
-    try
-      let {Pattern.ker; exts} = rule.pattern in
-      (* get the list of partial matching for kernel part of the pattern *)
-      let matching_list =
-        Matching.extend_matching
-          ~config
-          (ker.graph,P_graph.empty)
-          graph
-          (Matching.init ~lexicons:rule.lexicons ker) in
-      match List.find_opt
-              (fun (sub, already_matched_gids) ->
-                 List.for_all
-                   (fun (ext,polarity) ->
-                      Matching.test_extension ~config ker graph ext (sub, already_matched_gids) = polarity
-                   ) exts
-              ) matching_list with
-      | None -> None
-      | Some (first_matching_where_all_witout_are_fulfilled,_) ->
-        let final_state =
-          List.fold_left
-            (fun state command -> onf_apply_command ~config first_matching_where_all_witout_are_fulfilled command state)
-            { graph;
-              created_nodes = [];
-              effective = false;
-              e_mapping = first_matching_where_all_witout_are_fulfilled.e_match;
-            }
-            rule.commands in
-
-        let rule_app = {
-          Libgrew_types.rule_name = rule.name;
-          up = Matching.match_deco rule.pattern first_matching_where_all_witout_are_fulfilled;
-          down = Matching.down_deco (String_map.empty, first_matching_where_all_witout_are_fulfilled,final_state.created_nodes) rule.commands
-        } in
-
-        let new_big_step = match big_step_opt with
-          | None -> {Libgrew_types.small_step = []; first=rule_app}
-          | Some {Libgrew_types.small_step; first} -> {Libgrew_types.small_step = (graph,rule_app) :: small_step; first} in
-
-        if final_state.effective
-        then
-          begin
-            Timeout.check ();
-            incr_rules rule.name;
-            Some (final_state.graph, new_big_step)
-          end
-        else None
-    with Error.Run (msg,_) -> Error.run ~loc:rule.loc "%s" msg
-
   let find cnode ?loc gwh matching =
     match cnode with
     | Command.Pat pid ->

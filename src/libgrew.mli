@@ -205,13 +205,9 @@ module Grs : sig
 end
 
 (* ==================================================================================================== *)
-(** {2 Rewrite history} *)
+(** {2 Rewrite} *)
 (* ==================================================================================================== *)
 module Rewrite: sig
-
-  type display = Libgrew_types.rew_display
-
-  val size: display -> int
   val set_max_rules: int -> unit
 
   (** [display gr grs seq] builds the [display] (datatype used by the GUI) given by
@@ -219,7 +215,6 @@ module Rewrite: sig
       @param gr the graph to rewrite
       @param grs the graph rewriting system
       @param strat the name of the strategy to apply *)
-  val display: config:Conllx_config.t -> Graph.t -> Grs.t -> string -> display
 
   val at_least_one: Grs.t -> string -> bool
   val at_most_one: Grs.t -> string -> bool
