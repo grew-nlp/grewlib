@@ -118,6 +118,7 @@ let localize t = (t,get_loc ())
 %token <string>                STRING
 %token <string>                REGEXP
 %token <float>                 FLOAT
+%token <int>                   INT
 %token <string list>           COMMENT
 %token <string * (int *string) list>  LEX_PAR
 
@@ -150,6 +151,9 @@ let localize t = (t,get_loc ())
 /*=============================================================================================*/
 /*  BASIC DEFINITIONS                                                                          */
 /*=============================================================================================*/
+number:
+        | f=FLOAT     { f }
+        | i=INT       { float_of_int i }
 
 label_ident:
         | x=ID        { Ast.parse_label_ident x }
@@ -163,7 +167,7 @@ simple_id_with_loc:
 
 simple_id_or_float:
         | id=ID       { Ast.parse_simple_ident id }
-        | v=FLOAT     { Printf.sprintf "%g" v }
+        | v=number     { Printf.sprintf "%g" v }
 
 node_id:
         | id=ID       { Ast.parse_node_ident id }
@@ -180,7 +184,7 @@ feature_ident_with_loc :
 feature_value:
         | v=ID        { Ast.parse_simple_ident v }
         | v=STRING    { v }
-        | v=FLOAT     { Printf.sprintf "%g" v }
+        | v=number    { Printf.sprintf "%g" v }
 
 simple_or_pointed :
         | id=ID       { Ast.parse_simple_or_pointed id }
@@ -191,15 +195,15 @@ simple_or_pointed_with_loc :
 pattern_feature_value:
         | v=ID        { Ast.parse_simple_or_pointed v }
         | v=STRING    { Ast.Simple v }
-        | v=FLOAT     { Ast.Simple (Printf.sprintf "%g" v) }
+        | v=number    { Ast.Simple (Printf.sprintf "%g" v) }
 
 ineq_value:
         | v=ID    { Ineq_sofi (Ast.parse_simple_or_pointed v) }
-        | v=FLOAT { Ineq_float v }
+        | v=number{ Ineq_float v }
 
 ineq_value_with_loc:
         | v=ID    { localize (Ineq_sofi (Ast.parse_simple_or_pointed v)) }
-        | v=FLOAT { localize (Ineq_float v) }
+        | v=number{ localize (Ineq_float v) }
 
 /*=============================================================================================*/
 /*  GREW GRAPH                                                                                 */
@@ -221,7 +225,7 @@ gr_item:
             { Graph_meta (id, value) }
 
         /*  B [phon="pense", lemma="penser", cat=v, mood=ind ]   */
-        | id_loc=node_id_with_loc position=option(delimited(LPAREN, FLOAT ,RPAREN)) feats=delimited(LBRACKET,separated_list_final_opt(COMMA,node_features),RBRACKET)
+        | id_loc=node_id_with_loc position=option(delimited(LPAREN, number,RPAREN)) feats=delimited(LBRACKET,separated_list_final_opt(COMMA,node_features),RBRACKET)
             { let (id,loc) = id_loc in
               Graph_node ({Ast.node_id = id; fs=feats}, loc) }
         /*   A   */
@@ -307,7 +311,7 @@ basic:
 
 edge_item:
         | id=ID       { Ast.parse_node_ident id }
-        | v=FLOAT     { Printf.sprintf "%g" v }
+        | v=number    { Printf.sprintf "%g" v }
 
 label_atom:
         | name=simple_id_or_float EQUAL l=separated_nonempty_list(PIPE,edge_item) { Ast.Atom_eq (name, l)}
@@ -542,12 +546,12 @@ pat_item:
 
         /*   X.feat >= 12.34   */
         | feat_id1_loc=feature_ident_with_loc GE num=FLOAT
-        | num=FLOAT LE feat_id1_loc=feature_ident_with_loc
+        | num=number LE feat_id1_loc=feature_ident_with_loc
             { let (feat_id1,loc)=feat_id1_loc in Pat_const (Ast.Feature_ineq_cst (Ast.Ge, feat_id1, num), loc)  }
 
         /*   X.feat <= 12.34   */
         | feat_id1_loc=feature_ident_with_loc LE num=FLOAT
-        | num=FLOAT GE feat_id1_loc=feature_ident_with_loc
+        | num=number GE feat_id1_loc=feature_ident_with_loc
             { let (feat_id1,loc)=feat_id1_loc in Pat_const (Ast.Feature_ineq_cst (Ast.Le, feat_id1, num), loc)  }
 
         /*   A << B   */
@@ -828,14 +832,24 @@ concat_item:
         | gi=ID
           {
             match Ast.parse_simple_or_pointed gi with
-            | Ast.Simple value -> Ast.String_item value
-            | Ast.Pointed (s1, s2) -> Ast.Qfn_or_lex_item (s1, s2)
+            | Ast.Simple value -> Ast.String_item (value, (None,None))
+            | Ast.Pointed (s1, s2) -> Ast.Qfn_or_lex_item ((s1, s2),(None,None))
           }
-        | s=STRING         { Ast.String_item s }
-        | f=FLOAT          { Ast.String_item (Printf.sprintf "%g" f) }
+        | gi=ID r=range /* Python style substring */
+          {
+            match Ast.parse_simple_or_pointed gi with
+            | Ast.Simple value -> Ast.String_item (value, r)
+            | Ast.Pointed (s1, s2) -> Ast.Qfn_or_lex_item ((s1, s2), r)
+          }
+        | s=STRING         { Ast.String_item (s, (None,None)) }
+        | f=number         { Ast.String_item (Printf.sprintf "%g" f, (None,None)) }
 
-
-
+range:
+        | LBRACKET x=INT DDOT y=INT RBRACKET  { (Some x, Some y) }
+        | LBRACKET DDOT y=INT RBRACKET        { (None, Some y) }
+        | LBRACKET x=INT DDOT RBRACKET        { (Some x, None) }
+        | LBRACKET DDOT RBRACKET              { (None, None) }
+        
 /*=============================================================================================*/
 /* ISOLATED PATTERN (grep mode)                                                                */
 /*=============================================================================================*/

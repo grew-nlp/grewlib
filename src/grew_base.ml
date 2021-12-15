@@ -73,6 +73,19 @@ module Error = struct
 end (* module Error *)
 
 (* ================================================================================ *)
+module Range = struct
+  type t = (int option * int option)
+
+  let to_string = function
+    | (None, None) -> ""
+    | (Some x, None) -> sprintf "[%d:]" x
+    | (None, Some y) -> sprintf "[:%d]" y
+    | (Some x, Some y) -> sprintf "[%d:%d]" x y
+
+  let to_json r = `String (to_string r) 
+end
+
+(* ================================================================================ *)
 module String_ = struct
   let rm_first_char = function "" -> "" | s -> String.sub s 1 ((String.length s) - 1)
 
@@ -84,6 +97,31 @@ module String_ = struct
       | [one] -> one
       | h :: tail -> (loop tail) ^ sep ^ h in
     loop l
+
+  (** Pyhton like substring extraction
+     [get_range (init_opt, final_opt) s] return the python output of s[init_opt:final_opt]
+     NB: indexes correspond to UTF-8 chars. ex: [get_range (None, Some (-1)) "été"] ==> "ét"
+  *)
+  let get_range (iopt,fopt) s =
+    match (iopt, fopt) with 
+    | (None, None) -> s
+    | _ -> 
+      match CCUtf8_string.of_string s with
+      | None -> Error.run "[String_.get_range] '%s' is not a valid UTF-8 string encoding" s
+      | Some utf8_s ->
+        let char_list = CCUtf8_string.to_list utf8_s in
+        let len = CCUtf8_string.n_chars utf8_s in
+        let init = match iopt with 
+          | None -> 0 
+          | Some i when i < 0 -> max (len + i) 0 
+          | Some i -> min i len in
+        let final = match fopt with 
+          | None -> len 
+          | Some i when i < 0 -> max (len + i) 0 
+          | Some i -> min i len in
+        if final < init 
+        then ""
+        else char_list |> CCList.drop init |> CCList.take (final - init) |> CCUtf8_string.of_list |> CCUtf8_string.to_string
 
 end (* module String_ *)
 
@@ -634,9 +672,9 @@ module Timeout = struct
     | Some delay ->
       if Unix.gettimeofday () -. !counter > delay
       then raise (Stop delay)
-  
+
   let get_duration () = !duration
-    
+
 end (* module Timeout *)
 
 (* ================================================================================ *)

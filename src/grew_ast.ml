@@ -19,6 +19,11 @@ type feature_value =
   | String of string
   | Float of float
 
+let get_range_feature_value range = function
+  | String s -> String (String_.get_range range s)
+  | Float f when range = (None, None) -> Float f
+  | Float f -> Error.run "Cannot extract substring from a numeric feature \"%g\"" f
+
 let string_of_value = function
   | String s -> Str.global_replace (Str.regexp "\"") "\\\""
                   (Str.global_replace (Str.regexp "\\\\") "\\\\\\\\" s)
@@ -300,12 +305,12 @@ module Ast = struct
     { pattern with pat_pos = new_pat_pos; pat_negs = new_pat_negs;}
 
   type concat_item =
-    | Qfn_or_lex_item of pointed
-    | String_item of string
+    | Qfn_or_lex_item of (pointed * Range.t)
+    | String_item of (string * Range.t)
 
   let string_of_concat_item = function
-    | Qfn_or_lex_item pointed -> sprintf "%s.%s" (fst pointed) (snd pointed)
-    | String_item s -> sprintf "\"%s\"" s
+    | Qfn_or_lex_item (pointed,range) -> sprintf "%s.%s" (fst pointed) (snd pointed)
+    | String_item (s,range) -> sprintf "\"%s\"" s
 
   type side = Prepend | Append
 

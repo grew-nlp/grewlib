@@ -26,6 +26,8 @@ module Command : sig
     | String_item of string
     | Lexical_field of (string * string)
 
+  type ranged_item = item * Range.t
+
   type p =
     | DEL_NODE of command_node
     | DEL_EDGE_EXPL of (command_node * command_node *G_edge.t)
@@ -35,8 +37,8 @@ module Command : sig
     | ADD_EDGE_ITEMS of (command_node * command_node * (string * string) list)
     | DEL_FEAT of (command_node * string)
     | DEL_EDGE_FEAT of (string * string) (* (edge identifier, feature_name) *)
-    | UPDATE_FEAT of (command_node * string * item list)
-    | UPDATE_EDGE_FEAT of (string * string * item list) (* edge identifier, feat_name, new_value *)
+    | UPDATE_FEAT of (command_node * string * ranged_item list)
+    | UPDATE_EDGE_FEAT of (string * string * ranged_item list) (* edge identifier, feat_name, new_value *)
     (* *)
     | NEW_NODE of string
     | NEW_BEFORE of (string * command_node)

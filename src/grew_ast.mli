@@ -17,6 +17,8 @@ type feature_value =
   | String of string
   | Float of float
 
+val get_range_feature_value: Range.t -> feature_value -> feature_value
+
 val string_of_value : feature_value -> string
 
 val conll_string_of_value : feature_value -> string
@@ -168,8 +170,8 @@ module Ast : sig
   val complete_and_check_pattern : pattern -> pattern
 
   type concat_item =
-    | Qfn_or_lex_item of (string * string)
-    | String_item of string
+    | Qfn_or_lex_item of (pointed * Range.t)
+    | String_item of (string * Range.t)
 
   type side = Prepend | Append
 

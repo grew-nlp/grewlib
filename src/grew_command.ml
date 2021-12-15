@@ -32,18 +32,26 @@ module Command  = struct
     | Node_feat of (command_node * string)
     | Edge_feat of (string * string)
     | String_item of string
-    | Lexical_field of (string * string)
+    | Lexical_field of Ast.pointed
 
-  let item_to_json = function
-    | Node_feat (cn, feature_name) -> `Assoc [("copy_feat",
-                                               `Assoc [
-                                                 ("node",command_node_to_json cn);
-                                                 ("feature_name", `String feature_name);
-                                               ]
-                                              )]
-    | Edge_feat (edge_id, feat_name) -> `Assoc [("edge_id", `String edge_id); ("feat_name", `String feat_name)]
+  let json_of_item = function
+    | Node_feat (cn, feature_name) -> 
+      `Assoc 
+        [("copy_feat",
+          `Assoc [
+            ("node",command_node_to_json cn);
+            ("feature_name", `String feature_name);
+          ]
+         )]
+    | Edge_feat (edge_id, feat_name) -> 
+      `Assoc [("edge_id", `String edge_id); ("feat_name", `String feat_name)]
     | String_item s -> `Assoc [("string", `String s)]
-    | Lexical_field (lex,field) -> `Assoc [("lexical_filed", `String (lex ^ "." ^ field))]
+    | Lexical_field (lex,field) -> `Assoc [("lexical_field", `String (lex ^ "." ^ field))]
+
+  type ranged_item = item * Range.t
+
+  let json_of_ranged_item (item, range) = 
+    `Assoc [("item", json_of_item item); ("range", Range.to_json range)]
 
   (* the command in pattern *)
   type p =
@@ -55,8 +63,8 @@ module Command  = struct
     | ADD_EDGE_ITEMS of (command_node * command_node * (string * string) list)
     | DEL_FEAT of (command_node * string)
     | DEL_EDGE_FEAT of (string * string) (* (edge identifier, feature_name) *)
-    | UPDATE_FEAT of (command_node * string * item list)
-    | UPDATE_EDGE_FEAT of (string * string * item list) (* edge identifier, feat_name, new_value *)
+    | UPDATE_FEAT of (command_node * string * ranged_item list)
+    | UPDATE_EDGE_FEAT of (string * string * ranged_item list) (* edge identifier, feat_name, new_value *)
     (* *)
     | NEW_NODE of string
     | NEW_BEFORE of (string * command_node)
@@ -123,7 +131,7 @@ module Command  = struct
                `Assoc [
                  ("node",command_node_to_json cn);
                  ("feature_name", `String feature_name);
-                 ("items", `List (List.map item_to_json items));
+                 ("items", `List (List.map json_of_ranged_item items));
                ]
               )]
 
@@ -172,7 +180,7 @@ module Command  = struct
                `Assoc [
                  ("edge_id", `String edge_id);
                  ("feat_name", `String feat_name);
-                 ("items", `List (List.map item_to_json items));
+                 ("items", `List (List.map json_of_ranged_item items));
                ]
               )]
     | DEL_EDGE_FEAT (edge_id, feat_name) ->
@@ -190,7 +198,7 @@ module Command  = struct
                  ("regexp", `String regexp);
                  ("separator", `String separator)
                ]
-              )]
+        )]
     | UNORDER cn -> `Assoc [("unorder", command_node_to_json cn)]
     | INSERT_BEFORE (cn1,cn2) -> `Assoc [("insert_before", `Assoc [("inserted", command_node_to_json cn1); ("site", command_node_to_json cn2)])]
     | INSERT_AFTER (cn1,cn2) -> `Assoc [("insert_after", `Assoc [("inserted", command_node_to_json cn1); ("site", command_node_to_json cn2)])]
@@ -309,22 +317,22 @@ module Command  = struct
 
     | (Ast.Update_feat ((node_or_edge_id, feat_name), ast_items), loc) ->
       let of_ast_item = function
-        | Ast.Qfn_or_lex_item (id_or_lex,feature_name_or_lex_field) ->
+        | Ast.Qfn_or_lex_item ((id_or_lex,feature_name_or_lex_field), range) ->
           if List.mem_assoc id_or_lex lexicons
           then
             begin
               Lexicons.check ~loc id_or_lex feature_name_or_lex_field lexicons;
-              Lexical_field (id_or_lex, feature_name_or_lex_field)
+              (Lexical_field (id_or_lex, feature_name_or_lex_field), range)
             end
           else if List.mem id_or_lex kni
           then
             begin
-              Node_feat (cn_of_node_id id_or_lex, feature_name_or_lex_field)
+              (Node_feat (cn_of_node_id id_or_lex, feature_name_or_lex_field), range)
             end
           else if List.mem id_or_lex kei
-          then Edge_feat (id_or_lex, feature_name_or_lex_field)
+          then (Edge_feat (id_or_lex, feature_name_or_lex_field), range)
           else Error.build ~loc "Unknown identifier \"%s\"" id_or_lex
-        | Ast.String_item s -> String_item s in
+        | Ast.String_item (s, range) -> (String_item s, range) in
 
       begin
         match (List.mem node_or_edge_id kni, List.mem node_or_edge_id kei) with

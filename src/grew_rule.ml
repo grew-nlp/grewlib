@@ -1024,17 +1024,17 @@ module Rule = struct
     let node_find cnode = onf_find ~loc cnode (matching, state.created_nodes) in
 
     let feature_value_of_item feat_name = function
-      | Command.String_item s -> typed_vos feat_name s
-      | Command.Node_feat (cnode, feat_name) ->
+      | (Command.String_item s, range) -> get_range_feature_value range (typed_vos feat_name s)
+      | (Command.Node_feat (cnode, feat_name), range) ->
         let gid = node_find cnode in
         let node = G_graph.find gid state.graph in
         let fs = G_node.get_fs node in
         begin
           match G_fs.get_value_opt feat_name fs with
           | None -> Error.run ~loc "Node feature named `%s` is undefined" feat_name
-          | Some v -> v
+          | Some v -> get_range_feature_value range v
         end
-      | Command.Edge_feat (edge_id, feat_name) ->
+      | (Command.Edge_feat (edge_id, feat_name), range) ->
         begin
           match String_map.find_opt edge_id state.e_mapping with
           | None -> Error.bug "Cannot find edge_id %s" edge_id
@@ -1043,22 +1043,22 @@ module Rule = struct
             then
               begin
                 match G_edge.to_string_opt ~config edge with
-                | Some s -> String s
+                | Some s -> get_range_feature_value range (String s)
                 | None -> Error.run "Cannot use not regular edge label as a concat item"
               end
             else
               match G_edge.get_sub_opt feat_name edge with
               | None -> Error.run ~loc "[onf_apply_command] Edge feature named %s is undefined" feat_name
-              | Some fv -> fv
+              | Some fv -> get_range_feature_value range fv
         end
-      | Command.Lexical_field (lex_id, field) ->
+      | (Command.Lexical_field (lex_id, field), range) ->
         begin
           match List.assoc_opt lex_id matching.l_param with
           | None -> Error.run ~loc "Undefined lexicon %s" lex_id
           | Some lexicon ->
             match Lexicon.get_opt field lexicon with
             | None -> Error.bug "Inconsistent lexicon lex_id=%s field=%s" lex_id field
-            | Some value -> typed_vos feat_name value
+            | Some value -> get_range_feature_value range (typed_vos feat_name value)
         end in
 
     match command with
@@ -1168,7 +1168,7 @@ module Rule = struct
         | Some (src_gid,old_edge,tar_gid) ->
           let new_edge =
             match (feat_name, item_list) with
-            | ("label", [Command.Edge_feat (src_edge_id, "label")]) -> (* special case of label copy "e.label = f.label" *)
+            | ("label", [Command.Edge_feat (src_edge_id, "label"), (None,None)]) -> (* special case of label copy "e.label = f.label" *)
               begin
                 match String_map.find_opt src_edge_id state.e_mapping with
                 | None -> Error.run ~loc "UPDATE_EDGE_FEAT (RHS) The edge identifier '%s' is undefined" src_edge_id
@@ -1365,17 +1365,17 @@ module Rule = struct
     let node_find cnode = find ~loc cnode gwh matching in
 
     let feature_value_list_of_item feat_name = function
-      | Command.String_item s -> [typed_vos feat_name s]
-      | Command.Node_feat (cnode, feat_name) ->
+      | (Command.String_item s, range) -> [get_range_feature_value range (typed_vos feat_name s)]
+      | (Command.Node_feat (cnode, feat_name), range) ->
         let gid = node_find cnode in
         let node = G_graph.find gid gwh.graph in
         let fs = G_node.get_fs node in
         begin
           match G_fs.get_value_opt feat_name fs with
           | None -> Error.run ~loc "Node feature named `%s` is undefined" feat_name
-          | Some v -> [v]
+          | Some v -> [get_range_feature_value range v]
         end
-      | Command.Edge_feat (edge_id, feat_name) ->
+      | (Command.Edge_feat (edge_id, feat_name), range) ->
         begin
           let (_,edge,_) =
             match String_map.find_opt edge_id gwh.e_mapping with
@@ -1386,13 +1386,13 @@ module Rule = struct
               | None -> Error.run ~loc "The edge identifier '%s' is undefined" edge_id in
           match G_edge.get_sub_opt feat_name edge with
           | None -> Error.run ~loc "[gwh_apply_command] Edge feature named %s is undefined" feat_name
-          | Some fv -> [fv]
+          | Some fv -> [get_range_feature_value range fv]
         end
-      | Command.Lexical_field (lex_id, field) ->
+      | (Command.Lexical_field (lex_id, field), range) ->
         begin
           match List.assoc_opt lex_id matching.l_param with
           | None -> Error.run ~loc "Undefined lexicon %s" lex_id
-          | Some lexicon -> List.map (fun x -> typed_vos feat_name x) (Lexicon.read_all field lexicon)
+          | Some lexicon -> List.map (fun x -> get_range_feature_value range (typed_vos feat_name x)) (Lexicon.read_all field lexicon)
         end in
 
     match command with
@@ -1560,7 +1560,8 @@ module Rule = struct
         let new_edges =
           match (feat_name, item_list) with
           (* special behavior for "f.label = e.label" *)
-          | ("label", [Command.Edge_feat (src_edge_id, "label")]) ->
+          | ("label", [Command.Edge_feat (src_edge_id, "label"), (None,None)]) -> (* special case of label copy "e.label = f.label" *)
+
             let src_edge =
               match String_map.find_opt src_edge_id gwh.e_mapping with
               | Some (_,e,_) -> e

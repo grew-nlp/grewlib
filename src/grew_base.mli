@@ -53,6 +53,14 @@ module Error: sig
 end
 
 (* ================================================================================ *)
+module Range: sig
+  type t = (int option * int option)
+
+  val to_string: t -> string
+  val to_json: t ->  Yojson.Basic.t
+end
+
+(* ================================================================================ *)
 module String_: sig
   (* [re_match regexp s] returns true iff the full string [s] matches with [regexp] *)
   val re_match: Str.regexp -> string -> bool
@@ -62,6 +70,12 @@ module String_: sig
   val rm_first_char: string -> string
 
   val rev_concat: string -> string list -> string
+  
+  (** Pyhton like substring extraction
+     [get_range (init_opt, final_opt) s] return the python output of s[init_opt:final_opt]
+     NB: indexes correspond to UTF-8 chars. ex: [get_range (None, Some (-1)) "été"] ==> "ét"
+  *)
+  val get_range: Range.t -> string -> string
 end (* module String_ *)
 
 (* ================================================================================ *)

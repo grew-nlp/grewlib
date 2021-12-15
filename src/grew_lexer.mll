@@ -215,7 +215,8 @@ and standard target = parse
 
 | "graph"         { GRAPH }
 
-| digit+ ('.' digit*)? as number  { FLOAT (float_of_string number) }
+| "-"? digit+ ('.' digit*) as number  { FLOAT (float_of_string number) }
+| "-"? digit+ as number  { INT (int_of_string number) }
 
 | '$' general_ident      { raise (Error "Syntax of lexicon has changed! Please read grew.fr/lexicons_change for updating instructions") }
 
