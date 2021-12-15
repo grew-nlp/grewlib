@@ -1,3 +1,8 @@
+# 1.8.0 (2021/12/15)
+  * Add function `prepend_feats` (See: https://grew.fr/doc/commands/#copy-several-features-from-one-node-to-another)
+  * AAdd Python style string slicing (See: https://grew.fr/doc/commands/#add-or-update-a-node-feature)
+  * Add several functions for other tools (ArboratorGrew, Grew-web…)
+
 # 1.7.0 (2021/09/20)
   * Add syntax with regexp in node declaration
 
