@@ -1398,7 +1398,7 @@ module G_graph = struct
 
     let layers = Gid_map.fold
         (fun id node acc ->
-           let layer_opt = G_fs.get_value_opt "layer" (G_node.get_fs node) |> CCOpt.map string_of_value in
+           let layer_opt = G_fs.get_value_opt "layer" (G_node.get_fs node) |> CCOption.map string_of_value in
            let prev = match Layers.find_opt layer_opt acc with
              | None -> []
              | Some l -> l in
@@ -1408,7 +1408,7 @@ module G_graph = struct
     (* nodes *)
     Layers.iter
       (fun layer_opt node_list ->
-         CCOpt.iter (fun l -> bprintf buff "	subgraph cluster_%s {\n" l) layer_opt;
+         CCOption.iter (fun l -> bprintf buff "	subgraph cluster_%s {\n" l) layer_opt;
          List.iter (
            fun (id,node) ->
              let decorated_feat =
@@ -1422,7 +1422,7 @@ module G_graph = struct
                       (Gid.to_string id)
                       s
          ) node_list;
-         CCOpt.iter (fun _ -> bprintf buff "	}\n") layer_opt
+         CCOption.iter (fun _ -> bprintf buff "	}\n") layer_opt
       ) layers;
 
     (* edges *)
@@ -1713,7 +1713,7 @@ module Delta = struct
       | ((g,f),_)::tail (* when (g,f)=(gid,feat_name) *)               -> ((g,f), new_val_opt) :: tail in
     { t with feats = loop t.feats }
 
-  let unorder gid t = { t with ordered_nodes = CCList.remove (=) gid t.ordered_nodes } 
+  let unorder gid t = { t with ordered_nodes = CCList.remove ~eq:(=) ~key:gid t.ordered_nodes } 
 
   let insert_after inserted_gid site_gid t =
     let rec loop = function

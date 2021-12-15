@@ -7,7 +7,7 @@
 (*    License: CeCILL (see LICENSE folder or "http://cecill.info/")            *)
 (*    Authors: see AUTHORS file                                                   *)
 (**********************************************************************************)
-open CCOpt.Infix
+open CCOption.Infix
 open Log
 open Printf
 
@@ -368,7 +368,7 @@ module Matching = struct
               let gid = Pid_map.find pid matching.n_match in
               let node = G_graph.find gid graph in
               let fs = G_node.get_fs node in
-              CCOpt.map string_of_value (G_fs.get_value_opt feature_name fs)
+              CCOption.map string_of_value (G_fs.get_value_opt feature_name fs)
           end
       end
     | _ -> Error.run "[Matching.get_string_value_opt] unable to handled request %s" request

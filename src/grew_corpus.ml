@@ -183,7 +183,7 @@ module Corpus = struct
       let items = List.mapi (fun i line -> {
             sent_id= sprintf "%05d" (i + 1);
             text= "__No_text__";
-            graph= G_graph.of_brown config line;
+            graph= G_graph.of_brown ~config line;
           }) lines |> Array.of_list in
       { items; kind=Conll }
     | ext -> Error.run "Cannot load file `%s`, unknown extension `%s`" file ext
@@ -319,7 +319,7 @@ module Corpus_desc = struct
         with Type_error _ -> Error.run "[Corpus.load_json, file \"%s\"] \"config\" field must be a string" json_file in
 
       let columns =
-        try json |> member "columns" |> to_string_option |> (CCOpt.map Conllx_columns.build)
+        try json |> member "columns" |> to_string_option |> (CCOption.map Conllx_columns.build)
         with Type_error _ -> Error.run "[Corpus.load_json, file \"%s\"] \"columns\" field must be a string" json_file in
 
       let directory =

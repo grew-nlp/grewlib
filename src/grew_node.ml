@@ -9,7 +9,7 @@
 (**********************************************************************************)
 
 open Printf
-open CCOpt.Infix
+open CCOption.Infix
 
 open Grew_base
 open Grew_types
@@ -123,14 +123,14 @@ module G_node = struct
 
   let shift user_id delta t =
     { t with
-      name = CCOpt.map (fun n -> user_id ^ "_" ^ n) t.name;
+      name = CCOption.map (fun n -> user_id ^ "_" ^ n) t.name;
       fs = G_fs.set_atom "user" user_id t.fs;
       next = Massoc_gid.map_key ((+) delta) t.next;
     }
 
   let unshift user_id t =
     match (
-      CCOpt.map (fun x -> CCString.chop_prefix ~pre:(user_id^"_") x) t.name,
+      CCOption.map (fun x -> CCString.chop_prefix ~pre:(user_id^"_") x) t.name,
       G_fs.del_feat_opt "user" t.fs
     ) with
     | (Some name, Some fs) -> { t with name; fs }

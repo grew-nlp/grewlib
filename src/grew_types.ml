@@ -121,7 +121,7 @@ module Lexicon = struct
           let items = Str.split (Str.regexp "\t") norm_line in
           if List.length items <> l then
             begin
-              let loc = CCOpt.map (Loc.set_line linenum) loc in
+              let loc = CCOption.map (Loc.set_line linenum) loc in
               Error.build ?loc "[Lexicon.of_ast] line with %d items (%d expected!!)" (List.length items) l
             end;
           items :: (loop tail) in
@@ -133,7 +133,7 @@ module Lexicon = struct
         | [] -> Error.bug ?loc "[Lexicon.of_ast] inconsistent data"
         | header :: lines_list -> { header; lines = List.fold_right Line_set.add lines_list Line_set.empty; loc }
       with Equal v ->
-        let loc = CCOpt.map (Loc.set_line linenum_h) loc in
+        let loc = CCOption.map (Loc.set_line linenum_h) loc in
         Error.build ?loc "[Lexicon.of_ast] the field name \"%s\" is used twice" v
 
   let load ?loc file =
