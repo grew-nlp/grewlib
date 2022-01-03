@@ -85,16 +85,19 @@ module Corpus = struct
         ) (Conllx_corpus.get_data conllx_corpus) in
     { kind = Conll; items }
 
-  let of_amr_corpus amr_corpus =
-    let items =
-      Array.map
-        (fun (sent_id, amr) ->
-           let json = Amr.to_json amr in
-           let graph = G_graph.of_json json in
-           let text = match G_graph.get_meta_opt "text" graph with Some t -> t | None -> "__missing text metadata__" in
-           { sent_id; text; graph }
-        ) amr_corpus in
-    { kind=Amr; items; }
+  let of_amr_file file =
+    try
+      let amr_corpus = Amr_corpus.load file in
+      let items =
+        Array.map
+          (fun (sent_id, amr) ->
+             let json = Amr.to_json amr in
+             let graph = G_graph.of_json json in
+             let text = match G_graph.get_meta_opt "text" graph with Some t -> t | None -> "__missing text metadata__" in
+             { sent_id; text; graph }
+          ) amr_corpus in
+      { kind=Amr; items; }
+    with Amr.Error msg -> Error.build "Amr error in file `%s`: %s" file msg
 
   let fold_left fct init t =
     Array.fold_left
@@ -168,7 +171,7 @@ module Corpus = struct
     | ".conll" | ".conllu" | ".cupt" | ".orfeo" | ".frsemcor" ->
       of_conllx_corpus (Conllx_corpus.load ?log_file ?config file)
     | ".amr" | ".txt" ->
-      of_amr_corpus (Amr_corpus.load file)
+      of_amr_file file
     | ".gr" ->
       let item = Loader.gr file |> G_graph.of_ast ~config:(Conllx_config.build "basic") |> item_of_graph in
       { kind= Gr; items = [| item |] }
@@ -204,7 +207,7 @@ module Corpus = struct
     match (conll_files, amr_files, txt_files) with
     | ([],[],[]) -> Error.run "The directory `%s` does not contain any graphs" dir
     | (conll_files,[],_) -> of_conllx_corpus (Conllx_corpus.load_list ?log_file ?config conll_files)
-    | ([],amr_files, txt_files) -> (amr_files @ txt_files) |> List.map (of_amr_corpus << Amr_corpus.load) |> merge
+    | ([],amr_files, txt_files) -> (amr_files @ txt_files) |> List.map of_amr_file |> merge
     | _ -> Error.run "The directory `%s` contains both Conll data and Amr data" dir
 end
 
@@ -295,9 +298,9 @@ module Corpus_desc = struct
     let json =
       try Yojson.Basic.from_file json_file
       with 
-        | Sys_error _ -> Error.run "[Corpus.load_json] file `%s` not found" json_file
-        | Yojson.Json_error msg -> Error.run "[Corpus.load_json] invalid JSON file `%s`:\n%s" json_file msg
-        in
+      | Sys_error _ -> Error.run "[Corpus.load_json] file `%s` not found" json_file
+      | Yojson.Json_error msg -> Error.run "[Corpus.load_json] invalid JSON file `%s`:\n%s" json_file msg
+    in
 
     let parse_one json =
       let id =
