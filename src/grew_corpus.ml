@@ -359,7 +359,7 @@ module Corpus_desc = struct
       let date =
         if List.exists (fun suf -> CCString.suffix ~suf name) ["latest"; "dev"; "master"; "conv"]
         then let t = Unix.gmtime (Unix.time ()) in
-          sprintf "&nbsp;last update: %d/%02d/%02d" (t.Unix.tm_year + 1900) (t.Unix.tm_mon + 1) t.Unix.tm_mday
+          sprintf "&nbsp;updated: %d/%02d/%02d %02d:%02d" (t.Unix.tm_year + 1900) (t.Unix.tm_mon + 1) t.Unix.tm_mday t.Unix.tm_hour t.Unix.tm_min
         else "" in
       let valid =
         if CCString.suffix ~suf:"conv" name
