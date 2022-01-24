@@ -249,10 +249,10 @@ module Graph = struct
          Grew_graph.G_graph.to_sentence ?pivot ?deco gr
       ) ()
 
-  let to_orfeo ?deco gr =
-    Libgrew.handle ~name:"Graph.to_orfeo"
+  let to_sentence_audio ?deco gr =
+    Libgrew.handle ~name:"Graph.to_sentence_audio"
       (fun () ->
-         Grew_graph.G_graph.to_orfeo ?deco gr
+         Grew_graph.G_graph.to_sentence_audio ?deco gr
       ) ()
 
   (* let save_conll ~config filename graph =

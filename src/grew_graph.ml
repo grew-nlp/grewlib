@@ -1171,7 +1171,6 @@ module G_graph = struct
     let is_highlighted_gid gid = List.mem gid high_list in
 
     let exception Find of Gid.t in
-
     let init_gid_opt =
       try Gid_map.iter
             (fun gid node ->
@@ -1215,14 +1214,21 @@ module G_graph = struct
       loop None false true init_gid;
       Buffer.contents buff
 
-  let start_dur gnode =
+  let start_time gnode = 
     let fs = G_node.get_fs gnode in
-    match (G_fs.get_value_opt "_start" fs, G_fs.get_value_opt "_stop" fs) with
-    | (Some (Float start), (Some Float stop)) -> (start, stop -. start)
-    | _ -> (-1., -1.) (* TODO: exception *)
+    match (G_fs.get_value_opt "_start" fs, G_fs.get_value_opt "AlignBegin" fs) with
+    | (Some (Float start),_) -> Some start
+    | (_,Some (Float align_begin)) -> Some (align_begin /. 1000.)
+    | _ -> None
 
+  let end_time gnode = 
+    let fs = G_node.get_fs gnode in
+    match (G_fs.get_value_opt "_stop" fs, G_fs.get_value_opt "AlignEnd" fs) with
+    | (Some (Float stop),_) -> Some stop
+    | (_,Some (Float align_end)) -> Some (align_end /. 1000.)
+    | _ -> None
 
-  let to_orfeo ?(deco=G_deco.empty) graph =
+  let to_sentence_audio ?(deco=G_deco.empty) graph =
     let is_highlighted_gid gid = List.mem_assoc gid deco.nodes in
 
     let nodes = Gid_map.fold (fun id elt acc -> (id,elt)::acc) graph.map [] in
@@ -1233,25 +1239,28 @@ module G_graph = struct
         match G_fs.to_word_opt (G_node.get_fs gnode) with
         | None -> ()
         | Some word ->
-          let (start, dur) = start_dur gnode in
-          Printf.bprintf buff
-            "<span id=\"tok%d\" data-dur=\"%g\" data-begin=\"%g\" tabindex=\"0\" data-index=\"%d\" %s>%s </span>"
-            i dur start i
-            (match i, is_highlighted_gid gid with
-             | (1, true) -> "class=\"speaking highlight\""
-             | (1, false) -> "class=\"speaking\""
-             | (_, true) -> "class=\"highlight\""
-             | (_, false) -> ""
-            )
-            word
+          match (start_time gnode, end_time gnode) with 
+          | (Some s, Some e) -> 
+            (* let (start, dur) = start_dur gnode in *)
+            Printf.bprintf buff
+              "<span id=\"tok%d\" data-dur=\"%g\" data-begin=\"%g\" tabindex=\"0\" data-index=\"%d\" %s>%s </span>"
+              i (e -. s) s i
+              (match i, is_highlighted_gid gid with
+               | (1, true) -> "class=\"speaking highlight\""
+               | (1, false) -> "class=\"speaking\""
+               | (_, true) -> "class=\"highlight\""
+               | (_, false) -> ""
+              )
+              word
+          | _ -> Printf.bprintf buff "%s " word
       ) snodes;
 
     let bounds =
       match (CCList.nth_opt snodes 1, CCList.last_opt snodes) with (* 0 is the "conll root node" *)
-      | (Some (_,node1), Some (_,node2)) ->
+      | (Some (_,first_node), Some (_,last_node)) ->
         begin
-          match (G_fs.get_value_opt "_start" (G_node.get_fs node1), G_fs.get_value_opt "_stop" (G_node.get_fs node2)) with
-          | (Some (Float i), Some (Float f)) -> Some (i,f)
+          match (start_time first_node, end_time last_node) with
+          | (Some i, Some f) -> Some (i,f)
           | _ -> None
         end
       | _ -> None in

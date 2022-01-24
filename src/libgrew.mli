@@ -147,7 +147,7 @@ module Graph : sig
 
   val to_sentence: ?pivot: string -> ?deco:Deco.t -> t -> string
 
-  val to_orfeo: ?deco:Deco.t -> t -> string * (float * float) option
+  val to_sentence_audio: ?deco:Deco.t -> t -> string * (float * float) option
 
   val to_dot : ?main_feat:string -> config:Conllx_config.t -> ?deco:Deco.t -> t -> string
 
