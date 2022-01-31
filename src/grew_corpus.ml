@@ -356,6 +356,18 @@ module Corpus_desc = struct
       let out_file = Filename.concat dir (name ^ "_table.html") in
       CCIO.with_out out_file (fun oc -> CCIO.write_line oc html);
 
+      let (nb_trees, nb_tokens) = Conllx_corpus.sizes corpus in
+      let desc = `Assoc (CCList.filter_map CCFun.id [
+        Some ("nb_trees", `Int nb_trees);
+        Some ("nb_tokens", `Int nb_tokens);
+        (
+          if List.exists (fun suf -> CCString.suffix ~suf name) ["latest"; "dev"; "master"; "conv"]
+          then Some ("update", `Int (int_of_float ((Unix.gettimeofday ()) *. 1000.)))
+          else None
+        )
+      ]) in
+      Yojson.Basic.to_file (Filename.concat dir (name ^ "_desc.json")) desc;
+
       let date =
         if List.exists (fun suf -> CCString.suffix ~suf name) ["latest"; "dev"; "master"; "conv"]
         then let t = Unix.gmtime (Unix.time ()) in
