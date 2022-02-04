@@ -14,7 +14,7 @@ depends: [
   "cppo"
   "menhir"
   "yojson"
-  "containers"
+  "containers" { >= "3.6"}
   "ANSITerminal"
   "libcaml-log"
   "libcaml-amr"
