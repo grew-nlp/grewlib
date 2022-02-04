@@ -7,8 +7,8 @@
 (*    License: CeCILL (see LICENSE folder or "http://cecill.info/")            *)
 (*    Authors: see AUTHORS file                                                   *)
 (**********************************************************************************)
+
 open CCOption.Infix
-open Log
 open Printf
 
 open Grew_base

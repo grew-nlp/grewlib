@@ -8,7 +8,6 @@
 (*    Authors: see AUTHORS file                                                   *)
 (**********************************************************************************)
 
-open Log
 open Printf
 open Conllx
 

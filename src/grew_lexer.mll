@@ -10,7 +10,7 @@
 
 {
   open Printf
-  open Log
+  
   open Grew_base
   open Grew_ast
   open Grew_parser

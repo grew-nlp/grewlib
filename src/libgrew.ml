@@ -9,11 +9,7 @@
 (**********************************************************************************)
 
 open Printf
-open Log
 open Conllx
-
-
-
 
 module String_set = Grew_base.String_set
 

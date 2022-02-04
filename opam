@@ -15,8 +15,6 @@ depends: [
   "menhir"
   "yojson"
   "containers" { >= "3.6"}
-  "ANSITerminal"
-  "libcaml-log"
   "libcaml-amr"
   "libcaml-conll"
 ]

@@ -9,7 +9,6 @@
 (**********************************************************************************)
 
 open Printf
-open Log
 open Grew_base
 
 type feature_name = string (* upos, Gender, … *)

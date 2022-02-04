@@ -8,7 +8,6 @@
 (*    Authors: see AUTHORS file                                                   *)
 (**********************************************************************************)
 
-open Log
 open Printf
 
 module String_set = Set.Make (String)
@@ -66,8 +65,8 @@ module Error = struct
 
   let warning_ ?loc message =
     match loc with
-    | Some loc -> Log.fwarning "[%s] %s" (Loc.to_string loc) message
-    | None -> Log.fwarning "%s" message
+    | Some loc -> ANSITerminal.eprintf [ANSITerminal.blue] "[%s] %s" (Loc.to_string loc) message
+    | None -> ANSITerminal.eprintf [ANSITerminal.blue] "%s" message
   let warning ?loc = Printf.ksprintf (warning_ ?loc)
 
 end (* module Error *)

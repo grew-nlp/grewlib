@@ -9,7 +9,6 @@
 (**********************************************************************************)
 
 open Printf
-open Log
 open Conllx
 open Libamr
 
@@ -272,7 +271,7 @@ module Corpus_desc = struct
                 | None -> init_graph in
               Some {Corpus.sent_id; text=G_graph.to_sentence graph; graph }
             with Error.Build (msg, loc_opt) ->
-              Log.fwarning "[build_corpus, sent_id=%s%s] skipped: %s"
+              Error.warning "[build_corpus, sent_id=%s%s] skipped: %s"
                 sent_id
                 (match loc_opt with None -> "" | Some loc -> "; " ^ (Loc.to_string loc))
                 msg; None
@@ -394,12 +393,12 @@ module Corpus_desc = struct
       begin (* test if "dir" exists but is not a directory *)
         match Unix.stat dir with
         | { Unix.st_kind = Unix.S_DIR } -> ()
-        | _ -> Log.fwarning "grew_match option ignored: %s already exists and is not directory" dir; raise Skip
+        | _ -> Error.warning "grew_match option ignored: %s already exists and is not directory" dir; raise Skip
       end; ()
     with Unix.Unix_error (Unix.ENOENT,_,_) ->
       begin (* dir does not exist -> try to create it *)
         try Unix.mkdir dir 0o755
-        with exc -> Log.fwarning "grew_match option ignored: cannot create dir %s (%s)" dir (Printexc.to_string exc); raise Skip
+        with exc -> Error.warning "grew_match option ignored: cannot create dir %s (%s)" dir (Printexc.to_string exc); raise Skip
       end
 
   (* ---------------------------------------------------------------------------------------------------- *)
@@ -417,7 +416,7 @@ module Corpus_desc = struct
             ensure_dir dir;
             let log = Filename.concat dir (sprintf "%s.log" corpus_desc.id) in
             try close_out (open_out log); (Some dir, Some log)
-            with exc -> Log.fwarning "grew_match option ignored: cannot create file in dir %s (%s)" dir (Printexc.to_string exc); raise Skip
+            with exc -> Error.warning "grew_match option ignored: cannot create file in dir %s (%s)" dir (Printexc.to_string exc); raise Skip
           with Skip -> (None,None)
         end
       | _ -> (None, None) in
@@ -435,7 +434,7 @@ module Corpus_desc = struct
                   | None -> init_graph in
                 Some {Corpus.sent_id; text=G_graph.to_sentence graph; graph }
               with Error.Build (msg, loc_opt) ->
-                Log.fwarning "[build_marshal_file, sent_id=%s%s] skipped: %s"
+                Error.warning "[build_marshal_file, sent_id=%s%s] skipped: %s"
                   sent_id
                   (match loc_opt with None -> "" | Some loc -> "; " ^ (Loc.to_string loc))
                   msg; None
@@ -447,7 +446,7 @@ module Corpus_desc = struct
               try
                 let graph = G_graph.of_pst (Parser.phrase_structure_tree pst) in
                 Some {Corpus.sent_id; text=G_graph.to_sentence graph; graph }
-              with exc -> Log.fwarning "[id=%s] PST skipped [exception: %s]" sent_id (Printexc.to_string exc); None
+              with exc -> Error.warning "[id=%s] PST skipped [exception: %s]" sent_id (Printexc.to_string exc); None
             ) pst_corpus
 
         | Amr ->
@@ -461,7 +460,7 @@ module Corpus_desc = struct
                 let graph = G_graph.of_json json in
                 let text = match G_graph.get_meta_opt "text" graph with Some t -> t | None -> "__missing text metadata__" in
                 Some {Corpus.sent_id; text; graph }
-              with exc -> Log.fwarning "[id=%s] AMR skipped [exception: %s]" sent_id (Printexc.to_string exc); None
+              with exc -> Error.warning "[id=%s] AMR skipped [exception: %s]" sent_id (Printexc.to_string exc); None
             ) amr_corpus
         | Json | Dmrs ->
           Array.concat (
@@ -472,15 +471,15 @@ module Corpus_desc = struct
             ) full_files
           )
         | Gr -> Error.run "Gr corpora are not supported in file compilation" in
-      let _ = Log.fmessage "[%s] %d graphs loaded" corpus_desc.id (Array.length items) in
+      let _ = Error.warning "[%s] %d graphs loaded" corpus_desc.id (Array.length items) in
       let out_ch = open_out_bin marshal_file in
       let (data : Corpus.t) = {Corpus.items; kind=corpus_desc.kind } in
       Marshal.to_channel out_ch data [];
       close_out out_ch
     with
-    | Conllx_error json -> Log.fwarning "[Conllx_error] fail to load corpus %s, skip it\nexception: %s" corpus_desc.id (Yojson.Basic.pretty_to_string json)
-    | Error.Run (msg,_) -> Log.fwarning "[Libgrew error] %s, fail to load corpus %s: skip it" msg corpus_desc.id
-    | exc -> Log.fwarning "[Error] fail to load corpus %s, skip it\nexception: %s" corpus_desc.id (Printexc.to_string exc)
+    | Conllx_error json -> Error.warning "[Conllx_error] fail to load corpus %s, skip it\nexception: %s" corpus_desc.id (Yojson.Basic.pretty_to_string json)
+    | Error.Run (msg,_) -> Error.warning "[Libgrew error] %s, fail to load corpus %s: skip it" msg corpus_desc.id
+    | exc -> Error.warning "[Error] fail to load corpus %s, skip it\nexception: %s" corpus_desc.id (Printexc.to_string exc)
 
 
   (* ---------------------------------------------------------------------------------------------------- *)
@@ -495,7 +494,7 @@ module Corpus_desc = struct
         let marshal_time = (Unix.stat marshal_file).Unix.st_mtime in
         if List.exists (fun f -> (Unix.stat f).Unix.st_mtime > marshal_time) full_files
         then really_marshal () (* one of the data files is more recent than the marshal file *)
-        else Log.fmessage "--> %s is uptodate" corpus_desc.id
+        else Error.warning "--> %s is uptodate" corpus_desc.id
       with
       | Unix.Unix_error _ ->
         (* the marshal file does not exists *)
