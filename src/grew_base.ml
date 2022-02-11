@@ -65,9 +65,15 @@ module Error = struct
 
   let warning_ ?loc message =
     match loc with
-    | Some loc -> ANSITerminal.eprintf [ANSITerminal.blue] "[%s] %s" (Loc.to_string loc) message
-    | None -> ANSITerminal.eprintf [ANSITerminal.blue] "%s" message
+    | Some loc -> ANSITerminal.eprintf [ANSITerminal.blue] "[%s] %s\n" (Loc.to_string loc) message
+    | None -> ANSITerminal.eprintf [ANSITerminal.blue] "%s\n" message
   let warning ?loc = Printf.ksprintf (warning_ ?loc)
+
+  let info_ ?loc message =
+    match loc with
+    | Some loc -> ANSITerminal.eprintf [ANSITerminal.green] "[%s] %s\n" (Loc.to_string loc) message
+    | None -> ANSITerminal.eprintf [ANSITerminal.green] "%s\n" message
+  let info ?loc = Printf.ksprintf (info_ ?loc)
 
 end (* module Error *)
 

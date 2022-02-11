@@ -471,7 +471,7 @@ module Corpus_desc = struct
             ) full_files
           )
         | Gr -> Error.run "Gr corpora are not supported in file compilation" in
-      let _ = Error.warning "[%s] %d graphs loaded" corpus_desc.id (Array.length items) in
+      let _ = Error.info "[%s] %d graphs loaded" corpus_desc.id (Array.length items) in
       let out_ch = open_out_bin marshal_file in
       let (data : Corpus.t) = {Corpus.items; kind=corpus_desc.kind } in
       Marshal.to_channel out_ch data [];
@@ -494,7 +494,7 @@ module Corpus_desc = struct
         let marshal_time = (Unix.stat marshal_file).Unix.st_mtime in
         if List.exists (fun f -> (Unix.stat f).Unix.st_mtime > marshal_time) full_files
         then really_marshal () (* one of the data files is more recent than the marshal file *)
-        else Error.warning "--> %s is uptodate" corpus_desc.id
+        else Error.info "--> %s is uptodate" corpus_desc.id
       with
       | Unix.Unix_error _ ->
         (* the marshal file does not exists *)

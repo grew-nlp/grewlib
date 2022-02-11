@@ -50,6 +50,8 @@ module Error: sig
   val parse: ?loc: Loc.t -> ('a, unit, string, 'b) format4 -> 'a
 
   val warning: ?loc: Loc.t -> ('a, unit, string, unit) format4 -> 'a
+
+  val info: ?loc: Loc.t -> ('a, unit, string, unit) format4 -> 'a
 end
 
 (* ================================================================================ *)
