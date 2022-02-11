@@ -138,6 +138,7 @@ module G_edge = struct
               match List_.sort_assoc_opt "1" fs with
               | Some (String "unscoped") | Some (String "wider") | Some (String "equal") | Some (String "dual") ->
               ["color=\"red\""; "fontcolor=\"red\""]
+              | Some (String "in") -> ["style=\"dotted\""] (* PMB link from Box-nodes to Sem-nodes *)
               | _ -> [] in
       let multi_line_label = Str.global_replace (Str.regexp_string ",") "\n" (fs_to_string ~config fs) in
       let label = match deco with
