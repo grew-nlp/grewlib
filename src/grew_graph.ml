@@ -495,7 +495,7 @@ module G_graph = struct
     (* check that there is no unknown fields *)
     List.iter
       (function 
-        | "meta" | "nodes" | "edges" | "order" | "code" -> ()
+        | "meta" | "nodes" | "edges" | "order" -> ()
         | x -> 
           Error.warning "[G_graph.of_json%s] Unknown field `%s` (See https://grew.fr/doc/json)" (sent_id_text ()) x 
       ) (keys json);
