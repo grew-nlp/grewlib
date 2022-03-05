@@ -249,18 +249,15 @@ module G_graph = struct
     rules: int String_map.t;
     trace: trace_item option;     (* if the rewriting history is kept *)
     impact: G_deco.t;
-    code: string option;
   }
 
   let get_meta_opt key t = List.assoc_opt key t.meta
 
   let get_meta_list t = t.meta
 
-  let get_code_opt t = t.code
-
   let set_meta key value t = {t with meta = (key,value) :: List.remove_assoc key t.meta}
 
-  let empty = { meta=[]; map=Gid_map.empty; highest_index=0; rules=String_map.empty; trace=None; impact=G_deco.empty; code= None}
+  let empty = { meta=[]; map=Gid_map.empty; highest_index=0; rules=String_map.empty; trace=None; impact=G_deco.empty }
 
   let is_empty t = Gid_map.is_empty t.map
 
@@ -645,7 +642,6 @@ module G_graph = struct
       meta;
       map;
       highest_index = final_index - 1;
-      code= json |> member "code" |> (function `String s -> Some s | _ -> None);
     }
 
   (* -------------------------------------------------------------------------------- *)

@@ -162,8 +162,6 @@ module Graph : sig
 
   val get_meta_list: t -> (string * string) list
 
-  val get_code_opt: t -> string option
-
   val set_meta: string -> string -> t -> t
 
   val insert_proj: string list -> t -> Projection.t -> Projection.t

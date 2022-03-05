@@ -100,8 +100,6 @@ module G_graph: sig
 
   val get_history: t -> (G_deco.t * (string * int) * G_deco.t * t) list
 
-  val get_code_opt: t -> string option
-
   val trace_depth: t -> int
 
   val clear_rules: t -> t
