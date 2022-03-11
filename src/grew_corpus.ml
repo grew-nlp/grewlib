@@ -90,7 +90,7 @@ module Corpus = struct
       let items =
         Array.map
           (fun (sent_id, amr) ->
-             let json = Amr.to_json amr in
+             let json = Amr.to_json ~unfold:true amr in
              let graph = G_graph.of_json json in
              let text = match G_graph.get_meta_opt "text" graph with Some t -> t | None -> "__missing text metadata__" in
              { sent_id; text; graph }
@@ -462,7 +462,7 @@ module Corpus_desc = struct
           in
           CCArray.filter_map (fun (sent_id,amr) ->
               try
-                let json = Amr.to_json amr in
+                let json = Amr.to_json ~unfold:true amr in
                 let graph = G_graph.of_json json in
                 let text = match G_graph.get_meta_opt "text" graph with Some t -> t | None -> "__missing text metadata__" in
                 Some {Corpus.sent_id; text; graph }
