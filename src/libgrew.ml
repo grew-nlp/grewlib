@@ -415,6 +415,7 @@ module Corpus_desc = struct
 
   let get_directory = Grew_corpus.Corpus_desc.get_directory
   let get_id = Grew_corpus.Corpus_desc.get_id
+  let get_lang_opt = Grew_corpus.Corpus_desc.get_lang_opt
   let get_config = Grew_corpus.Corpus_desc.get_config
   let is_rtl = Grew_corpus.Corpus_desc.is_rtl
   let is_audio = Grew_corpus.Corpus_desc.is_audio

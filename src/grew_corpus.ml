@@ -215,6 +215,7 @@ module Corpus_desc = struct
 
   type t = {
     id: string;
+    lang: string option;
     kind: Corpus.kind;
     config: Conllx_config.t; (* "ud" is used as the default: TODO make config mandatory in desc? *)
     columns: Conllx_columns.t option;
@@ -226,6 +227,7 @@ module Corpus_desc = struct
   }
 
   let get_id corpus_desc = corpus_desc.id
+  let get_lang_opt corpus_desc = corpus_desc.lang
   let get_config corpus_desc = corpus_desc.config
   let get_directory corpus_desc = corpus_desc.directory
   let is_rtl corpus_desc = corpus_desc.rtl
@@ -306,6 +308,10 @@ module Corpus_desc = struct
         try json |> member "id" |> to_string
         with Type_error _ -> Error.run "[Corpus.load_json, file \"%s\"] \"id\" field is mandatory and must be a string" json_file in
 
+      let lang =
+        try Some (json |> member "lang" |> to_string)
+        with Type_error _ -> None in
+
       let kind =
         try match json |> member "kind" |> to_string_option with
           | None | Some "conll" -> Corpus.Conll
@@ -344,7 +350,7 @@ module Corpus_desc = struct
         try json |> member "audio" |> to_bool
         with Type_error _ -> false in
 
-      { id; kind; config; columns; directory; files; rtl; audio; preapply; } in
+      { id; lang; kind; config; columns; directory; files; rtl; audio; preapply; } in
 
     List.map parse_one (json |> member "corpora" |> to_list)
 
