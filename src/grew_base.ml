@@ -64,15 +64,15 @@ module Error = struct
   let parse ?loc = Printf.ksprintf (parse_ ?loc)
 
   let warning_ ?loc message =
-    match loc with
-    | Some loc -> ANSITerminal.eprintf [ANSITerminal.blue] "[%s] %s\n" (Loc.to_string loc) message
-    | None -> ANSITerminal.eprintf [ANSITerminal.blue] "%s\n" message
+    let prefix = match loc with Some l -> sprintf "[%s] " (Loc.to_string l) | None -> "" in
+    ANSITerminal.eprintf [ANSITerminal.blue] "%s%s\n%!" prefix message;
+    flush stderr
   let warning ?loc = Printf.ksprintf (warning_ ?loc)
 
   let info_ ?loc message =
-    match loc with
-    | Some loc -> ANSITerminal.eprintf [ANSITerminal.green] "[%s] %s\n" (Loc.to_string loc) message
-    | None -> ANSITerminal.eprintf [ANSITerminal.green] "%s\n" message
+    let prefix = match loc with Some l -> sprintf "[%s] " (Loc.to_string l) | None -> "" in
+    ANSITerminal.eprintf [ANSITerminal.green] "%s%s\n%!" prefix message;
+    flush stderr
   let info ?loc = Printf.ksprintf (info_ ?loc)
 
 end (* module Error *)
