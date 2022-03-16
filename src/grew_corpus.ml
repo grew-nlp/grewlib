@@ -376,22 +376,6 @@ module Corpus_desc = struct
       ]) in
       Yojson.Basic.to_file (Filename.concat dir (name ^ "_desc.json")) desc;
 
-      let date =
-        if List.exists (fun suf -> CCString.suffix ~suf name) ["latest"; "dev"; "master"; "conv"]
-        then let t = Unix.gmtime (Unix.time ()) in
-          sprintf "&nbsp;updated: %d/%02d/%02d %02d:%02d" (t.Unix.tm_year + 1900) (t.Unix.tm_mon + 1) t.Unix.tm_mday t.Unix.tm_hour t.Unix.tm_min
-        else "" in
-      let valid =
-        if CCString.suffix ~suf:"conv" name
-        then
-          let corpus = String.sub name 0 ((String.length name) - 5) in
-          sprintf "&nbsp;<a href=\"_valid/%s.valid\"><button class=\"btn btn-primary btn-results btn-sm\">Validation</button></a>" corpus
-        else "" in
-      let (nb_trees, nb_tokens) = Conllx_corpus.sizes corpus in
-      let meta = sprintf "&nbsp;[%d trees, %d tokens]%s%s" nb_trees nb_tokens date valid in
-      let out_file = Filename.concat dir (name ^ "_desc.html") in
-      CCIO.with_out out_file (fun oc -> CCIO.write_line oc meta)
-
   (* ---------------------------------------------------------------------------------------------------- *)
   exception Skip
   let ensure_dir dir =
