@@ -47,6 +47,7 @@ module Corpus_desc : sig
   val load_corpus_opt: t -> Corpus.t option
 
   val get_config: t -> Conllx_config.t
+  val get_columns: t -> Conllx_columns.t
 
   val is_rtl: t -> bool
   val is_audio: t -> bool

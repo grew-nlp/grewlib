@@ -218,7 +218,7 @@ module Corpus_desc = struct
     lang: string option;
     kind: Corpus.kind;
     config: Conllx_config.t; (* "ud" is used as the default: TODO make config mandatory in desc? *)
-    columns: Conllx_columns.t option;
+    columns: Conllx_columns.t;
     directory: string;
     files: string list;
     rtl: bool;
@@ -229,6 +229,7 @@ module Corpus_desc = struct
   let get_id corpus_desc = corpus_desc.id
   let get_lang_opt corpus_desc = corpus_desc.lang
   let get_config corpus_desc = corpus_desc.config
+  let get_columns corpus_desc = corpus_desc.columns
   let get_directory corpus_desc = corpus_desc.directory
   let is_rtl corpus_desc = corpus_desc.rtl
   let is_audio corpus_desc = corpus_desc.audio
@@ -327,7 +328,7 @@ module Corpus_desc = struct
         with Type_error _ -> Error.run "[Corpus.load_json, file \"%s\"] \"config\" field must be a string" json_file in
 
       let columns =
-        try json |> member "columns" |> to_string_option |> (CCOption.map Conllx_columns.build)
+        try json |> member "columns" |> to_string_option |> (function Some s -> Conllx_columns.build s | None -> Conllx_columns.default)
         with Type_error _ -> Error.run "[Corpus.load_json, file \"%s\"] \"columns\" field must be a string" json_file in
 
       let directory =
@@ -414,7 +415,7 @@ module Corpus_desc = struct
     try
       let items = match corpus_desc.kind with
         | Conll ->
-          let conll_corpus = Conllx_corpus.load_list ?log_file ~config:corpus_desc.config ?columns:corpus_desc.columns full_files in
+          let conll_corpus = Conllx_corpus.load_list ?log_file ~config:corpus_desc.config ~columns:corpus_desc.columns full_files in
           grew_match_table_and_desc ~config:corpus_desc.config grew_match_dir corpus_desc.id conll_corpus;
           CCArray.filter_map (fun (sent_id,conllx) ->
               try
