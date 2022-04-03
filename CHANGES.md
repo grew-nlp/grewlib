@@ -1,3 +1,6 @@
+## 1.8.1 (2022/04/03)
+  * internal changes mainly relative to Grew-match
+
 # 1.8.0 (2021/12/15)
   * Add command `prepend_feats` (See: https://grew.fr/doc/commands/#copy-several-features-from-one-node-to-another)
   * Add Python style string slicing (See: https://grew.fr/doc/commands/#add-or-update-a-node-feature)
