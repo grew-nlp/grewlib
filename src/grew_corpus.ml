@@ -218,7 +218,7 @@ module Corpus_desc = struct
     lang: string option;
     kind: Corpus.kind;
     config: Conllx_config.t; (* "ud" is used as the default: TODO make config mandatory in desc? *)
-    columns: Conllx_columns.t;
+    columns_opt: Conllx_columns.t option;
     directory: string;
     files: string list;
     rtl: bool;
@@ -229,7 +229,7 @@ module Corpus_desc = struct
   let get_id corpus_desc = corpus_desc.id
   let get_lang_opt corpus_desc = corpus_desc.lang
   let get_config corpus_desc = corpus_desc.config
-  let get_columns corpus_desc = corpus_desc.columns
+  let get_columns_opt corpus_desc = corpus_desc.columns_opt
   let get_directory corpus_desc = corpus_desc.directory
   let is_rtl corpus_desc = corpus_desc.rtl
   let is_audio corpus_desc = corpus_desc.audio
@@ -327,8 +327,8 @@ module Corpus_desc = struct
         try json |> member "config" |> to_string_option |> (function Some c -> Conllx_config.build c | None -> Conllx_config.build "ud")
         with Type_error _ -> Error.run "[Corpus.load_json, file \"%s\"] \"config\" field must be a string" json_file in
 
-      let columns =
-        try json |> member "columns" |> to_string_option |> (function Some s -> Conllx_columns.build s | None -> Conllx_columns.default)
+      let columns_opt =
+        try json |> member "columns" |> to_string_option |> CCOption.map Conllx_columns.build
         with Type_error _ -> Error.run "[Corpus.load_json, file \"%s\"] \"columns\" field must be a string" json_file in
 
       let directory =
@@ -351,7 +351,7 @@ module Corpus_desc = struct
         try json |> member "audio" |> to_bool
         with Type_error _ -> false in
 
-      { id; lang; kind; config; columns; directory; files; rtl; audio; preapply; } in
+      { id; lang; kind; config; columns_opt; directory; files; rtl; audio; preapply; } in
 
     List.map parse_one (json |> member "corpora" |> to_list)
 
@@ -415,7 +415,7 @@ module Corpus_desc = struct
     try
       let items = match corpus_desc.kind with
         | Conll ->
-          let conll_corpus = Conllx_corpus.load_list ?log_file ~config:corpus_desc.config ~columns:corpus_desc.columns full_files in
+          let conll_corpus = Conllx_corpus.load_list ?log_file ~config:corpus_desc.config ?columns:corpus_desc.columns_opt full_files in
           grew_match_table_and_desc ~config:corpus_desc.config grew_match_dir corpus_desc.id conll_corpus;
           CCArray.filter_map (fun (sent_id,conllx) ->
               try

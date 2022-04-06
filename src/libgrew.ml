@@ -417,7 +417,7 @@ module Corpus_desc = struct
   let get_id = Grew_corpus.Corpus_desc.get_id
   let get_lang_opt = Grew_corpus.Corpus_desc.get_lang_opt
   let get_config = Grew_corpus.Corpus_desc.get_config
-  let get_columns = Grew_corpus.Corpus_desc.get_columns
+  let get_columns_opt = Grew_corpus.Corpus_desc.get_columns_opt
   let is_rtl = Grew_corpus.Corpus_desc.is_rtl
   let is_audio = Grew_corpus.Corpus_desc.is_audio
 
