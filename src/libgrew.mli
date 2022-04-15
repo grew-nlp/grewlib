@@ -257,6 +257,7 @@ module Corpus: sig
   val from_dir: ?config:Conllx_config.t -> string -> t
 
   val merge: t list -> t
+  val get_columns_opt: t -> Conllx_columns.t option
 end
 
 module Corpus_desc: sig
@@ -267,7 +268,6 @@ module Corpus_desc: sig
   val load_corpus_opt: t -> Corpus.t option
 
   val get_config: t -> Conllx_config.t
-  val get_columns_opt: t -> Conllx_columns.t option
   val is_rtl: t -> bool
   val is_audio: t -> bool
   val get_id: t -> string

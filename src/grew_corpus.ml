@@ -37,7 +37,9 @@ end
 
 (* ==================================================================================================== *)
 module Corpus = struct
-  type kind = Conll | Pst | Amr | Gr | Json | Dmrs
+  type kind = 
+    | Conll of Conllx_columns.t option (* value is None in Corpus_desc and Some c once the corpus is really loaded *)
+    | Pst | Amr | Gr | Json | Dmrs | Brown
 
   type item = {
     sent_id: string;
@@ -82,7 +84,7 @@ module Corpus = struct
            let graph = conllx |> Conllx.to_json |> G_graph.of_json in
            { sent_id; text; graph }
         ) (Conllx_corpus.get_data conllx_corpus) in
-    { kind = Conll; items }
+    { kind = Conll (Some (Conllx_corpus.get_columns conllx_corpus)); items }
 
   let of_amr_file file =
     try
@@ -119,7 +121,7 @@ module Corpus = struct
   let get_sent_id position t = t.items.(position).sent_id
 
   let is_conll t = match t.kind with
-    | Conll | Dmrs -> true
+    | Conll _ | Dmrs -> true
     | _ -> false
 
   let get_text position t = t.items.(position).text
@@ -187,7 +189,7 @@ module Corpus = struct
             text= "__No_text__";
             graph= G_graph.of_brown ~config line;
           }) lines |> Array.of_list in
-      { items; kind=Conll }
+      { items; kind=Brown }
     | ext -> Error.run "Cannot load file `%s`, unknown extension `%s`" file ext
 
   let from_dir ?log_file ?config dir =
@@ -208,6 +210,11 @@ module Corpus = struct
     | (conll_files,[],_) -> of_conllx_corpus (Conllx_corpus.load_list ?log_file ?config conll_files)
     | ([],amr_files, txt_files) -> (amr_files @ txt_files) |> List.map of_amr_file |> merge
     | _ -> Error.run "The directory `%s` contains both Conll data and Amr data" dir
+
+  let get_columns_opt corpus = 
+    match corpus.kind with
+    | Conll (Some c) -> Some c
+    | _ -> None
 end
 
 (* ==================================================================================================== *)
@@ -218,7 +225,6 @@ module Corpus_desc = struct
     lang: string option;
     kind: Corpus.kind;
     config: Conllx_config.t; (* "ud" is used as the default: TODO make config mandatory in desc? *)
-    columns_opt: Conllx_columns.t option;
     directory: string;
     files: string list;
     rtl: bool;
@@ -229,20 +235,19 @@ module Corpus_desc = struct
   let get_id corpus_desc = corpus_desc.id
   let get_lang_opt corpus_desc = corpus_desc.lang
   let get_config corpus_desc = corpus_desc.config
-  let get_columns_opt corpus_desc = corpus_desc.columns_opt
   let get_directory corpus_desc = corpus_desc.directory
   let is_rtl corpus_desc = corpus_desc.rtl
   let is_audio corpus_desc = corpus_desc.audio
 
-
   (* ---------------------------------------------------------------------------------------------------- *)
   let extensions = function
-    | Corpus.Conll -> [".conll"; ".conllu"; ".cupt"; ".orfeo"; "frsemcor"]
+    | Corpus.Conll _ -> [".conll"; ".conllu"; ".cupt"; ".orfeo"; "frsemcor"]
     | Amr -> [".amr"; ".txt"]
     | Pst -> [".const"]
     | Json -> [".json"]
     | Gr -> [".gr"]
     | Dmrs -> [".json"]
+    | Brown -> []
 
   (* ---------------------------------------------------------------------------------------------------- *)
   (* if [files] is empty, all files of the directory with correct suffix are considered *)
@@ -263,8 +268,10 @@ module Corpus_desc = struct
   let build_corpus corpus_desc =
     let config = corpus_desc.config in
     match corpus_desc.kind with
-    | Conll ->
+    | Conll _ ->
       let conll_corpus = Conllx_corpus.load_list ~config (get_full_files corpus_desc) in
+      let columns = Conllx_corpus.get_columns conll_corpus in
+
       let items =
         CCArray.filter_map (fun (sent_id,conll) ->
             try
@@ -279,7 +286,7 @@ module Corpus_desc = struct
                 (match loc_opt with None -> "" | Some loc -> "; " ^ (Loc.to_string loc))
                 msg; None
           ) (Conllx_corpus.get_data conll_corpus) in
-      { Corpus.items; kind=Conll }
+      { Corpus.items; kind=Conll (Some columns) }
     | _ -> Error.bug "[Corpus_desc.build_corpus] is available only on Conll format"
 
   (* ---------------------------------------------------------------------------------------------------- *)
@@ -315,7 +322,7 @@ module Corpus_desc = struct
 
       let kind =
         try match json |> member "kind" |> to_string_option with
-          | None | Some "conll" -> Corpus.Conll
+          | None | Some "conll" -> Corpus.Conll None
           | Some "pst" -> Pst
           | Some "amr" -> Amr
           | Some "dmrs" -> Dmrs
@@ -326,10 +333,6 @@ module Corpus_desc = struct
       let config =
         try json |> member "config" |> to_string_option |> (function Some c -> Conllx_config.build c | None -> Conllx_config.build "ud")
         with Type_error _ -> Error.run "[Corpus.load_json, file \"%s\"] \"config\" field must be a string" json_file in
-
-      let columns_opt =
-        try json |> member "columns" |> to_string_option |> CCOption.map Conllx_columns.build
-        with Type_error _ -> Error.run "[Corpus.load_json, file \"%s\"] \"columns\" field must be a string" json_file in
 
       let directory =
         try json |> member "directory" |> to_string
@@ -351,7 +354,7 @@ module Corpus_desc = struct
         try json |> member "audio" |> to_bool
         with Type_error _ -> false in
 
-      { id; lang; kind; config; columns_opt; directory; files; rtl; audio; preapply; } in
+      { id; lang; kind; config; directory; files; rtl; audio; preapply; } in
 
     List.map parse_one (json |> member "corpora" |> to_list)
 
@@ -367,17 +370,17 @@ module Corpus_desc = struct
 
       let (nb_trees, nb_tokens) = Conllx_corpus.sizes corpus in
       let desc = `Assoc (CCList.filter_map CCFun.id [
-        Some ("nb_trees", `Int nb_trees);
-        Some ("nb_tokens", `Int nb_tokens);
-        (
-          if List.exists (fun suf -> CCString.suffix ~suf name) ["latest"; "dev"; "master"; "conv"]
-          then Some ("update", `Int (int_of_float ((Unix.gettimeofday ()) *. 1000.)))
-          else None
-        )
-      ]) in
+          Some ("nb_trees", `Int nb_trees);
+          Some ("nb_tokens", `Int nb_tokens);
+          (
+            if List.exists (fun suf -> CCString.suffix ~suf name) ["latest"; "dev"; "master"; "conv"]
+            then Some ("update", `Int (int_of_float ((Unix.gettimeofday ()) *. 1000.)))
+            else None
+          )
+        ]) in
       Yojson.Basic.to_file (Filename.concat dir (name ^ "_desc.json")) desc;
 
-  (* ---------------------------------------------------------------------------------------------------- *)
+      (* ---------------------------------------------------------------------------------------------------- *)
   exception Skip
   let ensure_dir dir =
     try (* catch if dir does not exist *)
@@ -401,7 +404,7 @@ module Corpus_desc = struct
 
     let (grew_match_dir, log_file) =
       match (corpus_desc.kind, grew_match) with
-      | (Conll, Some dir) ->
+      | (Conll _, Some dir) ->
         begin
           try
             ensure_dir dir;
@@ -413,11 +416,13 @@ module Corpus_desc = struct
       | _ -> (None, None) in
 
     try
-      let items = match corpus_desc.kind with
-        | Conll ->
-          let conll_corpus = Conllx_corpus.load_list ?log_file ~config:corpus_desc.config ?columns:corpus_desc.columns_opt full_files in
+      let (data : Corpus.t) = match corpus_desc.kind with
+        | Brown -> failwith "TODO"
+        | Conll _ ->
+          let conll_corpus = Conllx_corpus.load_list ?log_file ~config:corpus_desc.config full_files in
+          let columns = Conllx_corpus.get_columns conll_corpus in
           grew_match_table_and_desc ~config:corpus_desc.config grew_match_dir corpus_desc.id conll_corpus;
-          CCArray.filter_map (fun (sent_id,conllx) ->
+          let items = CCArray.filter_map (fun (sent_id,conllx) ->
               try
                 let init_graph = G_graph.of_json (Conllx.to_json conllx) in
                 let graph = match corpus_desc.preapply with
@@ -429,42 +434,47 @@ module Corpus_desc = struct
                   sent_id
                   (match loc_opt with None -> "" | Some loc -> "; " ^ (Loc.to_string loc))
                   msg; None
-            ) (Conllx_corpus.get_data conll_corpus)
+            ) (Conllx_corpus.get_data conll_corpus) in
+          {Corpus.items; kind= Conll (Some columns) }
 
         | Pst ->
           let pst_corpus = Pst_corpus.load_files full_files in
-          CCArray.filter_map (fun (sent_id,pst) ->
+          let items = CCArray.filter_map (fun (sent_id,pst) ->
               try
                 let graph = G_graph.of_pst (Parser.phrase_structure_tree pst) in
                 Some {Corpus.sent_id; text=G_graph.to_sentence graph; graph }
               with exc -> Error.warning "[id=%s] PST skipped [exception: %s]" sent_id (Printexc.to_string exc); None
-            ) pst_corpus
+            ) pst_corpus in
+          {Corpus.items; kind= Pst }
 
         | Amr ->
           let amr_corpus = match full_files with
             | [one] -> Amr_corpus.load one
             | _ -> failwith "AMR multi-files corpus is not handled"
           in
-          CCArray.filter_map (fun (sent_id,amr) ->
+          let items = CCArray.filter_map (fun (sent_id,amr) ->
               try
                 let json = Amr.to_json ~unfold:true amr in
                 let graph = G_graph.of_json json in
                 let text = match G_graph.get_meta_opt "text" graph with Some t -> t | None -> "__missing text metadata__" in
                 Some {Corpus.sent_id; text; graph }
               with exc -> Error.warning "[id=%s] AMR skipped [exception: %s]" sent_id (Printexc.to_string exc); None
-            ) amr_corpus
+            ) amr_corpus in
+          {Corpus.items; kind= Amr }
+
         | Json | Dmrs ->
-          Array.concat (
-            List.map (
-              fun file ->
-                try Corpus.from_json ~loc: (Loc.file file) (Yojson.Basic.from_file file)
-                with Yojson.Json_error msg -> Error.run ~loc:(Loc.file file) "Error in the JSON file format: %s" msg
-            ) full_files
-          )
+          let items = Array.concat (
+              List.map (
+                fun file ->
+                  try Corpus.from_json ~loc: (Loc.file file) (Yojson.Basic.from_file file)
+                  with Yojson.Json_error msg -> Error.run ~loc:(Loc.file file) "Error in the JSON file format: %s" msg
+              ) full_files
+            ) in
+          {Corpus.items; kind= corpus_desc.kind }
+
         | Gr -> Error.run "Gr corpora are not supported in file compilation" in
-      let _ = Error.info "[%s] %d graphs loaded" corpus_desc.id (Array.length items) in
+      let _ = Error.info "[%s] %d graphs loaded" corpus_desc.id (Array.length data.items) in
       let out_ch = open_out_bin marshal_file in
-      let (data : Corpus.t) = {Corpus.items; kind=corpus_desc.kind } in
       Marshal.to_channel out_ch data [];
       close_out out_ch
     with

@@ -24,6 +24,8 @@ module Corpus : sig
   val size: t -> int
   val get_graph: int -> t -> G_graph.t
   val is_conll: t -> bool
+  val get_columns_opt: t -> Conllx_columns.t option
+
   val get_sent_id: int -> t -> string
   val get_text: int -> t -> string
 
@@ -47,7 +49,6 @@ module Corpus_desc : sig
   val load_corpus_opt: t -> Corpus.t option
 
   val get_config: t -> Conllx_config.t
-  val get_columns_opt: t -> Conllx_columns.t option
 
   val is_rtl: t -> bool
   val is_audio: t -> bool

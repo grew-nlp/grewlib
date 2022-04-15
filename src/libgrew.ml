@@ -405,6 +405,8 @@ module Corpus = struct
 
   let merge corpus_list =
     Libgrew.handle ~name:"Corpus.merge" (fun () -> Grew_corpus.Corpus.merge corpus_list) ()
+
+  let get_columns_opt = Grew_corpus.Corpus.get_columns_opt
 end
 
 
@@ -417,7 +419,6 @@ module Corpus_desc = struct
   let get_id = Grew_corpus.Corpus_desc.get_id
   let get_lang_opt = Grew_corpus.Corpus_desc.get_lang_opt
   let get_config = Grew_corpus.Corpus_desc.get_config
-  let get_columns_opt = Grew_corpus.Corpus_desc.get_columns_opt
   let is_rtl = Grew_corpus.Corpus_desc.is_rtl
   let is_audio = Grew_corpus.Corpus_desc.is_audio
 
