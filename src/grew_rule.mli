@@ -56,6 +56,8 @@ module Matching : sig
   val get_string_value_opt: config:Conllx.Conllx_config.t -> string -> Pattern.t -> G_graph.t -> t -> string option
 
   val whether: config:Conllx.Conllx_config.t -> Pattern.basic -> Pattern.t -> G_graph.t -> t -> bool
+  
+  val subgraph: G_graph.t -> t -> int -> G_graph.t
 end
 
 (* ================================================================================ *)

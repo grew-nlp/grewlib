@@ -101,6 +101,8 @@ module Matching: sig
   val get_value_opt: config:Conllx_config.t -> string -> Pattern.t -> Grew_graph.G_graph.t -> t -> string option
 
   val whether: config:Conllx_config.t -> Pattern.basic -> Pattern.t -> Grew_graph.G_graph.t -> t -> bool
+  
+  val subgraph: Grew_graph.G_graph.t -> t -> int -> Grew_graph.G_graph.t
 end
 
 (* ==================================================================================================== *)

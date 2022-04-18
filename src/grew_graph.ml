@@ -270,6 +270,38 @@ module G_graph = struct
 
   let node_exists fct t = Gid_map.exists (fun _ node -> fct node) t.map
 
+  let subgraph graph seed depth =
+    let todo_init = List.fold_left (fun acc gid -> Gid_map.add gid depth acc) Gid_map.empty seed in
+    let rec loop (todo, ok) = 
+      match Gid_map.choose_opt todo with
+      | None -> ok
+      | Some (gid, depth) ->
+        let node = find gid graph in
+        let next = G_node.get_next node in
+        let (new_todo, new_ok) =
+          if depth = 1
+          then (Gid_map.remove gid todo, Massoc_gid.fold_on_list (fun acc gid' _ -> Gid_set.add gid' acc) ok next)
+          else 
+            let new_ok = Gid_set.add gid ok in
+            let new_todo = 
+              Massoc_gid.fold_on_list 
+                (fun acc gid' _ ->
+                   if (Gid_set.mem gid' new_ok) || (Gid_map.mem gid' todo)
+                   then acc
+                   else Gid_map.add gid' (depth-1) acc
+                ) (Gid_map.remove gid todo) next in
+            (new_todo, new_ok) in
+        loop (new_todo, new_ok) in 
+    let selected_nodes = loop (todo_init, Gid_set.empty) in
+    let sub_map = Gid_set.fold 
+        (fun gid acc ->
+           let node = find gid graph in
+           let new_next = Massoc_gid.filter_key (fun gid -> Gid_set.mem gid selected_nodes) (G_node.get_next node) in
+           let new_node = G_node.set_next new_next node in
+           Gid_map.add gid new_node acc
+        ) selected_nodes Gid_map.empty in
+    {empty with map= sub_map}
+
   let fold_gid fct t init =
     Gid_map.fold (fun gid _ acc -> fct gid acc) t.map init
 

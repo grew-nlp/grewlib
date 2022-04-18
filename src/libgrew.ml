@@ -120,6 +120,11 @@ module Matching = struct
     Libgrew.handle ~name:"Matching.whether" (fun () ->
         Grew_rule.Matching.whether ~config extension pattern graph matching
       ) ()
+
+  let subgraph graph matching depth =
+    Libgrew.handle ~name:"Matching.subgraph" (fun () ->
+        Grew_rule.Matching.subgraph graph matching depth
+      ) ()
 end
 
 (* ==================================================================================================== *)

@@ -506,6 +506,8 @@ module type S = sig
 
   val filter: ('a -> bool) -> 'a t -> 'a t
 
+  val filter_key: (key -> bool) -> 'a t -> 'a t
+
 end (* module type S *)
 
 (* ================================================================================ *)
@@ -619,6 +621,14 @@ module Massoc_make (Ord: OrderedType) = struct
          match List.filter test value with
          | [] -> acc
          | l -> M.add key l acc
+      ) t M.empty
+
+  let filter_key test t =
+    M.fold
+      (fun key value acc ->
+        if test key
+        then M.add key value acc
+        else acc
       ) t M.empty
 end (* module Massoc_make *)
 

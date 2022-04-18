@@ -826,6 +826,11 @@ module Matching = struct
                ) exts
           ) matching_list in
       List.map fst filtered_matching_list
+
+  let subgraph graph matching depth =
+    let gid_list = Pid_map.fold (fun _ gid acc -> gid :: acc) matching.n_match [] in  
+  G_graph.subgraph graph gid_list depth
+
 end (* module Matching *)
 
 (* ================================================================================ *)

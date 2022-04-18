@@ -255,6 +255,7 @@ module G_graph: sig
 
   val to_raw: config:Conllx_config.t -> t -> (string * string) list * (string * string) list list * (int * string * int) list
 
+  val subgraph: t -> Gid_map.key list -> int -> t
 end (* module G_graph *)
 
 (* ================================================================================ *)
