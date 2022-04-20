@@ -280,17 +280,17 @@ module G_graph = struct
         let next = G_node.get_next node in
         let (new_todo, new_ok) =
           if depth = 1
-          then (Gid_map.remove gid todo, Massoc_gid.fold_on_list (fun acc gid' _ -> Gid_set.add gid' acc) ok next)
+          then (Gid_map.remove gid todo, Massoc_gid.fold_on_list (fun acc gid' _ -> Gid_set.add gid' acc) (Gid_set.add gid ok) next)
           else 
-            let new_ok = Gid_set.add gid ok in
-            let new_todo = 
+            let tmp_ok = Gid_set.add gid ok in
+            let tmp_todo = 
               Massoc_gid.fold_on_list 
                 (fun acc gid' _ ->
-                   if (Gid_set.mem gid' new_ok) || (Gid_map.mem gid' todo)
+                   if (Gid_set.mem gid' tmp_ok) || (Gid_map.mem gid' todo)
                    then acc
                    else Gid_map.add gid' (depth-1) acc
                 ) (Gid_map.remove gid todo) next in
-            (new_todo, new_ok) in
+            (tmp_todo, tmp_ok) in
         loop (new_todo, new_ok) in 
     let selected_nodes = loop (todo_init, Gid_set.empty) in
     let sub_map = Gid_set.fold 
