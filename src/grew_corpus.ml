@@ -229,6 +229,7 @@ module Corpus_desc = struct
     files: string list;
     rtl: bool;
     audio: bool;
+    dynamic: bool; (* the corpus is supposed to be updated dynamically *)
     preapply: string option;
   }
 
@@ -354,16 +355,21 @@ module Corpus_desc = struct
         try json |> member "audio" |> to_bool
         with Type_error _ -> false in
 
-      { id; lang; kind; config; directory; files; rtl; audio; preapply; } in
+      let dynamic =
+        try json |> member "dynamic" |> to_bool
+        with Type_error _ -> false in
+
+      { id; lang; kind; config; directory; files; rtl; audio; dynamic; preapply; } in
 
     List.map parse_one (json |> member "corpora" |> to_list)
 
   (* ---------------------------------------------------------------------------------------------------- *)
-  let grew_match_table_and_desc ?config dir_opt name corpus =
+  let grew_match_table_and_desc corpus_desc dir_opt corpus =
+    let name = corpus_desc.id in
     match dir_opt with
     | None -> ()
     | Some dir ->
-      let stat = Conllx_stat.build ?config ("upos", None) ("ExtPos", Some "upos") corpus in
+      let stat = Conllx_stat.build ~config:corpus_desc.config ("upos", None) ("ExtPos", Some "upos") corpus in
       let html = Conllx_stat.to_html name ("upos", None) ("ExtPos", Some "upos")  stat in
       let out_file = Filename.concat dir (name ^ "_table.html") in
       CCIO.with_out out_file (fun oc -> CCIO.write_line oc html);
@@ -373,7 +379,7 @@ module Corpus_desc = struct
           Some ("nb_trees", `Int nb_trees);
           Some ("nb_tokens", `Int nb_tokens);
           (
-            if List.exists (fun suf -> CCString.suffix ~suf name) ["latest"; "dev"; "master"; "conv"]
+            if corpus_desc.dynamic (* List.exists (fun suf -> CCString.suffix ~suf name) ["latest"; "dev"; "master"; "conv"] *)
             then Some ("update", `Int (int_of_float ((Unix.gettimeofday ()) *. 1000.)))
             else None
           )
@@ -421,7 +427,7 @@ module Corpus_desc = struct
         | Conll _ ->
           let conll_corpus = Conllx_corpus.load_list ?log_file ~config:corpus_desc.config full_files in
           let columns = Conllx_corpus.get_columns conll_corpus in
-          grew_match_table_and_desc ~config:corpus_desc.config grew_match_dir corpus_desc.id conll_corpus;
+          grew_match_table_and_desc corpus_desc grew_match_dir conll_corpus;
           let items = CCArray.filter_map (fun (sent_id,conllx) ->
               try
                 let init_graph = G_graph.of_json (Conllx.to_json conllx) in
