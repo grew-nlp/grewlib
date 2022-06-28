@@ -322,13 +322,13 @@ module Corpus_desc = struct
         with Type_error _ -> None in
 
       let kind =
-        try match json |> member "kind" |> to_string_option with
-          | None | Some "conll" -> Corpus.Conll None
-          | Some "pst" -> Pst
-          | Some "amr" -> Amr
-          | Some "dmrs" -> Dmrs
-          | Some "json" -> Json
-          | Some x -> Error.run "[Corpus.load_json] Unknown \"kind\":\"%s\" field in file: \"%s\"" x json_file
+        try match (json |> member "kind" |> to_string_option, json |> member "columns" |> to_string_option) with
+          | (None, columns_opt) | (Some "conll", columns_opt) -> Corpus.Conll (CCOption.map Conllx_columns.build columns_opt)
+          | (Some "pst",_) -> Pst
+          | (Some "amr",_) -> Amr
+          | (Some "dmrs",_) -> Dmrs
+          | (Some "json",_) -> Json
+          | (Some x,_) -> Error.run "[Corpus.load_json] Unknown \"kind\":\"%s\" field in file: \"%s\"" x json_file
         with Type_error _ -> Error.run "[Corpus.load_json, file \"%s\"] \"kind\" must be a string" json_file in
 
       let config =
@@ -379,7 +379,7 @@ module Corpus_desc = struct
           Some ("nb_trees", `Int nb_trees);
           Some ("nb_tokens", `Int nb_tokens);
           (
-            if corpus_desc.dynamic (* List.exists (fun suf -> CCString.suffix ~suf name) ["latest"; "dev"; "master"; "conv"] *)
+            if corpus_desc.dynamic
             then Some ("update", `Int (int_of_float ((Unix.gettimeofday ()) *. 1000.)))
             else None
           )
@@ -424,8 +424,8 @@ module Corpus_desc = struct
     try
       let (data : Corpus.t) = match corpus_desc.kind with
         | Brown -> failwith "TODO"
-        | Conll _ ->
-          let conll_corpus = Conllx_corpus.load_list ?log_file ~config:corpus_desc.config full_files in
+        | Conll columns ->
+          let conll_corpus = Conllx_corpus.load_list ?log_file ~config:corpus_desc.config ?columns full_files in
           let columns = Conllx_corpus.get_columns conll_corpus in
           grew_match_table_and_desc corpus_desc grew_match_dir conll_corpus;
           let items = CCArray.filter_map (fun (sent_id,conllx) ->
