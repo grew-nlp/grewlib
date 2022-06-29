@@ -1,3 +1,8 @@
+# 1.9.0 (2022/06/29)
+  * update Conll handling (libcaml-conll 1.13)
+  * add subgraph function
+  * minors bug fixes
+
 ## 1.8.1 (2022/04/03)
   * internal changes mainly relative to Grew-match
 
