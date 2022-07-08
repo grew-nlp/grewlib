@@ -310,6 +310,7 @@ basic:
 
 edge_item:
         | id=ID       { Ast.parse_node_ident id }
+        | v=STRING    { v }
         | v=number    { Printf.sprintf "%g" v }
 
 label_atom:
