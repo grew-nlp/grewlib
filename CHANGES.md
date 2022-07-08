@@ -1,3 +1,6 @@
+## 1.9.1 (2022/07/08)
+  * Add string as a possible feature value in pattern edges
+
 # 1.9.0 (2022/06/29)
   * update Conll handling (libcaml-conll 1.13)
   * add subgraph function
