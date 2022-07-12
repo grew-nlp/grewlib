@@ -273,6 +273,10 @@ module Corpus_desc: sig
   val is_rtl: t -> bool
   val is_audio: t -> bool
   val get_id: t -> string
+  
+  (** return the displat mode of the given corpus: None --> dep, Some 0 --> graph, Some i --> subgraph at depth i *)
+  val get_display: t -> int option
+
   val get_lang_opt: t -> string option
   val get_directory: t -> string
 

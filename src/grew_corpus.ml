@@ -230,6 +230,7 @@ module Corpus_desc = struct
     rtl: bool;
     audio: bool;
     dynamic: bool; (* the corpus is supposed to be updated dynamically *)
+    display: int option; (* None --> dep, Some 0 --> graph, Some i --> subgraph at depth i *)
     preapply: string option;
   }
 
@@ -239,7 +240,8 @@ module Corpus_desc = struct
   let get_directory corpus_desc = corpus_desc.directory
   let is_rtl corpus_desc = corpus_desc.rtl
   let is_audio corpus_desc = corpus_desc.audio
-
+  let get_display corpus_desc = corpus_desc.display
+  
   (* ---------------------------------------------------------------------------------------------------- *)
   let extensions = function
     | Corpus.Conll _ -> [".conll"; ".conllu"; ".cupt"; ".orfeo"; "frsemcor"]
@@ -343,6 +345,10 @@ module Corpus_desc = struct
         try json |> member "preapply" |> to_string_option
         with Type_error _ -> Error.run "[Corpus.load_json, file \"%s\"] \"preapply\" field must be a string" json_file in
 
+      let display =
+        try Some (json |> member "display" |> to_int)
+        with Type_error _ -> None in
+
       let files =
         try json |> member "files" |> to_list |> filter_string
         with Type_error _ -> [] in
@@ -359,7 +365,7 @@ module Corpus_desc = struct
         try json |> member "dynamic" |> to_bool
         with Type_error _ -> false in
 
-      { id; lang; kind; config; directory; files; rtl; audio; dynamic; preapply; } in
+      { id; lang; kind; config; directory; files; rtl; audio; dynamic; preapply; display; } in
 
     List.map parse_one (json |> member "corpora" |> to_list)
 

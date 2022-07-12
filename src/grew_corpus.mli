@@ -54,6 +54,7 @@ module Corpus_desc : sig
   val is_audio: t -> bool
   val get_id: t -> string
   val get_lang_opt: t -> string option
+  val get_display: t -> int option
   val get_directory: t -> string
   val load_json: string -> t list
 

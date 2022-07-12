@@ -425,6 +425,7 @@ module Corpus_desc = struct
   let get_lang_opt = Grew_corpus.Corpus_desc.get_lang_opt
   let get_config = Grew_corpus.Corpus_desc.get_config
   let is_rtl = Grew_corpus.Corpus_desc.is_rtl
+  let get_display = Grew_corpus.Corpus_desc.get_display
   let is_audio = Grew_corpus.Corpus_desc.is_audio
 
   let build_corpus t =
