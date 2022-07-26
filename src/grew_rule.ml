@@ -378,7 +378,7 @@ module Matching = struct
     then Error.run "The edge identifier '%s' is binded twice in the same pattern" edge_id
     else { matching with e_match = String_map.add edge_id new_edge matching.e_match }
 
-  let match_deco pattern matching =
+  let build_deco pattern matching =
     { G_deco.nodes =
         Pid_map.fold
           (fun pid gid acc ->
@@ -804,7 +804,7 @@ module Matching = struct
     else false
 
   (*  ---------------------------------------------------------------------- *)
-  let match_in_graph ~config ?lexicons { Pattern.global; ker; exts } graph =
+  let search_pattern_in_graph ~config ?lexicons { Pattern.global; ker; exts } graph =
 
     if not (check_global_constraint global graph)
     then []
@@ -1352,7 +1352,7 @@ module Rule = struct
           begin
             Timeout.check ();
             incr_rules rule.name;
-            let up = Matching.match_deco rule.pattern first_matching_where_all_witout_are_fulfilled in
+            let up = Matching.build_deco rule.pattern first_matching_where_all_witout_are_fulfilled in
             let down = Matching.down_deco (String_map.empty, first_matching_where_all_witout_are_fulfilled, final_state.created_nodes) rule.commands in
             Some (G_graph.track up (get_rule_info rule) down graph final_state.graph)
           end
@@ -1783,7 +1783,7 @@ module Rule = struct
                 if !Global.track_history
                 then Graph_with_history_set.map
                     (fun g ->
-                       let up = Matching.match_deco rule.pattern matching in
+                       let up = Matching.build_deco rule.pattern matching in
                        let down = Matching.down_deco (g.added_edges_in_rule, matching, g.added_gids_in_rule) (CCList.take (cmp_nb+1) rule.commands) in
                        {g with graph = G_graph.track up (get_rule_info rule) down graph_with_history.graph g.graph}
                     ) new_graphs
@@ -1796,7 +1796,7 @@ module Rule = struct
 
   let gwh_apply ~config rule graph_with_history =
     try
-      let matching_list = Matching.match_in_graph ~config ~lexicons:rule.lexicons rule.pattern graph_with_history.Graph_with_history.graph in
+      let matching_list = Matching.search_pattern_in_graph ~config ~lexicons:rule.lexicons rule.pattern graph_with_history.Graph_with_history.graph in
       List.fold_left
         (fun acc matching ->
            Graph_with_history_set.union (gwh_apply_rule ~config graph_with_history matching rule) acc
@@ -1833,7 +1833,7 @@ module Rule = struct
             let new_gwh = loop_command init_gwh rule.commands in
             Timeout.check ();
             incr_rules rule.name;
-            let up = Matching.match_deco rule.pattern sub in
+            let up = Matching.build_deco rule.pattern sub in
             let down = Matching.down_deco (new_gwh.added_edges_in_rule, sub, new_gwh.added_gids_in_rule) rule.commands in
             Some {new_gwh with graph = G_graph.track up (get_rule_info rule) down graph new_gwh.graph }
           with Dead_lock -> loop_matching tail (* failed to apply all commands -> move to the next matching *)

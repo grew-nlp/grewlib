@@ -74,65 +74,10 @@ module Projection = struct
 end
 
 (* ==================================================================================================== *)
-(** {2 Patterns} *)
-(* ==================================================================================================== *)
-module Pattern = struct
-  type t = Grew_rule.Pattern.t
-
-  type basic = Grew_rule.Pattern.basic
-
-  let load ~config file =
-    Libgrew.handle ~name:"Pattern.load" (fun () -> Grew_rule.Pattern.of_ast ~config (Grew_loader.Loader.pattern file)) ()
-
-  let parse ~config desc =
-    Libgrew.handle ~name:"Pattern.parse" (fun () -> Grew_rule.Pattern.of_ast ~config (Grew_loader.Parser.pattern desc)) ()
-
-  let parse_basic ~config pattern desc =
-    Libgrew.handle
-      ~name:"Pattern.parse_basic"
-      (fun () -> Grew_rule.Pattern.build_whether ~config pattern (Grew_loader.Parser.basic desc)) ()
-
-  let pid_name_list pattern =
-    Libgrew.handle ~name:"Pattern.pid_list"
-      (fun () -> List.map (fun x -> x) (Grew_rule.Pattern.pid_name_list pattern)
-      ) ()
-end
-
-(* ==================================================================================================== *)
-(** {2 Matching} *)
-(* ==================================================================================================== *)
-module Matching = struct
-  type t = Grew_rule.Matching.t
-
-  let to_json ?(all_edges=false) pattern graph t = Grew_rule.Matching.to_json ~all_edges pattern graph t
-
-  let nodes pattern graph matching =
-    Libgrew.handle ~name:"Matching.nodes" (fun () ->
-        Grew_rule.Matching.node_matching pattern graph matching
-      ) ()
-
-  let get_value_opt ~config request pattern graph matching =
-    Libgrew.handle ~name:"Matching.get_value_opt" (fun () ->
-        Grew_rule.Matching.get_string_value_opt ~config request pattern graph matching
-      ) ()
-
-  let whether ~config extension pattern graph matching =
-    Libgrew.handle ~name:"Matching.whether" (fun () ->
-        Grew_rule.Matching.whether ~config extension pattern graph matching
-      ) ()
-
-  let subgraph graph matching depth =
-    Libgrew.handle ~name:"Matching.subgraph" (fun () ->
-        Grew_rule.Matching.subgraph graph matching depth
-      ) ()
-end
-
-(* ==================================================================================================== *)
 (** {2 Deco} *)
 (* ==================================================================================================== *)
 module Deco = struct
   type t = Grew_graph.G_deco.t
-  let build pattern matching = Grew_rule.Matching.match_deco pattern matching
 end
 
 (* ==================================================================================================== *)
@@ -261,11 +206,6 @@ module Graph = struct
         close_out out_ch
       ) () *)
 
-  let search_pattern ~config pattern graph =
-    Libgrew.handle ~name:"Graph.search_pattern" (fun () ->
-        Grew_rule.Matching.match_in_graph ~config pattern graph
-      ) ()
-
   let get_feature_values feature_name t =
     Grew_graph.G_graph.get_feature_values feature_name t
 
@@ -287,6 +227,68 @@ module Graph = struct
   let to_raw ~config graph =
     Libgrew.handle ~name:"Graph.to_raw" (fun () -> Grew_graph.G_graph.to_raw ~config graph) ()
 end
+
+(* ==================================================================================================== *)
+(** {2 Patterns} *)
+(* ==================================================================================================== *)
+module Pattern = struct
+  type t = Grew_rule.Pattern.t
+
+  type basic = Grew_rule.Pattern.basic
+
+  let load ~config file =
+    Libgrew.handle ~name:"Pattern.load" (fun () -> Grew_rule.Pattern.of_ast ~config (Grew_loader.Loader.pattern file)) ()
+
+  let parse ~config desc =
+    Libgrew.handle ~name:"Pattern.parse" (fun () -> Grew_rule.Pattern.of_ast ~config (Grew_loader.Parser.pattern desc)) ()
+
+  let parse_basic ~config pattern desc =
+    Libgrew.handle
+      ~name:"Pattern.parse_basic"
+      (fun () -> Grew_rule.Pattern.build_whether ~config pattern (Grew_loader.Parser.basic desc)) ()
+
+  let pid_name_list pattern =
+    Libgrew.handle ~name:"Pattern.pid_list"
+      (fun () -> List.map (fun x -> x) (Grew_rule.Pattern.pid_name_list pattern)
+      ) ()
+end
+
+(* ==================================================================================================== *)
+(** {2 Matching} *)
+(* ==================================================================================================== *)
+module Matching = struct
+  type t = Grew_rule.Matching.t
+
+  let to_json ?(all_edges=false) pattern graph t = Grew_rule.Matching.to_json ~all_edges pattern graph t
+
+  let nodes pattern graph matching =
+    Libgrew.handle ~name:"Matching.nodes" (fun () ->
+        Grew_rule.Matching.node_matching pattern graph matching
+      ) ()
+
+  let get_value_opt ~config request pattern graph matching =
+    Libgrew.handle ~name:"Matching.get_value_opt" (fun () ->
+        Grew_rule.Matching.get_string_value_opt ~config request pattern graph matching
+      ) ()
+
+  let whether ~config extension pattern graph matching =
+    Libgrew.handle ~name:"Matching.whether" (fun () ->
+        Grew_rule.Matching.whether ~config extension pattern graph matching
+      ) ()
+
+  let subgraph graph matching depth =
+    Libgrew.handle ~name:"Matching.subgraph" (fun () ->
+        Grew_rule.Matching.subgraph graph matching depth
+      ) ()
+
+  let search_pattern_in_graph ~config pattern graph =
+    Libgrew.handle ~name:"Graph.search_pattern" (fun () ->
+      Grew_rule.Matching.search_pattern_in_graph ~config pattern graph
+    ) ()
+
+  let build_deco pattern matching = Grew_rule.Matching.build_deco pattern matching
+end
+
 
 (* ==================================================================================================== *)
 (** {2 Graph Rewriting System} *)

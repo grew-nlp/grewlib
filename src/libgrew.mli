@@ -60,60 +60,11 @@ module Projection : sig
   val to_json: string list -> t -> Yojson.Basic.t
 end 
 
-
-
-(* ==================================================================================================== *)
-(** {2 Patterns} *)
-(* ==================================================================================================== *)
-module Pattern : sig
-  type t
-
-  type basic
-
-  (** [load filename] returns the pattern described in the file *)
-  val load: config:Conllx_config.t -> string -> t
-
-  (** [parse description] returns the pattern described in the [descriprion] string *)
-  val parse: config:Conllx_config.t -> string -> t
-
-  (** [parse_basic description] returns the basic described in the [descriprion] string *)
-  val parse_basic: config:Conllx_config.t -> t -> string -> basic
-
-  val pid_name_list: t -> string list
-
-end
-
-(* ==================================================================================================== *)
-(** {2 Matching} *)
-(* ==================================================================================================== *)
-module Matching: sig
-  type t
-
-  val to_json: ?all_edges:bool -> Pattern.t -> Grew_graph.G_graph.t -> t -> Yojson.Basic.t
-
-  val nodes: Pattern.t -> Grew_graph.G_graph.t -> t -> (string * string) list
-
-  (* [get_value_opt request pattern graph matching] returns the value corresponding to the request in the result of a previou result of match
-      [request] can be:
-      * the name of a feature value [N.feat] where [N] is a node declared in the kernel part of the pattern
-      * the name of an edge featue [e.feat] where [e] is a edge declared in the kernel part of the pattern
-  *)
-  val get_value_opt: config:Conllx_config.t -> string -> Pattern.t -> Grew_graph.G_graph.t -> t -> string option
-
-  val whether: config:Conllx_config.t -> Pattern.basic -> Pattern.t -> Grew_graph.G_graph.t -> t -> bool
-  
-  val subgraph: Grew_graph.G_graph.t -> t -> int -> Grew_graph.G_graph.t
-end
-
 (* ==================================================================================================== *)
 (** {2 Deco} *)
 (* ==================================================================================================== *)
 module Deco: sig
-  type t = Grew_graph.G_deco.t
-
-  (** [build pattern matching] returns the deco to be used in the graphical representation.
-      WARNING: the function supposes that [matching] was find with the given [pattern]! *)
-  val build: Pattern.t -> Matching.t -> t
+  type t
 end
 
 
@@ -122,7 +73,7 @@ end
 (* ==================================================================================================== *)
 module Graph : sig
 
-  type t = Grew_graph.G_graph.t
+  type t
 
   (** number of nodes *)
   val size: t -> int
@@ -157,9 +108,6 @@ module Graph : sig
 
   val to_gr: config:Conllx_config.t -> t -> string
 
-  (** [search_pattern pattern graph] returns the list of the possible matching of [pattern] in [graph] *)
-  val search_pattern: config:Conllx_config.t -> Pattern.t -> t -> Matching.t list
-
   val get_meta_opt: string -> t -> string option
 
   val get_meta_list: t -> (string * string) list
@@ -176,6 +124,55 @@ module Graph : sig
   val trace_depth: t -> int
 
   val to_raw: config:Conllx_config.t -> t -> (string * string) list * (string * string) list list * (int * string * int) list
+end
+
+(* ==================================================================================================== *)
+(** {2 Patterns} *)
+(* ==================================================================================================== *)
+module Pattern : sig
+  type t
+
+  type basic
+
+  (** [load filename] returns the pattern described in the file *)
+  val load: config:Conllx_config.t -> string -> t
+
+  (** [parse description] returns the pattern described in the [descriprion] string *)
+  val parse: config:Conllx_config.t -> string -> t
+
+  (** [parse_basic description] returns the basic described in the [descriprion] string *)
+  val parse_basic: config:Conllx_config.t -> t -> string -> basic
+
+  val pid_name_list: t -> string list
+end
+
+(* ==================================================================================================== *)
+(** {2 Matching} *)
+(* ==================================================================================================== *)
+module Matching: sig
+  type t
+
+  val to_json: ?all_edges:bool -> Pattern.t -> Graph.t -> t -> Yojson.Basic.t
+
+  val nodes: Pattern.t -> Graph.t -> t -> (string * string) list
+
+  (* [get_value_opt request pattern graph matching] returns the value corresponding to the request in the result of a previou result of match
+      [request] can be:
+      * the name of a feature value [N.feat] where [N] is a node declared in the kernel part of the pattern
+      * the name of an edge featue [e.feat] where [e] is a edge declared in the kernel part of the pattern
+  *)
+  val get_value_opt: config:Conllx_config.t -> string -> Pattern.t -> Graph.t -> t -> string option
+
+  val whether: config:Conllx_config.t -> Pattern.basic -> Pattern.t -> Graph.t -> t -> bool
+  
+  val subgraph: Graph.t -> t -> int -> Graph.t
+
+  (** [search_pattern_in_graph pattern graph] returns the list of the possible matching of [pattern] in [graph] *)
+  val search_pattern_in_graph: config:Conllx_config.t -> Pattern.t -> Graph.t -> t list
+
+  (** [build_deco pattern matching] returns the deco to be used in the graphical representation.
+      WARNING: the function supposes that [matching] was find with the given [pattern]! *)
+  val build_deco: Pattern.t -> t -> Deco.t
 end
 
 (* ==================================================================================================== *)

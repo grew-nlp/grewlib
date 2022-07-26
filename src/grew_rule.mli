@@ -40,12 +40,12 @@ module Matching : sig
   (** [node_matching pattern graph matching] return a assoc list (pid_name, gid_name) *)
   val node_matching: Pattern.t -> G_graph.t -> t -> (string * string) list
 
-  (** [match_in_graph pattern graph] returns the list of matching of the [pattern] into the [graph] *)
-  val match_in_graph: config:Conllx.Conllx_config.t -> ?lexicons: Lexicons.t -> Pattern.t -> G_graph.t -> t list
+  (** [search_pattern_in_graph pattern graph] returns the list of matching of the [pattern] into the [graph] *)
+  val search_pattern_in_graph: config:Conllx.Conllx_config.t -> ?lexicons: Lexicons.t -> Pattern.t -> G_graph.t -> t list
 
-  (** [match_deco rule matching] builds the decoration of the [graph] illustrating the given [matching] of the [rule] *)
+  (** [build_deco rule matching] builds the decoration of the [graph] illustrating the given [matching] of the [rule] *)
   (* NB: it can be computed independly from the graph itself! *)
-  val match_deco: Pattern.t -> t -> G_deco.t
+  val build_deco: Pattern.t -> t -> G_deco.t
 
   (* [get_string_value_opt request pattern graph matching] returns the value corresponding to the request in the result of a previou result of match
      [request] can be:
