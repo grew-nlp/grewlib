@@ -11,6 +11,8 @@
 open Conllx
 
 module String_set : Set.S with type elt = string
+module String_map : Map.S with type key = string
+module String_opt_map : Map.S with type key = string option
 
 (* ==================================================================================================== *)
 (** {2 General definitions} *)

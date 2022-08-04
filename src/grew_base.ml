@@ -11,10 +11,13 @@
 open Printf
 
 module String_set = Set.Make (String)
+
 module String_map = Map.Make (String)
+
 module String_opt_map = Map.Make (struct type t = string option let compare = compare end)
 
 module Int_set = Set.Make (struct type t = int let compare = Stdlib.compare end)
+
 module Int_map = Map.Make (struct type t = int let compare = Stdlib.compare end)
 
 let to_uname = function

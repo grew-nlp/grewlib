@@ -12,6 +12,8 @@ open Printf
 open Conllx
 
 module String_set = Grew_base.String_set
+module String_map = Grew_base.String_map
+module String_opt_map = Grew_base.String_opt_map
 
 (* ==================================================================================================== *)
 (** {2 Location} *)
