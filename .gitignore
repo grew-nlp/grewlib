@@ -4,3 +4,4 @@ DATADIR
 dev/*.aux
 dev/*.pdf
 dev/*.log
+.vscode
