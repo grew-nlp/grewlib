@@ -11,7 +11,7 @@
 open Printf
 open CCOption.Infix
 
-open Grew_base
+open Grew_types
 open Grew_utils
 
 open Grew_ast

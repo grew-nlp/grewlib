@@ -8,7 +8,7 @@
 (*    Authors: see AUTHORS file                                                   *)
 (**********************************************************************************)
 
-open Grew_base
+open Grew_types
 
 (* ================================================================================ *)
 (* [Loc] general module to describe errors location: (file name, line number in file) *)

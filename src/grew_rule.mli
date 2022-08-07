@@ -8,7 +8,7 @@
 (*    Authors: see AUTHORS file                                                   *)
 (**********************************************************************************)
 
-open Grew_base
+open Grew_types
 open Grew_utils
 open Grew_graph
 open Grew_command

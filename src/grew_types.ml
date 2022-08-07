@@ -8,35 +8,25 @@
 (*    Authors: see AUTHORS file                                                   *)
 (**********************************************************************************)
 
+open Printf
 
-open Grew_types
-open Grew_utils
-open Grew_ast
+module String_set = Set.Make (String)
 
-(* ================================================================================ *)
-module Loader: sig
-  val grs: string -> Ast.grs
+module String_map = Map.Make (String)
 
-  val gr: string -> Ast.gr
+module String_opt_map = Map.Make (struct type t = string option let compare = compare end)
 
-  val basic: string -> Ast.basic
+module Int_set = Set.Make (struct type t = int let compare = Stdlib.compare end)
 
-  val pattern: string -> Ast.pattern
+module Int_map = Map.Make (struct type t = int let compare = Stdlib.compare end)
 
-  val phrase_structure_tree: string -> Ast.pst
-end (* module Loader *)
+let to_uname = function
+  | "cat" -> "upos"
+  | "pos" -> "xpos"
+  | "phon" -> "form"
+  | x -> x
 
-(* ================================================================================ *)
-module Parser : sig
-  val gr: string -> Ast.gr
+type cmp = Eq | Neq
+let string_of_cmp = function Eq -> "=" | Neq -> "<>"
+let cmp_fct cmp = match cmp with Eq -> (=) | Neq -> (<>)
 
-  val basic: string -> Ast.basic
-
-  val grs: string -> Ast.grs
-
-  val phrase_structure_tree: string -> Ast.pst
-
-  val pattern: string -> Ast.pattern
-
-  val strategy: string -> Ast.strat
-end (* module Parser *)

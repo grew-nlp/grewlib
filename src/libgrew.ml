@@ -11,20 +11,6 @@
 open Printf
 open Conllx
 
-module String_set = Grew_base.String_set
-module String_map = Grew_base.String_map
-
-module String_opt_map = Grew_base.String_opt_map
-
-(* ==================================================================================================== *)
-(** {2 Location} *)
-(* ==================================================================================================== *)
-module Loc = struct
-  type t = Grew_utils.Loc.t
-  let to_string = Grew_utils.Loc.to_string
-end
-
-
 (* ==================================================================================================== *)
 (** {2 Exceptions} *)
 (* ==================================================================================================== *)
@@ -39,15 +25,15 @@ module Libgrew = struct
     | Bug msg -> raise (Bug msg)
 
     (* Catch new exceptions *)
-    | Grew_utils.Error.Parse (msg, Some loc) -> raise (Error (sprintf "%s %s" (Loc.to_string loc) msg))
+    | Grew_utils.Error.Parse (msg, Some loc) -> raise (Error (sprintf "%s %s" (Grew_utils.Loc.to_string loc) msg))
     | Grew_utils.Error.Parse (msg, None) -> raise (Error (sprintf "%s" msg))
-    | Grew_utils.Error.Build (msg, Some loc) -> raise (Error (sprintf "%s %s" (Loc.to_string loc) msg))
+    | Grew_utils.Error.Build (msg, Some loc) -> raise (Error (sprintf "%s %s" (Grew_utils.Loc.to_string loc) msg))
     | Grew_utils.Error.Build (msg, None) -> raise (Error (sprintf "%s" msg))
-    | Grew_utils.Error.Run (msg, Some loc) -> raise (Error (sprintf "%s %s" (Loc.to_string loc) msg))
+    | Grew_utils.Error.Run (msg, Some loc) -> raise (Error (sprintf "%s %s" (Grew_utils.Loc.to_string loc) msg))
     | Grew_utils.Error.Run (msg, None) -> raise (Error (sprintf "%s" msg))
     | Conllx_error msg -> raise (Error (sprintf "Conllx error: %s" (Yojson.Basic.pretty_to_string msg)))
 
-    | Grew_utils.Error.Bug (msg, Some loc) -> raise (Bug (sprintf "%s %s" (Loc.to_string loc) msg))
+    | Grew_utils.Error.Bug (msg, Some loc) -> raise (Bug (sprintf "%s %s" (Grew_utils.Loc.to_string loc) msg))
     | Grew_utils.Error.Bug (msg, None) -> raise (Bug (sprintf "%s" msg))
     | Grew_utils.Timeout.Stop bound -> raise (Error (sprintf "Timeout (running time execeeds %g seconds)" bound))
     | exc -> raise (Bug (sprintf "[Libgrew.%s] UNCAUGHT EXCEPTION: %s" name (Printexc.to_string exc)))

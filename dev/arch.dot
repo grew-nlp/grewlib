@@ -1,8 +1,8 @@
 digraph grew {
   node [shape=Mrecord];
   rankdir = LR;
-  grew_base [label="grew_base|String_set\nString_map\nString_opt_map\nInt_set\nInt_map\nLoc\nError\nRange\nString_\nFile\nArray_\nId\nTimeout\nGlobal\nDependencies"]
-  Grew_utils [label="Grew_utils|Pid\nPid_set\nPid_map\nGid\nGid_map\nGid_set\nList_\n[S]\nMassoc_make()\nMassoc_gid\nMassoc_pid\nMassoc_string\nProjection"]
+  Grew_types [label="Grew_types|String_set\nString_map\nString_opt_map\nInt_set\nInt_map"]
+  Grew_utils [label="Grew_utils|Pid\nPid_set\nPid_map\nGid\nGid_map\nGid_set\nLoc\nError\nRange\nString_\nFile\nArray_\nId\nTimeout\nGlobal\nDependencies\nList_\n[S]\nMassoc_make()\nMassoc_gid\nMassoc_pid\nMassoc_string\nProjection"]
   grew_ast [label="grew_ast|Ast\nLexicon\nLexicons"]
   grew_loader [label="grew_loader|Loader\nParser"]
   grew_fs [label="grew_fs|Feature_value\nG_fs\nP_fs|[P_feature]\n[G_feature]"]
@@ -14,7 +14,7 @@ digraph grew {
   grew_grs [label="grew_grs|Grs"]
   grew_corpus [label="grew_corpus|Corpus\nCorpus_desc"]
 
-grew_ast -> Grew_utils -> grew_base
+grew_ast -> Grew_utils -> Grew_types
 grew_edge -> grew_ast
 grew_fs -> grew_ast
 grew_command -> grew_edge

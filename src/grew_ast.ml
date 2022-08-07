@@ -10,7 +10,7 @@
 
 open Printf
 open Grew_utils
-open Grew_base
+open Grew_types
 
 type feature_name = string (* upos, Gender, … *)
 type string_feature_value = string (* V, 4, "free text", … *)
