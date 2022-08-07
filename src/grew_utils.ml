@@ -12,7 +12,6 @@ open Printf
 
 open Grew_types
 
-
 (* ================================================================================ *)
 module Loc = struct
   type t = string option * int option
@@ -76,7 +75,7 @@ module Range = struct
     | (Some x, Some y) -> sprintf "[%d:%d]" x y
 
   let to_json r = `String (to_string r) 
-end
+end (* module Range *)
 
 (* ================================================================================ *)
 module String_ = struct
@@ -91,7 +90,7 @@ module String_ = struct
       | h :: tail -> (loop tail) ^ sep ^ h in
     loop l
 
-  (** Pyhton like substring extraction
+  (** Python like substring extraction
      [get_range (init_opt, final_opt) s] return the python output of s[init_opt:final_opt]
      NB: indexes correspond to UTF-8 chars. ex: [get_range (None, Some (-1)) "été"] ==> "ét"
   *)
@@ -223,184 +222,6 @@ module Array_ = struct
       | middle -> loop low (middle - 1) in
     loop 0 ((Array.length array) - 1)
 end (* module Array_ *)
-
-
-(* ================================================================================ *)
-module Id = struct
-  type t = int
-
-  type 'a gtable = 'a array * ('a -> string)
-
-  let gbuild ?loc key (table,conv) =
-    try Array_.dicho_find key table
-    with Not_found -> Error.build ?loc "[Id.gbuild] Identifier '%s' not found" (conv key)
-
-  let gbuild_opt key (table, _) =
-    try Some (Array_.dicho_find key table)
-    with Not_found -> None
-
-  type name = string
-  type table = string array
-
-  let build ?(loc:Loc.t option) key table =
-    try Array_.dicho_find key table
-    with Not_found -> Error.build ?loc "[Id.build] Identifier '%s' not found" key
-
-  let build_opt key table =
-    try Some (Array_.dicho_find key table)
-    with Not_found -> None
-
-  (* [get_pos_opt id] returns Some v (float) iff id is "Wv" else None *)
-  let get_pos_opt name =
-    let len = String.length name in
-    if len > 0 && name.[0] = 'W'
-    then
-      begin
-        let sub = String.sub name 1 (len-1) in
-        float_of_string_opt sub
-      end
-    else None
-
-end (* module Id *)
-
-(* ================================================================================ *)
-module Timeout = struct
-  exception Stop of float
-
-  let counter = ref 0.
-  let duration = ref 0.
-  let timeout = ref None
-
-  let start () = counter := Unix.gettimeofday ()
-  let stop () = duration := Unix.gettimeofday () -. !counter
-
-  let check () =
-    match !timeout with
-    | None -> ()
-    | Some delay ->
-      if Unix.gettimeofday () -. !counter > delay
-      then raise (Stop delay)
-
-  let get_duration () = !duration
-
-end (* module Timeout *)
-
-(* ================================================================================ *)
-module Global = struct
-  let current_loc = ref Loc.empty
-  let label_flag = ref false
-
-  let get_loc () = !current_loc
-  let loc_string () = Loc.to_string !current_loc
-
-  let get_line_opt () = snd (get_loc ())
-
-  let new_file filename =
-    current_loc := (Some filename, Some 1);
-    label_flag := false
-
-  let new_string () =
-    current_loc := (None , Some 1);
-    label_flag := false
-
-  let new_line () = match !current_loc with
-    | (_,None) -> ()
-    | (fo, Some l) -> current_loc := (fo, Some (l+1))
-
-  let debug = ref false
-  let safe_commands = ref false
-
-  let track_rules = ref false
-  let track_history = ref false
-  let track_impact = ref false
-end (* module Global *)
-
-module Dependencies = struct
-  let lex_cmp (i1, j1) (i2,j2) = match Stdlib.compare i1 i2 with 0 -> Stdlib.compare j1 j2 | x -> x
-
-  let rec insert_sorted i = function
-    | h::t when h < i -> h :: (insert_sorted i t)
-    | l -> i::l
-
-  let is_projective edge_list =
-    let sorted_edge_list = List.sort lex_cmp edge_list in
-    let rec loop position from_here from_before = function
-      | [] ->
-        (* Printf.printf "=N=> pos=%d H=[%s] B=[%s]\n" position (String.concat "," (List.map string_of_int from_here)) (String.concat "," (List.map string_of_int from_before)); *)
-        true
-      | (i,j) :: tail ->
-        (* Printf.printf "=S=> (%d, %d) pos=%d H=[%s] B=[%s]\n" i j position (String.concat "," (List.map string_of_int from_here)) (String.concat "," (List.map string_of_int from_before)); *)
-        let rec reduce_from_before = function
-          | h::t when h <= i -> reduce_from_before t
-          | l -> l in
-        let (new_from_here, new_from_before) =
-          if i > position
-          then ([], reduce_from_before (from_here @ from_before))
-          else (from_here, reduce_from_before from_before) in
-        (* Printf.printf "   ...> NH=[%s] NB=[%s]\n" (String.concat "," (List.map string_of_int new_from_here)) (String.concat "," (List.map string_of_int new_from_before)); *)
-        match new_from_before with
-        | h::t when j > h -> false
-        | h::t when j = h -> loop i new_from_here new_from_before tail
-        | _ -> loop i (insert_sorted j new_from_here) new_from_before tail in
-    loop 0 [] [] sorted_edge_list
-
-end
-
-
-(* ================================================================================ *)
-module Pid = struct
-  (* type t = int *)
-  type t = Ker of int | Ext of int
-
-  let compare = Stdlib.compare
-
-  let to_id = function
-    | Ker i -> sprintf "p_%d" i
-    | Ext i -> sprintf "n_%d" i
-
-  let to_string = function
-    | Ker i -> sprintf "Ker %d" i
-    | Ext i -> sprintf "Ext %d" i
-end (* module Pid *)
-
-(* ================================================================================ *)
-module Pid_set = Set.Make (Pid)
-
-(* ================================================================================ *)
-module Pid_map =
-struct
-  include Map.Make (Pid)
-
-  exception True
-
-  let exists fct map =
-    try
-      iter
-        (fun key value ->
-           if fct key value
-           then raise True
-        ) map;
-      false
-    with True -> true
-
-  (* union of two maps*)
-  let union_map m m' = fold (fun k v m'' -> (add k v m'')) m m'
-end (* module Pid_map *)
-
-(* ================================================================================ *)
-module Gid = struct
-  type t = int
-
-  let compare = Stdlib.compare
-
-  let to_string i = sprintf "%d" i
-end (* module Gid *)
-
-(* ================================================================================ *)
-module Gid_map =  Map.Make (Gid)
-
-(* ================================================================================ *)
-module Gid_set = Set.Make (Gid)
 
 (* ================================================================================ *)
 module List_ = struct
@@ -794,14 +615,190 @@ module Massoc_make (Ord: Set.OrderedType) = struct
       ) t M.empty
 end (* module Massoc_make *)
 
+
+(* ================================================================================ *)
+module Id = struct
+  type t = int
+
+  type 'a gtable = 'a array * ('a -> string)
+
+  let gbuild ?loc key (table,conv) =
+    try Array_.dicho_find key table
+    with Not_found -> Error.build ?loc "[Id.gbuild] Identifier '%s' not found" (conv key)
+
+  let gbuild_opt key (table, _) =
+    try Some (Array_.dicho_find key table)
+    with Not_found -> None
+
+  type name = string
+  type table = string array
+
+  let build ?(loc:Loc.t option) key table =
+    try Array_.dicho_find key table
+    with Not_found -> Error.build ?loc "[Id.build] Identifier '%s' not found" key
+
+  let build_opt key table =
+    try Some (Array_.dicho_find key table)
+    with Not_found -> None
+
+  (* [get_pos_opt id] returns Some v (float) iff id is "Wv" else None *)
+  let get_pos_opt name =
+    let len = String.length name in
+    if len > 0 && name.[0] = 'W'
+    then
+      begin
+        let sub = String.sub name 1 (len-1) in
+        float_of_string_opt sub
+      end
+    else None
+
+end (* module Id *)
+
+(* ================================================================================ *)
+module Timeout = struct
+  exception Stop of float
+
+  let counter = ref 0.
+  let duration = ref 0.
+  let timeout = ref None
+
+  let start () = counter := Unix.gettimeofday ()
+  let stop () = duration := Unix.gettimeofday () -. !counter
+
+  let check () =
+    match !timeout with
+    | None -> ()
+    | Some delay ->
+      if Unix.gettimeofday () -. !counter > delay
+      then raise (Stop delay)
+
+  let get_duration () = !duration
+
+end (* module Timeout *)
+
+(* ================================================================================ *)
+module Global = struct
+  let current_loc = ref Loc.empty
+  let label_flag = ref false
+
+  let get_loc () = !current_loc
+  let loc_string () = Loc.to_string !current_loc
+
+  let get_line_opt () = snd (get_loc ())
+
+  let new_file filename =
+    current_loc := (Some filename, Some 1);
+    label_flag := false
+
+  let new_string () =
+    current_loc := (None , Some 1);
+    label_flag := false
+
+  let new_line () = match !current_loc with
+    | (_,None) -> ()
+    | (fo, Some l) -> current_loc := (fo, Some (l+1))
+
+  let debug = ref false
+  let safe_commands = ref false
+
+  let track_rules = ref false
+  let track_history = ref false
+  let track_impact = ref false
+end (* module Global *)
+
+module Dependencies = struct
+  let lex_cmp (i1, j1) (i2,j2) = match Stdlib.compare i1 i2 with 0 -> Stdlib.compare j1 j2 | x -> x
+
+  let rec insert_sorted i = function
+    | h::t when h < i -> h :: (insert_sorted i t)
+    | l -> i::l
+
+  let is_projective edge_list =
+    let sorted_edge_list = List.sort lex_cmp edge_list in
+    let rec loop position from_here from_before = function
+      | [] ->
+        (* Printf.printf "=N=> pos=%d H=[%s] B=[%s]\n" position (String.concat "," (List.map string_of_int from_here)) (String.concat "," (List.map string_of_int from_before)); *)
+        true
+      | (i,j) :: tail ->
+        (* Printf.printf "=S=> (%d, %d) pos=%d H=[%s] B=[%s]\n" i j position (String.concat "," (List.map string_of_int from_here)) (String.concat "," (List.map string_of_int from_before)); *)
+        let rec reduce_from_before = function
+          | h::t when h <= i -> reduce_from_before t
+          | l -> l in
+        let (new_from_here, new_from_before) =
+          if i > position
+          then ([], reduce_from_before (from_here @ from_before))
+          else (from_here, reduce_from_before from_before) in
+        (* Printf.printf "   ...> NH=[%s] NB=[%s]\n" (String.concat "," (List.map string_of_int new_from_here)) (String.concat "," (List.map string_of_int new_from_before)); *)
+        match new_from_before with
+        | h::t when j > h -> false
+        | h::t when j = h -> loop i new_from_here new_from_before tail
+        | _ -> loop i (insert_sorted j new_from_here) new_from_before tail in
+    loop 0 [] [] sorted_edge_list
+
+end
+
+
+(* ================================================================================ *)
+module Pid = struct
+  (* type t = int *)
+  type t = Ker of int | Ext of int
+
+  let compare = Stdlib.compare
+
+  let to_id = function
+    | Ker i -> sprintf "p_%d" i
+    | Ext i -> sprintf "n_%d" i
+
+  let to_string = function
+    | Ker i -> sprintf "Ker %d" i
+    | Ext i -> sprintf "Ext %d" i
+end (* module Pid *)
+
+(* ================================================================================ *)
+module Pid_set = Set.Make (Pid)
+
+(* ================================================================================ *)
+module Pid_map =
+struct
+  include Map.Make (Pid)
+
+  exception True
+
+  let exists fct map =
+    try
+      iter
+        (fun key value ->
+           if fct key value
+           then raise True
+        ) map;
+      false
+    with True -> true
+
+  (* union of two maps*)
+  let union_map m m' = fold (fun k v m'' -> (add k v m'')) m m'
+end (* module Pid_map *)
+
+(* ================================================================================ *)
+module Gid = struct
+  type t = int
+
+  let compare = Stdlib.compare
+
+  let to_string i = sprintf "%d" i
+end (* module Gid *)
+
+(* ================================================================================ *)
+module Gid_map =  Map.Make (Gid)
+
+(* ================================================================================ *)
+module Gid_set = Set.Make (Gid)
+
+
 (* ================================================================================ *)
 module Massoc_gid = Massoc_make (Gid)
 
 (* ================================================================================ *)
 module Massoc_pid = Massoc_make (Pid)
-
-(* ================================================================================ *)
-module Massoc_string = Massoc_make (String)
 
 (* ================================================================================ *)
 module Projection = struct
