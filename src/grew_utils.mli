@@ -120,29 +120,16 @@ end (* module Array_ *)
 (* ================================================================================ *)
 (* [List_] contains additional functions on the caml [list] type. *)
 module List_: sig
-  val set: int -> 'a -> 'a list -> 'a list
-
-  (** [cut size list] returns a list with the [size] first elements of [list].
-      If [list] contains less than [size] elements, the input list is returned *)
-  val cut: int -> 'a list -> 'a list
 
   (** [index elt list] return [Some index] if [index] is the smallest position in the [list] equals to [elt].
       None is returned if [elt] is not in the [list] *)
   val index_opt: 'a -> 'a list -> int option
 
-  val opt_map: ('a -> 'b option) -> 'a list -> 'b list
-
   val try_map: exn -> ('a -> 'b) -> 'a list -> 'b list
-
-  val opt_mapi: (int -> 'a -> 'b option) -> 'a list -> 'b list
-
-  val flat_map: ('a -> 'b list) -> 'a list -> 'b list
 
   (** [remove elt list] remove the first occurence od [elt] in [list].
       raise Not_found if [elt] is not in [list] *)
   val remove: 'a -> 'a list -> 'a list
-
-  val foldi_left: (int -> 'a -> 'b -> 'a) -> 'a -> 'b list -> 'a
 
   (* list intersection. Not efficient, do not use on large list *)
   val intersect: 'a list -> 'a list -> 'a list
@@ -183,8 +170,6 @@ module List_: sig
   val sort_remove_assoc: 'a -> ('a * 'b) list -> ('a * 'b) list
 
   val sort_remove_assoc_opt: 'a -> ('a * 'b) list -> ('a * 'b) list option
-
-  val foldi_left: (int -> 'a -> 'b -> 'a) -> 'a -> 'b list -> 'a
 
   val prev_next_iter: (?prev:'a -> ?next:'a -> 'a -> unit) -> 'a list -> unit
 end

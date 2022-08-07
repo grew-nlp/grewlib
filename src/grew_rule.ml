@@ -630,7 +630,7 @@ module Matching = struct
                 (fun label ->
                    {partial with sub = e_match_add id (src_gid,label,tar_gid) partial.sub; unmatched_edges = tail_ue }
                 ) labels
-          in List_.flat_map (extend_matching ~config (ker,ext) graph) new_partials
+          in CCList.flat_map (extend_matching ~config (ker,ext) graph) new_partials
         with Not_found -> (* p_edge goes to an unmatched node *)
           let candidates = (* candidates (of type (gid, matching)) for m(tar_pid) = gid) with new partial matching m *)
             let (src_gid : Gid.t) = Pid_map.find src_pid partial.sub.n_match in
@@ -645,7 +645,7 @@ module Matching = struct
                    (gid_next, e_match_add id (src_gid, label, gid_next) partial.sub) :: acc
                  | _ -> Error.bug "P_edge.match_ must return exactly one label"
               ) [] (G_node.get_next src_gnode) in
-          List_.flat_map
+          CCList.flat_map
             (fun (gid_next, matching) ->
                extend_matching_from ~config (ker,ext) graph tar_pid gid_next
                  {partial with sub=matching; unmatched_edges = tail_ue}

@@ -82,7 +82,7 @@ module Grs = struct
     | _ -> Error.bug "[build_decl] Inconsistent ast for grs"
 
   let from_ast ~config filename ast =
-    let decls = List_.opt_map
+    let decls = CCList.filter_map
         (fun x -> match x with
            | Ast.Features _ -> None
            | Ast.Labels _ -> None

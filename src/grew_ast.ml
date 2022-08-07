@@ -263,7 +263,7 @@ module Ast = struct
   }
 
   let check_dup_edge_in_pattern pattern =
-    let ids = List_.opt_map
+    let ids = CCList.filter_map
         (function ({edge_id= Some e},loc) -> Some (e, loc) | _ -> None)
         pattern.pat_pos.pat_edges in
     let rec loop = function

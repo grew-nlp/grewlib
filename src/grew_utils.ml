@@ -225,16 +225,6 @@ end (* module Array_ *)
 
 (* ================================================================================ *)
 module List_ = struct
-  let rec cut size = function
-    | [] -> []
-    | _ when size=0 -> []
-    | x::t -> x:: (cut (size-1) t)
-
-  let rec set position elt = function
-    | [] -> failwith "List_.set"
-    | _::t when position = 0 -> elt::t
-    | x::t -> x:: (set (position-1) elt t)
-
   let rec remove elt = function
     | [] -> raise Not_found
     | a::tail when a = elt -> tail
@@ -247,13 +237,6 @@ module List_ = struct
       | _::t -> loop (i+1) t in
     loop 0 l
 
-  let rec opt_map f = function
-    | [] -> []
-    | x::t ->
-      match f x with
-      | None -> opt_map f t
-      | Some r -> r :: (opt_map f t)
-
   let rec try_map exc fct = function
     | [] -> []
     | x::t -> let tail =  try_map exc fct t in
@@ -262,26 +245,6 @@ module List_ = struct
         if e = exc
         then tail
         else raise e
-
-  let rec flat_map f = function
-    | [] -> []
-    | x::t -> (f x)@(flat_map f t)
-
-  let opt_mapi fct =
-    let rec loop i = function
-      | [] -> []
-      | h::t ->
-        match fct i h with
-        | None -> loop (i+1) t
-        | Some res -> res :: (loop (i+1) t)
-    in loop 0
-
-  let foldi_left f init l =
-    fst
-      (List.fold_left
-         (fun (acc,i) elt -> (f i acc elt, i+1))
-         (init,0) l
-      )
 
   (* list intersection. Not efficient, do not use on large list *)
   let intersect l1 l2 =

@@ -212,9 +212,9 @@ gr:
             {
               Ast.complete_graph
               {
-                Ast.meta = List_.opt_map (function Graph_meta n -> Some n | _ -> None) items;
-                Ast.nodes = List_.opt_map (function Graph_node n -> Some n | _ -> None) items;
-                Ast.edges = List_.opt_map (function Graph_edge n -> Some n | _ -> None) items;
+                Ast.meta = CCList.filter_map (function Graph_meta n -> Some n | _ -> None) items;
+                Ast.nodes = CCList.filter_map (function Graph_node n -> Some n | _ -> None) items;
+                Ast.edges = CCList.filter_map (function Graph_edge n -> Some n | _ -> None) items;
               }
             }
 
@@ -298,9 +298,9 @@ basic:
         | l=delimited(LACC,separated_list_final_opt(SEMIC,pat_item),RACC)
             {
              {
-              Ast.pat_nodes = List_.opt_map (function Pat_node n -> Some n | _ -> None) l;
-              Ast.pat_edges = List_.opt_map (function Pat_edge n -> Some n | _ -> None) l;
-              Ast.pat_const = List_.opt_map (function Pat_const n -> Some n | _ -> None) l;
+              Ast.pat_nodes = CCList.filter_map (function Pat_node n -> Some n | _ -> None) l;
+              Ast.pat_edges = CCList.filter_map (function Pat_edge n -> Some n | _ -> None) l;
+              Ast.pat_const = CCList.filter_map (function Pat_const n -> Some n | _ -> None) l;
             }
            }
 

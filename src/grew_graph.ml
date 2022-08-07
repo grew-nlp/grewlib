@@ -88,8 +88,8 @@ module P_graph = struct
     let ker_table = Array.of_list sorted_ids in
 
     (* the nodes, in the same order *)
-    let map_without_edges = List_.foldi_left
-        (fun i acc elt -> Pid_map.add (Pid.Ker i) elt acc)
+    let map_without_edges = CCList.foldi
+        (fun acc i elt -> Pid_map.add (Pid.Ker i) elt acc)
         Pid_map.empty node_list in
 
     let (map,edge_ids) =
@@ -141,8 +141,8 @@ module P_graph = struct
 
     (* the nodes, in the same order stored with index -1, -2, ... -N TODO check ?? *)
     let ext_map_without_edges =
-      List_.foldi_left
-        (fun i acc elt -> Pid_map.add (Pid.Ext i) elt acc)
+      CCList.foldi
+        (fun acc i elt -> Pid_map.add (Pid.Ext i) elt acc)
         Pid_map.empty
         new_node_list in
 
