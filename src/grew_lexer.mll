@@ -11,7 +11,7 @@
 {
   open Printf
   
-  open Grew_base
+  open Grew_utils
   open Grew_ast
   open Grew_parser
 

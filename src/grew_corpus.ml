@@ -12,7 +12,7 @@ open Printf
 open Conllx
 open Libamr
 
-open Grew_base
+open Grew_utils
 open Grew_loader
 open Grew_edge
 open Grew_graph

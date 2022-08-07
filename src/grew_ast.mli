@@ -8,6 +8,7 @@
 (*    Authors: see AUTHORS file                                                   *)
 (**********************************************************************************)
 
+open Grew_utils
 open Grew_base
 
 type feature_name = string (* upos, Gender, … *)

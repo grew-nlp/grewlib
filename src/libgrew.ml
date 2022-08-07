@@ -20,8 +20,8 @@ module String_opt_map = Grew_base.String_opt_map
 (** {2 Location} *)
 (* ==================================================================================================== *)
 module Loc = struct
-  type t = Grew_base.Loc.t
-  let to_string = Grew_base.Loc.to_string
+  type t = Grew_utils.Loc.t
+  let to_string = Grew_utils.Loc.to_string
 end
 
 
@@ -39,28 +39,28 @@ module Libgrew = struct
     | Bug msg -> raise (Bug msg)
 
     (* Catch new exceptions *)
-    | Grew_base.Error.Parse (msg, Some loc) -> raise (Error (sprintf "%s %s" (Loc.to_string loc) msg))
-    | Grew_base.Error.Parse (msg, None) -> raise (Error (sprintf "%s" msg))
-    | Grew_base.Error.Build (msg, Some loc) -> raise (Error (sprintf "%s %s" (Loc.to_string loc) msg))
-    | Grew_base.Error.Build (msg, None) -> raise (Error (sprintf "%s" msg))
-    | Grew_base.Error.Run (msg, Some loc) -> raise (Error (sprintf "%s %s" (Loc.to_string loc) msg))
-    | Grew_base.Error.Run (msg, None) -> raise (Error (sprintf "%s" msg))
+    | Grew_utils.Error.Parse (msg, Some loc) -> raise (Error (sprintf "%s %s" (Loc.to_string loc) msg))
+    | Grew_utils.Error.Parse (msg, None) -> raise (Error (sprintf "%s" msg))
+    | Grew_utils.Error.Build (msg, Some loc) -> raise (Error (sprintf "%s %s" (Loc.to_string loc) msg))
+    | Grew_utils.Error.Build (msg, None) -> raise (Error (sprintf "%s" msg))
+    | Grew_utils.Error.Run (msg, Some loc) -> raise (Error (sprintf "%s %s" (Loc.to_string loc) msg))
+    | Grew_utils.Error.Run (msg, None) -> raise (Error (sprintf "%s" msg))
     | Conllx_error msg -> raise (Error (sprintf "Conllx error: %s" (Yojson.Basic.pretty_to_string msg)))
 
-    | Grew_base.Error.Bug (msg, Some loc) -> raise (Bug (sprintf "%s %s" (Loc.to_string loc) msg))
-    | Grew_base.Error.Bug (msg, None) -> raise (Bug (sprintf "%s" msg))
-    | Grew_base.Timeout.Stop bound -> raise (Error (sprintf "Timeout (running time execeeds %g seconds)" bound))
+    | Grew_utils.Error.Bug (msg, Some loc) -> raise (Bug (sprintf "%s %s" (Loc.to_string loc) msg))
+    | Grew_utils.Error.Bug (msg, None) -> raise (Bug (sprintf "%s" msg))
+    | Grew_utils.Timeout.Stop bound -> raise (Error (sprintf "Timeout (running time execeeds %g seconds)" bound))
     | exc -> raise (Bug (sprintf "[Libgrew.%s] UNCAUGHT EXCEPTION: %s" name (Printexc.to_string exc)))
 
   let get_version () = VERSION
 
-  let set_debug_mode flag = Grew_base.Global.debug := flag
+  let set_debug_mode flag = Grew_utils.Global.debug := flag
 
-  let set_safe_commands flag = Grew_base.Global.safe_commands := flag
+  let set_safe_commands flag = Grew_utils.Global.safe_commands := flag
 
-  let set_track_rules flag = Grew_base.Global.track_rules := flag
-  let set_track_history flag = Grew_base.Global.track_history:= flag
-  let set_track_impact flag = Grew_base.Global.track_impact:= flag
+  let set_track_rules flag = Grew_utils.Global.track_rules := flag
+  let set_track_history flag = Grew_utils.Global.track_history:= flag
+  let set_track_impact flag = Grew_utils.Global.track_impact:= flag
 end
 
 (* ==================================================================================================== *)
@@ -118,7 +118,7 @@ module Graph = struct
   let load_brown ~config file =
     Libgrew.handle ~name:"Graph.load_brown"
       (fun () ->
-         let brown = Grew_base.File.load file in
+         let brown = Grew_utils.File.load file in
          Grew_graph.G_graph.of_brown ~config brown
       ) ()
 
@@ -135,15 +135,15 @@ module Graph = struct
   let load ~config file =
     Libgrew.handle ~name:"Graph.load_graph" ~file
       (fun () ->
-         match Grew_base.File.get_suffix_opt file with
+         match Grew_utils.File.get_suffix_opt file with
          | Some ".gr" -> load_gr ~config file
          | Some ".conll" | Some ".conllu" -> load_conll ~config file
          | Some ".br" | Some ".melt" -> load_brown ~config file
          | Some ".cst" -> load_pst file
          | _ ->
-           Grew_base.Error.warning "Unknown file format for input graph '%s', try to guess..." file;
+           Grew_utils.Error.warning "Unknown file format for input graph '%s', try to guess..." file;
            let rec loop = function
-             | [] -> Grew_base.Error.bug "[Libgrew.load_graph] Cannot guess input file format of file '%s'." file
+             | [] -> Grew_utils.Error.bug "[Libgrew.load_graph] Cannot guess input file format of file '%s'." file
              | load_fct :: tail -> try load_fct file with _ -> loop tail in
            loop [load_gr ~config; load_conll ~config; load_brown ~config; load_pst]
       ) ()
@@ -356,13 +356,13 @@ end
 module Rewrite = struct
   let set_max_rules bound = Grew_rule.Rule.set_max_rules bound
 
-  let set_timeout t = Grew_base.Timeout.timeout := t
+  let set_timeout t = Grew_utils.Timeout.timeout := t
 
   let simple_rewrite ~config gr grs strat =
     Libgrew.handle ~name:"Rewrite.simple_rewrite" (fun () -> Grew_grs.Grs.simple_rewrite ~config grs strat gr) ()
 
   let log_rewrite () =
-    `Assoc [("rules", `Int (Grew_rule.Rule.get_nb_rules ())); ("time", `Float (Grew_base.Timeout.get_duration()))]
+    `Assoc [("rules", `Int (Grew_rule.Rule.get_nb_rules ())); ("time", `Float (Grew_utils.Timeout.get_duration()))]
 
   let onf_rewrite_opt ~config gr grs strat =
     Libgrew.handle ~name:"Rewrite.onf_rewrite_opt" (fun () -> Grew_grs.Grs.onf_rewrite_opt ~config grs strat gr) ()
