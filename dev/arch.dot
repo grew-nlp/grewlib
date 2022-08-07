@@ -1,8 +1,8 @@
 digraph grew {
   node [shape=Mrecord];
   rankdir = LR;
-  grew_base [label="grew_base|String_set\nString_map\nInt_set\nInt_map\nLoc\nError\nString_\nFile\nArray_\nList_\nMassoc_make()\nId\nTimeout\nGlobal"]
-  Grew_utils [label="Grew_utils|Pid\nPid_set\nPid_map\nGid\nGid_map\nMassoc_gid\nMassoc_pid\nMassoc_string"]
+  grew_base [label="grew_base|String_set\nString_map\nString_opt_map\nInt_set\nInt_map\nLoc\nError\nRange\nString_\nFile\nArray_\nId\nTimeout\nGlobal\nDependencies"]
+  Grew_utils [label="Grew_utils|Pid\nPid_set\nPid_map\nGid\nGid_map\nGid_set\nList_\n[S]\nMassoc_make()\nMassoc_gid\nMassoc_pid\nMassoc_string\nProjection"]
   grew_ast [label="grew_ast|Ast\nLexicon\nLexicons"]
   grew_loader [label="grew_loader|Loader\nParser"]
   grew_fs [label="grew_fs|Feature_value\nG_fs\nP_fs|[P_feature]\n[G_feature]"]
