@@ -11,7 +11,7 @@
 open Printf
 
 open Grew_base
-open Grew_types
+open Grew_utils
 open Grew_ast
 
 let decode_feat_name s = Str.global_replace (Str.regexp "__\\([0-9a-z]+\\)$") "[\\1]" s

@@ -10,7 +10,7 @@
 
 %{
 open Grew_base
-open Grew_types
+open Grew_utils
 open Grew_ast
 
 (* Some intermediate sum types used in sub-functions when building the ast *)

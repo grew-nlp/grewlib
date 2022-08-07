@@ -67,13 +67,13 @@ end
 (** {2 Projection} *)
 (* ==================================================================================================== *)
 module Projection = struct
-  type t = Grew_types.Projection.t
+  type t = Grew_utils.Projection.t
 
-  let empty = Grew_types.Projection.empty
+  let empty = Grew_utils.Projection.empty
 
-  let prune_unambiguous = Grew_types.Projection.prune_unambiguous
+  let prune_unambiguous = Grew_utils.Projection.prune_unambiguous
 
-  let to_json = Grew_types.Projection.to_json
+  let to_json = Grew_utils.Projection.to_json
 end
 
 (* ==================================================================================================== *)

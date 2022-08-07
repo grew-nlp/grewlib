@@ -12,7 +12,7 @@ open Printf
 
 open Grew_base
 open Grew_ast
-open Grew_types
+open Grew_utils
 
 open Grew_edge
 open Grew_fs
