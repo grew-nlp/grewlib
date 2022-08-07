@@ -13,6 +13,7 @@ open Conllx
 
 module String_set = Grew_base.String_set
 module String_map = Grew_base.String_map
+
 module String_opt_map = Grew_base.String_opt_map
 
 (* ==================================================================================================== *)
@@ -397,8 +398,8 @@ module Corpus = struct
   let fold_right fct t init =
     Libgrew.handle ~name:"Corpus.fold_left" (fun () -> Grew_corpus.Corpus.fold_right fct t init) ()
 
-  let iteri fct t =
-    Libgrew.handle ~name:"Corpus.iteri" (fun () -> Grew_corpus.Corpus.iteri fct t) ()
+  (* NB: no handle here because it's sensible to raise out onw exception in [iteri] *)
+    let iteri = Grew_corpus.Corpus.iteri
 
   let from_stdin ?ext ?log_file ?config () =
     Libgrew.handle ~name:"Corpus.from_stdin" (fun () -> Grew_corpus.Corpus.from_stdin ?ext ?log_file ?config ()) ()
