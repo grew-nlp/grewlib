@@ -278,3 +278,41 @@ module Ast : sig
   val rule_list: grs -> string list
 
 end (* module Ast *)
+
+(* ================================================================================ *)
+module Lexicon : sig
+  type t
+
+  (** [load file] build a lexicon from a file.
+      The file should contain same data than the ones in the build function
+      in separate lines, each line used tabulation as separator *)
+  val load: ?loc:Loc.t -> string -> t
+
+  (** [reduce headers lexicon] build a smaller lexicon restricted to a subset of columns (defined in [headers]) *)
+  (* val reduce: string list -> t -> t *)
+
+  (** [union lex1 lex2] returns the union of two lexicons
+      It supposed that the two lexicons define the same columns *)
+  val union: t -> t -> t
+
+  (** [filter_opt head value] returns the sublexicon with only items where the [head] column is match (Eq or Neq) to [value] if any, else returns None *)
+  val filter_opt: cmp -> string -> string -> t -> t option
+
+  (** [read head lexicon] return the list of [value] of all items having in the [head] column equals to [value] *)
+  val read_all: string -> t -> string list
+
+  (** [get_opt head lexicon] return [value] if one items have the [value] in the [head] field *)
+  val get_opt: string -> t -> string option
+
+  (** [read_multi head lexicon] returns "v_1/…/v_k" where v_i are the values of the [head] column *)
+  val read_multi: string -> t -> string
+
+  val of_ast: ?loc:Loc.t -> string option -> Ast.lexicon -> t
+end (* module Lexicon *)
+
+(* ================================================================================ *)
+module Lexicons : sig
+  type t = (string * Lexicon.t) list
+
+  val check: ?loc:Loc.t -> string -> string -> t -> unit
+end (* module Lexicons *)
