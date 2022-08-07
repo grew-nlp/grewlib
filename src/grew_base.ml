@@ -457,12 +457,6 @@ module List_ = struct
 end (* module List_ *)
 
 (* ================================================================================ *)
-module type OrderedType = sig
-  type t
-  val compare: t -> t -> int
-end (* module type OrderedType *)
-
-(* ================================================================================ *)
 module type S = sig
   type key
 
@@ -519,7 +513,7 @@ module type S = sig
 end (* module type S *)
 
 (* ================================================================================ *)
-module Massoc_make (Ord: OrderedType) = struct
+module Massoc_make (Ord: Set.OrderedType) = struct
   module M = Map.Make (Ord)
 
   type key = Ord.t
