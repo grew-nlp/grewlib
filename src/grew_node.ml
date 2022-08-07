@@ -23,7 +23,7 @@ module G_node = struct
   type t = {
     name: Id.name option;
     fs: G_fs.t;
-    next: G_edge.t Massoc_gid.t;
+    next: G_edge.t Gid_massoc.t;
     position: int option;
     efs: (string * string) list;
   }
@@ -43,11 +43,11 @@ module G_node = struct
   let get_next t = t.next
   let set_next next t = { t with next }
 
-  let get_next_without_pred_succ_enhanced t = Massoc_gid.filter
+  let get_next_without_pred_succ_enhanced t = Gid_massoc.filter
     (fun e -> not (G_edge.ordering e || G_edge.enhanced e)) t.next
 
-  let get_pred_opt t = Massoc_gid.find_opt (fun _ v -> v = G_edge.pred) t.next
-  let get_succ_opt t = Massoc_gid.find_opt (fun _ v -> v = G_edge.succ) t.next
+  let get_pred_opt t = Gid_massoc.find_opt (fun _ v -> v = G_edge.pred) t.next
+  let get_succ_opt t = Gid_massoc.find_opt (fun _ v -> v = G_edge.succ) t.next
 
   let get_position_opt t = t.position
   let set_position p t = { t with position = Some p }
@@ -62,14 +62,14 @@ module G_node = struct
   let dump ~config t =
     Printf.sprintf "  fs=[%s]\n  next=%s\n"
       (G_fs.to_string t.fs)
-      (Massoc_gid.to_string (G_edge.dump ~config) t.next)
+      (Gid_massoc.to_string (G_edge.dump ~config) t.next)
 
   let to_gr t = sprintf "[%s] " (G_fs.to_gr t.fs)
 
   let empty = {
     name = None;
     fs = G_fs.empty;
-    next = Massoc_gid.empty;
+    next = Gid_massoc.empty;
     position = None;
     efs=[]
   }
@@ -86,17 +86,17 @@ module G_node = struct
 
 
   let add_edge g_edge gid_tar t =
-    match Massoc_gid.add_opt gid_tar g_edge t.next with
+    match Gid_massoc.add_opt gid_tar g_edge t.next with
     | Some l -> {t with next = l}
     | None -> t
 
   let add_edge_opt g_edge gid_tar t =
-    match Massoc_gid.add_opt gid_tar g_edge t.next with
+    match Gid_massoc.add_opt gid_tar g_edge t.next with
     | Some l -> Some {t with next = l}
     | None -> None
 
   let remove_edge_opt gid_tar label t =
-    match Massoc_gid.remove_opt gid_tar label t.next with
+    match Gid_massoc.remove_opt gid_tar label t.next with
     | Some new_next -> Some {t with next = new_next}
     | None -> None
 
@@ -104,15 +104,15 @@ module G_node = struct
     match G_edge.remove_feat_opt feat_name old_edge with
     | None -> None
     | Some new_edge ->
-      match Massoc_gid.add_opt gid_tar new_edge (Massoc_gid.remove gid_tar old_edge t.next) with
+      match Gid_massoc.add_opt gid_tar new_edge (Gid_massoc.remove gid_tar old_edge t.next) with
       | Some new_next -> Some ({t with next = new_next }, new_edge)
       | None -> None
 
   let remove_key node_id t =
-    try {t with next = Massoc_gid.remove_key node_id t.next}
+    try {t with next = Gid_massoc.remove_key node_id t.next}
     with Not_found -> t
 
-  let rename mapping n = {n with next = Massoc_gid.rename mapping n.next}
+  let rename mapping n = {n with next = Gid_massoc.rename mapping n.next}
 
   let concat_feats_opt ?loc side src tar separator regexp =
     let src_fs = get_fs src in
@@ -125,7 +125,7 @@ module G_node = struct
     { t with
       name = CCOption.map (fun n -> user_id ^ "_" ^ n) t.name;
       fs = G_fs.set_atom "user" user_id t.fs;
-      next = Massoc_gid.map_key ((+) delta) t.next;
+      next = Gid_massoc.map_key ((+) delta) t.next;
     }
 
   let unshift user_id t =
@@ -148,11 +148,11 @@ module P_node = struct
   type t = {
     name: Id.name;
     fs: P_fs.t;
-    next: P_edge.t Massoc_pid.t;
+    next: P_edge.t Pid_massoc.t;
     loc: Loc.t option;
   }
 
-  let empty = { fs = P_fs.empty; next = Massoc_pid.empty; name = ""; loc=None }
+  let empty = { fs = P_fs.empty; next = Pid_massoc.empty; name = ""; loc=None }
 
   let get_name t = t.name
 
@@ -165,13 +165,13 @@ module P_node = struct
      {
        name = ast_node.Ast.node_id;
        fs = P_fs.of_ast lexicons ast_node.Ast.fs;
-       next = Massoc_pid.empty;
+       next = Pid_massoc.empty;
        loc = Some loc;
      } )
 
   let to_json_python ~config t =
     let json_next = `List (
-        Massoc_pid.fold
+        Pid_massoc.fold
           (fun acc pid p_edge ->
              `Assoc [
                ("id", `String (Pid.to_string pid));
@@ -188,7 +188,7 @@ module P_node = struct
   let unif_fs fs t = { t with fs = P_fs.unif fs t.fs }
 
   let add_edge_opt p_edge tar_pid t =
-    match Massoc_pid.add_opt tar_pid p_edge t.next with
+    match Pid_massoc.add_opt tar_pid p_edge t.next with
     | Some l -> Some {t with next = l}
     | None -> None
 

@@ -259,7 +259,7 @@ module Pattern = struct
   let get_edge_ids basic =
     Pid_map.fold
       (fun _ node acc ->
-         Massoc_pid.fold
+         Pid_massoc.fold
            (fun acc2 _ edge -> match P_edge.get_id_opt edge with Some id -> id::acc2 | None -> acc2)
            acc (P_node.get_next node)
       ) basic.graph []
@@ -501,7 +501,7 @@ module Matching = struct
       let gid = Pid_map.find pid matching.n_match in
       if G_graph.node_exists
           (fun node ->
-             List.exists (fun e -> Label_cst.match_ ~config label_cst e) (Massoc_gid.assoc gid (G_node.get_next node))
+             List.exists (fun e -> Label_cst.match_ ~config label_cst e) (Gid_massoc.assoc gid (G_node.get_next node))
           ) graph
       then matching
       else raise Fail
@@ -619,7 +619,7 @@ module Matching = struct
             let src_gid = Pid_map.find src_pid partial.sub.n_match in
             let tar_gid = Pid_map.find tar_pid partial.sub.n_match in
             let src_gnode = G_graph.find src_gid graph in
-            let g_edges = Massoc_gid.assoc tar_gid (G_node.get_next src_gnode) in
+            let g_edges = Gid_massoc.assoc tar_gid (G_node.get_next src_gnode) in
 
             match P_edge.match_list ~config p_edge g_edges with
             | P_edge.Fail -> (* no good edge in graph for this pattern edge -> stop here *)
@@ -635,7 +635,7 @@ module Matching = struct
           let candidates = (* candidates (of type (gid, matching)) for m(tar_pid) = gid) with new partial matching m *)
             let (src_gid : Gid.t) = Pid_map.find src_pid partial.sub.n_match in
             let src_gnode = G_graph.find src_gid graph in
-            Massoc_gid.fold
+            Gid_massoc.fold
               (fun acc gid_next g_edge ->
                  match P_edge.match_ ~config p_edge g_edge with
                  | P_edge.Fail -> (* g_edge does not fit, no new candidate *)
@@ -674,7 +674,7 @@ module Matching = struct
         let new_lex_set = P_node.match_ ~lexicons:partial.sub.l_param p_node g_node in
         (* add all out-edges from pid in pattern *)
         let new_unmatched_edges =
-          Massoc_pid.fold
+          Pid_massoc.fold
             (fun acc pid_next p_edge -> (pid, p_edge, pid_next) :: acc
             ) partial.unmatched_edges (P_node.get_next p_node) in
 
@@ -705,7 +705,7 @@ module Matching = struct
            match pid with
            | Pid.Ext _ -> acc
            | Pid.Ker i ->
-             Massoc_pid.fold
+             Pid_massoc.fold
                (fun acc2 pid_next p_edge -> (pid, p_edge, pid_next) :: acc2)
                acc (P_node.get_next node)
         ) ext.Pattern.graph [] in
@@ -919,7 +919,7 @@ module Rule = struct
 
     Pid_map.iter
       (fun src_pid node ->
-         Massoc_pid.iter
+         Pid_massoc.iter
            (fun tar_pid edge ->
               bprintf buff "  N_%s -> N_%s { label=\"%s\"}\n"
                 (Pid.to_id src_pid)

@@ -2,7 +2,7 @@ digraph grew {
   node [shape=Mrecord];
   rankdir = LR;
   Grew_types [label="Grew_types|String_set\nString_map\nString_opt_map\nInt_set\nInt_map"]
-  Grew_utils [label="Grew_utils|Pid\nPid_set\nPid_map\nGid\nGid_map\nGid_set\nLoc\nError\nRange\nString_\nFile\nArray_\nId\nTimeout\nGlobal\nDependencies\nList_\n[S]\nMassoc_make()\nMassoc_gid\nMassoc_pid\nMassoc_string\nProjection"]
+  Grew_utils [label="Grew_utils|Loc\nError\nRange\nString_\nFile\nArray_\nList_\n[S]\nMassoc_make()\nId\nTimeout\nGlobal\nDependencies\nPid\nPid_set\nPid_map\nPid_massoc\nGid\nGid_map\nGid_set\nGid_massoc\nProjection"]
   grew_ast [label="grew_ast|Ast\nLexicon\nLexicons"]
   grew_loader [label="grew_loader|Loader\nParser"]
   grew_fs [label="grew_fs|Feature_value\nG_fs\nP_fs|[P_feature]\n[G_feature]"]

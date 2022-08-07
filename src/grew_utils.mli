@@ -316,6 +316,8 @@ module Pid_map : sig
   val exists: (key -> 'a -> bool) -> 'a t -> bool
 end (* module Pid_map *)
 
+(* ================================================================================ *)
+module Pid_massoc : S with type key = Pid.t
 
 (* ================================================================================ *)
 (* [Gid] describes identifier used in full graphs *)
@@ -335,10 +337,7 @@ module Gid_map : Map.S with type key = Gid.t
 module Gid_set : Set.S with type elt = Gid.t
 
 (* ================================================================================ *)
-module Massoc_gid : S with type key = Gid.t
-
-(* ================================================================================ *)
-module Massoc_pid : S with type key = Pid.t
+module Gid_massoc : S with type key = Gid.t
 
 (* ================================================================================ *)
 module Projection : sig

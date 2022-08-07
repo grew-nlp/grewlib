@@ -30,9 +30,9 @@ module G_node: sig
   val get_fs: t -> G_fs.t
   val set_fs: G_fs.t -> t -> t
 
-  val get_next: t -> G_edge.t Massoc_gid.t
-  val get_next_without_pred_succ_enhanced: t -> G_edge.t Massoc_gid.t
-  val set_next: G_edge.t Massoc_gid.t -> t -> t
+  val get_next: t -> G_edge.t Gid_massoc.t
+  val get_next_without_pred_succ_enhanced: t -> G_edge.t Gid_massoc.t
+  val set_next: G_edge.t Gid_massoc.t -> t -> t
 
   val get_pred_opt: t -> Gid.t option
 
@@ -83,7 +83,7 @@ module P_node: sig
 
   val get_fs: t -> P_fs.t
 
-  val get_next: t -> P_edge.t Massoc_pid.t
+  val get_next: t -> P_edge.t Pid_massoc.t
 
   val of_ast: Lexicons.t -> Ast.node -> (Id.name * t)
 

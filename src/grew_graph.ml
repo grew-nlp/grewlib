@@ -198,7 +198,7 @@ module P_graph = struct
     let not_root_set =
       Pid_map.fold
         (fun _ p_node acc ->
-           Massoc_pid.fold
+           Pid_massoc.fold
              (fun acc2 tar_pid _ -> Pid_set.add tar_pid acc2
              ) acc (P_node.get_next p_node)
         ) p_graph Pid_set.empty in
@@ -280,11 +280,11 @@ module G_graph = struct
         let next = G_node.get_next node in
         let (new_todo, new_ok) =
           if depth = 1
-          then (Gid_map.remove gid todo, Massoc_gid.fold_on_list (fun acc gid' _ -> Gid_set.add gid' acc) (Gid_set.add gid ok) next)
+          then (Gid_map.remove gid todo, Gid_massoc.fold_on_list (fun acc gid' _ -> Gid_set.add gid' acc) (Gid_set.add gid ok) next)
           else 
             let tmp_ok = Gid_set.add gid ok in
             let tmp_todo = 
-              Massoc_gid.fold_on_list 
+              Gid_massoc.fold_on_list 
                 (fun acc gid' _ ->
                    if (Gid_set.mem gid' tmp_ok) || (Gid_map.mem gid' todo)
                    then acc
@@ -296,7 +296,7 @@ module G_graph = struct
     let sub_map = Gid_set.fold 
         (fun gid acc ->
            let node = find gid graph in
-           let new_next = Massoc_gid.filter_key (fun gid -> Gid_set.mem gid selected_nodes) (G_node.get_next node) in
+           let new_next = Gid_massoc.filter_key (fun gid -> Gid_set.mem gid selected_nodes) (G_node.get_next node) in
            let new_node = G_node.set_next new_next node in
            Gid_map.add gid new_node acc
         ) selected_nodes Gid_map.empty in
@@ -354,7 +354,7 @@ module G_graph = struct
   (* is there an edge e out of node i ? *)
   let edge_out ~config graph node_id label_cst =
     let node = Gid_map.find node_id graph.map in
-    Massoc_gid.exists (fun _ e -> Label_cst.match_ ~config label_cst e) (G_node.get_next node)
+    Gid_massoc.exists (fun _ e -> Label_cst.match_ ~config label_cst e) (G_node.get_next node)
 
   let covered node (gid1, _, gid2) graph =
     let node1 = find gid1 graph in
@@ -703,7 +703,7 @@ module G_graph = struct
       Gid_map.fold
         (fun src_gid node acc ->
            let src = `String (Gid.to_string src_gid) in
-           Massoc_gid.fold
+           Gid_massoc.fold
              (fun acc2 tar_gid edge ->
                 match G_edge.to_json_opt edge with
                 | None -> acc2
@@ -1021,19 +1021,19 @@ module G_graph = struct
     let tar_next = G_node.get_next tar_node in
 
     let (new_src_next, new_tar_next) =
-      Massoc_gid.fold
+      Gid_massoc.fold
         (fun (acc_src_next,acc_tar_next) next_gid edge ->
            if Label_cst.match_ ~config label_cst edge && not (is_gid_local next_gid)
            then
-             match Massoc_gid.add_opt next_gid edge acc_tar_next with
+             match Gid_massoc.add_opt next_gid edge acc_tar_next with
              | None when !Global.safe_commands -> Error.run ~loc "The [shift_out] command tries to build a duplicate edge (with label \"%s\")" (G_edge.dump ~config  edge)
              | None ->
                del_edges := (src_gid,edge,next_gid) :: !del_edges;
-               (Massoc_gid.remove next_gid edge acc_src_next, acc_tar_next)
+               (Gid_massoc.remove next_gid edge acc_src_next, acc_tar_next)
              | Some new_acc_tar_next ->
                del_edges := (src_gid,edge,next_gid) :: !del_edges;
                add_edges := (tar_gid,edge,next_gid) :: !add_edges;
-               (Massoc_gid.remove next_gid edge acc_src_next, new_acc_tar_next)
+               (Gid_massoc.remove next_gid edge acc_src_next, new_acc_tar_next)
            else (acc_src_next,acc_tar_next)
         )
         (src_next, tar_next) src_next in
@@ -1055,10 +1055,10 @@ module G_graph = struct
            then node
            else
              let node_next = G_node.get_next node in
-             match Massoc_gid.assoc src_gid node_next with
+             match Gid_massoc.assoc src_gid node_next with
              | [] -> node (* no edges from node to src *)
              | node_src_edges ->
-               let node_tar_edges = Massoc_gid.assoc tar_gid node_next in
+               let node_tar_edges = Gid_massoc.assoc tar_gid node_next in
                let (new_node_src_edges, new_node_tar_edges) =
                  List.fold_left
                    (fun (acc_node_src_edges,acc_node_tar_edges) edge ->
@@ -1079,8 +1079,8 @@ module G_graph = struct
                    (node_src_edges, node_tar_edges) node_src_edges in
                let new_next =
                  node_next
-                 |> (Massoc_gid.replace src_gid new_node_src_edges)
-                 |> (Massoc_gid.replace tar_gid new_node_tar_edges) in
+                 |> (Gid_massoc.replace src_gid new_node_src_edges)
+                 |> (Gid_massoc.replace tar_gid new_node_tar_edges) in
                G_node.set_next new_next node
         ) graph.map in
     ( { graph with map = new_map },
@@ -1126,7 +1126,7 @@ module G_graph = struct
            let node_id = gr_id id
            and fs = G_node.get_fs node
            and succ =
-             Massoc_gid.fold
+             Gid_massoc.fold
                (fun acc tar edge ->
                   match G_edge.to_string_opt ~config edge with
                   | None -> acc
@@ -1170,7 +1170,7 @@ module G_graph = struct
     (* edges *)
     List.iter
       (fun (src_gid,node) ->
-         Massoc_gid.iter
+         Gid_massoc.iter
            (fun tar_gid edge ->
               match G_edge.to_string_opt ~config edge with
               | Some s -> bprintf buff "  %s -[%s]-> %s;\n" (id_of_gid src_gid) s (id_of_gid tar_gid)
@@ -1331,7 +1331,7 @@ module G_graph = struct
       | (None, None) -> (* dmrs node *)
         (gid,node) :: nodes
       | _ -> (* parseme / frsemcor node --> place it before its first lexical item *)
-        let next_ids = Massoc_gid.fold (fun acc gid _ -> gid::acc) [] (G_node.get_next node) in
+        let next_ids = Gid_massoc.fold (fun acc gid _ -> gid::acc) [] (G_node.get_next node) in
         let rec loop = function
           | [] -> [(gid,node)]
           | (h,n)::t when List.mem h next_ids -> (gid,node)::(h,n)::t
@@ -1394,7 +1394,7 @@ module G_graph = struct
 
     Gid_map.iter
       (fun gid elt ->
-         Massoc_gid.iter
+         Gid_massoc.iter
            (fun tar g_edge ->
               let deco = List.mem (gid,g_edge,tar) deco.G_deco.edges in
               match G_edge.to_dep_opt ~deco ~config g_edge with
@@ -1455,7 +1455,7 @@ module G_graph = struct
     (* edges *)
     Gid_map.iter
       (fun id node ->
-         Massoc_gid.iter
+         Gid_massoc.iter
            (fun tar g_edge ->
               let deco = List.mem (id,g_edge,tar) deco.G_deco.edges in
               if g_edge = G_edge.sub
@@ -1495,7 +1495,7 @@ module G_graph = struct
   let get_relations ~config t =
     Gid_map.fold
       (fun _ node acc ->
-         Massoc_gid.fold_on_list
+         Gid_massoc.fold_on_list
            (fun acc2 key edges ->
               List.fold_left
                 (fun acc3 edge ->
@@ -1528,7 +1528,7 @@ module G_graph = struct
           match G_node.get_position_opt src_node with
           | None -> (acc, acc_map)
           | Some src_position ->
-            let new_acc = Massoc_gid.fold (fun acc2 tar_gid edge ->
+            let new_acc = Gid_massoc.fold (fun acc2 tar_gid edge ->
                 let tar_node = find tar_gid t in
                 match G_node.get_position_opt tar_node with
                 | None -> acc2
@@ -1554,7 +1554,7 @@ module G_graph = struct
     let non_roots =
       Gid_map.fold
         (fun gid node acc ->
-           Massoc_gid.fold_on_list (
+           Gid_massoc.fold_on_list (
              fun acc2 next_gid _ ->
                if dfs_debug then printf " %s ---> %s\n%!" (Gid.to_string gid) (Gid.to_string next_gid);
                Gid_set.add next_gid acc2
@@ -1593,7 +1593,7 @@ module G_graph = struct
       info := {!info with intervals = Gid_map.add gid (Pre !clock) !info.intervals};
       incr clock;
       let node = Gid_map.find gid graph.map in
-      Massoc_gid.iter (fun next_gid edge ->
+      Gid_massoc.iter (fun next_gid edge ->
           try
             match Gid_map.find next_gid !info.intervals with
             | Pre _ -> info := {!info with back_edges = (gid, next_gid) :: !info.back_edges};
@@ -1664,7 +1664,7 @@ module G_graph = struct
     let edge_list = ref [] in
     Gid_map.iter
       (fun src_gid node ->
-         Massoc_gid.iter
+         Gid_massoc.iter
            (fun tar_gid edge ->
               match G_edge.to_string_opt ~config edge with
               | Some e -> edge_list := (get_num src_gid, e, get_num tar_gid) :: !edge_list
