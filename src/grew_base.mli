@@ -17,6 +17,10 @@ module Int_map : Map.S with type key = int
 
 val ( << ) : ('a -> 'b) -> ('c -> 'a) -> ('c -> 'b)
 
+type cmp = Eq | Neq
+val string_of_cmp: cmp -> string
+val cmp_fct: cmp -> ('a -> 'a -> bool)
+
 (* ================================================================================ *)
 (* [Loc] general module to describe errors location: (file name, line number in file) *)
 module Loc: sig

@@ -74,10 +74,6 @@ let string_of_meta = function
   | ("", s) -> s
   | (k,v) -> sprintf "# %s = %s" k v
 
-type cmp = Eq | Neq
-let string_of_cmp = function Eq -> "=" | Neq -> "<>"
-let cmp_fct cmp = match cmp with Eq -> (=) | Neq -> (<>)
-
 (* ================================================================================ *)
 module Ast = struct
 

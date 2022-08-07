@@ -34,9 +34,6 @@ val concat_feature_values: ?loc:Loc.t -> feature_value list -> feature_value
 val parse_meta: string -> string * string
 val string_of_meta: string * string -> string
 
-type cmp = Eq | Neq
-val string_of_cmp: cmp -> string
-val cmp_fct: cmp -> ('a -> 'a -> bool)
 
 module Ast : sig
 

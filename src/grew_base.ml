@@ -28,6 +28,11 @@ let to_uname = function
 
 let (<<) f g x = f (g x)
 
+type cmp = Eq | Neq
+let string_of_cmp = function Eq -> "=" | Neq -> "<>"
+let cmp_fct cmp = match cmp with Eq -> (=) | Neq -> (<>)
+
+
 (* ================================================================================ *)
 module Loc = struct
   type t = string option * int option
