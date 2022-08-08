@@ -84,6 +84,7 @@ module Graph = struct
   let set_meta key value t = Grew_graph.G_graph.set_meta key value t
 
   let insert_proj keys t proj = Grew_graph.G_graph.insert_proj keys t proj
+  let insert_clust keys t proj = Grew_graph.G_graph.insert_clust keys t proj
 
   let load_gr ~config file =
     if not (Sys.file_exists file)
@@ -209,9 +210,6 @@ module Graph = struct
 
   let trace_depth t =
     Grew_graph.G_graph.trace_depth t
-
-  let insert_proj keys t proj =
-    Grew_graph.G_graph.insert_proj keys t proj
 
   let to_raw ~config graph =
     Libgrew.handle ~name:"Graph.to_raw" (fun () -> Grew_graph.G_graph.to_raw ~config graph) ()

@@ -20,3 +20,24 @@ type cmp = Eq | Neq
 val string_of_cmp: cmp -> string
 val cmp_fct: cmp -> ('a -> 'a -> bool)
 
+(* ================================================================================ *)
+module Clustered : sig
+  type 'a t
+
+  val empty: 'a t
+
+  val size: 'a t -> int
+
+  val update: ('a -> 'a) -> string option list -> 'a -> 'a t -> 'a t
+
+  val prune_unambiguous: int -> 'a t -> 'a t
+
+  val fold: ('b -> string option list -> 'a -> 'b) -> 'a t -> 'b -> 'b
+
+  val insert: string option list -> int t -> int t
+
+  val cardinal: int t -> int
+
+  val to_json: string list -> int t -> Yojson.Basic.t
+
+end (* module Clustered *)

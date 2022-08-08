@@ -141,6 +141,11 @@ module G_node = struct
     let fs = get_fs t in
     let values = List.map (fun k -> string_of_value <$> (G_fs.get_value_opt k fs)) keys in
     Projection.insert values proj
+
+  let insert_clust keys t proj =
+    let fs = get_fs t in
+    let values = List.map (fun k -> string_of_value <$> (G_fs.get_value_opt k fs)) keys in
+    Clustered.insert values proj
 end (* module G_node *)
 
 (* ================================================================================ *)

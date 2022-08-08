@@ -1522,6 +1522,14 @@ module G_graph = struct
          else G_node.insert_proj keys node acc 
       ) t proj 
 
+  let insert_clust keys t proj = 
+    fold_node 
+      (fun node acc -> 
+         if G_node.is_conll_zero node
+         then acc
+         else G_node.insert_clust keys node acc 
+      ) t proj 
+
   let is_projective t =
     let (arc_positions, pos_to_gid_map) =
       Gid_map.fold (fun src_gid src_node (acc, acc_map) ->

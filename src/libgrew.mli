@@ -115,6 +115,7 @@ module Graph : sig
   val set_meta: string -> string -> t -> t
 
   val insert_proj: string list -> t -> Projection.t -> Projection.t
+  val insert_clust: string list -> t -> int Clustered.t -> int Clustered.t
 
   val get_feature_values: string -> t -> String_set.t
   val get_relations: config:Conllx_config.t -> t -> String_set.t

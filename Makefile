@@ -5,7 +5,7 @@ DATADIR=$(PREFIX)/share/libgrew/
 OCB_FLAGS = -use-ocamlfind -use-menhir -I src
 OCB = ocamlbuild $(OCB_FLAGS)
 
-LIB_FILES = libgrew.cma libgrew.cmxa libgrew.a libgrew.cmi libgrew.cmx libgrew.cmxs
+LIB_FILES = libgrew.cma libgrew.cmxa libgrew.a libgrew.cmi libgrew.cmx libgrew.cmxs grew_types.cmi grew_types.cmx
 INSTALL_FILES = $(LIB_FILES:%=_build/src/%)
 
 VERSION = `cat VERSION`
