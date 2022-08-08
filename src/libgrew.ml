@@ -50,19 +50,6 @@ module Libgrew = struct
 end
 
 (* ==================================================================================================== *)
-(** {2 Projection} *)
-(* ==================================================================================================== *)
-module Projection = struct
-  type t = Grew_utils.Projection.t
-
-  let empty = Grew_utils.Projection.empty
-
-  let prune_unambiguous = Grew_utils.Projection.prune_unambiguous
-
-  let to_json = Grew_utils.Projection.to_json
-end
-
-(* ==================================================================================================== *)
 (** {2 Deco} *)
 (* ==================================================================================================== *)
 module Deco = struct
@@ -83,7 +70,6 @@ module Graph = struct
 
   let set_meta key value t = Grew_graph.G_graph.set_meta key value t
 
-  let insert_proj keys t proj = Grew_graph.G_graph.insert_proj keys t proj
   let insert_clust keys t proj = Grew_graph.G_graph.insert_clust keys t proj
 
   let load_gr ~config file =

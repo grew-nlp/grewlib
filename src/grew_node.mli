@@ -69,7 +69,6 @@ module G_node: sig
   val shift: string -> int -> t -> t
   val unshift: string -> t -> t
 
-  val insert_proj: (string list) -> t -> Projection.t -> Projection.t
   val insert_clust: (string list) -> t -> int Clustered.t -> int Clustered.t
 
 end (* module G_node *)

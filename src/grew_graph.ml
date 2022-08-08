@@ -1514,14 +1514,6 @@ module G_graph = struct
            acc
       ) t.map String_set.empty
 
-  let insert_proj keys t proj = 
-    fold_node 
-      (fun node acc -> 
-         if G_node.is_conll_zero node
-         then acc
-         else G_node.insert_proj keys node acc 
-      ) t proj 
-
   let insert_clust keys t proj = 
     fold_node 
       (fun node acc -> 

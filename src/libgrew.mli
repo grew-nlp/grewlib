@@ -27,39 +27,6 @@ module Libgrew : sig
   exception Bug of string
 end
 
-
-(* ==================================================================================================== *)
-(** {2 Projection} *)
-(* ==================================================================================================== *)
-module Projection : sig
-
-  (* the type Projection.t encodes the projection of a corpus as a lexicon (used in ArboratogGrew). See [Graph.insert_proj] for usage.
-     It a recusive map of homogeneous depth, key are string otion for feature values.
-     [Graph.insert_proj] is supposed to used always the same key list when interacting with a projection.
-  *)
-  type t
-
-  (* empty projection *)
-  val empty: t
-
-  (* [prune_unambiguous n proj] prune in input proj with unambiguous structure at depth n
-    For instance, if the keys are values for features [form, lemma, upos, Gender, Number],
-    prune_unambiguous 3 proj will keep only lexicon entries where there is 
-    more than one couple of value for Gender and Number with the same triple (form, lemma, upos).
-   *)
-  val prune_unambiguous: int -> t -> t
-
-  (* export the projection as a json data. The output is a list of object;
-     each object containts: 
-     * a key for each feature key used to build it (value are string of null)
-     * a numeric key "freq" with the frequency of the corresponding values 
-    Ex:
-    [ {"freq": 3, "Gender": "Masc", "upos": "NOUN", "lemma": "État", "form": "États" },
-      {"freq": 1, "Gender": null, "upos": "NOUN", "lemma": "État", "form": "États" } ]
-     *)
-  val to_json: string list -> t -> Yojson.Basic.t
-end 
-
 (* ==================================================================================================== *)
 (** {2 Deco} *)
 (* ==================================================================================================== *)
@@ -114,7 +81,6 @@ module Graph : sig
 
   val set_meta: string -> string -> t -> t
 
-  val insert_proj: string list -> t -> Projection.t -> Projection.t
   val insert_clust: string list -> t -> int Clustered.t -> int Clustered.t
 
   val get_feature_values: string -> t -> String_set.t

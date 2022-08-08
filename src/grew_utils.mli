@@ -355,21 +355,6 @@ module Gid_set : Set.S with type elt = Gid.t
 module Gid_massoc : S with type key = Gid.t
 
 (* ================================================================================ *)
-module Projection : sig
-  type t
-
-  val empty: t
-
-  val cardinal: t -> int
-  
-  val insert: string option list -> t -> t
-  
-  val prune_unambiguous: int -> t -> t
-
-  val to_json: string list -> t -> Yojson.Basic.t
-end (* module Projection *)
-
-(* ================================================================================ *)
 module Feature_value: sig
 
   (* type feature_value =
