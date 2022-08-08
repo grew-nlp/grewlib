@@ -11,30 +11,6 @@
 open Grew_utils
 open Grew_types
 
-type feature_name = string (* upos, Gender, … *)
-type string_feature_value = string (* V, 4, "free text", … *)
-
-type feature_value =
-  | String of string
-  | Float of float
-
-val get_range_feature_value: Range.t -> feature_value -> feature_value
-
-val string_of_value : feature_value -> string
-
-val conll_string_of_value : feature_value -> string
-
-val json_of_value : feature_value -> Yojson.Basic.t
-
-
-val numeric_feature_values: string list
-val typed_vos : feature_name -> string -> feature_value
-
-val concat_feature_values: ?loc:Loc.t -> feature_value list -> feature_value
-
-val parse_meta: string -> string * string
-val string_of_meta: string * string -> string
-
 
 module Ast : sig
 
@@ -75,11 +51,11 @@ module Ast : sig
 
   (* ---------------------------------------------------------------------- *)
   type feature_kind =
-    | Feat_kind_list of cmp * string_feature_value list
+    | Feat_kind_list of cmp * string list
     | Feat_kind_lex of cmp * string * string
     | Feat_kind_re of cmp * string
     | Absent
-    | Else of (string_feature_value * feature_name * string_feature_value)
+    | Else of (string * feature_name * string)
 
   type u_feature = {
     name: feature_name;

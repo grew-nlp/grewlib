@@ -12,6 +12,11 @@ open Printf
 
 open Grew_types
 
+type cmp = Eq | Neq
+let string_of_cmp = function Eq -> "=" | Neq -> "<>"
+let cmp_fct cmp = match cmp with Eq -> (=) | Neq -> (<>)
+
+
 (* ================================================================================ *)
 module Loc = struct
   type t = string option * int option
@@ -821,3 +826,68 @@ module Projection = struct
       | _ -> Error.bug "[Projection.to_json] inconsistent data" in
     `List (loop [] keys [] t)
 end
+
+
+
+
+type feature_name = string (* upos, Gender, … *)
+
+type feature_value =
+  | String of string
+  | Float of float
+
+let get_range_feature_value range = function
+  | String s -> String (String_.get_range range s)
+  | Float f when range = (None, None) -> Float f
+  | Float f -> Error.run "Cannot extract substring from a numeric feature \"%g\"" f
+
+let string_of_value = function
+  | String s -> Str.global_replace (Str.regexp "\"") "\\\""
+                  (Str.global_replace (Str.regexp "\\\\") "\\\\\\\\" s)
+  | Float f -> sprintf "%g" f
+
+let json_of_value = function
+  | String s -> `String s
+  | Float f ->  `Float f
+
+let conll_string_of_value = function
+  | String s -> s
+  | Float f -> sprintf "%g" f
+
+let numeric_feature_values = [
+  "level";  (* use for edges in UDtoSUD grs *)
+  "freq"; "freq_old"; "freq_new"; (* use for nodes in POStoSSQ grs *)
+  "_start"; "_stop";  (* nodes in Orfeo timestamps *)
+  "AlignBegin"; "AlignEnd";  (* nodes in SUD_Naija *)
+  "length"; "delta";
+]
+
+(* Typing float/string for feature value is hardcoded, should evolve with a new config implementation *)
+let typed_vos feat_name string_value =
+  if List.mem feat_name numeric_feature_values
+  then
+    begin
+      match float_of_string_opt string_value with
+      | Some f -> Float f
+      | None when string_value = "unknown" -> Float (-1.) (* to deal with AlignBegin=unknown|AlignEnd=unknown in SUD_Naija *)
+      | None -> Error.run "The featue \"%s\" must be numeric, it cannot be associated with value: \"%s\"" feat_name string_value
+    end
+  else String string_value
+
+let concat_feature_values ?loc = function
+  | [one] -> one
+  | l ->
+    let rec loop = function
+      | [] -> ""
+      | String s :: tail -> s ^ (loop tail)
+      | Float _ :: _ -> Error.run ?loc "Cannot concat with numeric value" in
+    String (loop l)
+
+let parse_meta s =
+  match Str.bounded_split (Str.regexp "# *\\| *= *") s 2 with
+  | [key;value] -> (key,value)
+  | _ -> ("",s)
+
+let string_of_meta = function
+  | ("", s) -> s
+  | (k,v) -> sprintf "# %s = %s" k v

@@ -16,9 +16,6 @@ module Int_set : Set.S with type elt = int
 module Int_map : Map.S with type key = int
 
 
-type cmp = Eq | Neq
-val string_of_cmp: cmp -> string
-val cmp_fct: cmp -> ('a -> 'a -> bool)
 
 (* ================================================================================ *)
 module Clustered : sig

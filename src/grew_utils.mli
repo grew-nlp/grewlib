@@ -11,6 +11,14 @@
 open Grew_types
 
 (* ================================================================================ *)
+module Range: sig
+  type t = (int option * int option)
+
+  val to_string: t -> string
+  val to_json: t ->  Yojson.Basic.t
+end
+
+(* ================================================================================ *)
 (* [Loc] general module to describe errors location: (file name, line number in file) *)
 module Loc: sig
   type t
@@ -27,6 +35,36 @@ module Loc: sig
 
   val to_string: t -> string
 end
+
+type cmp = Eq | Neq
+val string_of_cmp: cmp -> string
+val cmp_fct: cmp -> ('a -> 'a -> bool)
+
+
+type feature_name = string (* upos, Gender, … *)
+
+type feature_value =
+  | String of string
+  | Float of float
+
+val get_range_feature_value: Range.t -> feature_value -> feature_value
+
+val string_of_value : feature_value -> string
+
+val conll_string_of_value : feature_value -> string
+
+val json_of_value : feature_value -> Yojson.Basic.t
+
+
+val numeric_feature_values: string list
+val typed_vos : feature_name -> string -> feature_value
+
+val concat_feature_values: ?loc:Loc.t -> feature_value list -> feature_value
+
+val parse_meta: string -> string * string
+val string_of_meta: string * string -> string
+
+
 
 (* ================================================================================ *)
 module Error: sig
@@ -47,13 +85,6 @@ module Error: sig
   val info: ?loc: Loc.t -> ('a, unit, string, unit) format4 -> 'a
 end
 
-(* ================================================================================ *)
-module Range: sig
-  type t = (int option * int option)
-
-  val to_string: t -> string
-  val to_json: t ->  Yojson.Basic.t
-end
 
 (* ================================================================================ *)
 module String_: sig
