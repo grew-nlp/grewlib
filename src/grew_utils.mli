@@ -12,7 +12,7 @@ open Grew_types
 
 (* ================================================================================ *)
 module Cmp: sig
-  (** This module introduces a two values types for Equalty / Disequality *)
+  (** This module defines a two values type for Equalty / Disequality *)
 
   type t = Eq | Neq
 
@@ -22,14 +22,6 @@ module Cmp: sig
   (** [fct t] return a function of type 'a -> 'a -> bool which corresponds either to equlaity or disequality *)
 end
 
-
-(* ================================================================================ *)
-module Range: sig
-  type t = (int option * int option)
-
-  val to_string: t -> string
-  val to_json: t ->  Yojson.Basic.t
-end
 
 (* ================================================================================ *)
 (* [Loc] general module to describe errors location: (file name, line number in file) *)
@@ -48,10 +40,6 @@ module Loc: sig
 
   val to_string: t -> string
 end
-
-
-
-
 
 (* ================================================================================ *)
 module Error: sig
@@ -72,6 +60,21 @@ module Error: sig
   val info: ?loc: Loc.t -> ('a, unit, string, unit) format4 -> 'a
 end
 
+(* ================================================================================ *)
+module Range: sig
+  type t = (int option * int option)
+
+  val to_string: t -> string
+  val to_json: t ->  Yojson.Basic.t
+
+
+  (** Python like substring extraction
+     [extract (init_opt, final_opt) s] return the python output of s[init_opt:final_opt]
+     NB: indexes correspond to UTF-8 chars. ex: [extract (None, Some (-1)) "été"] ==> "ét"
+  *)
+  val extract: t -> string -> string
+
+end
 
 (* ================================================================================ *)
 module String_: sig
@@ -83,13 +86,7 @@ module String_: sig
   val rm_first_char: string -> string
 
   val rev_concat: string -> string list -> string
-  
-  (** Python like substring extraction
-     [get_range (init_opt, final_opt) s] return the python output of s[init_opt:final_opt]
-     NB: indexes correspond to UTF-8 chars. ex: [get_range (None, Some (-1)) "été"] ==> "ét"
-  *)
-  val get_range: Range.t -> string -> string
-end (* module String_ *)
+  end (* module String_ *)
 
 (* ================================================================================ *)
 (* [File] functions to read/write file *)
@@ -373,23 +370,37 @@ module Projection : sig
 end (* module Projection *)
 
 (* ================================================================================ *)
-type feature_value =
-  | String of string
-  | Float of float
+module Feature_value: sig
 
-val get_range_feature_value: Range.t -> feature_value -> feature_value
+  (* type feature_value =
+    | String of string
+    | Float of float *)
+  type t =
+    | String of string
+    | Float of float
 
-val string_of_value : feature_value -> string
+  (* val Feature_value.extract_range: Range.t -> feature_value -> feature_value *)
+  val extract_range: Range.t -> t -> t
 
-val conll_string_of_value : feature_value -> string
+  (* val Feature_value.to_string : feature_value -> string *)
+  val to_string: t -> string
 
-val json_of_value : feature_value -> Yojson.Basic.t
+  (* val Feature_value.to_conll : feature_value -> string *)
+  val to_conll: t -> string
 
+  (* val Feature_value.to_json : feature_value -> Yojson.Basic.t *)
+  val to_json: t -> Yojson.Basic.t
 
-val numeric_feature_values: string list
-val typed_vos : string -> string -> feature_value
+  (* val numeric_feature_values: string list *)
 
-val concat_feature_values: ?loc:Loc.t -> feature_value list -> feature_value
+  (* val Feature_value.parse : string -> string -> feature_value *)
+  val parse: string -> string -> t (* feaure_name feaure_value *)
 
-val parse_meta: string -> string * string
-val string_of_meta: string * string -> string
+  (* val Feature_value.concat: ?loc:Loc.t -> feature_value list -> feature_value *)
+  (* TODO: no loc here: move to caller *)
+  val concat: ?loc:Loc.t -> t list -> t
+
+  val build_disj: ?loc:Loc.t -> string -> string list -> t list
+
+  val build_value: ?loc:Loc.t -> string -> string -> t
+end (* module Feature_value *)

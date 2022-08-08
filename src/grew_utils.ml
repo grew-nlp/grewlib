@@ -24,18 +24,6 @@ module Cmp = struct
   (** [fct t] return a function of type 'a -> 'a -> bool which corresponds either to equlaity or disequality *)
 end
 
-(* ================================================================================ *)
-module Range = struct
-  type t = (int option * int option)
-
-  let to_string = function
-    | (None, None) -> ""
-    | (Some x, None) -> sprintf "[%d:]" x
-    | (None, Some y) -> sprintf "[:%d]" y
-    | (Some x, Some y) -> sprintf "[%d:%d]" x y
-
-  let to_json r = `String (to_string r) 
-end (* module Range *)
 
 
 (* ================================================================================ *)
@@ -92,23 +80,22 @@ end (* module Error *)
 
 
 (* ================================================================================ *)
-module String_ = struct
-  let rm_first_char = function "" -> "" | s -> String.sub s 1 ((String.length s) - 1)
+module Range = struct
+  type t = (int option * int option)
 
-  let re_match re s = (Str.string_match re s 0) && (Str.matched_string s = s)
+  let to_string = function
+    | (None, None) -> ""
+    | (Some x, None) -> sprintf "[%d:]" x
+    | (None, Some y) -> sprintf "[:%d]" y
+    | (Some x, Some y) -> sprintf "[%d:%d]" x y
 
-  let rev_concat sep l =
-    let rec loop = function
-      | [] -> ""
-      | [one] -> one
-      | h :: tail -> (loop tail) ^ sep ^ h in
-    loop l
+  let to_json r = `String (to_string r) 
 
   (** Python like substring extraction
      [get_range (init_opt, final_opt) s] return the python output of s[init_opt:final_opt]
      NB: indexes correspond to UTF-8 chars. ex: [get_range (None, Some (-1)) "été"] ==> "ét"
   *)
-  let get_range (iopt,fopt) s =
+  let extract (iopt,fopt) s =
     match (iopt, fopt) with 
     | (None, None) -> s
     | _ -> 
@@ -128,7 +115,20 @@ module String_ = struct
         if final < init 
         then ""
         else char_list |> CCList.drop init |> CCList.take (final - init) |> CCUtf8_string.of_list |> CCUtf8_string.to_string
+end (* module Range *)
 
+(* ================================================================================ *)
+module String_ = struct
+  let rm_first_char = function "" -> "" | s -> String.sub s 1 ((String.length s) - 1)
+
+  let re_match re s = (Str.string_match re s 0) && (Str.matched_string s = s)
+
+  let rev_concat sep l =
+    let rec loop = function
+      | [] -> ""
+      | [one] -> one
+      | h :: tail -> (loop tail) ^ sep ^ h in
+    loop l
 end (* module String_ *)
 
 (* ================================================================================ *)
@@ -683,6 +683,7 @@ module Global = struct
   let track_impact = ref false
 end (* module Global *)
 
+(* ================================================================================ *)
 module Dependencies = struct
   let lex_cmp (i1, j1) (i2,j2) = match Stdlib.compare i1 i2 with 0 -> Stdlib.compare j1 j2 | x -> x
 
@@ -840,25 +841,26 @@ end
 
 
 (* ================================================================================ *)
-type feature_value =
-  | String of string
-  | Float of float
+module Feature_value = struct
+    type t =
+    | String of string
+    | Float of float
 
-let get_range_feature_value range = function
-  | String s -> String (String_.get_range range s)
+let extract_range range = function
+  | String s -> String (Range.extract range s)
   | Float f when range = (None, None) -> Float f
   | Float f -> Error.run "Cannot extract substring from a numeric feature \"%g\"" f
 
-let string_of_value = function
+let to_string = function
   | String s -> Str.global_replace (Str.regexp "\"") "\\\""
                   (Str.global_replace (Str.regexp "\\\\") "\\\\\\\\" s)
   | Float f -> sprintf "%g" f
 
-let json_of_value = function
+let to_json = function
   | String s -> `String s
   | Float f ->  `Float f
 
-let conll_string_of_value = function
+let to_conll = function
   | String s -> s
   | Float f -> sprintf "%g" f
 
@@ -871,7 +873,7 @@ let numeric_feature_values = [
 ]
 
 (* Typing float/string for feature value is hardcoded, should evolve with a new config implementation *)
-let typed_vos feat_name string_value =
+let parse feat_name string_value =
   if List.mem feat_name numeric_feature_values
   then
     begin
@@ -882,7 +884,7 @@ let typed_vos feat_name string_value =
     end
   else String string_value
 
-let concat_feature_values ?loc = function
+let concat ?loc = function
   | [one] -> one
   | l ->
     let rec loop = function
@@ -891,11 +893,13 @@ let concat_feature_values ?loc = function
       | Float _ :: _ -> Error.run ?loc "Cannot concat with numeric value" in
     String (loop l)
 
-let parse_meta s =
-  match Str.bounded_split (Str.regexp "# *\\| *= *") s 2 with
-  | [key;value] -> (key,value)
-  | _ -> ("",s)
-
-let string_of_meta = function
-  | ("", s) -> s
-  | (k,v) -> sprintf "# %s = %s" k v
+  let build_disj ?loc name unsorted_values =
+    let values = List.sort Stdlib.compare unsorted_values in
+    List.map (fun s -> parse name s) values (* no check on feat_name starting with '_' *)
+  
+  let build_value ?loc name value =
+    match build_disj ?loc name [value] with
+    | [x] -> x
+    | _ -> Error.bug ?loc "[Feature_value.build_value]"
+  
+end (* module Feature_value *)

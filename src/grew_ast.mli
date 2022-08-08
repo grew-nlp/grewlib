@@ -106,7 +106,7 @@ module Ast : sig
     | Feature_ineq of ineq * feature_ident * feature_ident
     | Feature_ineq_cst of ineq * feature_ident * float
     | Feature_cmp_regexp of Cmp.t * feature_ident * string
-    | Feature_cmp_value of Cmp.t * feature_ident * feature_value
+    | Feature_cmp_value of Cmp.t * feature_ident * Feature_value.t
     | Large_prec of Id.name * Id.name
     | Edge_disjoint of Id.name * Id.name
     | Edge_crossing of Id.name * Id.name

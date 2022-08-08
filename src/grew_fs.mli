@@ -13,14 +13,6 @@ open Grew_utils
 open Grew_ast
 
 (* ================================================================================ *)
-module Feature_value: sig
-  val build_disj: ?loc:Loc.t -> string -> string list -> feature_value list
-
-  val build_value: ?loc:Loc.t -> string -> string -> feature_value
-end (* module Feature_value *)
-
-
-(* ================================================================================ *)
 (* module [G_fs] defines the feature structures that are used in graphs *)
 module G_fs: sig
   type t
@@ -33,7 +25,7 @@ module G_fs: sig
       If [t] already contains a feature named [feature_name], the old value is erased by the new one. *)
   val set_atom: ?loc:Loc.t -> string -> string -> t ->  t
 
-  val set_value: ?loc:Loc.t -> string -> feature_value -> t ->  t
+  val set_value: ?loc:Loc.t -> string -> Feature_value.t -> t ->  t
 
   (** [del_feat_opt feature_name t] remove the feature with name [feature_name] in [t].
       If [t] does not contain such a feature, None is returned. *)
@@ -43,7 +35,7 @@ module G_fs: sig
       If [t] does not contain such a feature, [t] is returned unchanged. *)
   val del_feat:  string -> t -> t
 
-  val get_value_opt: string -> t -> feature_value option
+  val get_value_opt: string -> t -> Feature_value.t option
 
   val to_gr: t -> string
   val to_dot: ?decorated_feat:(string * (string * string option) list) -> ?main_feat: string -> t -> string
@@ -70,7 +62,7 @@ module G_fs: sig
   val pst_leaf: ?loc:Loc.t -> string -> t
   val pst_node: ?loc:Loc.t -> string -> t
 
-  val concat_feats_opt: ?loc:Loc.t -> Ast.side -> t -> t -> string -> string -> (t * (string * feature_value) list) option
+  val concat_feats_opt: ?loc:Loc.t -> Ast.side -> t -> t -> string -> string -> (t * (string * Feature_value.t) list) option
 
   val to_raw: t -> (string * string) list
 end (* module G_fs *)

@@ -18,17 +18,17 @@ open Grew_ast
 (* ================================================================================ *)
 module G_edge = struct
   (* [G_edge.fs] is a feature structure. The list of feature names must be ordered wrt [Stdlib.compare] *)
-  type fs = (string * feature_value) list
+  type fs = (string * Feature_value.t) list
 
   let fs_of_items l = (List.sort (fun (x,_) (y,_) -> Stdlib.compare x y) l)
 
   let fs_to_json = function
-    | [("1",s)] -> `String (string_of_value s)
-    | fs -> `Assoc (List.map (fun (k,v) -> (k, `String (string_of_value v))) fs)
+    | [("1",s)] -> `String (Feature_value.to_string s)
+    | fs -> `Assoc (List.map (fun (k,v) -> (k, `String (Feature_value.to_string v))) fs)
 
   let fs_of_json json =
     let open Yojson.Basic.Util in
-    json |> to_assoc |> List.map (fun (f,json_v) -> (f, typed_vos f (to_string json_v))) |> fs_of_items
+    json |> to_assoc |> List.map (fun (f,json_v) -> (f, Feature_value.parse f (to_string json_v))) |> fs_of_items
 
   let fs_to_string_res ~config fs = fs |> fs_to_json |> Conllx_label.of_json |> Conllx_label.to_string ~config
 
@@ -86,7 +86,7 @@ module G_edge = struct
 
   let dump ?config edge = match (edge, config) with
     | (Fs fs, Some config) -> fs_to_string ~config fs
-    | (Fs fs, None) -> String.concat "," (List.map (fun (f,v) -> sprintf "%s=%s" f (string_of_value v)) fs)
+    | (Fs fs, None) -> String.concat "," (List.map (fun (f,v) -> sprintf "%s=%s" f (Feature_value.to_string v)) fs)
     | (Sub, _) -> "__SUB__"
     | (Pred, _) -> "__PRED__"
     | (Succ, _) -> "__SUCC__"
@@ -157,7 +157,7 @@ module G_edge = struct
     | Ast.Atom_list list ->
       let unordered_fs =
         List.map
-          (function Ast.Atom_eq (x,[y]) -> (x,typed_vos x y) | _ -> Error.build "[G_edge.build] cannot interpret Atom_list")
+          (function Ast.Atom_eq (x,[y]) -> (x,Feature_value.parse x y) | _ -> Error.build "[G_edge.build] cannot interpret Atom_list")
           list in
       Fs (fs_of_items unordered_fs)
     | Ast.Neg_list _ -> Error.build ~loc "Negative edge spec are forbidden in graphs"
@@ -172,9 +172,9 @@ end (* module G_edge *)
 module Label_cst = struct
   type atom_cst =
     (* 1=subj|obj *)
-    | Eq of (string * feature_value list)
+    | Eq of (string * Feature_value.t list)
     (* 1<>subj|obj   2=*  *)
-    | Diseq of (string * feature_value list)
+    | Diseq of (string * Feature_value.t list)
     (* !3 *)
     | Absent of string
 
@@ -198,8 +198,8 @@ module Label_cst = struct
       String.concat ","
         (List.map
            (function
-             | Eq (name,al) -> sprintf "%s=%s" name (String.concat "|" (List.map string_of_value al))
-             | Diseq (name,al) -> sprintf "%s<>%s" name (String.concat "|" (List.map string_of_value al))
+             | Eq (name,al) -> sprintf "%s=%s" name (String.concat "|" (List.map Feature_value.to_string al))
+             | Diseq (name,al) -> sprintf "%s<>%s" name (String.concat "|" (List.map Feature_value.to_string al))
              | Absent name -> sprintf "!%s" name
            ) l
         )
@@ -251,8 +251,8 @@ module Label_cst = struct
     | _ -> false
 
   let build_atom = function
-    | Ast.Atom_eq (name, atoms) -> Eq (name, List.map (typed_vos name) (List.sort Stdlib.compare atoms))
-    | Ast.Atom_diseq (name, atoms) -> Diseq (name, List.map (typed_vos name) (List.sort Stdlib.compare atoms))
+    | Ast.Atom_eq (name, atoms) -> Eq (name, List.map (Feature_value.parse name) (List.sort Stdlib.compare atoms))
+    | Ast.Atom_diseq (name, atoms) -> Diseq (name, List.map (Feature_value.parse name) (List.sort Stdlib.compare atoms))
     | Ast.Atom_absent name -> Absent name
 
   let of_ast ?loc ~config = function

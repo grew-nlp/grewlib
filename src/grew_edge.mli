@@ -27,18 +27,18 @@ module G_edge: sig
   val ordering: t -> bool
   val enhanced: t -> bool
 
-  val from_items: (string * feature_value) list -> t
+  val from_items: (string * Feature_value.t) list -> t
 
   (**  WARNING: [s] is supposed to be a compact representation. *)
   val from_string: config:Conllx_config.t -> string -> t
 
   (** [get_sub_opt f t] returns Some v if (f,v) is defined in t.
       [Error.run] is raise if [t] is a special edge *)
-  val get_sub_opt: string -> t -> feature_value option
+  val get_sub_opt: string -> t -> Feature_value.t option
 
   (** [update f v t] updates of adds [(f,v)] in [t].
       [Error.run] is raise if [t] is a special edge *)
-  val update: string -> feature_value -> t -> t
+  val update: string -> Feature_value.t -> t -> t
 
   (** [remove_feat_opt f t] returns [Some t'] if [f] is defined in t, [None] else.
       [Error.run] is raise if [t] is a special edge *)

@@ -203,13 +203,13 @@ module G_graph: sig
 
   (** [update_feat graph tar_id tar_feat_name value] sets the feature of the node [tar_id]
       with feature name [tar_feat_name] to be [value]. *)
-  val update_feat: ?loc:Loc.t -> t -> Gid.t -> string -> feature_value -> t
+  val update_feat: ?loc:Loc.t -> t -> Gid.t -> string -> Feature_value.t -> t
 
   (** [concat_feats_opt graph side src_id tar_id separator regexp] copy all feats of nodes [src_id] that match [regexp] to the node [tar_id].
       If a feature of the same name already exists in [tar_id], the two values are concatenated (separated by [separator]).
       The output is [None] if no changes are made on [tar_id], [Some (new_graph, trace)] else where [trace] is the list of updated features in [tar_id]
   *)
-  val concat_feats_opt: ?loc:Loc.t -> t -> Ast.side ->  Gid.t -> Gid.t -> string -> string -> (t * (string * feature_value) list) option
+  val concat_feats_opt: ?loc:Loc.t -> t -> Ast.side ->  Gid.t -> Gid.t -> string -> string -> (t * (string * Feature_value.t) list) option
 
   (** [del_feat_opt graph node_id feat_name] returns [graph] where the feat [feat_name] of [node_id] is deleted
       If the feature is not present, [None] is returned. *)
@@ -268,7 +268,7 @@ module Delta : sig
   val del_node: Gid.t -> t -> t
   val add_edge: Gid.t -> G_edge.t -> Gid.t -> t -> t
   val del_edge: Gid.t -> G_edge.t -> Gid.t -> t -> t
-  val set_feat: G_graph.t -> Gid.t -> string -> feature_value option -> t -> t
+  val set_feat: G_graph.t -> Gid.t -> string -> Feature_value.t option -> t -> t
   val unorder: Gid.t -> t -> t
   val insert_before: Gid.t -> Gid.t -> t -> t
   val insert_after: Gid.t -> Gid.t -> t -> t

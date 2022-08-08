@@ -81,7 +81,7 @@ module Pattern = struct
     (*   N.upos = VERB   *)
     (*   e.2 = comp   *)
     (*   e.2 <> comp   *)
-    | Feature_cmp_value of Cmp.t *base * string * feature_value
+    | Feature_cmp_value of Cmp.t *base * string * Feature_value.t
     (*   e.2 = re"…"   *)
     | Feature_cmp_regexp of Cmp.t * base * string * string
     (*   e1.level < e2.level   *)
@@ -119,7 +119,7 @@ module Pattern = struct
                 ("cmp", `String (Cmp.to_string cmp));
                 ("id", json_of_base id);
                 ("feature_name_", `String fn);
-                ("value", json_of_value value);
+                ("value", Feature_value.to_json value);
               ]
              ]
     | Feature_cmp_regexp (cmp,id,fn,regexp) ->
@@ -359,7 +359,7 @@ module Matching = struct
           end
         | (Some edge, "length") -> string_of_int <$> (G_graph.edge_length_opt edge graph)
         | (Some edge, "delta") -> string_of_int <$> (G_graph.edge_delta_opt edge graph)
-        | (Some (_,edge,_), _) -> string_of_value <$> (G_edge.get_sub_opt feature_name edge)
+        | (Some (_,edge,_), _) -> Feature_value.to_string <$> (G_edge.get_sub_opt feature_name edge)
         | (None, _) ->
           begin
             match get_pid_by_name pattern node_or_edge_id matching.n_match with
@@ -368,7 +368,7 @@ module Matching = struct
               let gid = Pid_map.find pid matching.n_match in
               let node = G_graph.find gid graph in
               let fs = G_node.get_fs node in
-              CCOption.map string_of_value (G_fs.get_value_opt feature_name fs)
+              CCOption.map Feature_value.to_string (G_fs.get_value_opt feature_name fs)
           end
       end
     | _ -> Error.run "[Matching.get_string_value_opt] unable to handled request %s" request
@@ -460,7 +460,7 @@ module Matching = struct
     }
 
   type out =
-    | Value of feature_value
+    | Value of Feature_value.t
     | Lex of (string * string)
 
   (*  ---------------------------------------------------------------------- *)
@@ -522,7 +522,7 @@ module Matching = struct
         | (Lex (lexicon,field), Value v) ->
           let old_lex = List.assoc lexicon matching.l_param in
           begin
-            match Lexicon.filter_opt cmp field (string_of_value v) old_lex with
+            match Lexicon.filter_opt cmp field (Feature_value.to_string v) old_lex with
             | None -> raise Fail
             | Some new_lex -> {matching with l_param = (lexicon, new_lex) :: (List.remove_assoc lexicon matching.l_param) }
           end
@@ -535,7 +535,7 @@ module Matching = struct
         | Lex (lexicon,field) ->
           let old_lex = List.assoc lexicon matching.l_param in
           begin
-            match Lexicon.filter_opt cmp field (string_of_value value) old_lex with
+            match Lexicon.filter_opt cmp field (Feature_value.to_string value) old_lex with
             | None -> raise Fail
             | Some new_lex -> {matching with l_param = (lexicon, new_lex) :: (List.remove_assoc lexicon matching.l_param) }
           end
@@ -1029,7 +1029,7 @@ module Rule = struct
     let node_find cnode = onf_find ~loc cnode (matching, state.created_nodes) in
 
     let feature_value_of_item feat_name = function
-      | (Command.String_item s, range) -> get_range_feature_value range (typed_vos feat_name s)
+      | (Command.String_item s, range) -> Feature_value.extract_range range (Feature_value.parse feat_name s)
       | (Command.Node_feat (cnode, feat_name), range) ->
         let gid = node_find cnode in
         let node = G_graph.find gid state.graph in
@@ -1037,7 +1037,7 @@ module Rule = struct
         begin
           match G_fs.get_value_opt feat_name fs with
           | None -> Error.run ~loc "Node feature named `%s` is undefined" feat_name
-          | Some v -> get_range_feature_value range v
+          | Some v -> Feature_value.extract_range range v
         end
       | (Command.Edge_feat (edge_id, feat_name), range) ->
         begin
@@ -1048,13 +1048,13 @@ module Rule = struct
             then
               begin
                 match G_edge.to_string_opt ~config edge with
-                | Some s -> get_range_feature_value range (String s)
+                | Some s -> Feature_value.extract_range range (String s)
                 | None -> Error.run "Cannot use not regular edge label as a concat item"
               end
             else
               match G_edge.get_sub_opt feat_name edge with
               | None -> Error.run ~loc "[onf_apply_command] Edge feature named %s is undefined" feat_name
-              | Some fv -> get_range_feature_value range fv
+              | Some fv -> Feature_value.extract_range range fv
         end
       | (Command.Lexical_field (lex_id, field), range) ->
         begin
@@ -1063,7 +1063,7 @@ module Rule = struct
           | Some lexicon ->
             match Lexicon.get_opt field lexicon with
             | None -> Error.bug "Inconsistent lexicon lex_id=%s field=%s" lex_id field
-            | Some value -> get_range_feature_value range (typed_vos feat_name value)
+            | Some value -> Feature_value.extract_range range (Feature_value.parse feat_name value)
         end in
 
     match command with
@@ -1113,7 +1113,7 @@ module Rule = struct
                    | Some new_value -> (name, new_value)
                    | None -> Error.run ~loc "ADD_EDGE_ITEMS: no items edge feature name '%s' in matched edge '%s'" feat_name edge_id
                end
-             | _ -> (name, typed_vos name value)
+             | _ -> (name, Feature_value.parse name value)
           ) items in
       let edge = G_edge.from_items direct_items in
       begin
@@ -1181,7 +1181,7 @@ module Rule = struct
               end
             | _ ->
               let feature_value_list = List.map (feature_value_of_item feat_name) item_list in
-              let new_feature_value = concat_feature_values ~loc feature_value_list in
+              let new_feature_value = Feature_value.concat ~loc feature_value_list in
               G_edge.update feat_name new_feature_value old_edge in
           let new_state_opt =
             if new_edge = old_edge
@@ -1222,7 +1222,7 @@ module Rule = struct
     | Command.UPDATE_FEAT (tar_cn, tar_feat_name, item_list) ->
       let tar_gid = node_find tar_cn in
       let feature_value_list = List.map (feature_value_of_item tar_feat_name) item_list in
-      let new_feature_value = concat_feature_values ~loc feature_value_list in
+      let new_feature_value = Feature_value.concat ~loc feature_value_list in
       let new_graph = G_graph.update_feat ~loc state.graph tar_gid tar_feat_name new_feature_value in
       {state with graph = new_graph; effective = true}
 
@@ -1373,7 +1373,7 @@ module Rule = struct
     let node_find cnode = find ~loc cnode gwh matching in
 
     let feature_value_list_of_item feat_name = function
-      | (Command.String_item s, range) -> [get_range_feature_value range (typed_vos feat_name s)]
+      | (Command.String_item s, range) -> [Feature_value.extract_range range (Feature_value.parse feat_name s)]
       | (Command.Node_feat (cnode, feat_name), range) ->
         let gid = node_find cnode in
         let node = G_graph.find gid gwh.graph in
@@ -1381,7 +1381,7 @@ module Rule = struct
         begin
           match G_fs.get_value_opt feat_name fs with
           | None -> Error.run ~loc "Node feature named `%s` is undefined" feat_name
-          | Some v -> [get_range_feature_value range v]
+          | Some v -> [Feature_value.extract_range range v]
         end
       | (Command.Edge_feat (edge_id, feat_name), range) ->
         begin
@@ -1394,13 +1394,13 @@ module Rule = struct
               | None -> Error.run ~loc "The edge identifier '%s' is undefined" edge_id in
           match G_edge.get_sub_opt feat_name edge with
           | None -> Error.run ~loc "[gwh_apply_command] Edge feature named %s is undefined" feat_name
-          | Some fv -> [get_range_feature_value range fv]
+          | Some fv -> [Feature_value.extract_range range fv]
         end
       | (Command.Lexical_field (lex_id, field), range) ->
         begin
           match List.assoc_opt lex_id matching.l_param with
           | None -> Error.run ~loc "Undefined lexicon %s" lex_id
-          | Some lexicon -> List.map (fun x -> get_range_feature_value range (typed_vos feat_name x)) (Lexicon.read_all field lexicon)
+          | Some lexicon -> List.map (fun x -> Feature_value.extract_range range (Feature_value.parse feat_name x)) (Lexicon.read_all field lexicon)
         end in
 
     match command with
@@ -1454,7 +1454,7 @@ module Rule = struct
                 | Some new_value -> (name, new_value)
                 | None -> Error.run ~loc "ADD_EDGE_ITEMS: no items edge feature name '%s' in matched edge '%s'" feat_name edge_id
             end
-          | _ -> (name, typed_vos name value)
+          | _ -> (name, Feature_value.parse name value)
         ) items in
       let edge = G_edge.from_items direct_items in
       begin
@@ -1521,7 +1521,7 @@ module Rule = struct
         |> List.map (feature_value_list_of_item tar_feat_name)
         |> CCList.cartesian_product in
 
-      let new_feature_value_list = List.map concat_feature_values new_feature_value_list_list in
+      let new_feature_value_list = List.map Feature_value.concat new_feature_value_list_list in
 
       let new_graphs = List.fold_left
           (fun acc new_feature_value ->
@@ -1586,12 +1586,12 @@ module Rule = struct
               |> List.map (feature_value_list_of_item feat_name)
               |> CCList.cartesian_product in
 
-            let new_feature_value_list = List.map concat_feature_values new_feature_value_list_list in
+            let new_feature_value_list = List.map Feature_value.concat new_feature_value_list_list in
             List.fold_left
               (fun acc new_feature_value ->
                  let test_new_edge =
                    match (feat_name, new_feature_value) with
-                   | ("label", String s) -> G_edge.from_string ~config s
+                   | ("label", Feature_value.String s) -> G_edge.from_string ~config s
                    | ("label", Float _) -> Error.run "Cannot set a edge feature label as numeric"
                    | _ -> G_edge.update feat_name new_feature_value old_edge in
                  if test_new_edge = old_edge

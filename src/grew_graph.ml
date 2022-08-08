@@ -563,12 +563,12 @@ module G_graph = struct
                let fs =
                  try
                    (* if [json_edge] is of type string, it is interpreted as [1=value] *)
-                   try [("1", typed_vos "1" (json_edge |> member "label" |> to_string))]
+                   try [("1", Feature_value.parse "1" (json_edge |> member "label" |> to_string))]
                    with Type_error _ ->
                      json_edge
                      |> member "label"
                      |> to_assoc
-                     |> List.map (fun (x,y) -> (x,typed_vos x (to_string y))) 
+                     |> List.map (fun (x,y) -> (x,Feature_value.parse x (to_string y))) 
                  with Type_error _ -> 
                    Error.build
                      "[G_graph.of_json%s] Cannot parse field json `edge` (See https://grew.fr/doc/json):\n%s"
@@ -1425,7 +1425,7 @@ module G_graph = struct
 
     let layers = Gid_map.fold
         (fun id node acc ->
-           let layer_opt = G_fs.get_value_opt "layer" (G_node.get_fs node) |> CCOption.map string_of_value in
+           let layer_opt = G_fs.get_value_opt "layer" (G_node.get_fs node) |> CCOption.map Feature_value.to_string in
            let prev = match Layers.find_opt layer_opt acc with
              | None -> []
              | Some l -> l in
@@ -1489,7 +1489,7 @@ module G_graph = struct
       (fun _ node acc ->
          match G_fs.get_value_opt feature_name (G_node.get_fs node) with
          | None -> acc
-         | Some v -> String_set.add (string_of_value v) acc
+         | Some v -> String_set.add (Feature_value.to_string v) acc
       ) t.map String_set.empty
 
   let get_relations ~config t =
@@ -1700,7 +1700,7 @@ module Delta = struct
     del_nodes: Gid.t list;
     ordered_nodes: Gid.t list;
     edges: ((Gid.t * G_edge.t * Gid.t) * status) list;
-    feats: ((Gid.t * string) * (feature_value option)) list;
+    feats: ((Gid.t * string) * (Feature_value.t option)) list;
   }
 
   let init ordered_nodes = { del_nodes=[]; ordered_nodes; edges=[]; feats=[]; }

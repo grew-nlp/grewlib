@@ -16,22 +16,11 @@ open Grew_ast
 
 let decode_feat_name s = Str.global_replace (Str.regexp "__\\([0-9a-z]+\\)$") "[\\1]" s
 
-(* ================================================================================ *)
-module Feature_value = struct
-  let build_disj ?loc name unsorted_values =
-    let values = List.sort Stdlib.compare unsorted_values in
-    List.map (fun s -> typed_vos name s) values (* no check on feat_name starting with '_' *)
-
-  let build_value ?loc name value =
-    match build_disj ?loc name [value] with
-    | [x] -> x
-    | _ -> Error.bug ?loc "[Feature_value.build_value]"
-end (* module Feature_value *)
 
 (* ================================================================================ *)
 module G_feature = struct
 
-  type t = string * feature_value
+  type t = string * Feature_value.t
 
   let get_name = fst
 
@@ -51,14 +40,14 @@ module G_feature = struct
       (name, Feature_value.build_value ~loc name atom)
     | (uf,loc) -> Error.build ~loc "in graph nodes, features must follow the shape \"name = value\" (error on feature: \"%s\")" (Ast.u_feature_to_string uf)
 
-  let to_string (feat_name, feat_val) = sprintf "%s=%s" feat_name (string_of_value feat_val)
+  let to_string (feat_name, feat_val) = sprintf "%s=%s" feat_name (Feature_value.to_string feat_val)
 
-  let to_gr (feat_name, feat_val) = sprintf "%s=\"%s\"" feat_name (string_of_value feat_val)
+  let to_gr (feat_name, feat_val) = sprintf "%s=\"%s\"" feat_name (Feature_value.to_string feat_val)
 
-  let to_json (feat_name, feat_val) = (feat_name, `String (conll_string_of_value feat_val))
+  let to_json (feat_name, feat_val) = (feat_name, `String (Feature_value.to_conll feat_val))
 
   let buff_dot buff (feat_name, feat_val) =
-    let string_val = string_of_value feat_val in
+    let string_val = Feature_value.to_string feat_val in
     match Str.split (Str.regexp ":C:") string_val with
     | [] -> bprintf buff "<TR><TD ALIGN=\"right\">%s</TD><TD>=</TD><TD ALIGN=\"left\"></TD></TR>\n" (decode_feat_name feat_name)
     | fv::_ -> bprintf buff "<TR><TD ALIGN=\"right\">%s</TD><TD>=</TD><TD ALIGN=\"left\">%s</TD></TR>\n" (decode_feat_name feat_name) fv
@@ -68,11 +57,11 @@ end (* module G_feature *)
 module P_feature = struct
 
   type p_feature_value =
-    | Pfv_list of Cmp.t * feature_value list (* value (Eq,[]) must not be used *)
+    | Pfv_list of Cmp.t * Feature_value.t list (* value (Eq,[]) must not be used *)
     | Pfv_lex of Cmp.t * string * string
     | Pfv_re of Cmp.t * string
     | Absent
-    | Else of (feature_value * string * feature_value)
+    | Else of (Feature_value.t * string * Feature_value.t)
 
   type t = string * p_feature_value
 
@@ -86,22 +75,22 @@ module P_feature = struct
       feature_name
       (match p_feature_value with
        | Pfv_list (Neq, []) -> "=*"
-       | Pfv_list (cmp,l) -> sprintf "%s%s" (Cmp.to_string cmp) (String.concat "|" (List.map string_of_value l))
+       | Pfv_list (cmp,l) -> sprintf "%s%s" (Cmp.to_string cmp) (String.concat "|" (List.map Feature_value.to_string l))
        | Pfv_lex (cmp,lex,fn) -> sprintf "%s %s.%s" (Cmp.to_string cmp) lex fn
        | Pfv_re (cmp,re) -> sprintf "%s re\"%s\"" (Cmp.to_string cmp) re
        | Absent -> " must be Absent!"
-       | Else (fv1,fn2,fv2) -> sprintf " = %s/%s = %s" (string_of_value fv1) fn2 (string_of_value fv2));
+       | Else (fv1,fn2,fv2) -> sprintf " = %s/%s = %s" (Feature_value.to_string fv1) fn2 (Feature_value.to_string fv2));
     printf "%!"
 
   let to_json_python (feature_name, p_feature_value) =
     `Assoc [
       ("feature_name", `String feature_name);
       ( match p_feature_value with
-        | Pfv_list (cmp,val_list) -> (Cmp.to_string cmp, `List (List.map (fun x -> `String (string_of_value x)) val_list))
+        | Pfv_list (cmp,val_list) -> (Cmp.to_string cmp, `List (List.map (fun x -> `String (Feature_value.to_string x)) val_list))
         | Pfv_lex (cmp,lex,fn) -> (Cmp.to_string cmp, `String (sprintf "%s.%s" lex fn))
         | Pfv_re (cmp,re) -> (Cmp.to_string cmp, `String (sprintf "re\"%s\"" re))
         | Absent -> ("absent", `Null)
-        | Else (fv1,fn2,fv2) -> ("else", `List [`String (string_of_value fv1); `String fn2; `String (string_of_value fv2)]);
+        | Else (fv1,fn2,fv2) -> ("else", `List [`String (Feature_value.to_string fv1); `String fn2; `String (Feature_value.to_string fv2)]);
       )
     ]
 
@@ -131,11 +120,11 @@ module P_feature = struct
 
   let to_string = function
     | (feat_name, Pfv_list (Neq,[])) -> sprintf "%s=*" feat_name
-    | (feat_name, Pfv_list (cmp,atoms)) -> sprintf "%s%s%s" feat_name (Cmp.to_string cmp) (List_.to_string string_of_value "|" atoms)
+    | (feat_name, Pfv_list (cmp,atoms)) -> sprintf "%s%s%s" feat_name (Cmp.to_string cmp) (List_.to_string Feature_value.to_string "|" atoms)
     | (feat_name, Pfv_lex (cmp,lex,fn)) -> sprintf "%s%s%s.%s" feat_name (Cmp.to_string cmp) lex fn
     | (feat_name, Pfv_re (cmp,re)) -> sprintf "%s%sre\"%s\"" feat_name (Cmp.to_string cmp) re
     | (feat_name, Absent) -> sprintf "!%s" feat_name
-    | (feat_name, Else (fv1,fn2,fv2)) -> sprintf "%s=%s/%s=%s" feat_name (string_of_value fv1) fn2 (string_of_value fv2)
+    | (feat_name, Else (fv1,fn2,fv2)) -> sprintf "%s=%s/%s=%s" feat_name (Feature_value.to_string fv1) fn2 (Feature_value.to_string fv2)
 
   let build lexicons = function
     | ({Ast.kind=Ast.Feat_kind_list (cmp,unsorted_values); name=name}, loc) ->
@@ -197,7 +186,7 @@ module G_fs = struct
 
   (* ---------------------------------------------------------------------- *)
   let to_json = function
-    | ["label", String label] -> `String label
+    | ["label", Feature_value.String label] -> `String label
     | feat_list -> `Assoc (List.map G_feature.to_json feat_list)
 
   (* ---------------------------------------------------------------------- *)
@@ -207,7 +196,7 @@ module G_fs = struct
 
   (* ---------------------------------------------------------------------- *)
   let of_items items =
-    let unsorted = List.map (fun (f,v) -> (f, typed_vos f v)) items in
+    let unsorted = List.map (fun (f,v) -> (f, Feature_value.parse f v)) items in
     List.sort G_feature.compare unsorted
 
   (* ---------------------------------------------------------------------- *)
@@ -217,8 +206,8 @@ module G_fs = struct
   (* ---------------------------------------------------------------------- *)
   let concat_values ?loc side separator v1 v2 =
     match (side, v1, v2) with
-    | (Ast.Append, String v1, String v2) -> String (v1 ^ separator ^ v2)
-    | (Ast.Prepend, String v1, String v2) -> String (v2 ^ separator ^ v1)
+    | (Ast.Append, Feature_value.String v1, Feature_value.String v2) -> Feature_value.String (v1 ^ separator ^ v2)
+    | (Ast.Prepend, Feature_value.String v1, Feature_value.String v2) -> Feature_value.String (v2 ^ separator ^ v1)
     | _ -> Error.run "Cannot concat numerical values"
 
   (* ---------------------------------------------------------------------- *)
@@ -276,7 +265,7 @@ module G_fs = struct
       match get_main ?main_feat t with
       | (None, sub) -> sub
       | (Some (feat_name,atom), sub) ->
-        let s = match string_of_value atom with "" -> "_" | x -> x in (* Bug in dot if empty *)
+        let s = match Feature_value.to_string atom with "" -> "_" | x -> x in (* Bug in dot if empty *)
         if is_highlithed feat_name
         then bprintf buff "<TR><TD COLSPAN=\"3\" BGCOLOR=\"#00FF00\"><B>%s</B></TD></TR>\n" s
         else bprintf buff "<TR><TD COLSPAN=\"3\"><B>%s</B></TD></TR>\n" s;
@@ -294,13 +283,13 @@ module G_fs = struct
   (* ---------------------------------------------------------------------- *)
   let to_word_opt (t:t) =
     match List_.sort_assoc_opt "_UD_empty" t with
-    | Some v when string_of_value v = "Yes" -> None
+    | Some v when Feature_value.to_string v = "Yes" -> None
     | _ ->
       match List_.sort_assoc_opt "phon" t with
-      | Some s -> Some (string_of_value s)
+      | Some s -> Some (Feature_value.to_string s)
       | None ->
         match List_.sort_assoc_opt "form" t with
-        | Some s -> Some (string_of_value s)
+        | Some s -> Some (Feature_value.to_string s)
         | None -> None
 
   (* ---------------------------------------------------------------------- *)
@@ -323,15 +312,15 @@ module G_fs = struct
     let sub = List.sort G_feature.print_cmp sub in
 
     let color = match (get_value_opt "parseme" t, get_value_opt "frsemcor" t) with
-      | (Some (String "NE"), None) -> ":C:#ff760b"
-      | (Some (String "MWE"), None) -> ":C:#1d7df2"
+      | (Some (Feature_value.String "NE"), None) -> ":C:#ff760b"
+      | (Some (Feature_value.String "MWE"), None) -> ":C:#1d7df2"
       | (None, Some _) -> ":C:#12CD56"
       | _ -> "" in
 
     let main = match main_opt with
       | None -> []
       | Some (feat_name, atom) ->
-        let esc_atom = escape_sharp (string_of_value atom) in
+        let esc_atom = escape_sharp (Feature_value.to_string atom) in
         let text = esc_atom ^ color in
         [ if is_highlithed feat_name
           then sprintf "%s:B:#8bf56e" text
@@ -370,12 +359,12 @@ module G_fs = struct
       List.sort
         (fun feat1 feat2 -> Stdlib.compare (String.lowercase_ascii (G_feature.get_name feat1)) (String.lowercase_ascii (G_feature.get_name feat2)))
         reduced_t in
-    List.map (fun (fn, fv) -> (fn, string_of_value fv)) ud_ordering
+    List.map (fun (fn, fv) -> (fn, Feature_value.to_string fv)) ud_ordering
 
-  let to_json_python t = `Assoc (List.map (fun (fn, fv) -> (fn, `String (string_of_value fv))) t)
+  let to_json_python t = `Assoc (List.map (fun (fn, fv) -> (fn, `String (Feature_value.to_string fv))) t)
 
   (* ---------------------------------------------------------------------- *)
-  let to_raw t = List.map (fun (name, value) -> (name, string_of_value value)) t
+  let to_raw t = List.map (fun (name, value) -> (name, Feature_value.to_string value)) t
 end (* module G_fs *)
 
 (* ================================================================================ *)
@@ -446,8 +435,8 @@ module P_fs = struct
       | ((_, P_feature.Pfv_list (Eq,fv))::_, (_, atom)::t) when not (List_.sort_mem atom fv) -> raise Fail
       | ((_, P_feature.Pfv_list (Neq,fv))::_, (_, atom)::t) when (List_.sort_mem atom fv) -> raise Fail
 
-      | ((_, P_feature.Pfv_re (Eq,re))::_, (_, atom)::t) when not (String_.re_match (Str.regexp re) (string_of_value atom)) -> raise Fail
-      | ((_, P_feature.Pfv_re (Neq,re))::_, (_, atom)::t) when (String_.re_match (Str.regexp re) (string_of_value atom)) -> raise Fail
+      | ((_, P_feature.Pfv_re (Eq,re))::_, (_, atom)::t) when not (String_.re_match (Str.regexp re) (Feature_value.to_string atom)) -> raise Fail
+      | ((_, P_feature.Pfv_re (Neq,re))::_, (_, atom)::t) when (String_.re_match (Str.regexp re) (Feature_value.to_string atom)) -> raise Fail
 
       | ((_, P_feature.Else (fv,_,_))::_, (_, atom)::t) when atom <> fv -> raise Fail
 
@@ -455,7 +444,7 @@ module P_fs = struct
         begin
           try
             let lexicon = List.assoc lex_id acc in
-            match Lexicon.filter_opt cmp field (string_of_value atom) lexicon with
+            match Lexicon.filter_opt cmp field (Feature_value.to_string atom) lexicon with
             | None -> raise Fail
             | Some new_lexicon ->
               let new_acc = (lex_id, new_lexicon) :: (List.remove_assoc lex_id acc) in
