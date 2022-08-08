@@ -47,7 +47,7 @@ module Ast = struct
 
   (* ---------------------------------------------------------------------- *)
   (* feature_ident: V.cat *)
-  type feature_ident = Id.name * feature_name
+  type feature_ident = Id.name * string
   let dump_feature_ident (name, feat_name) = sprintf "%s.%s" name feat_name
 
   let parse_feature_ident s =
@@ -75,22 +75,22 @@ module Ast = struct
 
   (* ---------------------------------------------------------------------- *)
   type feature_kind =
-    | Feat_kind_list of cmp * string list
-    | Feat_kind_lex of cmp * string * string
-    | Feat_kind_re of cmp * string
+    | Feat_kind_list of Cmp.t * string list
+    | Feat_kind_lex of Cmp.t * string * string
+    | Feat_kind_re of Cmp.t * string
     | Absent
-    | Else of (string * feature_name * string)
+    | Else of (string * string * string)
 
   let feature_kind_to_string = function
     | Feat_kind_list (Neq, []) -> ""
-    | Feat_kind_list (cmp, fv_list) -> sprintf " %s %s" (string_of_cmp cmp) (String.concat "|" fv_list)
-    | Feat_kind_lex (cmp,lex,fn) -> sprintf " %s %s.%s" (string_of_cmp cmp) lex fn
-    | Feat_kind_re (cmp,re) -> sprintf " %s re\"%s\"" (string_of_cmp cmp) re
+    | Feat_kind_list (cmp, fv_list) -> sprintf " %s %s" (Cmp.to_string cmp) (String.concat "|" fv_list)
+    | Feat_kind_lex (cmp,lex,fn) -> sprintf " %s %s.%s" (Cmp.to_string cmp) lex fn
+    | Feat_kind_re (cmp,re) -> sprintf " %s re\"%s\"" (Cmp.to_string cmp) re
     | Absent -> " <> *"
     | Else (fv1, fn2, fv2) -> sprintf " = %s/%s = %s" fv1 fn2 fv2
 
   type u_feature = {
-    name: feature_name;
+    name: string;
     kind: feature_kind;
   }
   let u_feature_to_string uf =
@@ -163,11 +163,11 @@ module Ast = struct
   type u_const =
     | Cst_out of Id.name * edge_label_cst
     | Cst_in of Id.name * edge_label_cst
-    | Feature_cmp of cmp * feature_ident * feature_ident
+    | Feature_cmp of Cmp.t * feature_ident * feature_ident
     | Feature_ineq of ineq * feature_ident * feature_ident
     | Feature_ineq_cst of ineq * feature_ident * float
-    | Feature_cmp_regexp of cmp * feature_ident * string
-    | Feature_cmp_value of cmp * feature_ident * feature_value
+    | Feature_cmp_regexp of Cmp.t * feature_ident * string
+    | Feature_cmp_value of Cmp.t * feature_ident * feature_value
     | Large_prec of Id.name * Id.name
     | Edge_disjoint of Id.name * Id.name
     | Edge_crossing of Id.name * Id.name
@@ -336,9 +336,9 @@ module Ast = struct
   type label_spec = string * string list
 
   type feature_spec =
-    | Closed of feature_name * string list (* cat:V,N *)
-    | Open of feature_name (* phon, lemma, ... *)
-    | Num of feature_name (* position *)
+    | Closed of string * string list (* cat:V,N *)
+    | Open of string (* phon, lemma, ... *)
+    | Num of string (* position *)
 
   let build_closed feature_name string_feature_values =
     let sorted_list = List.sort Stdlib.compare string_feature_values in
@@ -532,7 +532,7 @@ module Lexicon = struct
     match List_.index_opt head lex.header with
     | None -> Error.build ?loc:lex.loc "[Lexicon.filter_opt] cannot find the fiels \"%s\" in lexicon" head
     | Some index ->
-      let new_set = Line_set.filter (fun line -> cmp_fct cmp (List.nth line index) value) lex.lines in
+      let new_set = Line_set.filter (fun line -> Cmp.fct cmp (List.nth line index) value) lex.lines in
       if Line_set.is_empty new_set
       then None
       else Some { lex with lines = new_set }

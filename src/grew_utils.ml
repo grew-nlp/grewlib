@@ -9,12 +9,33 @@
 (**********************************************************************************)
 
 open Printf
-
 open Grew_types
 
-type cmp = Eq | Neq
-let string_of_cmp = function Eq -> "=" | Neq -> "<>"
-let cmp_fct cmp = match cmp with Eq -> (=) | Neq -> (<>)
+
+(* ================================================================================ *)
+module Cmp = struct
+  (** This module introduces a two values types for Equalty / Disequality *)
+
+  type t = Eq | Neq
+
+  let to_string = function Eq -> "=" | Neq -> "<>"
+
+  let fct = function Eq -> (=) | Neq -> (<>)
+  (** [fct t] return a function of type 'a -> 'a -> bool which corresponds either to equlaity or disequality *)
+end
+
+(* ================================================================================ *)
+module Range = struct
+  type t = (int option * int option)
+
+  let to_string = function
+    | (None, None) -> ""
+    | (Some x, None) -> sprintf "[%d:]" x
+    | (None, Some y) -> sprintf "[:%d]" y
+    | (Some x, Some y) -> sprintf "[%d:%d]" x y
+
+  let to_json r = `String (to_string r) 
+end (* module Range *)
 
 
 (* ================================================================================ *)
@@ -69,18 +90,6 @@ module Error = struct
 
 end (* module Error *)
 
-(* ================================================================================ *)
-module Range = struct
-  type t = (int option * int option)
-
-  let to_string = function
-    | (None, None) -> ""
-    | (Some x, None) -> sprintf "[%d:]" x
-    | (None, Some y) -> sprintf "[:%d]" y
-    | (Some x, Some y) -> sprintf "[%d:%d]" x y
-
-  let to_json r = `String (to_string r) 
-end (* module Range *)
 
 (* ================================================================================ *)
 module String_ = struct
@@ -830,8 +839,7 @@ end
 
 
 
-type feature_name = string (* upos, Gender, … *)
-
+(* ================================================================================ *)
 type feature_value =
   | String of string
   | Float of float

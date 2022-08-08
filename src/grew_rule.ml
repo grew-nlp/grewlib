@@ -77,13 +77,13 @@ module Pattern = struct
     (*   e1.2 = e2.2   *)
     (*   N.upos = lex.pos   *)
     (*   N.upos <> M.upos   *)
-    | Feature_cmp of cmp * base * string * base * string
+    | Feature_cmp of Cmp.t * base * string * base * string
     (*   N.upos = VERB   *)
     (*   e.2 = comp   *)
     (*   e.2 <> comp   *)
-    | Feature_cmp_value of cmp *base * string * feature_value
+    | Feature_cmp_value of Cmp.t *base * string * feature_value
     (*   e.2 = re"…"   *)
-    | Feature_cmp_regexp of cmp * base * string * string
+    | Feature_cmp_regexp of Cmp.t * base * string * string
     (*   e1.level < e2.level   *)
     | Feature_ineq of Ast.ineq * base * string * base * string
     (*   e1.level < 3   *)
@@ -106,7 +106,7 @@ module Pattern = struct
     | Feature_cmp (cmp,id1,fn1,id2,fn2) ->
       `Assoc ["features_cmp",
               `Assoc [
-                ("cmp", `String (string_of_cmp cmp));
+                ("cmp", `String (Cmp.to_string cmp));
                 ("id1", json_of_base id1);
                 ("feature_name_1", `String fn1);
                 ("id2", json_of_base id1);
@@ -116,7 +116,7 @@ module Pattern = struct
     | Feature_cmp_value (cmp,id,fn,value) ->
       `Assoc ["feature_cmp_cst",
               `Assoc [
-                ("cmp", `String (string_of_cmp cmp));
+                ("cmp", `String (Cmp.to_string cmp));
                 ("id", json_of_base id);
                 ("feature_name_", `String fn);
                 ("value", json_of_value value);
@@ -125,7 +125,7 @@ module Pattern = struct
     | Feature_cmp_regexp (cmp,id,fn,regexp) ->
       `Assoc ["feature_eq_regexp",
               `Assoc [
-                ("cmp", `String (string_of_cmp cmp));
+                ("cmp", `String (Cmp.to_string cmp));
                 ("id", json_of_base id);
                 ("feature_name", `String fn);
                 ("regexp", `String regexp);
@@ -517,7 +517,7 @@ module Matching = struct
     | Feature_cmp (cmp, base1, feat_name1, base2, feat_name2) ->
       begin
         match (get_value base1 feat_name1, get_value base2 feat_name2) with
-        | (Value v1, Value v2) -> if cmp_fct cmp v1 v2 then matching else raise Fail
+        | (Value v1, Value v2) -> if Cmp.fct cmp v1 v2 then matching else raise Fail
         | (Value v, Lex (lexicon,field))
         | (Lex (lexicon,field), Value v) ->
           let old_lex = List.assoc lexicon matching.l_param in
@@ -531,7 +531,7 @@ module Matching = struct
     | Feature_cmp_value (cmp, id1, feat_name1, value) ->
       begin
         match get_value id1 feat_name1 with
-        | Value fv when cmp_fct cmp fv value -> matching
+        | Value fv when Cmp.fct cmp fv value -> matching
         | Lex (lexicon,field) ->
           let old_lex = List.assoc lexicon matching.l_param in
           begin

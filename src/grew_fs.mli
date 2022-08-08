@@ -14,9 +14,9 @@ open Grew_ast
 
 (* ================================================================================ *)
 module Feature_value: sig
-  val build_disj: ?loc:Loc.t -> feature_name -> string list -> feature_value list
+  val build_disj: ?loc:Loc.t -> string -> string list -> feature_value list
 
-  val build_value: ?loc:Loc.t -> feature_name -> string -> feature_value
+  val build_value: ?loc:Loc.t -> string -> string -> feature_value
 end (* module Feature_value *)
 
 
@@ -31,9 +31,9 @@ module G_fs: sig
 
   (** [set_atom feature_name atom t] adds the feature ([feature_name],[atom]) in [t].
       If [t] already contains a feature named [feature_name], the old value is erased by the new one. *)
-  val set_atom: ?loc:Loc.t -> feature_name -> string -> t ->  t
+  val set_atom: ?loc:Loc.t -> string -> string -> t ->  t
 
-  val set_value: ?loc:Loc.t -> feature_name -> feature_value -> t ->  t
+  val set_value: ?loc:Loc.t -> string -> feature_value -> t ->  t
 
   (** [del_feat_opt feature_name t] remove the feature with name [feature_name] in [t].
       If [t] does not contain such a feature, None is returned. *)

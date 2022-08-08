@@ -18,7 +18,7 @@ open Grew_ast
 (* ================================================================================ *)
 module G_edge = struct
   (* [G_edge.fs] is a feature structure. The list of feature names must be ordered wrt [Stdlib.compare] *)
-  type fs = (feature_name * feature_value) list
+  type fs = (string * feature_value) list
 
   let fs_of_items l = (List.sort (fun (x,_) (y,_) -> Stdlib.compare x y) l)
 
@@ -172,11 +172,11 @@ end (* module G_edge *)
 module Label_cst = struct
   type atom_cst =
     (* 1=subj|obj *)
-    | Eq of (feature_name * feature_value list)
+    | Eq of (string * feature_value list)
     (* 1<>subj|obj   2=*  *)
-    | Diseq of (feature_name * feature_value list)
+    | Diseq of (string * feature_value list)
     (* !3 *)
-    | Absent of feature_name
+    | Absent of string
 
   type t =
     (* [comp:obj|comp@pass] *)

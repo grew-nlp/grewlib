@@ -35,7 +35,7 @@ module Ast : sig
 
   (* ---------------------------------------------------------------------- *)
   (* feature_ident: V.cat *)
-  type feature_ident = Id.name * feature_name
+  type feature_ident = Id.name * string
   val parse_feature_ident: string -> feature_ident
   val dump_feature_ident: feature_ident -> string
 
@@ -51,14 +51,14 @@ module Ast : sig
 
   (* ---------------------------------------------------------------------- *)
   type feature_kind =
-    | Feat_kind_list of cmp * string list
-    | Feat_kind_lex of cmp * string * string
-    | Feat_kind_re of cmp * string
+    | Feat_kind_list of Cmp.t * string list
+    | Feat_kind_lex of Cmp.t * string * string
+    | Feat_kind_re of Cmp.t * string
     | Absent
-    | Else of (string * feature_name * string)
+    | Else of (string * string * string)
 
   type u_feature = {
-    name: feature_name;
+    name: string;
     kind: feature_kind;
   }
   val u_feature_to_string: u_feature -> string
@@ -102,11 +102,11 @@ module Ast : sig
   type u_const =
     | Cst_out of Id.name * edge_label_cst
     | Cst_in of Id.name * edge_label_cst
-    | Feature_cmp of cmp * feature_ident * feature_ident
+    | Feature_cmp of Cmp.t * feature_ident * feature_ident
     | Feature_ineq of ineq * feature_ident * feature_ident
     | Feature_ineq_cst of ineq * feature_ident * float
-    | Feature_cmp_regexp of cmp * feature_ident * string
-    | Feature_cmp_value of cmp * feature_ident * feature_value
+    | Feature_cmp_regexp of Cmp.t * feature_ident * string
+    | Feature_cmp_value of Cmp.t * feature_ident * feature_value
     | Large_prec of Id.name * Id.name
     | Edge_disjoint of Id.name * Id.name
     | Edge_crossing of Id.name * Id.name
@@ -199,11 +199,11 @@ module Ast : sig
   type label_spec = string * string list
 
   type feature_spec =
-    | Closed of feature_name * string list (* cat:V,N *)
-    | Open of feature_name (* phon, lemma, ... *)
-    | Num of feature_name (* position *)
+    | Closed of string * string list (* cat:V,N *)
+    | Open of string (* phon, lemma, ... *)
+    | Num of string (* position *)
 
-  val build_closed: feature_name -> string list -> feature_spec
+  val build_closed: string -> string list -> feature_spec
 
   type gr = {
     meta: (string * string) list;
@@ -273,7 +273,7 @@ module Lexicon : sig
   val union: t -> t -> t
 
   (** [filter_opt head value] returns the sublexicon with only items where the [head] column is match (Eq or Neq) to [value] if any, else returns None *)
-  val filter_opt: cmp -> string -> string -> t -> t option
+  val filter_opt: Cmp.t -> string -> string -> t -> t option
 
   (** [read head lexicon] return the list of [value] of all items having in the [head] column equals to [value] *)
   val read_all: string -> t -> string list

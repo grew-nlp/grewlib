@@ -268,7 +268,7 @@ module Delta : sig
   val del_node: Gid.t -> t -> t
   val add_edge: Gid.t -> G_edge.t -> Gid.t -> t -> t
   val del_edge: Gid.t -> G_edge.t -> Gid.t -> t -> t
-  val set_feat: G_graph.t -> Gid.t -> feature_name -> feature_value option -> t -> t
+  val set_feat: G_graph.t -> Gid.t -> string -> feature_value option -> t -> t
   val unorder: Gid.t -> t -> t
   val insert_before: Gid.t -> Gid.t -> t -> t
   val insert_after: Gid.t -> Gid.t -> t -> t

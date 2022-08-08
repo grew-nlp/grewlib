@@ -11,6 +11,19 @@
 open Grew_types
 
 (* ================================================================================ *)
+module Cmp: sig
+  (** This module introduces a two values types for Equalty / Disequality *)
+
+  type t = Eq | Neq
+
+  val to_string: t -> string
+
+  val fct: t -> ('a -> 'a -> bool)
+  (** [fct t] return a function of type 'a -> 'a -> bool which corresponds either to equlaity or disequality *)
+end
+
+
+(* ================================================================================ *)
 module Range: sig
   type t = (int option * int option)
 
@@ -36,33 +49,7 @@ module Loc: sig
   val to_string: t -> string
 end
 
-type cmp = Eq | Neq
-val string_of_cmp: cmp -> string
-val cmp_fct: cmp -> ('a -> 'a -> bool)
 
-
-type feature_name = string (* upos, Gender, … *)
-
-type feature_value =
-  | String of string
-  | Float of float
-
-val get_range_feature_value: Range.t -> feature_value -> feature_value
-
-val string_of_value : feature_value -> string
-
-val conll_string_of_value : feature_value -> string
-
-val json_of_value : feature_value -> Yojson.Basic.t
-
-
-val numeric_feature_values: string list
-val typed_vos : feature_name -> string -> feature_value
-
-val concat_feature_values: ?loc:Loc.t -> feature_value list -> feature_value
-
-val parse_meta: string -> string * string
-val string_of_meta: string * string -> string
 
 
 
@@ -384,3 +371,25 @@ module Projection : sig
 
   val to_json: string list -> t -> Yojson.Basic.t
 end (* module Projection *)
+
+(* ================================================================================ *)
+type feature_value =
+  | String of string
+  | Float of float
+
+val get_range_feature_value: Range.t -> feature_value -> feature_value
+
+val string_of_value : feature_value -> string
+
+val conll_string_of_value : feature_value -> string
+
+val json_of_value : feature_value -> Yojson.Basic.t
+
+
+val numeric_feature_values: string list
+val typed_vos : string -> string -> feature_value
+
+val concat_feature_values: ?loc:Loc.t -> feature_value list -> feature_value
+
+val parse_meta: string -> string * string
+val string_of_meta: string * string -> string
