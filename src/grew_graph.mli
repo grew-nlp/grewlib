@@ -230,7 +230,7 @@ module G_graph: sig
 
   val to_json: t -> Yojson.Basic.t
 
-  val insert_clust: string list -> t -> int Clustered.t -> int Clustered.t
+  val append_in_ag_lex: string list -> t -> int Clustered.t -> int Clustered.t
 
 
   val is_projective: t -> bool

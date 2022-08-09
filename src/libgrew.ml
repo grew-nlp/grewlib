@@ -70,7 +70,7 @@ module Graph = struct
 
   let set_meta key value t = Grew_graph.G_graph.set_meta key value t
 
-  let insert_clust keys t proj = Grew_graph.G_graph.insert_clust keys t proj
+  let append_in_ag_lex feature_name_list t ag_lex = Grew_graph.G_graph.append_in_ag_lex feature_name_list t ag_lex
 
   let load_gr ~config file =
     if not (Sys.file_exists file)

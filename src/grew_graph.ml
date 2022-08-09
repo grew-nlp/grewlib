@@ -1514,12 +1514,12 @@ module G_graph = struct
            acc
       ) t.map String_set.empty
 
-  let insert_clust keys t proj = 
+  let append_in_ag_lex keys t proj = 
     fold_node 
       (fun node acc -> 
          if G_node.is_conll_zero node
          then acc
-         else G_node.insert_clust keys node acc 
+         else G_node.append_in_ag_lex keys node acc 
       ) t proj 
 
   let is_projective t =

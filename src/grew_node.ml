@@ -137,10 +137,10 @@ module G_node = struct
     | (Some name, None) -> { t with name }
     | _ -> Error.run "[G_node.unshift] Inconsistent data"
 
-  let insert_clust keys t proj =
+  let append_in_ag_lex feature_name_list t ag_lex =
     let fs = get_fs t in
-    let values = List.map (fun k -> Feature_value.to_string <$> (G_fs.get_value_opt k fs)) keys in
-    Clustered.insert values proj
+    let value_list = List.map (fun feature_name -> Feature_value.to_string <$> (G_fs.get_value_opt feature_name fs)) feature_name_list in
+    Clustered.update (fun x -> x+1) value_list 0 ag_lex
 end (* module G_node *)
 
 (* ================================================================================ *)

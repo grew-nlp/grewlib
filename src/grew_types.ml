@@ -24,41 +24,58 @@ module Int_map = Map.Make (struct type t = int let compare = Stdlib.compare end)
 (* ================================================================================ *)
 module Clustered = struct
 
-  type 'a t = 
-    | Leaf of 'a
-    | Node of 'a t String_opt_map.t
+type 'a t = 
+  | Empty of 'a (* the `null` value *)
+  | Leaf of 'a
+  | Node of 'a t String_opt_map.t
 
-  let empty = Node String_opt_map.empty
 
+let dump to_string t = 
+  let rec loop indent = function 
+  | Empty _ -> Printf.printf "__EMPTY__\n%!"
+  | Leaf a -> Printf.printf "%s%s\n%!" (String.make indent ' ') (to_string a)
+  | Node som -> 
+    String_opt_map.iter
+    (fun key a ->
+      Printf.printf "%s%s\n%!" (String.make indent ' ') (CCOption.get_or ~default:"undefined" key);
+      loop (indent+1) a
+    ) som in
+  loop 0 t
+
+let empty null = Empty null
+
+let fold_layer fct_leaf init fct_node closure t =
+  let rec loop t =
+    match t with
+    | Empty _ -> closure init
+    | Leaf l -> fct_leaf l
+    | Node som -> closure (String_opt_map.fold (fun key sub acc -> fct_node key (loop sub) acc) som init) in
+  loop t
 
   (* nbre of element *)
   let rec size = function
+    | Empty _ -> 0
     | Leaf _ -> 1
     | Node map -> String_opt_map.fold (fun _ t acc -> acc + (size t)) map 0
 
   let rec update fct path def t =
     match (path, t) with
+    | ([], Empty null) -> Leaf (fct null)
     | ([], Leaf i) -> Leaf (fct i)
+    | (value::tail, Empty null) ->
+      let sub = 
+        match tail with
+        | [] -> Leaf null
+        | _ -> Node String_opt_map.empty in
+      Node (String_opt_map.add value (update fct tail def sub) String_opt_map.empty)
     | (value::tail, Node node) ->
       let sub = 
         match (tail, String_opt_map.find_opt value node) with
-        | (_,Some t') -> t'
-        | ([],None) -> Leaf (fct def)
-        | (_,None) -> Node String_opt_map.empty in
+        | (_, Some t') -> t'
+        | ([], None) -> Leaf def
+        | (_, None) -> Node String_opt_map.empty in
       Node (String_opt_map.add value (update fct tail def sub) node)
     | _ -> failwith "[Clustered.update] inconsistent path"
-
-  let rec insert data t =
-    match (data, t) with
-    | ([], Leaf i) -> Leaf (i+1)
-    | (value::tail, Node map) ->
-      let sub = 
-        match (tail, String_opt_map.find_opt value map) with
-        | (_,Some t') -> t'
-        | ([],None) -> Leaf 0
-        | (_,None) -> Node String_opt_map.empty in
-      Node (String_opt_map.add value (insert tail sub) map)
-    | _ -> failwith "[Clustered.insert] inconsistent data"
 
   let rec prune_unambiguous depth t =
     match (depth, t) with
@@ -88,30 +105,13 @@ module Clustered = struct
     `List (loop [] keys [] t)
 
   let fold fct t init =
-    let rec loop acc path = function
-    | Leaf l -> fct acc path l
+    let rec loop path acc = function
+    | Empty _ -> init
+    | Leaf l -> fct path l acc
     | Node som ->
         String_opt_map.fold 
           (fun k v acc2 -> 
-            loop acc2 (path @ [k]) v
+            loop (path @ [k]) acc2 v
           ) som acc in
-    loop init [] t 
-    
-
-  (* nbre of occurrences *)
-  let rec cardinal = function
-  | Leaf n -> n
-  | Node map -> String_opt_map.fold (fun _ t acc -> acc + (cardinal t)) map 0
-
-  let to_json keys t = 
-    let data = 
-      fold 
-      (fun acc value_opt_list freq ->
-        `Assoc [
-          ("feats", `Assoc (List.map2 (fun key value_opt -> (key, CCOption.map_or ~default:`Null (fun x -> `String x) value_opt)) keys value_opt_list));
-          ("freq", `Int freq)
-        ] :: acc
-      ) t [] in
-    `List data
-
+    loop [] init t 
 end (* module Clustered *)
