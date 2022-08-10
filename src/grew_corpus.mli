@@ -61,4 +61,6 @@ module Corpus_desc : sig
   val compile: ?force:bool -> ?grew_match: string -> t -> unit
 
   val clean: t -> unit
+
+  val count_plus: t list -> string list -> cluster_item list -> int Clustered.t
 end

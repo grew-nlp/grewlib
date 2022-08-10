@@ -14,12 +14,15 @@ module String_set = Set.Make (String)
 
 module String_map = Map.Make (String)
 
+module String_opt_set = CCSet.Make (struct type t = string option let compare = compare end)
+
 module String_opt_map = Map.Make (struct type t = string option let compare = compare end)
 
 module Int_set = Set.Make (struct type t = int let compare = Stdlib.compare end)
 
 module Int_map = Map.Make (struct type t = int let compare = Stdlib.compare end)
 
+type cluster_item = Key of string | Whether of string
 
 (* ================================================================================ *)
 module Clustered = struct
@@ -43,6 +46,19 @@ let dump to_string t =
   loop 0 t
 
 let empty null = Empty null
+
+let get_opt null key_list t =
+  let rec loop = function
+  | ([],Empty _) -> null
+  | ([], Leaf v) -> v
+  | (key::key_tail, Node som) -> 
+    begin
+      match String_opt_map.find_opt key som with
+    | None -> null
+    | Some t' -> loop (key_tail, t')
+    end
+  | _ -> failwith "[Clustered.get_opt] inconsistent path"
+  in loop (key_list,t)
 
 let fold_layer fct_leaf init fct_node closure t =
   let rec loop t =
@@ -114,4 +130,27 @@ let fold_layer fct_leaf init fct_node closure t =
             loop (path @ [k]) acc2 v
           ) som acc in
     loop [] init t 
+
+  let iter fct t =
+    let rec loop path = function
+    | Empty _ -> ()
+    | Leaf l -> fct path l
+    | Node som ->
+        String_opt_map.iter
+          (fun k v -> 
+            loop (path @ [k]) v
+          ) som in
+    loop [] t
+
+  let get_all_keys depth t =
+    let rec loop = function
+    | (0, Node som) -> String_opt_map.fold (fun k _ acc -> String_opt_set.add k acc) som String_opt_set.empty
+    | (i, Node som) when i > 0 -> 
+      String_opt_map.fold 
+      (fun _ v acc -> String_opt_set.union (loop (i-1,v)) acc
+      ) som String_opt_set.empty
+    | _ -> failwith "[Clustered.get_all_keys] inconsistent depth" in
+    loop (depth,t)
+    |> String_opt_set.to_list 
+
 end (* module Clustered *)

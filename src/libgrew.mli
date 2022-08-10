@@ -132,8 +132,10 @@ module Matching: sig
       * the name of a feature value [N.feat] where [N] is a node declared in the kernel part of the pattern
       * the name of an edge featue [e.feat] where [e] is a edge declared in the kernel part of the pattern
   *)
+  (* TODO: do not export: genrelaized by get_clust_value_opt *)
   val get_value_opt: config:Conllx_config.t -> string -> Pattern.t -> Graph.t -> t -> string option
 
+  (* TODO: do not export: genrelaized by get_clust_value_opt *)
   val whether: config:Conllx_config.t -> Pattern.basic -> Pattern.t -> Graph.t -> t -> bool
   
   val subgraph: Graph.t -> t -> int -> Graph.t
@@ -144,6 +146,8 @@ module Matching: sig
   (** [build_deco pattern matching] returns the deco to be used in the graphical representation.
       WARNING: the function supposes that [matching] was find with the given [pattern]! *)
   val build_deco: Pattern.t -> t -> Deco.t
+
+  val get_clust_value_opt: config:Conllx_config.t -> cluster_item ->  Pattern.t -> Graph.t -> t -> string option
 end
 
 (* ==================================================================================================== *)
@@ -256,6 +260,8 @@ module Corpus_desc: sig
   val compile: ?force: bool -> ?grew_match: string ->  t -> unit
 
   val clean: t -> unit
+
+  val count_plus: t list -> string list -> cluster_item list -> int Clustered.t
 
 end
 

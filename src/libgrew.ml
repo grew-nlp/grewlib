@@ -241,7 +241,7 @@ module Matching = struct
 
   let get_value_opt ~config request pattern graph matching =
     Libgrew.handle ~name:"Matching.get_value_opt" (fun () ->
-        Grew_rule.Matching.get_string_value_opt ~config request pattern graph matching
+        Grew_rule.Matching.get_value_opt ~config request pattern graph matching
       ) ()
 
   let whether ~config extension pattern graph matching =
@@ -255,12 +255,15 @@ module Matching = struct
       ) ()
 
   let search_pattern_in_graph ~config pattern graph =
-    Libgrew.handle ~name:"Graph.search_pattern" (fun () ->
+    Libgrew.handle ~name:"Matching.search_pattern_in_graph" (fun () ->
       Grew_rule.Matching.search_pattern_in_graph ~config pattern graph
     ) ()
 
   let build_deco pattern matching = Grew_rule.Matching.build_deco pattern matching
-end
+  let get_clust_value_opt =
+    Libgrew.handle ~name:"Matching.get_clust_value_opt" 
+    (fun () -> Grew_rule.Matching.get_clust_value_opt) ()
+  end
 
 
 (* ==================================================================================================== *)
@@ -417,4 +420,7 @@ module Corpus_desc = struct
 
   let clean t =
     Libgrew.handle ~name:"Corpus.clean" (fun () -> Grew_corpus.Corpus_desc.clean t) ()
+
+    let count_plus corpus_desc_list file_pattern_list cluster_item_list =
+    Libgrew.handle ~name:"Corpus.count_plus" (fun () -> Grew_corpus.Corpus_desc.count_plus corpus_desc_list file_pattern_list cluster_item_list) ()
 end

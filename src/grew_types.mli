@@ -15,6 +15,7 @@ module String_opt_map : Map.S with type key = string option
 module Int_set : Set.S with type elt = int
 module Int_map : Map.S with type key = int
 
+type cluster_item = Key of string | Whether of string
 
 (* ================================================================================ *)
 module Clustered : sig
@@ -28,6 +29,9 @@ module Clustered : sig
   val empty: 'a -> 'a t
   (** The [empty] structure (the null value should be given) *)
 
+  val get_opt: 'a -> string option list -> 'a t -> 'a
+  (** [get_opt null key_list t] return correpsonding the 'a value or [null] if it can not be found *)
+
   val size: 'a t -> int
   (** Returns the number of element of type 'a stored in the structure *)
 
@@ -40,6 +44,9 @@ module Clustered : sig
 
   val fold: (string option list -> 'a -> 'b -> 'b) -> 'a t -> 'b -> 'b
   (** [fold fct t init] apply the function [fct] to all leaves *)
+
+  val iter: (string option list -> 'a -> unit) -> 'a t -> unit
+  (** [iter fct t] apply the function [fct] to all leaves *)
 
   val fold_layer: 
     ('a -> 'b) ->                        (* fct on leaves *)
@@ -63,4 +70,7 @@ module Clustered : sig
 
   val dump: ('a -> string) -> 'a t -> unit
   (** outputs a raw displat of the structure (to be used only for debug) *)
+
+  val get_all_keys: int -> _ t -> string option list
+  
 end (* module Clustered *)

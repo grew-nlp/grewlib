@@ -47,18 +47,20 @@ module Matching : sig
   (* NB: it can be computed independly from the graph itself! *)
   val build_deco: Pattern.t -> t -> G_deco.t
 
-  (* [get_string_value_opt request pattern graph matching] returns the value corresponding to the request in the result of a previou result of match
-     [request] can be:
-    * the name of a feature value [N.feat] where [N] is a node declared in the kernel part of the pattern
-    * the name of an edge featue [E.feat] where [e] is a edge declared in the kernel part of the pattern
-    * one of the pseudo features [e.label], [e.length] or [e.delta]
+  (* [get_value_opt cluster_key pattern graph matching] returns the value corresponding to the cluster_key in the result of a previous result of match
+     [cluster_key] can be:
+     * the name of a feature value [N.feat] where [N] is a node declared in the kernel part of the pattern
+     * the name of an edge featue [E.feat] where [e] is a edge declared in the kernel part of the pattern
+     * one of the pseudo features [e.label], [e.length] or [e.delta]
   *)
-  val get_string_value_opt: config:Conllx.Conllx_config.t -> string -> Pattern.t -> G_graph.t -> t -> string option
+  val get_value_opt: config:Conllx.Conllx_config.t -> string -> Pattern.t -> G_graph.t -> t -> string option
 
   val whether: config:Conllx.Conllx_config.t -> Pattern.basic -> Pattern.t -> G_graph.t -> t -> bool
   
   val subgraph: G_graph.t -> t -> int -> G_graph.t
-end
+
+  val get_clust_value_opt: config:Conllx.Conllx_config.t -> cluster_item ->  Pattern.t -> G_graph.t -> t -> string option
+end (* module Matching *)
 
 (* ================================================================================ *)
 module Rule : sig

@@ -19,6 +19,7 @@ open Grew_fs
 open Grew_node
 open Grew_command
 open Grew_graph
+open Grew_loader
 
 module Pattern = struct
   type edge_relative_position =
@@ -345,9 +346,8 @@ module Matching = struct
     with Found pid -> Some pid
 
   (* return the value of a feature or an edge label *)
-  let get_string_value_opt ~config request pattern graph matching =
+  let get_value_opt ~config request pattern graph matching =
     match Str.split (Str.regexp "\\.") request with
-    | [edge_id] -> Error.build "For cluster key, the syntax `%s` is no more available, it must be replaced by `%s.label`, see [Grew doc](https://grew.fr/trans_14)" edge_id edge_id;
     | [node_or_edge_id; feature_name] ->
       begin
         match (String_map.find_opt node_or_edge_id matching.e_match, feature_name) with
@@ -355,7 +355,7 @@ module Matching = struct
           begin
             match G_edge.to_string_opt ~config edge with
             | Some s -> Some s
-            | None -> Error.bug "[Matching.get_string_value_opt] internal edge %s" (G_edge.dump ~config edge)
+            | None -> Error.bug "[Matching.get_value_opt] internal edge %s" (G_edge.dump ~config edge)
           end
         | (Some edge, "length") -> string_of_int <$> (G_graph.edge_length_opt edge graph)
         | (Some edge, "delta") -> string_of_int <$> (G_graph.edge_delta_opt edge graph)
@@ -363,7 +363,7 @@ module Matching = struct
         | (None, _) ->
           begin
             match get_pid_by_name pattern node_or_edge_id matching.n_match with
-            | None -> Error.run "[Matching.get_string_value_opt] unknown id %s" node_or_edge_id
+            | None -> Error.run "[Matching.get_value_opt] The identifier [%s] is not declared in the positve part of the pattern" node_or_edge_id
             | Some pid ->
               let gid = Pid_map.find pid matching.n_match in
               let node = G_graph.find gid graph in
@@ -371,7 +371,12 @@ module Matching = struct
               CCOption.map Feature_value.to_string (G_fs.get_value_opt feature_name fs)
           end
       end
-    | _ -> Error.run "[Matching.get_string_value_opt] unable to handled request %s" request
+    | _ -> Error.run "[Matching.get_value_opt] unable to handled cluster_key [%s].
+    [cluster_key] can be:
+    * the name of a feature value [N.feat] where [N] is a node declared in the kernel part of the pattern
+    * the name of an edge featue [E.feat] where [e] is a edge declared in the kernel part of the pattern
+    * one of the pseudo features [e.label], [e.length] or [e.delta]
+" request
 
   let e_match_add ?pos edge_id new_edge matching =
     if String_map.mem edge_id matching.e_match
@@ -831,6 +836,13 @@ module Matching = struct
     let gid_list = Pid_map.fold (fun _ gid acc -> gid :: acc) matching.n_match [] in  
   G_graph.subgraph graph gid_list depth
 
+  let get_clust_value_opt ~config clust_item pattern graph matching =
+    match clust_item with
+    | Key key -> get_value_opt ~config key pattern graph matching
+    | Whether basic_string ->
+        let basic = Pattern.build_whether ~config pattern (Parser.basic ("{" ^ basic_string ^ "}")) in
+        (* let basic = Pattern.parse_basic ~config pattern ("{" ^ whether ^ "}") in *)
+        if whether ~config basic pattern graph matching then Some "Yes" else Some "No"
 end (* module Matching *)
 
 (* ================================================================================ *)
