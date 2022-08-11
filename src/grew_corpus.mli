@@ -12,6 +12,7 @@ open Conllx
 
 open Grew_types
 open Grew_graph
+open Grew_rule
 
 
 module Corpus : sig
@@ -39,6 +40,9 @@ module Corpus : sig
   val from_string: ?ext:string -> ?log_file: string -> ?config:Conllx_config.t -> string -> t
   val from_file: ?ext:string -> ?log_file: string -> ?config:Conllx_config.t -> string -> t
   val from_dir: ?log_file: string -> ?config:Conllx_config.t -> string -> t
+
+  val count: config:Conllx_config.t -> Pattern.t -> cluster_item list -> t -> int Clustered.t
+  val search: config:Conllx_config.t -> Pattern.t -> cluster_item list -> t -> Matching.t list Clustered.t
 end
 
 module Corpus_desc : sig
@@ -61,6 +65,4 @@ module Corpus_desc : sig
   val compile: ?force:bool -> ?grew_match: string -> t -> unit
 
   val clean: t -> unit
-
-  val count_plus: t list -> string list -> cluster_item list -> int Clustered.t
 end

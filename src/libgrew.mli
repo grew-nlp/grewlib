@@ -232,6 +232,19 @@ module Corpus: sig
 
   val merge: t list -> t
   val get_columns_opt: t -> Conllx_columns.t option
+
+  val count: config:Conllx_config.t -> Pattern.t -> cluster_item list -> t -> int Clustered.t
+  (** [count config pattern cluster_item_list corpus] returns a clustered structure
+      representing the multilayer clustering following [cluster_item_list]; each result 
+      is an interger counting a number of occurrences.
+  *)
+
+  val search: config:Conllx_config.t -> Pattern.t -> cluster_item list -> t -> Matching.t list Clustered.t
+  (** [count config pattern cluster_item_list corpus] returns a clustered structure
+      representing the multilayer clustering following [cluster_item_list]; each result 
+      is an interger counting a number of occurrences.
+  *)
+
 end
 
 (* ==================================================================================================== *)
@@ -260,9 +273,6 @@ module Corpus_desc: sig
   val compile: ?force: bool -> ?grew_match: string ->  t -> unit
 
   val clean: t -> unit
-
-  val count_plus: t list -> string list -> cluster_item list -> int Clustered.t
-
 end
 
 

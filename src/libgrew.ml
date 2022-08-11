@@ -263,7 +263,7 @@ module Matching = struct
   let get_clust_value_opt =
     Libgrew.handle ~name:"Matching.get_clust_value_opt" 
     (fun () -> Grew_rule.Matching.get_clust_value_opt) ()
-  end
+end
 
 
 (* ==================================================================================================== *)
@@ -390,10 +390,21 @@ module Corpus = struct
     Libgrew.handle ~name:"Corpus.merge" (fun () -> Grew_corpus.Corpus.merge corpus_list) ()
 
   let get_columns_opt = Grew_corpus.Corpus.get_columns_opt
+
+  let count ~config pattern cluster_item_list corpus = 
+    Libgrew.handle ~name:"Corpus.count" 
+    (fun () -> Grew_corpus.Corpus.count ~config pattern cluster_item_list corpus) ()
+
+    let search ~config pattern cluster_item_list corpus = 
+    Libgrew.handle ~name:"Corpus.search" 
+    (fun () -> Grew_corpus.Corpus.search ~config pattern cluster_item_list corpus) ()
+
 end
 
 
-
+(* ==================================================================================================== *)
+(** {2 Corpus_desc} *)
+(* ==================================================================================================== *)
 module Corpus_desc = struct
 
   type t = Grew_corpus.Corpus_desc.t
@@ -420,7 +431,4 @@ module Corpus_desc = struct
 
   let clean t =
     Libgrew.handle ~name:"Corpus.clean" (fun () -> Grew_corpus.Corpus_desc.clean t) ()
-
-    let count_plus corpus_desc_list file_pattern_list cluster_item_list =
-    Libgrew.handle ~name:"Corpus.count_plus" (fun () -> Grew_corpus.Corpus_desc.count_plus corpus_desc_list file_pattern_list cluster_item_list) ()
 end

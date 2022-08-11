@@ -35,10 +35,14 @@ module Clustered : sig
   val size: 'a t -> int
   (** Returns the number of element of type 'a stored in the structure *)
 
+  val build_layer: ('b -> 'a t) -> ('b -> string option) -> 'a -> 'b list -> 'a t
+  (** [build_layer sub_fct key_fct null item_list] builds a structure which first layer
+      associates from each [item] in [item_list], [key_fct item] to [sub_fct item] *)
+
   val update: ('a -> 'a) -> string option list -> 'a -> 'a t -> 'a t
   (** [update fct string_option_list null t] update the structure: 
       - if there is already an 'a value [x] at address [string_option_list],
-        this value is updatesd to [fct x]
+        this value is updated to [fct x]
       - else a new entry is added with value [fct null]
   *)
 

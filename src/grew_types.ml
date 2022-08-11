@@ -47,6 +47,18 @@ let dump to_string t =
 
 let empty null = Empty null
 
+let build_layer sub_fct key_fct null item_list =
+  match item_list with
+  | [] -> Empty null
+  | _ -> 
+    let som = 
+      List.fold_left
+      (fun acc item ->
+        String_opt_map.add (key_fct item) (sub_fct item) acc
+      ) String_opt_map.empty item_list in
+    Node som
+
+
 let get_opt null key_list t =
   let rec loop = function
   | ([],Empty _) -> null

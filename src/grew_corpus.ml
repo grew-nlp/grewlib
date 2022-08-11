@@ -217,6 +217,38 @@ module Corpus = struct
     match corpus.kind with
     | Conll (Some c) -> Some c
     | _ -> None
+
+  (* ---------------------------------------------------------------------------------------------------- *)
+  let count ~config pattern cluster_item_list corpus =
+    fold_left
+    (fun acc sent_id graph ->
+      let matchings = Matching.search_pattern_in_graph ~config pattern graph in
+      List.fold_left
+      (fun acc2 matching -> 
+        let cluster_value_list = 
+          List.map 
+          (fun cluster_item ->
+            Matching.get_clust_value_opt ~config cluster_item pattern graph matching 
+          ) cluster_item_list in
+          Clustered.update (fun x -> x + 1) cluster_value_list 0 acc2
+      ) acc matchings
+    ) (Clustered.empty 0) corpus
+
+    (* ---------------------------------------------------------------------------------------------------- *)
+  let search ~config pattern cluster_item_list corpus =
+    fold_left
+    (fun acc sent_id graph ->
+      let matchings = Matching.search_pattern_in_graph ~config pattern graph in
+      List.fold_left
+      (fun acc2 matching -> 
+        let cluster_value_list = 
+          List.map 
+          (fun cluster_item ->
+            Matching.get_clust_value_opt ~config cluster_item pattern graph matching 
+          ) cluster_item_list in
+          Clustered.update (fun x -> matching :: x) cluster_value_list [] acc2
+      ) acc matchings
+    ) (Clustered.empty []) corpus
 end
 
 (* ==================================================================================================== *)
@@ -520,31 +552,4 @@ module Corpus_desc = struct
     let marshal_file = (Filename.concat directory id) ^ ".marshal" in
     if Sys.file_exists marshal_file then Unix.unlink marshal_file
 
-  (* ---------------------------------------------------------------------------------------------------- *)
-  let count_plus corpus_desc_list file_pattern_list cluster_item_list =
-    List.fold_left 
-    (fun acc corpus_desc ->
-      match load_corpus_opt corpus_desc with
-      | None -> failwith "TODO: cannot get corpus"
-      | Some corpus -> 
-        let config = get_config corpus_desc in 
-        List.fold_left 
-        (fun acc2 file_pattern ->
-          let pattern = Pattern.of_ast ~config (Loader.pattern file_pattern) in
-          let vlist = [Some corpus_desc.id; Some file_pattern] in
-          Corpus.fold_left
-          (fun acc3 sent_id graph ->
-            let matchings = Matching.search_pattern_in_graph ~config pattern graph in
-            List.fold_left
-            (fun acc4 matching -> 
-              let cluster_value_list = 
-                List.map 
-                (fun cluster_item ->
-                  Matching.get_clust_value_opt ~config cluster_item pattern graph matching 
-                ) cluster_item_list in
-                Clustered.update (fun x -> x + 1) (vlist @ cluster_value_list) 0 acc4
-            ) acc3 matchings
-          ) acc2 corpus
-        ) acc file_pattern_list
-    ) (Clustered.empty 0) corpus_desc_list
-end
+end (* module Corpus_desc *)
