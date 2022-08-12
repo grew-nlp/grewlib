@@ -196,9 +196,6 @@ module Graph = struct
 
   let trace_depth t =
     Grew_graph.G_graph.trace_depth t
-
-  let to_raw ~config graph =
-    Libgrew.handle ~name:"Graph.to_raw" (fun () -> Grew_graph.G_graph.to_raw ~config graph) ()
 end
 
 (* ==================================================================================================== *)

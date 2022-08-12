@@ -64,7 +64,6 @@ module G_fs: sig
 
   val concat_feats_opt: ?loc:Loc.t -> Ast.side -> t -> t -> string -> string -> (t * (string * Feature_value.t) list) option
 
-  val to_raw: t -> (string * string) list
 end (* module G_fs *)
 
 (* ================================================================================ *)

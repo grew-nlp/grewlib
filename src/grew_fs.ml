@@ -363,8 +363,6 @@ module G_fs = struct
 
   let to_json_python t = `Assoc (List.map (fun (fn, fv) -> (fn, `String (Feature_value.to_string fv))) t)
 
-  (* ---------------------------------------------------------------------- *)
-  let to_raw t = List.map (fun (name, value) -> (name, Feature_value.to_string value)) t
 end (* module G_fs *)
 
 (* ================================================================================ *)
