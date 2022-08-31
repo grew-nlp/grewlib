@@ -1321,42 +1321,45 @@ module Rule = struct
 
   let onf_apply_opt ~config rule graph =
     try
-      let {Pattern.ker; exts} = rule.pattern in
-      (* get the list of partial matching for kernel part of the pattern *)
-      let matching_list =
-        Matching.extend_matching
-          ~config
-          (ker.graph,P_graph.empty)
-          graph
-          (Matching.init ~lexicons:rule.lexicons ker) in
-      match List.find_opt
-              (fun (sub, already_matched_gids) ->
-                 List.for_all
-                   (fun (ext, polarity) ->
-                      Matching.test_extension ~config ker graph ext (sub, already_matched_gids) = polarity
-                   ) exts
-              ) matching_list with
-      | None -> None
-      | Some (first_matching_where_all_witout_are_fulfilled,_) ->
-        let final_state =
-          List.fold_left
-            (fun state command -> onf_apply_command ~config first_matching_where_all_witout_are_fulfilled command state)
-            { graph;
-              created_nodes = [];
-              effective = false;
-              e_mapping = first_matching_where_all_witout_are_fulfilled.e_match;
-            }
-            rule.commands in
-        if final_state.effective
-        then
-          begin
-            Timeout.check ();
-            incr_rules rule.name;
-            let up = Matching.build_deco rule.pattern first_matching_where_all_witout_are_fulfilled in
-            let down = Matching.down_deco (String_map.empty, first_matching_where_all_witout_are_fulfilled, final_state.created_nodes) rule.commands in
-            Some (G_graph.track up (get_rule_info rule) down graph final_state.graph)
-          end
-        else None
+      let { Pattern.global; Pattern.ker; exts} = rule.pattern in
+      match Matching.check_global_constraint global graph with
+      | false -> None
+      | true ->
+        (* get the list of partial matching for kernel part of the pattern *)
+        let matching_list =
+          Matching.extend_matching
+            ~config
+            (ker.graph,P_graph.empty)
+            graph
+            (Matching.init ~lexicons:rule.lexicons ker) in
+       match List.find_opt
+                (fun (sub, already_matched_gids) ->
+                   List.for_all
+                     (fun (ext, polarity) ->
+                        Matching.test_extension ~config ker graph ext (sub, already_matched_gids) = polarity
+                     ) exts
+               ) matching_list with
+       | None -> None
+       | Some (first_matching_where_all_witout_are_fulfilled,_) ->
+          let final_state =
+            List.fold_left
+              (fun state command -> onf_apply_command ~config first_matching_where_all_witout_are_fulfilled command state)
+              { graph;
+                created_nodes = [];
+                effective = false;
+                e_mapping = first_matching_where_all_witout_are_fulfilled.e_match;
+              }
+             rule.commands in
+          if final_state.effective
+          then
+            begin
+              Timeout.check ();
+              incr_rules rule.name;
+              let up = Matching.build_deco rule.pattern first_matching_where_all_witout_are_fulfilled in
+              let down = Matching.down_deco (String_map.empty, first_matching_where_all_witout_are_fulfilled, final_state.created_nodes) rule.commands in
+              Some (G_graph.track up (get_rule_info rule) down graph final_state.graph)
+            end
+         else None
     with Error.Run (msg,_) -> Error.run ~loc:rule.loc "%s" msg
 
   let find cnode ?loc gwh matching =
