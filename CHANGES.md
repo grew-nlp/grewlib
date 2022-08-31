@@ -1,3 +1,6 @@
+## 1.9.2 (2022/08/31)
+  * Fix https://github.com/grew-nlp/grew/issues/17
+
 ## 1.9.1 (2022/07/08)
   * Add string as a possible feature value in pattern edges
 

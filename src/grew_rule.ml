@@ -1808,35 +1808,38 @@ module Rule = struct
   exception Dead_lock
   let owh_apply_opt ~config rule gwh =
     let graph = gwh.Graph_with_history.graph in
-    let {Pattern.ker; exts} = rule.pattern in
+    let { Pattern.global; ker; exts} = rule.pattern in
 
-    (* get the list of matching for kernel part of the pattern *)
-    let matching_list = Matching.extend_matching ~config (ker.graph,P_graph.empty) graph (Matching.init ~lexicons:rule.lexicons ker) in
-
-    let rec loop_matching = function
-      | [] -> None
-      | (sub, already_matched_gids) :: tail ->
-        if List.for_all
-            (fun (ext,polarity) ->
-               Matching.test_extension ~config ker graph ext (sub, already_matched_gids) = polarity
-            ) exts
-        then (* all exts are fulfilled *)
-          let init_gwh = { gwh with e_mapping = sub.Matching.e_match; added_gids_in_rule = []; added_edges_in_rule=String_map.empty; } in
-          let rec loop_command acc_gwh = function
-            | [] -> acc_gwh
-            | command :: tail_commands ->
-              let set = gwh_apply_command ~config command sub acc_gwh in
-              match Graph_with_history_set.choose_opt set with
-              | None -> raise Dead_lock
-              | Some next_gwh -> loop_command next_gwh tail_commands in
-          try
-            let new_gwh = loop_command init_gwh rule.commands in
-            Timeout.check ();
-            incr_rules rule.name;
-            let up = Matching.build_deco rule.pattern sub in
-            let down = Matching.down_deco (new_gwh.added_edges_in_rule, sub, new_gwh.added_gids_in_rule) rule.commands in
-            Some {new_gwh with graph = G_graph.track up (get_rule_info rule) down graph new_gwh.graph }
-          with Dead_lock -> loop_matching tail (* failed to apply all commands -> move to the next matching *)
-        else loop_matching tail (* some ext part prevents rule app -> move to the next matching *)
-    in loop_matching matching_list
+    if not (Matching.check_global_constraint global graph)
+      then None
+      else
+        (* get the list of matching for kernel part of the pattern *)
+        let matching_list = Matching.extend_matching ~config (ker.graph,P_graph.empty) graph (Matching.init ~lexicons:rule.lexicons ker) in
+          
+        let rec loop_matching = function
+          | [] -> None
+          | (sub, already_matched_gids) :: tail ->
+            if List.for_all
+                (fun (ext,polarity) ->
+                   Matching.test_extension ~config ker graph ext (sub, already_matched_gids) = polarity
+                ) exts
+            then (* all exts are fulfilled *)
+              let init_gwh = { gwh with e_mapping = sub.Matching.e_match; added_gids_in_rule = []; added_edges_in_rule=String_map.empty; } in
+              let rec loop_command acc_gwh = function
+                | [] -> acc_gwh
+                | command :: tail_commands ->
+                  let set = gwh_apply_command ~config command sub acc_gwh in
+                  match Graph_with_history_set.choose_opt set with
+                  | None -> raise Dead_lock
+                  | Some next_gwh -> loop_command next_gwh tail_commands in
+              try
+                let new_gwh = loop_command init_gwh rule.commands in
+                Timeout.check ();
+                incr_rules rule.name;
+                let up = Matching.build_deco rule.pattern sub in
+                let down = Matching.down_deco (new_gwh.added_edges_in_rule, sub, new_gwh.added_gids_in_rule) rule.commands in
+                Some {new_gwh with graph = G_graph.track up (get_rule_info rule) down graph new_gwh.graph }
+              with Dead_lock -> loop_matching tail (* failed to apply all commands -> move to the next matching *)
+            else loop_matching tail (* some ext part prevents rule app -> move to the next matching *)
+        in loop_matching matching_list
 end (* module Rule *)
