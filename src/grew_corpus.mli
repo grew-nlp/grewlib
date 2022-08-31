@@ -41,8 +41,18 @@ module Corpus : sig
   val from_file: ?ext:string -> ?log_file: string -> ?config:Conllx_config.t -> string -> t
   val from_dir: ?log_file: string -> ?config:Conllx_config.t -> string -> t
 
-  val count: config:Conllx_config.t -> Pattern.t -> cluster_item list -> t -> int Clustered.t
-  val search: config:Conllx_config.t -> Pattern.t -> cluster_item list -> t -> Matching.t list Clustered.t
+  val search: config:Conllx_config.t -> 'a -> (Matching.t -> 'a -> 'a) -> Pattern.t -> cluster_item list -> t -> 'a Clustered.t
+
+  val bounded_search: 
+    config:Conllx_config.t ->    
+    int option ->                (* bound on the number of matching *)
+    float option ->              (* Timeunt in seconds *)  
+    'a ->                        (* The null value to build clusters *)
+    (Matching.t -> 'a -> 'a) ->  (* The update function to build clusters *)
+    Pattern.t ->
+    cluster_item list ->         (* The list of element used for clustering *)
+    t -> 
+      ('a Clustered.t * string * float)  (* (output, statut, ratio) status is "ok", "timeout" or "over" *)
 end
 
 module Corpus_desc : sig

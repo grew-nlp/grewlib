@@ -388,13 +388,13 @@ module Corpus = struct
 
   let get_columns_opt = Grew_corpus.Corpus.get_columns_opt
 
-  let count ~config pattern cluster_item_list corpus = 
-    Libgrew.handle ~name:"Corpus.count" 
-    (fun () -> Grew_corpus.Corpus.count ~config pattern cluster_item_list corpus) ()
-
-    let search ~config pattern cluster_item_list corpus = 
+  let search ~config null update pattern cluster_item_list corpus = 
     Libgrew.handle ~name:"Corpus.search" 
-    (fun () -> Grew_corpus.Corpus.search ~config pattern cluster_item_list corpus) ()
+    (fun () -> Grew_corpus.Corpus.search ~config null update pattern cluster_item_list corpus) ()
+
+  let bounded_search ~config bound timeout null update pattern cluster_item_list corpus =
+    Libgrew.handle ~name:"Corpus.search" 
+    (fun () -> Grew_corpus.Corpus.bounded_search ~config bound timeout null update pattern cluster_item_list corpus) ()
 
 end
 

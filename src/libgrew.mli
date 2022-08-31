@@ -231,17 +231,25 @@ module Corpus: sig
   val merge: t list -> t
   val get_columns_opt: t -> Conllx_columns.t option
 
-  val count: config:Conllx_config.t -> Pattern.t -> cluster_item list -> t -> int Clustered.t
-  (** [count config pattern cluster_item_list corpus] returns a clustered structure
-      representing the multilayer clustering following [cluster_item_list]; each result 
-      is an interger counting a number of occurrences.
-  *)
+  val search: config:Conllx_config.t -> 'a -> (Matching.t -> 'a -> 'a) -> Pattern.t -> cluster_item list -> t -> 'a Clustered.t
+  (** [search config null update pattern cluster_item_list corpus] returns a clustered structure
+      representing the multilayer clustering following [cluster_item_list];
+      The computing of each cluster contents (of type ['a]) is controlled by the value [null] and the function [update].
+      Examples of usage:
+      * null=0, update=(fun _ x -> x+1)    for counting the number of occurrences
+      * null=[], update=(fun m x -> m::x)  for recording the matchings
+   *)
 
-  val search: config:Conllx_config.t -> Pattern.t -> cluster_item list -> t -> Matching.t list Clustered.t
-  (** [count config pattern cluster_item_list corpus] returns a clustered structure
-      representing the multilayer clustering following [cluster_item_list]; each result 
-      is an interger counting a number of occurrences.
-  *)
+  val bounded_search: 
+    config:Conllx_config.t ->    
+    int option ->                (* bound on the number of matching *)
+    float option ->              (* Timeunt in seconds *)  
+    'a ->                        (* The null value to build clusters *)
+    (Matching.t -> 'a -> 'a) ->  (* The update function to build clusters *)
+    Pattern.t ->
+    cluster_item list ->         (* The list of element used for clustering *)
+    t -> 
+      ('a Clustered.t * string * float)  (* (output, statut, ratio) status is "ok", "timeout" or "over" *)
 
 end
 
