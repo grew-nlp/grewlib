@@ -107,6 +107,11 @@ module Corpus = struct
       (fun acc item -> fct acc item.sent_id item.graph)
       init t.items
 
+  let foldi_left fct init t =
+    CCArray.foldi
+      (fun acc i item -> fct acc i item.sent_id item.graph)
+      init t.items
+
   let fold_right fct t init =
     Array.fold_right
       (fun item acc -> fct item.sent_id item.graph acc)
@@ -241,23 +246,22 @@ module Corpus = struct
 
   let bounded_search ~config bound timeout null update pattern cluster_item_list corpus =
     let matching_counter = ref 0 in
-    let graph_counter = ref 0 in
     let init_time = Unix.gettimeofday() in
     let status = ref Ok in
-    let check () = 
+    let check graph_counter = 
       incr matching_counter; 
-      (match bound with Some b when !matching_counter > b -> status := Over ((float !graph_counter) /. (float (Array.length corpus.items))) | _ -> ());
-      (match timeout with Some b when Unix.gettimeofday() -. init_time >= b -> status := Timeout ((float !graph_counter) /. (float (Array.length corpus.items))) | _ -> ()) in
-    fold_left
-    (fun acc sent_id graph ->
+      (match bound with Some b when !matching_counter > b -> status := Over ((float graph_counter) /. (float (Array.length corpus.items))) | _ -> ());
+      (match timeout with Some b when Unix.gettimeofday() -. init_time >= b -> status := Timeout ((float graph_counter) /. (float (Array.length corpus.items))) | _ -> ()) in
+    foldi_left
+    (fun acc graph_counter sent_id graph ->
       if !status <> Ok
       then acc
       else
         begin
-          incr graph_counter;
           let matchings = Matching.search_pattern_in_graph ~config pattern graph in
-          List.fold_left
-          (fun acc2 matching ->
+          let nb_in_graph = List.length matchings in
+          CCList.foldi
+          (fun acc2 pos_in_graph matching ->
             if !status <> Ok
               then acc2
               else
@@ -266,10 +270,10 @@ module Corpus = struct
                   (fun cluster_item ->
                     Matching.get_clust_value_opt ~config cluster_item pattern graph matching 
                   ) cluster_item_list in
-                check ();
+                check graph_counter;
                 if !status <> Ok
                 then acc2
-                else Clustered.update (update matching) cluster_value_list null acc2
+                else Clustered.update (update graph_counter sent_id pos_in_graph nb_in_graph matching) cluster_value_list null acc2
           ) acc matchings
         end
     ) (Clustered.empty null) corpus

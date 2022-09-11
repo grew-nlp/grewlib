@@ -369,7 +369,7 @@ module Corpus = struct
     Libgrew.handle ~name:"Corpus.fold_left" (fun () -> Grew_corpus.Corpus.fold_right fct t init) ()
 
   (* NB: no handle here because it's sensible to raise out onw exception in [iteri] *)
-    let iteri = Grew_corpus.Corpus.iteri
+  let iteri = Grew_corpus.Corpus.iteri
 
   let from_stdin ?ext ?log_file ?config () =
     Libgrew.handle ~name:"Corpus.from_stdin" (fun () -> Grew_corpus.Corpus.from_stdin ?ext ?log_file ?config ()) ()

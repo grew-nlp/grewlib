@@ -240,16 +240,21 @@ module Corpus: sig
       * null=[], update=(fun m x -> m::x)  for recording the matchings
    *)
 
-  val bounded_search: 
-    config:Conllx_config.t ->    
-    int option ->                (* bound on the number of matching *)
-    float option ->              (* Timeunt in seconds *)  
-    'a ->                        (* The null value to build clusters *)
-    (Matching.t -> 'a -> 'a) ->  (* The update function to build clusters *)
-    Pattern.t ->
-    cluster_item list ->         (* The list of element used for clustering *)
-    t -> 
-      ('a Clustered.t * string * float)  (* (output, statut, ratio) status is "ok", "timeout" or "over" *)
+   val bounded_search: 
+   config:Conllx_config.t ->    
+   int option ->                (* bound on the number of matching *)
+   float option ->              (* Timeunt in seconds *)  
+   'a ->                        (* The null value to build clusters *)
+   (* The update function to build clusters. Parameters ares: *)
+   (*  * int    --> graph_index in the corpus *)
+   (*  * string --> sent_id *)
+   (*  * int    --> position of the matching in the ≠ matchings for the same graph *)
+   (*  * int    --> number of matching in the current graph  *)
+   (int -> string -> int -> int -> Matching.t -> 'a -> 'a) ->
+   Pattern.t ->
+   cluster_item list ->         (* The list of element used for clustering *)
+   t -> 
+     ('a Clustered.t * string * float)  (* (output, statut, ratio) status is "ok", "timeout" or "over" *)
 
 end
 

@@ -48,7 +48,12 @@ module Corpus : sig
     int option ->                (* bound on the number of matching *)
     float option ->              (* Timeunt in seconds *)  
     'a ->                        (* The null value to build clusters *)
-    (Matching.t -> 'a -> 'a) ->  (* The update function to build clusters *)
+    (* The update function to build clusters. Parameters ares: *)
+    (*  * int    --> graph_index in the corpus *)
+    (*  * string --> sent_id *)
+    (*  * int    --> position of the matching in the ≠ matchings for the same graph *)
+    (*  * int    --> number of matching in the current graph  *)
+    (int -> string -> int -> int -> Matching.t -> 'a -> 'a) ->
     Pattern.t ->
     cluster_item list ->         (* The list of element used for clustering *)
     t -> 
