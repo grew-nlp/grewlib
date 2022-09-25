@@ -392,9 +392,9 @@ module Corpus = struct
     Libgrew.handle ~name:"Corpus.search" 
     (fun () -> Grew_corpus.Corpus.search ~config null update pattern cluster_item_list corpus) ()
 
-  let bounded_search ~config bound timeout null update pattern cluster_item_list corpus =
+  let bounded_search ~config ?ordering bound timeout null update pattern cluster_item_list corpus =
     Libgrew.handle ~name:"Corpus.search" 
-    (fun () -> Grew_corpus.Corpus.bounded_search ~config bound timeout null update pattern cluster_item_list corpus) ()
+    (fun () -> Grew_corpus.Corpus.bounded_search ~config ?ordering bound timeout null update pattern cluster_item_list corpus) ()
 
 end
 

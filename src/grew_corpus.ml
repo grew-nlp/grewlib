@@ -154,7 +154,6 @@ module Corpus = struct
     with
     | Yojson.Json_error msg -> Error.run ?loc "Error in the JSON file format: %s" msg
 
-
   let from_stdin ?ext ?log_file ?config () =
     match ext with
     | Some ".json" -> 
@@ -243,8 +242,13 @@ module Corpus = struct
     | Ok
     | Timeout of float
     | Over of float
-
-  let bounded_search ~config bound timeout null update pattern cluster_item_list corpus =
+  
+  let bounded_search ~config ?(ordering = None) bound timeout null update pattern cluster_item_list corpus =
+    let len = size corpus in
+    let permut_fct = match ordering with
+    | Some "length" -> let perm = permut_length corpus in fun x -> perm.(x)
+    | Some "shuffle" -> let mix = Array_.shuffle_N len in fun x -> mix.(x)
+    | _ -> fun x -> x in
     let matching_counter = ref 0 in
     let init_time = Unix.gettimeofday() in
     let status = ref Ok in
@@ -252,35 +256,39 @@ module Corpus = struct
       incr matching_counter; 
       (match bound with Some b when !matching_counter > b -> status := Over ((float graph_counter) /. (float (Array.length corpus.items))) | _ -> ());
       (match timeout with Some b when Unix.gettimeofday() -. init_time >= b -> status := Timeout ((float graph_counter) /. (float (Array.length corpus.items))) | _ -> ()) in
-    foldi_left
-    (fun acc graph_counter sent_id graph ->
-      if !status <> Ok
-      then acc
-      else
-        begin
-          let matchings = Matching.search_pattern_in_graph ~config pattern graph in
-          let nb_in_graph = List.length matchings in
-          CCList.foldi
-          (fun acc2 pos_in_graph matching ->
-            if !status <> Ok
-              then acc2
-              else
-                let cluster_value_list = 
-                  List.map 
-                  (fun cluster_item ->
-                    Matching.get_clust_value_opt ~config cluster_item pattern graph matching 
-                  ) cluster_item_list in
-                check graph_counter;
-                if !status <> Ok
+
+    let rec loop acc graph_counter =
+      if !status <> Ok || graph_counter = len
+        then acc
+        else
+          begin
+            let graph_index = permut_fct graph_counter in
+            let graph = get_graph graph_index corpus in
+            let sent_id = get_sent_id graph_index corpus in
+            let matchings = Matching.search_pattern_in_graph ~config pattern graph in
+            let nb_in_graph = List.length matchings in
+            let new_acc = CCList.foldi
+            (fun acc2 pos_in_graph matching ->
+              if !status <> Ok
                 then acc2
-                else Clustered.update (update graph_counter sent_id pos_in_graph nb_in_graph matching) cluster_value_list null acc2
-          ) acc matchings
-        end
-    ) (Clustered.empty null) corpus
+                else
+                  let cluster_value_list = 
+                    List.map 
+                    (fun cluster_item ->
+                      Matching.get_clust_value_opt ~config cluster_item pattern graph matching 
+                    ) cluster_item_list in
+                  check graph_counter;
+                  if !status <> Ok
+                  then acc2
+                  else Clustered.update (update graph_index sent_id pos_in_graph nb_in_graph matching) cluster_value_list null acc2
+            ) acc matchings in
+            loop new_acc (graph_counter + 1)
+          end in
+    loop (Clustered.empty null) 0 
     |> (fun x -> match !status with
-    | Ok -> (x, "ok", 1.)
+    | Ok -> (x, "complete", 1.)
     | Timeout r -> (x, "timeout", r)
-    | Over r -> (x, "over", r)
+    | Over r -> (x, "max_results", r)
     )
 end
 

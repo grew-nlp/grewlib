@@ -235,6 +235,17 @@ module Array_ = struct
       | middle when fst array.(middle) < elt -> loop (middle+1) high
       | middle -> loop low (middle - 1) in
     loop 0 ((Array.length array) - 1)
+
+  let shuffle_N n =
+    Random.self_init ();
+    let a = Array.init n (fun x -> x) in
+    for i = n-1 downto 1 do
+      let j = Random.int (i+1) in
+      let tmp = a.(i) in
+      a.(i) <- a.(j);
+      a.(j) <- tmp
+    done;
+    a
 end (* module Array_ *)
 
 (* ================================================================================ *)

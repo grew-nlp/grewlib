@@ -130,6 +130,9 @@ module Array_: sig
      [Not found] is raised if [key] is not defined in [array].
      Warning: the array MUST be sorted (with respect to the first component) and without duplicates. *)
   val dicho_find_assoc: 'a -> ('a * 'b) array -> int
+
+  (** [shuffle_N n] builds a array which contains 0...n-1 in a random order *)
+  val shuffle_N: int -> int array
 end (* module Array_ *)
 
 (* ================================================================================ *)

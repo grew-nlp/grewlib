@@ -44,7 +44,8 @@ module Corpus : sig
   val search: config:Conllx_config.t -> 'a -> (Matching.t -> 'a -> 'a) -> Pattern.t -> cluster_item list -> t -> 'a Clustered.t
 
   val bounded_search: 
-    config:Conllx_config.t ->    
+    config:Conllx_config.t ->
+    ?ordering: string option ->  (* if value is "length", graph are considered by size, if value is "shuffle", graph order is randomiez, else a default order is used  *)
     int option ->                (* bound on the number of matching *)
     float option ->              (* Timeunt in seconds *)  
     'a ->                        (* The null value to build clusters *)

@@ -10,7 +10,7 @@
 
 module String_set : Set.S with type elt = string
 module String_map : Map.S with type key = string
-module String_opt_map : Map.S with type key = string option
+module String_opt_map : CCMap.S with type key = string option
 
 module Int_set : Set.S with type elt = int
 module Int_map : Map.S with type key = int
@@ -26,14 +26,23 @@ module Clustered : sig
       the length of the list must correspond to the depth of the structure.
   *)
 
+  val depth: _ t -> int
+
   val empty: 'a -> 'a t
   (** The [empty] structure (the null value should be given) *)
 
   val get_opt: 'a -> string option list -> 'a t -> 'a
-  (** [get_opt null key_list t] return correpsonding the 'a value or [null] if it can not be found *)
+  (** [get_opt null key_list t] returns  the corresponding 'a value or [null] if it can not be found *)
 
-  val size: 'a t -> int
+  val nb_clusters: 'a t -> int
   (** Returns the number of element of type 'a stored in the structure *)
+
+  val cardinal: ('a -> int) -> 'a t -> int
+  (** Returns the number of element of type 'a stored in the structure *)
+
+  val sizes: ('a -> int) -> 'a t -> int String_opt_map.t list
+  (** [sizes f t] returns a list of map (the length of the list is the depth of [t]).
+      each element of the list sums the usage of the key in all sub structs *)
 
   val build_layer: ('b -> 'a t) -> ('b -> string option) -> 'a -> 'b list -> 'a t
   (** [build_layer sub_fct key_fct null item_list] builds a structure which first layer
@@ -45,6 +54,9 @@ module Clustered : sig
         this value is updated to [fct x]
       - else a new entry is added with value [fct null]
   *)
+
+  val map: ('a -> 'b) -> 'a t -> 'b t
+  (** [map fct t] apply the function [fct] to all leaves *)
 
   val fold: (string option list -> 'a -> 'b -> 'b) -> 'a t -> 'b -> 'b
   (** [fold fct t init] apply the function [fct] to all leaves *)
