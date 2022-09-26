@@ -250,6 +250,14 @@ end (* module Array_ *)
 
 (* ================================================================================ *)
 module List_ = struct
+
+  let foldi_right f l accu =
+    let rec loop index acc = function
+    | [] -> acc
+    | a::l -> f index a (loop (index+1) acc l) in
+    loop 0 accu l;;
+
+
   let rec remove elt = function
     | [] -> raise Not_found
     | a::tail when a = elt -> tail

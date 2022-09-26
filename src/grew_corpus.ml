@@ -267,21 +267,20 @@ module Corpus = struct
             let sent_id = get_sent_id graph_index corpus in
             let matchings = Matching.search_pattern_in_graph ~config pattern graph in
             let nb_in_graph = List.length matchings in
-            let new_acc = CCList.foldi
-            (fun acc2 pos_in_graph matching ->
-              if !status <> Ok
-                then acc2
-                else
-                  let cluster_value_list = 
-                    List.map 
-                    (fun cluster_item ->
-                      Matching.get_clust_value_opt ~config cluster_item pattern graph matching 
-                    ) cluster_item_list in
+            let new_acc = 
+              List_.foldi_right
+                (fun pos_in_graph matching acc2 ->
                   check graph_counter;
                   if !status <> Ok
                   then acc2
-                  else Clustered.update (update graph_index sent_id pos_in_graph nb_in_graph matching) cluster_value_list null acc2
-            ) acc matchings in
+                  else
+                    let cluster_value_list = 
+                      List.map 
+                        (fun cluster_item ->
+                          Matching.get_clust_value_opt ~config cluster_item pattern graph matching 
+                        ) cluster_item_list in
+                      Clustered.update (update graph_index sent_id pos_in_graph nb_in_graph matching) cluster_value_list null acc2
+                ) matchings acc in
             loop new_acc (graph_counter + 1)
           end in
     loop (Clustered.empty null) 0 

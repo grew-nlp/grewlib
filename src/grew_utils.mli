@@ -139,6 +139,8 @@ end (* module Array_ *)
 (* [List_] contains additional functions on the caml [list] type. *)
 module List_: sig
 
+  val foldi_right : (int -> 'a -> 'b -> 'b) -> 'a list -> 'b -> 'b
+
   (** [index elt list] return [Some index] if [index] is the smallest position in the [list] equals to [elt].
       None is returned if [elt] is not in the [list] *)
   val index_opt: 'a -> 'a list -> int option
