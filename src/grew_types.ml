@@ -32,7 +32,6 @@ module Clustered = struct
     | Leaf of 'a
     | Node of 'a t String_opt_map.t
   
-  
   let rec depth = function
     | Node som -> 1 + (som |> String_opt_map.choose |> snd |> depth)
     | _ -> 0
@@ -188,6 +187,13 @@ module Clustered = struct
             loop (path @ [k]) acc2 v
           ) som acc in
     loop [] init t 
+
+  let merge_keys misc_key merge_item null filter_list t =
+    fold
+      (fun key_list item acc ->
+        let new_key_list = List.map2 (fun f x -> if f x then x else misc_key) filter_list key_list in
+        update (fun x -> merge_item item x) new_key_list null acc
+      ) t (Empty null)
 
   let iter fct t =
     let rec loop path = function

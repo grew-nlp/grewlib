@@ -77,6 +77,16 @@ module Clustered : sig
       on each node, [fct_node] is folded, starting from [null] and finally [closure] is applied to it
   *)
 
+  val merge_keys: string option -> ('a -> 'a -> 'a) -> 'a -> (string option -> bool) list -> 'a t -> 'a t
+  (** [merge_keys new_key merge_cell_fct null filter_functions input] 
+      builds a new Clustered.t with the same data but where some keys are merged.
+      [new_key] is the name of the new key used for merged keys (__*__ in grew-match grids)
+      [merge_cell_fct] on merged cells;
+      [filter_functions] is a list of boolean functions [f](one for each depth):
+        * if [f key] is true, the key is kept
+        * if [f key] is false, the corresponding data is merge into the [new_key] data 
+  *)
+
   val prune_unambiguous: int -> 'a t -> 'a t
   (** [prune_unambiguous n t] prunes in input [t] with unambiguous structure at depth [n].
       For instance, if the keys are values for features [form, lemma, upos, Gender, Number],
