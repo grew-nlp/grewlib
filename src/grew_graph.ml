@@ -541,7 +541,7 @@ module G_graph = struct
         try
           json_nodes
           |> to_assoc
-          |> List.map
+          |> List.rev_map
             (fun (id,json_node) ->
                let fs =
                  try [("label", json_node |> to_string)]
@@ -563,7 +563,7 @@ module G_graph = struct
         try 
           json_edges
           |> to_list 
-          |> List.map
+          |> List.rev_map
             (fun json_edge ->
                let fs =
                  try
@@ -669,7 +669,8 @@ module G_graph = struct
              let edge = G_edge.from_items edge_items in
              (match map_add_edge_opt acc gid_1 edge gid_2 with
               | Some g -> g
-              | None -> Error.build "[G_graph.of_json%s] try to build a graph with twice the same edge %s" (sent_id_text ()) (G_edge.dump edge)
+              | None -> Error.build "[G_graph.of_json%s] try to build a graph with twice the same edge `%s`from `%s` to `%s`" 
+                (sent_id_text ()) (G_edge.dump edge) id_src id_tar
              )
            | (None, _) -> Error.build "[G_graph.of_json%s] undefined node id `%s` used as `src` in edges" (sent_id_text ()) id_src
            | (_, None) -> Error.build "[G_graph.of_json%s] undefined node id `%s` used as `tar` in edges" (sent_id_text ()) id_tar
