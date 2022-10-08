@@ -206,19 +206,6 @@ module Label_cst = struct
     | Pred -> "__PRED__"
     | Succ -> "__SUCC__"
 
-  let to_json_python ~config = function
-    | Pos l -> `Assoc
-                 ["pos",
-                  `List (List.map (fun lab -> `String (G_edge.fs_to_string ~config lab)) l)
-                 ]
-    | Neg l -> `Assoc
-                 ["neg",
-                  `List (List.map (fun lab -> `String (G_edge.fs_to_string ~config lab)) l)
-                 ]
-    | Regexp (_,re) -> `Assoc
-                         ["regexp", `String re]
-    | _ -> failwith "TODO json"
-
   let all = Neg []
 
   let match_atom fs = function
@@ -278,13 +265,6 @@ module P_edge = struct
   let all = {id=fresh_name (); label_cst=Label_cst.all }
 
   let get_id_opt t = t.id
-
-  let to_json_python ~config t =
-    `Assoc (CCList.filter_map CCFun.id
-              [
-                (match t.id with Some id -> Some ("edge_id", `String id) | None -> None);
-                Some ("label_cst", Label_cst.to_json_python ~config t.label_cst)
-              ])
 
   let of_ast ~config (ast_edge, loc) =
     { id = (match ast_edge.Ast.edge_id with Some s -> Some s | None -> fresh_name ());

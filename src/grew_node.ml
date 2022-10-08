@@ -169,22 +169,6 @@ module P_node = struct
        loc = Some loc;
      } )
 
-  let to_json_python ~config t =
-    let json_next = `List (
-        Pid_massoc.fold
-          (fun acc pid p_edge ->
-             `Assoc [
-               ("id", `String (Pid.to_string pid));
-               ("label", P_edge.to_json_python ~config p_edge);
-             ] :: acc
-          ) [] t.next
-      ) in
-    `Assoc [
-      ("node_name", `String t.name);
-      ("fs", P_fs.to_json_python t.fs);
-      ("next", json_next)
-    ]
-
   let unif_fs fs t = { t with fs = P_fs.unif fs t.fs }
 
   let add_edge_opt p_edge tar_pid t =

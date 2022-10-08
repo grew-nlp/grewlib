@@ -57,8 +57,6 @@ module Grs = struct
       "decls", `List (List.map (fun x -> decl_to__json ~config x) t.decls)
     ]
 
-  let to_json_python = to__json
-
   let get_strat_list grs = Ast.strat_list grs.ast
   let get_strat_lists grs = Ast.strat_lists grs.ast
   let get_package_list grs = Ast.package_list grs.ast

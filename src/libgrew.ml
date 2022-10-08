@@ -139,9 +139,6 @@ module Graph = struct
          String.concat " " word_list
       ) ()
 
-  let of_json_python ~config json =
-    Libgrew.handle ~name:"Graph.of_json_python" (fun () -> Grew_graph.G_graph.of_json_python ~config json) ()
-
   let of_brown ~config ?sentid brown =
     Libgrew.handle ~name:"Graph.of_brown" (fun () -> Grew_graph.G_graph.of_brown ~config ?sentid brown) ()
 
@@ -153,9 +150,6 @@ module Graph = struct
 
   let to_gr ~config graph  =
     Libgrew.handle ~name:"Graph.to_gr" (fun () -> Grew_graph.G_graph.to_gr ~config graph) ()
-
-  let to_json_python ~config graph =
-    Libgrew.handle ~name:"Graph.to_json_python" (fun () -> Grew_graph.G_graph.to_json_python ~config graph) ()
 
   let of_json graph =
     Libgrew.handle ~name:"Graph.of_json" (fun () -> Grew_graph.G_graph.of_json graph) ()
@@ -287,12 +281,6 @@ module Grs = struct
     Libgrew.handle ~name:"Grs.dump"
       (fun () ->
          Grew_grs.Grs.dump grs
-      ) ()
-
-  let to_json_python ~config grs =
-    Libgrew.handle ~name:"Grs.to_json_python"
-      (fun () ->
-         Grew_grs.Grs.to_json_python ~config grs
       ) ()
 
   let get_strat_list grs =

@@ -52,7 +52,6 @@ module G_fs: sig
     string
 
   val to_conll: ?exclude: string list -> t -> (string * string) list
-  val to_json_python: t -> Yojson.Basic.t
   val to_string: t -> string
 
   val of_ast: Ast.feature list -> t
@@ -70,8 +69,6 @@ end (* module G_fs *)
 (* module [P_fs] defines the feature structures that are used in patterns *)
 module P_fs: sig
   type t
-
-  val to_json_python: t -> Yojson.Basic.t
 
   val empty: t
 

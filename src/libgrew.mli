@@ -53,9 +53,6 @@ module Graph : sig
 
   val of_gr: config:Conllx_config.t -> string -> t
 
-  val of_json_python: config:Conllx_config.t -> Yojson.Basic.t -> t
-  val to_json_python: config:Conllx_config.t -> t -> Yojson.Basic.t
-
   val of_json: Yojson.Basic.t -> t
   val to_json: t -> Yojson.Basic.t
 
@@ -161,8 +158,6 @@ module Grs : sig
   val parse: config:Conllx_config.t -> string -> t
 
   val dump: t -> unit
-
-  val to_json_python: config:Conllx_config.t -> t -> Yojson.Basic.t
 
   val get_strat_list: t -> string list
 

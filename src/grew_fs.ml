@@ -86,19 +86,6 @@ module P_feature = struct
        | Else (fv1,fn2,fv2) -> sprintf " = %s/%s = %s" (Feature_value.to_string fv1) fn2 (Feature_value.to_string fv2));
     printf "%!"
 
-  let to_json_python (feature_name, p_feature_value) =
-    `Assoc [
-      ("feature_name", `String feature_name);
-      ( match p_feature_value with
-        | Pfv_list (cmp,val_list) -> (Cmp.to_string cmp, `List (List.map (fun x -> `String (Feature_value.to_string x)) val_list))
-        | Pfv_lex (cmp,lex,fn) -> (Cmp.to_string cmp, `String (sprintf "%s.%s" lex fn))
-        | Pfv_re (cmp,re) -> (Cmp.to_string cmp, `String (sprintf "re\"%s\"" re))
-        | Absent -> ("absent", `Null)
-        | Else (fv1,fn2,fv2) -> ("else", `List [`String (Feature_value.to_string fv1); `String fn2; `String (Feature_value.to_string fv2)]);
-      )
-    ]
-
-
   exception Fail_unif
 
   (** raise [P_feature.Fail_unif] *)
@@ -366,8 +353,6 @@ module G_fs = struct
         reduced_t in
     List.map (fun (fn, fv) -> (fn, Feature_value.to_string fv)) ud_ordering
 
-  let to_json_python t = `Assoc (List.map (fun (fn, fv) -> (fn, `String (Feature_value.to_string fv))) t)
-
 end (* module G_fs *)
 
 (* ================================================================================ *)
@@ -376,8 +361,6 @@ module P_fs = struct
   type t = P_feature.t list
 
   let empty = []
-
-  let to_json_python t = `List (List.map (P_feature.to_json_python) t)
 
   let of_ast lexicons ast_fs =
     let unsorted = List.map (P_feature.build lexicons) ast_fs in

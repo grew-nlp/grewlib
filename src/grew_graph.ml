@@ -28,18 +28,6 @@ module P_graph = struct
 
   let pid_name_list t = Pid_map.fold (fun _ node acc -> (P_node.get_name node)::acc) t []
 
-  let to_json_python ~config t =
-    `List (
-      Pid_map.fold
-        (fun pid p_node acc ->
-           (`Assoc [
-               ("id", `String (Pid.to_string pid));
-               ("node", P_node.to_json_python ~config p_node)
-             ]) :: acc
-        ) t []
-    )
-
-
   let to__json_list ~config t =
     let nodes = Pid_map.fold 
       (fun k n acc -> 
@@ -731,16 +719,17 @@ module G_graph = struct
         (fun src_gid node acc ->
            let src = `String (Gid.to_string src_gid) in
            Gid_massoc.fold
-             (fun acc2 tar_gid edge ->
-                match G_edge.to_json_opt edge with
-                | None -> acc2
-                | Some js ->
-                  (`Assoc [
-                      ("src", src);
-                      ("label", js);
-                      ("tar", `String (Gid.to_string tar_gid));
-                    ]) :: acc2
-             ) acc (G_node.get_next node)
+            (fun acc2 tar_gid edge ->
+              match G_edge.to_json_opt edge with
+              | None -> acc2
+              | Some js ->
+                (`Assoc [
+                    ("src", src);
+                    ("label", js);
+                    ("tar", `String (Gid.to_string tar_gid));
+                  ]
+                ) :: acc2
+            ) acc (G_node.get_next node)
         ) graph.map [] in
 
     let order = List.map (fun s -> `String (Gid.to_string s)) (get_ordered_gids graph) in
@@ -774,38 +763,6 @@ module G_graph = struct
           | _ -> true
         ) full_assoc_list
     )
-
-
-  (* -------------------------------------------------------------------------------- *)
-  let of_json_python ~config json =
-    match json with
-    | `Assoc (l : (string * Yojson.Basic.t) list) ->
-      let (ast_node_list, ast_edge_list) = List.fold_left
-          (fun (acc_node, acc_edge) -> function
-             | (id, `List [json_fs; `List succ]) ->
-               let fs = match json_fs with
-                 | `Assoc feat_json_list ->
-                   List.map (function
-                       | (feat_name, `String value) -> ({Ast.name= feat_name; kind = Ast.Feat_kind_list (Eq,[value])}, Loc.empty)
-                       | (feat_name, json) -> Error.build "[Graph.of_json_python] invalid feature structure. feat_name=`%s` json=`%s`" feat_name (Yojson.Basic.pretty_to_string json)
-                     ) feat_json_list
-                 |  `String one -> [({Ast.name= "form"; kind = Ast.Feat_kind_list (Eq,[one])}, Loc.empty)]
-                 | _ -> Error.build "[Graph.of_json_python] invalid fs" in
-               let new_edges = List.map
-                   (function
-                     | `List [`String rel; `String tar] -> ({Ast.edge_id=None; edge_label_cst=Ast.Pos_list [rel]; src=id; tar},Loc.empty)
-                     | _ -> Error.build "[Graph.of_json_python] invalid succ list"
-                   ) succ in
-               (
-                 ({ Ast.node_id=id; fs}, Loc.empty) :: acc_node,
-                 new_edges @ acc_edge
-               )
-             | (_,x) -> Error.build "[Graph.of_json_python] <1> ill formed graph\n%s" (Yojson.Basic.pretty_to_string x)
-          ) ([],[]) l in
-      let graph_ast = { Ast.meta=[]; nodes=ast_node_list; edges=ast_edge_list}
-      in of_ast ~config graph_ast
-    | x -> Error.build "[Graph.of_json_python]  <2> ill formed graph\n%s" (Yojson.Basic.pretty_to_string x)
-
 
   (* -------------------------------------------------------------------------------- *)
   (** input : "Le/DET/le petit/ADJ/petit chat/NC/chat dort/V/dormir ./PONCT/." *)
@@ -1143,26 +1100,6 @@ module G_graph = struct
     match G_fs.del_feat_opt feat_name (G_node.get_fs node) with
     | Some new_fs -> Some { graph with map = Gid_map.add node_id (G_node.set_fs new_fs node) graph.map }
     | None -> None
-
-  (* -------------------------------------------------------------------------------- *)
-  let to_json_python ~config graph =
-    let gr_id id = G_node.get_name id (Gid_map.find id graph.map) in
-
-    let nodes = Gid_map.fold
-        (fun id node acc ->
-           let node_id = gr_id id
-           and fs = G_node.get_fs node
-           and succ =
-             Gid_massoc.fold
-               (fun acc tar edge ->
-                  match G_edge.to_string_opt ~config edge with
-                  | None -> acc
-                  | Some s -> (`List [`String s; `String (gr_id tar)]) :: acc
-               ) [] (G_node.get_next node) in
-           (node_id,`List [G_fs.to_json_python fs; `List succ])::acc
-        ) graph.map [] in
-
-    `Assoc nodes
 
   (* -------------------------------------------------------------------------------- *)
   let to_gr ~config graph =

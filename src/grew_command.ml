@@ -103,7 +103,7 @@ module Command  = struct
         (CCOption.get_or ~default:"" (G_edge.to_string_opt ~config edge)) 
         (command_node_to_string tar))
 
-    | DEL_EDGE_NAME edge_name ->   `String (sprintf "del_edge %s" edge_name)
+    | DEL_EDGE_NAME edge_name -> `String (sprintf "del_edge %s" edge_name)
 
     | ADD_EDGE (src,tar,edge) ->
       `String (sprintf "add_edge %s -[%s]-> %s" 
@@ -157,131 +157,6 @@ module Command  = struct
     | UNORDER cn -> `String (sprintf "unorder %s" (command_node_to_string cn))
     | INSERT_BEFORE (cn1,cn2) -> `String (sprintf "insert %s :< %s" (command_node_to_string cn1) (command_node_to_string cn2))
     | INSERT_AFTER (cn1,cn2) -> `String (sprintf "insert %s :> %s" (command_node_to_string cn1) (command_node_to_string cn2))
-
-  let to_json_python ~config (p, _) = match p with
-    | DEL_NODE cn -> `Assoc [("del_node", command_node_to_json cn)]
-    | DEL_EDGE_EXPL (src,tar,edge) ->
-      `Assoc [("del_edge_expl",
-               `Assoc [
-                 ("src",command_node_to_json src);
-                 ("tar",command_node_to_json tar);
-                 ("edge", G_edge.to_json edge);
-               ]
-              )]
-    | DEL_EDGE_NAME edge_name -> `Assoc [("del_edge_name", `String edge_name)]
-    | ADD_EDGE (src,tar,edge) ->
-      `Assoc [("add_edge",
-               `Assoc [
-                 ("src",command_node_to_json src);
-                 ("tar",command_node_to_json tar);
-                 ("edge", G_edge.to_json edge);
-               ]
-              )]
-
-    | ADD_EDGE_EXPL (src,tar,name) ->
-      `Assoc [("add_edge",
-               `Assoc [
-                 ("src",command_node_to_json src);
-                 ("tar",command_node_to_json tar);
-                 ("name", `String name);
-               ]
-              )]
-
-    | ADD_EDGE_ITEMS (src, tar, items) ->
-      `Assoc [("add_edge_items",
-               `Assoc [
-                 ("src",command_node_to_json src);
-                 ("tar",command_node_to_json tar);
-                 ("items", `List (List.map (fun (efn,efv) -> `Assoc [("edge_feature_name",`String efn); ("edge_feature_value", `String efv)]) items));
-               ]
-              )]
-
-    | DEL_FEAT (cn, feature_name) ->
-      `Assoc [("del_feat",
-               `Assoc [
-                 ("node",command_node_to_json cn);
-                 ("feature_name", `String feature_name);
-               ]
-              )]
-
-    | UPDATE_FEAT (cn, feature_name, items) ->
-      `Assoc [("update_feat",
-               `Assoc [
-                 ("node",command_node_to_json cn);
-                 ("feature_name", `String feature_name);
-                 ("items", `List (List.map json_of_ranged_item items));
-               ]
-              )]
-
-    | NEW_NODE name -> `Assoc [("new_node", `String name)]
-    | NEW_BEFORE (name, cn) ->
-      `Assoc [("new_before",
-               `Assoc [
-                 ("name", `String name);
-                 ("node", command_node_to_json cn);
-               ]
-              )]
-    | NEW_AFTER (name, cn) ->
-      `Assoc [("new_after",
-               `Assoc [
-                 ("name", `String name);
-                 ("node", command_node_to_json cn);
-               ]
-              )]
-
-    | SHIFT_EDGE (src,tar,label_cst) ->
-      `Assoc [("shift_edge",
-               `Assoc [
-                 ("src",command_node_to_json src);
-                 ("tar",command_node_to_json tar);
-                 ("label_cst", Label_cst.to_json_python ~config label_cst);
-               ]
-              )]
-    | SHIFT_IN (src,tar,label_cst) ->
-      `Assoc [("shift_in",
-               `Assoc [
-                 ("src",command_node_to_json src);
-                 ("tar",command_node_to_json tar);
-                 ("label_cst", Label_cst.to_json_python ~config label_cst);
-               ]
-              )]
-    | SHIFT_OUT (src,tar,label_cst) ->
-      `Assoc [("shift_out",
-               `Assoc [
-                 ("src",command_node_to_json src);
-                 ("tar",command_node_to_json tar);
-                 ("label_cst", Label_cst.to_json_python ~config label_cst);
-               ]
-              )]
-    | UPDATE_EDGE_FEAT (edge_id, feat_name, items) ->
-      `Assoc [("update_edge_feat",
-               `Assoc [
-                 ("edge_id", `String edge_id);
-                 ("feat_name", `String feat_name);
-                 ("items", `List (List.map json_of_ranged_item items));
-               ]
-              )]
-    | DEL_EDGE_FEAT (edge_id, feat_name) ->
-      `Assoc [("del_edge_feat",
-               `Assoc [
-                 ("edge_id", `String edge_id);
-                 ("feat_name", `String feat_name)
-               ]
-              )]
-    | CONCAT_FEATS (side, src, tar, regexp, separator) ->
-      `Assoc [((match side with Append -> "appen_feats" | Prepend -> "prepend"),
-               `Assoc [
-                 ("src", command_node_to_json src);
-                 ("tar", command_node_to_json tar);
-                 ("regexp", `String regexp);
-                 ("separator", `String separator)
-               ]
-        )]
-    | UNORDER cn -> `Assoc [("unorder", command_node_to_json cn)]
-    | INSERT_BEFORE (cn1,cn2) -> `Assoc [("insert_before", `Assoc [("inserted", command_node_to_json cn1); ("site", command_node_to_json cn2)])]
-    | INSERT_AFTER (cn1,cn2) -> `Assoc [("insert_after", `Assoc [("inserted", command_node_to_json cn1); ("site", command_node_to_json cn2)])]
-
-
 
   let of_ast ~config lexicons (kni, kei) table ast_command =
     (* kni stands for "known node idents", kei for "known edge idents" *)

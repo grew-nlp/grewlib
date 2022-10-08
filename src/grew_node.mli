@@ -87,8 +87,6 @@ module P_node: sig
 
   val of_ast: Lexicons.t -> Ast.node -> (Id.name * t)
 
-  val to_json_python: config:Conllx_config.t -> t -> Yojson.Basic.t
-
   (** [unif_fs fs t] replaces the feature structure of the node
       by the unification of [t.fs] and [fs].
       It raises [P_fs.Fail_unif] exception in case of Failure. *)

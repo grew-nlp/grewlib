@@ -124,80 +124,6 @@ module Pattern = struct
     | Edge_relative (Included, eid1, eid2) ->  sprintf "%s << %s" eid1 eid2
     | Edge_relative (Contained, eid1, eid2) -> Error.bug "Unexpected Edge_relative"
 
-  let const_to_json ~config = function
-    | Cst_out (pid, label_cst) -> `Assoc ["cst_out", Label_cst.to_json_python ~config label_cst]
-    | Cst_in (pid, label_cst) -> `Assoc ["cst_in", Label_cst.to_json_python ~config label_cst]
-    | Feature_cmp (cmp,id1,fn1,id2,fn2) ->
-      `Assoc ["features_cmp",
-              `Assoc [
-                ("cmp", `String (Cmp.to_string cmp));
-                ("id1", json_of_base id1);
-                ("feature_name_1", `String fn1);
-                ("id2", json_of_base id1);
-                ("feature_name_2", `String fn2);
-              ]
-             ]
-    | Feature_cmp_value (cmp,id,fn,value) ->
-      `Assoc ["feature_cmp_cst",
-              `Assoc [
-                ("cmp", `String (Cmp.to_string cmp));
-                ("id", json_of_base id);
-                ("feature_name_", `String fn);
-                ("value", Feature_value.to_json value);
-              ]
-             ]
-    | Feature_cmp_regexp (cmp,id,fn,regexp) ->
-      `Assoc ["feature_eq_regexp",
-              `Assoc [
-                ("cmp", `String (Cmp.to_string cmp));
-                ("id", json_of_base id);
-                ("feature_name", `String fn);
-                ("regexp", `String regexp);
-              ]
-             ]
-    | Feature_ineq (ineq,id1,fn1,id2,fn2) ->
-      `Assoc ["features_ineq",
-              `Assoc [
-                ("ineq", `String (Ast.string_of_ineq ineq));
-                ("id1", json_of_base id1);
-                ("feature_name_1", `String fn1);
-                ("id2", json_of_base id2);
-                ("feature_name_2", `String fn2);
-              ]
-             ]
-    | Feature_ineq_cst (ineq,id,fn,f) ->
-      `Assoc ["feature_ineq_cst",
-              `Assoc [
-                ("ineq", `String (Ast.string_of_ineq ineq));
-                ("id", json_of_base id);
-                ("feature_name", `String fn);
-                ("value", `Float f);
-              ]
-             ]
-    | Filter (pid, p_fs) ->
-      `Assoc ["filter",
-              `Assoc [
-                ("id", `String (Pid.to_string pid));
-                ("fs", P_fs.to_json_python p_fs);
-              ]
-             ]
-    | Node_large_prec (pid1, pid2) ->
-      `Assoc ["node_large_prec",
-              `Assoc [
-                ("id1", `String (Pid.to_string pid1));
-                ("id2", `String (Pid.to_string pid2));
-              ]
-             ]
-    | Edge_relative (erp, eid1, eid2) ->
-      `Assoc ["edge_relative",
-              `Assoc [
-                ("edge_relative_position", json_of_edge_relative_position erp);
-                ("id1", `String eid1);
-                ("id2", `String eid2);
-              ]
-             ]
-    | Covered (pid1, eid2) -> `Assoc ["covered",`Assoc [("id1", `String (Pid.to_string pid1)); ("id2", `String eid2)]]
-
   let build_constraint ~config lexicons ker_table ext_table edge_ids const =
     let parse_id loc id = match (Id.build_opt id ker_table, Id.build_opt id ext_table) with
       | (Some pid,_) -> Node_id (Pid.Ker pid)
@@ -256,12 +182,6 @@ module Pattern = struct
       (P_graph.to__json_list ~config basic.graph)
       @ (List.map (fun x -> `String (const_to_string ~config x)) basic.constraints)
     )
-
-  let basic_to_json ~config basic =
-    `Assoc [
-      ("graph", P_graph.to_json_python ~config basic.graph);
-      ("constraints", `List (List.map (const_to_json ~config) basic.constraints));
-    ]
 
   let build_ker_basic ~config lexicons basic_ast =
     let (graph, ker_table, edge_ids) =
@@ -929,16 +849,6 @@ module Rule = struct
      match Loc.get_line_opt t.loc with Some l -> l | None -> 0)
 
   let get_loc t = t.loc
-
-  let to_json_python ~config t =
-    `Assoc
-      ([
-        ("rule_name", `String t.name);
-        ("pattern", Pattern.basic_to_json ~config t.pattern.ker);
-        ("without", `List (List.map (fun (ext,pol) -> Pattern.basic_to_json ~config ext) t.pattern.exts)); (* TODO take into account pol *)
-        ("commands", `List (List.map (Command.to_json_python ~config) t.commands))
-      ]
-      )
 
   let to__json ~config t =
     `Assoc (

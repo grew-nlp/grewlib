@@ -74,7 +74,6 @@ module Label_cst : sig
   type t
 
   val to_string: config:Conllx_config.t -> t -> string
-  val to_json_python: config:Conllx_config.t -> t -> Yojson.Basic.t
   val all: t
   val match_: config:Conllx_config.t -> t -> G_edge.t -> bool
   val of_ast: ?loc:Loc.t -> config:Conllx_config.t -> Ast.edge_label_cst -> t
@@ -88,8 +87,6 @@ module P_edge: sig
 
   val pred: t
   val succ: t
-
-  val to_json_python: config:Conllx_config.t -> t -> Yojson.Basic.t
 
   val get_id_opt: t -> string option
 

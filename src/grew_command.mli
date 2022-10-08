@@ -53,7 +53,6 @@ module Command : sig
     | INSERT_AFTER of (command_node * command_node)
 
   type t = (p * Loc.t)
-  val to_json_python: config:Conllx_config.t -> t -> Yojson.Basic.t
   val to__json: config:Conllx_config.t -> t -> Yojson.Basic.t
 
 

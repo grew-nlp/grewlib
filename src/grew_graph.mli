@@ -25,7 +25,6 @@ module P_graph: sig
 
   val empty: t
 
-  val to_json_python: config:Conllx_config.t -> t -> Yojson.Basic.t
   val to__json_list: config:Conllx_config.t -> t -> Yojson.Basic.t list
 
   val find: Pid.t -> t -> P_node.t
@@ -120,8 +119,6 @@ module G_graph: sig
   (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
 
   val of_ast: config:Conllx_config.t -> Ast.gr -> t
-
-  val of_json_python: config:Conllx_config.t -> Yojson.Basic.t -> t
 
   (** input : "Le/DET/le petit/ADJ/petit chat/NC/chat dort/V/dormir ./PONCT/."
       It supposes that "SUC" is defined in current relations *)
@@ -226,8 +223,6 @@ module G_graph: sig
   val to_sentence_audio: ?deco:G_deco.t -> t -> (string * (float * float) option)
 
   val to_dep: ?filter: (string -> bool) -> ?no_root:bool -> ?main_feat:string -> ?deco:G_deco.t -> config:Conllx_config.t -> t -> string
-
-  val to_json_python: config:Conllx_config.t -> t -> Yojson.Basic.t
 
   val to_json: t -> Yojson.Basic.t
 
