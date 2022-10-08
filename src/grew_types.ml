@@ -159,6 +159,7 @@ module Clustered = struct
     | (n, Node map) -> Node (String_opt_map.map (fun v -> prune_unambiguous (depth - 1) v) map)
     | _ -> failwith "[Clustered.prune_unambiguous] no enough depth in the projection"
 
+  (* NB: unused function *)
   let to_json keys t = 
     let rec loop acc keys partial t =
       match (keys, t) with

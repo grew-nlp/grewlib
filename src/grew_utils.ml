@@ -89,8 +89,6 @@ module Range = struct
     | (None, Some y) -> sprintf "[:%d]" y
     | (Some x, Some y) -> sprintf "[%d:%d]" x y
 
-  let to_json r = `String (to_string r) 
-
   (** Python like substring extraction
      [get_range (init_opt, final_opt) s] return the python output of s[init_opt:final_opt]
      NB: indexes correspond to UTF-8 chars. ex: [get_range (None, Some (-1)) "été"] ==> "ét"
@@ -812,10 +810,6 @@ let to_string = function
   | String s -> Str.global_replace (Str.regexp "\"") "\\\""
                   (Str.global_replace (Str.regexp "\\\\") "\\\\\\\\" s)
   | Float f -> sprintf "%g" f
-
-let to_json = function
-  | String s -> `String s
-  | Float f ->  `Float f
 
 let to_conll = function
   | String s -> s

@@ -65,8 +65,6 @@ module Range: sig
   type t = (int option * int option)
 
   val to_string: t -> string
-  val to_json: t ->  Yojson.Basic.t
-
 
   (** Python like substring extraction
      [extract (init_opt, final_opt) s] return the python output of s[init_opt:final_opt]
@@ -377,9 +375,6 @@ module Feature_value: sig
 
   (* val Feature_value.to_conll : feature_value -> string *)
   val to_conll: t -> string
-
-  (* val Feature_value.to_json : feature_value -> Yojson.Basic.t *)
-  val to_json: t -> Yojson.Basic.t
 
   (* val numeric_feature_values: string list *)
 

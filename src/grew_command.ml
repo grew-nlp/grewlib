@@ -26,31 +26,12 @@ module Command  = struct
     | Pat pid -> Pid.to_id pid
     | New s -> s
 
-
-  let command_node_to_json = function
-    | Pat pid -> `String (Pid.to_string pid)
-    | New s -> `String s
-
   (* [item] is a element of the RHS of an update_feat command *)
   type item =
     | Node_feat of (command_node * string)
     | Edge_feat of (string * string)
     | String_item of string
     | Lexical_field of Ast.pointed
-
-  let json_of_item = function
-    | Node_feat (cn, feature_name) -> 
-      `Assoc 
-        [("copy_feat",
-          `Assoc [
-            ("node",command_node_to_json cn);
-            ("feature_name", `String feature_name);
-          ]
-         )]
-    | Edge_feat (edge_id, feat_name) -> 
-      `Assoc [("edge_id", `String edge_id); ("feat_name", `String feat_name)]
-    | String_item s -> `Assoc [("string", `String s)]
-    | Lexical_field (lex,field) -> `Assoc [("lexical_field", `String (lex ^ "." ^ field))]
 
   let item_to_string = function
     | Node_feat (cn, feature_name) -> sprintf "%s.%s" (command_node_to_string cn) feature_name
@@ -59,9 +40,6 @@ module Command  = struct
     | Lexical_field (lex,field) -> sprintf "%s.%s" lex field
 
   type ranged_item = item * Range.t
-
-  let json_of_ranged_item (item, range) = 
-    `Assoc [("item", json_of_item item); ("range", Range.to_json range)]
 
   let ranged_item_to_string (item, range) =
     sprintf "%s%s" (item_to_string item) (Range.to_string range)
