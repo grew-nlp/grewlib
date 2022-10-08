@@ -28,7 +28,7 @@ module P_graph = struct
 
   let pid_name_list t = Pid_map.fold (fun _ node acc -> (P_node.get_name node)::acc) t []
 
-  let to__json_list ~config t =
+  let to_json_list ~config t =
     let nodes = Pid_map.fold 
       (fun k n acc -> 
         (`String (sprintf "%s [%s]" (Pid.to_id k) (P_fs.to_string (P_node.get_fs n))))

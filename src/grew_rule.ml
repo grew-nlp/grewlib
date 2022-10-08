@@ -177,9 +177,9 @@ module Pattern = struct
     constraints: const list;
   }
 
-  let basic_to__json ~config basic =
+  let basic_to_json ~config basic =
     `List (
-      (P_graph.to__json_list ~config basic.graph)
+      (P_graph.to_json_list ~config basic.graph)
       @ (List.map (fun x -> `String (const_to_string ~config x)) basic.constraints)
     )
 
@@ -224,13 +224,13 @@ module Pattern = struct
   }
 
 
-  let to__json ~config t =
+  let to_json ~config t =
     `Assoc [
-      ("pattern", `List [basic_to__json ~config t.ker]);
+      ("pattern", `List [basic_to_json ~config t.ker]);
       ("wihtout", `List (
           List.map 
             (function
-              | (basic,false) -> `List [basic_to__json ~config basic]
+              | (basic,false) -> `List [basic_to_json ~config basic]
               | _ -> failwith "`with` extension not implemented"
           ) t.exts
         )
@@ -850,12 +850,12 @@ module Rule = struct
 
   let get_loc t = t.loc
 
-  let to__json ~config t =
+  let to_json ~config t =
     `Assoc (
       [
         ("rule_name", `String t.name);
-        ("pattern", Pattern.to__json ~config t.pattern);
-        ("commands", `List (List.map (Command.to__json ~config) t.commands))
+        ("pattern", Pattern.to_json ~config t.pattern);
+        ("commands", `List (List.map (Command.to_json ~config) t.commands))
       ]
     )
 

@@ -25,7 +25,7 @@ module P_graph: sig
 
   val empty: t
 
-  val to__json_list: config:Conllx_config.t -> t -> Yojson.Basic.t list
+  val to_json_list: config:Conllx_config.t -> t -> Yojson.Basic.t list
 
   val find: Pid.t -> t -> P_node.t
 

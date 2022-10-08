@@ -72,7 +72,7 @@ module Command  = struct
   type t = p * Loc.t  (* remember command location to be able to localize a command failure *)
 
 
-  let to__json ~config (p,_) = match p with
+  let to_json ~config (p,_) = match p with
     | DEL_NODE cn -> `String (sprintf "del_node %s" (command_node_to_string cn))
 
     | DEL_EDGE_EXPL (src,tar,edge) -> 

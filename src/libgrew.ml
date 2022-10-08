@@ -277,6 +277,12 @@ module Grs = struct
          Grew_grs.Grs.parse ~config file
       ) ()
 
+  let to_json ~config grs =
+    Libgrew.handle ~name:"Grs.to_json"
+      (fun () ->
+         Grew_grs.Grs.to_json ~config grs
+      ) ()
+
   let dump grs =
     Libgrew.handle ~name:"Grs.dump"
       (fun () ->

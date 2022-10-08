@@ -157,6 +157,8 @@ module Grs : sig
 
   val parse: config:Conllx_config.t -> string -> t
 
+  val to_json: config:Conllx_config.t -> t -> Yojson.Basic.t
+
   val dump: t -> unit
 
   val get_strat_list: t -> string list
