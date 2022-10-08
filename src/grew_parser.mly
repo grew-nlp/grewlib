@@ -787,7 +787,7 @@ command:
         | APPEND_FEATS src_loc=simple_id_with_loc ARROW tar=simple_id
             { let (src,loc) = src_loc in (Ast.Concat_feats (Append, src, tar, ".*", ""), loc) }
 
-        /*   append_feats M ==> N   */
+        /*   prepend_feats M ==> N   */
         | PREPEND_FEATS src_loc=simple_id_with_loc ARROW tar=simple_id
             { let (src,loc) = src_loc in (Ast.Concat_feats (Prepend, src, tar, ".*", ""), loc) }
 
@@ -795,7 +795,7 @@ command:
         | APPEND_FEATS sep=STRING src_loc=simple_id_with_loc ARROW tar=simple_id
             { let (src,loc) = src_loc in (Ast.Concat_feats (Append, src, tar, ".*", sep), loc) }
 
-        /*   append_feats "+" M ==> N   */
+        /*   prepend_feats "+" M ==> N   */
         | PREPEND_FEATS sep=STRING src_loc=simple_id_with_loc ARROW tar=simple_id
             { let (src,loc) = src_loc in (Ast.Concat_feats (Prepend, src, tar, ".*", sep), loc) }
 
@@ -803,7 +803,7 @@ command:
         | APPEND_FEATS src_loc=simple_id_with_loc ARROW_LEFT regexp=REGEXP ARROW_RIGHT tar=simple_id
             { let (src,loc) = src_loc in (Ast.Concat_feats (Append, src, tar, regexp, ""), loc) }
 
-        /*   append_feats M =[re"_MISC_.*"]=> N   */
+        /*   prepend_feats M =[re"_MISC_.*"]=> N   */
         | PREPEND_FEATS src_loc=simple_id_with_loc ARROW_LEFT regexp=REGEXP ARROW_RIGHT tar=simple_id
             { let (src,loc) = src_loc in (Ast.Concat_feats (Prepend, src, tar, regexp, ""), loc) }
 

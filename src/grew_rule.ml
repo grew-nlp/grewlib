@@ -269,7 +269,7 @@ module Pattern = struct
   type t = {
     global: Ast.glob list;
     ker: basic;
-    exts: (basic * bool) list; (* with and without *)
+    exts: (basic * bool) list; (* with iff true and without iff false *)
     table: Id.table;  (* needed to build whether *)
     edge_ids: string list;  (* needed to build whether *)
   }
