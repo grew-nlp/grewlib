@@ -54,6 +54,7 @@ module Command : sig
 
   type t = (p * Loc.t)
   val to_json_python: config:Conllx_config.t -> t -> Yojson.Basic.t
+  val to__json: config:Conllx_config.t -> t -> Yojson.Basic.t
 
 
   val of_ast:

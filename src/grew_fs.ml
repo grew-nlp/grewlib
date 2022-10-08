@@ -389,7 +389,7 @@ module P_fs = struct
         | (fn, _) -> (fn, None)
       ) t
 
-  let to_string t = List_.to_string P_feature.to_string "\\n" t
+  let to_string t = List_.to_string P_feature.to_string "," t
 
   let to_dep ?filter t =
     let reduced = match filter with

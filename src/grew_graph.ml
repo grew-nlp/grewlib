@@ -39,6 +39,27 @@ module P_graph = struct
         ) t []
     )
 
+
+  let to__json_list ~config t =
+    let nodes = Pid_map.fold 
+      (fun k n acc -> 
+        (`String (sprintf "%s [%s]" (Pid.to_id k) (P_fs.to_string (P_node.get_fs n))))
+         :: acc
+      ) t [] in
+    let full = Pid_map.fold 
+      (fun k n acc -> 
+        let next = P_node.get_next n in
+        Pid_massoc.fold 
+          (fun acc2 pid_tar edge ->
+            match P_edge.to_string ~config edge with
+            | "__PRED__" -> acc2
+            | "__SUCC__" -> (`String (sprintf "%s < %s" (Pid.to_id k) (Pid.to_id pid_tar))) :: acc2
+            | e -> (`String (sprintf "%s -[%s]-> %s" (Pid.to_id k) e (Pid.to_id pid_tar))) :: acc2
+          ) acc next
+      ) t nodes in
+    full
+
+
   (* -------------------------------------------------------------------------------- *)
   let map_add_edge_opt src_pid label tar_pid map =
     let src_node =

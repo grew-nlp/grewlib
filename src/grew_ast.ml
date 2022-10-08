@@ -194,6 +194,13 @@ module Ast = struct
 
   type glob = u_glob * Loc.t
 
+  let glob_to_string (u_glob,_) = match u_glob with
+    | Glob_cst s -> s
+    | Glob_eq_list (s,l) -> sprintf "%s = %s" s (String.concat "|" l)
+    | Glob_diff_list (s,l) -> sprintf "%s <> %s" s (String.concat "|" l)
+    | Glob_absent s -> sprintf "!%s" s
+    | Glob_regexp (f,re) -> sprintf "%s = re\"%s\"" f re
+
   type pattern = {
     pat_glob: glob list;
     pat_pos: basic;
@@ -415,6 +422,16 @@ module Ast = struct
     | Iter s -> `Assoc [("Iter", strat_to_json s)]
     | If (s, s1, s2) -> `Assoc [("If", strat_to_json s); ("Then", strat_to_json s1); ("Else", strat_to_json s2)]
     | Try s -> `Assoc [("Try", strat_to_json s)]
+
+  let rec strat_to_string = function
+    | Ref name -> name
+    | Pick s -> sprintf "Pick (%s)" (strat_to_string s)
+    | Onf s -> sprintf "Onf (%s)" (strat_to_string s)
+    | Alt l -> sprintf "Alt (%s)" (String.concat "," (List.map strat_to_string l))
+    | Seq l -> sprintf "Seq (%s)" (String.concat "," (List.map strat_to_string l))
+    | Iter s -> sprintf "Iter (%s)" (strat_to_string s)
+    | If (s, s1, s2) -> sprintf "If (%s,%s,%s)" (strat_to_string s) (strat_to_string s1) (strat_to_string s2)
+    | Try s -> sprintf "Try (%s)" (strat_to_string s)
 
   let strat_list grs =
     List.fold_left

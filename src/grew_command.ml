@@ -22,6 +22,11 @@ module Command  = struct
     | Pat of Pid.t      (* a node identified in the pattern *)
     | New of string     (* a node introduced by a add_node *)
 
+  let command_node_to_string = function
+    | Pat pid -> Pid.to_id pid
+    | New s -> s
+
+
   let command_node_to_json = function
     | Pat pid -> `String (Pid.to_string pid)
     | New s -> `String s
@@ -47,11 +52,20 @@ module Command  = struct
     | String_item s -> `Assoc [("string", `String s)]
     | Lexical_field (lex,field) -> `Assoc [("lexical_field", `String (lex ^ "." ^ field))]
 
+  let item_to_string = function
+    | Node_feat (cn, feature_name) -> sprintf "%s.%s" (command_node_to_string cn) feature_name
+    | Edge_feat (edge_id, feat_name) -> sprintf "%s.%s" edge_id feat_name
+    | String_item s -> s
+    | Lexical_field (lex,field) -> sprintf "%s.%s" lex field
+
   type ranged_item = item * Range.t
 
   let json_of_ranged_item (item, range) = 
     `Assoc [("item", json_of_item item); ("range", Range.to_json range)]
 
+  let ranged_item_to_string (item, range) =
+    sprintf "%s%s" (item_to_string item) (Range.to_string range)
+  
   (* the command in pattern *)
   type p =
     | DEL_NODE of command_node
@@ -78,6 +92,71 @@ module Command  = struct
     | INSERT_AFTER of (command_node * command_node)
 
   type t = p * Loc.t  (* remember command location to be able to localize a command failure *)
+
+
+  let to__json ~config (p,_) = match p with
+    | DEL_NODE cn -> `String (sprintf "del_node %s" (command_node_to_string cn))
+
+    | DEL_EDGE_EXPL (src,tar,edge) -> 
+      `String (sprintf "del_edge %s -[%s]-> %s" 
+        (command_node_to_string src) 
+        (CCOption.get_or ~default:"" (G_edge.to_string_opt ~config edge)) 
+        (command_node_to_string tar))
+
+    | DEL_EDGE_NAME edge_name ->   `String (sprintf "del_edge %s" edge_name)
+
+    | ADD_EDGE (src,tar,edge) ->
+      `String (sprintf "add_edge %s -[%s]-> %s" 
+        (command_node_to_string src) 
+        (CCOption.get_or ~default:"" (G_edge.to_string_opt ~config edge)) 
+        (command_node_to_string tar))
+
+    | ADD_EDGE_EXPL (src,tar,name) ->
+      `String (sprintf "add_edge %s: %s -> %s" 
+        name
+        (command_node_to_string src) 
+        (command_node_to_string tar))
+
+    | ADD_EDGE_ITEMS (src, tar, items) ->
+      `String (sprintf "add_edge %s -[%s]-> %s" 
+        (command_node_to_string src) 
+        (String.concat "," (List.map (fun (f,v) -> sprintf "%s=%s" f v) items))
+        (command_node_to_string tar))
+
+    | DEL_FEAT (cn, feature_name) ->
+      `String (sprintf "del_feal %s.%s" (command_node_to_string cn) feature_name)
+
+    | UPDATE_FEAT (cn, feature_name, items) ->
+      `String (sprintf "%s.%s=%s" 
+        (command_node_to_string cn)
+        feature_name
+        (String.concat "+" (List.map ranged_item_to_string items))
+      )
+    | NEW_NODE name -> `String (sprintf "new_node %s" name)
+    | NEW_BEFORE (name, cn) -> `String (sprintf "add_node %s :< %s" name (command_node_to_string cn))
+    | NEW_AFTER (name, cn) -> `String (sprintf "add_node %s :> %s" name (command_node_to_string cn))
+    | SHIFT_EDGE (src,tar,label_cst) -> `String (sprintf "shift %s =[%s]=> %s" (command_node_to_string src) (Label_cst.to_string ~config label_cst) (command_node_to_string tar))
+    | SHIFT_IN (src,tar,label_cst) -> `String (sprintf "shift_in %s =[%s]=> %s" (command_node_to_string src) (Label_cst.to_string ~config label_cst) (command_node_to_string tar))
+    | SHIFT_OUT (src,tar,label_cst) -> `String (sprintf "shift_out %s =[%s]=> %s" (command_node_to_string src) (Label_cst.to_string ~config label_cst) (command_node_to_string tar))
+    | UPDATE_EDGE_FEAT (edge_id, feat_name, items) -> 
+      `String (sprintf "%s.%s=%s" 
+        edge_id
+        feat_name
+        (String.concat "+" (List.map ranged_item_to_string items))
+      )
+    | DEL_EDGE_FEAT (edge_id, feat_name) -> `String (sprintf "del_feat %s.%s" edge_id feat_name)
+
+    | CONCAT_FEATS (side, src, tar, regexp, separator) ->
+      `String (sprintf "%s%s %s =%s=> %s"
+        (match side with Append -> "append_feats" | Prepend -> "prepend_feats")
+        (match separator with "" -> "" | s -> sprintf "\"%s\"" s)
+        (command_node_to_string src) 
+        (match regexp with ".*" -> "" | s -> sprintf "[re\"%s\"]" s)
+        (command_node_to_string tar) 
+      )
+    | UNORDER cn -> `String (sprintf "unorder %s" (command_node_to_string cn))
+    | INSERT_BEFORE (cn1,cn2) -> `String (sprintf "insert %s :< %s" (command_node_to_string cn1) (command_node_to_string cn2))
+    | INSERT_AFTER (cn1,cn2) -> `String (sprintf "insert %s :> %s" (command_node_to_string cn1) (command_node_to_string cn2))
 
   let to_json_python ~config (p, _) = match p with
     | DEL_NODE cn -> `Assoc [("del_node", command_node_to_json cn)]

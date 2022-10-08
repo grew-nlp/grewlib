@@ -69,6 +69,12 @@ module Pattern = struct
     | Edge_id id -> `String id
     | Lexicon_id id -> `String id
 
+  let base_to_string = function
+  | Node_id pid -> Pid.to_id pid
+  | Edge_id id -> id
+  | Lexicon_id id -> id
+
+
   type const =
     (*   N -[…]-> *   *)
     | Cst_out of Pid.t * Label_cst.t
@@ -100,6 +106,23 @@ module Pattern = struct
     | Edge_relative of edge_relative_position * string * string
     (*   N << e2   *)
     | Covered of Pid.t * string (* node_id, edge_id *)
+
+
+  let const_to_string ~config = function
+    | Cst_out (pid, label_cst) -> sprintf "%s -[%s]-> *" (Pid.to_id pid) (Label_cst.to_string ~config label_cst)
+    | Cst_in (pid, label_cst) -> sprintf "* -[%s]-> %s" (Label_cst.to_string ~config label_cst) (Pid.to_id pid)
+    | Feature_cmp (cmp,id1,fn1,id2,fn2) -> sprintf "%s.%s %s %s.%s" (base_to_string id1) fn1 (Cmp.to_string cmp) (base_to_string id2) fn2
+    | Feature_cmp_value (cmp,id,fn,value) -> sprintf "%s.%s %s %s" (base_to_string id) fn (Cmp.to_string cmp) (Feature_value.to_string value) (* TODO__json: quotes needed ??? *)
+    | Feature_cmp_regexp (cmp,id,fn,regexp) -> sprintf "%s.%s %s re\"%s\"" (base_to_string id) fn (Cmp.to_string cmp) regexp
+    | Feature_ineq (ineq,id1,fn1,id2,fn2) -> sprintf "%s.%s < %s.%s" (base_to_string id1) fn1 (base_to_string id2) fn2
+    | Feature_ineq_cst (ineq,id,fn,f) -> sprintf "%s.%s  %g" (base_to_string id) fn f (* TODO__json: quotes needed ??? *)
+    | Filter (pid, p_fs) -> sprintf "%s [%s]" (Pid.to_id pid) (P_fs.to_string p_fs)
+    | Node_large_prec (pid1, pid2) ->  sprintf "%s << %s" (Pid.to_id pid1) (Pid.to_id pid2)
+    | Covered (pid1, eid2) -> sprintf "%s << %s" (Pid.to_id pid1) eid2
+    | Edge_relative (Disjoint, eid1, eid2) -> sprintf "%s <> %s" eid1 eid2
+    | Edge_relative (Crossing, eid1, eid2) -> sprintf "%s >< %s" eid1 eid2
+    | Edge_relative (Included, eid1, eid2) ->  sprintf "%s << %s" eid1 eid2
+    | Edge_relative (Contained, eid1, eid2) -> Error.bug "Unexpected Edge_relative"
 
   let const_to_json ~config = function
     | Cst_out (pid, label_cst) -> `Assoc ["cst_out", Label_cst.to_json_python ~config label_cst]
@@ -228,6 +251,12 @@ module Pattern = struct
     constraints: const list;
   }
 
+  let basic_to__json ~config basic =
+    `List (
+      (P_graph.to__json_list ~config basic.graph)
+      @ (List.map (fun x -> `String (const_to_string ~config x)) basic.constraints)
+    )
+
   let basic_to_json ~config basic =
     `Assoc [
       ("graph", P_graph.to_json_python ~config basic.graph);
@@ -273,6 +302,21 @@ module Pattern = struct
     table: Id.table;  (* needed to build whether *)
     edge_ids: string list;  (* needed to build whether *)
   }
+
+
+  let to__json ~config t =
+    `Assoc [
+      ("pattern", `List [basic_to__json ~config t.ker]);
+      ("wihtout", `List (
+          List.map 
+            (function
+              | (basic,false) -> `List [basic_to__json ~config basic]
+              | _ -> failwith "`with` extension not implemented"
+          ) t.exts
+        )
+      );
+      ("global", `List (List.map (fun glob -> `String (Ast.glob_to_string glob)) t.global));
+    ]
 
   let pid_name_list pattern = P_graph.pid_name_list pattern.ker.graph
 
@@ -895,6 +939,15 @@ module Rule = struct
         ("commands", `List (List.map (Command.to_json_python ~config) t.commands))
       ]
       )
+
+  let to__json ~config t =
+    `Assoc (
+      [
+        ("rule_name", `String t.name);
+        ("pattern", Pattern.to__json ~config t.pattern);
+        ("commands", `List (List.map (Command.to__json ~config) t.commands))
+      ]
+    )
 
   (* ====================================================================== *)
   let to_dep ~config t =

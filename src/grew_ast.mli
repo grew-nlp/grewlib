@@ -134,6 +134,8 @@ module Ast : sig
 
   type glob = u_glob * Loc.t
 
+  val glob_to_string: glob -> string
+
   type pattern = {
     pat_glob: glob list;
     pat_pos: basic;
@@ -241,6 +243,8 @@ module Ast : sig
   type grs = decl list
 
   val strat_to_json: strat -> Yojson.Basic.t
+
+  val strat_to_string: strat -> string
 
   (* return the list of strategies declared at the top level *)
   val strat_list: grs -> string list

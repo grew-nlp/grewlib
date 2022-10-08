@@ -80,6 +80,8 @@ module Rule : sig
 
   val to_json_python: config:Conllx.Conllx_config.t -> t -> Yojson.Basic.t
 
+  val to__json: config:Conllx.Conllx_config.t -> t -> Yojson.Basic.t
+
   (** [to_dep t] returns a string in the [dep] language describing the match basic of the rule *)
   val to_dep: config:Conllx.Conllx_config.t -> t -> string
 
