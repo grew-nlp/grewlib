@@ -300,6 +300,11 @@ module G_graph = struct
            let new_node = G_node.set_next new_next node in
            Gid_map.add gid new_node acc
         ) selected_nodes Gid_map.empty in
+
+    printf "|nodes|=%d  |edges|=%d\n%!" 
+      (Gid_map.cardinal sub_map)
+      (Gid_map.fold (fun _ n acc -> Gid_massoc.fold (fun acc2 _ _ -> acc2+1) acc (G_node.get_next n)) sub_map 0);
+
     {empty with map= sub_map}
 
   let fold_gid fct t init =
