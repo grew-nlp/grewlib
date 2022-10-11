@@ -16,6 +16,10 @@ open Grew_ast
 
 let decode_feat_name s = Str.global_replace (Str.regexp "__\\([0-9a-z]+\\)$") "[\\1]" s
 
+let dot_escape_string s =
+  s 
+  |> Str.global_replace (Str.regexp_string ">") "&gt;"
+  |> Str.global_replace (Str.regexp_string "<") "&lt;"
 
 (* ================================================================================ *)
 module G_feature = struct
@@ -50,7 +54,7 @@ module G_feature = struct
     let string_val = Feature_value.to_string feat_val in
     match Str.split (Str.regexp ":C:") string_val with
     | [] -> bprintf buff "<TR><TD ALIGN=\"right\">%s</TD><TD>=</TD><TD ALIGN=\"left\"></TD></TR>\n" (decode_feat_name feat_name)
-    | fv::_ -> bprintf buff "<TR><TD ALIGN=\"right\">%s</TD><TD>=</TD><TD ALIGN=\"left\">%s</TD></TR>\n" (decode_feat_name feat_name) fv
+    | fv::_ -> bprintf buff "<TR><TD ALIGN=\"right\">%s</TD><TD>=</TD><TD ALIGN=\"left\">%s</TD></TR>\n" (decode_feat_name feat_name) (dot_escape_string fv)
 end (* module G_feature *)
 
 (* ================================================================================ *)
@@ -265,7 +269,8 @@ module G_fs = struct
       match get_main ?main_feat t with
       | (None, sub) -> sub
       | (Some (feat_name,atom), sub) ->
-        let s = match Feature_value.to_string atom with "" -> "_" | x -> x in (* Bug in dot if empty *)
+        let s = match Feature_value.to_string atom with "" -> "_" | x -> dot_escape_string x in (* Bug in dot if empty *)
+
         if is_highlithed feat_name
         then bprintf buff "<TR><TD COLSPAN=\"3\" BGCOLOR=\"#00FF00\"><B>%s</B></TD></TR>\n" s
         else bprintf buff "<TR><TD COLSPAN=\"3\"><B>%s</B></TD></TR>\n" s;
