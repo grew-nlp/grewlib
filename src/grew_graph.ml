@@ -279,8 +279,8 @@ module G_graph = struct
         let node = find gid graph in
         let next = G_node.get_next node in
         let (new_todo, new_ok) =
-          if depth = 1
-          then (Gid_map.remove gid todo, Gid_massoc.fold_on_list (fun acc gid' _ -> Gid_set.add gid' acc) (Gid_set.add gid ok) next)
+          if depth = 0
+          then (Gid_map.remove gid todo, Gid_set.add gid ok)
           else 
             let tmp_ok = Gid_set.add gid ok in
             let tmp_todo = 
@@ -301,9 +301,9 @@ module G_graph = struct
            Gid_map.add gid new_node acc
         ) selected_nodes Gid_map.empty in
 
-    printf "|nodes|=%d  |edges|=%d\n%!" 
+    (* printf "|nodes|=%d  |edges|=%d\n%!" 
       (Gid_map.cardinal sub_map)
-      (Gid_map.fold (fun _ n acc -> Gid_massoc.fold (fun acc2 _ _ -> acc2+1) acc (G_node.get_next n)) sub_map 0);
+      (Gid_map.fold (fun _ n acc -> Gid_massoc.fold (fun acc2 _ _ -> acc2+1) acc (G_node.get_next n)) sub_map 0); *)
 
     {empty with map= sub_map}
 
