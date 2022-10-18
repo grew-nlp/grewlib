@@ -25,13 +25,17 @@ module P_graph = struct
   let empty = Pid_map.empty
 
   let find = Pid_map.find
+  let find_opt = Pid_map.find_opt
 
   let pid_name_list t = Pid_map.fold (fun _ node acc -> (P_node.get_name node)::acc) t []
-
-  let to_json_list ~config t =
+  let to_json_list ~config ?(base=empty) t =
+    let get_name pid = 
+      match (find_opt pid base, find_opt pid t) with
+      | (Some n, _) | (_, Some n) -> P_node.get_name n
+      | (None, None) -> Error.run "inconsistent data in P_graph" in
     let nodes = Pid_map.fold 
       (fun k n acc -> 
-        (`String (sprintf "%s [%s]" (Pid.to_id k) (P_fs.to_string (P_node.get_fs n))))
+        (`String (sprintf "%s [%s]" (P_node.get_name n) (P_fs.to_string (P_node.get_fs n))))
          :: acc
       ) t [] in
     let full = Pid_map.fold 
@@ -41,8 +45,8 @@ module P_graph = struct
           (fun acc2 pid_tar edge ->
             match P_edge.to_string ~config edge with
             | "__PRED__" -> acc2
-            | "__SUCC__" -> (`String (sprintf "%s < %s" (Pid.to_id k) (Pid.to_id pid_tar))) :: acc2
-            | e -> (`String (sprintf "%s -[%s]-> %s" (Pid.to_id k) e (Pid.to_id pid_tar))) :: acc2
+            | "__SUCC__" -> (`String (sprintf "%s < %s" (get_name k) (get_name pid_tar))) :: acc2
+            | e -> (`String (sprintf "%s -[%s]-> %s" (get_name k) e (get_name pid_tar))) :: acc2
           ) acc next
       ) t nodes in
     full

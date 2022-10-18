@@ -177,9 +177,9 @@ module Pattern = struct
     constraints: const list;
   }
 
-  let basic_to_json ~config basic =
+  let basic_to_json ~config ?base basic =
     `List (
-      (P_graph.to_json_list ~config basic.graph)
+      (P_graph.to_json_list ~config ?base basic.graph)
       @ (List.map (fun x -> `String (const_to_string ~config x)) basic.constraints)
     )
 
@@ -223,11 +223,13 @@ module Pattern = struct
     edge_ids: string list;  (* needed to build whether *)
   }
 
+  let get_ker_graph t = t.ker.graph
+
   let to_json ~config t =
     let without_list = 
       List.map 
       (function
-        | (basic,false) -> `Assoc [("without", basic_to_json ~config basic)]
+        | (basic,false) -> `Assoc [("without", basic_to_json ~config ~base:t.ker.graph basic)]
         | _ -> failwith "`with` extension not implemented"
     ) t.exts in
     `List (
@@ -852,7 +854,10 @@ module Rule = struct
     `Assoc (
       [
         ("request", Pattern.to_json ~config t.pattern);
-        ("commands", `List (List.map (Command.to_json ~config) t.commands))
+        ("commands", 
+        `List (
+          List.map 
+            (Command.to_json ~config ~base:(Pattern.get_ker_graph t.pattern)) t.commands))
       ]
     )
 

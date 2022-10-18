@@ -16,8 +16,6 @@ open Grew_ast
 open Grew_fs
 open Grew_edge
 open Grew_node
-open Grew_command
-
 
 (* ================================================================================ *)
 module P_graph: sig
@@ -25,9 +23,11 @@ module P_graph: sig
 
   val empty: t
 
-  val to_json_list: config:Conllx_config.t -> t -> Yojson.Basic.t list
+  val to_json_list: config:Conllx_config.t -> ?base:t -> t -> Yojson.Basic.t list
 
   val find: Pid.t -> t -> P_node.t
+
+  val find_opt: Pid.t -> t -> P_node.t option
 
   val roots: t -> Pid.t list
 

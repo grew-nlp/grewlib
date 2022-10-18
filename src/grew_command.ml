@@ -15,6 +15,8 @@ open Grew_utils
 open Grew_ast
 open Grew_edge
 open Grew_fs
+open Grew_node
+open Grew_graph
 
 (* ================================================================================ *)
 module Command  = struct
@@ -72,50 +74,57 @@ module Command  = struct
   type t = p * Loc.t  (* remember command location to be able to localize a command failure *)
 
 
-  let to_json ~config (p,_) = match p with
-    | DEL_NODE cn -> `String (sprintf "del_node %s" (command_node_to_string cn))
+  let to_json ~config ?(base=P_graph.empty) (p,_) =
+    let node_to_string = function
+    | New s -> s
+    | Pat pid -> match P_graph.find_opt pid base with
+      | Some n -> P_node.get_name n
+      | None -> failwith "ref to unknown node in Command" in
+    
+    match p with
+    | DEL_NODE cn -> `String (sprintf "del_node %s" (node_to_string cn))
 
     | DEL_EDGE_EXPL (src,tar,edge) -> 
       `String (sprintf "del_edge %s -[%s]-> %s" 
-        (command_node_to_string src) 
+        (node_to_string src) 
         (CCOption.get_or ~default:"" (G_edge.to_string_opt ~config edge)) 
-        (command_node_to_string tar))
+        (node_to_string tar))
 
     | DEL_EDGE_NAME edge_name -> `String (sprintf "del_edge %s" edge_name)
 
     | ADD_EDGE (src,tar,edge) ->
       `String (sprintf "add_edge %s -[%s]-> %s" 
-        (command_node_to_string src) 
+        (node_to_string src) 
         (CCOption.get_or ~default:"" (G_edge.to_string_opt ~config edge)) 
-        (command_node_to_string tar))
+        (node_to_string tar))
 
     | ADD_EDGE_EXPL (src,tar,name) ->
       `String (sprintf "add_edge %s: %s -> %s" 
         name
-        (command_node_to_string src) 
-        (command_node_to_string tar))
+        (node_to_string src) 
+        (node_to_string tar))
 
     | ADD_EDGE_ITEMS (src, tar, items) ->
       `String (sprintf "add_edge %s -[%s]-> %s" 
-        (command_node_to_string src) 
+        (node_to_string src) 
         (String.concat "," (List.map (fun (f,v) -> sprintf "%s=%s" f v) items))
-        (command_node_to_string tar))
+        (node_to_string tar))
 
     | DEL_FEAT (cn, feature_name) ->
-      `String (sprintf "del_feal %s.%s" (command_node_to_string cn) feature_name)
+      `String (sprintf "del_feal %s.%s" (node_to_string cn) feature_name)
 
     | UPDATE_FEAT (cn, feature_name, items) ->
       `String (sprintf "%s.%s=%s" 
-        (command_node_to_string cn)
+        (node_to_string cn)
         feature_name
         (String.concat "+" (List.map ranged_item_to_string items))
       )
     | NEW_NODE name -> `String (sprintf "new_node %s" name)
-    | NEW_BEFORE (name, cn) -> `String (sprintf "add_node %s :< %s" name (command_node_to_string cn))
-    | NEW_AFTER (name, cn) -> `String (sprintf "add_node %s :> %s" name (command_node_to_string cn))
-    | SHIFT_EDGE (src,tar,label_cst) -> `String (sprintf "shift %s =[%s]=> %s" (command_node_to_string src) (Label_cst.to_string ~config label_cst) (command_node_to_string tar))
-    | SHIFT_IN (src,tar,label_cst) -> `String (sprintf "shift_in %s =[%s]=> %s" (command_node_to_string src) (Label_cst.to_string ~config label_cst) (command_node_to_string tar))
-    | SHIFT_OUT (src,tar,label_cst) -> `String (sprintf "shift_out %s =[%s]=> %s" (command_node_to_string src) (Label_cst.to_string ~config label_cst) (command_node_to_string tar))
+    | NEW_BEFORE (name, cn) -> `String (sprintf "add_node %s :< %s" name (node_to_string cn))
+    | NEW_AFTER (name, cn) -> `String (sprintf "add_node %s :> %s" name (node_to_string cn))
+    | SHIFT_EDGE (src,tar,label_cst) -> `String (sprintf "shift %s =[%s]=> %s" (node_to_string src) (Label_cst.to_string ~config label_cst) (node_to_string tar))
+    | SHIFT_IN (src,tar,label_cst) -> `String (sprintf "shift_in %s =[%s]=> %s" (node_to_string src) (Label_cst.to_string ~config label_cst) (node_to_string tar))
+    | SHIFT_OUT (src,tar,label_cst) -> `String (sprintf "shift_out %s =[%s]=> %s" (node_to_string src) (Label_cst.to_string ~config label_cst) (node_to_string tar))
     | UPDATE_EDGE_FEAT (edge_id, feat_name, items) -> 
       `String (sprintf "%s.%s=%s" 
         edge_id
@@ -128,13 +137,13 @@ module Command  = struct
       `String (sprintf "%s%s %s =%s=> %s"
         (match side with Append -> "append_feats" | Prepend -> "prepend_feats")
         (match separator with "" -> "" | s -> sprintf "\"%s\"" s)
-        (command_node_to_string src) 
+        (node_to_string src) 
         (match regexp with ".*" -> "" | s -> sprintf "[re\"%s\"]" s)
-        (command_node_to_string tar) 
+        (node_to_string tar) 
       )
-    | UNORDER cn -> `String (sprintf "unorder %s" (command_node_to_string cn))
-    | INSERT_BEFORE (cn1,cn2) -> `String (sprintf "insert %s :< %s" (command_node_to_string cn1) (command_node_to_string cn2))
-    | INSERT_AFTER (cn1,cn2) -> `String (sprintf "insert %s :> %s" (command_node_to_string cn1) (command_node_to_string cn2))
+    | UNORDER cn -> `String (sprintf "unorder %s" (node_to_string cn))
+    | INSERT_BEFORE (cn1,cn2) -> `String (sprintf "insert %s :< %s" (node_to_string cn1) (node_to_string cn2))
+    | INSERT_AFTER (cn1,cn2) -> `String (sprintf "insert %s :> %s" (node_to_string cn1) (node_to_string cn2))
 
   let of_ast ~config lexicons (kni, kei) table ast_command =
     (* kni stands for "known node idents", kei for "known edge idents" *)
