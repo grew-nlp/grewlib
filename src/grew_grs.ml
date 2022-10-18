@@ -42,9 +42,9 @@ module Grs = struct
   }
 
   let rec decl_to_json ~config = function
-    | Rule r -> Rule.to_json ~config r
-    | Strategy (name, strat) -> `Assoc [("strat_name", `String name); ("strat_def", `String (Ast.strat_to_string strat))]
-    | Package (name, decl_list) -> `Assoc [("package_name", `String name); "decls", `List (List.map (decl_to_json ~config) decl_list)]
+    | Rule r -> (Rule.get_name r, Rule.to_json ~config r)
+    | Strategy (name, strat) -> (name, `String (Ast.strat_to_string strat))
+    | Package (name, decl_list) -> (name, `Assoc ["decls", `Assoc (List.map (fun x -> decl_to_json ~config x) decl_list)])
 
   let decl_to_string = function
     | Rule r -> sprintf "RULE: %s" (Rule.get_name r)
@@ -54,7 +54,7 @@ module Grs = struct
   let to_json ~config t =
     `Assoc [
       "filename", `String t.filename;
-      "decls", `List (List.map (fun x -> decl_to_json ~config x) t.decls)
+      "decls", `Assoc (List.map (fun x -> decl_to_json ~config x) t.decls)
     ]
 
   let get_strat_list grs = Ast.strat_list grs.ast

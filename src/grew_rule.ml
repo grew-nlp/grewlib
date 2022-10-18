@@ -223,20 +223,18 @@ module Pattern = struct
     edge_ids: string list;  (* needed to build whether *)
   }
 
-
   let to_json ~config t =
-    `Assoc [
-      ("pattern", `List [basic_to_json ~config t.ker]);
-      ("wihtout", `List (
-          List.map 
-            (function
-              | (basic,false) -> `List [basic_to_json ~config basic]
-              | _ -> failwith "`with` extension not implemented"
-          ) t.exts
-        )
-      );
-      ("global", `List (List.map (fun glob -> `String (Ast.glob_to_string glob)) t.global));
-    ]
+    let without_list = 
+      List.map 
+      (function
+        | (basic,false) -> `Assoc [("without", basic_to_json ~config basic)]
+        | _ -> failwith "`with` extension not implemented"
+    ) t.exts in
+    `List (
+      `Assoc [("global", `List (List.map (fun glob -> `String (Ast.glob_to_string glob)) t.global))] 
+      :: `Assoc [("pattern", `List [basic_to_json ~config t.ker])]
+      :: without_list
+      )
 
   let pid_name_list pattern = P_graph.pid_name_list pattern.ker.graph
 
@@ -853,8 +851,7 @@ module Rule = struct
   let to_json ~config t =
     `Assoc (
       [
-        ("rule_name", `String t.name);
-        ("pattern", Pattern.to_json ~config t.pattern);
+        ("request", Pattern.to_json ~config t.pattern);
         ("commands", `List (List.map (Command.to_json ~config) t.commands))
       ]
     )
