@@ -69,10 +69,6 @@ module Pattern = struct
     | Edge_id id -> `String id
     | Lexicon_id id -> `String id
 
-  let base_to_string = function
-  | Node_id pid -> Pid.to_id pid
-  | Edge_id id -> id
-  | Lexicon_id id -> id
 
 
   type const =
@@ -108,17 +104,24 @@ module Pattern = struct
     | Covered of Pid.t * string (* node_id, edge_id *)
 
 
-  let const_to_string ~config = function
-    | Cst_out (pid, label_cst) -> sprintf "%s -[%s]-> *" (Pid.to_id pid) (Label_cst.to_string ~config label_cst)
-    | Cst_in (pid, label_cst) -> sprintf "* -[%s]-> %s" (Label_cst.to_string ~config label_cst) (Pid.to_id pid)
+  let const_to_json ~config p_graph_list const =
+    let pid_name pid = P_graph.get_name pid p_graph_list in
+    let base_to_string = function
+    | Node_id pid -> pid_name pid
+    | Edge_id id -> id
+    | Lexicon_id id -> id in
+  
+    match const with 
+    | Cst_out (pid, label_cst) -> sprintf "%s -[%s]-> *" (pid_name pid) (Label_cst.to_string ~config label_cst)
+    | Cst_in (pid, label_cst) -> sprintf "* -[%s]-> %s" (Label_cst.to_string ~config label_cst) (pid_name pid)
     | Feature_cmp (cmp,id1,fn1,id2,fn2) -> sprintf "%s.%s %s %s.%s" (base_to_string id1) fn1 (Cmp.to_string cmp) (base_to_string id2) fn2
     | Feature_cmp_value (cmp,id,fn,value) -> sprintf "%s.%s %s %s" (base_to_string id) fn (Cmp.to_string cmp) (Feature_value.to_string value) (* TODO__json: quotes needed ??? *)
     | Feature_cmp_regexp (cmp,id,fn,regexp) -> sprintf "%s.%s %s re\"%s\"" (base_to_string id) fn (Cmp.to_string cmp) regexp
     | Feature_ineq (ineq,id1,fn1,id2,fn2) -> sprintf "%s.%s < %s.%s" (base_to_string id1) fn1 (base_to_string id2) fn2
     | Feature_ineq_cst (ineq,id,fn,f) -> sprintf "%s.%s  %g" (base_to_string id) fn f (* TODO__json: quotes needed ??? *)
-    | Filter (pid, p_fs) -> sprintf "%s [%s]" (Pid.to_id pid) (P_fs.to_string p_fs)
-    | Node_large_prec (pid1, pid2) ->  sprintf "%s << %s" (Pid.to_id pid1) (Pid.to_id pid2)
-    | Covered (pid1, eid2) -> sprintf "%s << %s" (Pid.to_id pid1) eid2
+    | Filter (pid, p_fs) -> sprintf "%s [%s]" (pid_name pid) (P_fs.to_string p_fs)
+    | Node_large_prec (pid1, pid2) ->  sprintf "%s << %s" (pid_name pid1) (pid_name pid2)
+    | Covered (pid1, eid2) -> sprintf "%s << %s" (pid_name pid1) eid2
     | Edge_relative (Disjoint, eid1, eid2) -> sprintf "%s <> %s" eid1 eid2
     | Edge_relative (Crossing, eid1, eid2) -> sprintf "%s >< %s" eid1 eid2
     | Edge_relative (Included, eid1, eid2) ->  sprintf "%s << %s" eid1 eid2
@@ -178,9 +181,14 @@ module Pattern = struct
   }
 
   let basic_to_json ~config ?base basic =
+    let bases = match base with Some g -> [g ; basic.graph] | None -> [basic.graph] in
     `List (
       (P_graph.to_json_list ~config ?base basic.graph)
-      @ (List.map (fun x -> `String (const_to_string ~config x)) basic.constraints)
+      @ 
+      (List.map 
+        (fun x -> `String (const_to_json ~config bases x))
+        basic.constraints
+        )
     )
 
   let build_ker_basic ~config lexicons basic_ast =
@@ -247,7 +255,9 @@ module Pattern = struct
     let exts =
       List_.try_map
         P_fs.Fail_unif (* Skip the without parts that are incompatible with the match part *)
-        (fun basic_ast -> (build_ext_basic ~config lexicons ker_table edge_ids basic_ast, false))
+        (fun basic_ast -> 
+          (build_ext_basic ~config lexicons ker_table edge_ids basic_ast, false)
+        )
         pattern_ast.Ast.pat_negs in
     { ker; exts; global=pattern_ast.pat_glob; table=ker_table; edge_ids; }
 

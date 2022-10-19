@@ -79,6 +79,8 @@ module P_node: sig
 
   val empty: t
 
+  val is_empty: t -> bool
+
   val get_name: t -> Id.name
 
   val get_fs: t -> P_fs.t

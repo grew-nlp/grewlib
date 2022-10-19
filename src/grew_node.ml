@@ -152,8 +152,8 @@ module P_node = struct
     loc: Loc.t option;
   }
 
-  let empty = { fs = P_fs.empty; next = Pid_massoc.empty; name = ""; loc=None }
-
+  let empty = { fs = P_fs.empty; next = Pid_massoc.empty; name = "__empty__"; loc=None }
+  let is_empty t = t.name = "__empty__"
   let get_name t = t.name
 
   let get_fs t = t.fs

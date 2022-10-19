@@ -27,7 +27,8 @@ module P_graph: sig
 
   val find: Pid.t -> t -> P_node.t
 
-  val find_opt: Pid.t -> t -> P_node.t option
+  val get_name: Pid.t -> t list -> string
+  val dump: t list -> t -> unit
 
   val roots: t -> Pid.t list
 

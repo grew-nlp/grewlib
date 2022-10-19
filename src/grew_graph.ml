@@ -25,18 +25,33 @@ module P_graph = struct
   let empty = Pid_map.empty
 
   let find = Pid_map.find
-  let find_opt = Pid_map.find_opt
 
   let pid_name_list t = Pid_map.fold (fun _ node acc -> (P_node.get_name node)::acc) t []
+
+  (** [get_name pid p_graph_list] returns the name of node with [pid] in the first [p_graph] in the list for which [pid] is defined *)
+  let rec get_name pid = function
+    | [] -> Error.run "inconsistent data in P_graph: pid `%s` not found" (Pid.to_string pid)
+    | p_graph :: tail -> 
+      match find_opt pid p_graph with
+      | Some node -> P_node.get_name node
+      | None -> get_name pid tail
+
+  let dump bases t =
+    printf "============ P_graph.dump ===========\n";
+      Pid_map.iter
+        (fun pid node -> 
+          printf "pid=%s   name=%s    node=…\n%!" (Pid.to_string pid) (get_name pid bases)
+        ) t;
+    printf "///========= P_graph.dump ========///\n"
+
+    
   let to_json_list ~config ?(base=empty) t =
-    let get_name pid = 
-      match (find_opt pid base, find_opt pid t) with
-      | (Some n, _) | (_, Some n) -> P_node.get_name n
-      | (None, None) -> Error.run "inconsistent data in P_graph" in
+    let local_get_name pid = get_name pid [base; t] in
     let nodes = Pid_map.fold 
-      (fun k n acc -> 
-        (`String (sprintf "%s [%s]" (P_node.get_name n) (P_fs.to_string (P_node.get_fs n))))
-         :: acc
+      (fun k n acc ->
+        if P_node.is_empty n
+        then acc
+        else (`String (sprintf "%s [%s]" (P_node.get_name n) (P_fs.to_string (P_node.get_fs n)))) :: acc
       ) t [] in
     let full = Pid_map.fold 
       (fun k n acc -> 
@@ -45,8 +60,8 @@ module P_graph = struct
           (fun acc2 pid_tar edge ->
             match P_edge.to_string ~config edge with
             | "__PRED__" -> acc2
-            | "__SUCC__" -> (`String (sprintf "%s < %s" (get_name k) (get_name pid_tar))) :: acc2
-            | e -> (`String (sprintf "%s -[%s]-> %s" (get_name k) e (get_name pid_tar))) :: acc2
+            | "__SUCC__" -> (`String (sprintf "%s < %s" (local_get_name k) (local_get_name pid_tar))) :: acc2
+            | e -> (`String (sprintf "%s -[%s]-> %s" (local_get_name k) e (local_get_name pid_tar))) :: acc2
           ) acc next
       ) t nodes in
     full
@@ -202,7 +217,7 @@ module P_graph = struct
              )
         ) (ext_map_without_edges, edge_ids) full_edge_list in
 
-    (ext_map_with_all_edges, filter_on_old_edges, ext_table, new_edge_ids)
+        (ext_map_with_all_edges, filter_on_old_edges, ext_table, new_edge_ids)
 
   (* -------------------------------------------------------------------------------- *)
 

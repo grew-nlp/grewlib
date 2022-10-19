@@ -77,10 +77,8 @@ module Command  = struct
   let to_json ~config ?(base=P_graph.empty) (p,_) =
     let node_to_string = function
     | New s -> s
-    | Pat pid -> match P_graph.find_opt pid base with
-      | Some n -> P_node.get_name n
-      | None -> failwith "ref to unknown node in Command" in
-    
+    | Pat pid -> P_graph.get_name pid [base] in
+
     match p with
     | DEL_NODE cn -> `String (sprintf "del_node %s" (node_to_string cn))
 
