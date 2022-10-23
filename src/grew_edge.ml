@@ -278,6 +278,13 @@ module P_edge = struct
     | Some id when String.length id > 1 && id.[0] = '_' && id.[1] = '_' -> label
     | Some id -> sprintf "%s:%s" id label
 
+  let to_id_opt_and_string ~config t =
+    let label = Label_cst.to_string ~config t.label_cst in
+    match t.id with
+    | None -> (None, label)
+    | Some id when String.length id > 1 && id.[0] = '_' && id.[1] = '_' -> (None, label)
+    | Some id -> (Some id, label)
+
   type edge_matcher =
     | Fail
     | Pass

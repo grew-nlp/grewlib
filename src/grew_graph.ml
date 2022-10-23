@@ -32,7 +32,7 @@ module P_graph = struct
   let rec get_name pid = function
     | [] -> Error.run "inconsistent data in P_graph: pid `%s` not found" (Pid.to_string pid)
     | p_graph :: tail -> 
-      match find_opt pid p_graph with
+      match Pid_map.find_opt pid p_graph with
       | Some node -> P_node.get_name node
       | None -> get_name pid tail
 
@@ -58,10 +58,13 @@ module P_graph = struct
         let next = P_node.get_next n in
         Pid_massoc.fold 
           (fun acc2 pid_tar edge ->
-            match P_edge.to_string ~config edge with
-            | "__PRED__" -> acc2
-            | "__SUCC__" -> (`String (sprintf "%s < %s" (local_get_name k) (local_get_name pid_tar))) :: acc2
-            | e -> (`String (sprintf "%s -[%s]-> %s" (local_get_name k) e (local_get_name pid_tar))) :: acc2
+            match P_edge.to_id_opt_and_string ~config edge with
+            | (_,"__PRED__") -> acc2
+            | (_,"__SUCC__") -> (`String (sprintf "%s < %s" (local_get_name k) (local_get_name pid_tar))) :: acc2
+            | (None, e) -> 
+                (`String (sprintf "%s -[%s]-> %s" (local_get_name k) e (local_get_name pid_tar))) :: acc2
+            | (Some id, e) -> 
+                (`String (sprintf "%s: %s -[%s]-> %s" id (local_get_name k) e (local_get_name pid_tar))) :: acc2
           ) acc next
       ) t nodes in
     full

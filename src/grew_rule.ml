@@ -240,11 +240,11 @@ module Pattern = struct
         | (basic,false) -> `Assoc [("without", basic_to_json ~config ~base:t.ker.graph basic)]
         | _ -> failwith "`with` extension not implemented"
     ) t.exts in
-    `List (
-      `Assoc [("global", `List (List.map (fun glob -> `String (Ast.glob_to_string glob)) t.global))] 
-      :: `Assoc [("pattern", `List [basic_to_json ~config t.ker])]
-      :: without_list
-      )
+    let pattern = `Assoc [("pattern", `List [basic_to_json ~config t.ker])] in
+    match t.global with
+    | [] -> `List (pattern :: without_list )
+    | l -> let global = `Assoc [("global", `List (List.map (fun glob -> `String (Ast.glob_to_string glob)) l))] in
+      `List (global:: pattern :: without_list )
 
   let pid_name_list pattern = P_graph.pid_name_list pattern.ker.graph
 

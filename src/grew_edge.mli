@@ -92,6 +92,7 @@ module P_edge: sig
 
   val to_string: config:Conllx_config.t -> t -> string
 
+  val to_id_opt_and_string: config:Conllx_config.t -> t -> (string option * string)
   val of_ast: config:Conllx_config.t -> Ast.edge -> t
 
   type edge_matcher =
