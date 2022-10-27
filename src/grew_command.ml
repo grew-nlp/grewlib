@@ -38,7 +38,7 @@ module Command  = struct
   let item_to_string = function
     | Node_feat (cn, feature_name) -> sprintf "%s.%s" (command_node_to_string cn) feature_name
     | Edge_feat (edge_id, feat_name) -> sprintf "%s.%s" edge_id feat_name
-    | String_item s -> s
+    | String_item s -> sprintf "\"%s\"" s
     | Lexical_field (lex,field) -> sprintf "%s.%s" lex field
 
   type ranged_item = item * Range.t

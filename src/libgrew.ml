@@ -312,6 +312,12 @@ module Grs = struct
       (fun () ->
          Grew_grs.Grs.get_rule_list grs
       ) ()
+
+  let of_json ~config grs =
+    Libgrew.handle ~name:"Grs.of_json"
+      (fun () ->
+         Grew_grs.Grs.of_json ~config grs
+      ) ()
 end
 
 (* ==================================================================================================== *)

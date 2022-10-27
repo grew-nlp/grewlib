@@ -101,6 +101,70 @@ module Grs = struct
 
   let parse ~config string_grs = from_ast ~config "" (Parser.grs string_grs)
 
+
+
+
+
+  let rule_string_of_json request commands =
+    let open Yojson.Basic.Util in
+    let request_string = try
+      request 
+      |> to_list 
+      |> List.map 
+        (fun item -> 
+          item |> to_assoc |> 
+          (function
+          | ["pattern", l] -> sprintf "  pattern {%s}" (l |> to_list |> List.map to_string |> String.concat ";\n")
+          | ["without", l] -> sprintf "  without {%s}" (l |> to_list |> List.map to_string |> String.concat ";\n")
+          | ["global", l] -> sprintf "  global {%s}" (l |> to_list |> List.map to_string |> String.concat ";\n")
+          | _ -> Error.build "[Grs.rule_string_of_json]"
+          )
+        )  
+      |> String.concat "\n" 
+    with Type_error _ -> 
+      printf "*********request*******\n%s\n****************\n%!" (Yojson.Basic.pretty_to_string request);
+      Error.build "[Grs.decl_string_of_json]" in 
+    let commands_string = try
+      sprintf "\n  commands {%s}" (commands |> to_list |> List.map to_string |> String.concat ";\n") 
+    with Type_error _ -> 
+      printf "*********request*******\n%s\n****************\n%!" (Yojson.Basic.pretty_to_string request);
+      Error.build "[Grs.decl_string_of_json]" in
+    request_string ^ commands_string
+
+  let rec decl_string_of_json (key, json) =
+    let open Yojson.Basic.Util in
+    try let strat = json |> to_string in sprintf "strat %s { %s }" key strat
+    with Type_error _ ->
+      try let assoc = json |> to_assoc in
+        match (List.assoc_opt "request" assoc, List.assoc_opt "commands" assoc, List.assoc_opt "decls" assoc) with
+        | (Some r, Some c, None) -> sprintf "rule %s {\n%s\n  }" key (rule_string_of_json r c)
+        | (None, None, Some p) -> sprintf "package %s { %s }" key (p |> to_assoc |> List.map decl_string_of_json  |> String.concat "\n")
+        | _ -> Error.build "[Grs.decl_string_of_json]"
+      with Type_error _ -> 
+        printf "****************\n%s\n****************\n%!" (Yojson.Basic.pretty_to_string json);
+        Error.build "[Grs.decl_string_of_json]"
+
+  let string_of_json json =
+    let open Yojson.Basic.Util in
+    try
+      let decls = json |> member "decls" |> to_assoc in
+      String.concat "\n" (List.map decl_string_of_json decls)
+    with Type_error _ -> "[Grs.string_of_json]"
+
+  let of_json ~config json =
+    let s = string_of_json json in
+    (* printf "*******!!!!!*********\n%s\n********!!!!!********\n%!" s; *)
+    let ast = Parser.grs s in
+    from_ast ~config "" ast
+
+
+
+
+
+
+
+
+
   (* The type [pointed] is a zipper style data structure for resolving names x.y.z *)
   type pointed =
     | Top of decl list

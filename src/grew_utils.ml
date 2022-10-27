@@ -807,8 +807,11 @@ let extract_range range = function
   | Float f -> Error.run "Cannot extract substring from a numeric feature \"%g\"" f
 
 let to_string = function
-  | String s -> Str.global_replace (Str.regexp "\"") "\\\""
-                  (Str.global_replace (Str.regexp "\\\\") "\\\\\\\\" s)
+  | String s ->
+    s
+    |> Str.global_replace (Str.regexp "\"") "\\\""
+    |> Str.global_replace (Str.regexp "\\\\") "\\\\\\\\"
+    |> sprintf "\"%s\""
   | Float f -> sprintf "%g" f
 
 let to_conll = function

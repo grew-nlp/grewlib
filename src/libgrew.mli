@@ -171,6 +171,9 @@ module Grs : sig
   val get_package_list: t -> string list
 
   val get_rule_list: t -> string list
+
+  val of_json: config:Conllx_config.t -> Yojson.Basic.t -> t
+
 end
 
 (* ==================================================================================================== *)

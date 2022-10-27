@@ -42,4 +42,7 @@ module Grs : sig
   (* [apply grs_name t] apply a deterministic GRS of the given [name]
      [Error.Run] is raised if the name in unknown or the GRS application not deterministic *)
   val apply: config:Conllx_config.t -> string -> G_graph.t -> G_graph.t
+
+
+  val of_json: config:Conllx_config.t -> Yojson.Basic.t -> t
 end (* module Grs *)
