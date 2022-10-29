@@ -355,17 +355,6 @@ module G_fs = struct
 
     sprintf " word=\"%s\"; subword=\"%s\"" word subword
 
-  (* ---------------------------------------------------------------------- *)
-  let to_conll ?exclude t =
-    let reduced_t = match exclude with
-      | None -> t
-      | Some list -> List.filter (fun (fn,_) -> not (List.mem fn list)) t in
-    let ud_ordering = (* In UD CoNLL-U format, features are sorted wrt lowercase form *)
-      List.sort
-        (fun feat1 feat2 -> Stdlib.compare (String.lowercase_ascii (G_feature.get_name feat1)) (String.lowercase_ascii (G_feature.get_name feat2)))
-        reduced_t in
-    List.map (fun (fn, fv) -> (fn, Feature_value.to_string fv)) ud_ordering
-
   let to_json_python t = `Assoc (List.map (fun (fn, fv) -> (fn, `String (Feature_value.to_string fv))) t)
 
 end (* module G_fs *)

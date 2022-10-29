@@ -51,7 +51,6 @@ module G_fs: sig
     t ->
     string
 
-  val to_conll: ?exclude: string list -> t -> (string * string) list
   val to_json_python: t -> Yojson.Basic.t
   val to_string: t -> string
 
