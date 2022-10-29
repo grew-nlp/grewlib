@@ -277,7 +277,7 @@ module G_graph = struct
     meta: (string * string) list; (* meta-informations *)
     map: G_node.t Gid_map.t;      (* node description *)
     highest_index: int;           (* the next free integer index *)
-    rules: int String_map.t;
+    rules: string list;
     trace: trace_item option;     (* if the rewriting history is kept *)
     impact: G_deco.t;
   }
@@ -288,11 +288,11 @@ module G_graph = struct
 
   let set_meta key value t = {t with meta = (key,value) :: List.remove_assoc key t.meta}
 
-  let empty = { meta=[]; map=Gid_map.empty; highest_index=0; rules=String_map.empty; trace=None; impact=G_deco.empty }
+  let empty = { meta=[]; map=Gid_map.empty; highest_index=0; rules=[]; trace=None; impact=G_deco.empty }
 
   let is_empty t = Gid_map.is_empty t.map
 
-  let is_initial g = String_map.is_empty g.rules
+  let is_initial g = g.rules = []
 
   let size t = Gid_map.cardinal (t.map)
 
@@ -310,8 +310,8 @@ module G_graph = struct
         let node = find gid graph in
         let next = G_node.get_next node in
         let (new_todo, new_ok) =
-          if depth = 1
-          then (Gid_map.remove gid todo, Gid_massoc.fold_on_list (fun acc gid' _ -> Gid_set.add gid' acc) (Gid_set.add gid ok) next)
+          if depth = 0
+          then (Gid_map.remove gid todo, Gid_set.add gid ok)
           else 
             let tmp_ok = Gid_set.add gid ok in
             let tmp_todo = 
@@ -332,9 +332,9 @@ module G_graph = struct
            Gid_map.add gid new_node acc
         ) selected_nodes Gid_map.empty in
 
-    printf "|nodes|=%d  |edges|=%d\n%!" 
+    (* printf "|nodes|=%d  |edges|=%d\n%!" 
       (Gid_map.cardinal sub_map)
-      (Gid_map.fold (fun _ n acc -> Gid_massoc.fold (fun acc2 _ _ -> acc2+1) acc (G_node.get_next n)) sub_map 0);
+      (Gid_map.fold (fun _ n acc -> Gid_massoc.fold (fun acc2 _ _ -> acc2+1) acc (G_node.get_next n)) sub_map 0); *)
 
     {empty with map= sub_map}
 
@@ -347,8 +347,7 @@ module G_graph = struct
   let track_rules (rule_name,_) t =
     if !Global.track_rules
     then
-      let old = try String_map.find rule_name t.rules with Not_found -> 0 in
-      { t with rules = String_map.add rule_name (old+1) t.rules }
+      { t with rules = rule_name :: t.rules }
     else t
 
   let track_history up rule_info down previous_graph t =
@@ -379,13 +378,9 @@ module G_graph = struct
     | None -> 0
     | Some (_,_,_,g) -> 1 + (trace_depth g)
 
-  let string_rules t =
-    String_map.fold
-      (fun k v acc ->
-         sprintf "%s:%d; %s" k v acc
-      ) t.rules ""
+  let string_rules t = String.concat "\n" (List.rev t.rules)
 
-  let clear_rules t = { t with rules = String_map.empty }
+  let clear_rules t = { t with rules = [] }
 
   (* is there an edge e out of node i ? *)
   let edge_out ~config graph node_id label_cst =
@@ -1122,50 +1117,6 @@ module G_graph = struct
     match G_fs.del_feat_opt feat_name (G_node.get_fs node) with
     | Some new_fs -> Some { graph with map = Gid_map.add node_id (G_node.set_fs new_fs node) graph.map }
     | None -> None
-
-  (* -------------------------------------------------------------------------------- *)
-  let to_gr ~config graph =
-    let buff = Buffer.create 32 in
-    bprintf buff "graph {\n";
-
-    (* meta data *)
-    List.iter (fun (key, value) -> bprintf buff "# %s = \"%s\";\n" key value) graph.meta;
-
-    (* node_list *)
-    let (orderd_nodes, non_ordered_nodes) =
-      Gid_map.fold
-        (fun gid node (acc_on, acc_non) ->
-           match G_node.get_position_opt node with
-           | None -> (acc_on, (gid,node)::acc_non)
-           | Some _ -> ((gid,node)::acc_on, acc_non)
-        ) graph.map ([],[]) in
-    let sorted_ordered_nodes = List.sort (fun (_,n1) (_,n2) -> G_node.compare n1 n2) orderd_nodes in
-
-    let id_of_gid gid =
-      match CCList.find_idx (fun (x,_) -> x=gid) sorted_ordered_nodes with
-      | Some (i,_) -> sprintf "W%d" i
-      | None -> sprintf "N%d" gid in
-
-    let nodes = Gid_map.fold (fun gid node acc -> (gid,node)::acc) graph.map [] in
-    let sorted_nodes = List.sort (fun (_,n1) (_,n2) -> G_node.compare n1 n2) nodes in
-    List.iter
-      (fun (gid,node) ->
-         bprintf buff "  %s %s;\n" (id_of_gid gid) (G_node.to_gr node)
-      ) sorted_nodes;
-
-    (* edges *)
-    List.iter
-      (fun (src_gid,node) ->
-         Gid_massoc.iter
-           (fun tar_gid edge ->
-              match G_edge.to_string_opt ~config edge with
-              | Some s -> bprintf buff "  %s -[%s]-> %s;\n" (id_of_gid src_gid) s (id_of_gid tar_gid)
-              | None -> ()
-           ) (G_node.get_next node)
-      ) sorted_nodes;
-
-    bprintf buff "}\n";
-    Buffer.contents buff
 
   (* -------------------------------------------------------------------------------- *)
   let space_after node =

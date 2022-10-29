@@ -169,13 +169,6 @@ module Graph = struct
          Grew_graph.G_graph.to_sentence_audio ?deco gr
       ) ()
 
-  (* let save_conll ~config filename graph =
-     Libgrew.handle ~name:"Graph.save_conll" (fun () ->
-        let out_ch = open_out filename in
-        fprintf out_ch "%s" (Grew_graph.G_graph.to_conll_string ~config graph);
-        close_out out_ch
-      ) () *)
-
   let get_feature_values feature_name t =
     Grew_graph.G_graph.get_feature_values feature_name t
 

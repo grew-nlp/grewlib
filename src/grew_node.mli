@@ -46,7 +46,6 @@ module G_node: sig
   val is_eud_empty: t -> bool
 
   val dump: config:Conllx_config.t -> t -> string
-  val to_gr: t -> string
 
   val of_ast: ?position:int -> Ast.node -> t
   val build_pst_leaf: ?loc:Loc.t -> string -> t

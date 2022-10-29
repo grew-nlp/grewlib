@@ -304,7 +304,7 @@ module Corpus_desc = struct
     rtl: bool;
     audio: bool;
     dynamic: bool; (* the corpus is supposed to be updated dynamically *)
-    display: int option; (* None --> dep, Some 0 --> graph, Some i --> subgraph at depth i *)
+    display: int option; (* None --> dep, Some -1 --> graph, Some i≥0 --> subgraph at depth i *)
     preapply: string option;
   }
 

@@ -37,7 +37,6 @@ module G_fs: sig
 
   val get_value_opt: string -> t -> Feature_value.t option
 
-  val to_gr: t -> string
   val to_dot: ?decorated_feat:(string * (string * string option) list) -> ?main_feat: string -> t -> string
   val to_word_opt: t -> string option
 
@@ -52,6 +51,9 @@ module G_fs: sig
     string
 
   val to_conll: ?exclude: string list -> t -> (string * string) list
+
+  val to_json_python: t -> Yojson.Basic.t
+
   val to_string: t -> string
 
   val of_ast: Ast.feature list -> t

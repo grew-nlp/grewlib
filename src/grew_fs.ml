@@ -46,8 +46,6 @@ module G_feature = struct
 
   let to_string (feat_name, feat_val) = sprintf "%s=%s" feat_name (Feature_value.to_string feat_val)
 
-  let to_gr (feat_name, feat_val) = sprintf "%s=\"%s\"" feat_name (Feature_value.to_string feat_val)
-
   let to_json (feat_name, feat_val) = (feat_name, `String (Feature_value.to_conll feat_val))
 
   let buff_dot buff (feat_name, feat_val) =
@@ -171,9 +169,6 @@ module G_fs = struct
 
   (* ---------------------------------------------------------------------- *)
   let to_string t = List_.to_string G_feature.to_string "," t
-
-  (* ---------------------------------------------------------------------- *)
-  let to_gr t = List_.to_string G_feature.to_gr ", " t
 
   (* ---------------------------------------------------------------------- *)
   let to_json = function
@@ -341,17 +336,6 @@ module G_fs = struct
     let subword = String.concat "#" (List.rev lines) in
 
     sprintf " word=\"%s\"; subword=\"%s\"" word subword
-
-  (* ---------------------------------------------------------------------- *)
-  let to_conll ?exclude t =
-    let reduced_t = match exclude with
-      | None -> t
-      | Some list -> List.filter (fun (fn,_) -> not (List.mem fn list)) t in
-    let ud_ordering = (* In UD CoNLL-U format, features are sorted wrt lowercase form *)
-      List.sort
-        (fun feat1 feat2 -> Stdlib.compare (String.lowercase_ascii (G_feature.get_name feat1)) (String.lowercase_ascii (G_feature.get_name feat2)))
-        reduced_t in
-    List.map (fun (fn, fv) -> (fn, Feature_value.to_string fv)) ud_ordering
 
 end (* module G_fs *)
 
