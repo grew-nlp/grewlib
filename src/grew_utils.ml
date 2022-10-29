@@ -797,46 +797,46 @@ module Gid_massoc = Massoc_make (Gid)
 
 (* ================================================================================ *)
 module Feature_value = struct
-    type t =
+  type t =
     | String of string
     | Float of float
 
-let extract_range range = function
-  | String s -> String (Range.extract range s)
-  | Float f when range = (None, None) -> Float f
-  | Float f -> Error.run "Cannot extract substring from a numeric feature \"%g\"" f
+  (* Typing float/string for feature value is hardcoded, should evolve with a new config implementation *)
+  let numeric_feature_values = [
+    "level";                        (* used for edges in UDtoSUD grs *)
+    "freq"; "freq_old"; "freq_new"; (* used for nodes in POStoSSQ grs *)
+    "_start"; "_stop";              (* nodes in Orfeo timestamps *)
+    "AlignBegin"; "AlignEnd";       (* nodes in SUD_Naija *)
+    "length"; "delta"; "weight";
+  ]
 
-let to_string = function
-  | String s ->
-    s
-    |> Str.global_replace (Str.regexp "\"") "\\\""
-    |> Str.global_replace (Str.regexp "\\\\") "\\\\\\\\"
-    |> sprintf "\"%s\""
-  | Float f -> sprintf "%g" f
+  let to_string = function
+    | String s ->
+      s
+      |> Str.global_replace (Str.regexp "\"") "\\\""
+      |> Str.global_replace (Str.regexp "\\\\") "\\\\\\\\"
+      |> sprintf "\"%s\""
+    | Float f -> sprintf "%g" f
 
-let to_conll = function
-  | String s -> s
-  | Float f -> sprintf "%g" f
+  let to_json = function
+    | String s -> `String s
+    | Float f -> `String (string_of_float f)
 
-let numeric_feature_values = [
-  "level";  (* use for edges in UDtoSUD grs *)
-  "freq"; "freq_old"; "freq_new"; (* use for nodes in POStoSSQ grs *)
-  "_start"; "_stop";  (* nodes in Orfeo timestamps *)
-  "AlignBegin"; "AlignEnd";  (* nodes in SUD_Naija *)
-  "length"; "delta";
-]
+  let parse feature_name string_value =
+    if List.mem feature_name numeric_feature_values
+    then
+      begin
+        match float_of_string_opt string_value with
+        | Some f -> Float f
+        | None -> Error.run "The feature \"%s\" must be numeric, it cannot be associated with value: \"%s\"" feature_name string_value
+      end
+    else String string_value
 
-(* Typing float/string for feature value is hardcoded, should evolve with a new config implementation *)
-let parse feat_name string_value =
-  if List.mem feat_name numeric_feature_values
-  then
-    begin
-      match float_of_string_opt string_value with
-      | Some f -> Float f
-      | None when string_value = "unknown" -> Float (-1.) (* to deal with AlignBegin=unknown|AlignEnd=unknown in SUD_Naija *)
-      | None -> Error.run "The featue \"%s\" must be numeric, it cannot be associated with value: \"%s\"" feat_name string_value
-    end
-  else String string_value
+  let extract_range range = function
+    | String s -> String (Range.extract range s)
+    | Float f when range = (None, None) -> Float f
+    | Float f -> Error.run "Cannot extract substring from a numeric feature \"%g\"" f
+
 
 let concat ?loc = function
   | [one] -> one
@@ -847,13 +847,7 @@ let concat ?loc = function
       | Float _ :: _ -> Error.run ?loc "Cannot concat with numeric value" in
     String (loop l)
 
-  let build_disj ?loc name unsorted_values =
+  let build_disj feature_name unsorted_values =
     let values = List.sort Stdlib.compare unsorted_values in
-    List.map (fun s -> parse name s) values (* no check on feat_name starting with '_' *)
-  
-  let build_value ?loc name value =
-    match build_disj ?loc name [value] with
-    | [x] -> x
-    | _ -> Error.bug ?loc "[Feature_value.build_value]"
-  
+    List.map (fun s -> parse feature_name s) values
 end (* module Feature_value *)

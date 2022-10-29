@@ -359,33 +359,25 @@ module Gid_massoc : S with type key = Gid.t
 
 (* ================================================================================ *)
 module Feature_value: sig
-
-  (* type feature_value =
-    | String of string
-    | Float of float *)
   type t =
     | String of string
     | Float of float
 
+  val to_string: t -> string
+
+  val to_json: t -> Yojson.Basic.t
+
+  (* Typing float/string for feature value is hardcoded, should evolve with a new config implementation *)
+  val parse: string -> string -> t (* feaure_name feaure_value *)
+
   (* val Feature_value.extract_range: Range.t -> feature_value -> feature_value *)
   val extract_range: Range.t -> t -> t
 
-  (* val Feature_value.to_string : feature_value -> string *)
-  val to_string: t -> string
-
-  (* val Feature_value.to_conll : feature_value -> string *)
-  val to_conll: t -> string
-
-  (* val numeric_feature_values: string list *)
-
-  (* val Feature_value.parse : string -> string -> feature_value *)
-  val parse: string -> string -> t (* feaure_name feaure_value *)
 
   (* val Feature_value.concat: ?loc:Loc.t -> feature_value list -> feature_value *)
   (* TODO: no loc here: move to caller *)
   val concat: ?loc:Loc.t -> t list -> t
 
-  val build_disj: ?loc:Loc.t -> string -> string list -> t list
+  val build_disj: string -> string list -> t list
 
-  val build_value: ?loc:Loc.t -> string -> string -> t
 end (* module Feature_value *)

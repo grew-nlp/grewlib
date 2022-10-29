@@ -148,9 +148,6 @@ module Graph = struct
   let to_dep ?filter ?no_root ?main_feat ?(deco=Grew_graph.G_deco.empty) ~config graph =
     Libgrew.handle ~name:"Graph.to_dep" (fun () -> Grew_graph.G_graph.to_dep ?filter ?no_root ?main_feat ~deco ~config graph) ()
 
-  let to_gr ~config graph  =
-    Libgrew.handle ~name:"Graph.to_gr" (fun () -> Grew_graph.G_graph.to_gr ~config graph) ()
-
   let of_json graph =
     Libgrew.handle ~name:"Graph.of_json" (fun () -> Grew_graph.G_graph.of_json graph) ()
 

@@ -41,12 +41,12 @@ module G_feature = struct
 
   let build = function
     | ({Ast.kind=Ast.Feat_kind_list (Eq,[atom]); name=name},loc) ->
-      (name, Feature_value.build_value ~loc name atom)
+      (name, Feature_value.parse name atom)
     | (uf,loc) -> Error.build ~loc "in graph nodes, features must follow the shape \"name = value\" (error on feature: \"%s\")" (Ast.u_feature_to_string uf)
 
   let to_string (feat_name, feat_val) = sprintf "%s=%s" feat_name (Feature_value.to_string feat_val)
 
-  let to_json (feat_name, feat_val) = (feat_name, `String (Feature_value.to_conll feat_val))
+  let to_json (feat_name, feat_val) = (feat_name, Feature_value.to_json feat_val)
 
   let buff_dot buff (feat_name, feat_val) =
     let string_val = Feature_value.to_string feat_val in
@@ -117,7 +117,7 @@ module P_feature = struct
 
   let build lexicons = function
     | ({Ast.kind=Ast.Feat_kind_list (cmp,unsorted_values); name=name}, loc) ->
-      let values = Feature_value.build_disj ~loc name unsorted_values in (name, Pfv_list (cmp,values))
+      let values = Feature_value.build_disj name unsorted_values in (name, Pfv_list (cmp,values))
 
     | ({Ast.kind=Ast.Feat_kind_lex (cmp,lex,fn); name=name}, loc) ->
       Lexicons.check ~loc lex fn lexicons;
@@ -128,8 +128,8 @@ module P_feature = struct
     | ({Ast.kind=Ast.Absent; name=name}, loc) ->
       (name, Absent)
     | ({Ast.kind=Ast.Else (fv1,fn2,fv2); name=name}, loc) ->
-      let v1 = match Feature_value.build_disj ~loc name [fv1] with [one] -> one | _ -> failwith "BUG Else" in
-      let v2 = match Feature_value.build_disj ~loc name [fv2] with [one] -> one | _ -> failwith "BUG Else" in
+      let v1 = match Feature_value.build_disj name [fv1] with [one] -> one | _ -> failwith "BUG Else" in
+      let v2 = match Feature_value.build_disj name [fv2] with [one] -> one | _ -> failwith "BUG Else" in
       (name, Else (v1,fn2,v2))
 end (* module P_feature *)
 
@@ -155,7 +155,7 @@ module G_fs = struct
 
   (* ---------------------------------------------------------------------- *)
   let set_atom ?loc feature_name atom t =
-    let value = Feature_value.build_value ?loc feature_name atom in
+    let value = Feature_value.parse feature_name atom in
     set_value ?loc feature_name value t
 
   (* ---------------------------------------------------------------------- *)
@@ -186,8 +186,8 @@ module G_fs = struct
     List.sort G_feature.compare unsorted
 
   (* ---------------------------------------------------------------------- *)
-  let pst_leaf ?loc form = [("form", Feature_value.build_value ?loc "form" form)]
-  let pst_node ?loc upos = [("upos", Feature_value.build_value ?loc "upos" upos)]
+  let pst_leaf ?loc form = [("form", Feature_value.parse "form" form)]
+  let pst_node ?loc upos = [("upos", Feature_value.parse "upos" upos)]
 
   (* ---------------------------------------------------------------------- *)
   let concat_values ?loc side separator v1 v2 =
