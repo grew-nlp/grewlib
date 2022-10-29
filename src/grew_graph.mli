@@ -218,7 +218,6 @@ module G_graph: sig
   (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
   (* Output functions *)
   (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
-  val to_gr: config:Conllx_config.t -> t -> string
   val to_dot: ?main_feat:string -> ?deco:G_deco.t -> config:Conllx_config.t -> t -> string
   val to_sentence: ?pivot: string -> ?deco:G_deco.t -> t -> string
 

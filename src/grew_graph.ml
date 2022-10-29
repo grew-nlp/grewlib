@@ -1139,50 +1139,6 @@ module G_graph = struct
     `Assoc nodes
 
   (* -------------------------------------------------------------------------------- *)
-  let to_gr ~config graph =
-    let buff = Buffer.create 32 in
-    bprintf buff "graph {\n";
-
-    (* meta data *)
-    List.iter (fun (key, value) -> bprintf buff "# %s = \"%s\";\n" key value) graph.meta;
-
-    (* node_list *)
-    let (orderd_nodes, non_ordered_nodes) =
-      Gid_map.fold
-        (fun gid node (acc_on, acc_non) ->
-           match G_node.get_position_opt node with
-           | None -> (acc_on, (gid,node)::acc_non)
-           | Some _ -> ((gid,node)::acc_on, acc_non)
-        ) graph.map ([],[]) in
-    let sorted_ordered_nodes = List.sort (fun (_,n1) (_,n2) -> G_node.compare n1 n2) orderd_nodes in
-
-    let id_of_gid gid =
-      match CCList.find_idx (fun (x,_) -> x=gid) sorted_ordered_nodes with
-      | Some (i,_) -> sprintf "W%d" i
-      | None -> sprintf "N%d" gid in
-
-    let nodes = Gid_map.fold (fun gid node acc -> (gid,node)::acc) graph.map [] in
-    let sorted_nodes = List.sort (fun (_,n1) (_,n2) -> G_node.compare n1 n2) nodes in
-    List.iter
-      (fun (gid,node) ->
-         bprintf buff "  %s %s;\n" (id_of_gid gid) (G_node.to_gr node)
-      ) sorted_nodes;
-
-    (* edges *)
-    List.iter
-      (fun (src_gid,node) ->
-         Gid_massoc.iter
-           (fun tar_gid edge ->
-              match G_edge.to_string_opt ~config edge with
-              | Some s -> bprintf buff "  %s -[%s]-> %s;\n" (id_of_gid src_gid) s (id_of_gid tar_gid)
-              | None -> ()
-           ) (G_node.get_next node)
-      ) sorted_nodes;
-
-    bprintf buff "}\n";
-    Buffer.contents buff
-
-  (* -------------------------------------------------------------------------------- *)
   let space_after node =
     match G_fs.get_value_opt "SpaceAfter" (G_node.get_fs node) with
     | Some (String "No") -> false

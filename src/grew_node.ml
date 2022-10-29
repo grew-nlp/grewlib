@@ -64,8 +64,6 @@ module G_node = struct
       (G_fs.to_string t.fs)
       (Gid_massoc.to_string (G_edge.dump ~config) t.next)
 
-  let to_gr t = sprintf "[%s] " (G_fs.to_gr t.fs)
-
   let empty = {
     name = None;
     fs = G_fs.empty;

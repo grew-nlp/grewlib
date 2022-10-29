@@ -73,8 +73,6 @@ module Graph : sig
 
   val to_dep : ?filter: (string -> bool) -> ?no_root:bool -> ?main_feat:string -> ?deco:Deco.t -> config:Conllx_config.t -> t -> string
 
-  val to_gr: config:Conllx_config.t -> t -> string
-
   val get_meta_opt: string -> t -> string option
 
   val get_meta_list: t -> (string * string) list

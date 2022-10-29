@@ -46,8 +46,6 @@ module G_feature = struct
 
   let to_string (feat_name, feat_val) = sprintf "%s=%s" feat_name (Feature_value.to_string feat_val)
 
-  let to_gr (feat_name, feat_val) = sprintf "%s=\"%s\"" feat_name (Feature_value.to_string feat_val)
-
   let to_json (feat_name, feat_val) = (feat_name, `String (Feature_value.to_conll feat_val))
 
   let buff_dot buff (feat_name, feat_val) =
@@ -184,9 +182,6 @@ module G_fs = struct
 
   (* ---------------------------------------------------------------------- *)
   let to_string t = List_.to_string G_feature.to_string "," t
-
-  (* ---------------------------------------------------------------------- *)
-  let to_gr t = List_.to_string G_feature.to_gr ", " t
 
   (* ---------------------------------------------------------------------- *)
   let to_json = function

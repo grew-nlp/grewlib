@@ -37,7 +37,6 @@ module G_fs: sig
 
   val get_value_opt: string -> t -> Feature_value.t option
 
-  val to_gr: t -> string
   val to_dot: ?decorated_feat:(string * (string * string option) list) -> ?main_feat: string -> t -> string
   val to_word_opt: t -> string option
 

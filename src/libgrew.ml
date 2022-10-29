@@ -151,10 +151,7 @@ module Graph = struct
   let to_dep ?filter ?no_root ?main_feat ?(deco=Grew_graph.G_deco.empty) ~config graph =
     Libgrew.handle ~name:"Graph.to_dep" (fun () -> Grew_graph.G_graph.to_dep ?filter ?no_root ?main_feat ~deco ~config graph) ()
 
-  let to_gr ~config graph  =
-    Libgrew.handle ~name:"Graph.to_gr" (fun () -> Grew_graph.G_graph.to_gr ~config graph) ()
-
-  let to_json_python ~config graph =
+    let to_json_python ~config graph =
     Libgrew.handle ~name:"Graph.to_json_python" (fun () -> Grew_graph.G_graph.to_json_python ~config graph) ()
 
   let of_json graph =
@@ -174,13 +171,6 @@ module Graph = struct
       (fun () ->
          Grew_graph.G_graph.to_sentence_audio ?deco gr
       ) ()
-
-  (* let save_conll ~config filename graph =
-     Libgrew.handle ~name:"Graph.save_conll" (fun () ->
-        let out_ch = open_out filename in
-        fprintf out_ch "%s" (Grew_graph.G_graph.to_conll_string ~config graph);
-        close_out out_ch
-      ) () *)
 
   let get_feature_values feature_name t =
     Grew_graph.G_graph.get_feature_values feature_name t
