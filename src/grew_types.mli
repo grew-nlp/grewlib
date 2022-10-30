@@ -95,7 +95,7 @@ module Clustered : sig
   *)
 
   val dump: ('a -> string) -> 'a t -> unit
-  (** outputs a raw displat of the structure (to be used only for debug) *)
+  (** outputs a raw display of the structure (to be used only for debug) *)
 
   val get_all_keys: int -> _ t -> string option list
   

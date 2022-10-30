@@ -86,7 +86,7 @@ module Clustered = struct
     | Node som -> 
       String_opt_map.iter
       (fun key a ->
-        Printf.printf "%s%s\n%!" (String.make indent ' ') (CCOption.get_or ~default:"undefined" key);
+        Printf.printf "%s%s\n%!" (String.make indent ' ') (CCOption.get_or ~default:"__undefined__" key);
         loop (indent+1) a
       ) som in
     loop 0 t
@@ -121,7 +121,7 @@ module Clustered = struct
   let fold_layer fct_leaf init fct_node closure t =
     let rec loop t =
       match t with
-      | Empty _ -> closure init
+      | Empty null -> fct_leaf null
       | Leaf l -> fct_leaf l
       | Node som -> closure (String_opt_map.fold (fun key sub acc -> fct_node key (loop sub) acc) som init) in
     loop t
