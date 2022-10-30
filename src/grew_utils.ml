@@ -814,8 +814,6 @@ module Feature_value = struct
     | String s ->
       s
       |> Str.global_replace (Str.regexp "\"") "\\\""
-      |> Str.global_replace (Str.regexp "\\\\") "\\\\\\\\"
-      |> sprintf "\"%s\""
     | Float f -> sprintf "%g" f
 
   let to_json = function
