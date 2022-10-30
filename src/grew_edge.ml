@@ -159,7 +159,7 @@ module G_edge = struct
     | Ast.Atom_list list ->
       let unordered_fs =
         List.map
-          (function Ast.Atom_eq (x,[y]) -> (x,Feature_value.parse x y) | _ -> Error.build "[G_edge.build] cannot interpret Atom_list")
+          (function Ast.Atom_eq (x,[y]) -> (x,Feature_value.parse ~loc x y) | _ -> Error.build ~loc "[G_edge.build] cannot interpret Atom_list")
           list in
       Fs (G_fs.build unordered_fs)
     | Ast.Neg_list _ -> Error.build ~loc "Negative edge spec are forbidden in graphs"
@@ -239,16 +239,16 @@ module Label_cst = struct
       end
     | _ -> false
 
-  let build_atom = function
-    | Ast.Atom_eq (name, atoms) -> Eq (name, List.map (Feature_value.parse name) (List.sort Stdlib.compare atoms))
-    | Ast.Atom_diseq (name, atoms) -> Diseq (name, List.map (Feature_value.parse name) (List.sort Stdlib.compare atoms))
+  let build_atom ?loc = function
+    | Ast.Atom_eq (name, atoms) -> Eq (name, List.map (Feature_value.parse ?loc name) (List.sort Stdlib.compare atoms))
+    | Ast.Atom_diseq (name, atoms) -> Diseq (name, List.map (Feature_value.parse ?loc name) (List.sort Stdlib.compare atoms))
     | Ast.Atom_absent name -> Absent name
 
   let of_ast ?loc ~config = function
     | Ast.Neg_list p_labels -> Neg (List.sort compare (List.map (G_fs.from_string ~config) p_labels))
     | Ast.Pos_list p_labels -> Pos (List.sort compare (List.map (G_fs.from_string ~config) p_labels))
     | Ast.Regexp re -> Regexp (Str.regexp re, re)
-    | Ast.Atom_list l -> Atom_list (List.map build_atom l)
+    | Ast.Atom_list l -> Atom_list (List.map (build_atom ?loc) l)
     | Ast.Pred -> Error.bug "[Label_cst.of_ast]"
 end (* module Label_cst *)
 

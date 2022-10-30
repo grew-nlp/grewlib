@@ -1016,7 +1016,8 @@ module Rule = struct
     let node_find cnode = onf_find ~loc cnode (matching, state.created_nodes) in
 
     let feature_value_of_item feat_name = function
-      | (Command.String_item s, range) -> Feature_value.extract_range range (Feature_value.parse feat_name s)
+      | (Command.String_item s, range) -> 
+        Feature_value.extract_range ~loc range (Feature_value.parse ~loc feat_name s)
       | (Command.Node_feat (cnode, feat_name), range) ->
         let gid = node_find cnode in
         let node = G_graph.find gid state.graph in
@@ -1024,7 +1025,7 @@ module Rule = struct
         begin
           match G_fs.get_value_opt feat_name fs with
           | None -> Error.run ~loc "Node feature named `%s` is undefined" feat_name
-          | Some v -> Feature_value.extract_range range v
+          | Some v -> Feature_value.extract_range ~loc range v
         end
       | (Command.Edge_feat (edge_id, feat_name), range) ->
         begin
@@ -1035,13 +1036,13 @@ module Rule = struct
             then
               begin
                 match G_edge.to_string_opt ~config edge with
-                | Some s -> Feature_value.extract_range range (String s)
+                | Some s -> Feature_value.extract_range ~loc range (String s)
                 | None -> Error.run "Cannot use not regular edge label as a concat item"
               end
             else
               match G_edge.get_sub_opt feat_name edge with
               | None -> Error.run ~loc "[onf_apply_command] Edge feature named %s is undefined" feat_name
-              | Some fv -> Feature_value.extract_range range fv
+              | Some fv -> Feature_value.extract_range ~loc range fv
         end
       | (Command.Lexical_field (lex_id, field), range) ->
         begin
@@ -1050,7 +1051,7 @@ module Rule = struct
           | Some lexicon ->
             match Lexicon.get_opt field lexicon with
             | None -> Error.bug "Inconsistent lexicon lex_id=%s field=%s" lex_id field
-            | Some value -> Feature_value.extract_range range (Feature_value.parse feat_name value)
+            | Some value -> Feature_value.extract_range ~loc range (Feature_value.parse ~loc feat_name value)
         end in
 
     match command with
@@ -1100,7 +1101,7 @@ module Rule = struct
                    | Some new_value -> (name, new_value)
                    | None -> Error.run ~loc "ADD_EDGE_ITEMS: no items edge feature name '%s' in matched edge '%s'" feat_name edge_id
                end
-             | _ -> (name, Feature_value.parse name value)
+             | _ -> (name, Feature_value.parse ~loc name value)
           ) items in
       let edge = G_edge.from_items direct_items in
       begin
@@ -1125,14 +1126,14 @@ module Rule = struct
         try String_map.find edge_ident state.e_mapping
         with Not_found -> Error.run ~loc "DEL_EDGE_NAME: The edge identifier '%s' is undefined" edge_ident in
       (match G_graph.del_edge_opt ~loc src_gid edge tar_gid state.graph with
-       | None when !Global.safe_commands -> Error.run ~loc "DEL_EDGE_NAME: the edge '%s' does not exist" edge_ident
-       | None -> state
-       | Some new_graph ->
-         {state with
-          graph = new_graph;
-          effective = true;
-          e_mapping = String_map.remove edge_ident state.e_mapping;
-         }
+        | None when !Global.safe_commands -> Error.run ~loc "DEL_EDGE_NAME: the edge '%s' does not exist" edge_ident
+        | None -> state
+        | Some new_graph ->
+          { state with
+            graph = new_graph;
+            effective = true;
+            e_mapping = String_map.remove edge_ident state.e_mapping;
+          }
       )
 
     | Command.DEL_EDGE_FEAT (edge_id, feat_name) ->
@@ -1360,7 +1361,7 @@ module Rule = struct
     let node_find cnode = find ~loc cnode gwh matching in
 
     let feature_value_list_of_item feat_name = function
-      | (Command.String_item s, range) -> [Feature_value.extract_range range (Feature_value.parse feat_name s)]
+      | (Command.String_item s, range) -> [Feature_value.extract_range ~loc range (Feature_value.parse ~loc feat_name s)]
       | (Command.Node_feat (cnode, feat_name), range) ->
         let gid = node_find cnode in
         let node = G_graph.find gid gwh.graph in
@@ -1368,7 +1369,7 @@ module Rule = struct
         begin
           match G_fs.get_value_opt feat_name fs with
           | None -> Error.run ~loc "Node feature named `%s` is undefined" feat_name
-          | Some v -> [Feature_value.extract_range range v]
+          | Some v -> [Feature_value.extract_range ~loc range v]
         end
       | (Command.Edge_feat (edge_id, feat_name), range) ->
         begin
@@ -1381,13 +1382,13 @@ module Rule = struct
               | None -> Error.run ~loc "The edge identifier '%s' is undefined" edge_id in
           match G_edge.get_sub_opt feat_name edge with
           | None -> Error.run ~loc "[gwh_apply_command] Edge feature named %s is undefined" feat_name
-          | Some fv -> [Feature_value.extract_range range fv]
+          | Some fv -> [Feature_value.extract_range ~loc range fv]
         end
       | (Command.Lexical_field (lex_id, field), range) ->
         begin
           match List.assoc_opt lex_id matching.l_param with
           | None -> Error.run ~loc "Undefined lexicon %s" lex_id
-          | Some lexicon -> List.map (fun x -> Feature_value.extract_range range (Feature_value.parse feat_name x)) (Lexicon.read_all field lexicon)
+          | Some lexicon -> List.map (fun x -> Feature_value.extract_range ~loc range (Feature_value.parse ~loc feat_name x)) (Lexicon.read_all field lexicon)
         end in
 
     match command with
@@ -1441,7 +1442,7 @@ module Rule = struct
                 | Some new_value -> (name, new_value)
                 | None -> Error.run ~loc "ADD_EDGE_ITEMS: no items edge feature name '%s' in matched edge '%s'" feat_name edge_id
             end
-          | _ -> (name, Feature_value.parse name value)
+          | _ -> (name, Feature_value.parse ~loc name value)
         ) items in
       let edge = G_edge.from_items direct_items in
       begin

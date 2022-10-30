@@ -359,25 +359,28 @@ module Gid_massoc : S with type key = Gid.t
 
 (* ================================================================================ *)
 module Feature_value: sig
+  (** Feature values can be string or a number *)
   type t =
     | String of string
     | Float of float
 
+  (** [parse feature_name feature_value] return a feature_value with type t above
+      NB: Typing float/string for feature value is hardcoded (this should evolve with a new config implementation) 
+      See ml file for numeric feature list
+      [Error.run] is raised if one tries to buils a numeric feature value with a non-numeric value *)
+  val parse: ?loc:Loc.t -> string -> string -> t
+
+  (** [to_string t] returns a string for the feature value
+      TODO: more about quote escaping *)
   val to_string: t -> string
 
-  val to_json: t -> Yojson.Basic.t
-
-  (* Typing float/string for feature value is hardcoded, should evolve with a new config implementation *)
-  val parse: string -> string -> t (* feaure_name feaure_value *)
+  (** [to_json t] returns a JSON encoding of f as a JSON string (even for numeric values) *)
+   val to_json: t -> Yojson.Basic.t
 
   (* val Feature_value.extract_range: Range.t -> feature_value -> feature_value *)
-  val extract_range: Range.t -> t -> t
-
+  val extract_range: ?loc:Loc.t -> Range.t -> t -> t
 
   (* val Feature_value.concat: ?loc:Loc.t -> feature_value list -> feature_value *)
-  (* TODO: no loc here: move to caller *)
   val concat: ?loc:Loc.t -> t list -> t
-
-  val build_disj: string -> string list -> t list
 
 end (* module Feature_value *)

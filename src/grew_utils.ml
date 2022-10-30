@@ -810,9 +810,18 @@ module Feature_value = struct
     "length"; "delta"; "weight";
   ]
 
+  let parse ?loc feature_name string_value =
+    if List.mem feature_name numeric_feature_values
+    then
+      begin
+        match float_of_string_opt string_value with
+        | Some f -> Float f
+        | None -> Error.run ?loc "The feature \"%s\" must be numeric, it cannot be associated with value: \"%s\"" feature_name string_value
+      end
+    else String string_value
+
   let to_string = function
-    | String s ->
-      s
+    | String s -> s
       |> Str.global_replace (Str.regexp "\"") "\\\""
     | Float f -> sprintf "%g" f
 
@@ -820,32 +829,18 @@ module Feature_value = struct
     | String s -> `String s
     | Float f -> `String (string_of_float f)
 
-  let parse feature_name string_value =
-    if List.mem feature_name numeric_feature_values
-    then
-      begin
-        match float_of_string_opt string_value with
-        | Some f -> Float f
-        | None -> Error.run "The feature \"%s\" must be numeric, it cannot be associated with value: \"%s\"" feature_name string_value
-      end
-    else String string_value
-
-  let extract_range range = function
+  let extract_range ?loc range = function
     | String s -> String (Range.extract range s)
     | Float f when range = (None, None) -> Float f
-    | Float f -> Error.run "Cannot extract substring from a numeric feature \"%g\"" f
+    | Float f -> Error.run ?loc "Cannot extract substring from a numeric feature \"%g\"" f
 
+  let concat ?loc = function
+    | [one] -> one
+    | l ->
+      let rec loop = function
+        | [] -> ""
+        | String s :: tail -> s ^ (loop tail)
+        | Float _ :: _ -> Error.run ?loc "Cannot concat with numeric value" in
+      String (loop l)
 
-let concat ?loc = function
-  | [one] -> one
-  | l ->
-    let rec loop = function
-      | [] -> ""
-      | String s :: tail -> s ^ (loop tail)
-      | Float _ :: _ -> Error.run ?loc "Cannot concat with numeric value" in
-    String (loop l)
-
-  let build_disj feature_name unsorted_values =
-    let values = List.sort Stdlib.compare unsorted_values in
-    List.map (fun s -> parse feature_name s) values
-end (* module Feature_value *)
+    end (* module Feature_value *)
