@@ -213,8 +213,6 @@ and standard target = parse
 | "Emty"          { EMPTY }
 | "Onf"           { ONF }
 
-| "graph"         { GRAPH }
-
 | "-"? digit+ ('.' digit*) as number  { FLOAT (float_of_string number) }
 | "-"? digit+ as number  { INT (int_of_string number) }
 
@@ -234,7 +232,6 @@ and standard target = parse
 | ','   { COMMA }
 | '+'   { PLUS }
 | '='   { EQUAL }
-| '#'   { SHARP }
 | "!"   { BANG }
 | "<>"  { DISEQUAL }
 

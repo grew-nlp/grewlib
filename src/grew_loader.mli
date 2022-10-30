@@ -17,8 +17,6 @@ open Grew_ast
 module Loader: sig
   val grs: string -> Ast.grs
 
-  val gr: string -> Ast.gr
-
   val basic: string -> Ast.basic
 
   val pattern: string -> Ast.pattern
@@ -28,8 +26,6 @@ end (* module Loader *)
 
 (* ================================================================================ *)
 module Parser : sig
-  val gr: string -> Ast.gr
-
   val basic: string -> Ast.basic
 
   val grs: string -> Ast.grs

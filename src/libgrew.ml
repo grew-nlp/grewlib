@@ -72,16 +72,6 @@ module Graph = struct
 
   let append_in_ag_lex feature_name_list t ag_lex = Grew_graph.G_graph.append_in_ag_lex feature_name_list t ag_lex
 
-  let load_gr ~config file =
-    if not (Sys.file_exists file)
-    then raise (Libgrew.Error ("File_not_found: " ^ file))
-    else
-      Libgrew.handle ~name:"Graph.load_gr" ~file
-        (fun () ->
-           let gr_ast = Grew_loader.Loader.gr file in
-           Grew_graph.G_graph.of_ast ~config gr_ast
-        ) ()
-
   let load_conll ~config file =
     Libgrew.handle ~name:"Graph.load_conll" ~file
       (fun () ->
@@ -102,7 +92,6 @@ module Graph = struct
     Libgrew.handle ~name:"Graph.load_graph" ~file
       (fun () ->
          match Grew_utils.String_.get_suffix_opt file with
-         | Some ".gr" -> load_gr ~config file
          | Some ".conll" | Some ".conllu" -> load_conll ~config file
          | Some ".cst" -> load_pst file
          | _ ->
@@ -110,11 +99,8 @@ module Graph = struct
            let rec loop = function
              | [] -> Grew_utils.Error.bug "[Libgrew.load_graph] Cannot guess input file format of file '%s'." file
              | load_fct :: tail -> try load_fct file with _ -> loop tail in
-           loop [load_gr ~config; load_conll ~config; load_pst]
+           loop [load_conll ~config; load_pst]
       ) ()
-
-  let of_gr ~config gr_string =
-    Libgrew.handle ~name:"Graph.of_gr" (fun () -> Grew_graph.G_graph.of_ast ~config (Grew_loader.Parser.gr gr_string)) ()
 
   let of_pst pst_string =
     Libgrew.handle ~name:"of_pst"

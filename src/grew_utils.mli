@@ -242,8 +242,6 @@ module Id: sig
 
   val build_opt: name -> table -> t option
 
-  (* [get_pos id] returns Some v (float) iff id is "Wv" else None *)
-  val get_pos_opt: name -> float option
 end
 
 (* ================================================================================ *)

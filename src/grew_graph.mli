@@ -119,8 +119,6 @@ module G_graph: sig
   (* Build functions *)
   (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
 
-  val of_ast: config:Conllx_config.t -> Ast.gr -> t
-
   val of_pst: Ast.pst -> t
 
   val of_json: Yojson.Basic.t -> t

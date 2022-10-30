@@ -48,7 +48,6 @@ let localize t = (t,get_loc ())
 %token SEMIC                       /* ; */
 %token PLUS                        /* + */
 %token EQUAL                       /* = */
-%token SHARP                       /* # */
 %token DISEQUAL                    /* <> */
 %token BANG                        /* ! */
 %token SLASH                       /* / */
@@ -86,7 +85,6 @@ let localize t = (t,get_loc ())
 %token STRAT                       /* strat */
 %token PACKAGE                     /* package */
 %token RULE                        /* rule */
-%token GRAPH                       /* graph */
 
 %token DEL_EDGE                    /* del_edge */
 %token ADD_EDGE                    /* add_edge */
@@ -123,7 +121,6 @@ let localize t = (t,get_loc ())
 
 %token EOF                         /* end of file */
 
-%start <Grew_ast.Ast.gr> gr
 %start <Grew_ast.Ast.basic> basic
 %start <Grew_ast.Ast.pattern> isolated_pattern
 
@@ -171,9 +168,6 @@ simple_id_or_float:
 node_id:
         | id=ID       { Ast.parse_node_ident id }
 
-node_id_with_loc:
-        | id=ID       { localize (Ast.parse_node_ident id) }
-
 feature_ident :
         | id=ID       { Ast.parse_feature_ident id }
 
@@ -203,38 +197,6 @@ ineq_value:
 ineq_value_with_loc:
         | v=ID    { localize (Ineq_sofi (Ast.parse_simple_or_pointed v)) }
         | v=number{ localize (Ineq_float v) }
-
-/*=============================================================================================*/
-/*  GREW GRAPH                                                                                 */
-/*=============================================================================================*/
-gr:
-        | GRAPH LACC items=separated_list_final_opt(SEMIC,gr_item) RACC EOF
-            {
-              Ast.complete_graph
-              {
-                Ast.meta = CCList.filter_map (function Graph_meta n -> Some n | _ -> None) items;
-                Ast.nodes = CCList.filter_map (function Graph_node n -> Some n | _ -> None) items;
-                Ast.edges = CCList.filter_map (function Graph_edge n -> Some n | _ -> None) items;
-              }
-            }
-
-gr_item:
-        /*  sentence = "Jean dort."   */
-        | SHARP id=simple_id EQUAL value=feature_value
-            { Graph_meta (id, value) }
-
-        /*  B [phon="pense", lemma="penser", cat=v, mood=ind ]   */
-        | id_loc=node_id_with_loc position=option(delimited(LPAREN, number,RPAREN)) feats=delimited(LBRACKET,separated_list_final_opt(COMMA,node_features),RBRACKET)
-            { let (id,loc) = id_loc in
-              Graph_node ({Ast.node_id = id; fs=feats}, loc) }
-        /*   A   */
-        | id_loc=node_id_with_loc
-            { let (id,loc) = id_loc in
-              Graph_node ({Ast.node_id = id; fs=Ast.default_fs ~loc id}, loc) }
-
-        /*   A -[x]-> B   */
-        | n1_loc=node_id_with_loc label=delimited(LTR_EDGE_LEFT,label_ident,LTR_EDGE_RIGHT) n2=node_id
-            { Graph_edge ({Ast.edge_id = None; src=fst n1_loc; edge_label_cst=Ast.Pos_list [label]; tar=n2}, snd n1_loc) }
 
 /*=============================================================================================*/
 /* RULES DEFINITION                                                                            */

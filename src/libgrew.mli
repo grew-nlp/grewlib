@@ -51,8 +51,6 @@ module Graph : sig
       @raise File_not_found if the file doesn't exists. *)
   val load: config:Conllx_config.t -> string -> t
 
-  val of_gr: config:Conllx_config.t -> string -> t
-
   val of_json: Yojson.Basic.t -> t
   val to_json: t -> Yojson.Basic.t
 

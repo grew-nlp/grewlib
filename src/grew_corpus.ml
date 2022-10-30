@@ -183,9 +183,6 @@ module Corpus = struct
       of_conllx_corpus (Conllx_corpus.load ?log_file ?config file)
     | ".amr" | ".txt" ->
       of_amr_file file
-    | ".gr" ->
-      let item = Loader.gr file |> G_graph.of_ast ~config:(Conllx_config.build "basic") |> item_of_graph in
-      { kind= Gr; items = [| item |] }
     | ".json" ->
       begin
         try { kind=Json; items = from_json ~loc: (Loc.file file) (Yojson.Basic.from_file file)}

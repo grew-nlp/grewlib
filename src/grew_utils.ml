@@ -552,18 +552,7 @@ module Id = struct
     try Some (Array_.dicho_find key table)
     with Not_found -> None
 
-  (* [get_pos_opt id] returns Some v (float) iff id is "Wv" else None *)
-  let get_pos_opt name =
-    let len = String.length name in
-    if len > 0 && name.[0] = 'W'
-    then
-      begin
-        let sub = String.sub name 1 (len-1) in
-        float_of_string_opt sub
-      end
-    else None
-
-end (* module Id *)
+  end (* module Id *)
 
 (* ================================================================================ *)
 module Timeout = struct
