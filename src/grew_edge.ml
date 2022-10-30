@@ -193,8 +193,8 @@ module Label_cst = struct
     | Succ
 
   let to_string ~config = function
-    | Pos fs_list -> (List_.to_string (G_fs.to_string ~config) "|" fs_list)
-    | Neg fs_list -> "^"^(List_.to_string (G_fs.to_string ~config) "|" fs_list)
+    | Pos fs_list -> (String.concat "|" (List.map (G_fs.to_string ~config) fs_list))
+    | Neg fs_list -> "^"^(String.concat "|" (List.map (G_fs.to_string ~config) fs_list))
     | Regexp (_,re) -> "re\""^re^"\""
     | Atom_list l ->
       String.concat ","

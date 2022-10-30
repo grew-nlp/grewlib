@@ -131,8 +131,8 @@ module Ast = struct
 
   let string_of_edge_label_cst = function
     | Neg_list [] -> ""
-    | Pos_list labels -> sprintf "[%s]" (List_.to_string (fun x->x) "|" labels)
-    | Neg_list labels -> sprintf "[^%s]" (List_.to_string (fun x->x) "|" labels)
+    | Pos_list labels -> sprintf "[%s]" (String.concat "|" labels)
+    | Neg_list labels -> sprintf "[^%s]" (String.concat "|" labels)
     | Regexp re -> sprintf "[re\"%s\"]" re
     | Atom_list l -> String.concat "," (List.map string_of_atom_edge_label_cst l)
     | Pred -> "PRED"
@@ -307,7 +307,7 @@ module Ast = struct
     | New_after (n1,n2) -> sprintf "add_node %s :> %s" n1 n2
     | Del_node act_id -> sprintf "del_node %s" act_id
     | Update_feat ((act_id, feat_name),item_list) ->
-      sprintf "%s.%s = %s" act_id feat_name (List_.to_string string_of_concat_item " + " item_list)
+      sprintf "%s.%s = %s" act_id feat_name (String.concat " + " (List.map string_of_concat_item item_list))
     | Del_feat (act_id, feat_name) ->
       sprintf "del_feat %s.%s" act_id feat_name
     | Concat_feats (Append, src, tar, regexp, "") ->

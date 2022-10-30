@@ -120,13 +120,6 @@ module String_ = struct
   let rm_first_char = function "" -> "" | s -> String.sub s 1 ((String.length s) - 1)
 
   let re_match re s = (Str.string_match re s 0) && (Str.matched_string s = s)
-
-  let rev_concat sep l =
-    let rec loop = function
-      | [] -> ""
-      | [one] -> one
-      | h :: tail -> (loop tail) ^ sep ^ h in
-    loop l
 end (* module String_ *)
 
 (* ================================================================================ *)
@@ -249,13 +242,6 @@ end (* module Array_ *)
 (* ================================================================================ *)
 module List_ = struct
 
-  let foldi_right f l accu =
-    let rec loop index acc = function
-    | [] -> acc
-    | a::l -> f index a (loop (index+1) acc l) in
-    loop 0 accu l;;
-
-
   let rec remove elt = function
     | [] -> raise Not_found
     | a::tail when a = elt -> tail
@@ -282,14 +268,6 @@ module List_ = struct
     List.fold_left
       (fun acc x -> if (List.exists (fun y -> y = x) l1) then x::acc else acc
       ) [] l2
-
-  let to_string string_of_item sep = function
-    | [] -> ""
-    | h::t -> List.fold_left (fun acc elt -> acc ^ sep ^ (string_of_item elt)) (string_of_item h) t
-
-  let rev_to_string string_of_item sep = function
-    | [] -> ""
-    | h::t -> List.fold_left (fun acc elt -> (string_of_item elt) ^ sep ^ acc) (string_of_item h) t
 
   let rec sort_insert elt = function
     | [] -> [elt]

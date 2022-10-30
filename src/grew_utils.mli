@@ -83,8 +83,7 @@ module String_: sig
      If [s] in empty, the empty string is returned  *)
   val rm_first_char: string -> string
 
-  val rev_concat: string -> string list -> string
-  end (* module String_ *)
+end (* module String_ *)
 
 (* ================================================================================ *)
 (* [File] functions to read/write file *)
@@ -137,8 +136,6 @@ end (* module Array_ *)
 (* [List_] contains additional functions on the caml [list] type. *)
 module List_: sig
 
-  val foldi_right : (int -> 'a -> 'b -> 'b) -> 'a list -> 'b -> 'b
-
   (** [index elt list] return [Some index] if [index] is the smallest position in the [list] equals to [elt].
       None is returned if [elt] is not in the [list] *)
   val index_opt: 'a -> 'a list -> int option
@@ -154,10 +151,6 @@ module List_: sig
 
   (** [disjoint_list] returns true iff the two strictly ordered list are disjoint *)
   val sort_disjoint: 'a list -> 'a list -> bool
-
-  val to_string: ('a -> string) -> string -> 'a list -> string
-
-  val rev_to_string: ('a -> string) -> string -> 'a list -> string
 
   val sort_mem: 'a -> 'a list -> bool
 

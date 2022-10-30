@@ -109,7 +109,7 @@ module P_feature = struct
 
   let to_string = function
     | (feat_name, Pfv_list (Neq,[])) -> sprintf "%s=*" feat_name
-    | (feat_name, Pfv_list (cmp,atoms)) -> sprintf "%s%s%s" feat_name (Cmp.to_string cmp) (List_.to_string Feature_value.to_string "|" atoms)
+    | (feat_name, Pfv_list (cmp,atoms)) -> sprintf "%s%s%s" feat_name (Cmp.to_string cmp) (String.concat "|" (List.map Feature_value.to_string atoms))
     | (feat_name, Pfv_lex (cmp,lex,fn)) -> sprintf "%s%s%s.%s" feat_name (Cmp.to_string cmp) lex fn
     | (feat_name, Pfv_re (cmp,re)) -> sprintf "%s%sre\"%s\"" feat_name (Cmp.to_string cmp) re
     | (feat_name, Absent) -> sprintf "!%s" feat_name
@@ -172,8 +172,7 @@ module G_fs = struct
   let get_value_opt = List_.sort_assoc_opt
 
   (* ---------------------------------------------------------------------- *)
-  let to_string t = List_.to_string G_feature.to_string "," t
-
+  let to_string t = String.concat "," (List.map G_feature.to_string t)
   (* ---------------------------------------------------------------------- *)
   let to_json = function
     | ["label", Feature_value.String label] -> `String label
@@ -360,16 +359,15 @@ module P_fs = struct
         | (fn, _) -> (fn, None)
       ) t
 
-  let to_string t = List_.to_string P_feature.to_string "," t
+  let to_string t = t |> List.map P_feature.to_string |> String.concat ","
 
   let to_dep ?filter t =
     let reduced = match filter with
       | None -> t
       | Some test -> List.filter (fun (fn,_) -> test fn) t in
-    List_.to_string (P_feature.to_string) "#" reduced
+    reduced |> List.map P_feature.to_string |> String.concat "#"
 
-  let to_dot t = List_.to_string P_feature.to_string "\\n" t
-
+    let to_dot t = t |> List.map P_feature.to_string |> String.concat "\\n"
   exception Fail
 
   let match_ ?(lexicons=[]) p_fs g_fs =
