@@ -784,25 +784,6 @@ module G_graph = struct
     )
 
   (* -------------------------------------------------------------------------------- *)
-  (** input : "Le/DET/le petit/ADJ/petit chat/NC/chat dort/V/dormir ./PONCT/." *)
-
-  let re = Str.regexp "/\\(ADJ\\|ADJWH\\|ADV\\|ADVWH\\|CC\\|CLO\\|CLR\\|CLS\\|CS\\|DET\\|DETWH\\|ET\\|I\\|NC\\|NPP\\|P\\|P\\+D\\|P\\+PRO\\|PONCT\\|PREF\\|PRO\\|PROREL\\|PROWH\\|V\\|VIMP\\|VINF\\|VPP\\|VPR\\|VS\\)/"
-
-  let of_brown ?sentid ~config brown =
-    let units = Str.split (Str.regexp " ") brown in
-    let json_nodes =
-      ("0", `Assoc [("form", `String "__0__")]) ::
-      List.mapi (
-        fun i item -> match Str.full_split re item with
-          | [Str.Text form; Str.Delim xpos_string; Str.Text lemma] ->
-            let xpos = String.sub xpos_string 1 ((String.length xpos_string)-2) in
-            (string_of_int (i+1), `Assoc [("form", `String form); ("xpos", `String xpos); ("lemma", `String lemma)])
-          | _ -> Error.build "[Graph.of_brown] Cannot parse Brown item >>>%s<<< (expected \"phon/POS/lemma\") in >>>%s<<<" item brown
-      ) units in
-    let order = List.map (fun (id,_) -> `String id) json_nodes in
-    of_json (`Assoc [("nodes", `Assoc json_nodes); ("order", `List order)])
-
-  (* -------------------------------------------------------------------------------- *)
   let of_pst pst =
     let cpt = ref 0 in
     let fresh_id () = incr cpt; !cpt - 1 in

@@ -41,7 +41,7 @@ end
 module Corpus = struct
   type kind = 
     | Conll of Conllx_columns.t option (* value is None in Corpus_desc and Some c once the corpus is really loaded *)
-    | Pst | Amr | Gr | Json | Dmrs | Brown
+    | Pst | Amr | Gr | Json | Dmrs
 
   type item = {
     sent_id: string;
@@ -187,15 +187,6 @@ module Corpus = struct
         try { kind=Json; items = from_json ~loc: (Loc.file file) (Yojson.Basic.from_file file)}
         with Yojson.Json_error msg -> Error.run ~loc:(Loc.file file) "Error in the JSON file format: %s" msg
       end
-    | ".melt" | ".brown" ->
-      let lines = File.read file in
-      let config = match config with Some c -> c | None -> Conllx_config.build "ud" in
-      let items = List.mapi (fun i line -> {
-            sent_id= sprintf "%05d" (i + 1);
-            text= "__No_text__";
-            graph= G_graph.of_brown ~config line;
-          }) lines |> Array.of_list in
-      { items; kind=Brown }
     | ext -> Error.run "Cannot load file `%s`, unknown extension `%s`" file ext
 
   let from_dir ?log_file ?config dir =
@@ -325,7 +316,6 @@ module Corpus_desc = struct
     | Json -> [".json"]
     | Gr -> [".gr"]
     | Dmrs -> [".json"]
-    | Brown -> []
 
   (* ---------------------------------------------------------------------------------------------------- *)
   (* if [files] is empty, all files of the directory with correct suffix are considered *)
@@ -504,7 +494,6 @@ module Corpus_desc = struct
 
     try
       let (data : Corpus.t) = match corpus_desc.kind with
-        | Brown -> failwith "TODO"
         | Conll columns ->
           let conll_corpus = Conllx_corpus.load_list ?log_file ~config:corpus_desc.config ?columns full_files in
           let columns = Conllx_corpus.get_columns conll_corpus in

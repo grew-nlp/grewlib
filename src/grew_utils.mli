@@ -102,9 +102,6 @@ module File: sig
       Each line is returned with its position in the original file. *)
   val read_ln: string -> (int * string) list
 
-  (** [load file_name] load the content of [file_name] as a string. *)
-  val load: string -> string
-
   (** [get_suffix_opt file_name] returns the suffix in [file_name].
       "x.y.z" -> Some ".z"
       "xyz" -> None  *)

@@ -121,10 +121,6 @@ module G_graph: sig
 
   val of_ast: config:Conllx_config.t -> Ast.gr -> t
 
-  (** input : "Le/DET/le petit/ADJ/petit chat/NC/chat dort/V/dormir ./PONCT/."
-      It supposes that "SUC" is defined in current relations *)
-  val of_brown: ?sentid: string -> config:Conllx_config.t -> string -> t
-
   val of_pst: Ast.pst -> t
 
   val of_json: Yojson.Basic.t -> t

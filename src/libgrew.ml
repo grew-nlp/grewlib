@@ -88,13 +88,6 @@ module Graph = struct
          Conllx.load ~config file |> Conllx.to_json |> Grew_graph.G_graph.of_json
       ) ()
 
-  let load_brown ~config file =
-    Libgrew.handle ~name:"Graph.load_brown"
-      (fun () ->
-         let brown = Grew_utils.File.load file in
-         Grew_graph.G_graph.of_brown ~config brown
-      ) ()
-
   let load_pst file =
     if not (Sys.file_exists file)
     then raise (Libgrew.Error ("File_not_found: " ^ file))
@@ -111,14 +104,13 @@ module Graph = struct
          match Grew_utils.File.get_suffix_opt file with
          | Some ".gr" -> load_gr ~config file
          | Some ".conll" | Some ".conllu" -> load_conll ~config file
-         | Some ".br" | Some ".melt" -> load_brown ~config file
          | Some ".cst" -> load_pst file
          | _ ->
            Grew_utils.Error.warning "Unknown file format for input graph '%s', try to guess..." file;
            let rec loop = function
              | [] -> Grew_utils.Error.bug "[Libgrew.load_graph] Cannot guess input file format of file '%s'." file
              | load_fct :: tail -> try load_fct file with _ -> loop tail in
-           loop [load_gr ~config; load_conll ~config; load_brown ~config; load_pst]
+           loop [load_gr ~config; load_conll ~config; load_pst]
       ) ()
 
   let of_gr ~config gr_string =
@@ -138,9 +130,6 @@ module Graph = struct
          let word_list = Grew_ast.Ast.word_list pst_ast in
          String.concat " " word_list
       ) ()
-
-  let of_brown ~config ?sentid brown =
-    Libgrew.handle ~name:"Graph.of_brown" (fun () -> Grew_graph.G_graph.of_brown ~config ?sentid brown) ()
 
   let to_dot ?main_feat ~config ?(deco=Grew_graph.G_deco.empty) graph =
     Libgrew.handle ~name:"Graph.to_dot" (fun () -> Grew_graph.G_graph.to_dot ?main_feat ~config graph ~deco) ()

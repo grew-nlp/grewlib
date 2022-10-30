@@ -56,8 +56,6 @@ module Graph : sig
   val of_json: Yojson.Basic.t -> t
   val to_json: t -> Yojson.Basic.t
 
-  val of_brown: config:Conllx_config.t -> ?sentid:string -> string -> t
-
   val of_pst: string -> t
 
   val sentence_of_pst: string -> string
