@@ -101,7 +101,7 @@ module Graph = struct
   let load ~config file =
     Libgrew.handle ~name:"Graph.load_graph" ~file
       (fun () ->
-         match Grew_utils.File.get_suffix_opt file with
+         match Grew_utils.String_.get_suffix_opt file with
          | Some ".gr" -> load_gr ~config file
          | Some ".conll" | Some ".conllu" -> load_conll ~config file
          | Some ".cst" -> load_pst file

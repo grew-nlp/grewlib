@@ -120,54 +120,6 @@ module String_ = struct
   let rm_first_char = function "" -> "" | s -> String.sub s 1 ((String.length s) - 1)
 
   let re_match re s = (Str.string_match re s 0) && (Str.matched_string s = s)
-end (* module String_ *)
-
-(* ================================================================================ *)
-module File = struct
-  let write data name =
-    let out_ch = open_out name in
-    fprintf out_ch "%s\n" data;
-    close_out out_ch
-
-  let read file =
-    let in_ch = open_in file in
-    try
-      (* if the input file contains an UTF-8 byte order mark (EF BB BF), skip 3 bytes, else get back to 0 *)
-      (match input_byte in_ch with 0xEF -> seek_in in_ch 3 | _ -> seek_in in_ch 0);
-
-      let rev_lines = ref [] in
-      try
-        while true do
-          let line = input_line in_ch in
-          if (Str.string_match (Str.regexp "^[ \t]*$") line 0) || (line.[0] = '%')
-          then ()
-          else rev_lines := line :: !rev_lines
-        done; assert false
-      with End_of_file ->
-        close_in in_ch;
-        List.rev !rev_lines
-    with End_of_file -> [] (* if the file is empty, input_byte raises End_of_file *)
-
-
-  (* [read_ln file] returns a list of couples (line_num, line). Blank lines and lines starting with '%' are ignored. *)
-  let read_ln file =
-    let in_ch = open_in file in
-    (* if the input file contains an UTF-8 byte order mark (EF BB BF), skip 3 bytes, else get back to 0 *)
-    (match input_byte in_ch with 0xEF -> seek_in in_ch 3 | _ -> seek_in in_ch 0);
-
-    let cpt = ref 0 in
-    let rev_lines = ref [] in
-    try
-      while true do
-        let line = input_line in_ch in
-        incr cpt;
-        if (Str.string_match (Str.regexp "^[ \t]*$") line 0) || (line.[0] = '%')
-        then ()
-        else rev_lines := (!cpt, line) :: !rev_lines
-      done; assert false
-    with End_of_file ->
-      close_in in_ch;
-      List.rev !rev_lines
 
   let get_suffix_opt file_name =
     let exception Found of int in
@@ -180,7 +132,7 @@ module File = struct
       None
     with
     | Found i -> Some (String.sub file_name i (len-i))
-end (* module File *)
+end (* module String *)
 
 (* ================================================================================ *)
 module Array_ = struct
@@ -394,7 +346,6 @@ module List_ = struct
       | head::snd::tail -> int_fct prev (Some snd) head; loop (Some head) (snd::tail)
     in loop None list
 end (* module List_ *)
-
 
 (* ================================================================================ *)
 module type S = sig

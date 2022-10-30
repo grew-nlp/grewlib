@@ -83,25 +83,6 @@ module String_: sig
      If [s] in empty, the empty string is returned  *)
   val rm_first_char: string -> string
 
-end (* module String_ *)
-
-(* ================================================================================ *)
-(* [File] functions to read/write file *)
-module File: sig
-  (** [write data file_name] write [data] in [file_name] *)
-  val write: string -> string -> unit
-
-  (** [read file_name] read the content of [file_name] line by line.
-      Blanks lines (empty or only with spaces and tabs) are ignored.
-      Lines with '%' as the first char are ignored. *)
-  val read: string -> string list
-
-  (** [read_ln file_name] read the content of [file_name] line by line.
-      Blanks lines (empty or only with spaces and tabs) are ignored.
-      Lines with '%' as the first char are ignored.
-      Each line is returned with its position in the original file. *)
-  val read_ln: string -> (int * string) list
-
   (** [get_suffix_opt file_name] returns the suffix in [file_name].
       "x.y.z" -> Some ".z"
       "xyz" -> None  *)
