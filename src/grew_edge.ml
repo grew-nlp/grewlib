@@ -16,53 +16,55 @@ open Grew_utils
 open Grew_ast
 
 (* ================================================================================ *)
-module G_edge = struct
-  (* [G_edge.fs] is a feature structure. The list of feature names must be ordered wrt [Stdlib.compare] *)
-  type fs = (string * Feature_value.t) list
+module G_fs = struct
+  (* [G_fs.t] is a feature structure. The list of feature names must be ordered wrt [Stdlib.compare] *)
+  type t = (string * Feature_value.t) list
 
-  let fs_of_items l = (List.sort (fun (x,_) (y,_) -> Stdlib.compare x y) l)
+  let build l = (List.sort (fun (x,_) (y,_) -> Stdlib.compare x y) l)
 
-  let fs_to_json = function
-    | [("1",s)] -> `String (Feature_value.to_string s)
-    | fs -> `Assoc (List.map (fun (k,v) -> (k, `String (Feature_value.to_string v))) fs)
+  let to_json = function
+  | [("1",s)] -> Feature_value.to_json s
+  | fs -> `Assoc (List.map (fun (k,v) -> (k, Feature_value.to_json v)) fs)
 
-  let fs_of_json json =
+  (* returns either [Ok compact_string] or [Error long_string] if no compact representation can be built *)
+  let to_string_result ~config fs = fs |> to_json |> Conllx_label.of_json |> Conllx_label.to_string ~config
+
+  let to_string ~config fs = match to_string_result ~config fs with Ok s | Error s -> s
+
+  let from_string ~config s =
     let open Yojson.Basic.Util in
-    json |> to_assoc |> List.map (fun (f,json_v) -> (f, Feature_value.parse f (to_string json_v))) |> fs_of_items
-
-  let fs_to_string_res ~config fs = fs |> fs_to_json |> Conllx_label.of_json |> Conllx_label.to_string ~config
-
-  let fs_to_string ~config fs = match fs_to_string_res ~config fs with Ok s | Error s -> s
-
-  let fs_from_string ~config s =
     s
     |> (Conllx_label.of_string ~config)
     |> Conllx_label.to_json
-    |> fs_of_json
+    |> to_assoc 
+    |> List.map 
+        (fun (f,json_v) -> 
+          (f, Feature_value.parse f (to_string json_v))
+        )
+    |> build
 
+  end (* module G_fs *)
+
+  (* ================================================================================ *)
+module G_edge = struct
   type t =
-    | Fs of fs
-    | Sub
-    | Pred
-    | Succ
+    | Fs of G_fs.t
+    | Sub  (* dedicated value for subconstituent *)
+    | Pred (* dedicated value for precedence (explicit encoding of linear order) *)
+    | Succ (* dedicated value for successor (explicit encoding of linear order) *)
 
   let empty = Fs []
   let sub = Sub
   let pred = Pred
   let succ = Succ
 
-  let ordering = function
-    | Pred | Succ -> true
+  let is_basic = function
+    | Fs fs when not (List.assoc_opt "enhanced" fs = Some (String "yes")) -> true
     | _ -> false
 
-  (* hardcoded edge feature value name "enhanced" *)
-  let enhanced = function
-    | Fs fs when List.assoc_opt "enhanced" fs = Some (String "yes") -> true
-    | _ -> false
+  let from_items l = Fs (G_fs.build l)
 
-  let from_items l = Fs (fs_of_items l)
-
-  let from_string ~config s = Fs (fs_from_string ~config s)
+  let from_string ~config s = Fs (G_fs.from_string ~config s)
 
   let get_sub_opt feat_name = function
     | Fs fs -> List_.sort_assoc_opt feat_name fs
@@ -77,22 +79,22 @@ module G_edge = struct
     | _ -> Error.run "[remove_feat_opt] edge is not fs"
 
   let to_string_opt ~config = function
-    | Fs fs -> Some (fs_to_string ~config fs)
+    | Fs fs -> Some (G_fs.to_string ~config fs)
     | _ -> None
 
-  let to_short_opt ~config = function
-    | Fs fs -> (match fs_to_string_res ~config fs with Ok s -> Some s | _ -> None)
+  let to_compact_opt ~config = function
+    | Fs fs -> (match G_fs.to_string_result ~config fs with Ok s -> Some s | _ -> None)
     | _ -> None
 
   let dump ?config edge = match (edge, config) with
-    | (Fs fs, Some config) -> fs_to_string ~config fs
+    | (Fs fs, Some config) -> G_fs.to_string ~config fs
     | (Fs fs, None) -> String.concat "," (List.map (fun (f,v) -> sprintf "%s=%s" f (Feature_value.to_string v)) fs)
     | (Sub, _) -> "__SUB__"
     | (Pred, _) -> "__PRED__"
     | (Succ, _) -> "__SUCC__"
 
   let to_json_opt = function
-    | Fs fs -> Some (fs_to_json fs)
+    | Fs fs -> Some (G_fs.to_json fs)
     | _ -> None
 
   (* WARNING: hardcoded version which subsumes known configs *)
@@ -117,7 +119,7 @@ module G_edge = struct
                 | Some (String "RSTR") -> ["bottom"]
                 | _ -> [] in
       let styles = if deco then "bgcolor=#8bf56e" :: styles else styles in
-      Some (sprintf "{ label = \"%s\"; %s }" (fs_to_string ~config fs) (String.concat ";" styles))
+      Some (sprintf "{ label = \"%s\"; %s }" (G_fs.to_string ~config fs) (String.concat ";" styles))
     | _ -> None
 
   (* WARNING: hardcoded version which subsumes known configs *)
@@ -140,7 +142,7 @@ module G_edge = struct
               ["color=\"red\""; "fontcolor=\"red\""]
               | Some (String "in") -> ["style=\"dotted\""] (* PMB link from Box-nodes to Sem-nodes *)
               | _ -> [] in
-      let multi_line_label = Str.global_replace (Str.regexp_string ",") "\n" (fs_to_string ~config fs) in
+      let multi_line_label = Str.global_replace (Str.regexp_string ",") "\n" (G_fs.to_string ~config fs) in
       let label = match deco with
         | true -> sprintf "<<TABLE BORDER=\"0\" CELLBORDER=\"0\"> <TR> <TD BGCOLOR=\"#8bf56e\">%s</TD> </TR> </TABLE>>" multi_line_label
         | false -> sprintf "\"%s\"" multi_line_label in
@@ -148,7 +150,7 @@ module G_edge = struct
     | _ -> None
 
   let to_json t = match t with
-    | Fs fs -> fs_to_json fs
+    | Fs fs -> G_fs.to_json fs
     | _ -> `Null
 
   let build ~config (ast_edge, loc) =
@@ -159,7 +161,7 @@ module G_edge = struct
         List.map
           (function Ast.Atom_eq (x,[y]) -> (x,Feature_value.parse x y) | _ -> Error.build "[G_edge.build] cannot interpret Atom_list")
           list in
-      Fs (fs_of_items unordered_fs)
+      Fs (G_fs.build unordered_fs)
     | Ast.Neg_list _ -> Error.build ~loc "Negative edge spec are forbidden in graphs"
     | Ast.Pos_list _ -> Error.build ~loc "Only atomic edge values are allowed in graphs"
     | Ast.Regexp _ -> Error.build ~loc "Regexp are not allowed in graphs"
@@ -180,9 +182,9 @@ module Label_cst = struct
 
   type t =
     (* [comp:obj|comp@pass] *)
-    | Pos of G_edge.fs list
+    | Pos of G_fs.t list
     (* [^comp:obj|comp@pass] *)
-    | Neg of G_edge.fs list
+    | Neg of G_fs.t list
     (* [RE"aux.*"]  compiled and string version *)
     | Regexp of (Str.regexp * string)
     (* [1=subj, 2=*, !3] *)
@@ -191,8 +193,8 @@ module Label_cst = struct
     | Succ
 
   let to_string ~config = function
-    | Pos fs_list -> (List_.to_string (G_edge.fs_to_string ~config) "|" fs_list)
-    | Neg fs_list -> "^"^(List_.to_string (G_edge.fs_to_string ~config) "|" fs_list)
+    | Pos fs_list -> (List_.to_string (G_fs.to_string ~config) "|" fs_list)
+    | Neg fs_list -> "^"^(List_.to_string (G_fs.to_string ~config) "|" fs_list)
     | Regexp (_,re) -> "re\""^re^"\""
     | Atom_list l ->
       String.concat ","
@@ -231,7 +233,7 @@ module Label_cst = struct
     | (Atom_list l, G_edge.Fs fs) -> List.for_all (match_atom fs) l
     | (Regexp (re,_), g_edge)  ->
       begin
-        match G_edge.to_short_opt ~config g_edge with
+        match G_edge.to_compact_opt ~config g_edge with
         | Some s -> String_.re_match re s
         | None -> false
       end
@@ -243,8 +245,8 @@ module Label_cst = struct
     | Ast.Atom_absent name -> Absent name
 
   let of_ast ?loc ~config = function
-    | Ast.Neg_list p_labels -> Neg (List.sort compare (List.map (G_edge.fs_from_string ~config) p_labels))
-    | Ast.Pos_list p_labels -> Pos (List.sort compare (List.map (G_edge.fs_from_string ~config) p_labels))
+    | Ast.Neg_list p_labels -> Neg (List.sort compare (List.map (G_fs.from_string ~config) p_labels))
+    | Ast.Pos_list p_labels -> Pos (List.sort compare (List.map (G_fs.from_string ~config) p_labels))
     | Ast.Regexp re -> Regexp (Str.regexp re, re)
     | Ast.Atom_list l -> Atom_list (List.map build_atom l)
     | Ast.Pred -> Error.bug "[Label_cst.of_ast]"

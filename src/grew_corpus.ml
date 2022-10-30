@@ -238,6 +238,7 @@ module Corpus = struct
       ) acc matchings
     ) (Clustered.empty null) corpus
 
+  (* ---------------------------------------------------------------------------------------------------- *)
   type status = 
     | Ok
     | Timeout of float

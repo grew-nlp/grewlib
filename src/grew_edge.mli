@@ -24,8 +24,9 @@ module G_edge: sig
   val pred: t
   val succ: t
 
-  val ordering: t -> bool
-  val enhanced: t -> bool
+  (** [is_basic t] returns [true] iff the edge is a regular fs without the [enhanced=Yes] feature.
+      Used to get the subset of edges to take into account in graph structure checking. *)
+  val is_basic: t -> bool
 
   val from_items: (string * Feature_value.t) list -> t
 

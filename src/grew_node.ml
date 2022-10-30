@@ -43,8 +43,7 @@ module G_node = struct
   let get_next t = t.next
   let set_next next t = { t with next }
 
-  let get_next_without_pred_succ_enhanced t = Gid_massoc.filter
-    (fun e -> not (G_edge.ordering e || G_edge.enhanced e)) t.next
+  let get_next_basic t = Gid_massoc.filter G_edge.is_basic t.next
 
   let get_pred_opt t = Gid_massoc.find_opt (fun _ v -> v = G_edge.pred) t.next
   let get_succ_opt t = Gid_massoc.find_opt (fun _ v -> v = G_edge.succ) t.next
