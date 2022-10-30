@@ -567,7 +567,7 @@ module G_graph = struct
         try
           json_nodes
           |> to_assoc
-          |> List.rev_map
+          |> List.rev_map (* usage of rev_map to avoid stack overflow on large graph like lexical networks *)
             (fun (id,json_node) ->
                let fs =
                  try [("label", json_node |> to_string)]
@@ -577,6 +577,7 @@ module G_graph = struct
                    |> List.map (fun (feat_name,json_value) -> (feat_name, json_value |> to_string)) in
                (id,fs)
             )
+          |> List.rev  (* restore initial order *)
         with Type_error _ ->
           Error.build
             "[G_graph.of_json%s] Cannot parse field `nodes` (See https://grew.fr/doc/json):\n%s"
@@ -589,7 +590,7 @@ module G_graph = struct
         try 
           json_edges
           |> to_list 
-          |> List.rev_map
+          |> List.rev_map (* usage of rev_map to avoid stack overflow on large graph like lexical networks *)
             (fun json_edge ->
                let fs =
                  try
@@ -630,7 +631,8 @@ module G_graph = struct
                      (sent_id_text ())
                      (Yojson.Basic.pretty_to_string json_edge) in
                (src,fs,tar)
-            ) 
+            )
+          |> List.rev  (* restore initial order *)
         with Type_error _ -> 
           Error.build
             "[G_graph.of_json%s] Cannot parse field `edges` (See https://grew.fr/doc/json):\n%s"
