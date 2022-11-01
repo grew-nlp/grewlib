@@ -29,7 +29,7 @@ module Pst_corpus = struct
           let line_list = 
             CCIO.(with_in file read_lines_l)
             (* Blanks lines (empty or only with spaces and tabs) and lines starting with '%' are ignored. *)
-            |> List.filter (fun line -> not (Str.string_match (Str.regexp "^[ \t]*$") line 0) || (line.[0] = '%')) in
+            |> List.filter (fun line -> not ((Str.string_match (Str.regexp "^[ \t]*$") line 0) || (line.[0] = '%'))) in
           List.mapi
             (fun i line ->
               match Str.split (Str.regexp "\t") line with

@@ -529,7 +529,7 @@ module Lexicon = struct
         CCIO.(with_in file read_lines_l)
         |> CCList.mapi (fun i l -> (i+1,l))
         (* Blanks lines (empty or only with spaces and tabs) and lines starting with '%' are ignored. *)
-        |> List.filter (fun (_,line) -> not (Str.string_match (Str.regexp "^[ \t]*$") line 0) || (line.[0] = '%')) in
+        |> List.filter (fun (_,line) -> not ((Str.string_match (Str.regexp "^[ \t]*$") line 0) || (line.[0] = '%'))) in
       of_item_list ~loc:(Loc.file file) lines
     with Sys_error _ -> Error.build ?loc "[Lexicon.load] unable to load file %s" file
 
