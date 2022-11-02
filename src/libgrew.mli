@@ -168,6 +168,8 @@ module Grs : sig
 
   val of_json: config:Conllx_config.t -> Yojson.Basic.t -> t
 
+  val request_of_json: config:Conllx_config.t -> Yojson.Basic.t -> Pattern.t
+
 end
 
 (* ==================================================================================================== *)

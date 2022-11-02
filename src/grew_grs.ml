@@ -102,12 +102,9 @@ module Grs = struct
   let parse ~config string_grs = from_ast ~config "" (Parser.grs string_grs)
 
 
-
-
-
-  let rule_string_of_json request commands =
+  let request_string_to_json request = 
     let open Yojson.Basic.Util in
-    let request_string = try
+    try
       request 
       |> to_list 
       |> List.map 
@@ -123,7 +120,15 @@ module Grs = struct
       |> String.concat "\n" 
     with Type_error _ -> 
       printf "*********request*******\n%s\n****************\n%!" (Yojson.Basic.pretty_to_string request);
-      Error.build "[Grs.decl_string_of_json]" in 
+      Error.build "[Grs.decl_string_of_json]"
+
+  let request_of_json ~config request = 
+    let ast = Parser.pattern (request_string_to_json request) in
+    Pattern.of_ast ~config ast
+
+  let rule_string_of_json request commands =
+    let open Yojson.Basic.Util in
+    let request_string =  request_string_to_json request in 
     let commands_string = try
       sprintf "\n  commands {%s}" (commands |> to_list |> List.map to_string |> String.concat ";\n") 
     with Type_error _ -> 

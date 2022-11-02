@@ -283,6 +283,12 @@ module Grs = struct
       (fun () ->
          Grew_grs.Grs.of_json ~config grs
       ) ()
+
+  let request_of_json ~config grs =
+    Libgrew.handle ~name:"Grs.request_of_json"
+      (fun () ->
+         Grew_grs.Grs.request_of_json ~config grs
+      ) ()
 end
 
 (* ==================================================================================================== *)
