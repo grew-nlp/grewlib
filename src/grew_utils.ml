@@ -733,7 +733,7 @@ module Feature_value = struct
 
   let to_json = function
     | String s -> `String s
-    | Float f -> `String (string_of_float f)
+    | Float f -> `String (sprintf "%g" f)
 
   let extract_range ?loc range = function
     | String s -> String (Range.extract range s)

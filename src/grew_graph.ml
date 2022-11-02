@@ -473,7 +473,7 @@ module G_graph = struct
               match v with 
               | `String s -> Some (k,s)
               | `Int i -> Some (k, string_of_int i)
-              | `Float f -> Some (k, string_of_float f)
+              | `Float f -> Some (k, sprintf "%g" f)
               | _ -> None
             )
       with Type_error _ -> [] in
