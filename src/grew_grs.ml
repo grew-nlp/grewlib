@@ -114,13 +114,13 @@ module Grs = struct
           | ["pattern", l] -> sprintf "  pattern {%s}" (l |> to_list |> List.map to_string |> String.concat ";\n")
           | ["without", l] -> sprintf "  without {%s}" (l |> to_list |> List.map to_string |> String.concat ";\n")
           | ["global", l] -> sprintf "  global {%s}" (l |> to_list |> List.map to_string |> String.concat ";\n")
-          | _ -> Error.build "[Grs.rule_string_of_json]"
+          | _ -> Error.build "[Grs.request_string_to_json]"
           )
         )  
       |> String.concat "\n" 
     with Type_error _ -> 
       printf "*********request*******\n%s\n****************\n%!" (Yojson.Basic.pretty_to_string request);
-      Error.build "[Grs.decl_string_of_json]"
+      Error.build "[Grs.request_string_to_json]"
 
   let request_of_json ~config request = 
     let ast = Parser.pattern (request_string_to_json request) in
@@ -133,7 +133,7 @@ module Grs = struct
       sprintf "\n  commands {%s}" (commands |> to_list |> List.map to_string |> String.concat ";\n") 
     with Type_error _ -> 
       printf "*********request*******\n%s\n****************\n%!" (Yojson.Basic.pretty_to_string request);
-      Error.build "[Grs.decl_string_of_json]" in
+      Error.build "[Grs.rule_string_of_json]" in
     request_string ^ commands_string
 
   let rec decl_string_of_json (key, json) =
