@@ -283,7 +283,7 @@ module Dependencies : sig
 end
 
 (* ================================================================================ *)
-(* [Pid] describes identifier used in pattern graphs *)
+(* [Pid] describes identifier used in request graphs *)
 module Pid : sig
   type t = Ker of int | Ext of int
   val compare: t -> t -> int
@@ -296,7 +296,7 @@ end (* module Pid *)
 module Pid_set : Set.S with type elt = Pid.t
 
 (* ================================================================================ *)
-(* [Pid_map] is the map used in pattern graphs *)
+(* [Pid_map] is the map used in request graphs *)
 module Pid_map : sig
   include Map.S with type key = Pid.t
 

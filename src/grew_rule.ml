@@ -92,7 +92,7 @@ module Request = struct
     (*   e1.level < 3   *)
     | Feature_ineq_cst of Ast.ineq * base * string * float
     (*   N [upos=VERB]   *)
-    (* ⚠ used only when a extension imposes a fs on a node also defined by the kernel pattern part *)
+    (* ⚠ used only when a extension imposes a fs on a node also defined by the kernel request part *)
     | Filter of Pid.t * P_fs.t
     (*   N << M   *)
     | Node_large_prec of Pid.t * Pid.t
@@ -197,7 +197,7 @@ module Request = struct
     (
       {
         graph = graph;
-        constraints = List.map (build_constraint ~config lexicons ker_table [||] edge_ids) basic_ast.Ast.pat_const
+        constraints = List.map (build_constraint ~config lexicons ker_table [||] edge_ids) basic_ast.Ast.req_const
       },
       ker_table,
       edge_ids
@@ -206,12 +206,12 @@ module Request = struct
   (* It may raise [P_fs.Fail_unif] in case of contradiction on constraints *)
   let build_ext_basic ~config lexicons ker_table edge_ids basic_ast =
     let (graph, filter_map, ext_table, edge_ids) =
-      P_graph.of_ast_extension ~config lexicons ker_table edge_ids basic_ast.Ast.pat_nodes basic_ast.Ast.pat_edges in
+      P_graph.of_ast_extension ~config lexicons ker_table edge_ids basic_ast.Ast.req_nodes basic_ast.Ast.req_edges in
 
     let filters = Pid_map.fold (fun id p_fs acc -> Filter (id, p_fs) :: acc) filter_map [] in
     {
       graph;
-      constraints = filters @ List.map (build_constraint ~config lexicons ker_table ext_table edge_ids) basic_ast.Ast.pat_const ;
+      constraints = filters @ List.map (build_constraint ~config lexicons ker_table ext_table edge_ids) basic_ast.Ast.req_const ;
     }
 
   let get_edge_ids basic =
@@ -222,7 +222,7 @@ module Request = struct
            acc (P_node.get_next node)
       ) basic.graph []
 
-  (* a [pattern] is described by the kernel basic and a list of extention basics. *)
+  (* a [request] is described by the kernel basic and a list of extention basics. *)
   type t = {
     global: Ast.glob list;
     ker: basic;
@@ -246,23 +246,23 @@ module Request = struct
     | l -> let global = `Assoc [("global", `List (List.map (fun glob -> `String (Ast.glob_to_string glob)) l))] in
       `List (global:: pattern :: without_list )
 
-  let pid_name_list pattern = P_graph.pid_name_list pattern.ker.graph
+  let pid_name_list request = P_graph.pid_name_list request.ker.graph
 
-  let of_ast ~config ?(lexicons=[]) pattern_ast =
+  let of_ast ~config ?(lexicons=[]) request_ast =
     let (ker, ker_table, edge_ids) =
-      try build_ker_basic ~config lexicons pattern_ast.Ast.pat_pos
-      with P_fs.Fail_unif -> Error.build "feature structures declared in the `pattern` clause are inconsistent " in
+      try build_ker_basic ~config lexicons request_ast.Ast.req_pos
+      with P_fs.Fail_unif -> Error.build "feature structures declared in the `pattern` clauses are inconsistent " in
     let exts =
       List_.try_map
         P_fs.Fail_unif (* Skip the without parts that are incompatible with the match part *)
         (fun basic_ast -> 
           (build_ext_basic ~config lexicons ker_table edge_ids basic_ast, false)
         )
-        pattern_ast.Ast.pat_negs in
-    { ker; exts; global=pattern_ast.pat_glob; table=ker_table; edge_ids; }
+        request_ast.Ast.req_negs in
+    { ker; exts; global=request_ast.req_glob; table=ker_table; edge_ids; }
 
-  let build_whether ~config pattern basic_ast =
-    build_ext_basic ~config [] pattern.table pattern.edge_ids (Ast.complete_basic basic_ast)
+  let build_whether ~config request basic_ast =
+    build_ext_basic ~config [] request.table request.edge_ids (Ast.complete_basic basic_ast)
 end (* module Request *)
 
 (* ================================================================================ *)
@@ -270,7 +270,7 @@ module Matching = struct
 
   (* ====================================================================== *)
   type t = {
-    n_match: Gid.t Pid_map.t;                      (* partial fct: pattern nodes |--> graph nodes *)
+    n_match: Gid.t Pid_map.t;                      (* partial fct: request nodes |--> graph nodes *)
     e_match: (Gid.t*G_edge.t*Gid.t) String_map.t;  (* edge matching: edge ident  |--> (src,label,tar) *)
     l_param: Lexicons.t;                           (* *)
   }
@@ -280,10 +280,10 @@ module Matching = struct
 
   let intern s = String_.re_match (Str.regexp "__.*__") s
 
-  let to_json ?(all_edges=false) pattern graph m =
+  let to_json ?(all_edges=false) request graph m =
     let node_name gid = G_node.get_name gid (G_graph.find gid graph) in
     let nodes = Pid_map.fold (fun pid gid acc ->
-        let pnode = P_graph.find pid pattern.Request.ker.graph in
+        let pnode = P_graph.find pid request.Request.ker.graph in
         (P_node.get_name pnode, `String (node_name gid))::acc
       ) m.n_match [] in
     let edges = String_map.fold (fun id (src,lab,tar) acc ->
@@ -300,27 +300,27 @@ module Matching = struct
       ("edges", `Assoc edges)
     ]
 
-  let node_matching pattern graph { n_match } =
+  let node_matching request graph { n_match } =
     Pid_map.fold
       (fun pid gid acc ->
-         let pnode = P_graph.find pid pattern.Request.ker.graph in
+         let pnode = P_graph.find pid request.Request.ker.graph in
          let gnode = G_graph.find gid graph in
          (P_node.get_name pnode, G_node.get_name gid gnode) :: acc
       ) n_match []
 
   exception Found of Pid.t
-  let get_pid_by_name pattern name n_match =
+  let get_pid_by_name request name n_match =
     try
       Pid_map.iter
         (fun pid _ ->
-           if P_node.get_name (P_graph.find pid pattern.Request.ker.graph) = name
+           if P_node.get_name (P_graph.find pid request.Request.ker.graph) = name
            then raise (Found pid)
         ) n_match;
       None
     with Found pid -> Some pid
 
   (* return the value of a feature or an edge label *)
-  let get_value_opt ~config cluster_key pattern graph matching =
+  let get_value_opt ~config cluster_key request graph matching =
     match Str.split (Str.regexp "\\.") cluster_key with
     | [node_or_edge_id; feature_name] ->
       begin
@@ -336,8 +336,8 @@ module Matching = struct
         | (Some (_,edge,_), _) -> Feature_value.to_string <$> (G_edge.get_sub_opt feature_name edge)
         | (None, _) ->
           begin
-            match get_pid_by_name pattern node_or_edge_id matching.n_match with
-            | None -> Error.run "[Matching.get_value_opt] The identifier [%s] is not declared in the positve part of the pattern" node_or_edge_id
+            match get_pid_by_name request node_or_edge_id matching.n_match with
+            | None -> Error.run "[Matching.get_value_opt] The identifier [%s] is not declared in the positve part of the request" node_or_edge_id
             | Some pid ->
               let gid = Pid_map.find pid matching.n_match in
               let node = G_graph.find gid graph in
@@ -347,30 +347,30 @@ module Matching = struct
       end
     | _ -> Error.run "[Matching.get_value_opt] unable to handled cluster_key [%s].
     [cluster_key] can be:
-    * the name of a feature value [N.feat] where [N] is a node declared in the kernel part of the pattern
-    * the name of an edge featue [E.feat] where [e] is a edge declared in the kernel part of the pattern
+    * the name of a feature value [N.feat] where [N] is a node declared in the kernel part of the request
+    * the name of an edge featue [E.feat] where [e] is a edge declared in the kernel part of the request
     * one of the pseudo features [e.label], [e.length] or [e.delta]
 " cluster_key
 
   let e_match_add ?pos edge_id new_edge matching =
     if String_map.mem edge_id matching.e_match
-    then Error.run "The edge identifier '%s' is binded twice in the same pattern" edge_id
+    then Error.run "The edge identifier '%s' is binded twice in the same request" edge_id
     else { matching with e_match = String_map.add edge_id new_edge matching.e_match }
 
-  let build_deco pattern matching =
+  let build_deco request matching =
     { G_deco.nodes =
         Pid_map.fold
           (fun pid gid acc ->
-             let pnode = P_graph.find pid pattern.Request.ker.graph in
-             let pattern_feat_list = P_fs.feat_list (P_node.get_fs pnode) in
-             (gid, (P_node.get_name pnode, pattern_feat_list)) :: acc
+             let pnode = P_graph.find pid request.Request.ker.graph in
+             let request_feat_list = P_fs.feat_list (P_node.get_fs pnode) in
+             (gid, (P_node.get_name pnode, request_feat_list)) :: acc
           ) matching.n_match [];
       G_deco.edges = String_map.fold (fun _ edge acc -> edge::acc) matching.e_match [];
     }
 
   let find cnode ?loc (matching, created_nodes) =
     match cnode with
-    | Command.Pat pid ->
+    | Command.Req pid ->
       (try Pid_map.find pid matching.n_match
        with Not_found -> Error.bug ?loc "Inconsistent matching pid '%s' not found" (Pid.to_string pid))
     | Command.New name ->
@@ -601,7 +601,7 @@ module Matching = struct
             let g_edges = Gid_massoc.assoc tar_gid (G_node.get_next src_gnode) in
 
             match P_edge.match_list ~config p_edge g_edges with
-            | P_edge.Fail -> (* no good edge in graph for this pattern edge -> stop here *)
+            | P_edge.Fail -> (* no good edge in graph for this request edge -> stop here *)
               []
             | P_edge.Pass -> [ {partial with unmatched_edges = tail_ue } ]
             | P_edge.Binds (id,labels) -> (* n edges in the graph match the identified p_edge -> make copies of the [k] matchings (and returns n*k matchings) *)
@@ -651,7 +651,7 @@ module Matching = struct
 
       try
         let new_lex_set = P_node.match_ ~lexicons:partial.sub.l_param p_node g_node in
-        (* add all out-edges from pid in pattern *)
+        (* add all out-edges from pid in request *)
         let new_unmatched_edges =
           Pid_massoc.fold
             (fun acc pid_next p_edge -> (pid, p_edge, pid_next) :: acc
@@ -700,9 +700,9 @@ module Matching = struct
     | [] -> false (* fail to extend the matching to ext *)
     | _ -> true
 
-  let whether ~config extension pattern graph matching =
+  let whether ~config extension request graph matching =
     let already_matched_gids = Pid_map.fold (fun _ gid acc -> gid::acc) matching.n_match [] in
-    test_extension ~config pattern.Request.ker graph extension (matching, already_matched_gids)
+    test_extension ~config request.Request.ker graph extension (matching, already_matched_gids)
 
   (* returns true iff the graph verify all structure constraints give in the list *)
   let test_structure_constraints graph = function
@@ -788,7 +788,7 @@ module Matching = struct
     if not (check_global_constraint global graph)
     then []
     else
-      (* get the list of partial matching for kernel part of the pattern *)
+      (* get the list of partial matching for kernel part of the request *)
       let matching_list =
         extend_matching
           ~config
@@ -810,13 +810,12 @@ module Matching = struct
     let gid_list = Pid_map.fold (fun _ gid acc -> gid :: acc) matching.n_match [] in  
   G_graph.subgraph graph gid_list depth
 
-  let get_clust_value_opt ~config clust_item pattern graph matching =
+  let get_clust_value_opt ~config clust_item request graph matching =
     match clust_item with
-    | Key key -> get_value_opt ~config key pattern graph matching
+    | Key key -> get_value_opt ~config key request graph matching
     | Whether basic_string ->
-        let basic = Request.build_whether ~config pattern (Parser.basic ("{" ^ basic_string ^ "}")) in
-        (* let basic = Request.parse_basic ~config pattern ("{" ^ whether ^ "}") in *)
-        if whether ~config basic pattern graph matching then Some "Yes" else Some "No"
+        let basic = Request.build_whether ~config request (Parser.basic ("{" ^ basic_string ^ "}")) in
+        if whether ~config basic request graph matching then Some "Yes" else Some "No"
 end (* module Matching *)
 
 (* ================================================================================ *)
@@ -845,7 +844,7 @@ module Rule = struct
 
   type t = {
     name: string;
-    pattern: Request.t;
+    request: Request.t;
     commands: Command.t list;
     lexicons: Lexicons.t;
     loc: Loc.t;
@@ -863,17 +862,17 @@ module Rule = struct
   let to_json ~config t =
     `Assoc (
       [
-        ("request", Request.to_json ~config t.pattern);
+        ("request", Request.to_json ~config t.request);
         ("commands", 
         `List (
           List.map 
-            (Command.to_json ~config ~base:(Request.get_ker_graph t.pattern)) t.commands))
+            (Command.to_json ~config ~base:(Request.get_ker_graph t.request)) t.commands))
       ]
     )
 
   (* ====================================================================== *)
   let to_dep ~config t =
-    let ker_basic = t.pattern.ker in
+    let ker_basic = t.request.ker in
     let buff = Buffer.create 32 in
     bprintf buff "[GRAPH] { scale = 200; }\n";
 
@@ -959,10 +958,10 @@ module Rule = struct
         ) [] rule_ast.Ast.lexicon_info in
 
     let (ker, ker_table, edge_ids) =
-      try Request.build_ker_basic ~config lexicons rule_ast.Ast.pattern.Ast.pat_pos
+      try Request.build_ker_basic ~config lexicons rule_ast.Ast.request.Ast.req_pos
       with P_fs.Fail_unif ->
         Error.build ~loc:rule_ast.Ast.rule_loc
-          "[Rule.build] in rule \"%s\": feature structures declared in the `pattern` clause are inconsistent"
+          "[Rule.build] in rule \"%s\": feature structures declared in the `pattern` clauses are inconsistent"
           rule_ast.Ast.rule_id in
     let (exts,_) =
       List.fold_left
@@ -972,10 +971,10 @@ module Rule = struct
              Error.warning ~loc:rule_ast.Ast.rule_loc "In rule \"%s\", the wihtout number %d cannot be satisfied, it is skipped"
                rule_ast.Ast.rule_id position;
              (acc, position+1)
-        ) ([],1) rule_ast.Ast.pattern.Ast.pat_negs in
+        ) ([],1) rule_ast.Ast.request.Ast.req_negs in
     {
       name = rule_ast.Ast.rule_id;
-      pattern = { ker; exts; global=rule_ast.Ast.pattern.Ast.pat_glob; table=ker_table; edge_ids };
+      request = { ker; exts; global=rule_ast.Ast.request.Ast.req_glob; table=ker_table; edge_ids };
       commands = commands_of_ast ~config lexicons ker ker_table rule_ast.Ast.commands;
       loc = rule_ast.Ast.rule_loc;
       lexicons;
@@ -997,7 +996,7 @@ module Rule = struct
   (*  ---------------------------------------------------------------------- *)
   let onf_find cnode ?loc (matching, created_nodes) = (* TODO review args order and remove pair *)
     match cnode with
-    | Command.Pat pid ->
+    | Command.Req pid ->
       (try Pid_map.find pid matching.Matching.n_match
        with Not_found -> Error.bug ?loc "Inconsistent matching pid '%s' not found" (Pid.to_string pid))
     | Command.New name ->
@@ -1309,11 +1308,11 @@ module Rule = struct
 
   let onf_apply_opt ~config rule graph =
     try
-      let { Request.global; Request.ker; exts} = rule.pattern in
+      let { Request.global; Request.ker; exts} = rule.request in
       match Matching.check_global_constraint global graph with
       | false -> None
       | true ->
-        (* get the list of partial matching for kernel part of the pattern *)
+        (* get the list of partial matching for kernel part of the request *)
         let matching_list =
           Matching.extend_matching
             ~config
@@ -1343,7 +1342,7 @@ module Rule = struct
             begin
               Timeout.check ();
               incr_rules rule.name;
-              let up = Matching.build_deco rule.pattern first_matching_where_all_witout_are_fulfilled in
+              let up = Matching.build_deco rule.request first_matching_where_all_witout_are_fulfilled in
               let down = Matching.down_deco (String_map.empty, first_matching_where_all_witout_are_fulfilled, final_state.created_nodes) rule.commands in
               Some (G_graph.track up (get_rule_info rule) down graph final_state.graph)
             end
@@ -1352,7 +1351,7 @@ module Rule = struct
 
   let find cnode ?loc gwh matching =
     match cnode with
-    | Command.Pat pid ->
+    | Command.Req pid ->
       (try Pid_map.find pid matching.Matching.n_match
        with Not_found -> Error.bug ?loc "Inconsistent matching pid '%s' not found" (Pid.to_string pid))
     | Command.New name -> List.assoc name gwh.Graph_with_history.added_gids
@@ -1774,7 +1773,7 @@ module Rule = struct
                 if !Global.track_history
                 then Graph_with_history_set.map
                     (fun g ->
-                       let up = Matching.build_deco rule.pattern matching in
+                       let up = Matching.build_deco rule.request matching in
                        let down = Matching.down_deco (g.added_edges_in_rule, matching, g.added_gids_in_rule) (CCList.take (cmp_nb+1) rule.commands) in
                        {g with graph = G_graph.track up (get_rule_info rule) down graph_with_history.graph g.graph}
                     ) new_graphs
@@ -1787,7 +1786,7 @@ module Rule = struct
 
   let gwh_apply ~config rule graph_with_history =
     try
-      let matching_list = Matching.search_request_in_graph ~config ~lexicons:rule.lexicons rule.pattern graph_with_history.Graph_with_history.graph in
+      let matching_list = Matching.search_request_in_graph ~config ~lexicons:rule.lexicons rule.request graph_with_history.Graph_with_history.graph in
       List.fold_left
         (fun acc matching ->
            Graph_with_history_set.union (gwh_apply_rule ~config graph_with_history matching rule) acc
@@ -1799,12 +1798,12 @@ module Rule = struct
   exception Dead_lock
   let owh_apply_opt ~config rule gwh =
     let graph = gwh.Graph_with_history.graph in
-    let { Request.global; ker; exts} = rule.pattern in
+    let { Request.global; ker; exts} = rule.request in
 
     if not (Matching.check_global_constraint global graph)
       then None
       else
-        (* get the list of matching for kernel part of the pattern *)
+        (* get the list of matching for kernel part of the request *)
         let matching_list = Matching.extend_matching ~config (ker.graph,P_graph.empty) graph (Matching.init ~lexicons:rule.lexicons ker) in
           
         let rec loop_matching = function
@@ -1827,7 +1826,7 @@ module Rule = struct
                 let new_gwh = loop_command init_gwh rule.commands in
                 Timeout.check ();
                 incr_rules rule.name;
-                let up = Matching.build_deco rule.pattern sub in
+                let up = Matching.build_deco rule.request sub in
                 let down = Matching.down_deco (new_gwh.added_edges_in_rule, sub, new_gwh.added_gids_in_rule) rule.commands in
                 Some {new_gwh with graph = G_graph.track up (get_rule_info rule) down graph new_gwh.graph }
               with Dead_lock -> loop_matching tail (* failed to apply all commands -> move to the next matching *)

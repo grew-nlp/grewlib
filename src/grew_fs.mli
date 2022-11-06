@@ -64,7 +64,7 @@ module G_fs: sig
 end (* module G_fs *)
 
 (* ================================================================================ *)
-(* module [P_fs] defines the feature structures that are used in patterns *)
+(* module [P_fs] defines the feature structures that are used in requests *)
 module P_fs: sig
   type t
 
@@ -82,7 +82,7 @@ module P_fs: sig
 
   exception Fail
 
-  (** [match_ ?lexicons p_fs g_fs] tries to match the pattern fs [p_fs] with the graph fs [g_fs]. *)
+  (** [match_ ?lexicons p_fs g_fs] tries to match the request fs [p_fs] with the graph fs [g_fs]. *)
   val match_: ?lexicons:Lexicons.t -> t -> G_fs.t -> Lexicons.t
 
   exception Fail_unif

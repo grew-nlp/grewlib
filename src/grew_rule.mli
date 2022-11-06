@@ -27,32 +27,32 @@ module Request : sig
 
   val pid_name_list: t -> Id.name list
 
-  val of_ast: config:Conllx.Conllx_config.t -> ?lexicons: Lexicons.t -> Ast.pattern -> t
+  val of_ast: config:Conllx.Conllx_config.t -> ?lexicons: Lexicons.t -> Ast.request -> t
 
   val build_whether: config:Conllx.Conllx_config.t -> t -> Ast.basic -> basic
 end
 
 (* ================================================================================ *)
 module Matching : sig
-  (** the type t encodes the graph morphism from a pattern to a graph *)
+  (** the type t encodes the graph morphism from a request to a graph *)
   type t
 
   val to_json: ?all_edges: bool -> Request.t -> G_graph.t -> t -> Yojson.Basic.t
 
-  (** [node_matching pattern graph matching] return a assoc list (pid_name, gid_name) *)
+  (** [node_matching request graph matching] return a assoc list (pid_name, gid_name) *)
   val node_matching: Request.t -> G_graph.t -> t -> (string * string) list
 
-  (** [search_request_in_graph pattern graph] returns the list of matching of the [pattern] into the [graph] *)
+  (** [search_request_in_graph request graph] returns the list of matching of the [request] into the [graph] *)
   val search_request_in_graph: config:Conllx.Conllx_config.t -> ?lexicons: Lexicons.t -> Request.t -> G_graph.t -> t list
 
   (** [build_deco rule matching] builds the decoration of the [graph] illustrating the given [matching] of the [rule] *)
   (* NB: it can be computed independly from the graph itself! *)
   val build_deco: Request.t -> t -> G_deco.t
 
-  (* [get_value_opt cluster_key pattern graph matching] returns the value corresponding to the cluster_key in the result of a previous result of match
+  (* [get_value_opt cluster_key request graph matching] returns the value corresponding to the cluster_key in the result of a previous result of match
      [cluster_key] can be:
-     * the name of a feature value [N.feat] where [N] is a node declared in the kernel part of the pattern
-     * the name of an edge featue [E.feat] where [e] is a edge declared in the kernel part of the pattern
+     * the name of a feature value [N.feat] where [N] is a node declared in the kernel part of the request
+     * the name of an edge featue [E.feat] where [e] is a edge declared in the kernel part of the request
      * one of the pseudo features [e.label], [e.length] or [e.delta]
   *)
   val get_value_opt: config:Conllx.Conllx_config.t -> string -> Request.t -> G_graph.t -> t -> string option

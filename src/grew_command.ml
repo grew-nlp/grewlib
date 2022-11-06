@@ -21,11 +21,11 @@ open Grew_graph
 (* ================================================================================ *)
 module Command  = struct
   type command_node =   (* a command node is either: *)
-    | Pat of Pid.t      (* a node identified in the pattern *)
+    | Req of Pid.t      (* a node identified in the request *)
     | New of string     (* a node introduced by a add_node *)
 
   let command_node_to_string = function
-    | Pat pid -> Pid.to_id pid
+    | Req pid -> Pid.to_id pid
     | New s -> s
 
   (* [item] is a element of the RHS of an update_feat command *)
@@ -46,7 +46,6 @@ module Command  = struct
   let ranged_item_to_string (item, range) =
     sprintf "%s%s" (item_to_string item) (Range.to_string range)
   
-  (* the command in pattern *)
   type p =
     | DEL_NODE of command_node
     | DEL_EDGE_EXPL of (command_node * command_node * G_edge.t)
@@ -77,7 +76,7 @@ module Command  = struct
   let to_json ~config ?(base=P_graph.empty) (p,_) =
     let node_to_string = function
     | New s -> s
-    | Pat pid -> P_graph.get_name pid [base] in
+    | Req pid -> P_graph.get_name pid [base] in
 
     match p with
     | DEL_NODE cn -> `String (sprintf "del_node %s" (node_to_string cn))
@@ -148,7 +147,7 @@ module Command  = struct
 
     let cn_of_node_id node_id =
       match Id.build_opt node_id table with
-      | Some x -> Pat (Pid.Ker x)
+      | Some x -> Req (Pid.Ker x)
       | None   -> New node_id in
 
     let check_node_id_msg loc msg node_id kni =
@@ -157,7 +156,7 @@ module Command  = struct
 
     let check_node_id loc node_id kni = check_node_id_msg loc "Unbound node identifier" node_id kni in
 
-    (* check that the edge_id is defined in the pattern *)
+    (* check that the edge_id is defined in the request *)
     let check_edge loc edge_id kei =
       if not (List.mem edge_id kei)
       then Error.build ~loc "Unbound edge identifier \"%s\"" edge_id in

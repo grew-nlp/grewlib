@@ -114,9 +114,9 @@ module Ast : sig
   type const = u_const * Loc.t
 
   type basic = {
-    pat_nodes: node list;
-    pat_edges: edge list;
-    pat_const: const list;
+    req_nodes: node list;
+    req_edges: edge list;
+    req_const: const list;
   }
 
   val empty_basic: basic
@@ -136,14 +136,14 @@ module Ast : sig
 
   val glob_to_string: glob -> string
 
-  type pattern = {
-    pat_glob: glob list;
-    pat_pos: basic;
-    pat_negs: basic list;
+  type request = {
+    req_glob: glob list;
+    req_pos: basic;
+    req_negs: basic list;
   }
 
   (* [complete with implicit nodes and check for duplicate edge identifier in pos part] *)
-  val complete_and_check_pattern : pattern -> pattern
+  val complete_and_check_request : request -> request
 
   type concat_item =
     | Qfn_or_lex_item of (pointed * Range.t)
@@ -189,7 +189,7 @@ module Ast : sig
 
   type rule = {
     rule_id:Id.name;
-    pattern: pattern;
+    request: request;
     commands: command list;
     lexicon_info: lexicon_info;
     rule_doc:string list;

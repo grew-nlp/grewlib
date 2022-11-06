@@ -19,7 +19,7 @@ module Loader: sig
 
   val basic: string -> Ast.basic
 
-  val request: string -> Ast.pattern
+  val request: string -> Ast.request
 
   val phrase_structure_tree: string -> Ast.pst
 end (* module Loader *)
@@ -32,7 +32,7 @@ module Parser : sig
 
   val phrase_structure_tree: string -> Ast.pst
 
-  val request: string -> Ast.pattern
+  val request: string -> Ast.request
 
   val strategy: string -> Ast.strat
 end (* module Parser *)

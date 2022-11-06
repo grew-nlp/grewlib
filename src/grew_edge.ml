@@ -255,7 +255,7 @@ end (* module Label_cst *)
 (* ================================================================================ *)
 module P_edge = struct
   type t = {
-    id: string option; (* an identifier for naming under_label in patterns *)
+    id: string option; (* an identifier for naming under_label in requests *)
     label_cst: Label_cst.t;
   }
 

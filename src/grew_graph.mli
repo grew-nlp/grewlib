@@ -53,7 +53,7 @@ module P_graph: sig
       (* description for new nodes and for all edges (Old -> New, Old -> Old or New -> New)
          Old nodes used as source in a edges (Old -> New, Old -> Old2) are also defined in this maps *)
       t *
-      (* encoding of N[…] when N is already defined in core pattern: just consider the new fs as a filter *)
+      (* encoding of N[…] when N is already defined in core request: just consider the new fs as a filter *)
       P_fs.t Pid_map.t *
       (* table of indentifier for nodes specific to the extension *)
       Id.table *
@@ -68,7 +68,7 @@ module G_deco: sig
   type highlighted_feat = string * string option
 
   type t = {
-    (* a list of (node, (pattern_id, features of nodes implied in the step)) *)
+    (* a list of (node, (pid, features of nodes implied in the step)) *)
     nodes: (Gid.t * (string * highlighted_feat list)) list;
     (* an edge list *)
     edges: (Gid.t * G_edge.t * Gid.t) list;
@@ -158,7 +158,7 @@ module G_graph: sig
     Loc.t ->            (* localization of the command *)
     Gid.t ->            (* [src_gid] the source gid of the "shift_in" *)
     Gid.t ->            (* [tar_gid] the target gid of the "shift_in" *)
-    (Gid.t -> bool) ->  (* a locality test: true iff the node is a pattern node *)
+    (Gid.t -> bool) ->  (* a locality test: true iff the node is a request node *)
     Label_cst.t ->      (* what are the constraint on edge label *)
     t ->                (* input graph *)
     ( t                                  (* output graph *)
@@ -172,7 +172,7 @@ module G_graph: sig
     Loc.t ->            (* localization of the command *)
     Gid.t ->            (* [src_gid] the source gid of the "shift_out" *)
     Gid.t ->            (* [tar_gid] the target gid of the "shift_out" *)
-    (Gid.t -> bool) ->  (* a locality test: true iff the node is a pattern node *)
+    (Gid.t -> bool) ->  (* a locality test: true iff the node is a request node *)
     Label_cst.t ->      (* what are the constraint on edge label *)
     t ->                (* input graph *)
     ( t                                  (* output graph *)
@@ -186,7 +186,7 @@ module G_graph: sig
     Loc.t ->            (* localization of the command *)
     Gid.t ->            (* [src_gid] the source gid of the "shift_edges" *)
     Gid.t ->            (* [tar_gid] the target gid of the "shift_edges" *)
-    (Gid.t -> bool) ->  (* a locality test: true iff the node is a pattern node *)
+    (Gid.t -> bool) ->  (* a locality test: true iff the node is a request node *)
     Label_cst.t ->      (* what are the constraint on edge label *)
     t ->                (* input graph *)
     ( t                                  (* output graph *)

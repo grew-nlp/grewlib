@@ -14,10 +14,10 @@ open Grew_utils
 open Grew_ast
 
 (* Some intermediate sum types used in sub-functions when building the ast *)
-type pat_item =
-  | Pat_node of Ast.node
-  | Pat_edge of Ast.edge
-  | Pat_const of Ast.const
+type clause_item =
+  | Clause_node of Ast.node
+  | Clause_edge of Ast.edge
+  | Clause_const of Ast.const
 
 type graph_item =
   | Graph_meta of (string * string)
@@ -78,7 +78,7 @@ let localize t = (t,get_loc ())
 %token INCL                        /* include */
 %token IMPORT                      /* import */
 %token FROM                        /* from */
-%token PATTERN                     /* pattern */
+%token PATTERN                     /* request */
 %token WITHOUT                     /* without */
 %token COMMANDS                    /* commands */
 %token GLOBAL                      /* global */
@@ -122,7 +122,7 @@ let localize t = (t,get_loc ())
 %token EOF                         /* end of file */
 
 %start <Grew_ast.Ast.basic> basic
-%start <Grew_ast.Ast.pattern> isolated_request
+%start <Grew_ast.Ast.request> isolated_request
 
 %start <Grew_ast.Ast.grs> grs
 %start <Grew_ast.Ast.strat> strat_alone
@@ -185,7 +185,7 @@ simple_or_pointed :
 simple_or_pointed_with_loc :
         | id=ID       { localize (Ast.parse_simple_or_pointed id) }
 
-pattern_feature_value:
+request_feature_value:
         | v=ID        { Ast.parse_simple_or_pointed v }
         | v=STRING    { Ast.Simple v }
         | v=number    { Ast.Simple (Printf.sprintf "%g" v) }
@@ -202,13 +202,13 @@ ineq_value_with_loc:
 /* RULES DEFINITION                                                                            */
 /*=============================================================================================*/
 rule:
-        | doc=option(COMMENT) RULE id_loc=simple_id_with_loc file_lexicons = option(external_lexicons) LACC req=pattern cmds=commands RACC final_lexicons=list(final_lexicon)
+        | doc=option(COMMENT) RULE id_loc=simple_id_with_loc file_lexicons = option(external_lexicons) LACC req=request cmds=commands RACC final_lexicons=list(final_lexicon)
             {
               let lexicons = match file_lexicons with
               | Some l -> l @ final_lexicons
               | None -> final_lexicons in
               { Ast.rule_id = fst id_loc;
-                pattern = req;
+                request = req;
                 commands = cmds;
                 lexicon_info = lexicons;
                 rule_doc = begin match doc with Some d -> d | None -> [] end;
@@ -257,12 +257,12 @@ neg_item:
         | WITHOUT i=basic { i }
 
 basic:
-        | l=delimited(LACC,separated_list_final_opt(SEMIC,pat_item),RACC)
+        | l=delimited(LACC,separated_list_final_opt(SEMIC,clause_item),RACC)
             {
              {
-              Ast.pat_nodes = CCList.filter_map (function Pat_node n -> Some n | _ -> None) l;
-              Ast.pat_edges = CCList.filter_map (function Pat_edge n -> Some n | _ -> None) l;
-              Ast.pat_const = CCList.filter_map (function Pat_const n -> Some n | _ -> None) l;
+              Ast.req_nodes = CCList.filter_map (function Clause_node n -> Some n | _ -> None) l;
+              Ast.req_edges = CCList.filter_map (function Clause_edge n -> Some n | _ -> None) l;
+              Ast.req_const = CCList.filter_map (function Clause_const n -> Some n | _ -> None) l;
             }
            }
 
@@ -281,56 +281,56 @@ label_atom:
         | name=simple_id_or_float DISEQUAL l=separated_nonempty_list(PIPE,edge_item) { Ast.Atom_diseq (name, l)}
         | BANG name=simple_id_or_float { Ast.Atom_absent name }
 
-pat_item:
+clause_item:
         /* =================================== */
         /* node                                */
         /* =================================== */
         /*   R [cat=V, lemma=$lemma]   */
         | id_loc=simple_id_with_loc feats=delimited(LBRACKET,separated_list_final_opt(COMMA,node_features),RBRACKET)
-            { Pat_node ({Ast.node_id = fst id_loc; fs= feats}, snd id_loc) }
+            { Clause_node ({Ast.node_id = fst id_loc; fs= feats}, snd id_loc) }
 
         /* =================================== */
         /* edge                                */
         /* =================================== */
         /*   A -> B   */
         | n1_loc=simple_id_with_loc EDGE n2=simple_id
-            { let (n1,loc) = n1_loc in Pat_edge ({Ast.edge_id = None; src=n1; edge_label_cst=Ast.Neg_list []; tar=n2}, loc) }
+            { let (n1,loc) = n1_loc in Clause_edge ({Ast.edge_id = None; src=n1; edge_label_cst=Ast.Neg_list []; tar=n2}, loc) }
 
         /*   A -[X|Y]-> B   */
         | n1_loc=simple_id_with_loc labels=delimited(LTR_EDGE_LEFT,separated_nonempty_list(PIPE,label_ident),LTR_EDGE_RIGHT) n2=simple_id
-            { let (n1,loc) = n1_loc in Pat_edge ({Ast.edge_id = None; src=n1; edge_label_cst=Ast.Pos_list labels; tar=n2}, loc) }
+            { let (n1,loc) = n1_loc in Clause_edge ({Ast.edge_id = None; src=n1; edge_label_cst=Ast.Pos_list labels; tar=n2}, loc) }
 
         /*   A -[^X|Y]-> B   */
         | n1_loc=simple_id_with_loc labels=delimited(LTR_EDGE_LEFT_NEG,separated_nonempty_list(PIPE,label_ident),LTR_EDGE_RIGHT) n2=simple_id
-            { let (n1,loc) = n1_loc in Pat_edge ({Ast.edge_id = None; src=n1; edge_label_cst=Ast.Neg_list labels; tar=n2}, loc) }
+            { let (n1,loc) = n1_loc in Clause_edge ({Ast.edge_id = None; src=n1; edge_label_cst=Ast.Neg_list labels; tar=n2}, loc) }
 
         /*   A -[re"regexp"]-> B   */
         | n1_loc=simple_id_with_loc LTR_EDGE_LEFT re=REGEXP LTR_EDGE_RIGHT n2=simple_id
-            { let (n1,loc) = n1_loc in Pat_edge ({Ast.edge_id = None; src=n1; edge_label_cst=Ast.Regexp re; tar=n2}, loc) }
+            { let (n1,loc) = n1_loc in Clause_edge ({Ast.edge_id = None; src=n1; edge_label_cst=Ast.Regexp re; tar=n2}, loc) }
 
         /*   A -[1=subj, 2=*, !3]-> B   */
         | n1_loc=simple_id_with_loc LTR_EDGE_LEFT atom_list = separated_nonempty_list(COMMA, label_atom) LTR_EDGE_RIGHT n2=simple_id
-            { let (n1,loc) = n1_loc in Pat_edge ({Ast.edge_id = None; src=n1; edge_label_cst=Ast.Atom_list atom_list; tar=n2}, loc) }
+            { let (n1,loc) = n1_loc in Clause_edge ({Ast.edge_id = None; src=n1; edge_label_cst=Ast.Atom_list atom_list; tar=n2}, loc) }
 
         /*   e:A -[1=subj, 2=*, !3]-> B   */
         | id_loc=simple_id_with_loc DDOT n1=simple_id LTR_EDGE_LEFT atom_list = separated_nonempty_list(COMMA, label_atom) LTR_EDGE_RIGHT n2=simple_id
-            { let (id,loc) = id_loc in Pat_edge ({Ast.edge_id = Some id; src=n1; edge_label_cst=Ast.Atom_list atom_list; tar=n2}, loc) }
+            { let (id,loc) = id_loc in Clause_edge ({Ast.edge_id = Some id; src=n1; edge_label_cst=Ast.Atom_list atom_list; tar=n2}, loc) }
 
         /*   e: A -> B   */
         | id_loc=simple_id_with_loc DDOT n1=simple_id EDGE n2=simple_id
-            { let (id,loc) = id_loc in Pat_edge ({Ast.edge_id = Some id; src=n1; edge_label_cst=(Ast.Neg_list []); tar=n2}, loc) }
+            { let (id,loc) = id_loc in Clause_edge ({Ast.edge_id = Some id; src=n1; edge_label_cst=(Ast.Neg_list []); tar=n2}, loc) }
 
         /*   e: A -[X|Y]-> B   */
         | id_loc=simple_id_with_loc DDOT n1=simple_id labels=delimited(LTR_EDGE_LEFT,separated_nonempty_list(PIPE,label_ident),LTR_EDGE_RIGHT) n2=simple_id
-            { let (id,loc) = id_loc in Pat_edge ({Ast.edge_id = Some id; src=n1; edge_label_cst=(Ast.Pos_list labels); tar=n2}, loc) }
+            { let (id,loc) = id_loc in Clause_edge ({Ast.edge_id = Some id; src=n1; edge_label_cst=(Ast.Pos_list labels); tar=n2}, loc) }
 
         /*   e: A -[^X|Y]-> B   */
         | id_loc=simple_id_with_loc DDOT n1=simple_id labels=delimited(LTR_EDGE_LEFT_NEG,separated_nonempty_list(PIPE,label_ident),LTR_EDGE_RIGHT) n2=simple_id
-            { let (id,loc) = id_loc in Pat_edge ({Ast.edge_id = Some id; src=n1; edge_label_cst=(Ast.Neg_list labels); tar=n2}, loc) }
+            { let (id,loc) = id_loc in Clause_edge ({Ast.edge_id = Some id; src=n1; edge_label_cst=(Ast.Neg_list labels); tar=n2}, loc) }
 
         /*   e: A -[re"regexp"]-> B   */
         | id_loc=simple_id_with_loc DDOT n1=simple_id LTR_EDGE_LEFT re=REGEXP LTR_EDGE_RIGHT n2=simple_id
-            { let (id,loc) = id_loc in Pat_edge ({Ast.edge_id = Some id; src=n1; edge_label_cst=Ast.Regexp re; tar=n2}, loc) }
+            { let (id,loc) = id_loc in Clause_edge ({Ast.edge_id = Some id; src=n1; edge_label_cst=Ast.Regexp re; tar=n2}, loc) }
 
         /* =================================== */
         /* edge constraints                    */
@@ -338,43 +338,43 @@ pat_item:
 
         /*   A -[X|Y]-> *   */
         | n1_loc=simple_id_with_loc labels=delimited(LTR_EDGE_LEFT,separated_nonempty_list(PIPE,label_ident),LTR_EDGE_RIGHT) STAR
-            { let (n1,loc) = n1_loc in Pat_const (Ast.Cst_out (n1,Ast.Pos_list labels), loc) }
+            { let (n1,loc) = n1_loc in Clause_const (Ast.Cst_out (n1,Ast.Pos_list labels), loc) }
 
         /*   * -[X|Y]-> B   */
         | STAR labels=delimited(LTR_EDGE_LEFT,separated_nonempty_list(PIPE,label_ident),LTR_EDGE_RIGHT) n2_loc=simple_id_with_loc
-            { let (n2,loc) = n2_loc in Pat_const (Ast.Cst_in (n2,Ast.Pos_list labels), loc) }
+            { let (n2,loc) = n2_loc in Clause_const (Ast.Cst_in (n2,Ast.Pos_list labels), loc) }
 
         /*   A -> *   */
         | n1_loc=simple_id_with_loc EDGE STAR
-            { let (n1,loc) = n1_loc in Pat_const (Ast.Cst_out (n1,Ast.Neg_list []), loc) }
+            { let (n1,loc) = n1_loc in Clause_const (Ast.Cst_out (n1,Ast.Neg_list []), loc) }
 
         /*   * -> B   */
         | STAR EDGE n2_loc=simple_id_with_loc
-            { let (n2,loc) = n2_loc in Pat_const (Ast.Cst_in (n2,Ast.Neg_list []), loc) }
+            { let (n2,loc) = n2_loc in Clause_const (Ast.Cst_in (n2,Ast.Neg_list []), loc) }
 
         /*   A -[^X|Y]-> *   */
         | n1_loc=simple_id_with_loc labels=delimited(LTR_EDGE_LEFT_NEG,separated_nonempty_list(PIPE,label_ident),LTR_EDGE_RIGHT) STAR
-            { let (n1,loc) = n1_loc in Pat_const (Ast.Cst_out (n1,Ast.Neg_list labels), loc) }
+            { let (n1,loc) = n1_loc in Clause_const (Ast.Cst_out (n1,Ast.Neg_list labels), loc) }
 
         /*   * -[^X|Y]-> B   */
         | STAR labels=delimited(LTR_EDGE_LEFT_NEG,separated_nonempty_list(PIPE,label_ident),LTR_EDGE_RIGHT) n2_loc=simple_id_with_loc
-            { let (n2,loc) = n2_loc in Pat_const (Ast.Cst_in (n2,Ast.Neg_list labels), loc) }
+            { let (n2,loc) = n2_loc in Clause_const (Ast.Cst_in (n2,Ast.Neg_list labels), loc) }
 
         /*   A -[1=subj, 2=*, !3]-> *   */
         | n1_loc=simple_id_with_loc atom_list = delimited(LTR_EDGE_LEFT, separated_nonempty_list(COMMA, label_atom), LTR_EDGE_RIGHT) STAR
-            { let (n1,loc) = n1_loc in Pat_const (Ast.Cst_out (n1,Ast.Atom_list atom_list), loc) }
+            { let (n1,loc) = n1_loc in Clause_const (Ast.Cst_out (n1,Ast.Atom_list atom_list), loc) }
 
         /*   * -[1=subj, 2=*, !3]-> B   */
         | STAR atom_list=delimited(LTR_EDGE_LEFT,separated_nonempty_list(COMMA, label_atom),LTR_EDGE_RIGHT) n2_loc=simple_id_with_loc
-            { let (n2,loc) = n2_loc in Pat_const (Ast.Cst_in (n2,Ast.Atom_list atom_list), loc) }
+            { let (n2,loc) = n2_loc in Clause_const (Ast.Cst_in (n2,Ast.Atom_list atom_list), loc) }
 
         /*   A -[re"mod.*"]-> *   */
         | n1_loc=simple_id_with_loc LTR_EDGE_LEFT re=REGEXP LTR_EDGE_RIGHT STAR
-            { let (n1,loc) = n1_loc in Pat_const (Ast.Cst_out (n1,Ast.Regexp re), loc) }
+            { let (n1,loc) = n1_loc in Clause_const (Ast.Cst_out (n1,Ast.Regexp re), loc) }
 
         /*   * -[re"mod.*"]-> B   */
         | STAR LTR_EDGE_LEFT re=REGEXP LTR_EDGE_RIGHT n2_loc=simple_id_with_loc
-            { let (n2,loc) = n2_loc in Pat_const (Ast.Cst_in (n2,Ast.Regexp re), loc) }
+            { let (n2,loc) = n2_loc in Clause_const (Ast.Cst_in (n2,Ast.Regexp re), loc) }
 
 
         /* =================================== */
@@ -388,18 +388,18 @@ pat_item:
              { let (feat_id1,loc)=feat_id1_loc in
               match Ast.parse_simple_or_pointed rhs with
               | Ast.Simple value ->
-                Pat_const (Ast.Feature_cmp_value (Eq,feat_id1, String value), loc)
+                Clause_const (Ast.Feature_cmp_value (Eq,feat_id1, String value), loc)
               | Ast.Pointed (s1, s2) ->
-                Pat_const (Ast.Feature_cmp (Eq, feat_id1, (s1, s2)), loc)
+                Clause_const (Ast.Feature_cmp (Eq, feat_id1, (s1, s2)), loc)
              }
 
         /*   X.cat = "value"   */
         | feat_id1_loc=feature_ident_with_loc EQUAL rhs=STRING
-            { let (feat_id1,loc)=feat_id1_loc in Pat_const (Ast.Feature_cmp_value (Eq, feat_id1, String rhs), loc) }
+            { let (feat_id1,loc)=feat_id1_loc in Clause_const (Ast.Feature_cmp_value (Eq, feat_id1, String rhs), loc) }
 
         /*   X.cat = 12.34   */
         | feat_id1_loc=feature_ident_with_loc EQUAL rhs=FLOAT
-            { let (feat_id1,loc)=feat_id1_loc in Pat_const (Ast.Feature_cmp_value (Eq, feat_id1, Float rhs), loc) }
+            { let (feat_id1,loc)=feat_id1_loc in Clause_const (Ast.Feature_cmp_value (Eq, feat_id1, Float rhs), loc) }
 
         /*   X.cat <> value   */
         /*   X.cat <> Y.cat   */
@@ -408,11 +408,11 @@ pat_item:
         | lhs_loc=simple_or_pointed_with_loc DISEQUAL rhs =simple_or_pointed
              {  match (lhs_loc,rhs) with
               | ((Ast.Pointed feat_id,loc), Ast.Simple value) ->
-                Pat_const (Ast.Feature_cmp_value (Neq, feat_id, String value), loc)
+                Clause_const (Ast.Feature_cmp_value (Neq, feat_id, String value), loc)
               | ((Ast.Pointed feat_id,loc), Ast.Pointed (s1, s2)) ->
-                Pat_const (Ast.Feature_cmp (Neq, feat_id, (s1, s2)), loc)
+                Clause_const (Ast.Feature_cmp (Neq, feat_id, (s1, s2)), loc)
               | ((Ast.Simple edge_id1,loc), Ast.Simple edge_id2) ->
-                Pat_const (Ast.Edge_disjoint (edge_id1, edge_id2), loc)
+                Clause_const (Ast.Edge_disjoint (edge_id1, edge_id2), loc)
               | ((_,loc),_) -> Error.build ~loc "syntax error in constraint"
              }
 
@@ -420,27 +420,27 @@ pat_item:
         /*   X.cat <> "value"   */
         | lhs_loc=simple_or_pointed_with_loc DISEQUAL rhs=STRING
             { match lhs_loc with
-              | (Ast.Pointed feat_id, loc) -> Pat_const (Ast.Feature_cmp_value (Neq, feat_id, String rhs), loc)
+              | (Ast.Pointed feat_id, loc) -> Clause_const (Ast.Feature_cmp_value (Neq, feat_id, String rhs), loc)
               | (_,loc) -> Error.build ~loc "syntax error in constraint"
             }
 
         /*   X.cat <> 12.34   */
         | lhs_loc=simple_or_pointed_with_loc DISEQUAL rhs=FLOAT
             { match lhs_loc with
-              | (Ast.Pointed feat_id, loc) -> Pat_const (Ast.Feature_cmp_value (Neq, feat_id, Float rhs), loc)
+              | (Ast.Pointed feat_id, loc) -> Clause_const (Ast.Feature_cmp_value (Neq, feat_id, Float rhs), loc)
               | (_,loc) -> Error.build ~loc "syntax error in constraint"
             }
 
         /*   X.cat <> re"regexp"   */
         | lhs_loc=simple_or_pointed_with_loc DISEQUAL regexp=REGEXP
             { match lhs_loc with
-              | (Ast.Pointed feat_id, loc) -> Pat_const (Ast.Feature_cmp_regexp (Neq, feat_id, regexp), loc)
+              | (Ast.Pointed feat_id, loc) -> Clause_const (Ast.Feature_cmp_regexp (Neq, feat_id, regexp), loc)
               | (_,loc) -> Error.build ~loc "syntax error in constraint"
             }
 
         /*   X.cat = re"regexp"   */
         | feat_id_loc=feature_ident_with_loc EQUAL regexp=REGEXP
-            { let (feat_id,loc)=feat_id_loc in Pat_const (Ast.Feature_cmp_regexp (Eq, feat_id, regexp), loc) }
+            { let (feat_id,loc)=feat_id_loc in Clause_const (Ast.Feature_cmp_regexp (Eq, feat_id, regexp), loc) }
 
         /*   X.feat < Y.feat    */
         /*   X < Y     */
@@ -449,19 +449,19 @@ pat_item:
               match (id1, id2) with
               (*   X.feat < Y.feat   *)
               | (Ineq_sofi (Ast.Pointed (n1, f1)), Ineq_sofi (Ast.Pointed (n2, f2))) ->
-                Pat_const (Ast.Feature_ineq (Ast.Lt, (n1,f1), (n2,f2)), loc)
+                Clause_const (Ast.Feature_ineq (Ast.Lt, (n1,f1), (n2,f2)), loc)
 
               (*   X.feat < 12.34   *)
               | (Ineq_sofi (Ast.Pointed (n1, f1)), Ineq_float num) ->
-                Pat_const (Ast.Feature_ineq_cst (Ast.Lt, (n1,f1), num), loc)
+                Clause_const (Ast.Feature_ineq_cst (Ast.Lt, (n1,f1), num), loc)
 
               (*   12.34 < Y.feat   *)
               | (Ineq_float num, Ineq_sofi (Ast.Pointed (n1, f1))) ->
-                Pat_const (Ast.Feature_ineq_cst (Ast.Gt, (n1,f1), num), loc)
+                Clause_const (Ast.Feature_ineq_cst (Ast.Gt, (n1,f1), num), loc)
 
               (*   X < Y   *)
               | (Ineq_sofi (Ast.Simple n1), Ineq_sofi (Ast.Simple n2)) ->
-                 Pat_edge ({Ast.edge_id = None; src=n1; edge_label_cst=Ast.Pred; tar=n2}, loc)
+                 Clause_edge ({Ast.edge_id = None; src=n1; edge_label_cst=Ast.Pred; tar=n2}, loc)
 
  (* TODO : axe lex_field *)
 
@@ -477,19 +477,19 @@ pat_item:
               match (id1, id2) with
               (*   X.feat > Y.feat   *)
               | (Ineq_sofi (Ast.Pointed (n1, f1)), Ineq_sofi (Ast.Pointed (n2, f2))) ->
-                Pat_const (Ast.Feature_ineq (Ast.Gt, (n1,f1), (n2,f2)), loc)
+                Clause_const (Ast.Feature_ineq (Ast.Gt, (n1,f1), (n2,f2)), loc)
 
               (*   X.feat > 12.34   *)
               | (Ineq_sofi (Ast.Pointed (n1, f1)), Ineq_float num) ->
-                Pat_const (Ast.Feature_ineq_cst (Ast.Gt, (n1,f1), num), loc)
+                Clause_const (Ast.Feature_ineq_cst (Ast.Gt, (n1,f1), num), loc)
 
               (*   12.34 > Y.feat   *)
               | (Ineq_float num, Ineq_sofi (Ast.Pointed (n1, f1))) ->
-                Pat_const (Ast.Feature_ineq_cst (Ast.Lt, (n1,f1), num), loc)
+                Clause_const (Ast.Feature_ineq_cst (Ast.Lt, (n1,f1), num), loc)
 
               (*   X > Y   *)
               | (Ineq_sofi (Ast.Simple n1), Ineq_sofi (Ast.Simple n2)) ->
-                Pat_edge ({Ast.edge_id = None; src=n2; edge_label_cst=Ast.Pred; tar=n1}, loc)
+                Clause_edge ({Ast.edge_id = None; src=n2; edge_label_cst=Ast.Pred; tar=n1}, loc)
 
 (* TODO : axe lex_field *)
 
@@ -500,33 +500,33 @@ pat_item:
 
         /*   X.position <= Y.position   */
         | feat_id1_loc=feature_ident_with_loc LE feat_id2=feature_ident
-            { let (feat_id1,loc)=feat_id1_loc in Pat_const (Ast.Feature_ineq (Ast.Le, feat_id1, feat_id2), loc) }
+            { let (feat_id1,loc)=feat_id1_loc in Clause_const (Ast.Feature_ineq (Ast.Le, feat_id1, feat_id2), loc) }
 
         /*   X.position >= Y.position   */
         | feat_id1_loc=feature_ident_with_loc GE feat_id2=feature_ident
-            { let (feat_id1,loc)=feat_id1_loc in Pat_const (Ast.Feature_ineq (Ast.Ge, feat_id1, feat_id2), loc) }
+            { let (feat_id1,loc)=feat_id1_loc in Clause_const (Ast.Feature_ineq (Ast.Ge, feat_id1, feat_id2), loc) }
 
         /*   X.feat >= 12.34   */
         | feat_id1_loc=feature_ident_with_loc GE num=FLOAT
         | num=number LE feat_id1_loc=feature_ident_with_loc
-            { let (feat_id1,loc)=feat_id1_loc in Pat_const (Ast.Feature_ineq_cst (Ast.Ge, feat_id1, num), loc)  }
+            { let (feat_id1,loc)=feat_id1_loc in Clause_const (Ast.Feature_ineq_cst (Ast.Ge, feat_id1, num), loc)  }
 
         /*   X.feat <= 12.34   */
         | feat_id1_loc=feature_ident_with_loc LE num=FLOAT
         | num=number GE feat_id1_loc=feature_ident_with_loc
-            { let (feat_id1,loc)=feat_id1_loc in Pat_const (Ast.Feature_ineq_cst (Ast.Le, feat_id1, num), loc)  }
+            { let (feat_id1,loc)=feat_id1_loc in Clause_const (Ast.Feature_ineq_cst (Ast.Le, feat_id1, num), loc)  }
 
         /*   A << B   */
         | n1_loc=simple_id_with_loc LPREC n2=simple_id
-            { let (n1,loc) = n1_loc in Pat_const (Ast.Large_prec (n1,n2), loc) }
+            { let (n1,loc) = n1_loc in Clause_const (Ast.Large_prec (n1,n2), loc) }
 
         /*   A >> B   */
         | n1_loc=simple_id_with_loc LSUCC n2=simple_id
-            { let (n1,loc) = n1_loc in Pat_const (Ast.Large_prec (n2,n1), loc) }
+            { let (n1,loc) = n1_loc in Clause_const (Ast.Large_prec (n2,n1), loc) }
 
         /*   e1 >< e2   */
         | n1_loc=simple_id_with_loc CROSSING n2=simple_id
-            { let (n1,loc) = n1_loc in Pat_const (Ast.Edge_crossing (n1,n2), loc) }
+            { let (n1,loc) = n1_loc in Clause_const (Ast.Edge_crossing (n1,n2), loc) }
 
         /* Next items are temporarily kept for producing dedicated error message when using out of date syntax  /*
 
@@ -566,14 +566,14 @@ pat_item:
               | ("label", n) | (n, "label") -> Error.build ~loc "Unexpected operator '%s'" n
               | (n, m) -> Error.build ~loc "Unexpected operators '%s' and '%s'" n m
             }
-/*** end pat_item ***/
+/*** end clause_item ***/
 
 
 
 
 node_features:
         /*   cat = n|v|adj   */
-        | name_loc=simple_id_with_loc EQUAL values=separated_nonempty_list(PIPE,pattern_feature_value)
+        | name_loc=simple_id_with_loc EQUAL values=separated_nonempty_list(PIPE,request_feature_value)
             {
               let (name,loc) = name_loc in
               match values with
@@ -599,7 +599,7 @@ node_features:
               ({Ast.kind = Ast.Feat_kind_list (Neq,[]); name},loc) }
 
         /*    cat<>n|v|adj   */
-        | name_loc=simple_id_with_loc DISEQUAL values=separated_nonempty_list(PIPE,pattern_feature_value)
+        | name_loc=simple_id_with_loc DISEQUAL values=separated_nonempty_list(PIPE,request_feature_value)
             {
               let (name,loc) = name_loc in
               match values with
@@ -816,10 +816,10 @@ range:
 /* ISOLATED PATTERN (grep mode)                                                                */
 /*=============================================================================================*/
 isolated_request:
-        | r=pattern EOF { r }
+        | r=request EOF { r }
 
-pattern:
-  | l = list (pattern_item)
+request:
+  | l = list (request_item)
     {
       let pos = List.fold_left
         (fun acc i ->
@@ -839,14 +839,14 @@ pattern:
           | Global i -> i @ acc
           | _ -> acc
           ) [] l in
-      Ast.complete_and_check_pattern {
-          Ast.pat_glob = glob;
-          Ast.pat_pos = pos;
-          Ast.pat_negs = negs;
+      Ast.complete_and_check_request {
+          Ast.req_glob = glob;
+          Ast.req_pos = pos;
+          Ast.req_negs = negs;
         }
     }
 
-pattern_item:
+request_item:
   | i=pos_item  { Pattern i }
   | i=neg_item  { Without i }
   | i=glob_decl { Global i }

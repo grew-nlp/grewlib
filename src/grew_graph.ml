@@ -82,8 +82,8 @@ module P_graph = struct
 
   (* -------------------------------------------------------------------------------- *)
   let of_ast ~config lexicons basic_ast =
-    let full_node_list = basic_ast.Ast.pat_nodes
-    and full_edge_list = basic_ast.Ast.pat_edges in
+    let full_node_list = basic_ast.Ast.req_nodes
+    and full_edge_list = basic_ast.Ast.req_edges in
 
     let nodes_id = List.map (fun ({Ast.node_id},_) -> node_id) full_node_list in
     let edges_id = CCList.filter_map (fun ({Ast.edge_id},_) -> edge_id) full_edge_list in
@@ -247,7 +247,7 @@ module G_deco = struct
   type highlighted_feat = string * string option
 
   type t = {
-    (* a list of (node, (pattern_id, features of nodes implied in the step)) *)
+    (* a list of (node, (pid, features of nodes implied in the step)) *)
     nodes: (Gid.t * (string * highlighted_feat list)) list;
     (* an edge list *)
     edges: (Gid.t * G_edge.t * Gid.t) list;
@@ -966,7 +966,7 @@ module G_graph = struct
     let new_map =
       Gid_map.mapi
         (fun node_id node ->
-           if is_gid_local node_id (* shift does not move pattern edges *)
+           if is_gid_local node_id (* shift does not move request edges *)
            then node
            else
              let node_next = G_node.get_next node in
@@ -1042,7 +1042,7 @@ module G_graph = struct
     let high_list = match pivot with
       | None -> List.map fst deco.nodes
       | Some pivot ->
-        match List.find_opt (fun (gid, (pattern_id,_)) -> pattern_id = pivot) deco.nodes with
+        match List.find_opt (fun (gid, (pid,_)) -> pid = pivot) deco.nodes with
         | None -> Error.run "Undefined pivot %s" pivot
         | Some (gid,_) -> [gid] in
 

@@ -82,7 +82,7 @@ end (* module Label_cst *)
 
 
 (* ================================================================================ *)
-(** The module [P_edge] defines the type of pattern label edges: atomic edges *)
+(** The module [P_edge] defines the type of request label edges: atomic edges *)
 module P_edge: sig
   type t
 

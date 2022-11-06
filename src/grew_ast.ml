@@ -175,15 +175,15 @@ module Ast = struct
   type const = u_const * Loc.t
 
   type basic = {
-    pat_nodes: node list;
-    pat_edges: edge list;
-    pat_const: const list;
+    req_nodes: node list;
+    req_edges: edge list;
+    req_const: const list;
   }
 
-  let empty_basic = { pat_nodes=[]; pat_edges=[]; pat_const=[]; }
+  let empty_basic = { req_nodes=[]; req_edges=[]; req_const=[]; }
 
   let concat_basic b1 b2 =
-    { pat_nodes=b1.pat_nodes @ b2.pat_nodes; pat_edges=b1.pat_edges @ b2.pat_edges; pat_const=b1.pat_const @ b2.pat_const; }
+    { req_nodes=b1.req_nodes @ b2.req_nodes; req_edges=b1.req_edges @ b2.req_edges; req_const=b1.req_const @ b2.req_const; }
 
   type u_glob =
     | Glob_cst of string
@@ -201,16 +201,16 @@ module Ast = struct
     | Glob_absent s -> sprintf "!%s" s
     | Glob_regexp (f,re) -> sprintf "%s = re\"%s\"" f re
 
-  type pattern = {
-    pat_glob: glob list;
-    pat_pos: basic;
-    pat_negs: basic list;
+  type request = {
+    req_glob: glob list;
+    req_pos: basic;
+    req_negs: basic list;
   }
 
-  let check_dup_edge_in_pattern pattern =
+  let check_dup_edge_in_request request =
     let ids = CCList.filter_map
         (function ({edge_id= Some e},loc) -> Some (e, loc) | _ -> None)
-        pattern.pat_pos.pat_edges in
+        request.req_pos.req_edges in
     let rec loop = function
       | [] -> ()
       | (x,loc)::t when List.exists (fun (y,_) -> x=y) t ->
@@ -218,14 +218,14 @@ module Ast = struct
       | _::t -> loop t in
     loop ids
 
-  let add_implicit_node loc aux name pat_nodes =
-    if (List.exists (fun ({node_id},_) -> node_id=name) pat_nodes)
+  let add_implicit_node loc aux name req_nodes =
+    if (List.exists (fun ({node_id},_) -> node_id=name) req_nodes)
     || (List.exists (fun ({node_id},_) -> node_id=name) aux)
-    then pat_nodes
-    else ({node_id=name; fs=[]}, loc) :: pat_nodes
+    then req_nodes
+    else ({node_id=name; fs=[]}, loc) :: req_nodes
 
   let complete_basic_aux aux basic =
-    let new_pat_nodes = List.fold_left
+    let new_req_nodes = List.fold_left
         (fun acc ({src; edge_label_cst; tar}, loc) ->
            if edge_label_cst = Pred
            then acc
@@ -233,17 +233,17 @@ module Ast = struct
              acc
              |> (add_implicit_node loc aux src)
              |> (add_implicit_node loc aux tar)
-        ) basic.pat_nodes basic.pat_edges in
-    {basic with pat_nodes=new_pat_nodes}
+        ) basic.req_nodes basic.req_edges in
+    {basic with req_nodes=new_req_nodes}
 
   let complete_basic = complete_basic_aux []
 
-  let complete_and_check_pattern pattern =
-    check_dup_edge_in_pattern pattern;
-    let new_pat_pos = complete_basic_aux [] pattern.pat_pos in
-    let aux = new_pat_pos.pat_nodes in
-    let new_pat_negs = List.map (complete_basic_aux aux) pattern.pat_negs in
-    { pattern with pat_pos = new_pat_pos; pat_negs = new_pat_negs;}
+  let complete_and_check_request request =
+    check_dup_edge_in_request request;
+    let new_req_pos = complete_basic_aux [] request.req_pos in
+    let aux = new_req_pos.req_nodes in
+    let new_req_negs = List.map (complete_basic_aux aux) request.req_negs in
+    { request with req_pos = new_req_pos; req_negs = new_req_negs;}
 
   type concat_item =
     | Qfn_or_lex_item of (pointed * Range.t)
@@ -330,7 +330,7 @@ module Ast = struct
 
   type rule = {
     rule_id: Id.name;
-    pattern: pattern;
+    request: request;
     commands: command list;
     lexicon_info: lexicon_info;
     rule_doc: string list;

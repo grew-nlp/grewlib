@@ -215,16 +215,16 @@ module Corpus = struct
     | _ -> None
 
   (* ---------------------------------------------------------------------------------------------------- *)
-  let search ~config null update pattern cluster_item_list corpus =
+  let search ~config null update request cluster_item_list corpus =
     fold_left
     (fun acc sent_id graph ->
-      let matchings = Matching.search_request_in_graph ~config pattern graph in
+      let matchings = Matching.search_request_in_graph ~config request graph in
       List.fold_left
       (fun acc2 matching -> 
         let cluster_value_list = 
           List.map 
           (fun cluster_item ->
-            Matching.get_clust_value_opt ~config cluster_item pattern graph matching 
+            Matching.get_clust_value_opt ~config cluster_item request graph matching 
           ) cluster_item_list in
           Clustered.update (update matching) cluster_value_list null acc2
       ) acc matchings
@@ -236,7 +236,7 @@ module Corpus = struct
     | Timeout of float
     | Over of float
   
-  let bounded_search ~config ?(ordering = None) bound timeout null update pattern cluster_item_list corpus =
+  let bounded_search ~config ?(ordering = None) bound timeout null update request cluster_item_list corpus =
     let len = size corpus in
     let permut_fct = match ordering with
     | Some "length" -> let perm = permut_length corpus in fun x -> perm.(x)
@@ -258,7 +258,7 @@ module Corpus = struct
             let graph_index = permut_fct graph_counter in
             let graph = get_graph graph_index corpus in
             let sent_id = get_sent_id graph_index corpus in
-            let matchings = Matching.search_request_in_graph ~config pattern graph in
+            let matchings = Matching.search_request_in_graph ~config request graph in
             let nb_in_graph = List.length matchings in
             let new_acc = 
               CCList.foldi
@@ -270,7 +270,7 @@ module Corpus = struct
                     let cluster_value_list = 
                       List.map 
                         (fun cluster_item ->
-                          Matching.get_clust_value_opt ~config cluster_item pattern graph matching 
+                          Matching.get_clust_value_opt ~config cluster_item request graph matching 
                         ) cluster_item_list in
                       Clustered.update (update graph_index sent_id pos_in_graph nb_in_graph matching) cluster_value_list null acc2
                 ) acc matchings in

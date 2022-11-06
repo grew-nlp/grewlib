@@ -316,7 +316,7 @@ module G_fs = struct
           then sprintf "%s:B:#8bf56e" text
           else text] in
 
-    (* add the pattern identifier *)
+    (* add the request identifier *)
     let word_list = match pid_name with
       | "" -> main
       | _ -> (sprintf "[%s]:B:#8bf56e" pid_name)::main in
