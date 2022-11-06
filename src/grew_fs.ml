@@ -388,17 +388,17 @@ module P_fs = struct
           with Not_found -> raise Fail
         end; loop acc (t_pat, [])
 
-      (* special case of Else when the first request is not satified *)
+      (* special case of Else when the first constraint is not satified *)
       | ((fn_pat, P_feature.Else (_,fn2,fv2))::t_pat, (((fn, _)::_) as t)) when fn_pat < fn ->
         begin
           try if (List.assoc fn2 g_fs) <> fv2 then raise Fail
           with Not_found -> raise Fail
         end; loop acc (t_pat, t)
 
-      (* p_fs is not empty and  does not begin with and Absent request, g_fs empty ==> Fail *)
+      (* p_fs is not empty and  does not begin with and Absent constraint, g_fs empty ==> Fail *)
       | _::_, [] -> raise Fail
 
-      (* the next p_fs request cannot be satisfied ==> Fail *)
+      (* the next p_fs constraint cannot be satisfied ==> Fail *)
       | ((fn_pat, _)::_, (fn, _)::_) when fn_pat < fn -> raise Fail
 
       (* Next cases: fn_pat = fn *)

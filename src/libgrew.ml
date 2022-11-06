@@ -195,9 +195,9 @@ module Matching = struct
         Grew_rule.Matching.node_matching pattern graph matching
       ) ()
 
-  let get_value_opt ~config request pattern graph matching =
+  let get_value_opt ~config cluster_key pattern graph matching =
     Libgrew.handle ~name:"Matching.get_value_opt" (fun () ->
-        Grew_rule.Matching.get_value_opt ~config request pattern graph matching
+        Grew_rule.Matching.get_value_opt ~config cluster_key pattern graph matching
       ) ()
 
   let whether ~config extension pattern graph matching =

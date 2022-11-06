@@ -243,7 +243,7 @@ end (* module P_graph *)
 
 (* ================================================================================ *)
 module G_deco = struct
-  (* value is (f, Some g) for combined request "f=v/g=u" and (j, None) else *)
+  (* value is (f, Some g) for combined clause "f=v/g=u" and (j, None) else *)
   type highlighted_feat = string * string option
 
   type t = {

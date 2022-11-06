@@ -320,8 +320,8 @@ module Matching = struct
     with Found pid -> Some pid
 
   (* return the value of a feature or an edge label *)
-  let get_value_opt ~config request pattern graph matching =
-    match Str.split (Str.regexp "\\.") request with
+  let get_value_opt ~config cluster_key pattern graph matching =
+    match Str.split (Str.regexp "\\.") cluster_key with
     | [node_or_edge_id; feature_name] ->
       begin
         match (String_map.find_opt node_or_edge_id matching.e_match, feature_name) with
@@ -350,7 +350,7 @@ module Matching = struct
     * the name of a feature value [N.feat] where [N] is a node declared in the kernel part of the pattern
     * the name of an edge featue [E.feat] where [e] is a edge declared in the kernel part of the pattern
     * one of the pseudo features [e.label], [e.length] or [e.delta]
-" request
+" cluster_key
 
   let e_match_add ?pos edge_id new_edge matching =
     if String_map.mem edge_id matching.e_match

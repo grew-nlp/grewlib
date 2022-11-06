@@ -119,7 +119,6 @@ module Grs = struct
         )  
       |> String.concat "\n" 
     with Type_error _ -> 
-      printf "*********request*******\n%s\n****************\n%!" (Yojson.Basic.pretty_to_string request);
       Error.build "[Grs.request_string_to_json]"
 
   let request_of_json ~config request = 
@@ -132,7 +131,6 @@ module Grs = struct
     let commands_string = try
       sprintf "\n  commands {%s}" (commands |> to_list |> List.map to_string |> String.concat ";\n") 
     with Type_error _ -> 
-      printf "*********request*******\n%s\n****************\n%!" (Yojson.Basic.pretty_to_string request);
       Error.build "[Grs.rule_string_of_json]" in
     request_string ^ commands_string
 
@@ -146,7 +144,6 @@ module Grs = struct
         | (None, None, Some p) -> sprintf "package %s { %s }" key (p |> to_assoc |> List.map decl_string_of_json  |> String.concat "\n")
         | _ -> Error.build "[Grs.decl_string_of_json]"
       with Type_error _ -> 
-        printf "****************\n%s\n****************\n%!" (Yojson.Basic.pretty_to_string json);
         Error.build "[Grs.decl_string_of_json]"
 
   let string_of_json json =

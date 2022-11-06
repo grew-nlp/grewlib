@@ -116,15 +116,15 @@ module Matching: sig
 
   val nodes: Request.t -> Graph.t -> t -> (string * string) list
 
-  (* [get_value_opt request pattern graph matching] returns the value corresponding to the request in the result of a previou result of match
-      [request] can be:
+  (* [get_value_opt cluster_key pattern graph matching] returns the value corresponding to the cluster_key in the result of a previous result of match
+      [cluster_key] can be:
       * the name of a feature value [N.feat] where [N] is a node declared in the kernel part of the pattern
       * the name of an edge featue [e.feat] where [e] is a edge declared in the kernel part of the pattern
   *)
-  (* TODO: do not export: genrelaized by get_clust_value_opt *)
+  (* TODO: do not export: generalized by get_clust_value_opt *)
   val get_value_opt: config:Conllx_config.t -> string -> Request.t -> Graph.t -> t -> string option
 
-  (* TODO: do not export: genrelaized by get_clust_value_opt *)
+  (* TODO: do not export: generalized by get_clust_value_opt *)
   val whether: config:Conllx_config.t -> Request.basic -> Request.t -> Graph.t -> t -> bool
   
   val subgraph: Graph.t -> t -> int -> Graph.t
