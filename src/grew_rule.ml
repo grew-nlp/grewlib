@@ -783,7 +783,7 @@ module Matching = struct
     else false
 
   (*  ---------------------------------------------------------------------- *)
-  let search_pattern_in_graph ~config ?lexicons { Request.global; ker; exts } graph =
+  let search_request_in_graph ~config ?lexicons { Request.global; ker; exts } graph =
 
     if not (check_global_constraint global graph)
     then []
@@ -1787,7 +1787,7 @@ module Rule = struct
 
   let gwh_apply ~config rule graph_with_history =
     try
-      let matching_list = Matching.search_pattern_in_graph ~config ~lexicons:rule.lexicons rule.pattern graph_with_history.Graph_with_history.graph in
+      let matching_list = Matching.search_request_in_graph ~config ~lexicons:rule.lexicons rule.pattern graph_with_history.Graph_with_history.graph in
       List.fold_left
         (fun acc matching ->
            Graph_with_history_set.union (gwh_apply_rule ~config graph_with_history matching rule) acc

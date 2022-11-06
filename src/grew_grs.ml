@@ -122,7 +122,7 @@ module Grs = struct
       Error.build "[Grs.request_string_to_json]"
 
   let request_of_json ~config request = 
-    let ast = Parser.pattern (request_string_to_json request) in
+    let ast = Parser.request (request_string_to_json request) in
     Request.of_ast ~config ast
 
   let rule_string_of_json request commands =

@@ -94,10 +94,10 @@ module Request : sig
 
   type basic
 
-  (** [load filename] returns the pattern described in the file *)
+  (** [load filename] returns the request described in the file *)
   val load: config:Conllx_config.t -> string -> t
 
-  (** [parse description] returns the pattern described in the [descriprion] string *)
+  (** [parse description] returns the request described in the [descriprion] string *)
   val parse: config:Conllx_config.t -> string -> t
 
   (** [parse_basic description] returns the basic described in the [descriprion] string *)
@@ -116,10 +116,10 @@ module Matching: sig
 
   val nodes: Request.t -> Graph.t -> t -> (string * string) list
 
-  (* [get_value_opt cluster_key pattern graph matching] returns the value corresponding to the cluster_key in the result of a previous result of match
+  (* [get_value_opt cluster_key request graph matching] returns the value corresponding to the cluster_key in the result of a previous result of match
       [cluster_key] can be:
-      * the name of a feature value [N.feat] where [N] is a node declared in the kernel part of the pattern
-      * the name of an edge featue [e.feat] where [e] is a edge declared in the kernel part of the pattern
+      * the name of a feature value [N.feat] where [N] is a node declared in the kernel part of the request
+      * the name of an edge featue [e.feat] where [e] is a edge declared in the kernel part of the request
   *)
   (* TODO: do not export: generalized by get_clust_value_opt *)
   val get_value_opt: config:Conllx_config.t -> string -> Request.t -> Graph.t -> t -> string option
@@ -129,11 +129,11 @@ module Matching: sig
   
   val subgraph: Graph.t -> t -> int -> Graph.t
 
-  (** [search_pattern_in_graph pattern graph] returns the list of the possible matching of [pattern] in [graph] *)
-  val search_pattern_in_graph: config:Conllx_config.t -> Request.t -> Graph.t -> t list
+  (** [search_request_in_graph request graph] returns the list of the possible matching of [request] in [graph] *)
+  val search_request_in_graph: config:Conllx_config.t -> Request.t -> Graph.t -> t list
 
-  (** [build_deco pattern matching] returns the deco to be used in the graphical representation.
-      WARNING: the function supposes that [matching] was find with the given [pattern]! *)
+  (** [build_deco request matching] returns the deco to be used in the graphical representation.
+      WARNING: the function supposes that [matching] was find with the given [request]! *)
   val build_deco: Request.t -> t -> Deco.t
 
   val get_clust_value_opt: config:Conllx_config.t -> cluster_item ->  Request.t -> Graph.t -> t -> string option
@@ -228,7 +228,7 @@ module Corpus: sig
   val get_columns_opt: t -> Conllx_columns.t option
 
   val search: config:Conllx_config.t -> 'a -> (Matching.t -> 'a -> 'a) -> Request.t -> cluster_item list -> t -> 'a Clustered.t
-  (** [search config null update pattern cluster_item_list corpus] returns a clustered structure
+  (** [search config null update request cluster_item_list corpus] returns a clustered structure
       representing the multilayer clustering following [cluster_item_list];
       The computing of each cluster contents (of type ['a]) is controlled by the value [null] and the function [update].
       Examples of usage:

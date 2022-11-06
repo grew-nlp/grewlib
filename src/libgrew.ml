@@ -166,19 +166,19 @@ module Request = struct
   type basic = Grew_rule.Request.basic
 
   let load ~config file =
-    Libgrew.handle ~name:"Request.load" (fun () -> Grew_rule.Request.of_ast ~config (Grew_loader.Loader.pattern file)) ()
+    Libgrew.handle ~name:"Request.load" (fun () -> Grew_rule.Request.of_ast ~config (Grew_loader.Loader.request file)) ()
 
   let parse ~config desc =
-    Libgrew.handle ~name:"Request.parse" (fun () -> Grew_rule.Request.of_ast ~config (Grew_loader.Parser.pattern desc)) ()
+    Libgrew.handle ~name:"Request.parse" (fun () -> Grew_rule.Request.of_ast ~config (Grew_loader.Parser.request desc)) ()
 
-  let parse_basic ~config pattern desc =
+  let parse_basic ~config request desc =
     Libgrew.handle
       ~name:"Request.parse_basic"
-      (fun () -> Grew_rule.Request.build_whether ~config pattern (Grew_loader.Parser.basic desc)) ()
+      (fun () -> Grew_rule.Request.build_whether ~config request (Grew_loader.Parser.basic desc)) ()
 
-  let pid_name_list pattern =
+  let pid_name_list request =
     Libgrew.handle ~name:"Request.pid_list"
-      (fun () -> List.map (fun x -> x) (Grew_rule.Request.pid_name_list pattern)
+      (fun () -> List.map (fun x -> x) (Grew_rule.Request.pid_name_list request)
       ) ()
 end
 
@@ -188,21 +188,21 @@ end
 module Matching = struct
   type t = Grew_rule.Matching.t
 
-  let to_json ?(all_edges=false) pattern graph t = Grew_rule.Matching.to_json ~all_edges pattern graph t
+  let to_json ?(all_edges=false) request graph t = Grew_rule.Matching.to_json ~all_edges request graph t
 
-  let nodes pattern graph matching =
+  let nodes request graph matching =
     Libgrew.handle ~name:"Matching.nodes" (fun () ->
-        Grew_rule.Matching.node_matching pattern graph matching
+        Grew_rule.Matching.node_matching request graph matching
       ) ()
 
-  let get_value_opt ~config cluster_key pattern graph matching =
+  let get_value_opt ~config cluster_key request graph matching =
     Libgrew.handle ~name:"Matching.get_value_opt" (fun () ->
-        Grew_rule.Matching.get_value_opt ~config cluster_key pattern graph matching
+        Grew_rule.Matching.get_value_opt ~config cluster_key request graph matching
       ) ()
 
-  let whether ~config extension pattern graph matching =
+  let whether ~config extension request graph matching =
     Libgrew.handle ~name:"Matching.whether" (fun () ->
-        Grew_rule.Matching.whether ~config extension pattern graph matching
+        Grew_rule.Matching.whether ~config extension request graph matching
       ) ()
 
   let subgraph graph matching depth =
@@ -210,12 +210,12 @@ module Matching = struct
         Grew_rule.Matching.subgraph graph matching depth
       ) ()
 
-  let search_pattern_in_graph ~config pattern graph =
-    Libgrew.handle ~name:"Matching.search_pattern_in_graph" (fun () ->
-      Grew_rule.Matching.search_pattern_in_graph ~config pattern graph
+  let search_request_in_graph ~config request graph =
+    Libgrew.handle ~name:"Matching.search_request_in_graph" (fun () ->
+      Grew_rule.Matching.search_request_in_graph ~config request graph
     ) ()
 
-  let build_deco pattern matching = Grew_rule.Matching.build_deco pattern matching
+  let build_deco request matching = Grew_rule.Matching.build_deco request matching
   let get_clust_value_opt =
     Libgrew.handle ~name:"Matching.get_clust_value_opt" 
     (fun () -> Grew_rule.Matching.get_clust_value_opt) ()
@@ -359,13 +359,13 @@ module Corpus = struct
 
   let get_columns_opt = Grew_corpus.Corpus.get_columns_opt
 
-  let search ~config null update pattern cluster_item_list corpus = 
+  let search ~config null update request cluster_item_list corpus = 
     Libgrew.handle ~name:"Corpus.search" 
-    (fun () -> Grew_corpus.Corpus.search ~config null update pattern cluster_item_list corpus) ()
+    (fun () -> Grew_corpus.Corpus.search ~config null update request cluster_item_list corpus) ()
 
-  let bounded_search ~config ?ordering bound timeout null update pattern cluster_item_list corpus =
+  let bounded_search ~config ?ordering bound timeout null update request cluster_item_list corpus =
     Libgrew.handle ~name:"Corpus.search" 
-    (fun () -> Grew_corpus.Corpus.bounded_search ~config ?ordering bound timeout null update pattern cluster_item_list corpus) ()
+    (fun () -> Grew_corpus.Corpus.bounded_search ~config ?ordering bound timeout null update request cluster_item_list corpus) ()
 
 end
 

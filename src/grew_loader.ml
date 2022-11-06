@@ -115,15 +115,15 @@ module Loader = struct
 
 
   (* ------------------------------------------------------------------------------------------*)
-  let pattern file =
+  let request file =
     try
       Global.new_file file;
       let in_ch = open_in file in
       let lexbuf = Lexing.from_channel in_ch in
-      let pattern = parse_handle "[Grew_loader.Loader.pattern]" (Grew_parser.isolated_pattern Grew_lexer.global) lexbuf in
+      let request = parse_handle "[Grew_loader.Loader.request]" (Grew_parser.isolated_request Grew_lexer.global) lexbuf in
       close_in in_ch;
-      pattern
-    with Sys_error msg -> Error.parse ~loc:(Loc.file file) "[Grew_loader.Loader.pattern] %s" msg
+      request
+    with Sys_error msg -> Error.parse ~loc:(Loc.file file) "[Grew_loader.Loader.request] %s" msg
 
   (* ------------------------------------------------------------------------------------------*)
   let phrase_structure_tree file =
@@ -168,13 +168,13 @@ module Parser = struct
     with Sys_error msg -> Error.parse "[Grew_loader.Parser.phrase_structure_tree] %s" msg
 
   (* ------------------------------------------------------------------------------------------*)
-  let pattern desc =
+  let request desc =
     try
       Global.new_string ();
       let lexbuf = Lexing.from_string desc in
-      let pattern = parse_handle "[Grew_loader.Parser.pattern]" (Grew_parser.isolated_pattern Grew_lexer.global) lexbuf in
-      pattern
-    with Sys_error msg -> Error.parse "[Grew_loader.Parser.pattern] %s" msg
+      let request = parse_handle "[Grew_loader.Parser.request]" (Grew_parser.isolated_request Grew_lexer.global) lexbuf in
+      request
+    with Sys_error msg -> Error.parse "[Grew_loader.Parser.request] %s" msg
 
   (* ------------------------------------------------------------------------------------------*)
   let strategy desc =

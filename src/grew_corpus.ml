@@ -218,7 +218,7 @@ module Corpus = struct
   let search ~config null update pattern cluster_item_list corpus =
     fold_left
     (fun acc sent_id graph ->
-      let matchings = Matching.search_pattern_in_graph ~config pattern graph in
+      let matchings = Matching.search_request_in_graph ~config pattern graph in
       List.fold_left
       (fun acc2 matching -> 
         let cluster_value_list = 
@@ -258,7 +258,7 @@ module Corpus = struct
             let graph_index = permut_fct graph_counter in
             let graph = get_graph graph_index corpus in
             let sent_id = get_sent_id graph_index corpus in
-            let matchings = Matching.search_pattern_in_graph ~config pattern graph in
+            let matchings = Matching.search_request_in_graph ~config pattern graph in
             let nb_in_graph = List.length matchings in
             let new_acc = 
               CCList.foldi

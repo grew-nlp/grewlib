@@ -122,7 +122,7 @@ let localize t = (t,get_loc ())
 %token EOF                         /* end of file */
 
 %start <Grew_ast.Ast.basic> basic
-%start <Grew_ast.Ast.pattern> isolated_pattern
+%start <Grew_ast.Ast.pattern> isolated_request
 
 %start <Grew_ast.Ast.grs> grs
 %start <Grew_ast.Ast.strat> strat_alone
@@ -815,7 +815,7 @@ range:
 /*=============================================================================================*/
 /* ISOLATED PATTERN (grep mode)                                                                */
 /*=============================================================================================*/
-isolated_pattern:
+isolated_request:
         | r=pattern EOF { r }
 
 pattern:
