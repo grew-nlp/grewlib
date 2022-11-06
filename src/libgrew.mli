@@ -87,9 +87,9 @@ module Graph : sig
 end
 
 (* ==================================================================================================== *)
-(** {2 Patterns} *)
+(** {2 Requests} *)
 (* ==================================================================================================== *)
-module Pattern : sig
+module Request : sig
   type t
 
   type basic
@@ -112,9 +112,9 @@ end
 module Matching: sig
   type t
 
-  val to_json: ?all_edges:bool -> Pattern.t -> Graph.t -> t -> Yojson.Basic.t
+  val to_json: ?all_edges:bool -> Request.t -> Graph.t -> t -> Yojson.Basic.t
 
-  val nodes: Pattern.t -> Graph.t -> t -> (string * string) list
+  val nodes: Request.t -> Graph.t -> t -> (string * string) list
 
   (* [get_value_opt request pattern graph matching] returns the value corresponding to the request in the result of a previou result of match
       [request] can be:
@@ -122,21 +122,21 @@ module Matching: sig
       * the name of an edge featue [e.feat] where [e] is a edge declared in the kernel part of the pattern
   *)
   (* TODO: do not export: genrelaized by get_clust_value_opt *)
-  val get_value_opt: config:Conllx_config.t -> string -> Pattern.t -> Graph.t -> t -> string option
+  val get_value_opt: config:Conllx_config.t -> string -> Request.t -> Graph.t -> t -> string option
 
   (* TODO: do not export: genrelaized by get_clust_value_opt *)
-  val whether: config:Conllx_config.t -> Pattern.basic -> Pattern.t -> Graph.t -> t -> bool
+  val whether: config:Conllx_config.t -> Request.basic -> Request.t -> Graph.t -> t -> bool
   
   val subgraph: Graph.t -> t -> int -> Graph.t
 
   (** [search_pattern_in_graph pattern graph] returns the list of the possible matching of [pattern] in [graph] *)
-  val search_pattern_in_graph: config:Conllx_config.t -> Pattern.t -> Graph.t -> t list
+  val search_pattern_in_graph: config:Conllx_config.t -> Request.t -> Graph.t -> t list
 
   (** [build_deco pattern matching] returns the deco to be used in the graphical representation.
       WARNING: the function supposes that [matching] was find with the given [pattern]! *)
-  val build_deco: Pattern.t -> t -> Deco.t
+  val build_deco: Request.t -> t -> Deco.t
 
-  val get_clust_value_opt: config:Conllx_config.t -> cluster_item ->  Pattern.t -> Graph.t -> t -> string option
+  val get_clust_value_opt: config:Conllx_config.t -> cluster_item ->  Request.t -> Graph.t -> t -> string option
 end
 
 (* ==================================================================================================== *)
@@ -168,7 +168,7 @@ module Grs : sig
 
   val of_json: config:Conllx_config.t -> Yojson.Basic.t -> t
 
-  val request_of_json: config:Conllx_config.t -> Yojson.Basic.t -> Pattern.t
+  val request_of_json: config:Conllx_config.t -> Yojson.Basic.t -> Request.t
 
 end
 
@@ -227,7 +227,7 @@ module Corpus: sig
   val merge: t list -> t
   val get_columns_opt: t -> Conllx_columns.t option
 
-  val search: config:Conllx_config.t -> 'a -> (Matching.t -> 'a -> 'a) -> Pattern.t -> cluster_item list -> t -> 'a Clustered.t
+  val search: config:Conllx_config.t -> 'a -> (Matching.t -> 'a -> 'a) -> Request.t -> cluster_item list -> t -> 'a Clustered.t
   (** [search config null update pattern cluster_item_list corpus] returns a clustered structure
       representing the multilayer clustering following [cluster_item_list];
       The computing of each cluster contents (of type ['a]) is controlled by the value [null] and the function [update].
@@ -248,7 +248,7 @@ module Corpus: sig
    (*  * int    --> position of the matching in the ≠ matchings for the same graph *)
    (*  * int    --> number of matching in the current graph  *)
    (int -> string -> int -> int -> Matching.t -> 'a -> 'a) ->
-   Pattern.t ->
+   Request.t ->
    cluster_item list ->         (* The list of element used for clustering *)
    t -> 
      ('a Clustered.t * string * float)  (* (output, statut, ratio) status is "ok", "timeout" or "over" *)

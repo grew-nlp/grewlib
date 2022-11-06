@@ -41,7 +41,7 @@ module Corpus : sig
   val from_file: ?ext:string -> ?log_file: string -> ?config:Conllx_config.t -> string -> t
   val from_dir: ?log_file: string -> ?config:Conllx_config.t -> string -> t
 
-  val search: config:Conllx_config.t -> 'a -> (Matching.t -> 'a -> 'a) -> Pattern.t -> cluster_item list -> t -> 'a Clustered.t
+  val search: config:Conllx_config.t -> 'a -> (Matching.t -> 'a -> 'a) -> Request.t -> cluster_item list -> t -> 'a Clustered.t
 
   val bounded_search: 
     config:Conllx_config.t ->
@@ -55,7 +55,7 @@ module Corpus : sig
     (*  * int    --> position of the matching in the ≠ matchings for the same graph *)
     (*  * int    --> number of matching in the current graph  *)
     (int -> string -> int -> int -> Matching.t -> 'a -> 'a) ->
-    Pattern.t ->
+    Request.t ->
     cluster_item list ->         (* The list of element used for clustering *)
     t -> 
       ('a Clustered.t * string * float)  (* (output, statut, ratio) status is "ok", "timeout" or "over" *)

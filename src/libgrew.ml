@@ -158,27 +158,27 @@ module Graph = struct
 end
 
 (* ==================================================================================================== *)
-(** {2 Patterns} *)
+(** {2 Requests} *)
 (* ==================================================================================================== *)
-module Pattern = struct
-  type t = Grew_rule.Pattern.t
+module Request = struct
+  type t = Grew_rule.Request.t
 
-  type basic = Grew_rule.Pattern.basic
+  type basic = Grew_rule.Request.basic
 
   let load ~config file =
-    Libgrew.handle ~name:"Pattern.load" (fun () -> Grew_rule.Pattern.of_ast ~config (Grew_loader.Loader.pattern file)) ()
+    Libgrew.handle ~name:"Request.load" (fun () -> Grew_rule.Request.of_ast ~config (Grew_loader.Loader.pattern file)) ()
 
   let parse ~config desc =
-    Libgrew.handle ~name:"Pattern.parse" (fun () -> Grew_rule.Pattern.of_ast ~config (Grew_loader.Parser.pattern desc)) ()
+    Libgrew.handle ~name:"Request.parse" (fun () -> Grew_rule.Request.of_ast ~config (Grew_loader.Parser.pattern desc)) ()
 
   let parse_basic ~config pattern desc =
     Libgrew.handle
-      ~name:"Pattern.parse_basic"
-      (fun () -> Grew_rule.Pattern.build_whether ~config pattern (Grew_loader.Parser.basic desc)) ()
+      ~name:"Request.parse_basic"
+      (fun () -> Grew_rule.Request.build_whether ~config pattern (Grew_loader.Parser.basic desc)) ()
 
   let pid_name_list pattern =
-    Libgrew.handle ~name:"Pattern.pid_list"
-      (fun () -> List.map (fun x -> x) (Grew_rule.Pattern.pid_name_list pattern)
+    Libgrew.handle ~name:"Request.pid_list"
+      (fun () -> List.map (fun x -> x) (Grew_rule.Request.pid_name_list pattern)
       ) ()
 end
 

@@ -124,7 +124,7 @@ module Grs = struct
 
   let request_of_json ~config request = 
     let ast = Parser.pattern (request_string_to_json request) in
-    Pattern.of_ast ~config ast
+    Request.of_ast ~config ast
 
   let rule_string_of_json request commands =
     let open Yojson.Basic.Util in

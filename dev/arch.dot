@@ -10,7 +10,7 @@ digraph grew {
   grew_node [label="grew_node|G_node\nP_node"]
   grew_command [label="grew_command|Command"]
   grew_graph [label="grew_graph|P_graph\nG_deco\nG_graph\nDelta\nGraph_with_history\nGraph_with_history_set"]
-  grew_rule [label="grew_rule|Pattern\nMatching\nRule"]
+  grew_rule [label="grew_rule|Request\nMatching\nRule"]
   grew_grs [label="grew_grs|Grs"]
   grew_corpus [label="grew_corpus|Corpus\nCorpus_desc"]
   libgrew [fillcolor=yellow, shape=record]

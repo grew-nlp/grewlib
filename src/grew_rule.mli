@@ -18,7 +18,7 @@ open Grew_ast
 
 
 (* ================================================================================ *)
-module Pattern : sig
+module Request : sig
   type basic
 
   type t
@@ -37,17 +37,17 @@ module Matching : sig
   (** the type t encodes the graph morphism from a pattern to a graph *)
   type t
 
-  val to_json: ?all_edges: bool -> Pattern.t -> G_graph.t -> t -> Yojson.Basic.t
+  val to_json: ?all_edges: bool -> Request.t -> G_graph.t -> t -> Yojson.Basic.t
 
   (** [node_matching pattern graph matching] return a assoc list (pid_name, gid_name) *)
-  val node_matching: Pattern.t -> G_graph.t -> t -> (string * string) list
+  val node_matching: Request.t -> G_graph.t -> t -> (string * string) list
 
   (** [search_pattern_in_graph pattern graph] returns the list of matching of the [pattern] into the [graph] *)
-  val search_pattern_in_graph: config:Conllx.Conllx_config.t -> ?lexicons: Lexicons.t -> Pattern.t -> G_graph.t -> t list
+  val search_pattern_in_graph: config:Conllx.Conllx_config.t -> ?lexicons: Lexicons.t -> Request.t -> G_graph.t -> t list
 
   (** [build_deco rule matching] builds the decoration of the [graph] illustrating the given [matching] of the [rule] *)
   (* NB: it can be computed independly from the graph itself! *)
-  val build_deco: Pattern.t -> t -> G_deco.t
+  val build_deco: Request.t -> t -> G_deco.t
 
   (* [get_value_opt cluster_key pattern graph matching] returns the value corresponding to the cluster_key in the result of a previous result of match
      [cluster_key] can be:
@@ -55,13 +55,13 @@ module Matching : sig
      * the name of an edge featue [E.feat] where [e] is a edge declared in the kernel part of the pattern
      * one of the pseudo features [e.label], [e.length] or [e.delta]
   *)
-  val get_value_opt: config:Conllx.Conllx_config.t -> string -> Pattern.t -> G_graph.t -> t -> string option
+  val get_value_opt: config:Conllx.Conllx_config.t -> string -> Request.t -> G_graph.t -> t -> string option
 
-  val whether: config:Conllx.Conllx_config.t -> Pattern.basic -> Pattern.t -> G_graph.t -> t -> bool
+  val whether: config:Conllx.Conllx_config.t -> Request.basic -> Request.t -> G_graph.t -> t -> bool
   
   val subgraph: G_graph.t -> t -> int -> G_graph.t
 
-  val get_clust_value_opt: config:Conllx.Conllx_config.t -> cluster_item ->  Pattern.t -> G_graph.t -> t -> string option
+  val get_clust_value_opt: config:Conllx.Conllx_config.t -> cluster_item ->  Request.t -> G_graph.t -> t -> string option
 end (* module Matching *)
 
 (* ================================================================================ *)
