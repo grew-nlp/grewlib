@@ -180,6 +180,12 @@ module Request = struct
     Libgrew.handle ~name:"Request.pid_list"
       (fun () -> List.map (fun x -> x) (Grew_rule.Request.pid_name_list request)
       ) ()
+  let of_json ~config grs =
+    Libgrew.handle ~name:"Request.of_json"
+      (fun () ->
+         Grew_rule.Request.of_json ~config grs
+      ) ()
+  
 end
 
 (* ==================================================================================================== *)
@@ -282,12 +288,6 @@ module Grs = struct
     Libgrew.handle ~name:"Grs.of_json"
       (fun () ->
          Grew_grs.Grs.of_json ~config grs
-      ) ()
-
-  let request_of_json ~config grs =
-    Libgrew.handle ~name:"Grs.request_of_json"
-      (fun () ->
-         Grew_grs.Grs.request_of_json ~config grs
       ) ()
 end
 

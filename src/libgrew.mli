@@ -104,6 +104,8 @@ module Request : sig
   val parse_basic: config:Conllx_config.t -> t -> string -> basic
 
   val pid_name_list: t -> string list
+
+  val of_json: config:Conllx_config.t -> Yojson.Basic.t -> t
 end
 
 (* ==================================================================================================== *)
@@ -167,9 +169,6 @@ module Grs : sig
   val get_rule_list: t -> string list
 
   val of_json: config:Conllx_config.t -> Yojson.Basic.t -> t
-
-  val request_of_json: config:Conllx_config.t -> Yojson.Basic.t -> Request.t
-
 end
 
 (* ==================================================================================================== *)

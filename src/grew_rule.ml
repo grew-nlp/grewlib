@@ -21,7 +21,8 @@ open Grew_command
 open Grew_graph
 open Grew_loader
 
-module Request = struct
+(* ================================================================================ *)
+module Constraint = struct
   type edge_relative_position =
     | Included
     | Contained
@@ -33,8 +34,6 @@ module Request = struct
     | Disjoint -> `String "Disjoint"
     | Crossing -> `String "Crossing"
 
-  let min_max x y = if x < y then (x,y) else (y,x)
-
   let build_relative_position l1 r1 l2 r2 =
     if r1 <= l2 || r2 <= l1
     then Disjoint
@@ -43,6 +42,8 @@ module Request = struct
     else if l2 <= l1 && r1 <= r2
     then Included
     else Crossing
+
+  let min_max x y = if x < y then (x,y) else (y,x)
 
   let check_relative_position erp (src1,_,tar1) (src2,_,tar2) graph =
     match (
@@ -55,8 +56,6 @@ module Request = struct
       let (l1, r1) = min_max pos_src1 pos_tar1 in
       let (l2, r2) = min_max pos_src2 pos_tar2 in
       build_relative_position l1 r1 l2 r2 = erp
-    (* |> (fun b -> printf "### %s e1 = [%d, %d]    e2 = [%d, %d] --> %b\n%!"
-           (Yojson.Basic.to_string (json_of_edge_relative_position erp)) l1 r1 l2 r2 b; b) *)
     | _ -> false
 
   type base =
@@ -69,9 +68,7 @@ module Request = struct
     | Edge_id id -> `String id
     | Lexicon_id id -> `String id
 
-
-
-  type const =
+  type t =
     (*   N -[…]-> *   *)
     | Cst_out of Pid.t * Label_cst.t
     (*   * -[…]-> N   *)
@@ -103,8 +100,7 @@ module Request = struct
     (*   N << e2   *)
     | Covered of Pid.t * string (* node_id, edge_id *)
 
-
-  let const_to_json ~config p_graph_list const =
+  let to_json ~config p_graph_list const =
     let pid_name pid = P_graph.get_name pid p_graph_list in
     let base_to_string = function
     | Node_id pid -> pid_name pid
@@ -127,19 +123,20 @@ module Request = struct
     | Edge_relative (Included, eid1, eid2) ->  sprintf "%s << %s" eid1 eid2
     | Edge_relative (Contained, eid1, eid2) -> Error.bug "Unexpected Edge_relative"
 
-  let build_constraint ~config lexicons ker_table ext_table edge_ids const =
+  let build ~config lexicons ker_table ext_table edge_ids const =
     let parse_id loc id = match (Id.build_opt id ker_table, Id.build_opt id ext_table) with
       | (Some pid,_) -> Node_id (Pid.Ker pid)
       | (None, Some pid) -> Node_id (Pid.Ext pid)
       | (None, None) when List.mem id edge_ids -> Edge_id id
       | (None, None) when List.mem_assoc id lexicons -> Lexicon_id id
-      | _ -> Error.build ~loc "[Request.build_constraint] Identifier '%s' not found" id in
+      | _ -> Error.build ~loc "[Constraint.build] Identifier '%s' not found" id in
 
     let pid_of_name loc node_name =
       match Id.build_opt node_name ker_table with
       | Some i -> Pid.Ker i
       | None -> Pid.Ext (Id.build ~loc node_name ext_table) in
-    match const with
+
+      match const with
     | (Ast.Cst_out (id,label_cst), loc) ->
       Cst_out (pid_of_name loc id, Label_cst.of_ast ~loc ~config label_cst)
     | (Ast.Cst_in (id,label_cst), loc) ->
@@ -174,10 +171,14 @@ module Request = struct
     | (Ast.Edge_crossing (eid1, eid2), loc) ->
       Edge_relative (Crossing, eid1, eid2)
 
+end (* module Constraint *)
+
+(* ================================================================================ *)
+module Request = struct
 
   type basic = {
     graph: P_graph.t;
-    constraints: const list;
+    constraints: Constraint.t list;
   }
 
   let basic_to_json ~config ?base basic =
@@ -186,9 +187,9 @@ module Request = struct
       (P_graph.to_json_list ~config ?base basic.graph)
       @ 
       (List.map 
-        (fun x -> `String (const_to_json ~config bases x))
+        (fun x -> `String (Constraint.to_json ~config bases x))
         basic.constraints
-        )
+      )
     )
 
   let build_ker_basic ~config lexicons basic_ast =
@@ -197,7 +198,7 @@ module Request = struct
     (
       {
         graph = graph;
-        constraints = List.map (build_constraint ~config lexicons ker_table [||] edge_ids) basic_ast.Ast.req_const
+        constraints = List.map (Constraint.build ~config lexicons ker_table [||] edge_ids) basic_ast.Ast.req_const
       },
       ker_table,
       edge_ids
@@ -208,10 +209,10 @@ module Request = struct
     let (graph, filter_map, ext_table, edge_ids) =
       P_graph.of_ast_extension ~config lexicons ker_table edge_ids basic_ast.Ast.req_nodes basic_ast.Ast.req_edges in
 
-    let filters = Pid_map.fold (fun id p_fs acc -> Filter (id, p_fs) :: acc) filter_map [] in
+    let filters = Pid_map.fold (fun id p_fs acc -> Constraint.Filter (id, p_fs) :: acc) filter_map [] in
     {
       graph;
-      constraints = filters @ List.map (build_constraint ~config lexicons ker_table ext_table edge_ids) basic_ast.Ast.req_const ;
+      constraints = filters @ List.map (Constraint.build ~config lexicons ker_table ext_table edge_ids) basic_ast.Ast.req_const ;
     }
 
   let get_edge_ids basic =
@@ -263,6 +264,29 @@ module Request = struct
 
   let build_whether ~config request basic_ast =
     build_ext_basic ~config [] request.table request.edge_ids (Ast.complete_basic basic_ast)
+
+  let string_of_json request = 
+    let open Yojson.Basic.Util in
+    try
+      request 
+      |> to_list 
+      |> List.map 
+        (fun item -> 
+          item |> to_assoc |> 
+          (function
+          | ["pattern", l] -> sprintf "  pattern {%s}" (l |> to_list |> List.map to_string |> String.concat ";\n")
+          | ["without", l] -> sprintf "  without {%s}" (l |> to_list |> List.map to_string |> String.concat ";\n")
+          | ["global", l] -> sprintf "  global {%s}" (l |> to_list |> List.map to_string |> String.concat ";\n")
+          | _ -> Error.build "[Request.string_of_json]"
+          )
+        )  
+      |> String.concat "\n" 
+    with Type_error _ -> 
+      Error.build "[Request.string_of_json]"
+
+  let of_json ~config request = 
+    let ast = Parser.request (string_of_json request) in
+    of_ast ~config ast
 end (* module Request *)
 
 (* ================================================================================ *)
@@ -414,7 +438,7 @@ module Matching = struct
     unmatched_nodes: Pid.t list;
     unmatched_edges: (Pid.t * P_edge.t * Pid.t) list;
     already_matched_gids: Gid.t list; (* to ensure injectivity *)
-    check: Request.const list (* constraints to verify at the end of the matching *)
+    check: Constraint.t list (* constraints to verify at the end of the matching *)
   }
 
   (*  ---------------------------------------------------------------------- *)
@@ -445,7 +469,7 @@ module Matching = struct
   (*  ---------------------------------------------------------------------- *)
   let apply_cst ~config graph matching cst : t =
     let get_value base feat_name = match base with
-      | Request.Node_id pid ->
+      | Constraint.Node_id pid ->
         let gid = Pid_map.find pid matching.n_match in
         if feat_name = "__id__"
         then Value (Float (float_of_int gid))
@@ -456,7 +480,7 @@ module Matching = struct
             | Some f -> Value f
             | None -> raise Fail (* no such feat_name here *)
           end
-      | Request.Edge_id edge_id ->
+      | Edge_id edge_id ->
         let (_,g_edge,_) as e = String_map.find edge_id matching.e_match in
         begin
           match feat_name with
@@ -468,10 +492,10 @@ module Matching = struct
             | None -> raise Fail
             | Some s -> Value s
         end
-      | Request.Lexicon_id id -> Lex (id, feat_name) in
+      | Lexicon_id id -> Lex (id, feat_name) in
 
     match cst with
-    | Request.Cst_out (pid,label_cst) ->
+    | Constraint.Cst_out (pid,label_cst) ->
       let gid = Pid_map.find pid matching.n_match in
       if G_graph.edge_out ~config graph gid label_cst
       then matching
@@ -560,7 +584,7 @@ module Matching = struct
     | Edge_relative (erp, eid1, eid2) ->
       begin
         match (String_map.find_opt eid1 matching.e_match, String_map.find_opt eid2 matching.e_match) with
-        | (Some e1, Some e2) when Request.check_relative_position erp e1 e2 graph -> matching
+        | (Some e1, Some e2) when Constraint.check_relative_position erp e1 e2 graph -> matching
         | (Some _, Some _) -> raise Fail
         | (None, _) -> Error.run "Edge identifier '%s' not found" eid1
         | (_, None) -> Error.run "Edge identifier '%s' not found" eid2
@@ -896,7 +920,7 @@ module Rule = struct
     List.iteri
       (fun i cst ->
          match cst with
-         | Request.Cst_out _ | Cst_in _ -> bprintf buff "  C_%d { word=\"*\"}\n" i
+         | Constraint.Cst_out _ | Cst_in _ -> bprintf buff "  C_%d { word=\"*\"}\n" i
          | _ -> ()
       ) ker_basic.constraints;
     bprintf buff "}\n";
@@ -918,7 +942,7 @@ module Rule = struct
     List.iteri
       (fun i cst ->
          match cst with
-         | Request.Cst_out (pid, label_cst) ->
+         | Constraint.Cst_out (pid, label_cst) ->
            bprintf buff "  N_%s -> C_%d {label = \"%s\"; style=dot; bottom; color=green;}\n"
              (Pid.to_id pid) i (Label_cst.to_string ~config label_cst)
          | Cst_in (pid, label_cst) ->
@@ -981,17 +1005,15 @@ module Rule = struct
       path = rule_ast.Ast.rule_path;
     }
 
-
-
-
-
-
-
-
-
-
-
-
+  (*  ---------------------------------------------------------------------- *)
+  let string_of_json request commands =
+    let open Yojson.Basic.Util in
+    let request_string =  Request.string_of_json request in 
+    let commands_string = try
+      sprintf "\n  commands {%s}" (commands |> to_list |> List.map to_string |> String.concat ";\n") 
+    with Type_error _ -> 
+      Error.build "[Rule.string_of_json]" in
+    request_string ^ commands_string
 
   (*  ---------------------------------------------------------------------- *)
   let onf_find cnode ?loc (matching, created_nodes) = (* TODO review args order and remove pair *)

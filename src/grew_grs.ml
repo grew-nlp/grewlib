@@ -22,16 +22,56 @@ open Grew_rule
 open Grew_loader
 
 (* ================================================================================ *)
-module Grs = struct
+module Decl = struct
 
-  type decl =
+  type t =
     | Rule of Rule.t
     | Strategy of string * Ast.strat
-    | Package of string * decl list
+    | Package of string * t list
+
+  let rec to_json ~config = function
+    | Rule r -> (Rule.get_name r, Rule.to_json ~config r)
+    | Strategy (name, strat) -> (name, `String (Ast.strat_to_string strat))
+    | Package (name, decl_list) -> (name, `Assoc ["decls", `Assoc (List.map (fun x -> to_json ~config x) decl_list)])
+
+  let to_string = function
+    | Rule r -> sprintf "RULE: %s" (Rule.get_name r)
+    | Strategy (name, strat) -> sprintf "STRAT: %s" (name)
+    | Package (name, decl_list) -> sprintf "PACK: %s" (name)
+
+  let rec build ~config = function
+    | Ast.Package (loc, name, decl_list) -> Package (name, List.map (build ~config) decl_list)
+    | Ast.Rule ast_rule -> Rule (Rule.of_ast ~config ast_rule)
+    | Ast.Strategy (loc, name, ast_strat) -> Strategy (name, ast_strat)
+    | _ -> Error.bug "[Decl.build] Inconsistent ast for grs"
+
+  let rec string_of_json (key, json) =
+    let open Yojson.Basic.Util in
+    try let strat = json |> to_string in sprintf "strat %s { %s }" key strat
+    with Type_error _ ->
+      try let assoc = json |> to_assoc in
+        match (List.assoc_opt "request" assoc, List.assoc_opt "commands" assoc, List.assoc_opt "decls" assoc) with
+        | (Some r, Some c, None) -> sprintf "rule %s {\n%s\n  }" key (Rule.string_of_json r c)
+        | (None, None, Some p) -> sprintf "package %s { %s }" key (p |> to_assoc |> List.map string_of_json |> String.concat "\n")
+        | _ -> Error.build "[Decl.string_of_json]"
+      with Type_error _ -> 
+        Error.build "[Decl.string_of_json]"
+
+  let rec dump indent = function
+    | Rule r -> printf "%srule %s\n" (String.make indent ' ') (Rule.get_name r)
+    | Strategy (name, def) -> printf "%sstrat %s\n" (String.make indent ' ') name
+    | Package (name, decl_list) ->
+      printf "%spackage %s:\n" (String.make indent ' ') name;
+      List.iter (dump (indent + 2)) decl_list
+    
+end (* module Decl *)
+
+(* ================================================================================ *)
+module Grs = struct
 
   type t = {
     filename: string;
-    decls: decl list;
+    decls: Decl.t list;
     ast: Ast.grs;
   }
 
@@ -41,20 +81,10 @@ module Grs = struct
     ast = [];
   }
 
-  let rec decl_to_json ~config = function
-    | Rule r -> (Rule.get_name r, Rule.to_json ~config r)
-    | Strategy (name, strat) -> (name, `String (Ast.strat_to_string strat))
-    | Package (name, decl_list) -> (name, `Assoc ["decls", `Assoc (List.map (fun x -> decl_to_json ~config x) decl_list)])
-
-  let decl_to_string = function
-    | Rule r -> sprintf "RULE: %s" (Rule.get_name r)
-    | Strategy (name, strat) -> sprintf "STRAT: %s" (name)
-    | Package (name, decl_list) -> sprintf "PACK: %s" (name)
-
   let to_json ~config t =
     `Assoc [
       "filename", `String t.filename;
-      "decls", `Assoc (List.map (fun x -> decl_to_json ~config x) t.decls)
+      "decls", `Assoc (List.map (fun x -> Decl.to_json ~config x) t.decls)
     ]
 
   let get_strat_list grs = Ast.strat_list grs.ast
@@ -62,26 +92,15 @@ module Grs = struct
   let get_package_list grs = Ast.package_list grs.ast
   let get_rule_list grs = Ast.rule_list grs.ast
 
-  let rec dump_decl indent = function
-    | Rule r -> printf "%srule %s\n" (String.make indent ' ') (Rule.get_name r)
-    | Strategy (name, def) -> printf "%sstrat %s\n" (String.make indent ' ') name
-    | Package (name, decl_list) ->
-      printf "%spackage %s:\n" (String.make indent ' ') name;
-      List.iter (dump_decl (indent + 2)) decl_list
 
   let dump t =
     printf "================ Grs ================\n";
-    List.iter (dump_decl 0) t.decls;
+    List.iter (Decl.dump 0) t.decls;
     printf "================ Grs ================\n%!";
     ()
 
-  let rec build_decl ~config = function
-    | Ast.Package (loc, name, decl_list) -> Package (name, List.map (build_decl ~config) decl_list)
-    | Ast.Rule ast_rule -> Rule (Rule.of_ast ~config ast_rule)
-    | Ast.Strategy (loc, name, ast_strat) -> Strategy (name, ast_strat)
-    | _ -> Error.bug "[build_decl] Inconsistent ast for grs"
 
-  let from_ast ~config filename ast =
+  let build ~config filename ast =
     let decls = CCList.filter_map
         (fun x -> match x with
            | Ast.Features _ -> None
@@ -89,7 +108,7 @@ module Grs = struct
            | Ast.Conll_fields _ -> None
            | Ast.Import _ -> Error.bug "[load] Import: inconsistent ast for grs"
            | Ast.Include _ -> Error.bug "[load] Include: inconsistent ast for grs"
-           | x -> Some (build_decl ~config x)
+           | x -> Some (Decl.build ~config x)
         ) ast in
 
     { filename;
@@ -97,67 +116,22 @@ module Grs = struct
       decls;
     }
 
-  let load ~config filename = from_ast ~config filename (Loader.grs filename)
+  let load ~config filename = build ~config filename (Loader.grs filename)
 
-  let parse ~config string_grs = from_ast ~config "" (Parser.grs string_grs)
-
-
-  let request_string_to_json request = 
-    let open Yojson.Basic.Util in
-    try
-      request 
-      |> to_list 
-      |> List.map 
-        (fun item -> 
-          item |> to_assoc |> 
-          (function
-          | ["pattern", l] -> sprintf "  pattern {%s}" (l |> to_list |> List.map to_string |> String.concat ";\n")
-          | ["without", l] -> sprintf "  without {%s}" (l |> to_list |> List.map to_string |> String.concat ";\n")
-          | ["global", l] -> sprintf "  global {%s}" (l |> to_list |> List.map to_string |> String.concat ";\n")
-          | _ -> Error.build "[Grs.request_string_to_json]"
-          )
-        )  
-      |> String.concat "\n" 
-    with Type_error _ -> 
-      Error.build "[Grs.request_string_to_json]"
-
-  let request_of_json ~config request = 
-    let ast = Parser.request (request_string_to_json request) in
-    Request.of_ast ~config ast
-
-  let rule_string_of_json request commands =
-    let open Yojson.Basic.Util in
-    let request_string =  request_string_to_json request in 
-    let commands_string = try
-      sprintf "\n  commands {%s}" (commands |> to_list |> List.map to_string |> String.concat ";\n") 
-    with Type_error _ -> 
-      Error.build "[Grs.rule_string_of_json]" in
-    request_string ^ commands_string
-
-  let rec decl_string_of_json (key, json) =
-    let open Yojson.Basic.Util in
-    try let strat = json |> to_string in sprintf "strat %s { %s }" key strat
-    with Type_error _ ->
-      try let assoc = json |> to_assoc in
-        match (List.assoc_opt "request" assoc, List.assoc_opt "commands" assoc, List.assoc_opt "decls" assoc) with
-        | (Some r, Some c, None) -> sprintf "rule %s {\n%s\n  }" key (rule_string_of_json r c)
-        | (None, None, Some p) -> sprintf "package %s { %s }" key (p |> to_assoc |> List.map decl_string_of_json  |> String.concat "\n")
-        | _ -> Error.build "[Grs.decl_string_of_json]"
-      with Type_error _ -> 
-        Error.build "[Grs.decl_string_of_json]"
+  let parse ~config string_grs = build ~config "" (Parser.grs string_grs)
 
   let string_of_json json =
     let open Yojson.Basic.Util in
     try
       let decls = json |> member "decls" |> to_assoc in
-      String.concat "\n" (List.map decl_string_of_json decls)
+      String.concat "\n" (List.map Decl.string_of_json decls)
     with Type_error _ -> "[Grs.string_of_json]"
 
   let of_json ~config json =
     let s = string_of_json json in
     (* printf "*******!!!!!*********\n%s\n********!!!!!********\n%!" s; *)
     let ast = Parser.grs s in
-    from_ast ~config "" ast
+    build ~config "" ast
 
 
 
@@ -169,13 +143,13 @@ module Grs = struct
 
   (* The type [pointed] is a zipper style data structure for resolving names x.y.z *)
   type pointed =
-    | Top of decl list
-    | Pack of (decl list * pointed)  (* (content, mother package) *)
+    | Top of Decl.t list
+    | Pack of (Decl.t list * pointed)  (* (content, mother package) *)
 
   let rec dump_pointed = function
-    | Top l -> printf "TOP: %s\n" (String.concat "+" (List.map decl_to_string l))
+    | Top l -> printf "TOP: %s\n" (String.concat "+" (List.map Decl.to_string l))
     | Pack (l, pointed)  ->
-      printf "PACK: %s\nMOTHER --> " (String.concat "+" (List.map decl_to_string l));
+      printf "PACK: %s\nMOTHER --> " (String.concat "+" (List.map Decl.to_string l));
       dump_pointed pointed
 
 
@@ -189,10 +163,9 @@ module Grs = struct
   let down pointed name =
     let rec loop = function
       | [] -> None
-      | Package (n,dl) :: _ when n=name -> Some (Pack (dl, pointed))
+      | Decl.Package (n,dl) :: _ when n=name -> Some (Pack (dl, pointed))
       | _::t -> loop t in
     loop (decl_list pointed)
-
 
   (* search for a decl named [name] defined in the working directory [wd] in [grs] *)
   let rec search_at pointed path = match path with
@@ -201,9 +174,9 @@ module Grs = struct
       begin
         match List.find_opt
                 (function
-                  | Strategy (s,_) when s=one -> true
-                  | Rule r when Rule.get_name r = one -> true
-                  | Package (p,_) when p=one -> true
+                  | Decl.Strategy (s,_) when s=one -> true
+                  | Decl.Rule r when Rule.get_name r = one -> true
+                  | Decl.Package (p,_) when p=one -> true
                   | _ -> false
                 ) (decl_list pointed) with
         | Some item -> Some (item, pointed)
@@ -232,18 +205,18 @@ module Grs = struct
           let path = Str.split (Str.regexp "\\.") strat_name in
           match search_from pointed path with
           | None -> Error.build "cannot find strat %s" strat_name
-          | Some (Rule _,_)
-          | Some (Package _, _) -> true
-          | Some (Strategy (_,ast_strat), new_pointed) -> loop new_pointed ast_strat
+          | Some (Decl.Rule _,_)
+          | Some (Decl.Package _, _) -> true
+          | Some (Decl.Strategy (_,ast_strat), new_pointed) -> loop new_pointed ast_strat
         end
       | Ast.Ref strat_name ->
         begin
           let path = Str.split (Str.regexp "\\.") strat_name in
           match search_from pointed path with
           | None -> Error.build "cannot find strat %s" strat_name
-          | Some (Rule _,_)
-          | Some (Package _, _) -> false
-          | Some (Strategy (_,ast_strat), new_pointed) -> loop new_pointed ast_strat
+          | Some (Decl.Rule _,_)
+          | Some (Decl.Package _, _) -> false
+          | Some (Decl.Strategy (_,ast_strat), new_pointed) -> loop new_pointed ast_strat
         end
       | Ast.Pick s -> loop pointed s
       | Ast.Onf s -> loop pointed s
@@ -265,7 +238,7 @@ module Grs = struct
   let onf_pack_rewrite ~config decl_list graph =
     let rec loop = function
       | [] -> None
-      | Rule r :: tail_decl ->
+      | Decl.Rule r :: tail_decl ->
         (match Rule.onf_apply_opt ~config r graph with
          | Some x -> Some x
          | None -> loop tail_decl
@@ -281,9 +254,9 @@ module Grs = struct
     let path = Str.split (Str.regexp "\\.") strat_name in
     match search_from pointed path with
     | None -> Error.build "Simple rewrite, cannot find strat %s" strat_name
-    | Some (Rule r,_) -> Rule.onf_apply_opt r graph
-    | Some (Package (_, decl_list), _) -> onf_pack_rewrite decl_list graph
-    | Some (Strategy (_,ast_strat), new_pointed) ->
+    | Some (Decl.Rule r,_) -> Rule.onf_apply_opt r graph
+    | Some (Decl.Package (_, decl_list), _) -> onf_pack_rewrite decl_list graph
+    | Some (Decl.Strategy (_,ast_strat), new_pointed) ->
       onf_strat_simple_rewrite new_pointed ast_strat graph
 
   and onf_strat_simple_rewrite ~config pointed strat graph =
@@ -360,7 +333,7 @@ module Grs = struct
   let owh_pack_rewrite ~config decl_list gwh =
     let rec loop = function
       | [] -> None
-      | Rule r :: tail_decl ->
+      | Decl.Rule r :: tail_decl ->
         (match Rule.owh_apply_opt ~config r gwh with
          | Some x -> Some x
          | None -> loop tail_decl
@@ -372,9 +345,9 @@ module Grs = struct
     let path = Str.split (Str.regexp "\\.") strat_name in
     match search_from pointed path with
     | None -> Error.build "Simple rewrite, cannot find strat %s" strat_name
-    | Some (Rule r,_) -> Rule.owh_apply_opt ~config r gwh
-    | Some (Package (_, decl_list), _) -> owh_pack_rewrite ~config decl_list gwh
-    | Some (Strategy (_,ast_strat), new_pointed) ->
+    | Some (Decl.Rule r,_) -> Rule.owh_apply_opt ~config r gwh
+    | Some (Decl.Package (_, decl_list), _) -> owh_pack_rewrite ~config decl_list gwh
+    | Some (Decl.Strategy (_,ast_strat), new_pointed) ->
       owh_strat_simple_rewrite ~config new_pointed ast_strat gwh
 
   and owh_strat_simple_rewrite ~config pointed strat gwh =
@@ -429,7 +402,7 @@ module Grs = struct
   let gwh_pack_rewrite ~config decl_list gwh =
     List.fold_left
       (fun acc decl -> match decl with
-         | Rule r -> Graph_with_history_set.union acc (Rule.gwh_apply ~config r gwh)
+         | Decl.Rule r -> Graph_with_history_set.union acc (Rule.gwh_apply ~config r gwh)
          | _ -> acc
       ) Graph_with_history_set.empty decl_list
 
@@ -437,9 +410,9 @@ module Grs = struct
     let path = Str.split (Str.regexp "\\.") strat_name in
     match search_from pointed path with
     | None -> Error.build "Simple rewrite, cannot find strat %s" strat_name
-    | Some (Rule r,_) -> Rule.gwh_apply ~config r gwh
-    | Some (Package (_, decl_list), _) -> gwh_pack_rewrite ~config decl_list gwh
-    | Some (Strategy (_,ast_strat), new_pointed) ->
+    | Some (Decl.Rule r,_) -> Rule.gwh_apply ~config r gwh
+    | Some (Decl.Package (_, decl_list), _) -> gwh_pack_rewrite ~config decl_list gwh
+    | Some (Decl.Strategy (_,ast_strat), new_pointed) ->
       gwh_strat_simple_rewrite ~config new_pointed ast_strat gwh
 
   and gwh_strat_simple_rewrite ~config pointed strat gwh =

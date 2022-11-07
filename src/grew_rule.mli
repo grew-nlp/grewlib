@@ -30,6 +30,10 @@ module Request : sig
   val of_ast: config:Conllx.Conllx_config.t -> ?lexicons: Lexicons.t -> Ast.request -> t
 
   val build_whether: config:Conllx.Conllx_config.t -> t -> Ast.basic -> basic
+
+  val string_of_json: Yojson.Basic.t -> string
+
+  val of_json: config:Conllx.Conllx_config.t -> Yojson.Basic.t -> t
 end
 
 (* ================================================================================ *)
@@ -94,4 +98,6 @@ module Rule : sig
 
   val owh_apply_opt: config:Conllx.Conllx_config.t -> t -> Graph_with_history.t -> Graph_with_history.t option
 
+  val string_of_json: Yojson.Basic.t -> Yojson.Basic.t -> string
+  
 end (* module Rule *)
