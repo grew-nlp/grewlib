@@ -246,7 +246,6 @@ module Corpus = struct
     let init_time = Unix.gettimeofday() in
     let status = ref Ok in
     let check graph_counter = 
-      incr matching_counter; 
       (match bound with Some b when !matching_counter > b -> status := Over ((float graph_counter) /. (float (Array.length corpus.items))) | _ -> ());
       (match timeout with Some b when Unix.gettimeofday() -. init_time >= b -> status := Timeout ((float graph_counter) /. (float (Array.length corpus.items))) | _ -> ()) in
 
@@ -255,6 +254,7 @@ module Corpus = struct
         then acc
         else
           begin
+            check graph_counter;
             let graph_index = permut_fct graph_counter in
             let graph = get_graph graph_index corpus in
             let sent_id = get_sent_id graph_index corpus in
@@ -263,7 +263,7 @@ module Corpus = struct
             let new_acc = 
               CCList.foldi
                 (fun acc2 pos_in_graph matching ->
-                  check graph_counter;
+                  incr matching_counter; 
                   if !status <> Ok
                   then acc2
                   else
