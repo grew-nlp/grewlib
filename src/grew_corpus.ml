@@ -226,7 +226,7 @@ module Corpus = struct
           (fun cluster_item ->
             Matching.get_clust_value_opt ~config cluster_item request graph matching 
           ) cluster_item_list in
-          Clustered.update (update matching) cluster_value_list null acc2
+          Clustered.update (update sent_id graph matching) cluster_value_list null acc2
       ) acc matchings
     ) (Clustered.empty null) corpus
 

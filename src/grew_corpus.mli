@@ -36,12 +36,13 @@ module Corpus : sig
 
   val permut_length: t -> int array
 
+  val of_conllx_corpus: Conllx_corpus.t -> t
   val from_stdin: ?ext:string -> ?log_file: string -> ?config:Conllx_config.t -> unit -> t
   val from_string: ?ext:string -> ?log_file: string -> ?config:Conllx_config.t -> string -> t
   val from_file: ?ext:string -> ?log_file: string -> ?config:Conllx_config.t -> string -> t
   val from_dir: ?log_file: string -> ?config:Conllx_config.t -> string -> t
 
-  val search: config:Conllx_config.t -> 'a -> (Matching.t -> 'a -> 'a) -> Request.t -> cluster_item list -> t -> 'a Clustered.t
+  val search: config:Conllx_config.t -> 'a -> (string -> G_graph.t -> Matching.t -> 'a -> 'a) -> Request.t -> cluster_item list -> t -> 'a Clustered.t
 
   val bounded_search: 
     config:Conllx_config.t ->

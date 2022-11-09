@@ -227,31 +227,44 @@ module Corpus: sig
   val merge: t list -> t
   val get_columns_opt: t -> Conllx_columns.t option
 
-  val search: config:Conllx_config.t -> 'a -> (Matching.t -> 'a -> 'a) -> Request.t -> cluster_item list -> t -> 'a Clustered.t
+  val search: 
+    config:Conllx_config.t ->
+    'a ->                   (* null value to build clusters *)
+    (string -> Graph.t -> Matching.t -> 'a -> 'a) ->
+    (* update function to build clusters. Parameters ares:
+        * string  --> sent_id
+        * Graph.t --> the graph in which the pattern were found
+        * int     --> position of the matching in the ≠ matchings for the same graph
+        * int     --> number of matching in the current graph  *)
+    Request.t ->
+    cluster_item list ->    (* list of element used for clustering *)
+    t ->
+      'a Clustered.t
   (** [search config null update request cluster_item_list corpus] returns a clustered structure
       representing the multilayer clustering following [cluster_item_list];
-      The computing of each cluster contents (of type ['a]) is controlled by the value [null] and the function [update].
+      the computing of each cluster contents (of type ['a]) is controlled by the value [null] and the function [update].
       Examples of usage:
-      * null=0, update=(fun _ x -> x+1)    for counting the number of occurrences
-      * null=[], update=(fun m x -> m::x)  for recording the matchings
+      * null=0, update=(fun _ _ _ x -> x+1)    for counting the number of occurrences
+      * null=[], update=(fun _ _ m x -> m::x)  for recording the matchings
    *)
 
-   val bounded_search: 
-   config:Conllx_config.t ->
-   ?ordering: string option ->  (* if value is "length", graph are considered by size, if value is "shuffle", graph order is randomiez, else a default order is used  *)
-   int option ->                (* bound on the number of matching *)
-   float option ->              (* Timeunt in seconds *)  
-   'a ->                        (* The null value to build clusters *)
-   (* The update function to build clusters. Parameters ares: *)
-   (*  * int    --> graph_index in the corpus *)
-   (*  * string --> sent_id *)
-   (*  * int    --> position of the matching in the ≠ matchings for the same graph *)
-   (*  * int    --> number of matching in the current graph  *)
-   (int -> string -> int -> int -> Matching.t -> 'a -> 'a) ->
-   Request.t ->
-   cluster_item list ->         (* The list of element used for clustering *)
-   t -> 
-     ('a Clustered.t * string * float)  (* (output, statut, ratio) status is "ok", "timeout" or "over" *)
+  val bounded_search: 
+    config:Conllx_config.t ->
+    ?ordering: string option ->  (* if value is "length", graph are considered by size, if value is "shuffle", graph order is randomiez, else a default order is used  *)
+    int option ->                (* bound on the number of matching *)
+    float option ->              (* Timeunt in seconds *)  
+    'a ->                        (* null value to build clusters *)
+    (int -> string -> int -> int -> Matching.t -> 'a -> 'a) ->
+    (* update function to build clusters. Parameters ares:
+       * int    --> graph_index in the corpus
+       * string --> sent_id
+       * int    --> position of the matching in the ≠ matchings for the same graph
+       * int    --> number of matching in the current graph  *)
+    Request.t ->
+    cluster_item list ->         (* The list of element used for clustering *)
+    t -> 
+      ('a Clustered.t * string * float)  (* (output, statut, ratio) status is "ok", "timeout" or "over" *)
+  (** search for a request in a corpus , with timeout and a bounded number of solutions *)
 
 end
 
