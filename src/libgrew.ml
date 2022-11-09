@@ -342,6 +342,9 @@ module Corpus = struct
   (* NB: no handle here because it's sensible to raise out onw exception in [iteri] *)
   let iteri = Grew_corpus.Corpus.iteri
 
+  let of_conllx_corpus conllx_corpus =
+    Libgrew.handle ~name:"Corpus.of_conllx_corpus" (fun () -> Grew_corpus.Corpus.of_conllx_corpus conllx_corpus) ()
+
   let from_stdin ?ext ?log_file ?config () =
     Libgrew.handle ~name:"Corpus.from_stdin" (fun () -> Grew_corpus.Corpus.from_stdin ?ext ?log_file ?config ()) ()
 
