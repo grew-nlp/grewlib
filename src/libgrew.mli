@@ -212,6 +212,8 @@ module Corpus: sig
   val is_conll: t -> bool
   val get_text: int -> t -> string
 
+  val update_graph: string -> Graph.t -> t -> unit
+
   val fold_left: ('a -> string -> Graph.t -> 'a) -> 'a -> t -> 'a
   val fold_right: (string -> Graph.t -> 'a -> 'a) -> t -> 'a -> 'a
   val iteri: (int -> string -> Graph.t -> unit) -> t -> unit
@@ -223,6 +225,8 @@ module Corpus: sig
   val from_string: ?ext:string -> ?log_file:string -> ?config:Conllx_config.t -> string -> t
   val from_file: ?ext:string -> ?log_file:string -> ?config:Conllx_config.t -> string -> t
   val from_dir: ?config:Conllx_config.t -> string -> t
+
+  val from_assoc_list: (string * Graph.t) list -> t
 
   val merge: t list -> t
   val get_columns_opt: t -> Conllx_columns.t option

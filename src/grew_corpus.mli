@@ -27,6 +27,8 @@ module Corpus : sig
   val is_conll: t -> bool
   val get_columns_opt: t -> Conllx_columns.t option
 
+  val update_graph: string -> G_graph.t -> t -> unit
+
   val get_sent_id: int -> t -> string
   val get_text: int -> t -> string
 
@@ -41,6 +43,7 @@ module Corpus : sig
   val from_string: ?ext:string -> ?log_file: string -> ?config:Conllx_config.t -> string -> t
   val from_file: ?ext:string -> ?log_file: string -> ?config:Conllx_config.t -> string -> t
   val from_dir: ?log_file: string -> ?config:Conllx_config.t -> string -> t
+  val from_assoc_list: (string * G_graph.t) list -> t
 
   val search: config:Conllx_config.t -> 'a -> (string -> G_graph.t -> Matching.t -> 'a -> 'a) -> Request.t -> cluster_item list -> t -> 'a Clustered.t
 

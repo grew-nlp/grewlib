@@ -137,6 +137,10 @@ module Corpus = struct
 
   let get_text position t = t.items.(position).text
 
+  let update_graph sent_id graph corpus =
+    match CCArray.find_idx (fun item -> item.sent_id = sent_id) corpus.items with
+    | Some (pos,item) -> corpus.items.(pos) <- {item with graph}
+    | None -> Error.run "[update_graph] unknown sent_id"
 
   let permut_length t =
     let items_with_length =
@@ -208,6 +212,13 @@ module Corpus = struct
     | (conll_files,[],_) -> of_conllx_corpus (Conllx_corpus.load_list ?log_file ?config conll_files)
     | ([],amr_files, txt_files) -> (amr_files @ txt_files) |> List.map of_amr_file |> merge
     | _ -> Error.run "The directory `%s` contains both Conll data and Amr data" dir
+
+  (* val from_assoc_list: (string * G_graph.t) list -> t *)
+  let from_assoc_list l = 
+    {
+      items = Array.of_list (List.map (fun (sent_id,graph) -> {sent_id; graph; text=""}) l);
+      kind = Gr
+    }
 
   let get_columns_opt corpus = 
     match corpus.kind with
@@ -373,14 +384,7 @@ module Corpus_desc = struct
   let load_json json_file =
     let open Yojson.Basic.Util in
 
-    let json =
-      try Yojson.Basic.from_file json_file
-      with 
-      | Sys_error _ -> Error.run "[Corpus.load_json] file `%s` not found" json_file
-      | Yojson.Json_error msg -> Error.run "[Corpus.load_json] invalid JSON file `%s`:\n%s" json_file msg
-    in
-
-    let parse_one json =
+    let parse_corpus json =
       let id =
         try json |> member "id" |> to_string
         with Type_error _ -> Error.run "[Corpus.load_json, file \"%s\"] \"id\" field is mandatory and must be a string" json_file in
@@ -433,7 +437,14 @@ module Corpus_desc = struct
 
       { id; lang; kind; config; directory; files; rtl; audio; dynamic; preapply; display; } in
 
-    List.map parse_one (json |> member "corpora" |> to_list)
+
+    let json =
+      try Yojson.Basic.from_file json_file with 
+      | Sys_error _ -> Error.run "[Corpus.load_json] file `%s` not found" json_file
+      | Yojson.Json_error msg -> Error.run "[Corpus.load_json] invalid JSON file `%s`:\n%s" json_file msg in
+  
+    try List.map parse_corpus (json |> member "corpora" |> to_list)
+    with Type_error _ -> Error.run "[Corpus.load_json, file \"%s\"] Unexpected JSON data" json_file
 
   (* ---------------------------------------------------------------------------------------------------- *)
   let grew_match_table_and_desc corpus_desc dir_opt corpus =

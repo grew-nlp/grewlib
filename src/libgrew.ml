@@ -333,6 +333,9 @@ module Corpus = struct
   let get_text position t =
     Libgrew.handle ~name:"Corpus.get_text" (fun () -> Grew_corpus.Corpus.get_text position t) ()
 
+  let update_graph position t =
+    Libgrew.handle ~name:"Corpus.update_graph" (fun () -> Grew_corpus.Corpus.update_graph position t) ()
+
   let fold_left fct init t =
     Libgrew.handle ~name:"Corpus.fold_left" (fun () -> Grew_corpus.Corpus.fold_left fct init t) ()
 
@@ -356,6 +359,9 @@ module Corpus = struct
 
   let from_dir ?config dir =
     Libgrew.handle ~name:"Corpus.from_dir" (fun () -> Grew_corpus.Corpus.from_dir ?config dir) ()
+
+  let from_assoc_list list =
+    Libgrew.handle ~name:"Corpus.from_assoc_list" (fun () -> Grew_corpus.Corpus.from_assoc_list list) ()
 
   let merge corpus_list =
     Libgrew.handle ~name:"Corpus.merge" (fun () -> Grew_corpus.Corpus.merge corpus_list) ()
