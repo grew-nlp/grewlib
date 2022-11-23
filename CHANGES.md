@@ -1,3 +1,27 @@
+# 1.10.0 (2022/11/23)
+  * Renaming from pattern to request
+  * Renaming from Projection to the more generic Clustered 
+  * New functions
+    * Request.of_json
+    * Matching.sub_graph
+    * Grs.of_json
+    * Grs.to_json
+    * Corpus.update_graph
+    * Corpus.of_conllx_corpus
+    * Corpus.from_assoc_list
+    * Corpus.search
+    * Corpus.bounded_search
+    * Corpus_desc.get_display
+  * Removed functions
+    * Grs.to_json_python
+    * Graph.to_raw
+    * Graph.of_gr
+    * Graph.of_json_python
+    * Graph.to_json_python
+    * Graph.of_brown
+    * Graph.of_gr
+    * Graph.insert_proj
+
 ## 1.9.2 (2022/08/31)
   * Fix https://github.com/grew-nlp/grew/issues/17
 
