@@ -320,6 +320,7 @@ module Corpus_desc = struct
   let is_audio corpus_desc = corpus_desc.audio
   let get_display corpus_desc = corpus_desc.display
   
+  let build id directory = { id; lang=None; kind=Conll None; config=Conllx_config.build "ud"; directory; files=[]; rtl=false; audio=false; dynamic=false; display=None; preapply=None}
   (* ---------------------------------------------------------------------------------------------------- *)
   let extensions = function
     | Corpus.Conll _ -> [".conll"; ".conllu"; ".cupt"; ".orfeo"; "frsemcor"]

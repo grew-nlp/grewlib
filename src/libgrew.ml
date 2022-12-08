@@ -394,6 +394,9 @@ module Corpus_desc = struct
   let get_display = Grew_corpus.Corpus_desc.get_display
   let is_audio = Grew_corpus.Corpus_desc.is_audio
 
+  let build id directory =
+    Libgrew.handle ~name:"Corpus.build" (fun () -> Grew_corpus.Corpus_desc.build id directory) ()
+
   let build_corpus t =
     Libgrew.handle ~name:"Corpus.build_corpus" (fun () -> Grew_corpus.Corpus_desc.build_corpus t) ()
 
