@@ -174,11 +174,8 @@ and standard target = parse
 
 | "include"       { INCL }
 | "import"        { IMPORT }
-| "features"      { Error.build ~loc:(Global.get_loc ()) "`features` is obsolete, see https://grew.fr/doc/grs" }
-| "labels"        { Error.build ~loc:(Global.get_loc ()) "`labels` is obsolete, see https://grew.fr/doc/grs" }
 | "from"          { FROM }
 
-| "match"         { Error.warning ~loc:(Global.get_loc ()) "%s \"match\" is deprecated, please use \"pattern\" instead" (Global.loc_string ()); PATTERN }
 | "pattern"       { PATTERN }
 
 | "without"       { WITHOUT }
@@ -190,7 +187,6 @@ and standard target = parse
 | "shift_in"      { SHIFT_IN }
 | "shift_out"     { SHIFT_OUT }
 | "shift"         { SHIFT }
-| "merge"         { raise (Error "merge commnand was removed since version 0.43") }
 | "del_node"      { DEL_NODE }
 | "add_node"      { ADD_NODE }
 | "del_feat"      { DEL_FEAT }
@@ -202,7 +198,6 @@ and standard target = parse
 | "package"       { PACKAGE }
 | "rule"          { RULE }
 | "strat"         { STRAT }
-| "lex_rule"      { Error.warning ~loc:(Global.get_loc ()) "\"lex_rule\" is deprecated, please use \"rule\" instead"; RULE }
 
 | "Pick"          { PICK }
 | "Alt"           { ALT }
