@@ -58,6 +58,10 @@ module G_edge = struct
   let pred = Pred
   let succ = Succ
 
+  let is_fs = function
+    | Fs _ -> true
+    | _ -> false
+
   let is_basic = function
     | Fs fs when not (List.assoc_opt "enhanced" fs = Some (String "yes")) -> true
     | _ -> false

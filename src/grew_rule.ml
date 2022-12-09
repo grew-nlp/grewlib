@@ -343,21 +343,74 @@ module Matching = struct
       None
     with Found pid -> Some pid
 
+
+  let get_relative_order ~config pid_name_list request graph matching =
+    let pid_name_pos_list = CCList.filter_map
+      (fun pid_name ->
+        match get_pid_by_name request pid_name matching.n_match with
+        | None -> Error.run "[Matching.get_value_opt] The identifier [%s] is not declared in the positve part of the request" pid_name
+        | Some pid -> 
+          let gid = Pid_map.find pid matching.n_match in
+          let node = G_graph.find gid graph in
+          match G_node.get_position_opt node with
+          | None -> None
+          | Some pos -> Some (pid_name, pos)
+      ) pid_name_list in
+      match List.sort (fun (_,p1) (_,p2) -> Stdlib.compare p1 p2) pid_name_pos_list with 
+      | [] -> None
+      | l -> Some (l |> List.map fst |> String.concat " << ")
+
+  let get_link ~config rev pid_name_1 pid_name_2 request graph matching =
+    printf "pid_name_1=%s   pid_name_2=%s\n%!" pid_name_1 pid_name_2;
+    match (get_pid_by_name request pid_name_1 matching.n_match, get_pid_by_name request pid_name_2 matching.n_match) with
+    | (None, _) -> Error.run "[Matching.get_direct_link] The identifier [%s] is not declared in the positve part of the request" pid_name_1
+    | (_, None) -> Error.run "[Matching.get_direct_link] The identifier [%s] is not declared in the positve part of the request" pid_name_2
+    | (Some pid_1, Some pid_2) -> 
+      printf "pid_1=%s   pid_2=%s\n%!" (Pid.to_string pid_1) (Pid.to_string pid_2);
+      let gid_1 = Pid_map.find pid_1 matching.n_match in
+      let gid_2 = Pid_map.find pid_2 matching.n_match in
+      let node_1 = G_graph.find gid_1 graph in
+      let node_2 = G_graph.find gid_2 graph in
+      match 
+      (
+        node_1 |> G_node.get_next |> (Gid_massoc.assoc gid_2) |> (List.filter G_edge.is_fs),
+        node_2 |> G_node.get_next |> (Gid_massoc.assoc gid_1) |> (List.filter G_edge.is_fs)
+      ) with 
+      | ([], []) -> "__none__"
+      | ([], _) when not rev -> "__none__"
+      | ([direct], []) -> G_edge.to_string_opt ~config direct |> CCOption.get_exn_or "BUG Matching.get_link"
+      | ([direct], _) when not rev -> G_edge.to_string_opt ~config direct |> CCOption.get_exn_or "BUG Matching.get_link"
+      | ([], [reverse]) -> G_edge.to_string_opt ~config reverse |> CCOption.get_exn_or "BUG Matching.get_link" |> sprintf "-%s" 
+      | _ -> "__multi__"
+
+  (* [option_iter fct list] Apply [fct] to each element of the [list]
+     until the result is Some v and output Some v
+     None it return if [fct] return None of each element of the list *)
+  let rec option_iter fct = function
+  | [] -> None
+  | x::t ->
+    match fct x with
+    | None -> option_iter fct t
+    | v -> v
+
   (* return the value of a feature or an edge label *)
   let get_value_opt ~config cluster_key request graph matching =
     match Str.split (Str.regexp "\\.") cluster_key with
     | [node_or_edge_id; feature_name] ->
+      let splitted_feature_names = Str.split (Str.regexp "/") feature_name in
       begin
-        match (String_map.find_opt node_or_edge_id matching.e_match, feature_name) with
-        | (Some (_,edge,_), "label") ->
+        match (String_map.find_opt node_or_edge_id matching.e_match, splitted_feature_names) with
+        | (Some (_,edge,_), ["label"]) ->
           begin
             match G_edge.to_string_opt ~config edge with
             | Some s -> Some s
             | None -> Error.bug "[Matching.get_value_opt] internal edge %s" (G_edge.dump ~config edge)
           end
-        | (Some edge, "length") -> string_of_int <$> (G_graph.edge_length_opt edge graph)
-        | (Some edge, "delta") -> string_of_int <$> (G_graph.edge_delta_opt edge graph)
-        | (Some (_,edge,_), _) -> Feature_value.to_string <$> (G_edge.get_sub_opt feature_name edge)
+        | (Some edge, ["length"]) -> string_of_int <$> (G_graph.edge_length_opt edge graph)
+        | (Some edge, ["delta"]) -> string_of_int <$> (G_graph.edge_delta_opt edge graph)
+        | (Some (_,edge,_), _) ->
+          let feat_value_opt = option_iter (fun fn -> G_edge.get_sub_opt fn edge) splitted_feature_names in
+          Feature_value.to_string <$> feat_value_opt
         | (None, _) ->
           begin
             match get_pid_by_name request node_or_edge_id matching.n_match with
@@ -366,7 +419,8 @@ module Matching = struct
               let gid = Pid_map.find pid matching.n_match in
               let node = G_graph.find gid graph in
               let fs = G_node.get_fs node in
-              CCOption.map Feature_value.to_string (G_fs.get_value_opt feature_name fs)
+              let feat_value_opt = option_iter (fun fn -> G_fs.get_value_opt fn fs) splitted_feature_names in
+              Feature_value.to_string <$> feat_value_opt
           end
       end
     | _ -> Error.run "[Matching.get_value_opt] unable to handled cluster_key [%s].
@@ -834,12 +888,38 @@ module Matching = struct
     let gid_list = Pid_map.fold (fun _ gid acc -> gid :: acc) matching.n_match [] in  
   G_graph.subgraph graph gid_list depth
 
+  type key = 
+    | Rel_order of string list
+    | Sym_rel of (string * string)
+    | Rel of (string * string)
+    | Feat of string
+
+
+  let parse_key string_key =
+    if CCString.contains string_key '#'
+    then Rel_order (Str.split (Str.regexp "#") string_key)
+    else 
+      match Str.full_split (Str.regexp "<?->") string_key with 
+      | [Str.Text n1; Str.Delim "<->"; Str.Text n2] -> Sym_rel (n1, n2)
+      | [Str.Text n1; Str.Delim "->"; Str.Text n2] -> Rel (n1, n2)
+      | _ -> Feat string_key
+
+
+
   let get_clust_value_opt ~config clust_item request graph matching =
     match clust_item with
-    | Key key -> get_value_opt ~config key request graph matching
+    | Key key ->
+      begin
+        match parse_key key with
+        | Rel_order pid_name_list -> get_relative_order ~config pid_name_list request graph matching
+        | Sym_rel (pid_name_1, pid_name_2) -> Some (get_link ~config true pid_name_1 pid_name_2 request graph matching)
+        | Rel (pid_name_1, pid_name_2) -> Some (get_link ~config false pid_name_1 pid_name_2 request graph matching)
+        | Feat f -> get_value_opt ~config key request graph matching
+      end
     | Whether basic_string ->
         let basic = Request.build_whether ~config request (Parser.basic ("{" ^ basic_string ^ "}")) in
         if whether ~config basic request graph matching then Some "Yes" else Some "No"
+
 end (* module Matching *)
 
 (* ================================================================================ *)

@@ -24,6 +24,9 @@ module G_edge: sig
   val pred: t
   val succ: t
 
+  (** [is_fs t] returns [true] iff the edge is a regular fs. *)
+    val is_fs: t -> bool
+
   (** [is_basic t] returns [true] iff the edge is a regular fs without the [enhanced=Yes] feature.
       Used to get the subset of edges to take into account in graph structure checking. *)
   val is_basic: t -> bool
