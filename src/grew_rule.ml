@@ -896,6 +896,34 @@ module Matching = struct
     * one of the pseudo features [e.label], [e.length] or [e.delta]
 " cluster_key
 
+  let get_interval ~config (feat, gap, min_opt, max_opt) request graph matching =
+    match Str.split (Str.regexp "\\.") feat with
+    | [node_id; feature_name] ->
+      begin
+        match get_pid_by_name request node_id matching.n_match with
+        | None -> Error.run "[Matching.get_value_opt] The identifier [%s] is not declared in the positve part of the request" node_id
+        | Some pid ->
+          let gid = Pid_map.find pid matching.n_match in
+          let node = G_graph.find gid graph in
+          let fs = G_node.get_fs node in
+          begin
+            match G_fs.get_value_opt feature_name fs with
+            | None
+            | Some String _ -> Error.run "[Matching.get_value_opt] not a numeric value"
+            | Some Float f ->
+              match (min_opt, max_opt) with
+              | (Some m, _) when f < m -> sprintf "]-∞, %g[" m
+              | (_, Some m) when f >= m -> sprintf "[%g, +∞[" m
+              | (Some m, _) -> 
+                let i = floor ((f -. m) /. gap) in
+                sprintf "[%g, %g[" (m +. i *. gap) (m +. (i +. 1.) *. gap)
+              | (None,_) -> 
+                let i = floor (f /. gap) in
+                sprintf "[%g, %g[" (i *. gap) ((i +. 1.) *. gap)
+            end
+      end
+    | _ -> Error.run "[Matching.get_value_opt] 111"
+
 
 
   type key = 
@@ -903,7 +931,7 @@ module Matching = struct
     | Sym_rel of (string * string)
     | Rel of (string * string)
     | Feat of string
-
+    | Continuous of (string * float * float option * float option)
 
   let parse_key string_key =
     if CCString.contains string_key '#'
@@ -912,7 +940,19 @@ module Matching = struct
       match Str.full_split (Str.regexp "<?->") string_key with 
       | [Str.Text n1; Str.Delim "<->"; Str.Text n2] -> Sym_rel (n1, n2)
       | [Str.Text n1; Str.Delim "->"; Str.Text n2] -> Rel (n1, n2)
-      | _ -> Feat string_key
+      | _ -> 
+        match Str.full_split (Str.regexp "\\[\\|\\]") string_key with 
+        | [Str.Text feat; Str.Delim "["; Str.Text params; Str.Delim "]" ] ->
+          let fs = params
+          |> Str.split (Str.regexp " *, *")
+          |> List.map (fun param_item -> match Str.split (Str.regexp " *= *") param_item with [f;v] -> (f,v) | _ -> Error.run "Cannot parse cluster key %s" string_key) in
+          (
+            match (List.assoc_opt "gap" fs, List.assoc_opt "min" fs, List.assoc_opt "max" fs) with
+            | (None, _,_) -> Error.run "Missing gap"
+            | (Some gap, min_opt, max_opt) -> Continuous (feat, float_of_string gap, float_of_string <$> min_opt, float_of_string <$> max_opt)
+          )
+        | [Str.Text k] -> Feat k
+        | _ -> Error.run "Cannot parse cluster key %s" string_key
 
 
 
@@ -925,6 +965,7 @@ module Matching = struct
         | Sym_rel (pid_name_1, pid_name_2) -> Some (get_link ~config true pid_name_1 pid_name_2 request graph matching)
         | Rel (pid_name_1, pid_name_2) -> Some (get_link ~config false pid_name_1 pid_name_2 request graph matching)
         | Feat f -> get_value_opt ~config key request graph matching
+        | Continuous params -> Some (get_interval ~config params request graph matching)
       end
     | Whether basic_string ->
         let basic = Request.build_whether ~config request (Parser.basic ("{" ^ basic_string ^ "}")) in
