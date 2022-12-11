@@ -839,14 +839,14 @@ module Matching = struct
     | ([], [reverse]) -> G_edge.to_string_opt ~config reverse |> CCOption.get_exn_or "BUG Matching.get_link" |> sprintf "-%s" 
     | _ -> "__multi__"
 
-  (* [option_iter fct list] Apply [fct] to each element of the [list]
+  (* [fold_until fct list] Apply [fct] to each element of the [list]
      until the result is Some v and output Some v
      None it return if [fct] return None of each element of the list *)
-  let rec option_iter fct = function
+  let rec fold_until fct = function
   | [] -> None
   | x::t ->
     match fct x with
-    | None -> option_iter fct t
+    | None -> fold_until fct t
     | v -> v
 
   let get_feat_value_opt ~config request graph matching (node_or_edge_id, splitted_feature_names) =
@@ -860,19 +860,19 @@ module Matching = struct
     | (Some edge, ["length"]) -> string_of_int <$> (G_graph.edge_length_opt edge graph)
     | (Some edge, ["delta"]) -> string_of_int <$> (G_graph.edge_delta_opt edge graph)
     | (Some (_,edge,_), _) ->
-      let feat_value_opt = option_iter (fun fn -> G_edge.get_sub_opt fn edge) splitted_feature_names in
+      let feat_value_opt = fold_until (fun fn -> G_edge.get_sub_opt fn edge) splitted_feature_names in
       Feature_value.to_string <$> feat_value_opt
     | (None, _) ->
       let (_, node) = search_pid_name request graph matching node_or_edge_id in
       let fs = G_node.get_fs node in
-      let feat_value_opt = option_iter (fun fn -> G_fs.get_value_opt fn fs) splitted_feature_names in
+      let feat_value_opt = fold_until (fun fn -> G_fs.get_value_opt fn fs) splitted_feature_names in
       Feature_value.to_string <$> feat_value_opt
 
   let get_interval ~config request graph matching ((pid_name,feature_name), gap, min_opt, max_opt) =
     let (_, node) = search_pid_name request graph matching pid_name in
     match G_fs.get_value_opt feature_name (G_node.get_fs node) with
     | None
-    | Some String _ -> Error.run "[Matching.get_value_opt] not a numeric value"
+    | Some String _ -> Error.run "[Matching.get_value_opt] feature name `%s` is not a numeric value" feature_name
     | Some Float f ->
       match (min_opt, max_opt) with
       | (Some m, _) when f < m -> sprintf "]-∞, %g[" m
@@ -893,11 +893,11 @@ module Matching = struct
 
   let parse_key string_key =
     if CCString.contains string_key '#'
-    then Rel_order (Str.split (Str.regexp "#") string_key)
+    then Rel_order (string_key |> (Str.split (Str.regexp "#")) |> List.map String.trim)
     else 
       match Str.full_split (Str.regexp "<?->") string_key with 
-      | [Str.Text n1; Str.Delim "<->"; Str.Text n2] -> Sym_rel (n1, n2)
-      | [Str.Text n1; Str.Delim "->"; Str.Text n2] -> Rel (n1, n2)
+      | [Str.Text n1; Str.Delim "<->"; Str.Text n2] -> Sym_rel (String.trim n1, String.trim n2)
+      | [Str.Text n1; Str.Delim "->"; Str.Text n2] -> Rel (String.trim n1, String.trim n2)
       | _ -> 
         match Str.full_split (Str.regexp "\\[\\|\\]") string_key with 
         
@@ -909,7 +909,7 @@ module Matching = struct
             match (List.assoc_opt "gap" fs, List.assoc_opt "min" fs, List.assoc_opt "max" fs) with
             | (None, _,_) -> Error.run "Missing gap"
             | (Some gap, min_opt, max_opt) ->
-              match Str.split (Str.regexp "\\.") feat with
+              match Str.split (Str.regexp "\\.") (String.trim feat) with
               | [id; fn] -> Continuous ((id, fn), float_of_string gap, float_of_string <$> min_opt, float_of_string <$> max_opt)
               | _ -> Error.run "Cannot parse cluster key %s" string_key
           )
