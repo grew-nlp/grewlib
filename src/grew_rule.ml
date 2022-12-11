@@ -877,9 +877,15 @@ module Matching = struct
       match (min_opt, max_opt) with
       | (Some m, _) when f < m -> sprintf "]-∞, %g[" m
       | (_, Some m) when f >= m -> sprintf "[%g, +∞[" m
-      | (Some m, _) -> 
+      | (Some m, Some ma) -> 
+        let i = floor ((f -. m) /. gap) in
+        sprintf "[%g, %g[" (m +. i *. gap) (min (m +. (i +. 1.) *. gap) ma)
+      | (Some m, None) -> 
         let i = floor ((f -. m) /. gap) in
         sprintf "[%g, %g[" (m +. i *. gap) (m +. (i +. 1.) *. gap)
+      | (None,Some ma) -> 
+        let i = ceil ((ma -. f) /. gap) in
+        sprintf "[%g, %g[" (ma -. i *. gap) (ma -. (i -. 1.) *. gap)
       | (None,_) -> 
         let i = floor (f /. gap) in
         sprintf "[%g, %g[" (i *. gap) ((i +. 1.) *. gap)
