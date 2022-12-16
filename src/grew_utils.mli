@@ -353,3 +353,8 @@ module Feature_value: sig
   val concat: ?loc:Loc.t -> t list -> t
 
 end (* module Feature_value *)
+
+(* ================================================================================ *)
+module Sbn: sig
+  val to_json: string -> Yojson.Basic.t
+end

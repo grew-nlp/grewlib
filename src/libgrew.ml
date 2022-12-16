@@ -412,3 +412,9 @@ module Corpus_desc = struct
   let clean t =
     Libgrew.handle ~name:"Corpus.clean" (fun () -> Grew_corpus.Corpus_desc.clean t) ()
 end
+
+
+module Sbn = struct
+  let to_json t =
+    Libgrew.handle ~name:"Sbn.to_json" (fun () -> Grew_utils.Sbn.to_json t) ()
+end

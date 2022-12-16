@@ -24,8 +24,6 @@ module Cmp = struct
   (** [fct t] return a function of type 'a -> 'a -> bool which corresponds either to equlaity or disequality *)
 end
 
-
-
 (* ================================================================================ *)
 module Loc = struct
   type t = string option * int option
@@ -94,23 +92,23 @@ module Range = struct
      NB: indexes correspond to UTF-8 chars. ex: [get_range (None, Some (-1)) "été"] ==> "ét"
   *)
   let extract (iopt,fopt) s =
-    match (iopt, fopt) with 
+    match (iopt, fopt) with
     | (None, None) -> s
-    | _ -> 
+    | _ ->
       match CCUtf8_string.of_string s with
       | None -> Error.run "[String_.get_range] '%s' is not a valid UTF-8 string encoding" s
       | Some utf8_s ->
         let char_list = CCUtf8_string.to_list utf8_s in
         let len = CCUtf8_string.n_chars utf8_s in
-        let init = match iopt with 
-          | None -> 0 
-          | Some i when i < 0 -> max (len + i) 0 
+        let init = match iopt with
+          | None -> 0
+          | Some i when i < 0 -> max (len + i) 0
           | Some i -> min i len in
-        let final = match fopt with 
-          | None -> len 
-          | Some i when i < 0 -> max (len + i) 0 
+        let final = match fopt with
+          | None -> len
+          | Some i when i < 0 -> max (len + i) 0
           | Some i -> min i len in
-        if final < init 
+        if final < init
         then ""
         else char_list |> CCList.drop init |> CCList.take (final - init) |> CCUtf8_string.of_list |> CCUtf8_string.to_string
 end (* module Range *)
@@ -526,7 +524,6 @@ module Massoc_make (Ord: Set.OrderedType) = struct
       ) t M.empty
 end (* module Massoc_make *)
 
-
 (* ================================================================================ *)
 module Id = struct
   type t = int
@@ -638,7 +635,6 @@ module Dependencies = struct
 
 end
 
-
 (* ================================================================================ *)
 module Pid = struct
   (* type t = int *)
@@ -748,5 +744,133 @@ module Feature_value = struct
         | String s :: tail -> s ^ (loop tail)
         | Float _ :: _ -> Error.run ?loc "Cannot concat with numeric value" in
       String (loop l)
-
     end (* module Feature_value *)
+
+(* ================================================================================ *)
+module Sbn = struct
+  type state = Blank | Token of int | String of int
+
+  let parse_line l =
+    let stack = ref [] in
+    let rec loop state pos =
+      match (state, l.[pos]) with
+      | (_, '%') -> ()
+      | (Blank, '"') -> loop (String pos) (pos + 1)
+      | (Blank, c) when c <> ' ' -> loop (Token pos) (pos + 1)
+      | (Token i, ' ') -> stack := String.sub l i (pos-i) :: !stack; loop Blank (pos+1)
+      | (String i, '"') -> stack := String.sub l i (pos-i+1) :: !stack; loop Blank (pos+1)
+      | _ -> loop state (pos+1)
+    in loop (Token 0) 0;
+    List.rev !stack
+
+  type node = {
+    index: int;
+    feats: (string * string) list;
+    concept: string;
+    box: int;
+  }
+
+  (* may be between boxes or between nodes *)
+  type rel = {
+    src: int;
+    label: string;
+    tar: int;
+  }
+
+  type graph = {
+    meta: (string * string) list;
+    sem_nodes: node list;
+    sem_edges: rel list;
+    box_edges: rel list;
+    box_number: int;
+  }
+
+  let set_meta meta graph = { graph with meta }
+
+  let init = { meta=[]; box_number = 1; sem_nodes = []; sem_edges = []; box_edges = []; }
+
+  let graph_to_json graph =
+    let cpt = ref 0 in (* negative counter! *)
+    let meta = `Assoc (List.map (fun (f,v) -> (f, `String v)) graph.meta) in
+    let (sem_nodes, (value_nodes, value_edges)) =
+      List.fold_left
+        (fun (acc_sem_nodes, (acc_value_nodes, acc_value_edges)) node ->
+          (
+           (string_of_int node.index, `Assoc [("concept",`String node.concept)]) :: acc_sem_nodes,
+           List.fold_left
+            (fun (avn,ave) (f,v) ->
+              incr cpt;
+              let vid = Printf.sprintf "V%d" !cpt in
+                (
+                  (
+                    vid, `Assoc [("value",`String v)]) :: avn,
+                  `Assoc [("src",`String (string_of_int node.index)); ("label",`String f); ("tar",`String vid)] ::ave
+                )
+            ) (acc_value_nodes,acc_value_edges) node.feats
+          )
+      ) ([],([],[])) graph.sem_nodes in
+
+    let box_nodes = List.init graph.box_number
+        (fun i ->
+           let name = "B"^(string_of_int (i+1)) in
+           (name, `Assoc [("label", `String name)])
+        ) in
+    let sem_edges = List.map
+        (fun edge -> `Assoc [("src",`String (string_of_int edge.src)); ("label",`String edge.label); ("tar",`String (string_of_int edge.tar))]
+        ) graph.sem_edges in
+    let box_edges = List.map
+        (fun edge -> `Assoc [("src",`String ("B"^(string_of_int edge.src))); ("label",`String edge.label); ("tar",`String ("B"^(string_of_int edge.tar)))]
+        ) graph.box_edges in
+    let mix_edges = List.map
+        (fun node ->
+           `Assoc [("src",`String ("B"^(string_of_int node.box))); ("label",`String "in"); ("tar",`String (string_of_int node.index))]
+        ) graph.sem_nodes in
+
+    `Assoc [
+      ("meta", meta);
+      ("nodes", `Assoc (sem_nodes @ box_nodes @ value_nodes));
+      ("edges", `List (sem_edges @ box_edges @ mix_edges @ value_edges));
+    ]
+
+
+  let graph_of_lines lines =
+    List.fold_left
+      (fun (node_index, acc_graph) line ->
+         match parse_line line with
+         (* Nothing before the first '%' --> skip the line *)
+         | [] -> (node_index, acc_graph)
+
+         (* Line statrting with white spaces (= empty token) --> relations between boxes *)
+         | [""; box_rel; index] ->
+           let new_box_index = acc_graph.box_number + 1 in
+           let new_box_edge = match int_of_string_opt index with
+             | Some i -> {src=new_box_index+i;label=box_rel;tar=new_box_index}
+             | None -> failwith ("Box ref not int: " ^ line)
+           in
+           (node_index, {acc_graph with box_edges = new_box_edge :: acc_graph.box_edges; box_number = new_box_index })
+
+         (* Non empty token --> relations between sem_nodes *)
+         | node :: relations ->
+           let new_node_index = node_index + 1 in
+           let rec loop = function
+             | [] -> ([],[])
+             | label::tar::tail ->
+               let (acc_e, acc_f) = loop tail in
+               begin
+                 match (tar.[0], int_of_string_opt tar) with
+                 | ('+', Some i) | ('-', Some i) -> ({ src= new_node_index; label; tar=new_node_index+i }::acc_e, acc_f)
+                 | _ -> (acc_e, (label,tar) :: acc_f)
+               end
+             | _ -> failwith ("odd:" ^ line) in
+           let (new_node_edges, feats) = loop relations in
+           let new_node = { index = new_node_index; concept= node; feats; box= acc_graph.box_number } in
+           (new_node_index, {acc_graph with sem_nodes = new_node :: acc_graph.sem_nodes; sem_edges = new_node_edges @ acc_graph.sem_edges})
+      ) (0, init) lines
+    |> snd
+
+  let parse sbn_string =
+    let lines = Str.split (Str.regexp "\n") sbn_string in
+    graph_of_lines lines
+  
+  let to_json sbn_string = sbn_string |> parse |> graph_to_json
+end

@@ -303,3 +303,7 @@ module Corpus_desc: sig
 end
 
 
+(* ================================================================================ *)
+module Sbn: sig
+  val to_json: string -> Yojson.Basic.t
+end
