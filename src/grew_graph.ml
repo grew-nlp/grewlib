@@ -36,6 +36,10 @@ module P_graph = struct
       | Some node -> P_node.get_name node
       | None -> get_name pid tail
 
+  let is_injective pid t = 
+    let pid_name = get_name pid [t] in
+    String.get pid_name ((String.length pid_name) - 1) <> '$'
+    
   let dump bases t =
     printf "============ P_graph.dump ===========\n";
       Pid_map.iter

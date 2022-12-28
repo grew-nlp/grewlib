@@ -193,8 +193,7 @@ module Request = struct
     )
 
   let build_ker_basic ~config lexicons basic_ast =
-    let (graph, ker_table, edge_ids) =
-      P_graph.of_ast ~config lexicons basic_ast in
+    let (graph, ker_table, edge_ids) = P_graph.of_ast ~config lexicons basic_ast in
     (
       {
         graph = graph;
@@ -556,7 +555,7 @@ module Matching = struct
 
   (*  ---------------------------------------------------------------------- *)
   (* returns all extension of the partial input matching *)
-  let rec extend_matching ~config (ker,ext) (graph:G_graph.t) (partial:partial) =
+  let rec extend_matching ~config ((ker_graph,ext_graph) : P_graph.t * P_graph.t ) (graph:G_graph.t) (partial:partial) =
     match (partial.unmatched_edges, partial.unmatched_nodes) with
     | [], [] ->
       begin
@@ -587,7 +586,7 @@ module Matching = struct
                 (fun label ->
                    {partial with sub = e_match_add id (src_gid,label,tar_gid) partial.sub; unmatched_edges = tail_ue }
                 ) labels
-          in CCList.flat_map (extend_matching ~config (ker,ext) graph) new_partials
+          in CCList.flat_map (extend_matching ~config (ker_graph,ext_graph) graph) new_partials
         with Not_found -> (* p_edge goes to an unmatched node *)
           let candidates = (* candidates (of type (gid, matching)) for m(tar_pid) = gid) with new partial matching m *)
             let (src_gid : Gid.t) = Pid_map.find src_pid partial.sub.n_match in
@@ -604,25 +603,26 @@ module Matching = struct
               ) [] (G_node.get_next src_gnode) in
           CCList.flat_map
             (fun (gid_next, matching) ->
-               extend_matching_from ~config (ker,ext) graph tar_pid gid_next
+               extend_matching_from ~config (ker_graph,ext_graph) graph tar_pid gid_next
                  {partial with sub=matching; unmatched_edges = tail_ue}
             ) candidates
       end
     | [], pid :: _ ->
       G_graph.fold_gid
         (fun gid acc ->
-           (extend_matching_from ~config (ker,ext) graph pid gid partial) @ acc
+           (extend_matching_from ~config (ker_graph,ext_graph) graph pid gid partial) @ acc
         ) graph []
 
   (*  ---------------------------------------------------------------------- *)
-  and extend_matching_from ~config (ker,ext) (graph:G_graph.t) pid (gid : Gid.t) partial =
-    if List.mem gid partial.already_matched_gids
+  and extend_matching_from ~config (ker_graph,ext_graph) (graph:G_graph.t) pid (gid : Gid.t) partial =
+    let injective_pid = P_graph.is_injective pid ker_graph in
+    if injective_pid && List.mem gid partial.already_matched_gids
     then [] (* the required association pid -> gid is not injective *)
     else
       let p_node =
-        try P_graph.find pid ker
+        try P_graph.find pid ker_graph
         with Not_found ->
-        try P_graph.find pid ext
+        try P_graph.find pid ext_graph
         with Not_found -> Error.bug "[Grew_rule.extend_matching_from] cannot find node" in
 
       let g_node = try G_graph.find gid graph with Not_found -> Error.bug "[extend_matching_from] cannot find gid in graph" in
@@ -639,10 +639,10 @@ module Matching = struct
           { partial with
             unmatched_nodes = (try List_.remove pid partial.unmatched_nodes with Not_found -> Error.bug "[extend_matching_from] cannot find pid in unmatched_nodes");
             unmatched_edges = new_unmatched_edges;
-            already_matched_gids = gid :: partial.already_matched_gids;
+            already_matched_gids = if injective_pid then gid :: partial.already_matched_gids else partial.already_matched_gids;
             sub = {partial.sub with n_match = Pid_map.add pid gid partial.sub.n_match; l_param = new_lex_set};
           } in
-        extend_matching ~config (ker,ext) graph new_partial
+        extend_matching ~config (ker_graph,ext_graph) graph new_partial
       with P_fs.Fail -> []
 
   (*  [test_locality matching created_nodes gid] checks if [gid] is a "local" node:
@@ -650,7 +650,7 @@ module Matching = struct
   let test_locality matching created_nodes gid =
     (Pid_map.exists (fun _ id -> id=gid) matching.n_match) || (List.exists (fun (_,id) -> id=gid) created_nodes)
 
-  (* test_extension returns [true] iff the matching (sub, already_matched_gids) of [ker_graph] into [graph] can be extended with [ext] *)
+  (* test_extension returns [true] iff the matching (sub, already_matched_gids) of [ker_graph] into [graph] can be extended with [ext_graph] *)
   let test_extension ~config ker graph ext (sub, already_matched_gids) =
     let unmatched_nodes =
       Pid_map.fold
@@ -679,7 +679,13 @@ module Matching = struct
     | _ -> true
 
   let whether ~config extension request graph matching =
-    let already_matched_gids = Pid_map.fold (fun _ gid acc -> gid::acc) matching.n_match [] in
+    let already_matched_gids =
+      Pid_map.fold 
+      (fun pid gid acc -> 
+        if P_graph.is_injective pid request.Request.ker.graph
+        then gid::acc
+        else acc
+      ) matching.n_match [] in
     test_extension ~config request.Request.ker graph extension (matching, already_matched_gids)
 
   (* returns true iff the graph verify all structure constraints give in the list *)
