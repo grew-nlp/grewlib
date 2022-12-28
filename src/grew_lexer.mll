@@ -49,11 +49,7 @@ let general_ident =
   (letter | '_' ) |
   (letter | '_' | '.' ) (letter | digit | '_' | '\'' | '-' | '.')* (letter | digit | '_' | '\'' | '.')
 
-let hex = ['0'-'9' 'a'-'f' 'A'-'F']
-let color = hex hex hex hex hex hex | hex hex hex
-
 let newline = '\r' | '\n' | "\r\n"
-
 
 (* ------------------------------------------------------------------------------- *)
 (* Rules                                                                           *)

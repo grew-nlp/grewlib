@@ -398,7 +398,7 @@ clause_item:
             { let (feat_id1,loc)=feat_id1_loc in Clause_const (Ast.Feature_cmp_value (Eq, feat_id1, String rhs), loc) }
 
         /*   X.cat = 12.34   */
-        | feat_id1_loc=feature_ident_with_loc EQUAL rhs=FLOAT
+        | feat_id1_loc=feature_ident_with_loc EQUAL rhs=number
             { let (feat_id1,loc)=feat_id1_loc in Clause_const (Ast.Feature_cmp_value (Eq, feat_id1, Float rhs), loc) }
 
         /*   X.cat <> value   */
@@ -425,7 +425,7 @@ clause_item:
             }
 
         /*   X.cat <> 12.34   */
-        | lhs_loc=simple_or_pointed_with_loc DISEQUAL rhs=FLOAT
+        | lhs_loc=simple_or_pointed_with_loc DISEQUAL rhs=number
             { match lhs_loc with
               | (Ast.Pointed feat_id, loc) -> Clause_const (Ast.Feature_cmp_value (Neq, feat_id, Float rhs), loc)
               | (_,loc) -> Error.build ~loc "syntax error in constraint"
@@ -507,12 +507,12 @@ clause_item:
             { let (feat_id1,loc)=feat_id1_loc in Clause_const (Ast.Feature_ineq (Ast.Ge, feat_id1, feat_id2), loc) }
 
         /*   X.feat >= 12.34   */
-        | feat_id1_loc=feature_ident_with_loc GE num=FLOAT
+        | feat_id1_loc=feature_ident_with_loc GE num=number
         | num=number LE feat_id1_loc=feature_ident_with_loc
             { let (feat_id1,loc)=feat_id1_loc in Clause_const (Ast.Feature_ineq_cst (Ast.Ge, feat_id1, num), loc)  }
 
         /*   X.feat <= 12.34   */
-        | feat_id1_loc=feature_ident_with_loc LE num=FLOAT
+        | feat_id1_loc=feature_ident_with_loc LE num=number
         | num=number GE feat_id1_loc=feature_ident_with_loc
             { let (feat_id1,loc)=feat_id1_loc in Clause_const (Ast.Feature_ineq_cst (Ast.Le, feat_id1, num), loc)  }
 
