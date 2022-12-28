@@ -528,16 +528,6 @@ end (* module Massoc_make *)
 module Id = struct
   type t = int
 
-  type 'a gtable = 'a array * ('a -> string)
-
-  let gbuild ?loc key (table,conv) =
-    try Array_.dicho_find key table
-    with Not_found -> Error.build ?loc "[Id.gbuild] Identifier '%s' not found" (conv key)
-
-  let gbuild_opt key (table, _) =
-    try Some (Array_.dicho_find key table)
-    with Not_found -> None
-
   type name = string
   type table = string array
 
@@ -637,7 +627,6 @@ end
 
 (* ================================================================================ *)
 module Pid = struct
-  (* type t = int *)
   type t = Ker of int | Ext of int
 
   let compare = Stdlib.compare

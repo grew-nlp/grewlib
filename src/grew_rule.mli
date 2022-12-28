@@ -23,8 +23,6 @@ module Request : sig
 
   type t
 
-  val get_ker_graph: t -> P_graph.t
-
   val pid_name_list: t -> Id.name list
 
   val of_ast: config:Conllx.Conllx_config.t -> ?lexicons: Lexicons.t -> Ast.request -> t

@@ -232,8 +232,6 @@ module Request = struct
     edge_ids: string list;  (* needed to build whether *)
   }
 
-  let get_ker_graph t = t.ker.graph
-
   let to_json ~config t =
     let without_list = 
       List.map 
@@ -998,7 +996,7 @@ module Rule = struct
         ("commands", 
         `List (
           List.map 
-            (Command.to_json ~config ~base:(Request.get_ker_graph t.request)) t.commands))
+            (Command.to_json ~config ~base:t.request.ker.graph) t.commands))
       ]
     )
 
