@@ -10,7 +10,7 @@
 
 open Printf
 open Conllx
-open Libamr
+open Amr
 
 open Grew_types
 open Grew_utils

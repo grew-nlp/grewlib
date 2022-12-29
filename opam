@@ -15,7 +15,7 @@ depends: [
   "menhir"
   "yojson"
   "containers" { >= "3.6"}
-  "libcaml-amr"
+  "amr"
   "libcaml-conll"
 ]
 synopsis: "A graph rewriting library for NLP applications (see https://grew.fr)
