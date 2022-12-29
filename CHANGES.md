@@ -1,3 +1,6 @@
+## 1.10.1 (2022/12/29)
+  * change library dependences from libcaml-amr to amr
+
 # 1.10.0 (2022/11/23)
   * Renaming from pattern to request
   * Renaming from Projection to the more generic Clustered 
