@@ -368,9 +368,9 @@ module Corpus = struct
 
   let get_columns_opt = Grew_corpus.Corpus.get_columns_opt
 
-  let search ~config null update request cluster_item_list corpus = 
+  let search ?(json_label=false) ~config null update request cluster_item_list corpus = 
     Libgrew.handle ~name:"Corpus.search" 
-    (fun () -> Grew_corpus.Corpus.search ~config null update request cluster_item_list corpus) ()
+    (fun () -> Grew_corpus.Corpus.search ~json_label ~config null update request cluster_item_list corpus) ()
 
   let bounded_search ~config ?ordering bound timeout null update request cluster_item_list corpus =
     Libgrew.handle ~name:"Corpus.search" 

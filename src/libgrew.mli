@@ -138,7 +138,7 @@ module Matching: sig
       WARNING: the function supposes that [matching] was find with the given [request]! *)
   val build_deco: Request.t -> t -> Deco.t
 
-  val get_clust_value_opt: config:Conllx_config.t -> cluster_item ->  Request.t -> Graph.t -> t -> string option
+  val get_clust_value_opt:  ?json_label:bool -> config:Conllx_config.t -> cluster_item ->  Request.t -> Graph.t -> t -> string option
 end
 
 (* ==================================================================================================== *)
@@ -231,7 +231,8 @@ module Corpus: sig
   val merge: t list -> t
   val get_columns_opt: t -> Conllx_columns.t option
 
-  val search: 
+  val search:
+    ?json_label: bool ->
     config:Conllx_config.t ->
     'a ->                   (* null value to build clusters *)
     (string -> Graph.t -> Matching.t -> 'a -> 'a) ->

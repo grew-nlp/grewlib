@@ -45,7 +45,7 @@ module Corpus : sig
   val from_dir: ?log_file: string -> ?config:Conllx_config.t -> string -> t
   val from_assoc_list: (string * G_graph.t) list -> t
 
-  val search: config:Conllx_config.t -> 'a -> (string -> G_graph.t -> Matching.t -> 'a -> 'a) -> Request.t -> cluster_item list -> t -> 'a Clustered.t
+  val search: ?json_label:bool -> config:Conllx_config.t -> 'a -> (string -> G_graph.t -> Matching.t -> 'a -> 'a) -> Request.t -> cluster_item list -> t -> 'a Clustered.t
 
   val bounded_search: 
     config:Conllx_config.t ->

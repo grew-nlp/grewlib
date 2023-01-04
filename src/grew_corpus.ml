@@ -226,7 +226,7 @@ module Corpus = struct
     | _ -> None
 
   (* ---------------------------------------------------------------------------------------------------- *)
-  let search ~config null update request cluster_item_list corpus =
+  let search ?(json_label=false) ~config null update request cluster_item_list corpus =
     fold_left
     (fun acc sent_id graph ->
       let matchings = Matching.search_request_in_graph ~config request graph in
@@ -235,7 +235,7 @@ module Corpus = struct
         let cluster_value_list = 
           List.map 
           (fun cluster_item ->
-            Matching.get_clust_value_opt ~config cluster_item request graph matching 
+            Matching.get_clust_value_opt ~json_label ~config cluster_item request graph matching 
           ) cluster_item_list in
           Clustered.update (update sent_id graph matching) cluster_value_list null acc2
       ) acc matchings

@@ -849,13 +849,19 @@ module Matching = struct
     | None -> fold_until fct t
     | v -> v
 
-  let get_feat_value_opt ~config request graph matching (node_or_edge_id, splitted_feature_names) =
+  let get_feat_value_opt ?(json_label=false) ~config request graph matching (node_or_edge_id, splitted_feature_names) =
     match (String_map.find_opt node_or_edge_id matching.e_match, splitted_feature_names) with
+    | (Some (_,edge,_), ["label"]) when json_label ->
+      begin
+        match G_edge.to_json_opt edge with
+        | Some s -> Some (Yojson.Basic.to_string s)
+        | None -> Error.bug "[Matching.get_feat_value_opt#1] internal edge %s" (G_edge.dump ~config edge)
+      end
     | (Some (_,edge,_), ["label"]) ->
       begin
         match G_edge.to_string_opt ~config edge with
         | Some s -> Some s
-        | None -> Error.bug "[Matching.get_value_opt] internal edge %s" (G_edge.dump ~config edge)
+        | None -> Error.bug "[Matching.get_feat_value_opt#2] internal edge %s" (G_edge.dump ~config edge)
       end
     | (Some edge, ["length"]) -> string_of_int <$> (G_graph.edge_length_opt edge graph)
     | (Some edge, ["delta"]) -> string_of_int <$> (G_graph.edge_delta_opt edge graph)
@@ -927,17 +933,17 @@ module Matching = struct
           end
         | _ -> Error.run "Cannot parse cluster key %s" string_key
 
-  let get_value_opt ~config string_key request graph matching =
+  let get_value_opt ?(json_label=false) ~config string_key request graph matching =
     match parse_key string_key with
     | Rel_order pid_name_list -> get_relative_order ~config pid_name_list request graph matching
     | Sym_rel (pid_name_1, pid_name_2) -> Some (get_link ~config true pid_name_1 pid_name_2 request graph matching)
     | Rel (pid_name_1, pid_name_2) -> Some (get_link ~config false pid_name_1 pid_name_2 request graph matching)
-    | Feat (id, splitted_feature_names) -> get_feat_value_opt ~config request graph matching (id, splitted_feature_names)
+    | Feat (id, splitted_feature_names) -> get_feat_value_opt ~json_label ~config request graph matching (id, splitted_feature_names)
     | Continuous params -> Some (get_interval ~config request graph matching params)
 
-  let get_clust_value_opt ~config clust_item request graph matching =
+  let get_clust_value_opt ?(json_label=false) ~config clust_item request graph matching =
     match clust_item with
-    | Key key -> get_value_opt ~config key request graph matching
+    | Key key -> get_value_opt ~json_label ~config key request graph matching
     | Whether basic_string ->
         let basic = Request.build_whether ~config request (Parser.basic ("{" ^ basic_string ^ "}")) in
         if whether ~config basic request graph matching then Some "Yes" else Some "No"

@@ -59,13 +59,13 @@ module Matching : sig
      * the name of an edge featue [E.feat] where [e] is a edge declared in the kernel part of the request
      * one of the pseudo features [e.label], [e.length] or [e.delta]
   *)
-  val get_value_opt: config:Conllx.Conllx_config.t -> string -> Request.t -> G_graph.t -> t -> string option
+  val get_value_opt: ?json_label:bool -> config:Conllx.Conllx_config.t -> string -> Request.t -> G_graph.t -> t -> string option
 
   val whether: config:Conllx.Conllx_config.t -> Request.basic -> Request.t -> G_graph.t -> t -> bool
   
   val subgraph: G_graph.t -> t -> int -> G_graph.t
 
-  val get_clust_value_opt: config:Conllx.Conllx_config.t -> cluster_item ->  Request.t -> G_graph.t -> t -> string option
+  val get_clust_value_opt: ?json_label:bool -> config:Conllx.Conllx_config.t -> cluster_item ->  Request.t -> G_graph.t -> t -> string option
 end (* module Matching *)
 
 (* ================================================================================ *)
