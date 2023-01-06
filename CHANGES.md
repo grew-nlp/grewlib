@@ -1,3 +1,6 @@
+## 1.10.2 (2023/01/06)
+  * change library dependences from libcaml-conll to conll
+
 ## 1.10.1 (2022/12/29)
   * change library dependences from libcaml-amr to amr
 
