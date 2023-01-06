@@ -8,7 +8,7 @@
 (*    Authors: see AUTHORS file                                                   *)
 (**********************************************************************************)
 
-open Conllx
+open Conll
 
 open Grew_types
 
@@ -49,7 +49,7 @@ module Graph : sig
       File extension should be '.gr' or '.conll'.
       @raise Parsing_err if libgrew can't parse the file
       @raise File_not_found if the file doesn't exists. *)
-  val load: config:Conllx_config.t -> string -> t
+  val load: config:Conll_config.t -> string -> t
 
   val of_json: Yojson.Basic.t -> t
   val to_json: t -> Yojson.Basic.t
@@ -62,9 +62,9 @@ module Graph : sig
 
   val to_sentence_audio: ?deco:Deco.t -> t -> string * (float * float) option
 
-  val to_dot : ?main_feat:string -> config:Conllx_config.t -> ?deco:Deco.t -> t -> string
+  val to_dot : ?main_feat:string -> config:Conll_config.t -> ?deco:Deco.t -> t -> string
 
-  val to_dep : ?filter: (string -> bool) -> ?no_root:bool -> ?main_feat:string -> ?deco:Deco.t -> config:Conllx_config.t -> t -> string
+  val to_dep : ?filter: (string -> bool) -> ?no_root:bool -> ?main_feat:string -> ?deco:Deco.t -> config:Conll_config.t -> t -> string
 
   val get_meta_opt: string -> t -> string option
 
@@ -79,7 +79,7 @@ module Graph : sig
   *)
 
   val get_feature_values: string -> t -> String_set.t
-  val get_relations: config:Conllx_config.t -> t -> String_set.t
+  val get_relations: config:Conll_config.t -> t -> String_set.t
   val get_features: t -> String_set.t
 
   val get_history: t -> (Deco.t * (string * int) * Deco.t * t) list
@@ -95,17 +95,17 @@ module Request : sig
   type basic
 
   (** [load filename] returns the request described in the file *)
-  val load: config:Conllx_config.t -> string -> t
+  val load: config:Conll_config.t -> string -> t
 
   (** [parse description] returns the request described in the [descriprion] string *)
-  val parse: config:Conllx_config.t -> string -> t
+  val parse: config:Conll_config.t -> string -> t
 
   (** [parse_basic description] returns the basic described in the [descriprion] string *)
-  val parse_basic: config:Conllx_config.t -> t -> string -> basic
+  val parse_basic: config:Conll_config.t -> t -> string -> basic
 
   val pid_name_list: t -> string list
 
-  val of_json: config:Conllx_config.t -> Yojson.Basic.t -> t
+  val of_json: config:Conll_config.t -> Yojson.Basic.t -> t
 end
 
 (* ==================================================================================================== *)
@@ -124,21 +124,21 @@ module Matching: sig
       * the name of an edge featue [e.feat] where [e] is a edge declared in the kernel part of the request
   *)
   (* TODO: do not export: generalized by get_clust_value_opt *)
-  val get_value_opt: config:Conllx_config.t -> string -> Request.t -> Graph.t -> t -> string option
+  val get_value_opt: config:Conll_config.t -> string -> Request.t -> Graph.t -> t -> string option
 
   (* TODO: do not export: generalized by get_clust_value_opt *)
-  val whether: config:Conllx_config.t -> Request.basic -> Request.t -> Graph.t -> t -> bool
+  val whether: config:Conll_config.t -> Request.basic -> Request.t -> Graph.t -> t -> bool
   
   val subgraph: Graph.t -> t -> int -> Graph.t
 
   (** [search_request_in_graph request graph] returns the list of the possible matching of [request] in [graph] *)
-  val search_request_in_graph: config:Conllx_config.t -> Request.t -> Graph.t -> t list
+  val search_request_in_graph: config:Conll_config.t -> Request.t -> Graph.t -> t list
 
   (** [build_deco request matching] returns the deco to be used in the graphical representation.
       WARNING: the function supposes that [matching] was find with the given [request]! *)
   val build_deco: Request.t -> t -> Deco.t
 
-  val get_clust_value_opt:  ?json_label:bool -> config:Conllx_config.t -> cluster_item ->  Request.t -> Graph.t -> t -> string option
+  val get_clust_value_opt:  ?json_label:bool -> config:Conll_config.t -> cluster_item ->  Request.t -> Graph.t -> t -> string option
 end
 
 (* ==================================================================================================== *)
@@ -149,11 +149,11 @@ module Grs : sig
 
   val empty: t
 
-  val load: config:Conllx_config.t -> string -> t
+  val load: config:Conll_config.t -> string -> t
 
-  val parse: config:Conllx_config.t -> string -> t
+  val parse: config:Conll_config.t -> string -> t
 
-  val to_json: config:Conllx_config.t -> t -> Yojson.Basic.t
+  val to_json: config:Conll_config.t -> t -> Yojson.Basic.t
 
   val dump: t -> unit
 
@@ -168,7 +168,7 @@ module Grs : sig
 
   val get_rule_list: t -> string list
 
-  val of_json: config:Conllx_config.t -> Yojson.Basic.t -> t
+  val of_json: config:Conll_config.t -> Yojson.Basic.t -> t
 end
 
 (* ==================================================================================================== *)
@@ -185,10 +185,10 @@ module Rewrite: sig
       @param grs the graph rewriting system
       @param strat the name of the strategy to apply
   *)
-  val simple_rewrite: config:Conllx_config.t -> Graph.t -> Grs.t -> string -> Graph.t list
+  val simple_rewrite: config:Conll_config.t -> Graph.t -> Grs.t -> string -> Graph.t list
 
 
-  val onf_rewrite_opt: config:Conllx_config.t -> Graph.t -> Grs.t -> string -> Graph.t option
+  val onf_rewrite_opt: config:Conll_config.t -> Graph.t -> Grs.t -> string -> Graph.t option
 
   (** [log_rewrite ())] outputs a JSON describing the number of rules applies and the time for the last rewrite call *)
   val log_rewrite: unit -> Yojson.Basic.t
@@ -220,20 +220,20 @@ module Corpus: sig
 
   val permut_length: t -> int array
 
-  val of_conllx_corpus: Conllx_corpus.t -> t
-  val from_stdin: ?ext:string -> ?log_file:string -> ?config:Conllx_config.t -> unit -> t
-  val from_string: ?ext:string -> ?log_file:string -> ?config:Conllx_config.t -> string -> t
-  val from_file: ?ext:string -> ?log_file:string -> ?config:Conllx_config.t -> string -> t
-  val from_dir: ?config:Conllx_config.t -> string -> t
+  val of_conllx_corpus: Conll_corpus.t -> t
+  val from_stdin: ?ext:string -> ?log_file:string -> ?config:Conll_config.t -> unit -> t
+  val from_string: ?ext:string -> ?log_file:string -> ?config:Conll_config.t -> string -> t
+  val from_file: ?ext:string -> ?log_file:string -> ?config:Conll_config.t -> string -> t
+  val from_dir: ?config:Conll_config.t -> string -> t
 
   val from_assoc_list: (string * Graph.t) list -> t
 
   val merge: t list -> t
-  val get_columns_opt: t -> Conllx_columns.t option
+  val get_columns_opt: t -> Conll_columns.t option
 
   val search:
     ?json_label: bool ->
-    config:Conllx_config.t ->
+    config:Conll_config.t ->
     'a ->                   (* null value to build clusters *)
     (string -> Graph.t -> Matching.t -> 'a -> 'a) ->
     (* update function to build clusters. Parameters ares:
@@ -254,7 +254,7 @@ module Corpus: sig
    *)
 
   val bounded_search: 
-    config:Conllx_config.t ->
+    config:Conll_config.t ->
     ?ordering: string option ->  (* if value is "length", graph are considered by size, if value is "shuffle", graph order is randomiez, else a default order is used  *)
     int option ->                (* bound on the number of matching *)
     float option ->              (* Timeunt in seconds *)  
@@ -285,7 +285,7 @@ module Corpus_desc: sig
   val build_corpus: t -> Corpus.t
   val load_corpus_opt: t -> Corpus.t option
 
-  val get_config: t -> Conllx_config.t
+  val get_config: t -> Conll_config.t
   val is_rtl: t -> bool
   val is_audio: t -> bool
   val get_id: t -> string

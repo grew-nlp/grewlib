@@ -8,7 +8,7 @@
 (*    Authors: see AUTHORS file                                                   *)
 (**********************************************************************************)
 
-open Conllx
+open Conll
 
 open Grew_types
 open Grew_utils
@@ -45,7 +45,7 @@ module G_node: sig
   val is_conll_zero: t -> bool
   val is_eud_empty: t -> bool
 
-  val dump: config:Conllx_config.t -> t -> string
+  val dump: config:Conll_config.t -> t -> string
 
   val of_ast: ?position:int -> Ast.node -> t
   val build_pst_leaf: ?loc:Loc.t -> string -> t

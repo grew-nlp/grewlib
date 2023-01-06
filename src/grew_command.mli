@@ -8,7 +8,7 @@
 (*    Authors: see AUTHORS file                                                   *)
 (**********************************************************************************)
 
-open Conllx
+open Conll
 open Grew_ast
 open Grew_types
 open Grew_utils
@@ -53,11 +53,11 @@ module Command : sig
     | INSERT_AFTER of (command_node * command_node)
 
   type t = (p * Loc.t)
-  val to_json: config:Conllx_config.t -> ?base:Grew_graph.P_graph.t -> t -> Yojson.Basic.t
+  val to_json: config:Conll_config.t -> ?base:Grew_graph.P_graph.t -> t -> Yojson.Basic.t
 
 
   val of_ast:
-    config:Conllx_config.t ->
+    config:Conll_config.t ->
     Lexicons.t ->
     (Id.name list * string list) ->
     Id.table ->

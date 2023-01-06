@@ -9,7 +9,7 @@
 (**********************************************************************************)
 
 open Printf
-open Conllx
+open Conll
 
 (* ==================================================================================================== *)
 (** {2 Exceptions} *)
@@ -31,7 +31,7 @@ module Libgrew = struct
     | Grew_utils.Error.Build (msg, None) -> raise (Error (sprintf "%s" msg))
     | Grew_utils.Error.Run (msg, Some loc) -> raise (Error (sprintf "%s %s" (Grew_utils.Loc.to_string loc) msg))
     | Grew_utils.Error.Run (msg, None) -> raise (Error (sprintf "%s" msg))
-    | Conllx_error msg -> raise (Error (sprintf "Conllx error: %s" (Yojson.Basic.pretty_to_string msg)))
+    | Conll_error msg -> raise (Error (sprintf "Conll error: %s" (Yojson.Basic.pretty_to_string msg)))
 
     | Grew_utils.Error.Bug (msg, Some loc) -> raise (Bug (sprintf "%s %s" (Grew_utils.Loc.to_string loc) msg))
     | Grew_utils.Error.Bug (msg, None) -> raise (Bug (sprintf "%s" msg))
@@ -75,7 +75,7 @@ module Graph = struct
   let load_conll ~config file =
     Libgrew.handle ~name:"Graph.load_conll" ~file
       (fun () ->
-         Conllx.load ~config file |> Conllx.to_json |> Grew_graph.G_graph.of_json
+         Conll.load ~config file |> Conll.to_json |> Grew_graph.G_graph.of_json
       ) ()
 
   let load_pst file =

@@ -8,7 +8,7 @@
 (*    Authors: see AUTHORS file                                                   *)
 (**********************************************************************************)
 
-open Conllx
+open Conll
 
 open Grew_types
 open Grew_utils
@@ -23,7 +23,7 @@ module P_graph: sig
 
   val empty: t
 
-  val to_json_list: config:Conllx_config.t -> ?base:t -> t -> Yojson.Basic.t list
+  val to_json_list: config:Conll_config.t -> ?base:t -> t -> Yojson.Basic.t list
 
   val find: Pid.t -> t -> P_node.t
 
@@ -36,14 +36,14 @@ module P_graph: sig
 
   (** [P_fs.Fail_unif] exception is raised in case of inconsistent feature structures. *)
   val of_ast:
-    config:Conllx_config.t ->
+    config:Conll_config.t ->
     Lexicons.t ->
     Ast.basic ->
     (t * Id.table * string list)
 
   (** [P_fs.Fail_unif] exception is raised in case of inconsistent feature structures. *)
   val of_ast_extension:
-    config:Conllx_config.t ->
+    config:Conll_config.t ->
     Lexicons.t ->
     Id.table ->
     string list ->
@@ -106,7 +106,7 @@ module G_graph: sig
   val clear_rules: t -> t
 
   (** [edge_out t id label_cst] returns true iff there is an out-edge from the node [id] with a label compatible with [label_cst] *)
-  val edge_out: config:Conllx_config.t -> t -> Gid.t -> Label_cst.t -> bool
+  val edge_out: config:Conll_config.t -> t -> Gid.t -> Label_cst.t -> bool
 
   (** [covered t node edge graph] returns true iff the node is covered by the [edge]
       i.e. the position of the node is strictly between the two nodes of the edge *)
@@ -154,7 +154,7 @@ module G_graph: sig
 
   (** shift all crown-edges ending in [src_gid] to edges ending in [tar_gid] *)
   val shift_in:
-    config:Conllx_config.t ->
+    config:Conll_config.t ->
     Loc.t ->            (* localization of the command *)
     Gid.t ->            (* [src_gid] the source gid of the "shift_in" *)
     Gid.t ->            (* [tar_gid] the target gid of the "shift_in" *)
@@ -168,7 +168,7 @@ module G_graph: sig
 
   (** shift all crown-edges starting from [src_gid] to edges starting from [tar_gid] *)
   val shift_out:
-    config:Conllx_config.t ->
+    config:Conll_config.t ->
     Loc.t ->            (* localization of the command *)
     Gid.t ->            (* [src_gid] the source gid of the "shift_out" *)
     Gid.t ->            (* [tar_gid] the target gid of the "shift_out" *)
@@ -182,7 +182,7 @@ module G_graph: sig
 
   (** move all incident crown-edges from/to [src_gid] are moved to incident edges on node [tar_gid] from graph *)
   val shift_edges:
-    config:Conllx_config.t ->
+    config:Conll_config.t ->
     Loc.t ->            (* localization of the command *)
     Gid.t ->            (* [src_gid] the source gid of the "shift_edges" *)
     Gid.t ->            (* [tar_gid] the target gid of the "shift_edges" *)
@@ -211,12 +211,12 @@ module G_graph: sig
   (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
   (* Output functions *)
   (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
-  val to_dot: ?main_feat:string -> ?deco:G_deco.t -> config:Conllx_config.t -> t -> string
+  val to_dot: ?main_feat:string -> ?deco:G_deco.t -> config:Conll_config.t -> t -> string
   val to_sentence: ?pivot: string -> ?deco:G_deco.t -> t -> string
 
   val to_sentence_audio: ?deco:G_deco.t -> t -> (string * (float * float) option)
 
-  val to_dep: ?filter: (string -> bool) -> ?no_root:bool -> ?main_feat:string -> ?deco:G_deco.t -> config:Conllx_config.t -> t -> string
+  val to_dep: ?filter: (string -> bool) -> ?no_root:bool -> ?main_feat:string -> ?deco:G_deco.t -> config:Conll_config.t -> t -> string
 
   val to_json: t -> Yojson.Basic.t
 
@@ -240,7 +240,7 @@ module G_graph: sig
   val set_meta: string -> string -> t -> t
 
   val get_feature_values: string -> t -> String_set.t
-  val get_relations:  config:Conllx_config.t -> t -> String_set.t
+  val get_relations:  config:Conll_config.t -> t -> String_set.t
   val get_features: t -> String_set.t
 
   val subgraph: t -> Gid_map.key list -> int -> t

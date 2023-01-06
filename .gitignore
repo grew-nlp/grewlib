@@ -5,3 +5,4 @@ dev/*.aux
 dev/*.pdf
 dev/*.log
 .vscode
+switch_*.sh

@@ -8,7 +8,7 @@
 (*    Authors: see AUTHORS file                                                   *)
 (**********************************************************************************)
 
-open Conllx
+open Conll
 
 open Grew_types
 open Grew_graph
@@ -25,7 +25,7 @@ module Corpus : sig
   val size: t -> int
   val get_graph: int -> t -> G_graph.t
   val is_conll: t -> bool
-  val get_columns_opt: t -> Conllx_columns.t option
+  val get_columns_opt: t -> Conll_columns.t option
 
   val update_graph: string -> G_graph.t -> t -> unit
 
@@ -38,17 +38,17 @@ module Corpus : sig
 
   val permut_length: t -> int array
 
-  val of_conllx_corpus: Conllx_corpus.t -> t
-  val from_stdin: ?ext:string -> ?log_file: string -> ?config:Conllx_config.t -> unit -> t
-  val from_string: ?ext:string -> ?log_file: string -> ?config:Conllx_config.t -> string -> t
-  val from_file: ?ext:string -> ?log_file: string -> ?config:Conllx_config.t -> string -> t
-  val from_dir: ?log_file: string -> ?config:Conllx_config.t -> string -> t
+  val of_conllx_corpus: Conll_corpus.t -> t
+  val from_stdin: ?ext:string -> ?log_file: string -> ?config:Conll_config.t -> unit -> t
+  val from_string: ?ext:string -> ?log_file: string -> ?config:Conll_config.t -> string -> t
+  val from_file: ?ext:string -> ?log_file: string -> ?config:Conll_config.t -> string -> t
+  val from_dir: ?log_file: string -> ?config:Conll_config.t -> string -> t
   val from_assoc_list: (string * G_graph.t) list -> t
 
-  val search: ?json_label:bool -> config:Conllx_config.t -> 'a -> (string -> G_graph.t -> Matching.t -> 'a -> 'a) -> Request.t -> cluster_item list -> t -> 'a Clustered.t
+  val search: ?json_label:bool -> config:Conll_config.t -> 'a -> (string -> G_graph.t -> Matching.t -> 'a -> 'a) -> Request.t -> cluster_item list -> t -> 'a Clustered.t
 
   val bounded_search: 
-    config:Conllx_config.t ->
+    config:Conll_config.t ->
     ?ordering: string option ->  (* if value is "length", graph are considered by size, if value is "shuffle", graph order is randomiez, else a default order is used  *)
     int option ->                (* bound on the number of matching *)
     float option ->              (* Timeout in seconds *)  
@@ -73,7 +73,7 @@ module Corpus_desc : sig
   val build_corpus: t -> Corpus.t
   val load_corpus_opt: t -> Corpus.t option
 
-  val get_config: t -> Conllx_config.t
+  val get_config: t -> Conll_config.t
 
   val is_rtl: t -> bool
   val is_audio: t -> bool

@@ -9,7 +9,7 @@
 (**********************************************************************************)
 
 open Printf
-open Conllx
+open Conll
 
 open Grew_types
 open Grew_utils
@@ -27,15 +27,15 @@ module G_edge_fs = struct
   | fs -> `Assoc (List.map (fun (k,v) -> (k, Feature_value.to_json v)) fs)
 
   (* returns either [Ok compact_string] or [Error long_string] if no compact representation can be built *)
-  let to_string_result ~config fs = fs |> to_json |> Conllx_label.of_json |> Conllx_label.to_string ~config
+  let to_string_result ~config fs = fs |> to_json |> Conll_label.of_json |> Conll_label.to_string ~config
 
   let to_string ~config fs = match to_string_result ~config fs with Ok s | Error s -> s
 
   let from_string ~config s =
     let open Yojson.Basic.Util in
     s
-    |> (Conllx_label.of_string ~config)
-    |> Conllx_label.to_json
+    |> (Conll_label.of_string ~config)
+    |> Conll_label.to_json
     |> to_assoc 
     |> List.map 
         (fun (f,json_v) -> 

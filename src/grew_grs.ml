@@ -9,7 +9,7 @@
 (**********************************************************************************)
 
 open Printf
-open Conllx
+open Conll
 
 open Grew_fs
 open Grew_types
@@ -503,7 +503,7 @@ module Grs = struct
     then [onf_rewrite ~config (top grs) strat graph]
     else gwh_simple_rewrite ~config grs strat graph
 
-  let eud2ud = load ~config:(Conllx_config.build "ud") (Filename.concat DATADIR "eud2ud.grs")
+  let eud2ud = load ~config:(Conll_config.build "ud") (Filename.concat DATADIR "eud2ud.grs")
   let apply_eud2ud ~config graph =
     match simple_rewrite ~config eud2ud "main" graph with
     | [one] -> one

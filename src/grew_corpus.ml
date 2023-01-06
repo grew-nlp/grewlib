@@ -9,7 +9,7 @@
 (**********************************************************************************)
 
 open Printf
-open Conllx
+open Conll
 open Amr
 
 open Grew_types
@@ -44,7 +44,7 @@ end
 (* ==================================================================================================== *)
 module Corpus = struct
   type kind = 
-    | Conll of Conllx_columns.t option (* value is None in Corpus_desc and Some c once the corpus is really loaded *)
+    | Conll of Conll_columns.t option (* value is None in Corpus_desc and Some c once the corpus is really loaded *)
     | Pst | Amr | Gr | Json | Dmrs
 
   type item = {
@@ -86,11 +86,11 @@ module Corpus = struct
     let items =
       Array.map
         (fun (sent_id, conllx) ->
-           let text = match List.assoc_opt "text" (Conllx.get_meta conllx) with Some t -> t | None -> "__missing text metadata__" in
-           let graph = conllx |> Conllx.to_json |> G_graph.of_json in
+           let text = match List.assoc_opt "text" (Conll.get_meta conllx) with Some t -> t | None -> "__missing text metadata__" in
+           let graph = conllx |> Conll.to_json |> G_graph.of_json in
            { sent_id; text; graph }
-        ) (Conllx_corpus.get_data conllx_corpus) in
-    { kind = Conll (Some (Conllx_corpus.get_columns conllx_corpus)); items }
+        ) (Conll_corpus.get_data conllx_corpus) in
+    { kind = Conll (Some (Conll_corpus.get_columns conllx_corpus)); items }
 
   let of_amr_file file =
     try
@@ -170,7 +170,7 @@ module Corpus = struct
     | Some ".conll" | Some ".conllu" | Some ".cupt" | Some ".orfeo" | Some ".frsemcor" 
     | _ -> (* TODO: use Conll by default --> more robust stuff needed *)
       let lines = CCIO.read_lines_l stdin in
-      of_conllx_corpus (Conllx_corpus.of_lines ?log_file ?config lines)
+      of_conllx_corpus (Conll_corpus.of_lines ?log_file ?config lines)
 
   let from_string ?ext ?log_file ?config s =
     match ext with
@@ -178,13 +178,13 @@ module Corpus = struct
     | Some ".conll" | Some ".conllu" | Some ".cupt" | Some ".orfeo" | Some ".frsemcor" 
     | _ -> (* TODO: use Conll by default --> more robust stuff needed *)
       let lines = Str.split (Str.regexp "\n") s in
-      of_conllx_corpus (Conllx_corpus.of_lines ?log_file ?config lines)
+      of_conllx_corpus (Conll_corpus.of_lines ?log_file ?config lines)
 
   let from_file ?ext ?log_file ?config file =
     let extension = match ext with Some e -> e | None -> Filename.extension file in
     match extension with
     | ".conll" | ".conllu" | ".cupt" | ".orfeo" | ".frsemcor" ->
-      of_conllx_corpus (Conllx_corpus.load ?log_file ?config file)
+      of_conllx_corpus (Conll_corpus.load ?log_file ?config file)
     | ".amr" | ".txt" ->
       of_amr_file file
     | ".json" ->
@@ -209,7 +209,7 @@ module Corpus = struct
     (* txt files are interpreted as AMR files only if there is no conll-like files (eg: UD containts txt files in parallel to conllu) *)
     match (conll_files, amr_files, txt_files) with
     | ([],[],[]) -> Error.run "The directory `%s` does not contain any graphs" dir
-    | (conll_files,[],_) -> of_conllx_corpus (Conllx_corpus.load_list ?log_file ?config conll_files)
+    | (conll_files,[],_) -> of_conllx_corpus (Conll_corpus.load_list ?log_file ?config conll_files)
     | ([],amr_files, txt_files) -> (amr_files @ txt_files) |> List.map of_amr_file |> merge
     | _ -> Error.run "The directory `%s` contains both Conll data and Amr data" dir
 
@@ -302,7 +302,7 @@ module Corpus_desc = struct
     id: string;
     lang: string option;
     kind: Corpus.kind;
-    config: Conllx_config.t; (* "ud" is used as the default: TODO make config mandatory in desc? *)
+    config: Conll_config.t; (* "ud" is used as the default: TODO make config mandatory in desc? *)
     directory: string;
     files: string list;
     rtl: bool;
@@ -320,7 +320,7 @@ module Corpus_desc = struct
   let is_audio corpus_desc = corpus_desc.audio
   let get_display corpus_desc = corpus_desc.display
   
-  let build id directory = { id; lang=None; kind=Conll None; config=Conllx_config.build "ud"; directory; files=[]; rtl=false; audio=false; dynamic=false; display=None; preapply=None}
+  let build id directory = { id; lang=None; kind=Conll None; config=Conll_config.build "ud"; directory; files=[]; rtl=false; audio=false; dynamic=false; display=None; preapply=None}
   (* ---------------------------------------------------------------------------------------------------- *)
   let extensions = function
     | Corpus.Conll _ -> [".conll"; ".conllu"; ".cupt"; ".orfeo"; "frsemcor"]
@@ -350,13 +350,13 @@ module Corpus_desc = struct
     let config = corpus_desc.config in
     match corpus_desc.kind with
     | Conll _ ->
-      let conll_corpus = Conllx_corpus.load_list ~config (get_full_files corpus_desc) in
-      let columns = Conllx_corpus.get_columns conll_corpus in
+      let conll_corpus = Conll_corpus.load_list ~config (get_full_files corpus_desc) in
+      let columns = Conll_corpus.get_columns conll_corpus in
 
       let items =
         CCArray.filter_map (fun (sent_id,conll) ->
             try
-              let init_graph = G_graph.of_json (Conllx.to_json conll) in
+              let init_graph = G_graph.of_json (Conll.to_json conll) in
               let graph = match corpus_desc.preapply with
                 | Some grs -> Grs.apply ~config grs init_graph
                 | None -> init_graph in
@@ -366,7 +366,7 @@ module Corpus_desc = struct
                 sent_id
                 (match loc_opt with None -> "" | Some loc -> "; " ^ (Loc.to_string loc))
                 msg; None
-          ) (Conllx_corpus.get_data conll_corpus) in
+          ) (Conll_corpus.get_data conll_corpus) in
       { Corpus.items; kind=Conll (Some columns) }
     | _ -> Error.bug "[Corpus_desc.build_corpus] is available only on Conll format"
 
@@ -396,7 +396,7 @@ module Corpus_desc = struct
 
       let kind =
         try match (json |> member "kind" |> to_string_option, json |> member "columns" |> to_string_option) with
-          | (None, columns_opt) | (Some "conll", columns_opt) -> Corpus.Conll (CCOption.map Conllx_columns.build columns_opt)
+          | (None, columns_opt) | (Some "conll", columns_opt) -> Corpus.Conll (CCOption.map Conll_columns.build columns_opt)
           | (Some "pst",_) -> Pst
           | (Some "amr",_) -> Amr
           | (Some "dmrs",_) -> Dmrs
@@ -405,7 +405,7 @@ module Corpus_desc = struct
         with Type_error _ -> Error.run "[Corpus.load_json, file \"%s\"] \"kind\" must be a string" json_file in
 
       let config =
-        try json |> member "config" |> to_string_option |> (function Some c -> Conllx_config.build c | None -> Conllx_config.build "ud")
+        try json |> member "config" |> to_string_option |> (function Some c -> Conll_config.build c | None -> Conll_config.build "ud")
         with Type_error _ -> Error.run "[Corpus.load_json, file \"%s\"] \"config\" field must be a string" json_file in
 
       let directory =
@@ -453,12 +453,12 @@ module Corpus_desc = struct
     match dir_opt with
     | None -> ()
     | Some dir ->
-      let stat = Conllx_stat.build ~config:corpus_desc.config ("upos", None) ("ExtPos", Some "upos") corpus in
-      let html = Conllx_stat.to_html name ("upos", None) ("ExtPos", Some "upos")  stat in
+      let stat = Conll_stat.build ~config:corpus_desc.config ("upos", None) ("ExtPos", Some "upos") corpus in
+      let html = Conll_stat.to_html name ("upos", None) ("ExtPos", Some "upos")  stat in
       let out_file = Filename.concat dir (name ^ "_table.html") in
       CCIO.with_out out_file (fun oc -> CCIO.write_line oc html);
 
-      let (nb_trees, nb_tokens) = Conllx_corpus.sizes corpus in
+      let (nb_trees, nb_tokens) = Conll_corpus.sizes corpus in
       let desc = `Assoc (CCList.filter_map CCFun.id [
           Some ("nb_trees", `Int nb_trees);
           Some ("nb_tokens", `Int nb_tokens);
@@ -508,12 +508,12 @@ module Corpus_desc = struct
     try
       let (data : Corpus.t) = match corpus_desc.kind with
         | Conll columns ->
-          let conll_corpus = Conllx_corpus.load_list ?log_file ~config:corpus_desc.config ?columns full_files in
-          let columns = Conllx_corpus.get_columns conll_corpus in
+          let conll_corpus = Conll_corpus.load_list ?log_file ~config:corpus_desc.config ?columns full_files in
+          let columns = Conll_corpus.get_columns conll_corpus in
           grew_match_table_and_desc corpus_desc grew_match_dir conll_corpus;
           let items = CCArray.filter_map (fun (sent_id,conllx) ->
               try
-                let init_graph = G_graph.of_json (Conllx.to_json conllx) in
+                let init_graph = G_graph.of_json (Conll.to_json conllx) in
                 let graph = match corpus_desc.preapply with
                   | Some grs -> Grs.apply ~config grs init_graph
                   | None -> init_graph in
@@ -523,7 +523,7 @@ module Corpus_desc = struct
                   sent_id
                   (match loc_opt with None -> "" | Some loc -> "; " ^ (Loc.to_string loc))
                   msg; None
-            ) (Conllx_corpus.get_data conll_corpus) in
+            ) (Conll_corpus.get_data conll_corpus) in
           {Corpus.items; kind= Conll (Some columns) }
 
         | Pst ->
@@ -567,7 +567,7 @@ module Corpus_desc = struct
       Marshal.to_channel out_ch data [];
       close_out out_ch
     with
-    | Conllx_error json -> Error.warning "[Conllx_error] fail to load corpus %s, skip it\nexception: %s" corpus_desc.id (Yojson.Basic.pretty_to_string json)
+    | Conll_error json -> Error.warning "[Conll_error] fail to load corpus %s, skip it\nexception: %s" corpus_desc.id (Yojson.Basic.pretty_to_string json)
     | Error.Run (msg,_) -> Error.warning "[Libgrew error] %s, fail to load corpus %s: skip it" msg corpus_desc.id
     | exc -> Error.warning "[Error] fail to load corpus %s, skip it\nexception: %s" corpus_desc.id (Printexc.to_string exc)
 
