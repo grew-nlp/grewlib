@@ -1272,7 +1272,7 @@ module Rule = struct
             match G_graph.del_edge_feature_opt ~loc edge_id feat_name (src_gid,old_edge,tar_gid) state.graph with
             | None when !Global.safe_commands -> Error.run ~loc "DEL_EDGE_FEAT: the edge feature name '%s' does not exist" feat_name
             | None -> state
-            | Some (new_graph, new_edge) ->
+            | Some (new_graph, new_edge, _) ->
               {state with
                graph = new_graph;
                effective = true;
@@ -1820,13 +1820,20 @@ module Rule = struct
             match G_graph.del_edge_feature_opt ~loc edge_id feat_name (src_gid,old_edge,tar_gid) gwh.Graph_with_history.graph with
             | None when !Global.safe_commands -> Error.run ~loc "DEL_EDGE_FEAT: the edge feature name '%s' does not exist" feat_name
             | None -> Graph_with_history_set.singleton gwh
-            | Some (new_graph, new_edge) ->
+            | Some (new_graph, new_edge, capture) ->
+              let delta = 
+                if capture 
+                then
+                  gwh.Graph_with_history.delta
+                  |> Delta.del_edge src_gid old_edge tar_gid
+                else
+                  gwh.Graph_with_history.delta
+                  |> Delta.del_edge src_gid old_edge tar_gid
+                  |> Delta.add_edge src_gid new_edge tar_gid in
               Graph_with_history_set.singleton
                 {gwh with
                  Graph_with_history.graph = new_graph;
-                 delta = gwh.Graph_with_history.delta
-                         |> Delta.del_edge src_gid old_edge tar_gid
-                         |> Delta.add_edge src_gid new_edge tar_gid;
+                 delta;
                  e_mapping = String_map.add edge_id (src_gid,new_edge,tar_gid) gwh.e_mapping;
                 }
           end

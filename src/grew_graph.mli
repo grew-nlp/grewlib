@@ -136,7 +136,7 @@ module G_graph: sig
   val del_edge_opt: ?loc:Loc.t -> Gid.t -> G_edge.t -> Gid.t -> t -> t option
 
 
-  val del_edge_feature_opt: ?loc:Loc.t -> string -> string -> (Gid.t * G_edge.t * Gid.t ) -> t -> (t * G_edge.t) option
+  val del_edge_feature_opt: ?loc:Loc.t -> string -> string -> (Gid.t * G_edge.t * Gid.t ) -> t -> (t * G_edge.t * bool) option
 
 
   (** [del_node graph id] remove node [id] from [graph], with all its incoming and outcoming edges.

@@ -97,13 +97,17 @@ module G_node = struct
     | Some new_next -> Some {t with next = new_next}
     | None -> None
 
+  (* The third element in the output is [true] iff the is a capture:
+    The edge resulting from the del_feat already exist in the graphs
+    TODO: this should be docuemented and maybe a warning/error would be usefull *)
   let del_edge_feature_opt gid_tar old_edge feat_name t =
     match G_edge.remove_feat_opt feat_name old_edge with
     | None -> None
     | Some new_edge ->
-      match Gid_massoc.add_opt gid_tar new_edge (Gid_massoc.remove gid_tar old_edge t.next) with
-      | Some new_next -> Some ({t with next = new_next }, new_edge)
-      | None -> None
+      let without_old = Gid_massoc.remove gid_tar old_edge t.next in
+      match Gid_massoc.add_opt gid_tar new_edge without_old with
+      | Some new_next ->  Some ({t with next = new_next }, new_edge, false)
+      | None -> Some ({t with next = without_old }, new_edge, true)
 
   let remove_key node_id t =
     try {t with next = Gid_massoc.remove_key node_id t.next}

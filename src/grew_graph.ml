@@ -760,7 +760,7 @@ module G_graph = struct
     | None -> Error.run ?loc "[Graph.del_edge_feature_opt] cannot find source node of edge \"%s\"" edge_id
     | Some src_node ->
       match G_node.del_edge_feature_opt tar_gid edge feat_name src_node with
-      | Some (new_node, new_edge) -> Some ({graph with map = Gid_map.add src_gid new_node graph.map}, new_edge)
+      | Some (new_node, new_edge, capture) -> Some ({graph with map = Gid_map.add src_gid new_node graph.map}, new_edge, capture)
       | None -> None
 
   (* -------------------------------------------------------------------------------- *)
