@@ -17,25 +17,12 @@ datadir:
 	echo $(DATADIR) > DATADIR
 
 install: build uninstall
-	cp META_STD META
 	ocamlfind install -patch-version $(VERSION) libgrew META $(INSTALL_FILES)
-	rm -f META
-	mkdir -p $(DATADIR)
-	cp -rf grs/* $(DATADIR)
-
-install_dev: build uninstall_dev
-	cp META_DEV META
-	ocamlfind install -patch-version $(VERSION) libgrew_dev META $(INSTALL_FILES)
-	rm -f META
 	mkdir -p $(DATADIR)
 	cp -rf grs/* $(DATADIR)
 
 uninstall:
 	ocamlfind remove libgrew
-	rm -rf $(DATADIR)
-
-uninstall_dev:
-	ocamlfind remove libgrew_dev
 	rm -rf $(DATADIR)
 
 doc:
