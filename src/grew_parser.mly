@@ -31,6 +31,7 @@ type ineq_item =
 type req_item =
   | Pattern of Ast.basic
   | Without of Ast.basic
+  | With of Ast.basic
   | Global of Ast.glob list
 
 let get_loc () = Global.get_loc ()
@@ -80,6 +81,7 @@ let localize t = (t,get_loc ())
 %token FROM                        /* from */
 %token PATTERN                     /* request */
 %token WITHOUT                     /* without */
+%token WITH                        /* with */
 %token COMMANDS                    /* commands */
 %token GLOBAL                      /* global */
 %token STRAT                       /* strat */
@@ -253,8 +255,11 @@ glob_item:
 pos_item:
         | PATTERN i=basic { i }
 
-neg_item:
+neg_filter:
         | WITHOUT i=basic { i }
+
+pos_filter:
+        | WITH i=basic { i }
 
 basic:
         | l=delimited(LACC,separated_list_final_opt(SEMIC,clause_item),RACC)
@@ -827,10 +832,11 @@ request:
           | Pattern i -> Ast.concat_basic i acc
           | _ -> acc
           ) Ast.empty_basic l in
-      let negs = List.fold_left
+      let external_lexicons = List.fold_left
         (fun acc i ->
           match i with
-          | Without i -> i :: acc
+          | Without i -> (i, false) :: acc
+          | With i -> (i, true) :: acc
           | _ -> acc
           ) [] l in
       let glob = List.fold_left
@@ -842,13 +848,14 @@ request:
       Ast.complete_and_check_request {
           Ast.req_glob = glob;
           Ast.req_pos = pos;
-          Ast.req_negs = negs;
+          Ast.req_exts = external_lexicons;
         }
     }
 
 request_item:
   | i=pos_item  { Pattern i }
-  | i=neg_item  { Without i }
+  | i=neg_filter  { Without i }
+  | i=pos_filter  { With i }
   | i=glob_decl { Global i }
 
 /*=============================================================================================*/

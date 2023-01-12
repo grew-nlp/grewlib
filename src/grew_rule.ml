@@ -254,10 +254,10 @@ module Request = struct
     let exts =
       List_.try_map
         P_fs.Fail_unif (* Skip the without parts that are incompatible with the match part *)
-        (fun basic_ast -> 
-          (build_ext_basic ~config lexicons ker_table edge_ids basic_ast, false)
+        (fun (basic_ast, flag) -> 
+          (build_ext_basic ~config lexicons ker_table edge_ids basic_ast, flag)
         )
-        request_ast.Ast.req_negs in
+        request_ast.Ast.req_exts in
     { ker; exts; global=request_ast.req_glob; table=ker_table; edge_ids; }
 
   let build_whether ~config request basic_ast =
@@ -1098,13 +1098,13 @@ module Rule = struct
           rule_ast.Ast.rule_id in
     let (exts,_) =
       List.fold_left
-        (fun (acc,position) basic_ast ->
-           try ((Request.build_ext_basic ~config lexicons ker_table edge_ids basic_ast, false) :: acc, position+1)
+        (fun (acc,position) (basic_ast, flag) ->
+           try ((Request.build_ext_basic ~config lexicons ker_table edge_ids basic_ast, flag) :: acc, position+1)
            with P_fs.Fail_unif ->
              Error.warning ~loc:rule_ast.Ast.rule_loc "In rule \"%s\", the wihtout number %d cannot be satisfied, it is skipped"
                rule_ast.Ast.rule_id position;
              (acc, position+1)
-        ) ([],1) rule_ast.Ast.request.Ast.req_negs in
+        ) ([],1) rule_ast.Ast.request.Ast.req_exts in
     {
       name = rule_ast.Ast.rule_id;
       request = { ker; exts; global=rule_ast.Ast.request.Ast.req_glob; table=ker_table; edge_ids };

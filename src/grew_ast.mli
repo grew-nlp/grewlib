@@ -139,7 +139,7 @@ module Ast : sig
   type request = {
     req_glob: glob list;
     req_pos: basic;
-    req_negs: basic list;
+    req_exts: (basic * bool) list;
   }
 
   (* [complete with implicit nodes and check for duplicate edge identifier in pos part] *)

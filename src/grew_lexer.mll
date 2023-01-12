@@ -175,6 +175,7 @@ and standard target = parse
 | "pattern"       { PATTERN }
 
 | "without"       { WITHOUT }
+| "with"          { WITH }
 | "commands"      { COMMANDS }
 | "global"        { GLOBAL }
 

@@ -204,7 +204,7 @@ module Ast = struct
   type request = {
     req_glob: glob list;
     req_pos: basic;
-    req_negs: basic list;
+    req_exts: (basic * bool) list; (* with iff true and without iff false *)
   }
 
   let check_dup_edge_in_request request =
@@ -242,8 +242,8 @@ module Ast = struct
     check_dup_edge_in_request request;
     let new_req_pos = complete_basic_aux [] request.req_pos in
     let aux = new_req_pos.req_nodes in
-    let new_req_negs = List.map (complete_basic_aux aux) request.req_negs in
-    { request with req_pos = new_req_pos; req_negs = new_req_negs;}
+    let new_req_exts = List.map (fun (ext, flag) -> (complete_basic_aux aux ext, flag)) request.req_exts in
+    { request with req_pos = new_req_pos; req_exts = new_req_exts;}
 
   type concat_item =
     | Qfn_or_lex_item of (pointed * Range.t)
