@@ -45,6 +45,8 @@ module G_node: sig
   val is_conll_zero: t -> bool
   val is_eud_empty: t -> bool
 
+  val out_edges: t -> int
+
   val dump: config:Conll_config.t -> t -> string
 
   val of_ast: ?position:int -> Ast.node -> t

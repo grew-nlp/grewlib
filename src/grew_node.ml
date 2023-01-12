@@ -58,6 +58,9 @@ module G_node = struct
     | Some (String "Yes") -> true
     | _ -> false
 
+  let out_edges n =
+    Gid_massoc.fold (fun acc _ edge -> if G_edge.is_fs edge then acc+1 else acc) 0 n.next
+  
   let dump ~config t =
     Printf.sprintf "  fs=[%s]\n  next=%s\n"
       (G_fs.to_string t.fs)

@@ -866,6 +866,9 @@ module Matching = struct
     | (Some (_,edge,_), _) ->
       let feat_value_opt = fold_until (fun fn -> G_edge.get_sub_opt fn edge) splitted_feature_names in
       Feature_value.to_string <$> feat_value_opt
+    | (None, ["__out__"]) ->
+      let (_, node) = search_pid_name request graph matching node_or_edge_id in
+      Some (string_of_int (G_node.out_edges node))
     | (None, _) ->
       let (_, node) = search_pid_name request graph matching node_or_edge_id in
       let fs = G_node.get_fs node in
