@@ -1150,36 +1150,32 @@ module G_graph = struct
     (Buffer.contents buff, bounds)
 
 
+  let remove_conll_root_node graph =
+    let exception Find of Gid.t in
+    try 
+      Gid_map.iter 
+        (fun gid node -> 
+           if G_node.is_conll_zero node
+           then raise (Find gid) 
+        )  graph.map; graph
+    with Find gid_root -> match del_node_opt gid_root graph with
+      | Some g -> g
+      | None -> graph
+
   (* -------------------------------------------------------------------------------- *)
   let to_dep ?filter ?(no_root=false) ?main_feat ?(deco=G_deco.empty) ~config graph =
 
-    let graph = 
-      if no_root
-      then 
-        begin
-          let exception Find of Gid.t in
-          try 
-            Gid_map.iter 
-              (fun gid node -> 
-                 if G_node.is_conll_zero node
-                 then raise (Find gid) 
-              )  graph.map; graph
-          with Find gid_root -> match del_node_opt gid_root graph with
-            | Some g -> g
-            | None -> graph
-        end
-      else graph in
-
+    let graph = if no_root then remove_conll_root_node graph else graph in 
 
     (* split lexical // non-lexical nodes *)
-    let (lexical_nodes, non_lexical_nodes) = Gid_map.fold
+    let (ordered_nodes, non_ordered_nodes) = Gid_map.fold
         (fun gid node (acc1, acc2) ->
            match G_node.get_position_opt node with
            | None -> (acc1, (gid,node)::acc2)
            | Some _ -> ((gid,node)::acc1, acc2)
         ) graph.map ([],[]) in
 
-    let sorted_lexical_nodes = List.sort (fun (_,n1) (_,n2) -> G_node.compare n1 n2) lexical_nodes in
+    let sorted_ordered_nodes = List.sort (fun (_,n1) (_,n2) -> G_node.compare n1 n2) ordered_nodes in
 
     let insert (gid,node) nodes =
       match (G_fs.get_value_opt "parseme" (G_node.get_fs node), G_fs.get_value_opt "frsemcor" (G_node.get_fs node)) with
@@ -1196,7 +1192,7 @@ module G_graph = struct
     (* insertion of non lexical node to a sensible position in the linear order *)
     let nodes = List.fold_left (
         fun acc gid_node -> insert gid_node acc
-      ) sorted_lexical_nodes non_lexical_nodes in
+      ) sorted_ordered_nodes non_ordered_nodes in
 
     let buff = Buffer.create 32 in
     bprintf buff "[GRAPH] { opacity=0; scale = 200; fontname=\"Arial\"; }\n";
@@ -1245,17 +1241,20 @@ module G_graph = struct
              | None -> ()
              | Some s -> bprintf buff "N_%s -> N_%s { label=\"__SUCC__\"; bottom; style=dot; color=lightblue; forecolor=lightblue; }\n" (Gid.to_string id) (Gid.to_string s)
            end
-        ) sorted_lexical_nodes;
+        ) sorted_ordered_nodes;
 
     Gid_map.iter
       (fun gid elt ->
-         Gid_massoc.iter
-           (fun tar g_edge ->
-              let deco = List.mem (gid,g_edge,tar) deco.G_deco.edges in
-              match G_edge.to_dep_opt ~deco ~config g_edge with
-              | None -> ()
-              | Some string_edge -> bprintf buff "N_%s -> N_%s %s\n" (Gid.to_string gid) (Gid.to_string tar) string_edge
-           ) (G_node.get_next elt)
+        Gid_massoc.iter
+          (fun tar g_edge ->
+            let deco = List.mem (gid,g_edge,tar) deco.G_deco.edges in
+            match G_edge.to_dep_opt ~deco ~config g_edge with
+            | None -> ()
+            | Some string_edge ->
+              if gid = tar
+              then Error.warning "loop on node gid=%s with label %s, cannot be drawn with dep2pict" (Gid.to_string gid) string_edge
+              else bprintf buff "N_%s -> N_%s %s\n" (Gid.to_string gid) (Gid.to_string tar) string_edge
+          ) (G_node.get_next elt)
       ) graph.map;
 
     bprintf buff "} \n";
