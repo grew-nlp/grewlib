@@ -615,7 +615,7 @@ module Matching = struct
 
   (*  ---------------------------------------------------------------------- *)
   and extend_matching_from ~config (ker_graph,ext_graph) (graph:G_graph.t) pid (gid : Gid.t) partial =
-    let injective_pid = P_graph.is_injective pid ker_graph in
+    let injective_pid = P_graph.is_injective pid [ker_graph; ext_graph] in
     if injective_pid && List.mem gid partial.already_matched_gids
     then [] (* the required association pid -> gid is not injective *)
     else
@@ -678,11 +678,11 @@ module Matching = struct
     | [] -> false (* fail to extend the matching to ext *)
     | _ -> true
 
-  let whether ~config extension request graph matching =
+  let whether ~config (extension: Request.basic) request graph matching =
     let already_matched_gids =
       Pid_map.fold 
       (fun pid gid acc -> 
-        if P_graph.is_injective pid request.Request.ker.graph
+        if P_graph.is_injective pid [request.Request.ker.graph; extension.graph]
         then gid::acc
         else acc
       ) matching.n_match [] in
