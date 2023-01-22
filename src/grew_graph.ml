@@ -1326,10 +1326,12 @@ module G_graph = struct
       (fun id node ->
          begin
            match G_node.get_succ_opt node with
-           | Some s when !Global.debug ->
-             bprintf buff "  N_%s -> N_%s [label=\"SUCC\", style=dotted, fontcolor=lightblue, color=lightblue];\n"
-               (Gid.to_string id) (Gid.to_string s)
-           | Some s -> bprintf buff " { rank=same; N_%s; N_%s; }" (Gid.to_string id) (Gid.to_string s)
+           | Some s -> 
+              (* make ordered nodes appear at the same level and in the right order with white (lightblue in debug) edges *)
+              bprintf buff " { rank=same; N_%s; N_%s; }\n" (Gid.to_string id) (Gid.to_string s);
+              let color = if !Global.debug then "lightblue" else "white" in 
+                bprintf buff "  N_%s -> N_%s [label=\"SUCC\", style=dotted, fontcolor=%s, color=%s];\n"
+                (Gid.to_string id) (Gid.to_string s) color color
            | _ -> ()
          end
       ) graph.map;
