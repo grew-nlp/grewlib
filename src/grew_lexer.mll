@@ -56,9 +56,9 @@ let newline = '\r' | '\n' | "\r\n"
 (* ------------------------------------------------------------------------------- *)
 
 rule comment target = parse
-| '\n'  { Global.new_line (); Lexing.new_line lexbuf; target lexbuf }
-| eof   { EOF }
-| _     { comment target lexbuf }
+| newline { Global.new_line (); Lexing.new_line lexbuf; target lexbuf }
+| eof     { EOF }
+| _       { comment target lexbuf }
 
 and comment_multi_doc target = shortest
 | (_* as comment)"--%" {
@@ -73,9 +73,9 @@ and comment_multi_doc target = shortest
 }
 
 and comment_multi target = parse
-| "*/" { target lexbuf }
-| '\n' { Global.new_line (); Lexing.new_line lexbuf; comment_multi target lexbuf }
-| _  { comment_multi target lexbuf }
+| "*/"    { target lexbuf }
+| newline { Global.new_line (); Lexing.new_line lexbuf; comment_multi target lexbuf }
+| _       { comment_multi target lexbuf }
 
 and string_lex re target = parse
   | '\\' {
@@ -83,8 +83,8 @@ and string_lex re target = parse
     then (bprintf buff "\\"; escaped := false; string_lex re target lexbuf)
     else (escaped := true; string_lex re target lexbuf)
   }
-  | '\n' { Global.new_line (); Lexing.new_line lexbuf; bprintf buff "\n"; string_lex re target lexbuf }
-  | '\"' {
+  | newline { Global.new_line (); Lexing.new_line lexbuf; bprintf buff "\n"; string_lex re target lexbuf }
+  | '\"'    {
     if !escaped
     then (bprintf buff "\""; escaped := false; string_lex re target lexbuf)
     else (if re then REGEXP (Buffer.contents buff) else STRING (Buffer.contents buff))
@@ -98,20 +98,20 @@ and string_lex re target = parse
 
 (* a dedicated lexer for local lexicons: read everything until "#END" *)
 and lp_lex name target = parse
-| '\n'                    { (match Global.get_line_opt () with
-                              | None -> raise (Error "no loc in lexer")
-                              | Some l -> lexicon_lines := (l, Buffer.contents buff) :: !lexicon_lines
-                            );
-                            Global.new_line ();
-                            Lexing.new_line lexbuf;
-                            Buffer.clear buff;
-                            lp_lex name target lexbuf
-                          }
-| _ as c                  { bprintf buff "%c" c; lp_lex name target lexbuf }
-| "#END" [' ' '\t']* '\n' { Global.new_line ();
-                            let lines= List.rev !lexicon_lines in
-                            LEX_PAR (name, lines)
-                          }
+| newline                     { (match Global.get_line_opt () with
+                                | None -> raise (Error "no loc in lexer")
+                                | Some l -> lexicon_lines := (l, Buffer.contents buff) :: !lexicon_lines
+                                );
+                                Global.new_line ();
+                                Lexing.new_line lexbuf;
+                                Buffer.clear buff;
+                                lp_lex name target lexbuf
+                              }
+| _ as c                      { bprintf buff "%c" c; lp_lex name target lexbuf }
+| "#END" [' ' '\t']* newline  { Global.new_line ();
+                                let lines= List.rev !lexicon_lines in
+                                LEX_PAR (name, lines)
+                              }
 
 (* The lexer must be different when label_ident are parsed.
    The [global] lexer calls either [label_parser] or [standard] depending on the flag [Global.label_flag].
@@ -130,7 +130,7 @@ and label_parser target = parse
 | [' ' '\t'] { global lexbuf }
 | "/*"       { comment_multi global lexbuf }
 | '%'        { comment global lexbuf }
-| '\n'       { Global.new_line (); Lexing.new_line lexbuf; global lexbuf}
+| newline    { Global.new_line (); Lexing.new_line lexbuf; global lexbuf}
 
 | '{'   { LACC }
 | '}'   { Global.label_flag := false; RACC }
@@ -159,12 +159,12 @@ and standard target = parse
 | "/*"       { comment_multi global lexbuf }
 | '%'        { comment global lexbuf }
 
-| "#BEGIN" [' ' '\t']* (label_ident as li) [' ' '\t']* '\n'
-             { Global.new_line ();
-               Buffer.clear buff;
-               lexicon_lines := [];
-               lp_lex li global lexbuf
-             }
+| "#BEGIN" [' ' '\t']* (label_ident as li) [' ' '\t']* newline
+                  { Global.new_line ();
+                    Buffer.clear buff;
+                    lexicon_lines := [];
+                    lp_lex li global lexbuf
+                  }
 
 | newline         { Global.new_line (); Lexing.new_line lexbuf; global lexbuf}
 
@@ -263,7 +263,7 @@ and standard target = parse
 
 and const = parse
   | [' ' '\t']            { const lexbuf }
-  | '\n'                  { Global.new_line (); const lexbuf}
+  | newline               { Global.new_line (); const lexbuf}
   | '('                   { LPAREN }
   | ')'                   { RPAREN }
   | [^'(' ')' ' ']+ as id { ID id }
