@@ -1,3 +1,8 @@
+# 1.11.0 (2023/01/22)
+  * ⚠️ add "with" clauses (with is now a keyword)
+  * non injnective matching with `N$`
+  * few bug fixes
+
 ## 1.10.2 (2023/01/06)
   * change library dependences from libcaml-conll to conll
 
