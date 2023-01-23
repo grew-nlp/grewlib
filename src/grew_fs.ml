@@ -335,8 +335,8 @@ module G_fs = struct
              match filter with
              | Some test when not (test feat_name) -> acc
              | _ -> text :: acc
-        ) tail sub in
-    let subword = String.concat "#" (List.rev lines) in
+        ) [] sub in
+    let subword = String.concat "#" (List.rev (tail @ lines)) in
 
     sprintf " word=\"%s\"; subword=\"%s\"" word subword
 

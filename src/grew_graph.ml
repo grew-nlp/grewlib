@@ -1204,11 +1204,14 @@ module G_graph = struct
          let decorated_feat = try List.assoc id deco.G_deco.nodes with Not_found -> ("",[]) in
          let fs = G_node.get_fs node in
 
+         let loop_edge = Gid_massoc.assoc id (G_node.get_next node) in
+         let loops = List.map (fun edge -> sprintf "[[%s]]:B:#82CAAF" (G_edge.dump ~config edge)) loop_edge in
+
          let tail =
            match (!Global.debug, G_node.get_position_opt node) with
-           | (true, Some pos) -> [sprintf "position=%d:B:lightblue" pos]
-           | _ -> [] in
-
+           | (true, Some pos) -> (sprintf "position=%d:B:lightblue" pos) :: loops
+           | _ -> loops in
+  
          let dep_fs = G_fs.to_dep ~decorated_feat ~tail ?filter ?main_feat fs in
 
          let style = match G_fs.get_value_opt "void" fs with
@@ -1251,9 +1254,8 @@ module G_graph = struct
             match G_edge.to_dep_opt ~deco ~config g_edge with
             | None -> ()
             | Some string_edge ->
-              if gid = tar
-              then Error.warning "loop on node gid=%s with label %s, cannot be drawn with dep2pict" (Gid.to_string gid) string_edge
-              else bprintf buff "N_%s -> N_%s %s\n" (Gid.to_string gid) (Gid.to_string tar) string_edge
+              if gid <> tar (* if gid=tar, the loop is encoded in the node see `loops` above  *)
+              then bprintf buff "N_%s -> N_%s %s\n" (Gid.to_string gid) (Gid.to_string tar) string_edge
           ) (G_node.get_next elt)
       ) graph.map;
 
