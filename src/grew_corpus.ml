@@ -180,6 +180,10 @@ module Corpus = struct
       let lines = Str.split (Str.regexp "\n") s in
       of_conllx_corpus (Conll_corpus.of_lines ?log_file ?config lines)
 
+  let of_json_file file = 
+    try { kind=Json; items = from_json ~loc: (Loc.file file) (Yojson.Basic.from_file file)}
+    with Yojson.Json_error msg -> Error.run ~loc:(Loc.file file) "Error in the JSON file format: %s" msg
+
   let from_file ?ext ?log_file ?config file =
     let extension = match ext with Some e -> e | None -> Filename.extension file in
     match extension with
@@ -187,31 +191,33 @@ module Corpus = struct
       of_conllx_corpus (Conll_corpus.load ?log_file ?config file)
     | ".amr" | ".txt" ->
       of_amr_file file
-    | ".json" ->
-      begin
-        try { kind=Json; items = from_json ~loc: (Loc.file file) (Yojson.Basic.from_file file)}
-        with Yojson.Json_error msg -> Error.run ~loc:(Loc.file file) "Error in the JSON file format: %s" msg
-      end
+    | ".json" -> 
+      of_json_file file
     | ext -> Error.run "Cannot load file `%s`, unknown extension `%s`" file ext
 
   let from_dir ?log_file ?config dir =
     let files = Sys.readdir dir in
-    let (conll_files, amr_files, txt_files) =
+    let (conll_files, amr_files, txt_files, json_files) =
       Array.fold_right
-        (fun file (conll_acc, amr_acc, txt_acc) ->
+        (fun file (conll_acc, amr_acc, txt_acc, json_acc) ->
+          let full_file = Filename.concat dir file in
            match Filename.extension file with
-           | ".conll" | ".conllu" | ".cupt" | ".orfeo" -> (file::conll_acc, amr_acc, txt_acc)
-           | ".amr" -> (conll_acc, file::amr_acc, txt_acc)
-           | ".txt" -> (conll_acc, amr_acc, file::txt_acc)
-           | _ -> (conll_acc, amr_acc, txt_acc)
-        ) files ([],[],[]) in
+           | ".conll" | ".conllu" | ".cupt" | ".orfeo" -> (full_file::conll_acc, amr_acc, txt_acc, json_acc)
+           | ".amr" -> (conll_acc, full_file::amr_acc, txt_acc, json_acc)
+           | ".txt" -> (conll_acc, amr_acc, full_file::txt_acc, json_acc)
+           | ".json" -> (conll_acc, amr_acc, txt_acc, full_file::json_acc)
+           | _ -> (conll_acc, amr_acc, txt_acc, json_acc)
+        ) files ([],[],[], []) in
+
+    printf "|json_list|=%d\n%!" (List.length json_files);
 
     (* txt files are interpreted as AMR files only if there is no conll-like files (eg: UD containts txt files in parallel to conllu) *)
-    match (conll_files, amr_files, txt_files) with
-    | ([],[],[]) -> Error.run "The directory `%s` does not contain any graphs" dir
-    | (conll_files,[],_) -> of_conllx_corpus (Conll_corpus.load_list ?log_file ?config conll_files)
-    | ([],amr_files, txt_files) -> (amr_files @ txt_files) |> List.map of_amr_file |> merge
-    | _ -> Error.run "The directory `%s` contains both Conll data and Amr data" dir
+    match (conll_files, amr_files, txt_files, json_files) with
+    | ([],[],[], []) -> Error.run "The directory `%s` does not contain any graphs" dir
+    | (conll_files,[],[],[]) -> of_conllx_corpus (Conll_corpus.load_list ?log_file ?config conll_files)
+    | ([],amr_files, txt_files,[]) -> (amr_files @ txt_files) |> List.map of_amr_file |> merge
+    | ([],[],[],json_files) -> json_files |> List.map of_json_file |> merge
+    | _ -> Error.run "The directory `%s` contains mixed kind of data" dir
 
   (* val from_assoc_list: (string * G_graph.t) list -> t *)
   let from_assoc_list l = 
