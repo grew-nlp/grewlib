@@ -45,7 +45,7 @@ end
 module Corpus = struct
   type kind = 
     | Conll of Conll_columns.t option (* value is None in Corpus_desc and Some c once the corpus is really loaded *)
-    | Pst | Amr | Gr | Json | Dmrs
+    | Pst | Amr | Gr | Json | Dmrs | Ucca
 
   type item = {
     sent_id: string;
@@ -335,6 +335,7 @@ module Corpus_desc = struct
     | Json -> [".json"]
     | Gr -> [".gr"]
     | Dmrs -> [".json"]
+    | Ucca -> [".json"]
 
   (* ---------------------------------------------------------------------------------------------------- *)
   (* if [files] is empty, all files of the directory with correct suffix are considered *)
@@ -406,6 +407,7 @@ module Corpus_desc = struct
           | (Some "pst",_) -> Pst
           | (Some "amr",_) -> Amr
           | (Some "dmrs",_) -> Dmrs
+          | (Some "ucca",_) -> Ucca
           | (Some "json",_) -> Json
           | (Some x,_) -> Error.run "[Corpus.load_json] Unknown \"kind\":\"%s\" field in file: \"%s\"" x json_file
         with Type_error _ -> Error.run "[Corpus.load_json, file \"%s\"] \"kind\" must be a string" json_file in
@@ -557,7 +559,7 @@ module Corpus_desc = struct
             ) amr_corpus in
           {Corpus.items; kind= Amr }
 
-        | Json | Dmrs ->
+        | Json | Dmrs | Ucca ->
           let items = Array.concat (
               List.map (
                 fun file ->
