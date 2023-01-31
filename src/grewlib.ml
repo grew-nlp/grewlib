@@ -14,7 +14,7 @@ open Conll
 (* ==================================================================================================== *)
 (** {2 Exceptions} *)
 (* ==================================================================================================== *)
-module Libgrew = struct
+module Grewlib = struct
   exception Error of string
   exception Bug of string
 
@@ -36,7 +36,7 @@ module Libgrew = struct
     | Grew_utils.Error.Bug (msg, Some loc) -> raise (Bug (sprintf "%s %s" (Grew_utils.Loc.to_string loc) msg))
     | Grew_utils.Error.Bug (msg, None) -> raise (Bug (sprintf "%s" msg))
     | Grew_utils.Timeout.Stop bound -> raise (Error (sprintf "Timeout (running time execeeds %g seconds)" bound))
-    | exc -> raise (Bug (sprintf "[Libgrew.%s] UNCAUGHT EXCEPTION: %s" name (Printexc.to_string exc)))
+    | exc -> raise (Bug (sprintf "[Grewlib.%s] UNCAUGHT EXCEPTION: %s" name (Printexc.to_string exc)))
 
   let get_version () = VERSION
 
@@ -73,23 +73,23 @@ module Graph = struct
   let append_in_ag_lex feature_name_list t ag_lex = Grew_graph.G_graph.append_in_ag_lex feature_name_list t ag_lex
 
   let load_conll ~config file =
-    Libgrew.handle ~name:"Graph.load_conll" ~file
+    Grewlib.handle ~name:"Graph.load_conll" ~file
       (fun () ->
          Conll.load ~config file |> Conll.to_json |> Grew_graph.G_graph.of_json
       ) ()
 
   let load_pst file =
     if not (Sys.file_exists file)
-    then raise (Libgrew.Error ("File_not_found: " ^ file))
+    then raise (Grewlib.Error ("File_not_found: " ^ file))
     else
-      Libgrew.handle ~name:"load_pst" ~file
+      Grewlib.handle ~name:"load_pst" ~file
         (fun () ->
            let const_ast = Grew_loader.Loader.phrase_structure_tree file in
            Grew_graph.G_graph.of_pst const_ast
         ) ()
 
   let load ~config file =
-    Libgrew.handle ~name:"Graph.load_graph" ~file
+    Grewlib.handle ~name:"Graph.load_graph" ~file
       (fun () ->
          match Grew_utils.String_.get_suffix_opt file with
          | Some ".conll" | Some ".conllu" -> load_conll ~config file
@@ -97,20 +97,20 @@ module Graph = struct
          | _ ->
            Grew_utils.Error.warning "Unknown file format for input graph '%s', try to guess..." file;
            let rec loop = function
-             | [] -> Grew_utils.Error.bug "[Libgrew.load_graph] Cannot guess input file format of file '%s'." file
+             | [] -> Grew_utils.Error.bug "[Grewlib.load_graph] Cannot guess input file format of file '%s'." file
              | load_fct :: tail -> try load_fct file with _ -> loop tail in
            loop [load_conll ~config; load_pst]
       ) ()
 
   let of_pst pst_string =
-    Libgrew.handle ~name:"of_pst"
+    Grewlib.handle ~name:"of_pst"
       (fun () ->
          let pst_ast = Grew_loader.Parser.phrase_structure_tree pst_string in
          (Grew_graph.G_graph.of_pst pst_ast)
       ) ()
 
   let sentence_of_pst pst_string =
-    Libgrew.handle ~name:"of_pst"
+    Grewlib.handle ~name:"of_pst"
       (fun () ->
          let pst_ast = Grew_loader.Parser.phrase_structure_tree pst_string in
          let word_list = Grew_ast.Ast.word_list pst_ast in
@@ -118,25 +118,25 @@ module Graph = struct
       ) ()
 
   let to_dot ?main_feat ~config ?(deco=Grew_graph.G_deco.empty) graph =
-    Libgrew.handle ~name:"Graph.to_dot" (fun () -> Grew_graph.G_graph.to_dot ?main_feat ~config graph ~deco) ()
+    Grewlib.handle ~name:"Graph.to_dot" (fun () -> Grew_graph.G_graph.to_dot ?main_feat ~config graph ~deco) ()
 
   let to_dep ?filter ?no_root ?main_feat ?(deco=Grew_graph.G_deco.empty) ~config graph =
-    Libgrew.handle ~name:"Graph.to_dep" (fun () -> Grew_graph.G_graph.to_dep ?filter ?no_root ?main_feat ~deco ~config graph) ()
+    Grewlib.handle ~name:"Graph.to_dep" (fun () -> Grew_graph.G_graph.to_dep ?filter ?no_root ?main_feat ~deco ~config graph) ()
 
   let of_json graph =
-    Libgrew.handle ~name:"Graph.of_json" (fun () -> Grew_graph.G_graph.of_json graph) ()
+    Grewlib.handle ~name:"Graph.of_json" (fun () -> Grew_graph.G_graph.of_json graph) ()
 
   let to_json graph =
-    Libgrew.handle ~name:"Graph.to_json" (fun () -> Grew_graph.G_graph.to_json graph) ()
+    Grewlib.handle ~name:"Graph.to_json" (fun () -> Grew_graph.G_graph.to_json graph) ()
 
   let to_sentence ?pivot ?deco gr =
-    Libgrew.handle ~name:"Graph.to_sentence"
+    Grewlib.handle ~name:"Graph.to_sentence"
       (fun () ->
          Grew_graph.G_graph.to_sentence ?pivot ?deco gr
       ) ()
 
   let to_sentence_audio ?deco gr =
-    Libgrew.handle ~name:"Graph.to_sentence_audio"
+    Grewlib.handle ~name:"Graph.to_sentence_audio"
       (fun () ->
          Grew_graph.G_graph.to_sentence_audio ?deco gr
       ) ()
@@ -166,22 +166,22 @@ module Request = struct
   type basic = Grew_rule.Request.basic
 
   let load ~config file =
-    Libgrew.handle ~name:"Request.load" (fun () -> Grew_rule.Request.of_ast ~config (Grew_loader.Loader.request file)) ()
+    Grewlib.handle ~name:"Request.load" (fun () -> Grew_rule.Request.of_ast ~config (Grew_loader.Loader.request file)) ()
 
   let parse ~config desc =
-    Libgrew.handle ~name:"Request.parse" (fun () -> Grew_rule.Request.of_ast ~config (Grew_loader.Parser.request desc)) ()
+    Grewlib.handle ~name:"Request.parse" (fun () -> Grew_rule.Request.of_ast ~config (Grew_loader.Parser.request desc)) ()
 
   let parse_basic ~config request desc =
-    Libgrew.handle
+    Grewlib.handle
       ~name:"Request.parse_basic"
       (fun () -> Grew_rule.Request.build_whether ~config request (Grew_loader.Parser.basic desc)) ()
 
   let pid_name_list request =
-    Libgrew.handle ~name:"Request.pid_list"
+    Grewlib.handle ~name:"Request.pid_list"
       (fun () -> List.map (fun x -> x) (Grew_rule.Request.pid_name_list request)
       ) ()
   let of_json ~config grs =
-    Libgrew.handle ~name:"Request.of_json"
+    Grewlib.handle ~name:"Request.of_json"
       (fun () ->
          Grew_rule.Request.of_json ~config grs
       ) ()
@@ -197,33 +197,33 @@ module Matching = struct
   let to_json ?(all_edges=false) request graph t = Grew_rule.Matching.to_json ~all_edges request graph t
 
   let nodes request graph matching =
-    Libgrew.handle ~name:"Matching.nodes" (fun () ->
+    Grewlib.handle ~name:"Matching.nodes" (fun () ->
         Grew_rule.Matching.node_matching request graph matching
       ) ()
 
   let get_value_opt ~config cluster_key request graph matching =
-    Libgrew.handle ~name:"Matching.get_value_opt" (fun () ->
+    Grewlib.handle ~name:"Matching.get_value_opt" (fun () ->
         Grew_rule.Matching.get_value_opt ~config cluster_key request graph matching
       ) ()
 
   let whether ~config extension request graph matching =
-    Libgrew.handle ~name:"Matching.whether" (fun () ->
+    Grewlib.handle ~name:"Matching.whether" (fun () ->
         Grew_rule.Matching.whether ~config extension request graph matching
       ) ()
 
   let subgraph graph matching depth =
-    Libgrew.handle ~name:"Matching.subgraph" (fun () ->
+    Grewlib.handle ~name:"Matching.subgraph" (fun () ->
         Grew_rule.Matching.subgraph graph matching depth
       ) ()
 
   let search_request_in_graph ~config request graph =
-    Libgrew.handle ~name:"Matching.search_request_in_graph" (fun () ->
+    Grewlib.handle ~name:"Matching.search_request_in_graph" (fun () ->
       Grew_rule.Matching.search_request_in_graph ~config request graph
     ) ()
 
   let build_deco request matching = Grew_rule.Matching.build_deco request matching
   let get_clust_value_opt =
-    Libgrew.handle ~name:"Matching.get_clust_value_opt" 
+    Grewlib.handle ~name:"Matching.get_clust_value_opt" 
     (fun () -> Grew_rule.Matching.get_clust_value_opt) ()
 end
 
@@ -237,55 +237,55 @@ module Grs = struct
   let empty = Grew_grs.Grs.empty
 
   let load ~config file =
-    Libgrew.handle ~name:"Grs.load" ~file
+    Grewlib.handle ~name:"Grs.load" ~file
       (fun () ->
          Grew_grs.Grs.load ~config file
       ) ()
 
   let parse ~config file =
-    Libgrew.handle ~name:"Grs.parse" ~file
+    Grewlib.handle ~name:"Grs.parse" ~file
       (fun () ->
          Grew_grs.Grs.parse ~config file
       ) ()
 
   let to_json ~config grs =
-    Libgrew.handle ~name:"Grs.to_json"
+    Grewlib.handle ~name:"Grs.to_json"
       (fun () ->
          Grew_grs.Grs.to_json ~config grs
       ) ()
 
   let dump grs =
-    Libgrew.handle ~name:"Grs.dump"
+    Grewlib.handle ~name:"Grs.dump"
       (fun () ->
          Grew_grs.Grs.dump grs
       ) ()
 
   let get_strat_list grs =
-    Libgrew.handle ~name:"Grs.get_strat_list"
+    Grewlib.handle ~name:"Grs.get_strat_list"
       (fun () ->
          Grew_grs.Grs.get_strat_list grs
       ) ()
 
   let get_strat_lists grs =
-    Libgrew.handle ~name:"Grs.get_strat_lists"
+    Grewlib.handle ~name:"Grs.get_strat_lists"
       (fun () ->
          Grew_grs.Grs.get_strat_lists grs
       ) ()
 
   let get_package_list grs =
-    Libgrew.handle ~name:"Grs.get_package_list"
+    Grewlib.handle ~name:"Grs.get_package_list"
       (fun () ->
          Grew_grs.Grs.get_package_list grs
       ) ()
 
   let get_rule_list grs =
-    Libgrew.handle ~name:"Grs.get_rule_list"
+    Grewlib.handle ~name:"Grs.get_rule_list"
       (fun () ->
          Grew_grs.Grs.get_rule_list grs
       ) ()
 
   let of_json ~config grs =
-    Libgrew.handle ~name:"Grs.of_json"
+    Grewlib.handle ~name:"Grs.of_json"
       (fun () ->
          Grew_grs.Grs.of_json ~config grs
       ) ()
@@ -300,13 +300,13 @@ module Rewrite = struct
   let set_timeout t = Grew_utils.Timeout.timeout := t
 
   let simple_rewrite ~config gr grs strat =
-    Libgrew.handle ~name:"Rewrite.simple_rewrite" (fun () -> Grew_grs.Grs.simple_rewrite ~config grs strat gr) ()
+    Grewlib.handle ~name:"Rewrite.simple_rewrite" (fun () -> Grew_grs.Grs.simple_rewrite ~config grs strat gr) ()
 
   let log_rewrite () =
     `Assoc [("rules", `Int (Grew_rule.Rule.get_nb_rules ())); ("time", `Float (Grew_utils.Timeout.get_duration()))]
 
   let onf_rewrite_opt ~config gr grs strat =
-    Libgrew.handle ~name:"Rewrite.onf_rewrite_opt" (fun () -> Grew_grs.Grs.onf_rewrite_opt ~config grs strat gr) ()
+    Grewlib.handle ~name:"Rewrite.onf_rewrite_opt" (fun () -> Grew_grs.Grs.onf_rewrite_opt ~config grs strat gr) ()
 end
 
 (* ==================================================================================================== *)
@@ -319,61 +319,61 @@ module Corpus = struct
   let permut_length = Grew_corpus.Corpus.permut_length
 
   let graph_of_sent_id sent_id t =
-    Libgrew.handle ~name:"Corpus.graph_of_sent_id" (fun () -> Grew_corpus.Corpus.graph_of_sent_id sent_id t) ()
+    Grewlib.handle ~name:"Corpus.graph_of_sent_id" (fun () -> Grew_corpus.Corpus.graph_of_sent_id sent_id t) ()
 
   let get_graph position t =
-    Libgrew.handle ~name:"Corpus.get_graph" (fun () -> Grew_corpus.Corpus.get_graph position t) ()
+    Grewlib.handle ~name:"Corpus.get_graph" (fun () -> Grew_corpus.Corpus.get_graph position t) ()
 
   let get_sent_id position t =
-    Libgrew.handle ~name:"Corpus.get_sent_id" (fun () -> Grew_corpus.Corpus.get_sent_id position t) ()
+    Grewlib.handle ~name:"Corpus.get_sent_id" (fun () -> Grew_corpus.Corpus.get_sent_id position t) ()
 
   let is_conll t =
-    Libgrew.handle ~name:"Corpus.is_conll" (fun () -> Grew_corpus.Corpus.is_conll t) ()
+    Grewlib.handle ~name:"Corpus.is_conll" (fun () -> Grew_corpus.Corpus.is_conll t) ()
 
   let get_text position t =
-    Libgrew.handle ~name:"Corpus.get_text" (fun () -> Grew_corpus.Corpus.get_text position t) ()
+    Grewlib.handle ~name:"Corpus.get_text" (fun () -> Grew_corpus.Corpus.get_text position t) ()
 
   let update_graph position t =
-    Libgrew.handle ~name:"Corpus.update_graph" (fun () -> Grew_corpus.Corpus.update_graph position t) ()
+    Grewlib.handle ~name:"Corpus.update_graph" (fun () -> Grew_corpus.Corpus.update_graph position t) ()
 
   let fold_left fct init t =
-    Libgrew.handle ~name:"Corpus.fold_left" (fun () -> Grew_corpus.Corpus.fold_left fct init t) ()
+    Grewlib.handle ~name:"Corpus.fold_left" (fun () -> Grew_corpus.Corpus.fold_left fct init t) ()
 
   let fold_right fct t init =
-    Libgrew.handle ~name:"Corpus.fold_left" (fun () -> Grew_corpus.Corpus.fold_right fct t init) ()
+    Grewlib.handle ~name:"Corpus.fold_left" (fun () -> Grew_corpus.Corpus.fold_right fct t init) ()
 
   (* NB: no handle here because it's sensible to raise out onw exception in [iteri] *)
   let iteri = Grew_corpus.Corpus.iteri
 
   let of_conllx_corpus conllx_corpus =
-    Libgrew.handle ~name:"Corpus.of_conllx_corpus" (fun () -> Grew_corpus.Corpus.of_conllx_corpus conllx_corpus) ()
+    Grewlib.handle ~name:"Corpus.of_conllx_corpus" (fun () -> Grew_corpus.Corpus.of_conllx_corpus conllx_corpus) ()
 
   let from_stdin ?ext ?log_file ?config () =
-    Libgrew.handle ~name:"Corpus.from_stdin" (fun () -> Grew_corpus.Corpus.from_stdin ?ext ?log_file ?config ()) ()
+    Grewlib.handle ~name:"Corpus.from_stdin" (fun () -> Grew_corpus.Corpus.from_stdin ?ext ?log_file ?config ()) ()
 
   let from_string ?ext ?log_file ?config s =
-    Libgrew.handle ~name:"Corpus.from_string" (fun () -> Grew_corpus.Corpus.from_string ?ext ?log_file ?config s) ()
+    Grewlib.handle ~name:"Corpus.from_string" (fun () -> Grew_corpus.Corpus.from_string ?ext ?log_file ?config s) ()
 
   let from_file ?ext ?log_file ?config file =
-    Libgrew.handle ~name:"Corpus.from_file" (fun () -> Grew_corpus.Corpus.from_file ?ext ?log_file ?config file) ()
+    Grewlib.handle ~name:"Corpus.from_file" (fun () -> Grew_corpus.Corpus.from_file ?ext ?log_file ?config file) ()
 
   let from_dir ?config dir =
-    Libgrew.handle ~name:"Corpus.from_dir" (fun () -> Grew_corpus.Corpus.from_dir ?config dir) ()
+    Grewlib.handle ~name:"Corpus.from_dir" (fun () -> Grew_corpus.Corpus.from_dir ?config dir) ()
 
   let from_assoc_list list =
-    Libgrew.handle ~name:"Corpus.from_assoc_list" (fun () -> Grew_corpus.Corpus.from_assoc_list list) ()
+    Grewlib.handle ~name:"Corpus.from_assoc_list" (fun () -> Grew_corpus.Corpus.from_assoc_list list) ()
 
   let merge corpus_list =
-    Libgrew.handle ~name:"Corpus.merge" (fun () -> Grew_corpus.Corpus.merge corpus_list) ()
+    Grewlib.handle ~name:"Corpus.merge" (fun () -> Grew_corpus.Corpus.merge corpus_list) ()
 
   let get_columns_opt = Grew_corpus.Corpus.get_columns_opt
 
   let search ?(json_label=false) ~config null update request cluster_item_list corpus = 
-    Libgrew.handle ~name:"Corpus.search" 
+    Grewlib.handle ~name:"Corpus.search" 
     (fun () -> Grew_corpus.Corpus.search ~json_label ~config null update request cluster_item_list corpus) ()
 
   let bounded_search ~config ?ordering bound timeout null update request cluster_item_list corpus =
-    Libgrew.handle ~name:"Corpus.search" 
+    Grewlib.handle ~name:"Corpus.search" 
     (fun () -> Grew_corpus.Corpus.bounded_search ~config ?ordering bound timeout null update request cluster_item_list corpus) ()
 
 end
@@ -395,26 +395,26 @@ module Corpus_desc = struct
   let is_audio = Grew_corpus.Corpus_desc.is_audio
 
   let build id directory =
-    Libgrew.handle ~name:"Corpus.build" (fun () -> Grew_corpus.Corpus_desc.build id directory) ()
+    Grewlib.handle ~name:"Corpus.build" (fun () -> Grew_corpus.Corpus_desc.build id directory) ()
 
   let build_corpus t =
-    Libgrew.handle ~name:"Corpus.build_corpus" (fun () -> Grew_corpus.Corpus_desc.build_corpus t) ()
+    Grewlib.handle ~name:"Corpus.build_corpus" (fun () -> Grew_corpus.Corpus_desc.build_corpus t) ()
 
   let load_corpus_opt t =
-    Libgrew.handle ~name:"Corpus.load_corpus_opt" (fun () -> Grew_corpus.Corpus_desc.load_corpus_opt t) ()
+    Grewlib.handle ~name:"Corpus.load_corpus_opt" (fun () -> Grew_corpus.Corpus_desc.load_corpus_opt t) ()
 
   let load_json grs =
-    Libgrew.handle ~name:"Corpus.load_json" (fun () -> Grew_corpus.Corpus_desc.load_json grs) ()
+    Grewlib.handle ~name:"Corpus.load_json" (fun () -> Grew_corpus.Corpus_desc.load_json grs) ()
 
   let compile ?force ?grew_match t =
-    Libgrew.handle ~name:"Corpus.compile" (fun () -> Grew_corpus.Corpus_desc.compile ?force ?grew_match t) ()
+    Grewlib.handle ~name:"Corpus.compile" (fun () -> Grew_corpus.Corpus_desc.compile ?force ?grew_match t) ()
 
   let clean t =
-    Libgrew.handle ~name:"Corpus.clean" (fun () -> Grew_corpus.Corpus_desc.clean t) ()
+    Grewlib.handle ~name:"Corpus.clean" (fun () -> Grew_corpus.Corpus_desc.clean t) ()
 end
 
 
 module Sbn = struct
   let to_json t =
-    Libgrew.handle ~name:"Sbn.to_json" (fun () -> Grew_utils.Sbn.to_json t) ()
+    Grewlib.handle ~name:"Sbn.to_json" (fun () -> Grew_utils.Sbn.to_json t) ()
 end

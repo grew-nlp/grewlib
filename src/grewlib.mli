@@ -15,7 +15,7 @@ open Grew_types
 (* ==================================================================================================== *)
 (** {2 General definitions} *)
 (* ==================================================================================================== *)
-module Libgrew : sig
+module Grewlib : sig
   val get_version: unit -> string
   val set_debug_mode: bool -> unit
   val set_safe_commands: bool -> unit
@@ -47,7 +47,7 @@ module Graph : sig
 
   (** get a graph from a file either in 'gr' or 'conll' format.
       File extension should be '.gr' or '.conll'.
-      @raise Parsing_err if libgrew can't parse the file
+      @raise Parsing_err if grewlib can't parse the file
       @raise File_not_found if the file doesn't exists. *)
   val load: config:Conll_config.t -> string -> t
 

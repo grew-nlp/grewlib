@@ -1,5 +1,0 @@
-name = "libgrew"
-description = "Libgrew"
-requires = ""
-archive(byte) = "libgrew.cma"
-archive(native) = "libgrew.cmxa"

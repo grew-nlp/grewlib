@@ -576,7 +576,7 @@ module Corpus_desc = struct
       close_out out_ch
     with
     | Conll_error json -> Error.warning "[Conll_error] fail to load corpus %s, skip it\nexception: %s" corpus_desc.id (Yojson.Basic.pretty_to_string json)
-    | Error.Run (msg,_) -> Error.warning "[Libgrew error] %s, fail to load corpus %s: skip it" msg corpus_desc.id
+    | Error.Run (msg,_) -> Error.warning "[Error] %s, fail to load corpus %s: skip it" msg corpus_desc.id
     | exc -> Error.warning "[Error] fail to load corpus %s, skip it\nexception: %s" corpus_desc.id (Printexc.to_string exc)
 
 
