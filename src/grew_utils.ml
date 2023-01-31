@@ -9,8 +9,6 @@
 (**********************************************************************************)
 
 open Printf
-open Grew_types
-
 
 (* ================================================================================ *)
 module Cmp = struct
@@ -188,7 +186,7 @@ module List_ = struct
   let index_opt x l =
     let rec loop i = function
       | [] -> None
-      | h::t when h=x -> Some i
+      | h::_ when h=x -> Some i
       | _::t -> loop (i+1) t in
     loop 0 l
 
@@ -216,7 +214,7 @@ module List_ = struct
     | [] -> false
     | h::_ when elt<h -> false
     | h::_ when elt=h -> true
-    | h::t (* when elt>h *) -> sort_mem elt t
+    | _::t (* when elt>h *) -> sort_mem elt t
 
   let rec sort_assoc_opt key = function
     | [] -> None
@@ -228,13 +226,13 @@ module List_ = struct
     | [] -> false
     | (k,_)::_ when key<k -> false
     | (k,_)::t when key>k -> sort_mem_assoc key t
-    | (_,v)::_ -> true
+    | (_,_)::_ -> true
 
   let rec sort_remove_assoc key = function
     | [] -> []
     | (k,_)::_ as t when key<k -> t
     | (k,v)::t when key>k -> (k,v) :: (sort_remove_assoc key t)
-    | (_,v)::t -> t
+    | _::t -> t
 
   let rec sort_update_assoc key value = function
     | [] -> [(key,value)]
@@ -256,7 +254,7 @@ module List_ = struct
 
   let rec usort_remove key = function
     | [] -> raise Not_found
-    | x::t when key < x -> raise Not_found
+    | x::_ when key < x -> raise Not_found
     | x::t when key = x -> t
     | x::t -> x::(usort_remove key t)
 
@@ -271,8 +269,8 @@ module List_ = struct
   let rec sort_disjoint l1 l2 =
     match (l1,l2) with
     | [], _ | _, [] -> true
-    | h1::t1 , h2::t2 when h1<h2 -> sort_disjoint t1 l2
-    | h1::t1 , h2::t2 when h1>h2 -> sort_disjoint l1 t2
+    | h1::t1 , h2::_ when h1<h2 -> sort_disjoint t1 l2
+    | h1::_ , h2::t2 when h1>h2 -> sort_disjoint l1 t2
     | _ -> false
 
   let sort_is_empty_inter l1 l2 =
@@ -280,7 +278,7 @@ module List_ = struct
       | [], _ | _, [] -> true
       | x1::t1, x2::t2 when x1 < x2 -> loop (t1, x2::t2)
       | x1::t1, x2::t2 when x1 > x2 -> loop (x1::t1, t2)
-      | x1::t1, x2::t2 -> false in
+      | _ -> false in
     loop (l1,l2)
 
   let sort_inter l1 l2 =
@@ -288,7 +286,7 @@ module List_ = struct
       | [], _ | _, [] -> []
       | x1::t1, x2::t2 when x1 < x2 -> loop (t1, x2::t2)
       | x1::t1, x2::t2 when x1 > x2 -> loop (x1::t1, t2)
-      | x1::t1, x2::t2 -> x1 :: loop (t1, t2) in
+      | x1::t1, _::t2 -> x1 :: loop (t1, t2) in
     loop (l1,l2)
 
   let sort_union l1 l2 =
@@ -296,7 +294,7 @@ module List_ = struct
       | [], l | l, [] -> l
       | x1::t1, x2::t2 when x1 < x2 -> x1 :: loop (t1, x2::t2)
       | x1::t1, x2::t2 when x1 > x2 -> x2 :: loop (x1::t1, t2)
-      | x1::t1, x2::t2 -> x1 :: loop (t1, t2) in
+      | x1::t1, _::t2 -> x1 :: loop (t1, t2) in
     loop (l1,l2)
 
 
@@ -311,29 +309,29 @@ module List_ = struct
 
   let sort_include l1 l2 =
     let rec loop = function
-      | [], l -> true
-      | l, [] -> false
-      | x1::t1, x2::t2 when x1 < x2 -> false
+      | [], _ -> true
+      | _, [] -> false
+      | x1::_, x2::_ when x1 < x2 -> false
       | x1::t1, x2::t2 when x1 > x2 -> loop (x1::t1, t2)
-      | x1::t1, x2::t2 -> loop (t1, t2) in
+      | _::t1, _::t2 -> loop (t1, t2) in
     loop (l1,l2)
 
   let sort_included_diff l1 l2 =
     let rec loop = function
-      | [], l -> failwith "[sort_included_diff] not included"
+      | [], _ -> failwith "[sort_included_diff] not included"
       | l, [] -> l
       | x1::t1, x2::t2 when x1 < x2 -> x1 :: loop (t1, x2::t2)
-      | x1::t1, x2::t2 when x1 > x2 -> failwith "[sort_included_diff] not included"
-      | x1::t1, x2::t2 -> loop (t1, t2) in
+      | x1::_, x2::_ when x1 > x2 -> failwith "[sort_included_diff] not included"
+      | _::t1, _::t2 -> loop (t1, t2) in
     loop (l1,l2)
 
   let sort_diff l1 l2 =
     let rec loop = function
-      | [], l -> []
+      | [], _ -> []
       | l, [] -> l
       | x1::t1, x2::t2 when x1 < x2 -> x1 :: loop (t1, x2::t2)
       | x1::t1, x2::t2 when x1 > x2 -> loop (x1::t1, t2)
-      | x1::t1, x2::t2 -> loop (t1, t2) in
+      | _::t1, _::t2 -> loop (t1, t2) in
     loop (l1,l2)
 
   let prev_next_iter fct list =
@@ -457,12 +455,11 @@ module Massoc_make (Ord: Set.OrderedType) = struct
 
   let remove_key key t = M.remove key t
 
-  let rec mem key value t =
+  let mem key value t =
     try List_.sort_mem value (M.find key t)
     with Not_found -> false
 
-  let rec mem_key key t = M.mem key t
-
+  let  mem_key key t = M.mem key t
 
   exception Not_disjoint
   let disjoint_union t1 t2 =
@@ -618,8 +615,8 @@ module Dependencies = struct
           else (from_here, reduce_from_before from_before) in
         (* Printf.printf "   ...> NH=[%s] NB=[%s]\n" (String.concat "," (List.map string_of_int new_from_here)) (String.concat "," (List.map string_of_int new_from_before)); *)
         match new_from_before with
-        | h::t when j > h -> false
-        | h::t when j = h -> loop i new_from_here new_from_before tail
+        | h::_ when j > h -> false
+        | h::_ when j = h -> loop i new_from_here new_from_before tail
         | _ -> loop i (insert_sorted j new_from_here) new_from_before tail in
     loop 0 [] [] sorted_edge_list
 
@@ -660,8 +657,6 @@ struct
       false
     with True -> true
 
-  (* union of two maps*)
-  let union_map m m' = fold (fun k v m'' -> (add k v m'')) m m'
 end (* module Pid_map *)
 
 (* ================================================================================ *)
@@ -773,9 +768,6 @@ module Sbn = struct
     box_edges: rel list;
     box_number: int;
   }
-
-  let set_meta meta graph = { graph with meta }
-
   let init = { meta=[]; box_number = 1; sem_nodes = []; sem_edges = []; box_edges = []; }
 
   let graph_to_json graph =

@@ -11,7 +11,6 @@
 open Printf
 open Conll
 
-open Grew_types
 open Grew_utils
 open Grew_ast
 
@@ -74,7 +73,7 @@ module G_edge = struct
     | Fs fs -> List_.sort_assoc_opt feat_name fs
     | _ -> Error.run "[get_sub_opt] edge is not fs"
 
-  let rec update feat_name new_value = function
+  let update feat_name new_value = function
     | Fs fs -> Fs (List_.sort_update_assoc feat_name new_value fs)
     | _ -> Error.run "[update] edge is not fs"
 
@@ -270,8 +269,6 @@ module P_edge = struct
   let succ = { id=None; label_cst = Label_cst.Succ}
   let cpt = ref 0
   let fresh_name () = incr cpt; Some (sprintf "__e_%d__" !cpt)
-
-  let all = {id=fresh_name (); label_cst=Label_cst.all }
 
   let get_id_opt t = t.id
 

@@ -25,7 +25,7 @@ module G_fs: sig
       If [t] already contains a feature named [feature_name], the old value is erased by the new one. *)
   val set_atom: ?loc:Loc.t -> string -> string -> t ->  t
 
-  val set_value: ?loc:Loc.t -> string -> Feature_value.t -> t ->  t
+  val set_value: string -> Feature_value.t -> t ->  t
 
   (** [del_feat_opt feature_name t] remove the feature with name [feature_name] in [t].
       If [t] does not contain such a feature, None is returned. *)

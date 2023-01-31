@@ -18,7 +18,7 @@ module Grewlib = struct
   exception Error of string
   exception Bug of string
 
-  let handle ?(name="") ?(file="No file defined") fct () =
+  let handle ?(name="") fct () =
     try fct () with
     (* Raise again already caught exceptions *)
     | Error msg -> raise (Error msg)
@@ -38,8 +38,11 @@ module Grewlib = struct
     | Grew_utils.Timeout.Stop bound -> raise (Error (sprintf "Timeout (running time execeeds %g seconds)" bound))
     | exc -> raise (Bug (sprintf "[Grewlib.%s] UNCAUGHT EXCEPTION: %s" name (Printexc.to_string exc)))
 
-  let get_version () = VERSION
-
+  let get_version () =
+    match Build_info.V1.version () with
+    | None -> "dev"
+    | Some v -> Build_info.V1.Version.to_string v
+  
   let set_debug_mode flag = Grew_utils.Global.debug := flag
 
   let set_safe_commands flag = Grew_utils.Global.safe_commands := flag
@@ -73,23 +76,23 @@ module Graph = struct
   let append_in_ag_lex feature_name_list t ag_lex = Grew_graph.G_graph.append_in_ag_lex feature_name_list t ag_lex
 
   let load_conll ~config file =
-    Grewlib.handle ~name:"Graph.load_conll" ~file
+    Grewlib.handle ~name:"Graph.load_conll"
       (fun () ->
-         Conll.load ~config file |> Conll.to_json |> Grew_graph.G_graph.of_json
+        Conll.load ~config file |> Conll.to_json |> Grew_graph.G_graph.of_json
       ) ()
 
   let load_pst file =
     if not (Sys.file_exists file)
     then raise (Grewlib.Error ("File_not_found: " ^ file))
     else
-      Grewlib.handle ~name:"load_pst" ~file
+      Grewlib.handle ~name:"load_pst"
         (fun () ->
            let const_ast = Grew_loader.Loader.phrase_structure_tree file in
            Grew_graph.G_graph.of_pst const_ast
         ) ()
 
   let load ~config file =
-    Grewlib.handle ~name:"Graph.load_graph" ~file
+    Grewlib.handle ~name:"Graph.load_graph"
       (fun () ->
          match Grew_utils.String_.get_suffix_opt file with
          | Some ".conll" | Some ".conllu" -> load_conll ~config file
@@ -237,13 +240,13 @@ module Grs = struct
   let empty = Grew_grs.Grs.empty
 
   let load ~config file =
-    Grewlib.handle ~name:"Grs.load" ~file
+    Grewlib.handle ~name:"Grs.load"
       (fun () ->
          Grew_grs.Grs.load ~config file
       ) ()
 
   let parse ~config file =
-    Grewlib.handle ~name:"Grs.parse" ~file
+    Grewlib.handle ~name:"Grs.parse"
       (fun () ->
          Grew_grs.Grs.parse ~config file
       ) ()

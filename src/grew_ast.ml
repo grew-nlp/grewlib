@@ -60,7 +60,8 @@ module Ast = struct
   (* simple_or_pointed: union of simple_ident, feature_ident and lex field *)
   (* Note: used for parsing of "X < Y" and "X.feat < Y.feat" without conflicts *)
   type pointed = string * string
-  let dump_pointed (s1,s2) = sprintf "%s.%s" s1 s2
+  let _dump_pointed (s1,s2) = sprintf "%s.%s" s1 s2
+
   type simple_or_pointed =
     | Simple of Id.name
     | Pointed of pointed
@@ -209,7 +210,7 @@ module Ast = struct
 
   let check_dup_edge_in_request request =
     let ids = CCList.filter_map
-        (function ({edge_id= Some e},loc) -> Some (e, loc) | _ -> None)
+        (function ({edge_id= Some e; _},loc) -> Some (e, loc) | _ -> None)
         request.req_pos.req_edges in
     let rec loop = function
       | [] -> ()
@@ -219,14 +220,14 @@ module Ast = struct
     loop ids
 
   let add_implicit_node loc aux name req_nodes =
-    if (List.exists (fun ({node_id},_) -> node_id=name) req_nodes)
-    || (List.exists (fun ({node_id},_) -> node_id=name) aux)
+    if (List.exists (fun ({node_id; _},_) -> node_id=name) req_nodes)
+    || (List.exists (fun ({node_id; _},_) -> node_id=name) aux)
     then req_nodes
     else ({node_id=name; fs=[]}, loc) :: req_nodes
 
   let complete_basic_aux aux basic =
     let new_req_nodes = List.fold_left
-        (fun acc ({src; edge_label_cst; tar}, loc) ->
+        (fun acc ({src; edge_label_cst; tar; _}, loc) ->
            if edge_label_cst = Pred
            then acc
            else
@@ -250,8 +251,8 @@ module Ast = struct
     | String_item of (string * Range.t)
 
   let string_of_concat_item = function
-    | Qfn_or_lex_item (pointed,range) -> sprintf "%s.%s" (fst pointed) (snd pointed)
-    | String_item (s,range) -> sprintf "\"%s\"" s
+    | Qfn_or_lex_item (pointed,_) -> sprintf "%s.%s" (fst pointed) (snd pointed)
+    | String_item (s,_) -> sprintf "\"%s\"" s
 
   type side = Prepend | Append
 
@@ -368,7 +369,7 @@ module Ast = struct
   let complete id nodes =
     let rec loop n = match n with
       | [] -> [{node_id=id; fs=default_fs id},Loc.empty]
-      | ({ node_id = head_id },_)::_ when head_id = id -> n
+      | ({ node_id = head_id ; _},_)::_ when head_id = id -> n
       | head::tail -> head :: (loop tail)
     in loop nodes
 
@@ -430,7 +431,7 @@ module Ast = struct
         | _ -> acc
       ) [] grs
 
-  let rec fold_sub_strat fct init = 
+  let fold_sub_strat fct init = 
     let rec loop acc = function
     | Ref name -> fct name acc
     | Pick s | Iter s | Onf s | Try s -> loop acc s
@@ -460,7 +461,7 @@ module Ast = struct
   let rule_list grs =
     List.fold_left
       (fun acc -> function
-        | Rule {rule_id} -> rule_id :: acc
+        | Rule {rule_id; _} -> rule_id :: acc
         | _ -> acc
       ) [] grs
 

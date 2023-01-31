@@ -9,7 +9,6 @@
 (**********************************************************************************)
 
 %{
-open Grew_types
 open Grew_utils
 open Grew_ast
 
@@ -18,11 +17,6 @@ type clause_item =
   | Clause_node of Ast.node
   | Clause_edge of Ast.edge
   | Clause_const of Ast.const
-
-type graph_item =
-  | Graph_meta of (string * string)
-  | Graph_node of Ast.node
-  | Graph_edge of Ast.edge
 
 type ineq_item =
   | Ineq_sofi of Ast.simple_or_pointed
@@ -536,7 +530,7 @@ clause_item:
         /* Next items are temporarily kept for producing dedicated error message when using out of date syntax  /*
 
         /*   id(N) < id(M)   */
-        | id1_loc=simple_id_with_loc LPAREN n1=simple_id RPAREN LT id2=simple_id LPAREN n2=simple_id RPAREN
+        | id1_loc=simple_id_with_loc LPAREN simple_id RPAREN LT id2=simple_id LPAREN simple_id RPAREN
             { let (id1,loc) = id1_loc in
               match (id1, id2) with
               | ("id", "id") -> Error.build ~loc "The syntax `id(N) < id(M)` is no more available, see [Grew doc](https://grew.fr/trans_14)";
@@ -545,7 +539,7 @@ clause_item:
             }
 
         /*   id(N) > id(M)   */
-        | id1_loc=simple_id_with_loc LPAREN n1=simple_id RPAREN GT id2=simple_id LPAREN n2=simple_id RPAREN
+        | id1_loc=simple_id_with_loc LPAREN simple_id RPAREN GT id2=simple_id LPAREN simple_id RPAREN
             { let (id1,loc) = id1_loc in
               match (id1, id2) with
               | ("id", "id") -> Error.build ~loc "The syntax `id(N) > id(M)` is no more available, see [Grew doc](https://grew.fr/trans_14)";
@@ -553,8 +547,8 @@ clause_item:
               | (n, m) -> Error.build ~loc "Unexpected operators '%s' and '%s'" n m
             }
 
-        /*   label(e1) = label(e2)   */
-        | id1_loc=simple_id_with_loc LPAREN n1=simple_id RPAREN EQUAL id2=simple_id LPAREN n2=simple_id RPAREN
+        /*  DEPRECATED  label(e1) = label(e2)   */
+        | id1_loc=simple_id_with_loc LPAREN simple_id RPAREN EQUAL id2=simple_id LPAREN simple_id RPAREN
             { let (id1,loc) = id1_loc in
               match (id1, id2) with
               | ("label", "label") -> Error.build ~loc "The syntax `label(N) = label(M)` is no more available, see [Grew doc](https://grew.fr/trans_14)";
@@ -564,7 +558,7 @@ clause_item:
 
         /*   label(e1) <> label(e2)   */
         /* don't want to make "label" a keyword, matched as a ident and control the value */
-        | id1_loc=simple_id_with_loc LPAREN n1=simple_id RPAREN DISEQUAL id2=simple_id LPAREN n2=simple_id RPAREN
+        | id1_loc=simple_id_with_loc LPAREN simple_id RPAREN DISEQUAL id2=simple_id LPAREN simple_id RPAREN
             { let (id1,loc) = id1_loc in
               match (id1, id2) with
               | ("label", "label") -> Error.build ~loc "The syntax `label(N) <> label(M)` is no more available, see [Grew doc](https://grew.fr/trans_14)";

@@ -11,12 +11,8 @@
 open Printf
 open Conll
 
-open Grew_fs
-open Grew_types
 open Grew_utils
 open Grew_ast
-open Grew_edge
-open Grew_command
 open Grew_graph
 open Grew_rule
 open Grew_loader
@@ -36,13 +32,13 @@ module Decl = struct
 
   let to_string = function
     | Rule r -> sprintf "RULE: %s" (Rule.get_name r)
-    | Strategy (name, strat) -> sprintf "STRAT: %s" (name)
-    | Package (name, decl_list) -> sprintf "PACK: %s" (name)
+    | Strategy (name, _) -> sprintf "STRAT: %s" (name)
+    | Package (name, _) -> sprintf "PACK: %s" (name)
 
   let rec build ~config = function
-    | Ast.Package (loc, name, decl_list) -> Package (name, List.map (build ~config) decl_list)
+    | Ast.Package (_, name, decl_list) -> Package (name, List.map (build ~config) decl_list)
     | Ast.Rule ast_rule -> Rule (Rule.of_ast ~config ast_rule)
-    | Ast.Strategy (loc, name, ast_strat) -> Strategy (name, ast_strat)
+    | Ast.Strategy (_, name, ast_strat) -> Strategy (name, ast_strat)
     | _ -> Error.bug "[Decl.build] Inconsistent ast for grs"
 
   let rec string_of_json (key, json) =
@@ -59,7 +55,7 @@ module Decl = struct
 
   let rec dump indent = function
     | Rule r -> printf "%srule %s\n" (String.make indent ' ') (Rule.get_name r)
-    | Strategy (name, def) -> printf "%sstrat %s\n" (String.make indent ' ') name
+    | Strategy (name, _) -> printf "%sstrat %s\n" (String.make indent ' ') name
     | Package (name, decl_list) ->
       printf "%spackage %s:\n" (String.make indent ' ') name;
       List.iter (dump (indent + 2)) decl_list
@@ -146,11 +142,11 @@ module Grs = struct
     | Top of Decl.t list
     | Pack of (Decl.t list * pointed)  (* (content, mother package) *)
 
-  let rec dump_pointed = function
+  let rec _dump_pointed = function
     | Top l -> printf "TOP: %s\n" (String.concat "+" (List.map Decl.to_string l))
     | Pack (l, pointed)  ->
       printf "PACK: %s\nMOTHER --> " (String.concat "+" (List.map Decl.to_string l));
-      dump_pointed pointed
+      _dump_pointed pointed
 
 
 
@@ -197,7 +193,7 @@ module Grs = struct
        | Pack (_,mother) -> search_from mother path
       )
 
-  let is_without_history grs strat_string =
+  let _is_without_history grs strat_string =
     let rec loop pointed strat =
       match strat with
       | Ast.Onf (Ast.Ref strat_name) ->
@@ -223,7 +219,7 @@ module Grs = struct
       | Ast.Alt [one] -> loop pointed one
       | Ast.Alt _ -> false
       | Ast.Seq l -> List.for_all (fun s -> loop pointed s) l
-      | Ast.Iter s -> false
+      | Ast.Iter _ -> false
       | Ast.If (_,s1, s2) -> (loop pointed s1) || (loop pointed s2)
       | Ast.Try (s) -> loop pointed s in
     loop (top grs) (Parser.strategy strat_string)
@@ -439,7 +435,7 @@ module Grs = struct
         ) first_strat Graph_with_history_set.empty
 
     | Ast.Iter s -> iter_gwh ~config pointed s gwh
-    | Ast.Onf s ->  Graph_with_history_set.singleton (owh_rewrite ~config pointed strat gwh)
+    | Ast.Onf s ->  Graph_with_history_set.singleton (owh_rewrite ~config pointed s gwh)
 
     | Ast.Try strat ->
       begin
@@ -503,7 +499,7 @@ module Grs = struct
     then [onf_rewrite ~config (top grs) strat graph]
     else gwh_simple_rewrite ~config grs strat graph
 
-  let eud2ud = load ~config:(Conll_config.build "ud") (Filename.concat DATADIR "eud2ud.grs")
+  let eud2ud = load ~config:(Conll_config.build "ud") (Filename.concat "DATADIR" "eud2ud.grs")
   let apply_eud2ud ~config graph =
     match simple_rewrite ~config eud2ud "main" graph with
     | [one] -> one

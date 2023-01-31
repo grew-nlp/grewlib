@@ -25,7 +25,6 @@ module G_node = struct
     fs: G_fs.t;
     next: G_edge.t Gid_massoc.t;
     position: int option;
-    efs: (string * string) list;
   }
 
   let compare n1 n2 = match (n1.position, n2.position) with
@@ -71,10 +70,9 @@ module G_node = struct
     fs = G_fs.empty;
     next = Gid_massoc.empty;
     position = None;
-    efs=[]
   }
 
-  let of_ast ?position (ast_node, loc) =
+  let of_ast ?position (ast_node, _) =
     let fs = G_fs.of_ast ast_node.Ast.fs in
     { empty with name=Some ast_node.Ast.node_id; fs; position; }
 

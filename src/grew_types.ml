@@ -8,8 +8,6 @@
 (*    Authors: see AUTHORS file                                                   *)
 (**********************************************************************************)
 
-open Printf
-
 module String_set = Set.Make (String)
 
 module String_map = Map.Make (String)
@@ -53,7 +51,7 @@ module Clustered = struct
   
   let merge_sizes s1 s2 =
     String_opt_map.merge
-      (fun k opt1 opt2 ->
+      (fun _ opt1 opt2 ->
         match (opt1, opt2) with
         | (Some i1, Some i2) -> Some (i1+i2)
         | (None, Some s) -> Some s
@@ -159,11 +157,11 @@ module Clustered = struct
              else acc
           ) map String_opt_map.empty
       )
-    | (n, Node map) -> Node (String_opt_map.map (fun v -> prune_unambiguous (depth - 1) v) map)
+    | (_, Node map) -> Node (String_opt_map.map (fun v -> prune_unambiguous (depth - 1) v) map)
     | _ -> failwith "[Clustered.prune_unambiguous] no enough depth in the projection"
 
   (* NB: unused function *)
-  let to_json keys t = 
+  (* let to_json keys t = 
     let rec loop acc keys partial t =
       match (keys, t) with
       | ([], Leaf n) -> (`Assoc ["feats", (`Assoc (List.rev partial)); "freq", `Int n]) :: acc
@@ -174,7 +172,7 @@ module Clustered = struct
              loop acc2 tail new_partial sub_t
           ) map acc
       | _ -> failwith "[Clustered.to_json] inconsistent data" in
-    `List (loop [] keys [] t)
+    `List (loop [] keys [] t) *)
 
   let rec map (fct: 'a -> 'b) = function
     | Empty a -> Empty (fct a)

@@ -15,7 +15,6 @@ open Amr
 open Grew_types
 open Grew_utils
 open Grew_loader
-open Grew_edge
 open Grew_graph
 open Grew_rule
 open Grew_grs
@@ -109,11 +108,6 @@ module Corpus = struct
   let fold_left fct init t =
     Array.fold_left
       (fun acc item -> fct acc item.sent_id item.graph)
-      init t.items
-
-  let foldi_left fct init t =
-    CCArray.foldi
-      (fun acc i item -> fct acc i item.sent_id item.graph)
       init t.items
 
   let fold_right fct t init =
@@ -339,7 +333,7 @@ module Corpus_desc = struct
 
   (* ---------------------------------------------------------------------------------------------------- *)
   (* if [files] is empty, all files of the directory with correct suffix are considered *)
-  let get_full_files { kind; directory; files } =
+  let get_full_files { kind; directory; files; _ } =
     let file_list = match files with
       | [] ->
         begin
@@ -484,7 +478,7 @@ module Corpus_desc = struct
     try (* catch if dir does not exist *)
       begin (* test if "dir" exists but is not a directory *)
         match Unix.stat dir with
-        | { Unix.st_kind = Unix.S_DIR } -> ()
+        | { Unix.st_kind = Unix.S_DIR; _ } -> ()
         | _ -> Error.warning "grew_match option ignored: %s already exists and is not directory" dir; raise Skip
       end; ()
     with Unix.Unix_error (Unix.ENOENT,_,_) ->
@@ -599,7 +593,7 @@ module Corpus_desc = struct
         really_marshal ()
 
   (* ---------------------------------------------------------------------------------------------------- *)
-  let clean {kind; id; directory; files; preapply}  =
+  let clean { id; directory; _}  =
     let marshal_file = (Filename.concat directory id) ^ ".marshal" in
     if Sys.file_exists marshal_file then Unix.unlink marshal_file
 

@@ -35,7 +35,7 @@ module Loader = struct
 
   let rec check_grs = function
     | [] -> ()
-    | Ast.Rule {Ast.rule_loc = loc; rule_id = name} :: tail
+    | Ast.Rule {Ast.rule_loc = loc; rule_id = name; _} :: tail
     | Ast.Strategy (loc, name, _) :: tail ->
       begin
         match check_duplicate_id name tail with

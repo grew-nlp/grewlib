@@ -28,11 +28,11 @@ module Constraint = struct
     | Contained
     | Disjoint
     | Crossing
-  let json_of_edge_relative_position = function
+  (* let json_of_edge_relative_position = function
     | Included -> `String "Included"
     | Contained -> `String "Contained"
     | Disjoint -> `String "Disjoint"
-    | Crossing -> `String "Crossing"
+    | Crossing -> `String "Crossing" *)
 
   let build_relative_position l1 r1 l2 r2 =
     if r1 <= l2 || r2 <= l1
@@ -63,10 +63,10 @@ module Constraint = struct
     | Edge_id of string
     | Lexicon_id of string
 
-  let json_of_base = function
+  (* let json_of_base = function
     | Node_id pid -> `String (Pid.to_string pid)
     | Edge_id id -> `String id
-    | Lexicon_id id -> `String id
+    | Lexicon_id id -> `String id *)
 
   type t =
     (*   N -[…]-> *   *)
@@ -113,15 +113,15 @@ module Constraint = struct
     | Feature_cmp (cmp,id1,fn1,id2,fn2) -> sprintf "%s.%s %s %s.%s" (base_to_string id1) fn1 (Cmp.to_string cmp) (base_to_string id2) fn2
     | Feature_cmp_value (cmp,id,fn,value) -> sprintf "%s.%s %s %s" (base_to_string id) fn (Cmp.to_string cmp) (Feature_value.to_string value) (* TODO__json: quotes needed ??? *)
     | Feature_cmp_regexp (cmp,id,fn,regexp) -> sprintf "%s.%s %s re\"%s\"" (base_to_string id) fn (Cmp.to_string cmp) regexp
-    | Feature_ineq (ineq,id1,fn1,id2,fn2) -> sprintf "%s.%s < %s.%s" (base_to_string id1) fn1 (base_to_string id2) fn2
-    | Feature_ineq_cst (ineq,id,fn,f) -> sprintf "%s.%s  %g" (base_to_string id) fn f (* TODO__json: quotes needed ??? *)
+    | Feature_ineq (_,id1,fn1,id2,fn2) -> sprintf "%s.%s < %s.%s" (base_to_string id1) fn1 (base_to_string id2) fn2
+    | Feature_ineq_cst (_,id,fn,f) -> sprintf "%s.%s  %g" (base_to_string id) fn f (* TODO__json: quotes needed ??? *)
     | Filter (pid, p_fs) -> sprintf "%s [%s]" (pid_name pid) (P_fs.to_string p_fs)
     | Node_large_prec (pid1, pid2) ->  sprintf "%s << %s" (pid_name pid1) (pid_name pid2)
     | Covered (pid1, eid2) -> sprintf "%s << %s" (pid_name pid1) eid2
     | Edge_relative (Disjoint, eid1, eid2) -> sprintf "%s <> %s" eid1 eid2
     | Edge_relative (Crossing, eid1, eid2) -> sprintf "%s >< %s" eid1 eid2
     | Edge_relative (Included, eid1, eid2) ->  sprintf "%s << %s" eid1 eid2
-    | Edge_relative (Contained, eid1, eid2) -> Error.bug "Unexpected Edge_relative"
+    | Edge_relative (Contained, _, _) -> Error.bug "Unexpected Edge_relative"
 
   let build ~config lexicons ker_table ext_table edge_ids const =
     let parse_id loc id = match (Id.build_opt id ker_table, Id.build_opt id ext_table) with
@@ -166,9 +166,9 @@ module Constraint = struct
         | _ -> Error.build "Operator << cannot be used with \"edge << node\""
       end
 
-    | (Ast.Edge_disjoint (eid1, eid2), loc) ->
+    | (Ast.Edge_disjoint (eid1, eid2), _) ->
       Edge_relative (Disjoint, eid1, eid2)
-    | (Ast.Edge_crossing (eid1, eid2), loc) ->
+    | (Ast.Edge_crossing (eid1, eid2), _) ->
       Edge_relative (Crossing, eid1, eid2)
 
 end (* module Constraint *)
@@ -321,7 +321,7 @@ module Matching = struct
       ("edges", `Assoc edges)
     ]
 
-  let node_matching request graph { n_match } =
+  let node_matching request graph { n_match; _ } =
     Pid_map.fold
       (fun pid gid acc ->
          let pnode = P_graph.find pid request.Request.ker.graph in
@@ -329,7 +329,7 @@ module Matching = struct
          (P_node.get_name pnode, G_node.get_name gid gnode) :: acc
       ) n_match []
 
-  let e_match_add ?pos edge_id new_edge matching =
+  let e_match_add edge_id new_edge matching =
     if String_map.mem edge_id matching.e_match
     then Error.run "The edge identifier '%s' is binded twice in the same request" edge_id
     else { matching with e_match = String_map.add edge_id new_edge matching.e_match }
@@ -357,7 +357,7 @@ module Matching = struct
   let down_deco (added_edges_in_rule,matching,created_nodes) commands =
     let feat_to_highlight = List.fold_left
         (fun acc -> function
-           | (Command.UPDATE_FEAT (tar_cn,feat_name,_),loc) ->
+           | (Command.UPDATE_FEAT (tar_cn,feat_name,_),_) ->
              let gid = find tar_cn (matching, created_nodes) in
              let old_feat_list = try Gid_map.find gid acc with Not_found -> [] in
              Gid_map.add gid (feat_name :: old_feat_list) acc
@@ -373,7 +373,7 @@ module Matching = struct
       G_deco.edges =
         List.fold_left
           (fun acc -> function
-             | (Command.ADD_EDGE (src_cn,tar_cn,edge),loc) ->
+             | (Command.ADD_EDGE (src_cn,tar_cn,edge),_) ->
                (find src_cn (matching, created_nodes), edge, find tar_cn (matching, created_nodes)) :: acc
              | (Command.UPDATE_EDGE_FEAT (edge_id,_,_), loc) ->
                begin
@@ -661,7 +661,7 @@ module Matching = struct
         (fun pid node acc ->
            match pid with
            | Pid.Ext _ -> acc
-           | Pid.Ker i ->
+           | Pid.Ker _ ->
              Pid_massoc.fold
                (fun acc2 pid_next p_edge -> (pid, p_edge, pid_next) :: acc2)
                acc (P_node.get_next node)
@@ -728,7 +728,7 @@ module Matching = struct
         | "is_not_cyclic" :: tail when not dfs.cyclic -> loop tail
         | "is_not_cyclic" :: _ -> false
 
-        | x :: tail -> Error.build "Unknown global requirement \"%s\"" x in
+        | x :: _ -> Error.build "Unknown global requirement \"%s\"" x in
       loop l
 
 
@@ -754,7 +754,7 @@ module Matching = struct
           | (Ast.Glob_absent key, _) ->
             begin
               match G_graph.get_meta_opt key graph with
-              | Some v -> false
+              | Some _ -> false
               | None -> true
             end
           | (Ast.Glob_regexp (key, re), _) ->
@@ -767,7 +767,7 @@ module Matching = struct
     else false
 
   (*  ---------------------------------------------------------------------- *)
-  let search_request_in_graph ~config ?lexicons { Request.global; ker; exts } graph =
+  let search_request_in_graph ~config ?lexicons { Request.global; ker; exts; _ } graph =
 
     if not (check_global_constraint global graph)
     then []
@@ -814,7 +814,7 @@ module Matching = struct
       let g_node = G_graph.find gid graph in
       (gid, g_node)
 
-  let get_relative_order ~config pid_name_list request graph matching =
+  let get_relative_order pid_name_list request graph matching =
     let pid_name_position_list =
       CCList.filter_map
         (fun pid_name ->
@@ -881,7 +881,7 @@ module Matching = struct
       let feat_value_opt = fold_until (fun fn -> G_fs.get_value_opt fn fs) splitted_feature_names in
       Feature_value.to_string <$> feat_value_opt
 
-  let get_interval ~config request graph matching ((pid_name,feature_name), gap, min_opt, max_opt) =
+  let get_interval request graph matching ((pid_name,feature_name), gap, min_opt, max_opt) =
     let (_, node) = search_pid_name request graph matching pid_name in
     match G_fs.get_value_opt feature_name (G_node.get_fs node) with
     | None
@@ -942,11 +942,11 @@ module Matching = struct
 
   let get_value_opt ?(json_label=false) ~config string_key request graph matching =
     match parse_key string_key with
-    | Rel_order pid_name_list -> get_relative_order ~config pid_name_list request graph matching
+    | Rel_order pid_name_list -> get_relative_order pid_name_list request graph matching
     | Sym_rel (pid_name_1, pid_name_2) -> Some (get_link ~config true pid_name_1 pid_name_2 request graph matching)
     | Rel (pid_name_1, pid_name_2) -> Some (get_link ~config false pid_name_1 pid_name_2 request graph matching)
     | Feat (id, splitted_feature_names) -> get_feat_value_opt ~json_label ~config request graph matching (id, splitted_feature_names)
-    | Continuous params -> Some (get_interval ~config request graph matching params)
+    | Continuous params -> Some (get_interval request graph matching params)
 
   let get_clust_value_opt ?(json_label=false) ~config clust_item request graph matching =
     match clust_item with
@@ -1301,7 +1301,7 @@ module Rule = struct
               begin
                 match String_map.find_opt src_edge_id state.e_mapping with
                 | None -> Error.run ~loc "UPDATE_EDGE_FEAT (RHS) The edge identifier '%s' is undefined" src_edge_id
-                | Some (src_gid,edge,tar_gid) -> edge
+                | Some (_,edge,_) -> edge
               end
             | _ ->
               let feature_value_list = List.map (feature_value_of_item feat_name) item_list in
@@ -1347,7 +1347,7 @@ module Rule = struct
       let tar_gid = node_find tar_cn in
       let feature_value_list = List.map (feature_value_of_item tar_feat_name) item_list in
       let new_feature_value = Feature_value.concat ~loc feature_value_list in
-      let new_graph = G_graph.update_feat ~loc state.graph tar_gid tar_feat_name new_feature_value in
+      let new_graph = G_graph.update_feat state.graph tar_gid tar_feat_name new_feature_value in
       {state with graph = new_graph; effective = true}
 
     | Command.CONCAT_FEATS (side, src_cn, tar_cn, regexp, separator) ->
@@ -1445,7 +1445,7 @@ module Rule = struct
 
   let onf_apply_opt ~config rule graph =
     try
-      let { Request.global; Request.ker; exts} = rule.request in
+      let { Request.global; Request.ker; exts; _} = rule.request in
       match Matching.check_global_constraint global graph with
       | false -> None
       | true ->
@@ -1649,7 +1649,7 @@ module Rule = struct
 
       let new_graphs = List.fold_left
           (fun acc new_feature_value ->
-             let new_graph = G_graph.update_feat ~loc gwh.Graph_with_history.graph tar_gid tar_feat_name new_feature_value in
+             let new_graph = G_graph.update_feat gwh.Graph_with_history.graph tar_gid tar_feat_name new_feature_value in
              Graph_with_history_set.add
                { gwh with
                  Graph_with_history.graph = new_graph;
@@ -1942,7 +1942,7 @@ module Rule = struct
   exception Dead_lock
   let owh_apply_opt ~config rule gwh =
     let graph = gwh.Graph_with_history.graph in
-    let { Request.global; ker; exts} = rule.request in
+    let { Request.global; ker; exts; _} = rule.request in
 
     if not (Matching.check_global_constraint global graph)
       then None

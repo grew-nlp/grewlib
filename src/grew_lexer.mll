@@ -12,7 +12,6 @@
   open Printf
   
   open Grew_utils
-  open Grew_ast
   open Grew_parser
 
   exception Error of string

@@ -35,8 +35,8 @@ module G_feature = struct
   let print_cmp (name1,_) (name2,_) =
     match (List_.index_opt name1 print_order, List_.index_opt name2 print_order) with
     | (Some i, Some j) -> Stdlib.compare i j
-    | (Some i, None) -> -1
-    | (None, Some j) -> 1
+    | (Some _, None) -> -1
+    | (None, Some _) -> 1
     | (None, None) -> Stdlib.compare name1 name2
 
   let build = function
@@ -71,7 +71,7 @@ module P_feature = struct
 
   let compare feat1 feat2 = Stdlib.compare (get_name feat1) (get_name feat2)
 
-  let dump (feature_name, p_feature_value) =
+  let _dump (feature_name, p_feature_value) =
     printf "[P_feature.dump]\n";
     printf "%s%s\n"
       feature_name
@@ -149,7 +149,7 @@ module G_fs = struct
   let get_features t = List.fold_left (fun acc (feat_name,_) -> String_set.add feat_name acc) String_set.empty t
 
   (* ---------------------------------------------------------------------- *)
-  let set_value ?loc feature_name value t =
+  let set_value feature_name value t =
     let rec loop = function
       | [] -> [(feature_name, value)]
       | ((fn,_)::_) as t when feature_name < fn -> (feature_name, value)::t
@@ -160,7 +160,7 @@ module G_fs = struct
   (* ---------------------------------------------------------------------- *)
   let set_atom ?loc feature_name atom t =
     let value = Feature_value.parse ?loc feature_name atom in
-    set_value ?loc feature_name value t
+    set_value feature_name value t
 
   (* ---------------------------------------------------------------------- *)
   let del_feat_opt = List_.sort_remove_assoc_opt
@@ -197,7 +197,7 @@ module G_fs = struct
     match (side, v1, v2) with
     | (Ast.Append, Feature_value.String v1, Feature_value.String v2) -> Feature_value.String (v1 ^ separator ^ v2)
     | (Ast.Prepend, Feature_value.String v1, Feature_value.String v2) -> Feature_value.String (v2 ^ separator ^ v1)
-    | _ -> Error.run "Cannot concat numerical values"
+    | _ -> Error.run ?loc "Cannot concat numerical values"
 
   (* ---------------------------------------------------------------------- *)
   let concat_feats_opt ?loc side src tar separator regexp =
@@ -212,10 +212,10 @@ module G_fs = struct
       let (new_tar, updated_feats) = List.fold_left
           (fun (acc_tar, acc_updated_feats) (feat, value) ->
              match List_.sort_assoc_opt feat tar with
-             | None -> (set_value ?loc feat value acc_tar, (feat, value)::acc_updated_feats)
+             | None -> (set_value feat value acc_tar, (feat, value)::acc_updated_feats)
              | Some v ->
                let new_value = concat_values ?loc side separator v value in
-               (set_value ?loc feat new_value acc_tar, (feat, new_value)::acc_updated_feats)
+               (set_value feat new_value acc_tar, (feat, new_value)::acc_updated_feats)
           ) (tar,[]) sub_src in
       Some (new_tar, updated_feats)
 
@@ -378,7 +378,7 @@ module P_fs = struct
       | ((fn_pat, fv_pat)::t_pat, (fn, _)::t) when fn_pat > fn -> loop acc ((fn_pat, fv_pat)::t_pat, t)
 
       (* Two next cases: p_fs requires for the absence of a feature -> OK *)
-      | ((fn_pat, P_feature.Absent)::t_pat, []) -> loop acc (t_pat, [])
+      | ((_, P_feature.Absent)::t_pat, []) -> loop acc (t_pat, [])
       | ((fn_pat, P_feature.Absent)::t_pat, (fn, fa)::t) when fn_pat < fn -> loop acc (t_pat, (fn, fa)::t)
 
       (* look for the second part of an Else construction *)
@@ -402,15 +402,15 @@ module P_fs = struct
       | ((fn_pat, _)::_, (fn, _)::_) when fn_pat < fn -> raise Fail
 
       (* Next cases: fn_pat = fn *)
-      | ((_, P_feature.Absent)::_, (_, atom)::t) -> raise Fail
+      | ((_, P_feature.Absent)::_, (_, _)::_) -> raise Fail
 
-      | ((_, P_feature.Pfv_list (Eq,fv))::_, (_, atom)::t) when not (List_.sort_mem atom fv) -> raise Fail
-      | ((_, P_feature.Pfv_list (Neq,fv))::_, (_, atom)::t) when (List_.sort_mem atom fv) -> raise Fail
+      | ((_, P_feature.Pfv_list (Eq,fv))::_, (_, atom)::_) when not (List_.sort_mem atom fv) -> raise Fail
+      | ((_, P_feature.Pfv_list (Neq,fv))::_, (_, atom)::_) when (List_.sort_mem atom fv) -> raise Fail
 
-      | ((_, P_feature.Pfv_re (Eq,re))::_, (_, atom)::t) when not (String_.re_match (Str.regexp re) (Feature_value.to_string atom)) -> raise Fail
-      | ((_, P_feature.Pfv_re (Neq,re))::_, (_, atom)::t) when (String_.re_match (Str.regexp re) (Feature_value.to_string atom)) -> raise Fail
+      | ((_, P_feature.Pfv_re (Eq,re))::_, (_, atom)::_) when not (String_.re_match (Str.regexp re) (Feature_value.to_string atom)) -> raise Fail
+      | ((_, P_feature.Pfv_re (Neq,re))::_, (_, atom)::_) when (String_.re_match (Str.regexp re) (Feature_value.to_string atom)) -> raise Fail
 
-      | ((_, P_feature.Else (fv,_,_))::_, (_, atom)::t) when atom <> fv -> raise Fail
+      | ((_, P_feature.Else (fv,_,_))::_, (_, atom)::_) when atom <> fv -> raise Fail
 
       | ((_, P_feature.Pfv_lex (cmp,lex_id,field))::t_pat, (_, atom)::t) ->
         begin
@@ -437,7 +437,7 @@ module P_fs = struct
 
       | ((fn1,v1)::t1, (fn2,v2)::t2) when fn1 < fn2 -> (fn1,v1) :: (loop (t1,(fn2,v2)::t2))
       | ((fn1,v1)::t1, (fn2,v2)::t2) when fn1 > fn2 -> (fn2,v2) :: (loop ((fn1,v1)::t1,t2))
-      | ((fn1,v1)::t1, (fn2,v2)::t2) (* when fn1 = fn2 *) ->
+      | ((fn1,v1)::t1, (_,v2)::t2) (* when fn1 = fn2 *) ->
         try (fn1,P_feature.unif_value v1 v2) :: (loop (t1,t2))
         with
         | P_feature.Fail_unif -> raise Fail_unif

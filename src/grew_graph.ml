@@ -43,7 +43,7 @@ module P_graph = struct
     let dump bases t =
     printf "============ P_graph.dump ===========\n";
       Pid_map.iter
-        (fun pid node -> 
+        (fun pid _ -> 
           printf "pid=%s   name=%s    node=…\n%!" (Pid.to_string pid) (get_name pid bases)
         ) t;
     printf "///========= P_graph.dump ========///\n"
@@ -52,7 +52,7 @@ module P_graph = struct
   let to_json_list ~config ?(base=empty) t =
     let local_get_name pid = get_name pid [base; t] in
     let nodes = Pid_map.fold 
-      (fun k n acc ->
+      (fun _ n acc ->
         if P_node.is_empty n
         then acc
         else (`String (sprintf "%s [%s]" (P_node.get_name n) (P_fs.to_string (P_node.get_fs n)))) :: acc
@@ -89,14 +89,14 @@ module P_graph = struct
     let full_node_list = basic_ast.Ast.req_nodes
     and full_edge_list = basic_ast.Ast.req_edges in
 
-    let nodes_id = List.map (fun ({Ast.node_id},_) -> node_id) full_node_list in
-    let edges_id = CCList.filter_map (fun ({Ast.edge_id},_) -> edge_id) full_edge_list in
+    let nodes_id = List.map (fun ({Ast.node_id; _},_) -> node_id) full_node_list in
+    let edges_id = CCList.filter_map (fun ({Ast.edge_id; _},_) -> edge_id) full_edge_list in
 
     begin
       match List_.intersect nodes_id edges_id with
       | [] -> ()
       | id::_ ->
-        let loc = snd (List.find (fun ({Ast.node_id},_) -> node_id = id) full_node_list) in
+        let loc = snd (List.find (fun ({Ast.node_id; _},_) -> node_id = id) full_node_list) in
         Error.build ~loc "The same identifier `%s` cannot be used both as a node identifier and as an edge identifier" id
     end;
 
@@ -209,7 +209,7 @@ module P_graph = struct
            match ast_edge.Ast.edge_label_cst with
            | Ast.Pred ->
              (match map_add_edge_opt src_pid P_edge.succ tar_pid acc_map with
-              | Some acc2 -> (match map_add_edge_opt tar_pid P_edge.pred src_pid acc_map with
+              | Some _acc2 -> (match map_add_edge_opt tar_pid P_edge.pred src_pid acc_map with (* TODO: check unused acc2 *)
                   | Some m -> (m, acc_edge_ids)
                   | None -> Error.build ~loc "[P_graph.build_extension] try to build a graph with twice the order edge"
                 )
@@ -293,8 +293,6 @@ module G_graph = struct
   let set_meta key value t = {t with meta = (key,value) :: List.remove_assoc key t.meta}
 
   let empty = { meta=[]; map=Gid_map.empty; highest_index=0; rules=[]; trace=None; impact=G_deco.empty }
-
-  let is_empty t = Gid_map.is_empty t.map
 
   let is_initial g = g.rules = []
 
@@ -382,8 +380,6 @@ module G_graph = struct
     | None -> 0
     | Some (_,_,_,g) -> 1 + (trace_depth g)
 
-  let string_rules t = String.concat "\n" (List.rev t.rules)
-
   let clear_rules t = { t with rules = [] }
 
   (* is there an edge e out of node i ? *)
@@ -430,7 +426,7 @@ module G_graph = struct
   (* -------------------------------------------------------------------------------- *)
 
   (* return input map if edge not found *)
-  let map_del_edge ?loc src_gid label tar_gid map =
+  let map_del_edge src_gid label tar_gid map =
     match Gid_map.find_opt src_gid map with
     | None -> map
     | Some src_node ->
@@ -918,7 +914,7 @@ module G_graph = struct
   let del_node_opt node_id graph =
     match Gid_map.find_opt node_id graph.map with
     | None -> None
-    | Some node ->
+    | Some _ ->
       let new_map =
         Gid_map.fold
           (fun id value acc ->
@@ -1014,9 +1010,9 @@ module G_graph = struct
     (g2, de1 @ de2, ae1 @ ae2)
 
   (* -------------------------------------------------------------------------------- *)
-  let update_feat ?loc graph node_id feat_name new_value =
+  let update_feat graph node_id feat_name new_value =
     let node = Gid_map.find node_id graph.map in
-    let new_fs = G_fs.set_value ?loc feat_name new_value (G_node.get_fs node) in
+    let new_fs = G_fs.set_value feat_name new_value (G_node.get_fs node) in
     let new_node = G_node.set_fs new_fs node in
     { graph with map = Gid_map.add node_id new_node graph.map }
 
@@ -1046,7 +1042,7 @@ module G_graph = struct
     let high_list = match pivot with
       | None -> List.map fst deco.nodes
       | Some pivot ->
-        match List.find_opt (fun (gid, (pid,_)) -> pid = pivot) deco.nodes with
+        match List.find_opt (fun (_, (pid,_)) -> pid = pivot) deco.nodes with
         | None -> Error.run "Undefined pivot %s" pivot
         | Some (gid,_) -> [gid] in
 
@@ -1263,12 +1259,6 @@ module G_graph = struct
     Buffer.contents buff
 
   (* -------------------------------------------------------------------------------- *)
-  let list_num test =
-    let rec loop n = function
-      | [] -> raise Not_found
-      | x::_ when test x -> n
-      | _::t -> loop (n+1) t
-    in loop 0
 
   module Layers = Map.Make (struct type t = string option let compare = Stdlib.compare end)
 
@@ -1354,7 +1344,7 @@ module G_graph = struct
     Gid_map.fold
       (fun _ node acc ->
          Gid_massoc.fold_on_list
-           (fun acc2 key edges ->
+           (fun acc2 _ edges ->
               List.fold_left
                 (fun acc3 edge ->
                    match G_edge.to_string_opt ~config edge with
@@ -1381,12 +1371,12 @@ module G_graph = struct
       ) t proj 
 
   let is_projective t =
-    let (arc_positions, pos_to_gid_map) =
+    let (arc_positions, _) =
       Gid_map.fold (fun src_gid src_node (acc, acc_map) ->
           match G_node.get_position_opt src_node with
           | None -> (acc, acc_map)
           | Some src_position ->
-            let new_acc = Gid_massoc.fold (fun acc2 tar_gid edge ->
+            let new_acc = Gid_massoc.fold (fun acc2 tar_gid _ ->
                 let tar_node = find tar_gid t in
                 match G_node.get_position_opt tar_node with
                 | None -> acc2
@@ -1451,7 +1441,7 @@ module G_graph = struct
       info := {!info with intervals = Gid_map.add gid (Pre !clock) !info.intervals};
       incr clock;
       let node = Gid_map.find gid graph.map in
-      Gid_massoc.iter (fun next_gid edge ->
+      Gid_massoc.iter (fun next_gid _ ->
           try
             match Gid_map.find next_gid !info.intervals with
             | Pre _ -> info := {!info with back_edges = (gid, next_gid) :: !info.back_edges};
@@ -1542,19 +1532,19 @@ module Delta = struct
   let add_edge src lab tar t =
     let rec loop = fun old -> match old with
       | []                                                 -> ((src,lab,tar),Add)::old
-      | ((s,l,t),stat)::tail when (src,lab,tar) < (s,l,t)  -> ((src,lab,tar),Add)::old
+      | ((s,l,t),_)::_ when (src,lab,tar) < (s,l,t)        -> ((src,lab,tar),Add)::old
       | ((s,l,t),stat)::tail when (src,lab,tar) > (s,l,t)  -> ((s,l,t),stat)::(loop tail)
-      | ((s,l,t), Add)::tail (* (src,lab,tar) = (s,l,t) *) -> raise (Inconsistent "add_edge")
-      | ((s,l,t), Del)::tail (* (src,lab,tar) = (s,l,t) *) -> tail in
+      | ((_,_,_), Add)::_ (* (src,lab,tar) = (s,l,t) *)    -> raise (Inconsistent "add_edge")
+      | ((_,_,_), Del)::tail (* (src,lab,tar) = (s,l,t) *) -> tail in
     { t with edges = loop t.edges }
 
   let del_edge src lab tar t =
     let rec loop = fun old -> match old with
       | []                                                 -> ((src,lab,tar),Del)::old
-      | ((s,l,t),stat)::tail when (src,lab,tar) < (s,l,t)  -> ((src,lab,tar),Del)::old
+      | ((s,l,t),_)::_ when (src,lab,tar) < (s,l,t)        -> ((src,lab,tar),Del)::old
       | ((s,l,t),stat)::tail when (src,lab,tar) > (s,l,t)  -> ((s,l,t),stat)::(loop tail)
-      | ((s,l,t), Del)::tail (* (src,lab,tar) = (s,l,t) *) -> raise (Inconsistent "del_edge")
-      | ((s,l,t), Add)::tail (* (src,lab,tar) = (s,l,t) *) -> tail in
+      | ((_,_,_), Del)::_ (* (src,lab,tar) = (s,l,t) *)    -> raise (Inconsistent "del_edge")
+      | ((_,_,_), Add)::tail (* (src,lab,tar) = (s,l,t) *) -> tail in
     { t with edges = loop t.edges }
 
   let set_feat seed_graph gid feat_name new_val_opt t =
@@ -1565,10 +1555,10 @@ module Delta = struct
     let rec loop = fun old -> match old with
       | [] when equal_orig                                             -> []
       | []                                                             -> [(gid,feat_name), new_val_opt]
-      | ((g,f),_)::tail when (gid,feat_name) < (g,f) && equal_orig     -> old
-      | ((g,f),v)::tail when (gid,feat_name) < (g,f)                   -> ((gid,feat_name), new_val_opt)::old
+      | ((g,f),_)::_ when (gid,feat_name) < (g,f) && equal_orig        -> old
+      | ((g,f),_)::_ when (gid,feat_name) < (g,f)                      -> ((gid,feat_name), new_val_opt)::old
       | ((g,f),v)::tail when (gid,feat_name) > (g,f)                   -> ((g,f),v)::(loop tail)
-      | ((g,f),_)::tail when (* (g,f)=(gid,feat_name) && *) equal_orig -> tail
+      | ((_,_),_)::tail when (* (g,f)=(gid,feat_name) && *) equal_orig -> tail
       | ((g,f),_)::tail (* when (g,f)=(gid,feat_name) *)               -> ((g,f), new_val_opt) :: tail in
     { t with feats = loop t.feats }
 

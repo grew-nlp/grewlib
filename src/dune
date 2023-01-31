@@ -1,5 +1,17 @@
+(menhir
+ (modules grew_parser))
+(ocamllex grew_lexer)
 (library
  (public_name grewlib)
  (name grewlib)
- (libraries str unix ANSITerminal containers yojson amr conll)
+ (libraries 
+   str
+   unix
+   dune-build-info
+   ANSITerminal 
+   containers 
+   yojson 
+   amr 
+   conll
+ )
 )

@@ -11,9 +11,6 @@
 open Grew_types
 open Grew_utils
 open Grew_graph
-open Grew_command
-open Grew_edge
-open Grew_fs
 open Grew_ast
 
 

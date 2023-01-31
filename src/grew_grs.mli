@@ -10,11 +10,7 @@
 
 open Conll
 
-open Grew_types
-open Grew_utils
-open Grew_ast
 open Grew_graph
-open Grew_rule
 
 
 (* ================================================================================ *)

@@ -10,12 +10,9 @@
 
 open Printf
 
-open Grew_types
 open Grew_utils
 open Grew_ast
 open Grew_edge
-open Grew_fs
-open Grew_node
 open Grew_graph
 
 (* ================================================================================ *)

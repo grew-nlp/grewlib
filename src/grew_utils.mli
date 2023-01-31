@@ -8,8 +8,6 @@
 (*    Authors: see AUTHORS file                                                   *)
 (**********************************************************************************)
 
-open Grew_types
-
 (* ================================================================================ *)
 module Cmp: sig
   (** This module defines a two values type for Equalty / Disequality *)

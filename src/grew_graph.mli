@@ -199,7 +199,7 @@ module G_graph: sig
 
   (** [update_feat graph tar_id tar_feat_name value] sets the feature of the node [tar_id]
       with feature name [tar_feat_name] to be [value]. *)
-  val update_feat: ?loc:Loc.t -> t -> Gid.t -> string -> Feature_value.t -> t
+  val update_feat: t -> Gid.t -> string -> Feature_value.t -> t
 
   (** [concat_feats_opt graph side src_id tar_id separator regexp] copy all feats of nodes [src_id] that match [regexp] to the node [tar_id].
       If a feature of the same name already exists in [tar_id], the two values are concatenated (separated by [separator]).
