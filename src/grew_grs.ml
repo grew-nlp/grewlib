@@ -499,8 +499,10 @@ module Grs = struct
     then [onf_rewrite ~config (top grs) strat graph]
     else gwh_simple_rewrite ~config grs strat graph
 
-  let eud2ud = load ~config:(Conll_config.build "ud") (Filename.concat "DATADIR" "eud2ud.grs")
-  let apply_eud2ud ~config graph =
+  (** Locations of the site for grs files *)
+  let grs_location = List.hd Grs_files.Sites.grs
+  let eud2ud = load ~config:(Conll_config.build "ud") (Filename.concat grs_location "eud2ud.grs")
+  let apply_eud2ud ~config graph = 
     match simple_rewrite ~config eud2ud "main" graph with
     | [one] -> one
     | _ -> Error.run "the conversion eud2ud is not deterministic"
