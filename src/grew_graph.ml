@@ -65,8 +65,12 @@ module P_graph = struct
             match P_edge.to_id_opt_and_string ~config edge with
             | (_,"__PRED__") -> acc2
             | (_,"__SUCC__") -> (`String (sprintf "%s < %s" (local_get_name k) (local_get_name pid_tar))) :: acc2
-            | (None, e) -> 
+            | (None, "^") -> (* Because no constraint is expressed as "not + empty set" *) 
+                (`String (sprintf "%s -> %s" (local_get_name k) (local_get_name pid_tar))) :: acc2
+            | (None, e) ->
                 (`String (sprintf "%s -[%s]-> %s" (local_get_name k) e (local_get_name pid_tar))) :: acc2
+            | (Some id, "^") -> (* Because no constraint is expressed as "not + empty set" *) 
+                (`String (sprintf "%s: %s -> %s" id (local_get_name k) (local_get_name pid_tar))) :: acc2
             | (Some id, e) -> 
                 (`String (sprintf "%s: %s -[%s]-> %s" id (local_get_name k) e (local_get_name pid_tar))) :: acc2
           ) acc next
