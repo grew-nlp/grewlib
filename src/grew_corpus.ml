@@ -265,7 +265,6 @@ module Corpus = struct
         then acc
         else
           begin
-            check graph_counter;
             let graph_index = permut_fct graph_counter in
             let graph = get_graph graph_index corpus in
             let sent_id = get_sent_id graph_index corpus in
@@ -275,6 +274,7 @@ module Corpus = struct
               CCList.foldi
                 (fun acc2 pos_in_graph matching ->
                   incr matching_counter; 
+                  check graph_counter;
                   if !status <> Ok
                   then acc2
                   else
