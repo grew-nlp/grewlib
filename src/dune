@@ -7,8 +7,6 @@
  (libraries 
    str
    unix
-   dune-build-info
-   dune-site
    ANSITerminal 
    containers 
    yojson 
@@ -16,6 +14,3 @@
    conll
  )
 )
-(generate_sites_module
- (module grs_files)
- (sites grewlib))

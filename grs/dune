@@ -1,6 +1,0 @@
-(install
- (section
-  (site
-   (grewlib grs)))
- (files
-  eud2ud.grs))

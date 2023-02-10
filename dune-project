@@ -5,7 +5,6 @@
 (version 1.12.0)
 
 (using menhir 2.0)
-(using dune_site 0.1)
 
 (generate_opam_files true)
 

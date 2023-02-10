@@ -499,9 +499,26 @@ module Grs = struct
     then [onf_rewrite ~config (top grs) strat graph]
     else gwh_simple_rewrite ~config grs strat graph
 
-  (** Locations of the site for grs files *)
-  let grs_location = List.hd Grs_files.Sites.grs
-  let eud2ud = load ~config:(Conll_config.build "ud") (Filename.concat grs_location "eud2ud.grs")
+  (* With the dune build system, the installation of external files breaks eliom-based code compilation.
+     The grs is temporaly hard-coded here. *)
+  let eud2ud_string = "
+  package eud_to_ud {
+    rule deep { % remove add enhanced relations
+      pattern { e:N -[enhanced=yes]-> M }
+      commands { del_edge e}
+    }
+  
+    rule empty { % remove empty nodes
+      pattern { N [wordform=__EMPTY__, textform=_] }
+      commands { del_node N }
+    }
+  }
+  
+  strat main { Onf(eud_to_ud) }
+"
+
+  let eud2ud = parse ~config:(Conll_config.build "ud") eud2ud_string
+
   let apply_eud2ud ~config graph = 
     match simple_rewrite ~config eud2ud "main" graph with
     | [one] -> one
