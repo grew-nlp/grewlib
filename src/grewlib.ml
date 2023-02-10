@@ -40,11 +40,6 @@ module Grewlib = struct
     | Grew_utils.Timeout.Stop bound -> raise (Error (sprintf "Timeout (running time execeeds %g seconds)" bound))
     | exc -> raise (Bug (sprintf "[Grewlib.%s] UNCAUGHT EXCEPTION: %s" name (Printexc.to_string exc)))
 
-  let get_version () =
-    match Build_info.V1.version () with
-    | None -> "dev"
-    | Some v -> Build_info.V1.Version.to_string v
-  
   let set_debug_mode flag = Grew_utils.Global.debug := flag
 
   let set_safe_commands flag = Grew_utils.Global.safe_commands := flag

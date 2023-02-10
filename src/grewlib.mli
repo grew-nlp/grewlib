@@ -110,7 +110,6 @@ end (* module Clustered *)
 (** {2 General definitions} *)
 (* ==================================================================================================== *)
 module Grewlib : sig
-  val get_version: unit -> string
   val set_debug_mode: bool -> unit
   val set_safe_commands: bool -> unit
   val set_track_rules: bool -> unit
