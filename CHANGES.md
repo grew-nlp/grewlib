@@ -1,3 +1,7 @@
+## 1.11.1 (2023/03/10)
+  * Bug fixes
+  * "draw" loops are special features
+
 # 1.11.0 (2023/01/22)
   * ⚠️ add "with" clauses (with is now a keyword)
   * non injnective matching with `N$`
