@@ -11,6 +11,9 @@ remove: [
   ["make" "uninstall" "PREFIX=%{prefix}%"]
 ]
 depends: [
+  "ocaml" {>= "4.13.0"}
+  "ocamlfind" {build}
+  "ocamlbuild" {build}
   "cppo"
   "menhir"
   "yojson"
