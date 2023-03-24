@@ -1,16 +1,32 @@
 (menhir
- (modules grew_parser))
+  (modules grew_parser)
+)
 (ocamllex grew_lexer)
 (library
- (public_name grewlib)
- (name grewlib)
- (libraries 
-   str
-   unix
-   ANSITerminal 
-   containers 
-   yojson 
-   amr 
-   conll
- )
+  (public_name grewlib)
+  (name grewlib)
+  (private_modules 
+    grew_ast
+    grew_command
+    grew_corpus
+    grew_edge
+    grew_fs
+    grew_graph
+    grew_grs
+    grew_lexer
+    grew_loader
+    grew_node
+    grew_parser
+    grew_rule
+    grew_utils
+  )
+  (libraries 
+    str
+    unix
+    ANSITerminal 
+    containers 
+    yojson 
+    amr 
+    conll
+  )
 )
