@@ -17,6 +17,7 @@ depends: [
   "conll"
   "odoc" {with-doc}
 ]
+conflicts: ["libcaml-grew"]
 build: [
   ["dune" "subst"] {dev}
   [

@@ -1,3 +1,7 @@
+# 1.12.0 (2023/03/24)
+  * ⚠️ library is renamed `grewlib` (old name was `libcaml-grew`)
+  * use dune build system
+
 ## 1.11.1 (2023/03/10)
   * Bug fixes
   * "draw" loops are special features

@@ -27,5 +27,5 @@
  (tags
   (nlp "graph rewriting")
  )
- (sites (share grs))
+ (conflicts libcaml-grew)
 )
