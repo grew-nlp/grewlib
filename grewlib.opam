@@ -11,10 +11,13 @@ homepage: "https://github.com/grew-nlp/grewlib"
 doc: "https://grew.fr"
 bug-reports: "https://github.com/grew-nlp/grewlib/issues"
 depends: [
-  "ocaml"
+  "ocaml" {>= "4.13.0"}
   "dune" {>= "3.5"}
-  "amr"
-  "conll"
+  "menhir"
+  "yojson"
+  "containers" {>= "3.6"}
+  "amr" {>= "0.6.0"}
+  "conll" {>= "1.14.1"}
   "odoc" {with-doc}
 ]
 conflicts: ["libcaml-grew"]

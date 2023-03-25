@@ -23,7 +23,15 @@
  (name grewlib)
  (synopsis "The main library for the Grew system")
  (description "Grew implements a Grapg Rewriting system to be used in NLP")
- (depends ocaml dune amr conll)
+ (depends 
+   (ocaml ( >= "4.13.0" ))
+   dune 
+   menhir
+   yojson
+   (containers ( >= "3.6" ))
+   (amr ( >= "0.6.0" )) 
+   (conll ( >= "1.14.1" ))
+ )
  (tags
   (nlp "graph rewriting")
  )
