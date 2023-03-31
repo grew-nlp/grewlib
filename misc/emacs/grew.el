@@ -5,7 +5,7 @@
 (require 'generic-x) ;;pour Emacs OK, mais semble ne pas marcher avec XEmacs
 (define-generic-mode 'grew-mode
   '("%");;comments
-  '("rule" "without" "commands" "global" "import" "include");;keywords
+  '("rule" "without" "with" "commands" "global" "import" "include");;keywords
   '(
 ;;    ("class\\s (\*\*)* +\\(\\sw[a-zA-Z0-9_.-]*\\)" 1 'font-lock-type-face);noms de classes
 ;;    ("\?[a-zA-Z0-9]+" . font-lock-variable-name-face)

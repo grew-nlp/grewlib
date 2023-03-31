@@ -236,7 +236,7 @@ module Request = struct
       List.map 
       (function
         | (basic,false) -> `Assoc [("without", basic_to_json ~config ~base:t.ker.graph basic)]
-        | _ -> failwith "`with` extension not implemented"
+        | (basic,true) -> `Assoc [("with", basic_to_json ~config ~base:t.ker.graph basic)]
     ) t.exts in
     let pattern = `Assoc [("pattern", basic_to_json ~config t.ker)] in
     match t.global with
@@ -271,9 +271,7 @@ module Request = struct
         (fun item -> 
           item |> to_assoc |> 
           (function
-          | ["pattern", l] -> sprintf "  pattern {%s}" (l |> to_list |> List.map to_string |> String.concat ";\n")
-          | ["without", l] -> sprintf "  without {%s}" (l |> to_list |> List.map to_string |> String.concat ";\n")
-          | ["global", l] -> sprintf "  global {%s}" (l |> to_list |> List.map to_string |> String.concat ";\n")
+          | [keyword, l] -> sprintf "  %s {%s}" keyword (l |> to_list |> List.map to_string |> String.concat ";\n")
           | _ -> Error.build "[Request.string_of_json]"
           )
         )  
