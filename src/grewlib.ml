@@ -374,6 +374,7 @@ module Corpus = struct
   let bounded_search ~config ?ordering bound timeout null update request cluster_item_list corpus =
     Grewlib.handle ~name:"Corpus.search" 
     (fun () -> Grew_corpus.Corpus.bounded_search ~config ?ordering bound timeout null update request cluster_item_list corpus) ()
+  let compile = Grew_corpus.Corpus.compile
 
 end (* module Corpus *)
 

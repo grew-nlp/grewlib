@@ -203,15 +203,12 @@ module Corpus = struct
            | _ -> (conll_acc, amr_acc, txt_acc, json_acc)
         ) files ([],[],[], []) in
 
-    printf "|json_list|=%d\n%!" (List.length json_files);
-
     (* txt files are interpreted as AMR files only if there is no conll-like files (eg: UD containts txt files in parallel to conllu) *)
     match (conll_files, amr_files, txt_files, json_files) with
     | ([],[],[], []) -> Error.run "The directory `%s` does not contain any graphs" dir
-    | (conll_files,[],[],[]) -> of_conllx_corpus (Conll_corpus.load_list ?log_file ?config conll_files)
-    | ([],amr_files, txt_files,[]) -> (amr_files @ txt_files) |> List.map of_amr_file |> merge
+    | (_::_ as conll_files,_,_,_) -> of_conllx_corpus (Conll_corpus.load_list ?log_file ?config conll_files)
+    | ([], (_::_ as amr_files), txt_files, _) | ([], amr_files, (_::_ as txt_files), _) -> (amr_files @ txt_files) |> List.map of_amr_file |> merge
     | ([],[],[],json_files) -> json_files |> List.map of_json_file |> merge
-    | _ -> Error.run "The directory `%s` contains mixed kind of data" dir
 
   (* val from_assoc_list: (string * G_graph.t) list -> t *)
   let from_assoc_list l = 
@@ -293,6 +290,12 @@ module Corpus = struct
     | Timeout r -> (x, "timeout", r)
     | Over r -> (x, "max_results", r)
     )
+
+  let compile dir marshal_file t =
+    let out_ch = open_out_bin (Filename.concat dir marshal_file) in
+    Marshal.to_channel out_ch t [];
+    close_out out_ch
+  
 end
 
 (* ==================================================================================================== *)

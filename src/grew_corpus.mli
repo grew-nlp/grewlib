@@ -63,6 +63,10 @@ module Corpus : sig
       Request.cluster_item list ->         (* The list of element used for clustering *)
     t -> 
       ('a Clustered.t * string * float)  (* (output, statut, ratio) status is "ok", "timeout" or "over" *)
+
+  (** [compile dir marshal_file t]  *)
+  val compile: string -> string -> t -> unit
+
 end
 
 module Corpus_desc : sig

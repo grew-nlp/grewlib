@@ -266,6 +266,9 @@ module Corpus: sig
       ('a Clustered.t * string * float)  (* (output, statut, ratio) status is "ok", "timeout" or "over" *)
   (** search for a request in a corpus , with timeout and a bounded number of solutions *)
 
+  (** [compile dir marshal_file t]  *)
+  val compile: string -> string -> t -> unit
+
 end
 
 (* ==================================================================================================== *)
