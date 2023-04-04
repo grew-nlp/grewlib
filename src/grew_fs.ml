@@ -302,8 +302,8 @@ module G_fs = struct
     let sub = List.sort G_feature.print_cmp sub in
 
     let color = match (get_value_opt "parseme" t, get_value_opt "frsemcor" t) with
-      | (Some (Feature_value.String "NE"), None) -> ":C:#ff760b"
-      | (Some (Feature_value.String "MWE"), None) -> ":C:#1d7df2"
+      | (Some (Feature_value.String "NE"), None) -> ":C:#9900FF"
+      | (Some (Feature_value.String "MWE"), None) -> ":C:#ffa000"
       | (None, Some _) -> ":C:#12CD56"
       | _ -> "" in
 

@@ -112,8 +112,8 @@ module G_edge = struct
           | Some (String "yes") -> ["color=blue"; "forecolor=blue"; "bottom"]
           | _ ->
             match List_.sort_assoc_opt "parseme" fs with
-            | Some (String "MWE") -> ["color=#1d7df2"; "forecolor=#1d7df2"; "bottom"]
-            | Some (String "NE") -> ["color=#ff760b"; "forecolor=#ff760b"; "bottom"]
+            | Some (String "MWE") -> ["color=#ffa000"; "forecolor=#ffa000"; "bottom"]
+            | Some (String "NE") -> ["color=#9900FF"; "forecolor=#9900FF"; "bottom"]
             | _ ->
               match List_.sort_assoc_opt "frsemcor" fs with
               | Some (String _) -> ["color=#12cd56"; "forecolor=#12cd56"; "bottom"]
@@ -140,8 +140,8 @@ module G_edge = struct
           | Some (String "yes") -> ["color=blue"; "fontcolor=blue"]
           | _ ->
             match List_.sort_assoc_opt "parseme" fs with
-            | Some (String "MWE") -> ["color=#1d7df2"; "fontcolor=#1d7df2"]
-            | Some (String "NE") -> ["color=#ff760b"; "fontcolor=#ff760b"]
+            | Some (String "MWE") -> ["color=#ffa000"; "fontcolor=#ffa000"]
+            | Some (String "NE") -> ["color=#9900FF"; "fontcolor=#9900FF"]
             | _ ->
               match List_.sort_assoc_opt "1" fs with
               | Some (String "unscoped") | Some (String "wider") | Some (String "equal") | Some (String "dual") ->
