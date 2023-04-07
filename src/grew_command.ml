@@ -69,6 +69,9 @@ module Command  = struct
 
   type t = p * Loc.t  (* remember command location to be able to localize a command failure *)
 
+  let is_increasing (p,_) = match p with
+  | NEW_NODE _ | NEW_BEFORE _ | NEW_AFTER _ -> true
+  | _ -> false
 
   let to_json ~config ?(base=P_graph.empty) (p,_) =
     let node_to_string = function

@@ -957,6 +957,17 @@ end (* module Matching *)
 
 (* ================================================================================ *)
 module Rule = struct
+
+  type t = {
+    name: string;
+    request: Request.t;
+    commands: Command.t list;
+    lexicons: Lexicons.t;
+    loc: Loc.t;
+    path: string;
+    incr: bool;
+  }
+
   (* the number of rewriting steps is bounded to stop rewriting when the system is not terminating *)
   let max_rules = ref 10_000
   let set_max_rules n = max_rules := n
@@ -966,8 +977,15 @@ module Rule = struct
   let current_rules = ref 0
   let rule_report_list = ref []
 
-  let reset_rules () = current_rules := 0; rule_report_list := []
-  let incr_rules rule_name =
+  let max_incr_rules = ref 100
+  let current_incr_rules = ref 0
+
+  let reset_rules () = current_rules := 0; rule_report_list := []; current_incr_rules := 0
+
+  let incr_rules rule =
+    if rule.incr then incr current_incr_rules;
+    if !current_incr_rules > !max_incr_rules
+    then Error.run "More than %d rewriting steps which increases graph size: check for loops!" !max_incr_rules;
     incr current_rules;
     if !current_rules > !max_rules - nb_rule_report
     then
@@ -975,18 +993,9 @@ module Rule = struct
       then Error.run "More than %d rewriting steps: check for loops or increase max_rules value. Last rules are: […%s]"
           !max_rules
           (String.concat ", " (List.rev !rule_report_list))
-      else rule_report_list := rule_name :: !rule_report_list
+      else rule_report_list := rule.name :: !rule_report_list
 
   let get_nb_rules () = !current_rules
-
-  type t = {
-    name: string;
-    request: Request.t;
-    commands: Command.t list;
-    lexicons: Lexicons.t;
-    loc: Loc.t;
-    path: string;
-  }
 
   let get_name t = t.name
 
@@ -1109,13 +1118,15 @@ module Rule = struct
                rule_ast.Ast.rule_id position;
              (acc, position+1)
         ) ([],1) rule_ast.Ast.request.Ast.req_exts in
+    let commands = commands_of_ast ~config lexicons ker ker_table rule_ast.Ast.commands in
     {
       name = rule_ast.Ast.rule_id;
       request = { ker; exts; global=rule_ast.Ast.request.Ast.req_glob; table=ker_table; edge_ids };
-      commands = commands_of_ast ~config lexicons ker ker_table rule_ast.Ast.commands;
+      commands;
       loc = rule_ast.Ast.rule_loc;
       lexicons;
       path = rule_ast.Ast.rule_path;
+      incr = List.exists (fun c -> Command.is_increasing c) commands;
     }
 
   (*  ---------------------------------------------------------------------- *)
@@ -1476,7 +1487,7 @@ module Rule = struct
           then
             begin
               Timeout.check ();
-              incr_rules rule.name;
+              incr_rules rule;
               let up = Matching.build_deco rule.request first_matching_where_all_witout_are_fulfilled in
               let down = Matching.down_deco (String_map.empty, first_matching_where_all_witout_are_fulfilled, final_state.created_nodes) rule.commands in
               Some (G_graph.track up (get_rule_info rule) down graph final_state.graph)
@@ -1898,7 +1909,7 @@ module Rule = struct
   (** [apply_rule graph_with_history matching rule] returns a new graph_with_history after the application of the rule *)
   let gwh_apply_rule ~config graph_with_history matching rule =
     Timeout.check ();
-    incr_rules rule.name;
+    incr_rules rule;
     let init = Graph_with_history_set.singleton
         { graph_with_history with
           e_mapping = matching.Matching.e_match;
@@ -1967,7 +1978,7 @@ module Rule = struct
               try
                 let new_gwh = loop_command init_gwh rule.commands in
                 Timeout.check ();
-                incr_rules rule.name;
+                incr_rules rule;
                 let up = Matching.build_deco rule.request sub in
                 let down = Matching.down_deco (new_gwh.added_edges_in_rule, sub, new_gwh.added_gids_in_rule) rule.commands in
                 Some {new_gwh with graph = G_graph.track up (get_rule_info rule) down graph new_gwh.graph }

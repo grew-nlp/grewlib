@@ -54,6 +54,7 @@ module Command : sig
   type t = (p * Loc.t)
   val to_json: config:Conll_config.t -> ?base:Grew_graph.P_graph.t -> t -> Yojson.Basic.t
 
+  val is_increasing: t -> bool
 
   val of_ast:
     config:Conll_config.t ->
