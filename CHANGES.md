@@ -1,3 +1,8 @@
+# 1.12.1 (2023/04/11)
+  * generalise the "with" usage
+  * Change Parseme colors
+  * Detect repetitive usage of "add_node"
+
 # 1.12.0 (2023/03/24)
   * ⚠️ library is renamed `grewlib` (old name was `libcaml-grew`)
   * use dune build system
