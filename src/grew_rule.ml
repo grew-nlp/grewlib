@@ -235,6 +235,7 @@ module Request = struct
     exts: (basic * bool) list; (* with iff true and without iff false *)
     table: Id.table;  (* needed to build whether *)
     edge_ids: string list;  (* needed to build whether *)
+    meta: (string * string) list 
   }
 
   let to_json ~config t =
@@ -263,7 +264,7 @@ module Request = struct
           (build_ext_basic ~config lexicons ker_table edge_ids basic_ast, flag)
         )
         request_ast.Ast.req_exts in
-    { ker; exts; global=request_ast.req_glob; table=ker_table; edge_ids; }
+    { ker; exts; global=request_ast.req_glob; table=ker_table; edge_ids; meta=[]}
 
   let build_whether ~config request basic_ast =
     build_ext_basic ~config [] request.table request.edge_ids (Ast.complete_basic basic_ast)
@@ -279,27 +280,63 @@ module Request = struct
     if clean_s.[0] = '{'
     then Whether (build_whether ~config request (Parser.basic clean_s))
     else Key clean_s
-  
-  let string_of_json request = 
+
+
+    (* the function [string_and_meta_of_json] accepts two different kinds of JSON representation of requests
+      1) the JSON rep used in grewpy
+          ```
+          [ 
+            { "pattern": ["M -[det]-> N", "M[upos=NOUN]"] }; 
+            { "without": ["N[upos=DET]"] }; 
+          ]
+          ```
+      2) the JSON rep used in the validator
+         ```
+          {
+            "request": "pattern { ROOT[!upos] } without { ROOT -[1=root]-> N }",
+            "description": "The ROOT node is not linked with a root relation",
+            "level": "error"
+          }
+         ```
+       *)
+    let string_and_meta_of_json json_data =
     let open Yojson.Basic.Util in
-    try
-      request 
-      |> to_list 
-      |> List.map 
+    try 
+      let item_list = to_list json_data in
+      List.map 
         (fun item -> 
           item |> to_assoc |> 
           (function
           | [keyword, l] -> sprintf "  %s {%s}" keyword (l |> to_list |> List.map to_string |> String.concat ";\n")
-          | _ -> Error.build "[Request.string_of_json]"
+          | _ -> Error.build "[Request.of_json] Not a list of unary assoc"
           )
-        )  
-      |> String.concat "\n" 
-    with Type_error _ -> 
-      Error.build "[Request.string_of_json]"
+        ) item_list
+      |> String.concat "\n"
+      |> (fun x -> (x,[]))
+    with Type_error _ ->
+      let assoc_list = to_assoc json_data in
+      let request_string = 
+        match List.assoc_opt "request" assoc_list with
+        | Some (`String s) -> s
+        | Some (`List l) -> List.map to_string l |> String.concat "\n" 
+        | _ -> Error.build "[Request.of_json] No `request` field in description" in
+      let meta = 
+        List.remove_assoc "request" assoc_list
+        |> List.map 
+          (fun (key, v) -> 
+            try (key, to_string v) with Type_error _ -> Error.build "[Request.of_json] key `%s` should be string" key
+          )
+    in
+      (request_string, meta)
 
-  let of_json ~config request = 
-    let ast = Parser.request (string_of_json request) in
-    of_ast ~config ast
+  let string_of_json json_data = json_data |> string_and_meta_of_json |> fst
+
+  let of_json ~config json_data =
+    let (request_string, meta) = string_and_meta_of_json json_data in
+    let t = of_ast ~config (Parser.request request_string) in
+    { t with meta }
+
+  let get_meta_opt key t = List.assoc_opt key t.meta
 end (* module Request *)
 
 (* ================================================================================ *)
@@ -1151,7 +1188,7 @@ module Rule = struct
     let commands = commands_of_ast ~config lexicons ker ker_table rule_ast.Ast.commands in
     {
       name = rule_ast.Ast.rule_id;
-      request = { ker; exts; global=rule_ast.Ast.request.Ast.req_glob; table=ker_table; edge_ids };
+      request = { ker; exts; global=rule_ast.Ast.request.Ast.req_glob; table=ker_table; edge_ids; meta=[]; };
       commands;
       loc = rule_ast.Ast.rule_loc;
       lexicons;
@@ -1330,6 +1367,7 @@ module Rule = struct
       end
 
     | Command.UPDATE_EDGE_FEAT (edge_id, feat_name, item_list) ->
+      printf "*** Command.UPDATE_EDGE_FEAT ***, edge_id=%s, feat_name=%s, |item_list|=%d\n%!" edge_id feat_name (List.length item_list);
       begin
         match String_map.find_opt edge_id state.e_mapping with
         | None -> Error.run ~loc "UPDATE_EDGE_FEAT (LHS) The edge identifier '%s' is undefined" edge_id

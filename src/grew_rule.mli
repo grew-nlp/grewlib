@@ -32,6 +32,7 @@ module Request : sig
   type cluster_item
 
   val parse_cluster_item: config:Conll.Conll_config.t -> t -> string -> cluster_item
+  val get_meta_opt: string -> t -> string option
 end
 
 (* ================================================================================ *)
@@ -95,5 +96,5 @@ module Rule : sig
   val owh_apply_opt: config:Conll.Conll_config.t -> t -> Graph_with_history.t -> Graph_with_history.t option
 
   val string_of_json: Yojson.Basic.t -> Yojson.Basic.t -> string
-  
+
 end (* module Rule *)
