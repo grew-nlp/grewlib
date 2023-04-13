@@ -24,7 +24,6 @@ type cluster_item =
   | Key of string 
   | Whether of string
 
-
 (* ================================================================================ *)
 module Clustered = struct
 
@@ -210,11 +209,15 @@ module Clustered = struct
 
   let get_all_keys depth t =
     let rec loop = function
-    | (0, Node som) -> String_opt_map.fold (fun k _ acc -> String_opt_set.add k acc) som String_opt_set.empty
+    | (0, Node som) -> 
+      String_opt_map.fold 
+        (fun k _ acc -> String_opt_set.add k acc)
+        som String_opt_set.empty
+    | (0, _) -> String_opt_set.empty
     | (i, Node som) when i > 0 -> 
       String_opt_map.fold 
-      (fun _ v acc -> String_opt_set.union (loop (i-1,v)) acc
-      ) som String_opt_set.empty
+        (fun _ v acc -> String_opt_set.union (loop (i-1,v)) acc)
+        som String_opt_set.empty
     | _ -> failwith "[Clustered.get_all_keys] inconsistent depth" in
     loop (depth,t)
     |> String_opt_set.to_list 

@@ -32,7 +32,7 @@ module Clustered : sig
   (** The [empty] structure (the null value should be given) *)
 
   val get_opt: 'a -> string option list -> 'a t -> 'a
-  (** [get_opt null key_list t] returns  the corresponding 'a value or [null] if it can not be found *)
+  (** [get_opt null key_list t] returns the corresponding 'a value or [null] if it cannot be found *)
 
   val nb_clusters: 'a t -> int
   (** Returns the number of element of type 'a stored in the structure *)
