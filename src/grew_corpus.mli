@@ -45,7 +45,7 @@ module Corpus : sig
   val from_dir: ?log_file: string -> ?config:Conll_config.t -> string -> t
   val from_assoc_list: (string * G_graph.t) list -> t
 
-  val search: ?json_label:bool -> config:Conll_config.t -> 'a -> (string -> G_graph.t -> Matching.t -> 'a -> 'a) -> Request.t -> cluster_item list -> t -> 'a Clustered.t
+  val search: ?json_label:bool -> config:Conll_config.t -> 'a -> (string -> G_graph.t -> Matching.t -> 'a -> 'a) -> Request.t -> Request.cluster_item list -> t -> 'a Clustered.t
 
   val bounded_search: 
     config:Conll_config.t ->
@@ -60,7 +60,7 @@ module Corpus : sig
     (*  * int    --> number of matching in the current graph  *)
     (int -> string -> int -> int -> Matching.t -> 'a -> 'a) ->
     Request.t ->
-    cluster_item list ->         (* The list of element used for clustering *)
+      Request.cluster_item list ->         (* The list of element used for clustering *)
     t -> 
       ('a Clustered.t * string * float)  (* (output, statut, ratio) status is "ok", "timeout" or "over" *)
 end

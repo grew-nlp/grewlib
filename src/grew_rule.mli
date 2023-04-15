@@ -8,7 +8,6 @@
 (*    Authors: see AUTHORS file                                                   *)
 (**********************************************************************************)
 
-open Grew_types
 open Grew_utils
 open Grew_graph
 open Grew_ast
@@ -29,6 +28,10 @@ module Request : sig
   val string_of_json: Yojson.Basic.t -> string
 
   val of_json: config:Conll.Conll_config.t -> Yojson.Basic.t -> t
+
+  type cluster_item
+
+  val parse_cluster_item: config:Conll.Conll_config.t -> t -> string -> cluster_item
 end
 
 (* ================================================================================ *)
@@ -56,11 +59,9 @@ module Matching : sig
   *)
   val get_value_opt: ?json_label:bool -> config:Conll.Conll_config.t -> string -> Request.t -> G_graph.t -> t -> string option
 
-  val whether: config:Conll.Conll_config.t -> Request.basic -> Request.t -> G_graph.t -> t -> bool
-  
   val subgraph: G_graph.t -> t -> int -> G_graph.t
 
-  val get_clust_value_opt: ?json_label:bool -> config:Conll.Conll_config.t -> cluster_item ->  Request.t -> G_graph.t -> t -> string option
+  val get_clust_value_opt: ?json_label:bool -> config:Conll.Conll_config.t -> Request.cluster_item ->  Request.t -> G_graph.t -> t -> string option
 end (* module Matching *)
 
 (* ================================================================================ *)

@@ -106,6 +106,12 @@ module Request : sig
   val pid_name_list: t -> string list
 
   val of_json: config:Conll_config.t -> Yojson.Basic.t -> t
+
+  type cluster_item
+
+  (** [parse_cluster_item s] returns a whether if the input string is  *)
+  val parse_cluster_item: config:Conll_config.t -> t -> string -> cluster_item
+
 end
 
 (* ==================================================================================================== *)
@@ -118,27 +124,16 @@ module Matching: sig
 
   val nodes: Request.t -> Graph.t -> t -> (string * string) list
 
-  (* [get_value_opt cluster_key request graph matching] returns the value corresponding to the cluster_key in the result of a previous result of match
-      [cluster_key] can be:
-      * the name of a feature value [N.feat] where [N] is a node declared in the kernel part of the request
-      * the name of an edge featue [e.feat] where [e] is a edge declared in the kernel part of the request
-  *)
-  (* TODO: do not export: generalized by get_clust_value_opt *)
-  val get_value_opt: config:Conll_config.t -> string -> Request.t -> Graph.t -> t -> string option
-
-  (* TODO: do not export: generalized by get_clust_value_opt *)
-  val whether: config:Conll_config.t -> Request.basic -> Request.t -> Graph.t -> t -> bool
-  
   val subgraph: Graph.t -> t -> int -> Graph.t
 
   (** [search_request_in_graph request graph] returns the list of the possible matching of [request] in [graph] *)
   val search_request_in_graph: config:Conll_config.t -> Request.t -> Graph.t -> t list
 
   (** [build_deco request matching] returns the deco to be used in the graphical representation.
-      WARNING: the function supposes that [matching] was find with the given [request]! *)
+      WARNING: the function supposes that [matching] was found with the given [request]! *)
   val build_deco: Request.t -> t -> Deco.t
 
-  val get_clust_value_opt:  ?json_label:bool -> config:Conll_config.t -> cluster_item ->  Request.t -> Graph.t -> t -> string option
+  val get_clust_value_opt: ?json_label:bool -> config:Conll_config.t -> Request.cluster_item ->  Request.t -> Graph.t -> t -> string option
 end
 
 (* ==================================================================================================== *)
@@ -242,7 +237,7 @@ module Corpus: sig
         * int     --> position of the matching in the ≠ matchings for the same graph
         * int     --> number of matching in the current graph  *)
     Request.t ->
-    cluster_item list ->    (* list of element used for clustering *)
+    Request.cluster_item list ->    (* list of element used for clustering *)
     t ->
       'a Clustered.t
   (** [search config null update request cluster_item_list corpus] returns a clustered structure
@@ -266,7 +261,7 @@ module Corpus: sig
        * int    --> position of the matching in the ≠ matchings for the same graph
        * int    --> number of matching in the current graph  *)
     Request.t ->
-    cluster_item list ->         (* The list of element used for clustering *)
+    Request.cluster_item list ->         (* The list of element used for clustering *)
     t -> 
       ('a Clustered.t * string * float)  (* (output, statut, ratio) status is "ok", "timeout" or "over" *)
   (** search for a request in a corpus , with timeout and a bounded number of solutions *)

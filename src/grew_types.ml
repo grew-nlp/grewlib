@@ -20,10 +20,6 @@ module Int_set = Set.Make (struct type t = int let compare = Stdlib.compare end)
 
 module Int_map = Map.Make (struct type t = int let compare = Stdlib.compare end)
 
-type cluster_item =
-  | Key of string 
-  | Whether of string
-
 (* ================================================================================ *)
 module Clustered = struct
 

@@ -268,6 +268,18 @@ module Request = struct
   let build_whether ~config request basic_ast =
     build_ext_basic ~config [] request.table request.edge_ids (Ast.complete_basic basic_ast)
 
+  (* New type with a "real" whether type *)
+  type cluster_item =
+    | Key of string
+    | Whether of basic
+  
+  (* Note that we need to know the request in order to build the baisc type *)
+  let parse_cluster_item ~config request s =
+    let clean_s = CCString.trim s in
+    if clean_s.[0] = '{'
+    then Whether (build_whether ~config request (Parser.basic clean_s))
+    else Key clean_s
+  
   let string_of_json request = 
     let open Yojson.Basic.Util in
     try
@@ -966,12 +978,10 @@ module Matching = struct
     | Feat (id, splitted_feature_names) -> get_feat_value_opt ~json_label ~config request graph matching (id, splitted_feature_names)
     | Continuous params -> Some (get_interval request graph matching params)
 
-  let get_clust_value_opt ?(json_label=false) ~config clust_item request graph matching =
-    match clust_item with
-    | Key key -> get_value_opt ~json_label ~config key request graph matching
-    | Whether basic_string ->
-        let basic = Request.build_whether ~config request (Parser.basic ("{" ^ basic_string ^ "}")) in
-        if whether ~config basic request graph matching then Some "Yes" else Some "No"
+  let get_clust_value_opt ?(json_label=false) ~config cluster_item request graph matching =
+    match cluster_item with
+    | Request.Key key -> get_value_opt ~json_label ~config key request graph matching
+    | Whether basic -> if whether ~config basic request graph matching then Some "Yes" else Some "No"
 
 end (* module Matching *)
 

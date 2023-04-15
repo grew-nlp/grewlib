@@ -186,6 +186,14 @@ module Request = struct
          Grew_rule.Request.of_json ~config grs
       ) ()
   
+  type cluster_item = Grew_rule.Request.cluster_item
+
+  let parse_cluster_item ~config request string_item =
+    Grewlib.handle ~name:"Request.parse_cluster_item"
+      (fun () ->
+         Grew_rule.Request.parse_cluster_item ~config request string_item
+      ) ()
+
 end
 
 (* ==================================================================================================== *)
@@ -201,16 +209,6 @@ module Matching = struct
         Grew_rule.Matching.node_matching request graph matching
       ) ()
 
-  let get_value_opt ~config cluster_key request graph matching =
-    Grewlib.handle ~name:"Matching.get_value_opt" (fun () ->
-        Grew_rule.Matching.get_value_opt ~config cluster_key request graph matching
-      ) ()
-
-  let whether ~config extension request graph matching =
-    Grewlib.handle ~name:"Matching.whether" (fun () ->
-        Grew_rule.Matching.whether ~config extension request graph matching
-      ) ()
-
   let subgraph graph matching depth =
     Grewlib.handle ~name:"Matching.subgraph" (fun () ->
         Grew_rule.Matching.subgraph graph matching depth
@@ -222,7 +220,8 @@ module Matching = struct
     ) ()
 
   let build_deco request matching = Grew_rule.Matching.build_deco request matching
-  let get_clust_value_opt =
+
+    let get_clust_value_opt =
     Grewlib.handle ~name:"Matching.get_clust_value_opt" 
     (fun () -> Grew_rule.Matching.get_clust_value_opt) ()
 end
@@ -376,7 +375,7 @@ module Corpus = struct
     Grewlib.handle ~name:"Corpus.search" 
     (fun () -> Grew_corpus.Corpus.bounded_search ~config ?ordering bound timeout null update request cluster_item_list corpus) ()
 
-end
+end (* module Corpus *)
 
 
 (* ==================================================================================================== *)

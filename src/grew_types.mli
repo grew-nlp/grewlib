@@ -15,8 +15,6 @@ module String_opt_map : CCMap.S with type key = string option
 module Int_set : Set.S with type elt = int
 module Int_map : Map.S with type key = int
 
-type cluster_item = Key of string | Whether of string
-
 (* ================================================================================ *)
 module Clustered : sig
   type 'a t
