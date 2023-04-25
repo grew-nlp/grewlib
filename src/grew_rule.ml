@@ -1704,7 +1704,6 @@ module Rule = struct
 
         let new_edges =
           match (feat_name, item_list) with
-          (* special behavior for "f.label = e.label" *)
           | ("label", [Command.Edge_feat (src_edge_id, "label"), (None,None)]) -> (* special case of label copy "e.label = f.label" *)
 
             let src_edge =
