@@ -1315,7 +1315,11 @@ module Rule = struct
             | _ ->
               let feature_value_list = List.map (feature_value_of_item feat_name) item_list in
               let new_feature_value = Feature_value.concat ~loc feature_value_list in
-              G_edge.update feat_name new_feature_value old_edge in
+              match (feat_name, new_feature_value) with
+              | ("label", Feature_value.String s) -> G_edge.from_string ~config s
+              | ("label", Float _) -> Error.run "Cannot set a edge feature label as numeric"
+              | _ -> G_edge.update feat_name new_feature_value old_edge in
+
           let new_state_opt =
             if new_edge = old_edge
             then None
