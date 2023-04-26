@@ -1,3 +1,7 @@
+# 1.12.2 (2023/04/26)
+  - Fix https://github.com/grew-nlp/grew/issues/38
+  - Fix command "e.label = …" when called form AG
+
 # 1.12.1 (2023/04/11)
   * generalise the "with" usage
   * Change Parseme colors
