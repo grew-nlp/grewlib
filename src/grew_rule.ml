@@ -1525,10 +1525,7 @@ module Rule = struct
           let (_,edge,_) =
             match String_map.find_opt edge_id gwh.e_mapping with
             | Some e -> e
-            | None ->
-              match String_map.find_opt edge_id gwh.added_edges_in_rule with
-              | Some e -> e
-              | None -> Error.run ~loc "The edge identifier '%s' is undefined" edge_id in
+            | None -> Error.run ~loc "The edge identifier '%s' is undefined" edge_id in
           match G_edge.get_sub_opt feat_name edge with
           | None -> Error.run ~loc "[gwh_apply_command] Edge feature named %s is undefined" feat_name
           | Some fv -> [Feature_value.extract_range ~loc range fv]
@@ -1558,7 +1555,7 @@ module Rule = struct
       end
 
     | Command.ADD_EDGE_EXPL (src_cn,tar_cn,edge_ident) ->
-      if String_map.mem edge_ident matching.e_match || String_map.mem edge_ident gwh.added_edges_in_rule
+      if String_map.mem edge_ident matching.e_match
       then Error.run ~loc "ADD_EDGE_EXPL: the edge name '%s' already used. Semantic of this command has changed, see [[https://grew.fr/old]]" edge_ident
       else
         let src_gid = node_find src_cn in
@@ -1697,10 +1694,7 @@ module Rule = struct
         let (src_gid,old_edge,tar_gid) =
           match String_map.find_opt edge_id gwh.e_mapping with
           | Some e -> e
-          | None ->
-            match String_map.find_opt edge_id gwh.added_edges_in_rule with
-            | Some e -> e
-            | None -> Error.run ~loc "The edge identifier '%s' is undefined" edge_id in
+          | None -> Error.run ~loc "The edge identifier '%s' is undefined" edge_id in
 
         let new_edges =
           match (feat_name, item_list) with
@@ -1709,10 +1703,7 @@ module Rule = struct
             let src_edge =
               match String_map.find_opt src_edge_id gwh.e_mapping with
               | Some (_,e,_) -> e
-              | None ->
-                match String_map.find_opt edge_id gwh.added_edges_in_rule with
-                | Some (_,e,_) -> e
-                | None -> Error.run ~loc "The edge identifier '%s' is undefined" edge_id in
+              | None -> Error.run ~loc "The edge identifier '%s' is undefined" edge_id in
             [src_edge]
 
           | _ ->
@@ -1917,7 +1908,6 @@ module Rule = struct
         { graph_with_history with
           e_mapping = matching.Matching.e_match;
           added_gids_in_rule = [];
-          added_edges_in_rule = String_map.empty;
         } in
 
     CCList.foldi
@@ -1970,7 +1960,7 @@ module Rule = struct
                    Matching.test_extension ~config ker graph ext (sub, already_matched_gids) = polarity
                 ) exts
             then (* all exts are fulfilled *)
-              let init_gwh = { gwh with e_mapping = sub.Matching.e_match; added_gids_in_rule = []; added_edges_in_rule=String_map.empty; } in
+              let init_gwh = { gwh with e_mapping = sub.Matching.e_match; added_gids_in_rule = [] } in
               let rec loop_command acc_gwh = function
                 | [] -> acc_gwh
                 | command :: tail_commands ->
