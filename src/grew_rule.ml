@@ -352,7 +352,7 @@ module Matching = struct
       (try List.assoc name created_nodes
        with Not_found -> Error.run ?loc "Identifier '%s' not found" name)
 
-  let down_deco (added_edges_in_rule,matching,created_nodes) commands =
+  let down_deco (edge_mapping,matching,created_nodes) commands =
     let feat_to_highlight = List.fold_left
         (fun acc -> function
            | (Command.UPDATE_FEAT (tar_cn,feat_name,_),_) ->
@@ -373,11 +373,11 @@ module Matching = struct
           (fun acc -> function
              | (Command.ADD_EDGE (src_cn,tar_cn,edge),_) ->
                (find src_cn (matching, created_nodes), edge, find tar_cn (matching, created_nodes)) :: acc
-             | (Command.UPDATE_EDGE_FEAT (edge_id,_,_), loc) ->
+             | (Command.UPDATE_EDGE_FEAT (edge_id,_,_), _) ->
                begin
-                 match (String_map.find_opt edge_id added_edges_in_rule, String_map.find_opt edge_id matching.e_match) with
-                 | (None, None) -> Error.bug ~loc "inconsistent command UPDATE_EDGE_FEAT edge_id=%s" edge_id
-                 | (_, Some edge) | (Some edge, _) -> edge :: acc
+                 match String_map.find_opt edge_id edge_mapping with
+                 | None -> acc (* the edge may have been deleted after being modified... {e.2=y; del_edge e; } *)
+                 | Some edge -> edge :: acc
                end
              | _ -> acc
           ) [] commands;
@@ -1493,7 +1493,7 @@ module Rule = struct
               Timeout.check ();
               incr_rules rule;
               let up = Matching.build_deco rule.request first_matching_where_all_witout_are_fulfilled in
-              let down = Matching.down_deco (String_map.empty, first_matching_where_all_witout_are_fulfilled, final_state.created_nodes) rule.commands in
+              let down = Matching.down_deco (final_state.e_mapping,first_matching_where_all_witout_are_fulfilled, final_state.created_nodes) rule.commands in
               Some (G_graph.track up (get_rule_info rule) down graph final_state.graph)
             end
          else None
@@ -1572,7 +1572,7 @@ module Rule = struct
               {gwh with
                Graph_with_history.graph = new_graph;
                delta = Delta.add_edge src_gid G_edge.empty tar_gid gwh.Graph_with_history.delta;
-               added_edges_in_rule = String_map.add edge_ident (src_gid,G_edge.empty,tar_gid) gwh.added_edges_in_rule;
+               e_mapping = String_map.add edge_ident (src_gid,G_edge.empty,tar_gid) gwh.e_mapping;
               }
         end
 
@@ -1930,7 +1930,7 @@ module Rule = struct
                 then Graph_with_history_set.map
                     (fun g ->
                        let up = Matching.build_deco rule.request matching in
-                       let down = Matching.down_deco (g.added_edges_in_rule, matching, g.added_gids_in_rule) (CCList.take (cmp_nb+1) rule.commands) in
+                       let down = Matching.down_deco (g.e_mapping, matching, g.added_gids_in_rule) (CCList.take (cmp_nb+1) rule.commands) in
                        {g with graph = G_graph.track up (get_rule_info rule) down graph_with_history.graph g.graph}
                     ) new_graphs
                 else new_graphs in
@@ -1983,7 +1983,7 @@ module Rule = struct
                 Timeout.check ();
                 incr_rules rule;
                 let up = Matching.build_deco rule.request sub in
-                let down = Matching.down_deco (new_gwh.added_edges_in_rule, sub, new_gwh.added_gids_in_rule) rule.commands in
+                let down = Matching.down_deco (new_gwh.e_mapping, sub, new_gwh.added_gids_in_rule) rule.commands in
                 Some {new_gwh with graph = G_graph.track up (get_rule_info rule) down graph new_gwh.graph }
               with Dead_lock -> loop_matching tail (* failed to apply all commands -> move to the next matching *)
             else loop_matching tail (* some ext part prevents rule app -> move to the next matching *)
