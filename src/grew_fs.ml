@@ -107,13 +107,13 @@ module P_feature = struct
     | (Pfv_list (Neq,l1), Pfv_list (Neq,l2)) -> Pfv_list (Neq,List_.sort_union l1 l2)
     | _ -> Error.bug "[P_feature.unif_value] inconsistent match case" (* HHH : change message error run not handled... *)
 
-  let to_string = function
+  let to_string ?(quote=false) = function
     | (feat_name, Pfv_list (Neq,[])) -> sprintf "%s=*" feat_name
-    | (feat_name, Pfv_list (cmp,atoms)) -> sprintf "%s%s%s" feat_name (Cmp.to_string cmp) (String.concat "|" (List.map Feature_value.to_string atoms))
+    | (feat_name, Pfv_list (cmp,atoms)) -> sprintf "%s%s%s" feat_name (Cmp.to_string cmp) (String.concat "|" (List.map (Feature_value.to_string ~quote) atoms))
     | (feat_name, Pfv_lex (cmp,lex,fn)) -> sprintf "%s%s%s.%s" feat_name (Cmp.to_string cmp) lex fn
     | (feat_name, Pfv_re (cmp,re)) -> sprintf "%s%sre\"%s\"" feat_name (Cmp.to_string cmp) re
     | (feat_name, Absent) -> sprintf "!%s" feat_name
-    | (feat_name, Else (fv1,fn2,fv2)) -> sprintf "%s=%s/%s=%s" feat_name (Feature_value.to_string fv1) fn2 (Feature_value.to_string fv2)
+    | (feat_name, Else (fv1,fn2,fv2)) -> sprintf "%s=%s/%s=%s" feat_name (Feature_value.to_string ~quote fv1) fn2 (Feature_value.to_string ~quote fv2)
 
   let build lexicons = function
     | ({Ast.kind=Ast.Feat_kind_list (cmp,unsorted_values); name}, loc) ->
@@ -359,7 +359,7 @@ module P_fs = struct
         | (fn, _) -> (fn, None)
       ) t
 
-  let to_string t = t |> List.map P_feature.to_string |> String.concat ","
+  let to_string t = t |> List.map (P_feature.to_string ~quote:true) |> String.concat "," 
 
   let to_dep ?filter t =
     let reduced = match filter with

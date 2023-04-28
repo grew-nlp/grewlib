@@ -706,9 +706,10 @@ module Feature_value = struct
       end
     else String string_value
 
-  let to_string = function
+  let to_string ?(quote=false)= function
     | String s -> s
       |> Str.global_replace (Str.regexp "\"") "\\\""
+      |> sprintf (if quote then "\"%s\"" else "%s")
     | Float f -> sprintf "%g" f
 
   let to_json = function

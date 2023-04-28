@@ -332,7 +332,7 @@ module Feature_value: sig
 
   (** [to_string t] returns a string for the feature value
       TODO: more about quote escaping *)
-  val to_string: t -> string
+  val to_string: ?quote:bool -> t -> string
 
   (** [to_json t] returns a JSON encoding of f as a JSON string (even for numeric values) *)
    val to_json: t -> Yojson.Basic.t
