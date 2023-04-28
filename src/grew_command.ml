@@ -108,7 +108,7 @@ module Command  = struct
         (node_to_string tar))
 
     | DEL_FEAT (cn, feature_name) ->
-      `String (sprintf "del_feal %s.%s" (node_to_string cn) feature_name)
+      `String (sprintf "del_feat %s.%s" (node_to_string cn) feature_name)
 
     | UPDATE_FEAT (cn, feature_name, items) ->
       `String (sprintf "%s.%s=%s" 
