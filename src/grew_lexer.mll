@@ -201,7 +201,7 @@ and standard target = parse
 | "Iter"          { ITER }
 | "If"            { IF }
 | "Try"           { TRY }
-| "Emty"          { EMPTY }
+| "Empty"         { EMPTY }
 | "Onf"           { ONF }
 
 | "-"? digit+ ('.' digit*) as number  { FLOAT (float_of_string number) }
