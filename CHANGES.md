@@ -1,11 +1,15 @@
-# 1.12.3 (2023/04/28)
+## 1.12.4 (2023/05/01)
+  - Fix Grs.to_json (add needed quotes)
+  - Fix html output in grew grep with empty nodes
+
+## 1.12.3 (2023/04/28)
   - Fix Command.to_json
 
-# 1.12.2 (2023/04/26)
+## 1.12.2 (2023/04/26)
   - Fix https://github.com/grew-nlp/grew/issues/38
   - Fix command "e.label = …" when called form AG
 
-# 1.12.1 (2023/04/11)
+## 1.12.1 (2023/04/11)
   * generalise the "with" usage
   * Change Parseme colors
   * Detect repetitive usage of "add_node"
