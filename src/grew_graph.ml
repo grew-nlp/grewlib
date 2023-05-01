@@ -1082,11 +1082,12 @@ module G_graph = struct
         let node = Gid_map.find gid graph.map in
         let fs = G_node.get_fs node in
         let (new_current_form, new_flag_highlight, new_flag_sa) =
-          match (G_fs.get_value_opt "textform" fs, G_fs.get_value_opt "form" fs) with
-          | (Some (String "_"),_) -> (current_form, flag_highlight || (is_highlighted_gid gid), space_after node)
-          | (None, Some (String "__0__")) -> (current_form, flag_highlight, false)
-          | (Some (String form), _)
-          | (None, Some (String form)) ->
+          match (G_fs.get_value_opt "wordform" fs, G_fs.get_value_opt "textform" fs, G_fs.get_value_opt "form" fs) with
+          | (Some (String "__EMPTY__"), _, _) -> (current_form, flag_highlight, flag_sa)
+          | (_, Some (String "_"),_) -> (current_form, flag_highlight || (is_highlighted_gid gid), space_after node)
+          | (_, None, Some (String "__0__")) -> (current_form, flag_highlight, false)
+          | (_, Some (String form), _)
+          | (_, None, Some (String form)) ->
             let form = match form with "UNDERSCORE" -> "_" | x -> x in (* '_' is escaped in textform to avoid ambiguity with textform=_ in multi-word tokens *)
             to_buff (current_form, flag_highlight, flag_sa); (Some form, is_highlighted_gid gid, space_after node)
           | _ -> (current_form, flag_highlight, space_after node) in
