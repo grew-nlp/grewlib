@@ -46,7 +46,7 @@ let label_ident =
 
 let general_ident =
   (letter | '_' ) |
-  (letter | '_' | '.' ) (letter | digit | '_' | '\'' | '-' | '.')* (letter | digit | '_' | '\'' | '.' | '$')
+  (letter | '_' | '.' ) (letter | digit | '_' | '\'' | '-' | '.' | '$')* (letter | digit | '_' | '\'' | '.' | '$')
 
 let newline = '\r' | '\n' | "\r\n"
 
