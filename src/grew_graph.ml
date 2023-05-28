@@ -483,9 +483,10 @@ module G_graph = struct
       with Type_error _ -> [] in
 
     (* for error reporting *)
-    let sent_id_text () = match List.assoc_opt "sent_id" meta with
-      | Some id -> sprintf ", sent_id=%s" id
-      | None -> "" in
+    let sent_id_text () = match (List.assoc_opt "sent_id"  meta, List.assoc_opt "source_sent_id"  meta)  with
+      | (Some id,_) -> sprintf ", sent_id=%s" id
+      | (None, Some id) -> sprintf ", source_sent_id=%s" id
+      | _ -> "" in
 
     (* check that there is no unknown fields *)
     List.iter
