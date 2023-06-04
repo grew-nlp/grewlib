@@ -105,6 +105,7 @@ module Ast : sig
     | Feature_ineq_cst of ineq * feature_ident * float
     | Feature_cmp_regexp of Cmp.t * feature_ident * string
     | Feature_cmp_value of Cmp.t * feature_ident * Feature_value.t
+    | Feature_else of feature_ident * string * Feature_value.t  (* N.ExtPos/upos = NOUN ==> Else ((N,ExtPos), upos, NOUN)  *)
     | Large_prec of Id.name * Id.name
     | Edge_disjoint of Id.name * Id.name
     | Edge_crossing of Id.name * Id.name

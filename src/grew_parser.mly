@@ -400,6 +400,14 @@ clause_item:
         | feat_id1_loc=feature_ident_with_loc EQUAL rhs=number
             { let (feat_id1,loc)=feat_id1_loc in Clause_const (Ast.Feature_cmp_value (Eq, feat_id1, Float rhs), loc) }
 
+        /*   X.ExtPos/upos = "value"   */
+        | feat_id1_loc=feature_ident_with_loc SLASH fn2=simple_id EQUAL rhs=STRING
+            { let (feat_id1,loc)=feat_id1_loc in Clause_const (Ast.Feature_else (feat_id1, fn2, String rhs), loc) }
+
+        /*   X.ExtPos/upos = 22   */
+        | feat_id1_loc=feature_ident_with_loc SLASH fn2=simple_id EQUAL rhs=number
+            { let (feat_id1,loc)=feat_id1_loc in Clause_const (Ast.Feature_else (feat_id1, fn2, Float rhs), loc) }
+
         /*   X.cat <> value   */
         /*   X.cat <> Y.cat   */
         /*   X.cat <> lex.value   */

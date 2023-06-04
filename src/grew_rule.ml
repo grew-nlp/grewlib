@@ -81,7 +81,9 @@ module Constraint = struct
     (*   N.upos = VERB   *)
     (*   e.2 = comp   *)
     (*   e.2 <> comp   *)
-    | Feature_cmp_value of Cmp.t *base * string * Feature_value.t
+    | Feature_cmp_value of Cmp.t * base * string * Feature_value.t
+    (*   N.ExtPos/upos = NOUN *)
+    | Feature_else of base * string * string * Feature_value.t
     (*   e.2 = re"…"   *)
     | Feature_cmp_regexp of Cmp.t * base * string * string
     (*   e1.level < e2.level   *)
@@ -112,6 +114,7 @@ module Constraint = struct
     | Cst_in (pid, label_cst) -> sprintf "* -[%s]-> %s" (Label_cst.to_string ~config label_cst) (pid_name pid)
     | Feature_cmp (cmp,id1,fn1,id2,fn2) -> sprintf "%s.%s %s %s.%s" (base_to_string id1) fn1 (Cmp.to_string cmp) (base_to_string id2) fn2
     | Feature_cmp_value (cmp,id,fn,value) -> sprintf "%s.%s %s %s" (base_to_string id) fn (Cmp.to_string cmp) (Feature_value.to_string ~quote:true value)
+    | Feature_else (id, fn1, fn2, value) -> sprintf "%s.%s/%s %s" (base_to_string id) fn1 fn2 (Feature_value.to_string ~quote:true value)
     | Feature_cmp_regexp (cmp,id,fn,regexp) -> sprintf "%s.%s %s re\"%s\"" (base_to_string id) fn (Cmp.to_string cmp) regexp
     | Feature_ineq (_,id1,fn1,id2,fn2) -> sprintf "%s.%s < %s.%s" (base_to_string id1) fn1 (base_to_string id2) fn2
     | Feature_ineq_cst (_,id,fn,f) -> sprintf "%s.%s  %g" (base_to_string id) fn f
@@ -156,6 +159,9 @@ module Constraint = struct
 
     | (Ast.Feature_cmp_value (cmp, (id, feat_name), value), loc) ->
       Feature_cmp_value (cmp, parse_id loc id, feat_name, value)
+
+    | (Ast.Feature_else ((id, feat_name1), feat_name2, value), loc) ->
+      Feature_else (parse_id loc id, feat_name1, feat_name2, value)
 
     | (Ast.Large_prec (id1, id2), loc) ->
       begin
@@ -494,6 +500,20 @@ module Matching = struct
             | Some new_lex -> {matching with l_param = (lexicon, new_lex) :: (List.remove_assoc lexicon matching.l_param) }
           end
         | _ -> raise Fail
+      end
+
+    | Feature_else (id1, feat_name1, feat_name2, value) ->
+      begin
+        let value_in_graph = 
+          try
+            match get_value id1 feat_name1 with
+           | Value fv -> fv 
+           | _ -> raise Fail
+          with Fail ->
+            match get_value id1 feat_name2 with
+            | Value fv -> fv
+           | _ -> raise Fail in
+          if value_in_graph = value then matching else raise Fail
       end
 
     | Feature_ineq (ineq, base1, feat_name1, base2, feat_name2) ->
