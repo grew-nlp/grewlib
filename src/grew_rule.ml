@@ -537,7 +537,16 @@ module Matching = struct
           end
         | _ -> Error.run "[Matching.apply_cst] cannot compare two lexicon fields"
       end
-    | Feature_cmp_value (cmp, id1, feat_name1, value) ->
+    | Feature_cmp_value (cmp, Node_id pid, "__out__", Feature_value.Float v) ->
+      begin
+        let gid = Pid_map.find pid matching.n_match in
+        let gnode = G_graph.find gid graph in
+        let out_degree = G_node.out_edges gnode in
+        if Cmp.fct cmp out_degree (int_of_float (Float.round v))
+        then matching
+        else raise Fail
+      end
+  | Feature_cmp_value (cmp, id1, feat_name1, value) ->
       begin
         match get_value id1 feat_name1 with
         | Value fv when Cmp.fct cmp fv value -> matching
