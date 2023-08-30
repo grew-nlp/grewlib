@@ -1,3 +1,6 @@
+# 1.13.0 (2023/09/16)
+  - ⚠️ change cluster_item type
+
 ## 1.12.4 (2023/05/01)
   - Fix Grs.to_json (add needed quotes)
   - Fix html output in grew grep with empty nodes
