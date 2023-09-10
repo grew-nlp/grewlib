@@ -527,6 +527,7 @@ module Lexicon = struct
 
   let load ?loc file =
     try
+      Global.update_grs_timestamp file;
       let lines = 
         CCIO.(with_in file read_lines_l)
         |> CCList.mapi (fun i l -> (i+1,l))

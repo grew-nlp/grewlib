@@ -283,6 +283,12 @@ module Grs = struct
          Grew_grs.Grs.get_rule_list grs
       ) ()
 
+  let get_timestamp_opt grs =
+    Grewlib.handle ~name:"Grs.get_timestamp_opt"
+      (fun () ->
+         Grew_grs.Grs.get_timestamp_opt grs
+      ) ()
+
   let of_json ~config grs =
     Grewlib.handle ~name:"Grs.of_json"
       (fun () ->

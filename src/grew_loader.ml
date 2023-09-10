@@ -63,6 +63,7 @@ module Loader = struct
   let loc_grs file =
     try
       Global.new_file file;
+      Global.update_grs_timestamp file;
       let in_ch = open_in file in
       let lexbuf = Lexing.from_channel in_ch in
       let grs = parse_handle "loc_grs" (Grew_parser.grs Grew_lexer.global) lexbuf in
@@ -96,6 +97,7 @@ module Loader = struct
       ) [] new_ast_grs
 
   let grs file =
+    Global.reset_grs_timestamp ();
     let final_grs = unfold_grs (real_dir file) true "" (loc_grs file) in
     check_grs final_grs;
     final_grs

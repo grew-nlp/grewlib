@@ -264,6 +264,10 @@ module Global: sig
   val track_rules: bool ref
   val track_history: bool ref
   val track_impact: bool ref
+
+  val reset_grs_timestamp: unit -> unit
+  val update_grs_timestamp: string -> unit
+  val get_grs_timestamp: unit -> float
 end
 
 (* ================================================================================ *)

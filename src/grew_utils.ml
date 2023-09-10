@@ -588,6 +588,18 @@ module Global = struct
   let track_rules = ref false
   let track_history = ref false
   let track_impact = ref false
+
+  (* store the most recent timestamp of a file after last grs loading *)
+  let grs_timestamp = ref Float.min_float
+
+  let reset_grs_timestamp () =
+    grs_timestamp := Float.min_float
+  let update_grs_timestamp file =
+    let stat = Unix.stat file in
+    let ts = stat.Unix.st_mtime in
+    if ts > !grs_timestamp then grs_timestamp := ts
+
+  let get_grs_timestamp () = !grs_timestamp
 end (* module Global *)
 
 (* ================================================================================ *)

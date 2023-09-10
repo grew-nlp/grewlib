@@ -163,6 +163,8 @@ module Grs : sig
 
   val get_rule_list: t -> string list
 
+  val get_timestamp_opt: t -> float option
+
   val of_json: config:Conll_config.t -> Yojson.Basic.t -> t
 end
 
@@ -288,7 +290,7 @@ module Corpus_desc: sig
   val is_audio: t -> bool
   val get_id: t -> string
   
-  (** return the displat mode of the given corpus: None --> dep, Some 0 --> graph, Some i --> subgraph at depth i *)
+  (** return the display mode of the given corpus: None --> dep, Some 0 --> graph, Some i --> subgraph at depth i *)
   val get_display: t -> int option
 
   val get_lang_opt: t -> string option

@@ -69,12 +69,14 @@ module Grs = struct
     filename: string;
     decls: Decl.t list;
     ast: Ast.grs;
+    timestamp: float option;
   }
 
   let empty = {
     filename = "";
     decls = [Strategy ("main", Ast.Seq [])];
     ast = [];
+    timestamp = None;
   }
 
   let to_json ~config t =
@@ -88,6 +90,7 @@ module Grs = struct
   let get_package_list grs = Ast.package_list grs.ast
   let get_rule_list grs = Ast.rule_list grs.ast
 
+  let get_timestamp_opt grs = grs.timestamp
 
   let dump t =
     printf "================ Grs ================\n";
@@ -96,7 +99,7 @@ module Grs = struct
     ()
 
 
-  let build ~config filename ast =
+  let build ~config ?timestamp filename ast =
     let decls = CCList.filter_map
         (fun x -> match x with
            | Ast.Features _ -> None
@@ -110,9 +113,13 @@ module Grs = struct
     { filename;
       ast;
       decls;
+      timestamp;
     }
 
-  let load ~config filename = build ~config filename (Loader.grs filename)
+  let load ~config filename =
+    let _ = Global.reset_grs_timestamp () in
+    let grs_ast = Loader.grs filename in
+    build ~config ~timestamp:(Global.get_grs_timestamp ()) filename grs_ast
 
   let parse ~config string_grs = build ~config "" (Parser.grs string_grs)
 
@@ -125,7 +132,6 @@ module Grs = struct
 
   let of_json ~config json =
     let s = string_of_json json in
-    (* printf "*******!!!!!*********\n%s\n********!!!!!********\n%!" s; *)
     let ast = Parser.grs s in
     build ~config "" ast
 
