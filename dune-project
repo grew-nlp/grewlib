@@ -2,7 +2,7 @@
 
 (name grewlib)
 
-(version 1.13.0)
+(version 1.13.1)
 
 (using menhir 2.0)
 
@@ -22,9 +22,14 @@
 (package
  (name grewlib)
  (synopsis "The main library for the Grew system")
- (description "Grew implements a Grapg Rewriting system to be used in NLP")
+ (description "Grew implements a Graph Rewriting system to be used in NLP")
  (depends 
-   (ocaml ( >= "4.13.0" ))
+   (ocaml 
+     (and
+      ( >= "4.13.0" )
+      ( < "5.0.0" )  ; eliom based grew codes require this
+     )
+    )
    dune 
    menhir
    yojson

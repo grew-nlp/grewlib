@@ -1,3 +1,6 @@
+## 1.13.1 (2023/09/16)
+  - Requires ocaml < 5 (required by eliom-based grew tools)
+
 # 1.13.0 (2023/09/16)
   - ⚠️ change cluster_item type
 
