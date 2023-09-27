@@ -394,14 +394,14 @@ module Corpus_desc = struct
 
   let get_directory = Grew_corpus.Corpus_desc.get_directory
   let get_id = Grew_corpus.Corpus_desc.get_id
-  let get_lang_opt = Grew_corpus.Corpus_desc.get_lang_opt
   let get_config = Grew_corpus.Corpus_desc.get_config
   let is_rtl = Grew_corpus.Corpus_desc.is_rtl
   let get_display = Grew_corpus.Corpus_desc.get_display
   let is_audio = Grew_corpus.Corpus_desc.is_audio
 
-  let build id directory =
-    Grewlib.handle ~name:"Corpus.build" (fun () -> Grew_corpus.Corpus_desc.build id directory) ()
+
+  let get_field_opt = Grew_corpus.Corpus_desc.get_field_opt
+
 
   let build_corpus t =
     Grewlib.handle ~name:"Corpus.build_corpus" (fun () -> Grew_corpus.Corpus_desc.build_corpus t) ()
@@ -409,16 +409,18 @@ module Corpus_desc = struct
   let load_corpus_opt t =
     Grewlib.handle ~name:"Corpus.load_corpus_opt" (fun () -> Grew_corpus.Corpus_desc.load_corpus_opt t) ()
 
-  let load_json grs =
-    Grewlib.handle ~name:"Corpus.load_json" (fun () -> Grew_corpus.Corpus_desc.load_json grs) ()
+  let get_files corpora_folder t =
+    Grewlib.handle ~name:"Corpus.get_files" (fun () -> Grew_corpus.Corpus_desc.get_files corpora_folder t) ()
+  
+  let load_json filename =
+    Grewlib.handle ~name:"Corpus.load_json" (fun () -> Grew_corpus.Corpus_desc.load_json filename) ()
 
-  let compile ?force ?grew_match t =
-    Grewlib.handle ~name:"Corpus.compile" (fun () -> Grew_corpus.Corpus_desc.compile ?force ?grew_match t) ()
+  let compile ?force corpora_folder t =
+    Grewlib.handle ~name:"Corpus.compile" (fun () -> Grew_corpus.Corpus_desc.compile ?force corpora_folder t) ()
 
-  let clean t =
-    Grewlib.handle ~name:"Corpus.clean" (fun () -> Grew_corpus.Corpus_desc.clean t) ()
+  let clean corpora_folder t =
+    Grewlib.handle ~name:"Corpus.clean" (fun () -> Grew_corpus.Corpus_desc.clean corpora_folder t) ()
 end
-
 
 module Sbn = struct
   let to_json t =

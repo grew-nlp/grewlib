@@ -273,36 +273,41 @@ module Corpus: sig
 
 end
 
-(* ==================================================================================================== *)
-(** {2 Corpus_desc} *)
-(* ==================================================================================================== *)
-module Corpus_desc: sig
+module Corpus_desc : sig
 
+  (** This module encodes the notion of corpus description which is mainly used in Grew-match *)
   type t
 
-  val build: string -> string -> t
-
-  val build_corpus: t -> Corpus.t
-  val load_corpus_opt: t -> Corpus.t option
-
-  val get_config: t -> Conll_config.t
-  val is_rtl: t -> bool
-  val is_audio: t -> bool
-  val get_id: t -> string
-  
-  (** return the display mode of the given corpus: None --> dep, Some 0 --> graph, Some i --> subgraph at depth i *)
-  val get_display: t -> int option
-
-  val get_lang_opt: t -> string option
-  val get_directory: t -> string
-
+  (** [load_json filename] returns the list of corpus_desc described in the json file [filename] *)
   val load_json: string -> t list
 
-  val compile: ?force: bool -> ?grew_match: string ->  t -> unit
+  (** [get_config t] returns config defined in the corpus description *)
+  val get_config: t -> Conll_config.t
 
-  val clean: t -> unit
+  val get_id: t -> string
+  val get_field_opt: string -> t -> string option
+  val get_display: t -> int option
+  val get_directory: t -> string
+
+  val is_rtl: t -> bool
+  val is_audio: t -> bool
+
+  (** [build_corpus corpusbank_folder t] returns the corpus described *)
+  val build_corpus: string -> t -> Corpus.t
+
+  (** [load_corpus_opt corpusbank_folder t] returns the corpus if it is compiled *)
+  val load_corpus_opt: string -> t -> Corpus.t option
+
+  val get_files: string -> t -> string list
+
+  (** [compile corpusbank_folder t] compiles the corpus
+       - if the compiled file is older than one if the corpora files
+       - or if [force] is `true` (default is `false`) *)
+  val compile: ?force:bool -> string -> t -> unit
+
+  (** [clean corpusbank_folder t] remove the compiled file, if any *)
+  val clean: string -> t -> unit
 end
-
 
 (* ================================================================================ *)
 module Sbn: sig
