@@ -283,8 +283,9 @@ module G_fs = struct
         | None -> None
 
   (* ---------------------------------------------------------------------- *)
-  let escape_sharp s =
-    Str.global_replace (Str.regexp "#") "__SHARP__" s
+  let escape s = s
+    |> Str.global_replace (Str.regexp "#") "__SHARP__"
+    |> Str.global_replace (Str.regexp "\\\\") "\\\\\\\\"
 
   (* ---------------------------------------------------------------------- *)
   let to_dep ?(decorated_feat=("",[])) ?(tail=[]) ?main_feat ?filter t =
@@ -310,7 +311,7 @@ module G_fs = struct
     let main = match main_opt with
       | None -> []
       | Some (feat_name, atom) ->
-        let esc_atom = escape_sharp (Feature_value.to_string atom) in
+        let esc_atom = escape (Feature_value.to_string atom) in
         let text = esc_atom ^ color in
         [ if is_highlithed feat_name
           then sprintf "%s:B:#8bf56e" text
@@ -327,7 +328,7 @@ module G_fs = struct
 
     let lines = List.fold_left
         (fun acc (feat_name, atom) ->
-           let esc_atom = escape_sharp (G_feature.to_string (decode_feat_name feat_name, atom)) in
+           let esc_atom = escape (G_feature.to_string (decode_feat_name feat_name, atom)) in
            let text = esc_atom ^ color in
            if is_highlithed feat_name
            then (sprintf "%s:B:#8bf56e" text) :: acc
