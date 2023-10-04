@@ -1216,11 +1216,13 @@ module G_graph = struct
   
          let dep_fs = G_fs.to_dep ~decorated_feat ~tail ?filter ?main_feat fs in
 
-         let style = match G_fs.get_value_opt "void" fs with
+         let style =
+           match G_fs.get_value_opt "void" fs with
            | Some (String "y") -> "; forecolor=red; subcolor=red; "
-           | _ -> match G_fs.get_value_opt "wordform" fs with
-             | Some (String "__EMPTY__") -> "; forecolor=purple; subcolor=purple; "
-             | _ -> "" in
+           | _ ->
+           match G_fs.get_value_opt "wordform" fs with
+           | Some (String "__EMPTY__") -> "; forecolor=#cc00cb; subcolor=#cc00cb; "
+           | _ -> "" in
 
          bprintf buff "N_%s { %s%s }\n"
            (Gid.to_string id)

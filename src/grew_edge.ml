@@ -108,22 +108,29 @@ module G_edge = struct
         | Some (String "deep") -> ["color=blue"; "forecolor=blue"; "bottom"]
         | Some (String "surf") -> ["color=red"; "forecolor=red"]
         | _ ->
-          match List_.sort_assoc_opt "enhanced" fs with
-          | Some (String "yes") -> ["color=blue"; "forecolor=blue"; "bottom"]
-          | _ ->
-            match List_.sort_assoc_opt "parseme" fs with
-            | Some (String "MWE") -> ["color=#ffa000"; "forecolor=#ffa000"; "bottom"]
-            | Some (String "NE") -> ["color=#9900FF"; "forecolor=#9900FF"; "bottom"]
-            | _ ->
-              match List_.sort_assoc_opt "frsemcor" fs with
-              | Some (String _) -> ["color=#12cd56"; "forecolor=#12cd56"; "bottom"]
-              | _ ->
-                match List_.sort_assoc_opt "span" fs with
-                | Some (String _) -> ["color=pink"; "forecolor=pink"; "bottom"]
-                | _ ->
-                  match List_.sort_assoc_opt "1" fs with
-                  | Some (String "RSTR") -> ["bottom"]
-                  | _ -> [] in
+        match List_.sort_assoc_opt "enhanced" fs with
+        | Some (String "yes") -> ["color=blue"; "forecolor=blue"; "bottom"]
+        | _ ->
+        match List_.sort_assoc_opt "parseme" fs with
+        | Some (String "MWE") -> ["color=#ffa000"; "forecolor=#ffa000"; "bottom"]
+        | Some (String "NE") -> ["color=#9900FF"; "forecolor=#9900FF"; "bottom"]
+        | _ ->
+        match List_.sort_assoc_opt "frsemcor" fs with
+        | Some (String _) -> ["color=#12cd56"; "forecolor=#12cd56"; "bottom"]
+        | _ ->
+        match List_.sort_assoc_opt "span" fs with
+        | Some (String _) -> ["color=pink"; "forecolor=pink"; "bottom"]
+        | _ ->
+        match List_.sort_assoc_opt "Syl" fs with
+        | Some (String _) -> ["color=blue"; "forecolor=blue"; "bottom"]
+        | _ ->
+        match List_.sort_assoc_opt "ExternalOnset" fs with
+        | Some (String _) -> ["color=#64dd17"; "forecolor=#64dd17"; "bottom"]
+        | _ ->
+        match List_.sort_assoc_opt "1" fs with
+        | Some (String "RSTR") -> ["bottom"]
+        (* default *)
+        | _ -> [] in
       let styles = if deco then "bgcolor=#8bf56e" :: styles else styles in
       Some (sprintf "{ label = \"%s\"; %s }" (G_edge_fs.to_string ~config fs) (String.concat ";" styles))
     | _ -> None

@@ -221,16 +221,17 @@ module G_fs = struct
 
   (* ---------------------------------------------------------------------- *)
   let get_main ?main_feat t =
-    let default_list = ["form"; "lemma"; "gpred"; "label"] in
+    let default_list = ["form"; "lemma"; "gpred"; "label"; "SylForm"] in
     let main_list = match main_feat with
       | None -> default_list
       | Some string -> (Str.split (Str.regexp "\\( *; *\\)\\|#") string) @ default_list in
     let rec loop = function
       | [] -> (None, t)
       | feat_name :: tail ->
-        match List_.sort_assoc_opt feat_name t with
-        | Some atom -> (Some (feat_name, atom), List_.sort_remove_assoc feat_name t)
-        | None -> loop tail in
+        match (feat_name, List_.sort_assoc_opt feat_name t) with
+        | ("form", Some (Feature_value.String "_")) -> loop tail
+        | (_,Some atom) -> (Some (feat_name, atom), List_.sort_remove_assoc feat_name t)
+        | (_,None) -> loop tail in
     loop main_list
 
   (* ---------------------------------------------------------------------- *)
@@ -328,7 +329,8 @@ module G_fs = struct
 
     let lines = List.fold_left
         (fun acc (feat_name, atom) ->
-           let esc_atom = escape (G_feature.to_string (decode_feat_name feat_name, atom)) in
+          if feat_name = "form" then acc else
+          let esc_atom = escape (G_feature.to_string (decode_feat_name feat_name, atom)) in
            let text = esc_atom ^ color in
            if is_highlithed feat_name
            then (sprintf "%s:B:#8bf56e" text) :: acc
