@@ -284,9 +284,13 @@ module G_fs = struct
         | None -> None
 
   (* ---------------------------------------------------------------------- *)
-  let escape s = s
+
+  let escape s = s 
     |> Str.global_replace (Str.regexp "#") "__SHARP__"
+    (* escape backslash *)
     |> Str.global_replace (Str.regexp "\\\\") "\\\\\\\\"
+    (* revert previous change of followed by quote *)
+    |> Str.global_replace (Str.regexp "\\\\\\\\\"") "\\\""
 
   (* ---------------------------------------------------------------------- *)
   let to_dep ?(decorated_feat=("",[])) ?(tail=[]) ?main_feat ?filter t =
