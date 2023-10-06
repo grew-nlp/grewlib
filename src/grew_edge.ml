@@ -125,7 +125,7 @@ module G_edge = struct
         | Some (String _) -> ["color=blue"; "forecolor=blue"; "bottom"]
         | _ ->
         match List_.sort_assoc_opt "ExternalOnset" fs with
-        | Some (String _) -> ["color=#64dd17"; "forecolor=#64dd17"; "bottom"]
+        | Some (String _) -> ["color=#f57f17"; "forecolor=#f57f17"; "bottom"]
         | _ ->
         match List_.sort_assoc_opt "1" fs with
         | Some (String "RSTR") -> ["bottom"]
