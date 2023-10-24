@@ -422,11 +422,11 @@ module P_fs = struct
       | ((_, P_feature.Pfv_lex (cmp,lex_id,field))::t_pat, (_, atom)::t) ->
         begin
           try
-            let lexicon = List.assoc lex_id acc in
+            let lexicon = List.assoc lex_id (snd acc) in
             match Lexicon.filter_opt cmp field (Feature_value.to_string atom) lexicon with
             | None -> raise Fail
             | Some new_lexicon ->
-              let new_acc = (lex_id, new_lexicon) :: (List.remove_assoc lex_id acc) in
+              let new_acc = (true, (lex_id, new_lexicon) :: (List.remove_assoc lex_id (snd acc))) in
               loop new_acc (t_pat, t)
           with
           | Not_found -> Error.bug "[P_fs.match_] Cannot find lexicon. lex_id=\"%s\"" lex_id
@@ -434,7 +434,7 @@ module P_fs = struct
 
       (* We have exhausted Fail cases, head of g_fs satisties head of p_fs *)
       | (_::p_tail, _::g_tail) -> loop acc (p_tail,g_tail) in
-    loop lexicons (p_fs,g_fs)
+    loop (false, lexicons) (p_fs,g_fs)
 
   exception Fail_unif
   let unif fs1 fs2 =
@@ -450,4 +450,10 @@ module P_fs = struct
         | P_feature.Fail_unif -> raise Fail_unif
         | Error.Build (msg,_) -> Error.build "Feature '%s', %s" fn1 msg
     in loop (fs1, fs2)
+
+  let unif_disj fs_disj1 fs_disj2 = 
+    CCList.product (fun (fs1:t) (fs2:t) -> try Some (unif fs1 fs2) with Fail_unif -> None) fs_disj1 fs_disj2
+    |> CCList.filter_map CCFun.id
+    |> (function [] -> raise Fail_unif | l -> l)
+
 end (* module P_fs *)

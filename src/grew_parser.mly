@@ -280,13 +280,17 @@ label_atom:
         | name=simple_id_or_float DISEQUAL l=separated_nonempty_list(PIPE,edge_item) { Ast.Atom_diseq (name, l)}
         | BANG name=simple_id_or_float { Ast.Atom_absent name }
 
+pfs:
+        | feats = delimited(LBRACKET,separated_list_final_opt(COMMA,node_features),RBRACKET) 
+          { feats }
+
 clause_item:
         /* =================================== */
         /* node                                */
         /* =================================== */
         /*   R [cat=V, lemma=$lemma]   */
-        | id_loc=simple_id_with_loc feats=delimited(LBRACKET,separated_list_final_opt(COMMA,node_features),RBRACKET)
-            { Clause_node ({Ast.node_id = fst id_loc; fs= feats}, snd id_loc) }
+        | id_loc=simple_id_with_loc feats_list=separated_nonempty_list(PIPE, pfs)
+            { Clause_node ({Ast.node_id = fst id_loc; fs_disj = feats_list}, snd id_loc) }
 
         /* =================================== */
         /* edge                                */

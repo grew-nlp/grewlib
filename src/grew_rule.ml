@@ -92,7 +92,7 @@ module Constraint = struct
     | Feature_ineq_cst of Ast.ineq * base * string * float
     (*   N [upos=VERB]   *)
     (* ⚠ used only when a extension imposes a fs on a node also defined by the kernel request part *)
-    | Filter of Pid.t * P_fs.t
+    | Filter of Pid.t * P_fs.t list
     (*   N << M   *)
     | Node_large_prec of Pid.t * Pid.t
     (*   e1 << e2   *)
@@ -118,7 +118,11 @@ module Constraint = struct
     | Feature_cmp_regexp (cmp,id,fn,regexp) -> sprintf "%s.%s %s re\"%s\"" (base_to_string id) fn (Cmp.to_string cmp) regexp
     | Feature_ineq (_,id1,fn1,id2,fn2) -> sprintf "%s.%s < %s.%s" (base_to_string id1) fn1 (base_to_string id2) fn2
     | Feature_ineq_cst (_,id,fn,f) -> sprintf "%s.%s  %g" (base_to_string id) fn f
-    | Filter (pid, p_fs) -> sprintf "%s [%s]" (pid_name pid) (P_fs.to_string p_fs)
+    | Filter (pid, p_fs_list) -> 
+        (sprintf "%s %s" 
+          (pid_name pid)
+          (p_fs_list |> List.map P_fs.to_string |> List.map (sprintf "[%s]") |> String.concat "|")
+        )
     | Node_large_prec (pid1, pid2) ->  sprintf "%s << %s" (pid_name pid1) (pid_name pid2)
     | Covered (pid1, eid2) -> sprintf "%s << %s" (pid_name pid1) eid2
     | Edge_relative (Disjoint, eid1, eid2) -> sprintf "%s <> %s" eid1 eid2
@@ -392,8 +396,11 @@ module Matching = struct
         Pid_map.fold
           (fun pid gid acc ->
              let pnode = P_graph.find pid request.Request.ker.graph in
-             let request_feat_list = P_fs.feat_list (P_node.get_fs pnode) in
-             (gid, (P_node.get_name pnode, request_feat_list)) :: acc
+             match P_node.get_fs_disj pnode with 
+              | [one] -> 
+                let request_feat_list = P_fs.feat_list one in
+                (gid, (P_node.get_name pnode, request_feat_list)) :: acc
+              | _ -> acc (* TODO: improve deco by recording which p_fs was matched in case of disjunction *)
           ) matching.n_match [];
       G_deco.edges = String_map.fold (fun _ edge acc -> edge::acc) matching.e_match [];
     }
@@ -514,15 +521,33 @@ module Matching = struct
           ) graph
       then matching
       else raise Fail
-    | Filter (pid, fs) ->
+
+    | Filter (pid, fs_list) ->
       begin
-        try
-          let gid = Pid_map.find pid matching.n_match in
-          let gnode = G_graph.find gid graph in
-          let new_param = P_fs.match_ ~lexicons:(matching.l_param) fs (G_node.get_fs gnode) in
-          {matching with l_param = new_param }
-        with P_fs.Fail -> raise Fail
-      end
+        let gid = Pid_map.find pid matching.n_match in
+        let gnode = G_graph.find gid graph in
+        match fs_list with
+        | [fs] ->
+          begin
+            try
+              let (_,new_param) = P_fs.match_ ~lexicons:(matching.l_param) fs (G_node.get_fs gnode) in
+              {matching with l_param = new_param }
+            with P_fs.Fail -> raise Fail
+          end
+        | _ ->
+          (* NB: we compute all bool before [List.exists] in order to have the same behavior (run exception) whathever is the order of fs *)
+          let is_fs_match_list = List.map
+          (fun fs -> 
+            try
+              match P_fs.match_ ~lexicons:(matching.l_param) fs (G_node.get_fs gnode) with
+              | (true, _) -> Error.run "Lexicons and disjunction on nodes are incompatible"
+              | _ -> true
+            with P_fs.Fail -> false
+          ) fs_list in
+          if List.exists (fun x -> x) is_fs_match_list then matching else raise Fail
+        end
+
+
     | Feature_cmp (cmp, base1, feat_name1, base2, feat_name2) ->
       begin
         match (get_value base1 feat_name1, get_value base2 feat_name2) with
@@ -704,7 +729,7 @@ module Matching = struct
       let g_node = try G_graph.find gid graph with Not_found -> Error.bug "[extend_matching_from] cannot find gid in graph" in
 
       try
-        let new_lex_set = P_node.match_ ~lexicons:partial.sub.l_param p_node g_node in
+        let (_,new_lex_set) = P_node.match_ ~lexicons:partial.sub.l_param p_node g_node in
         (* add all out-edges from pid in request *)
         let new_unmatched_edges =
           Pid_massoc.fold
@@ -1101,10 +1126,13 @@ module Rule = struct
     let nodes =
       Pid_map.fold
         (fun id node acc ->
-           (node, sprintf "  N_%s { word=\"%s\"; subword=\"%s\"}"
-              (Pid.to_id id) (P_node.get_name node) (P_fs.to_dep (P_node.get_fs node))
-           )
-           :: acc
+          let subword = match P_node.get_fs_disj node with
+          | [one] -> P_fs.to_dep one
+          | _ -> "__DISJUNCTION__" in
+            (node, sprintf "  N_%s { word=\"%s\"; subword=\"%s\"}"
+              (Pid.to_id id) (P_node.get_name node) subword
+            )
+            :: acc
         ) ker_basic.graph [] in
 
     (* nodes are sorted to appear in the same order in dep picture and in input file *)

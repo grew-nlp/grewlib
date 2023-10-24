@@ -55,7 +55,13 @@ module P_graph = struct
       (fun _ n acc ->
         if P_node.is_empty n
         then acc
-        else (`String (sprintf "%s [%s]" (P_node.get_name n) (P_fs.to_string (P_node.get_fs n)))) :: acc
+        else 
+          (`String 
+            (sprintf "%s %s" 
+              (P_node.get_name n)
+              (P_node.get_fs_disj n |> List.map P_fs.to_string |> List.map (sprintf "[%s]") |> String.concat "|")
+            )
+          ) :: acc
       ) t [] in
     let full = Pid_map.fold 
       (fun k n acc -> 
@@ -108,9 +114,10 @@ module P_graph = struct
     (* NB: insertion of new node at the end of the list: not efficient but graph building is not the hard part. *)
     let rec insert (ast_node, loc) = function
       | [] -> [P_node.of_ast lexicons (ast_node, loc)]
-      | (node_id,fs)::tail when ast_node.Ast.node_id = node_id ->
+      | (node_id,p_node)::tail when ast_node.Ast.node_id = node_id ->
         begin
-          try (node_id, P_node.unif_fs (P_fs.of_ast lexicons ast_node.Ast.fs) fs) :: tail
+          try 
+          (node_id, P_node.unif_fs_disj (List.map (P_fs.of_ast lexicons) ast_node.Ast.fs_disj) p_node) :: tail
           with Error.Build (msg,_) -> raise (Error.Build (msg,Some loc))
         end
       | head :: tail -> head :: (insert (ast_node, loc) tail) in
@@ -189,10 +196,10 @@ module P_graph = struct
       List.fold_left
         (fun acc (id,node) ->
            let ker_pid = Pid.Ker (Array_.dicho_find id ker_table) in
-           let p_fs = P_node.get_fs node in
+           let p_fs_disj = P_node.get_fs_disj node in
            match Pid_map.find_opt ker_pid acc with
-           | None -> Pid_map.add ker_pid p_fs acc
-           | Some old_p_fs -> Pid_map.add ker_pid (P_fs.unif old_p_fs p_fs) acc
+           | None -> Pid_map.add ker_pid p_fs_disj acc
+           | Some old_p_fs_disj -> Pid_map.add ker_pid (P_fs.unif_disj old_p_fs_disj p_fs_disj) acc
         ) Pid_map.empty old_nodes in
 
     let (ext_map_with_all_edges, new_edge_ids) =

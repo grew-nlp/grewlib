@@ -65,9 +65,11 @@ module Ast : sig
 
   val default_fs: ?loc:Loc.t -> string -> feature list
 
+  type fs = feature list
+
   type u_node = {
     node_id: Id.name;
-    fs: feature list;
+    fs_disj: fs list;
   }
   type node = u_node * Loc.t
 

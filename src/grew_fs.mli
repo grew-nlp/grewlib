@@ -82,13 +82,14 @@ module P_fs: sig
 
   exception Fail
 
-  (** [match_ ?lexicons p_fs g_fs] tries to match the request fs [p_fs] with the graph fs [g_fs]. *)
-  val match_: ?lexicons:Lexicons.t -> t -> G_fs.t -> Lexicons.t
+  (** [match_ ?lexicons p_fs g_fs] tries to match the request fs [p_fs] with the graph fs [g_fs].
+      The bool returned is [true] iff the lexicons was changed during the matching *)
+  val match_: ?lexicons:Lexicons.t -> t -> G_fs.t -> (bool * Lexicons.t)
 
   exception Fail_unif
 
-  (** [unif fs1 fs2] returns the unification of the two feature structures.
-      It raises [Fail_unif] exception in case of Failure. *)
-  val unif: t -> t -> t
+  (** [unif_disj fs_disj_1 fs_disj_2] returns the unification of the two feature structures disjunction.
+      It raises [Fail_unif] exception in case of Failure (i.e. empty disjunction). *)
+  val unif_disj: t list -> t list -> t list
 
 end (* module P_fs *)
