@@ -185,8 +185,7 @@ module P_graph = struct
         Pid_map.empty
         new_node_list in
 
-    (* let old_map_without_edges = *)
-    let filter_on_old_edges =
+    let filter_on_ker_nodes =
       List.fold_left
         (fun acc (id,node) ->
            let ker_pid = Pid.Ker (Array_.dicho_find id ker_table) in
@@ -228,7 +227,7 @@ module P_graph = struct
              )
         ) (ext_map_without_edges, edge_ids) full_edge_list in
 
-        (ext_map_with_all_edges, filter_on_old_edges, ext_table, new_edge_ids)
+        (ext_map_with_all_edges, filter_on_ker_nodes, ext_table, new_edge_ids)
 
   (* -------------------------------------------------------------------------------- *)
 

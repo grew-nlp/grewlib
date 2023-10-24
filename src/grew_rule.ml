@@ -1108,7 +1108,7 @@ module Rule = struct
         ) ker_basic.graph [] in
 
     (* nodes are sorted to appear in the same order in dep picture and in input file *)
-    let sorted_nodes = List.sort (fun (n1,_) (n2,_) -> P_node.compare_pos n1 n2) nodes in
+    let sorted_nodes = List.sort (fun (n1,_) (n2,_) -> P_node.compare_loc n1 n2) nodes in
 
     bprintf buff "[WORDS] {\n";
     List.iter

@@ -49,7 +49,6 @@ module G_node: sig
 
   val dump: config:Conll_config.t -> t -> string
 
-  val of_ast: ?position:int -> Ast.node -> t
   val build_pst_leaf: ?loc:Loc.t -> string -> t
   val build_pst_node: ?loc:Loc.t -> string -> t
 
@@ -100,5 +99,5 @@ module P_node: sig
 
   val match_: ?lexicons:Lexicons.t -> t -> G_node.t -> Lexicons.t
 
-  val compare_pos: t -> t -> int
+  val compare_loc: t -> t -> int
 end (* module P_node *)

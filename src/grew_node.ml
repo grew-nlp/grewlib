@@ -72,10 +72,6 @@ module G_node = struct
     position = None;
   }
 
-  let of_ast ?position (ast_node, _) =
-    let fs = G_fs.of_ast ast_node.Ast.fs in
-    { empty with name=Some ast_node.Ast.node_id; fs; position; }
-
   let build_pst_leaf ?loc phon =
     { empty with fs = G_fs.pst_leaf ?loc phon }
 
@@ -164,12 +160,13 @@ module P_node = struct
 
   let of_ast lexicons (ast_node, loc) =
     (ast_node.Ast.node_id,
-     {
-       name = ast_node.Ast.node_id;
-       fs = P_fs.of_ast lexicons ast_node.Ast.fs;
-       next = Pid_massoc.empty;
-       loc = Some loc;
-     } )
+      {
+        name = ast_node.Ast.node_id;
+        fs = P_fs.of_ast lexicons ast_node.Ast.fs;
+        next = Pid_massoc.empty;
+        loc = Some loc;
+      }
+    )
 
   let unif_fs fs t = { t with fs = P_fs.unif fs t.fs }
 
@@ -180,5 +177,5 @@ module P_node = struct
 
   let match_ ?lexicons p_node g_node = P_fs.match_ ?lexicons p_node.fs (G_node.get_fs g_node)
 
-  let compare_pos t1 t2 = Stdlib.compare t1.loc t2.loc
+  let compare_loc t1 t2 = Stdlib.compare t1.loc t2.loc
 end (* module P_node *)
