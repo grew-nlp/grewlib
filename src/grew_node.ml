@@ -177,8 +177,8 @@ module P_node = struct
 
   let match_ ?(lexicons=[]) p_node g_node =
     match p_node.fs_disj with
-    | [one] -> P_fs.match_ ~lexicons one (G_node.get_fs g_node)
-    |  fs_list ->
+    | [one] -> (P_fs.match_ ~lexicons one (G_node.get_fs g_node), 0)
+    | fs_list ->
       (* NB: we compute all bool before [List.exists] in order to have the same behavior (run exception) whathever is the order of fs *)
       let is_fs_match_list = List.map
       (fun fs -> 
@@ -188,7 +188,8 @@ module P_node = struct
           | _ -> true
         with P_fs.Fail -> false
       ) fs_list in
-      if List.exists (fun x -> x) is_fs_match_list then (false,lexicons) else raise P_fs.Fail
-
+      match CCList.find_idx (fun x -> x) is_fs_match_list with
+        | None -> raise P_fs.Fail
+        | Some (idx,_) -> ((false, lexicons), idx)
   let compare_loc t1 t2 = Stdlib.compare t1.loc t2.loc
 end (* module P_node *)

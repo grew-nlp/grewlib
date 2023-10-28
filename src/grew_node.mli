@@ -99,7 +99,8 @@ module P_node: sig
   val add_edge_opt: P_edge.t -> Pid.t -> t -> t option
 
   (* The bool returned is [true] iff the lexicons was changed during the matching *)
-  val match_: ?lexicons:Lexicons.t -> t -> G_node.t -> (bool * Lexicons.t)
+  val match_: ?lexicons:Lexicons.t -> t -> G_node.t -> ((bool * Lexicons.t) * int)
 
   val compare_loc: t -> t -> int
 end (* module P_node *)
+
