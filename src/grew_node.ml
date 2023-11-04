@@ -72,10 +72,6 @@ module G_node = struct
     position = None;
   }
 
-  let of_ast ?position (ast_node, _) =
-    let fs = G_fs.of_ast ast_node.Ast.fs in
-    { empty with name=Some ast_node.Ast.node_id; fs; position; }
-
   let build_pst_leaf ?loc phon =
     { empty with fs = G_fs.pst_leaf ?loc phon }
 
@@ -100,7 +96,7 @@ module G_node = struct
 
   (* The third element in the output is [true] iff the is a capture:
     The edge resulting from the del_feat already exist in the graphs
-    TODO: this should be docuemented and maybe a warning/error would be usefull *)
+    TODO: this should be documented and maybe a warning/error would be usefull *)
   let del_edge_feature_opt gid_tar old_edge feat_name t =
     match G_edge.remove_feat_opt feat_name old_edge with
     | None -> None
@@ -149,36 +145,51 @@ end (* module G_node *)
 module P_node = struct
   type t = {
     name: Id.name;
-    fs: P_fs.t;
+    fs_disj: P_fs.t list; (* dijunsction of matching constraints *)
     next: P_edge.t Pid_massoc.t;
     loc: Loc.t option;
   }
 
-  let empty = { fs = P_fs.empty; next = Pid_massoc.empty; name = "__empty__"; loc=None }
+  let empty = { fs_disj = [P_fs.empty]; next = Pid_massoc.empty; name = "__empty__"; loc=None }
   let is_empty t = t.name = "__empty__"
   let get_name t = t.name
 
-  let get_fs t = t.fs
+  let get_fs_disj t = t.fs_disj
 
   let get_next t = t.next
 
   let of_ast lexicons (ast_node, loc) =
     (ast_node.Ast.node_id,
-     {
-       name = ast_node.Ast.node_id;
-       fs = P_fs.of_ast lexicons ast_node.Ast.fs;
-       next = Pid_massoc.empty;
-       loc = Some loc;
-     } )
+      {
+        name = ast_node.Ast.node_id;
+        fs_disj = List.map (P_fs.of_ast lexicons) ast_node.Ast.fs_disj;
+        next = Pid_massoc.empty;
+        loc = Some loc;
+      }
+    )
 
-  let unif_fs fs t = { t with fs = P_fs.unif fs t.fs }
+  let unif_fs_disj fs_disj t = { t with fs_disj = P_fs.unif_disj t.fs_disj fs_disj }
 
   let add_edge_opt p_edge tar_pid t =
     match Pid_massoc.add_opt tar_pid p_edge t.next with
     | Some l -> Some {t with next = l}
     | None -> None
 
-  let match_ ?lexicons p_node g_node = P_fs.match_ ?lexicons p_node.fs (G_node.get_fs g_node)
-
-  let compare_pos t1 t2 = Stdlib.compare t1.loc t2.loc
+  let match_ ?(lexicons=[]) p_node g_node =
+    match p_node.fs_disj with
+    | [one] -> (P_fs.match_ ~lexicons one (G_node.get_fs g_node), 0)
+    | fs_list ->
+      (* NB: we compute all bool before [List.exists] in order to have the same behavior (run exception) whathever is the order of fs *)
+      let is_fs_match_list = List.map
+      (fun fs -> 
+        try
+          match P_fs.match_ ~lexicons fs (G_node.get_fs g_node) with
+          | (true, _) -> Error.run "Lexicons and disjunction on nodes are incompatible"
+          | _ -> true
+        with P_fs.Fail -> false
+      ) fs_list in
+      match CCList.find_idx (fun x -> x) is_fs_match_list with
+        | None -> raise P_fs.Fail
+        | Some (idx,_) -> ((false, lexicons), idx)
+  let compare_loc t1 t2 = Stdlib.compare t1.loc t2.loc
 end (* module P_node *)

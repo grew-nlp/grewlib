@@ -105,9 +105,11 @@ module Ast = struct
     | None -> [({name="label"; kind=Feat_kind_list (Eq, [lab])}, Loc.empty)]
     | Some l -> [({name="label"; kind=Feat_kind_list (Eq, [lab])}, l)]
 
+  type fs = feature list
+
   type u_node = {
     node_id: Id.name;
-    fs: feature list;
+    fs_disj: fs list;
   }
   type node = u_node * Loc.t
 
@@ -224,7 +226,7 @@ module Ast = struct
     if (List.exists (fun ({node_id; _},_) -> node_id=name) req_nodes)
     || (List.exists (fun ({node_id; _},_) -> node_id=name) aux)
     then req_nodes
-    else ({node_id=name; fs=[]}, loc) :: req_nodes
+    else ({node_id=name; fs_disj=[[]]}, loc) :: req_nodes
 
   let complete_basic_aux aux basic =
     let new_req_nodes = List.fold_left
@@ -369,7 +371,7 @@ module Ast = struct
 
   let complete id nodes =
     let rec loop n = match n with
-      | [] -> [{node_id=id; fs=default_fs id},Loc.empty]
+      | [] -> [{node_id=id; fs_disj=[default_fs id]},Loc.empty]
       | ({ node_id = head_id ; _},_)::_ when head_id = id -> n
       | head::tail -> head :: (loop tail)
     in loop nodes

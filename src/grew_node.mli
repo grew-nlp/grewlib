@@ -49,7 +49,6 @@ module G_node: sig
 
   val dump: config:Conll_config.t -> t -> string
 
-  val of_ast: ?position:int -> Ast.node -> t
   val build_pst_leaf: ?loc:Loc.t -> string -> t
   val build_pst_node: ?loc:Loc.t -> string -> t
 
@@ -85,20 +84,23 @@ module P_node: sig
 
   val get_name: t -> Id.name
 
-  val get_fs: t -> P_fs.t
+  val get_fs_disj: t -> P_fs.t list
 
   val get_next: t -> P_edge.t Pid_massoc.t
 
   val of_ast: Lexicons.t -> Ast.node -> (Id.name * t)
 
-  (** [unif_fs fs t] replaces the feature structure of the node
-      by the unification of [t.fs] and [fs].
-      It raises [P_fs.Fail_unif] exception in case of Failure. *)
-  val unif_fs: P_fs.t -> t -> t
+  (** [unif_fs_disj fs_disj t] replaces the feature structure disjunction of the p_node
+      by the unification of [t.fs_disj] and [fs_disj].
+      It raises [P_fs.Fail_unif] exception in case of Failure (empty disjunction).
+  *)
+  val unif_fs_disj: P_fs.t list -> t -> t
 
   val add_edge_opt: P_edge.t -> Pid.t -> t -> t option
 
-  val match_: ?lexicons:Lexicons.t -> t -> G_node.t -> Lexicons.t
+  (* The bool returned is [true] iff the lexicons was changed during the matching *)
+  val match_: ?lexicons:Lexicons.t -> t -> G_node.t -> ((bool * Lexicons.t) * int)
 
-  val compare_pos: t -> t -> int
+  val compare_loc: t -> t -> int
 end (* module P_node *)
+

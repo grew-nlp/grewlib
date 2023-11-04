@@ -57,7 +57,7 @@ module P_graph: sig
          Old nodes used as source in a edges (Old -> New, Old -> Old2) are also defined in this maps *)
       t *
       (* encoding of N[…] when N is already defined in core request: just consider the new fs as a filter *)
-      P_fs.t Pid_map.t *
+      P_fs.t list Pid_map.t *
       (* table of indentifier for nodes specific to the extension *)
       Id.table *
       (* full set of edge identifier *)

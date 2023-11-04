@@ -705,6 +705,9 @@ module Feature_value = struct
     "freq"; "freq_old"; "freq_new"; (* used for nodes in POStoSSQ grs *)
     "_start"; "_stop";              (* nodes in Orfeo timestamps *)
     "AlignBegin"; "AlignEnd";       (* nodes in SUD_Naija *)
+    "Duration";
+    "MeanF0";
+    "SemitonesFromUtteranceMean";
     "length"; "delta"; "weight";
   ]
 

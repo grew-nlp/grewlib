@@ -92,7 +92,7 @@ module Constraint = struct
     | Feature_ineq_cst of Ast.ineq * base * string * float
     (*   N [upos=VERB]   *)
     (* ⚠ used only when a extension imposes a fs on a node also defined by the kernel request part *)
-    | Filter of Pid.t * P_fs.t
+    | Filter of Pid.t * P_fs.t list
     (*   N << M   *)
     | Node_large_prec of Pid.t * Pid.t
     (*   e1 << e2   *)
@@ -118,7 +118,11 @@ module Constraint = struct
     | Feature_cmp_regexp (cmp,id,fn,regexp) -> sprintf "%s.%s %s re\"%s\"" (base_to_string id) fn (Cmp.to_string cmp) regexp
     | Feature_ineq (_,id1,fn1,id2,fn2) -> sprintf "%s.%s < %s.%s" (base_to_string id1) fn1 (base_to_string id2) fn2
     | Feature_ineq_cst (_,id,fn,f) -> sprintf "%s.%s  %g" (base_to_string id) fn f
-    | Filter (pid, p_fs) -> sprintf "%s [%s]" (pid_name pid) (P_fs.to_string p_fs)
+    | Filter (pid, p_fs_list) -> 
+        (sprintf "%s %s" 
+          (pid_name pid)
+          (p_fs_list |> List.map P_fs.to_string |> List.map (sprintf "[%s]") |> String.concat "|")
+        )
     | Node_large_prec (pid1, pid2) ->  sprintf "%s << %s" (pid_name pid1) (pid_name pid2)
     | Covered (pid1, eid2) -> sprintf "%s << %s" (pid_name pid1) eid2
     | Edge_relative (Disjoint, eid1, eid2) -> sprintf "%s <> %s" eid1 eid2
@@ -344,7 +348,7 @@ module Matching = struct
 
   (* ====================================================================== *)
   type t = {
-    n_match: Gid.t Pid_map.t;                      (* partial fct: request nodes |--> graph nodes *)
+    n_match: (int * Gid.t) Pid_map.t;              (* partial fct: request nodes |--> (disj_idx, graph nodes *)
     e_match: (Gid.t*G_edge.t*Gid.t) String_map.t;  (* edge matching: edge ident  |--> (src,label,tar) *)
     l_param: Lexicons.t;                           (* *)
   }
@@ -356,7 +360,7 @@ module Matching = struct
 
   let to_json ?(all_edges=false) request graph m =
     let node_name gid = G_node.get_name gid (G_graph.find gid graph) in
-    let nodes = Pid_map.fold (fun pid gid acc ->
+    let nodes = Pid_map.fold (fun pid (_,gid) acc ->
         let pnode = P_graph.find pid request.Request.ker.graph in
         (P_node.get_name pnode, `String (node_name gid))::acc
       ) m.n_match [] in
@@ -376,7 +380,7 @@ module Matching = struct
 
   let node_matching request graph { n_match; _ } =
     Pid_map.fold
-      (fun pid gid acc ->
+      (fun pid (_,gid) acc ->
          let pnode = P_graph.find pid request.Request.ker.graph in
          let gnode = G_graph.find gid graph in
          (P_node.get_name pnode, G_node.get_name gid gnode) :: acc
@@ -390,10 +394,11 @@ module Matching = struct
   let build_deco request matching =
     { G_deco.nodes =
         Pid_map.fold
-          (fun pid gid acc ->
-             let pnode = P_graph.find pid request.Request.ker.graph in
-             let request_feat_list = P_fs.feat_list (P_node.get_fs pnode) in
-             (gid, (P_node.get_name pnode, request_feat_list)) :: acc
+          (fun pid (disj_idx,gid) acc ->
+            let pnode = P_graph.find pid request.Request.ker.graph in
+            let fs = List.nth (P_node.get_fs_disj pnode) disj_idx in
+            let request_feat_list = P_fs.feat_list fs in
+            (gid, (P_node.get_name pnode, request_feat_list)) :: acc
           ) matching.n_match [];
       G_deco.edges = String_map.fold (fun _ edge acc -> edge::acc) matching.e_match [];
     }
@@ -401,7 +406,7 @@ module Matching = struct
   let find cnode ?loc (matching, created_nodes) =
     match cnode with
     | Command.Req pid ->
-      (try Pid_map.find pid matching.n_match
+      (try Pid_map.find pid matching.n_match |> snd
        with Not_found -> Error.bug ?loc "Inconsistent matching pid '%s' not found" (Pid.to_string pid))
     | Command.New name ->
       (try List.assoc name created_nodes
@@ -476,7 +481,7 @@ module Matching = struct
   let apply_cst ~config graph matching cst : t =
     let get_value base feat_name = match base with
       | Constraint.Node_id pid ->
-        let gid = Pid_map.find pid matching.n_match in
+        let (_,gid) = Pid_map.find pid matching.n_match in
         if feat_name = "__id__"
         then Value (Float (float_of_int gid))
         else
@@ -502,27 +507,45 @@ module Matching = struct
 
     match cst with
     | Constraint.Cst_out (pid,label_cst) ->
-      let gid = Pid_map.find pid matching.n_match in
+      let (_,gid) = Pid_map.find pid matching.n_match in
       if G_graph.edge_out ~config graph gid label_cst
       then matching
       else raise Fail
     | Cst_in (pid,label_cst) ->
-      let gid = Pid_map.find pid matching.n_match in
+      let (_,gid) = Pid_map.find pid matching.n_match in
       if G_graph.node_exists
           (fun node ->
              List.exists (fun e -> Label_cst.match_ ~config label_cst e) (Gid_massoc.assoc gid (G_node.get_next node))
           ) graph
       then matching
       else raise Fail
-    | Filter (pid, fs) ->
+
+    | Filter (pid, fs_list) ->
       begin
-        try
-          let gid = Pid_map.find pid matching.n_match in
-          let gnode = G_graph.find gid graph in
-          let new_param = P_fs.match_ ~lexicons:(matching.l_param) fs (G_node.get_fs gnode) in
-          {matching with l_param = new_param }
-        with P_fs.Fail -> raise Fail
-      end
+        let (_,gid) = Pid_map.find pid matching.n_match in
+        let gnode = G_graph.find gid graph in
+        match fs_list with
+        | [fs] ->
+          begin
+            try
+              let (_,new_param) = P_fs.match_ ~lexicons:(matching.l_param) fs (G_node.get_fs gnode) in
+              {matching with l_param = new_param }
+            with P_fs.Fail -> raise Fail
+          end
+        | _ ->
+          (* NB: we compute all bool before [List.exists] in order to have the same behavior (run exception) whathever is the order of fs *)
+          let is_fs_match_list = List.map
+          (fun fs -> 
+            try
+              match P_fs.match_ ~lexicons:(matching.l_param) fs (G_node.get_fs gnode) with
+              | (true, _) -> Error.run "Lexicons and disjunction on nodes are incompatible"
+              | _ -> true
+            with P_fs.Fail -> false
+          ) fs_list in
+          if List.exists (fun x -> x) is_fs_match_list then matching else raise Fail
+        end
+
+
     | Feature_cmp (cmp, base1, feat_name1, base2, feat_name2) ->
       begin
         match (get_value base1 feat_name1, get_value base2 feat_name2) with
@@ -539,7 +562,7 @@ module Matching = struct
       end
     | Feature_cmp_value (cmp, Node_id pid, "__out__", Feature_value.Float v) ->
       begin
-        let gid = Pid_map.find pid matching.n_match in
+        let (_,gid) = Pid_map.find pid matching.n_match in
         let gnode = G_graph.find gid graph in
         let out_degree = G_node.out_edges gnode in
         if Cmp.fct cmp out_degree (int_of_float (Float.round v))
@@ -602,8 +625,8 @@ module Matching = struct
       end
 
     | Node_large_prec (pid1, pid2) ->
-      let gnode1 = G_graph.find (Pid_map.find pid1 matching.n_match) graph in
-      let gnode2 = G_graph.find (Pid_map.find pid2 matching.n_match) graph in
+      let gnode1 = G_graph.find (Pid_map.find pid1 matching.n_match |> snd) graph in
+      let gnode2 = G_graph.find (Pid_map.find pid2 matching.n_match |> snd) graph in
       begin
         match (G_node.get_position_opt gnode1, G_node.get_position_opt gnode2) with
         | Some i1, Some i2 when i1 < i2 -> matching
@@ -621,7 +644,7 @@ module Matching = struct
 
     | Covered (pid, eid) ->
       begin
-        let gnode = G_graph.find (Pid_map.find pid matching.n_match) graph in
+        let gnode = G_graph.find (Pid_map.find pid matching.n_match |> snd) graph in
         match (String_map.find_opt eid matching.e_match) with
         | (Some edge) when G_graph.covered gnode edge graph -> matching
         | Some _ -> raise Fail
@@ -648,8 +671,8 @@ module Matching = struct
       begin
         try (* is the tar already found in the matching ? *)
           let new_partials =
-            let src_gid = Pid_map.find src_pid partial.sub.n_match in
-            let tar_gid = Pid_map.find tar_pid partial.sub.n_match in
+            let src_gid = Pid_map.find src_pid partial.sub.n_match |> snd in
+            let tar_gid = Pid_map.find tar_pid partial.sub.n_match |> snd in
             let src_gnode = G_graph.find src_gid graph in
             let g_edges = Gid_massoc.assoc tar_gid (G_node.get_next src_gnode) in
 
@@ -665,7 +688,7 @@ module Matching = struct
           in CCList.flat_map (extend_matching ~config (ker_graph,ext_graph) graph) new_partials
         with Not_found -> (* p_edge goes to an unmatched node *)
           let candidates = (* candidates (of type (gid, matching)) for m(tar_pid) = gid) with new partial matching m *)
-            let (src_gid : Gid.t) = Pid_map.find src_pid partial.sub.n_match in
+            let (src_gid : Gid.t) = Pid_map.find src_pid partial.sub.n_match |> snd in
             let src_gnode = G_graph.find src_gid graph in
             Gid_massoc.fold
               (fun acc gid_next g_edge ->
@@ -704,7 +727,7 @@ module Matching = struct
       let g_node = try G_graph.find gid graph with Not_found -> Error.bug "[extend_matching_from] cannot find gid in graph" in
 
       try
-        let new_lex_set = P_node.match_ ~lexicons:partial.sub.l_param p_node g_node in
+        let ((_,new_lex_set),disj_idx) = P_node.match_ ~lexicons:partial.sub.l_param p_node g_node in
         (* add all out-edges from pid in request *)
         let new_unmatched_edges =
           Pid_massoc.fold
@@ -716,7 +739,7 @@ module Matching = struct
             unmatched_nodes = (try List_.remove pid partial.unmatched_nodes with Not_found -> Error.bug "[extend_matching_from] cannot find pid in unmatched_nodes");
             unmatched_edges = new_unmatched_edges;
             already_matched_gids = if injective_pid then gid :: partial.already_matched_gids else partial.already_matched_gids;
-            sub = {partial.sub with n_match = Pid_map.add pid gid partial.sub.n_match; l_param = new_lex_set};
+            sub = {partial.sub with n_match = Pid_map.add pid (disj_idx, gid) partial.sub.n_match; l_param = new_lex_set};
           } in
         extend_matching ~config (ker_graph,ext_graph) graph new_partial
       with P_fs.Fail -> []
@@ -724,7 +747,7 @@ module Matching = struct
   (*  [test_locality matching created_nodes gid] checks if [gid] is a "local" node:
       either it belongs to the codomain of [matching] or it is one of the [created_nodes] *)
   let test_locality matching created_nodes gid =
-    (Pid_map.exists (fun _ id -> id=gid) matching.n_match) || (List.exists (fun (_,id) -> id=gid) created_nodes)
+    (Pid_map.exists (fun _ (_,id) -> id=gid) matching.n_match) || (List.exists (fun (_,id) -> id=gid) created_nodes)
 
   (* test_extension returns [true] iff the matching (sub, already_matched_gids) of [ker_graph] into [graph] can be extended with [ext_graph] *)
   let test_extension ~config ker graph ext (sub, already_matched_gids) =
@@ -757,7 +780,7 @@ module Matching = struct
   let whether ~config (extension: Request.basic) request graph matching =
     let already_matched_gids =
       Pid_map.fold 
-      (fun pid gid acc -> 
+      (fun pid (_,gid) acc -> 
         if P_graph.is_injective pid [request.Request.ker.graph; extension.graph]
         then gid::acc
         else acc
@@ -867,7 +890,7 @@ module Matching = struct
       List.map fst filtered_matching_list
 
   let subgraph graph matching depth =
-    let gid_list = Pid_map.fold (fun _ gid acc -> gid :: acc) matching.n_match [] in  
+    let gid_list = Pid_map.fold (fun _ (_,gid) acc -> gid :: acc) matching.n_match [] in  
   G_graph.subgraph graph gid_list depth
 
 
@@ -886,7 +909,7 @@ module Matching = struct
         ) matching.n_match;
       Error.run "The identifier `%s` is not declared in the positive part of the request" pid_name
     with Found pid -> 
-      let gid = Pid_map.find pid matching.n_match in
+      let gid = Pid_map.find pid matching.n_match |> snd in
       let g_node = G_graph.find gid graph in
       (gid, g_node)
 
@@ -960,8 +983,8 @@ module Matching = struct
   let get_interval request graph matching ((pid_name,feature_name), gap, min_opt, max_opt) =
     let (_, node) = search_pid_name request graph matching pid_name in
     match G_fs.get_value_opt feature_name (G_node.get_fs node) with
-    | None
-    | Some String _ -> Error.run "[Matching.get_value_opt] feature name `%s` is not a numeric value" feature_name
+    | None -> Error.run "Cannot cluster by interval with undefined values. Change the pattern to ensure that `%s` is always defined on node `%s`" feature_name pid_name
+    | Some String _ -> Error.run "Cannot cluster by interval: feature name `%s` is not a numeric value" feature_name
     | Some Float f ->
       match (min_opt, max_opt) with
       | (Some m, _) when f < m -> sprintf "]-∞, %g[" m
@@ -1101,14 +1124,17 @@ module Rule = struct
     let nodes =
       Pid_map.fold
         (fun id node acc ->
-           (node, sprintf "  N_%s { word=\"%s\"; subword=\"%s\"}"
-              (Pid.to_id id) (P_node.get_name node) (P_fs.to_dep (P_node.get_fs node))
-           )
-           :: acc
+          let subword = match P_node.get_fs_disj node with
+          | [one] -> P_fs.to_dep one
+          | _ -> "__DISJUNCTION__" in
+            (node, sprintf "  N_%s { word=\"%s\"; subword=\"%s\"}"
+              (Pid.to_id id) (P_node.get_name node) subword
+            )
+            :: acc
         ) ker_basic.graph [] in
 
     (* nodes are sorted to appear in the same order in dep picture and in input file *)
-    let sorted_nodes = List.sort (fun (n1,_) (n2,_) -> P_node.compare_pos n1 n2) nodes in
+    let sorted_nodes = List.sort (fun (n1,_) (n2,_) -> P_node.compare_loc n1 n2) nodes in
 
     bprintf buff "[WORDS] {\n";
     List.iter
@@ -1219,7 +1245,7 @@ module Rule = struct
   let onf_find cnode ?loc (matching, created_nodes) = (* TODO review args order and remove pair *)
     match cnode with
     | Command.Req pid ->
-      (try Pid_map.find pid matching.Matching.n_match
+      (try Pid_map.find pid matching.Matching.n_match |> snd
        with Not_found -> Error.bug ?loc "Inconsistent matching pid '%s' not found" (Pid.to_string pid))
     | Command.New name ->
       (try List.assoc name created_nodes
@@ -1579,7 +1605,7 @@ module Rule = struct
   let find cnode ?loc gwh matching =
     match cnode with
     | Command.Req pid ->
-      (try Pid_map.find pid matching.Matching.n_match
+      (try Pid_map.find pid matching.Matching.n_match |> snd
        with Not_found -> Error.bug ?loc "Inconsistent matching pid '%s' not found" (Pid.to_string pid))
     | Command.New name -> List.assoc name gwh.Graph_with_history.added_gids
 
