@@ -983,8 +983,8 @@ module Matching = struct
   let get_interval request graph matching ((pid_name,feature_name), gap, min_opt, max_opt) =
     let (_, node) = search_pid_name request graph matching pid_name in
     match G_fs.get_value_opt feature_name (G_node.get_fs node) with
-    | None
-    | Some String _ -> Error.run "[Matching.get_value_opt] feature name `%s` is not a numeric value" feature_name
+    | None -> Error.run "Cannot cluster by interval with undefined values. Change the pattern to ensure that `%s` is always defined on node `%s`" feature_name pid_name
+    | Some String _ -> Error.run "Cannot cluster by interval: feature name `%s` is not a numeric value" feature_name
     | Some Float f ->
       match (min_opt, max_opt) with
       | (Some m, _) when f < m -> sprintf "]-∞, %g[" m
