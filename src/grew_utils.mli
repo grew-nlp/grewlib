@@ -10,14 +10,13 @@
 
 (* ================================================================================ *)
 module Cmp: sig
-  (** This module defines a two values type for Equalty / Disequality *)
-
+  (** This module defines a two values type for Equality / Disequality *)
   type t = Eq | Neq
 
   val to_string: t -> string
 
   val fct: t -> ('a -> 'a -> bool)
-  (** [fct t] return a function of type 'a -> 'a -> bool which corresponds either to equlaity or disequality *)
+  (** [fct t] return a function of type 'a -> 'a -> bool which corresponds either to equality or disequality *)
 end
 
 
@@ -91,7 +90,7 @@ end
 (* [Array_] contains additional functions on the caml [array] type. *)
 module Array_: sig
   (* [dicho_mem elt array] returns true iff [elt] belongs to [array].
-     Warning: the array MUST be sorted and without duplicates. *)
+     Warning:  the array MUST be sorted and without duplicates. *)
   val dicho_mem: 'a -> 'a array -> bool
 
   (* [dicho_find elt array] returns the index of the position where [elt] is found in the [array].

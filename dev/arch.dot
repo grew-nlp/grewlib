@@ -1,7 +1,7 @@
 digraph grew {
   node [shape=Mrecord];
   rankdir = LR;
-  Grew_types [fillcolor=yellow, shape=record, label="Grew_types|String_set\nString_map\n(String_opt_set)\nString_opt_map\nInt_set\nInt_map\n&lt;cluster_type&gt;\nClustered"]
+  Grew_types [fillcolor=yellow, shape=record, label="Grew_types|String_set\nString_map\n(String_opt_set)\nString_opt_map\nInt_set\nInt_map\nClustered"]
   Grew_utils [label="Grew_utils|Cmp\nRange\nLoc\nError\nRange\nString_\nArray_\nList_\n&lt;S&gt;\nMassoc_make()\nId\nTimeout\nGlobal\nDependencies\nPid\nPid_set\nPid_map\nPid_massoc\nGid\nGid_map\nGid_set\nGid_massoc\nFeature_value"]
   grew_ast [label="grew_ast|Ast\nLexicon\nLexicons"]
   grew_loader [label="grew_loader|Loader\nParser"]
