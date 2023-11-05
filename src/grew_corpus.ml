@@ -294,8 +294,8 @@ module Corpus = struct
     let out_ch = open_out_bin (Filename.concat dir marshal_file) in
     Marshal.to_channel out_ch t [];
     close_out out_ch
-  
-end
+
+end (* module Corpus *)
 
 (* ==================================================================================================== *)
 module Corpus_desc = struct
@@ -321,10 +321,6 @@ module Corpus_desc = struct
 
   let is_audio corpus_desc =
     try corpus_desc |> member "audio" |> to_bool
-    with Type_error _ -> false
-
-    let is_dynamic corpus_desc =
-    try corpus_desc |> member "dynamic" |> to_bool
     with Type_error _ -> false
 
   let get_display corpus_desc =
@@ -421,28 +417,21 @@ module Corpus_desc = struct
     with Sys_error _ -> None
 
   (* ---------------------------------------------------------------------------------------------------- *)
-  let table_and_desc corpus_desc corpus =
-    let corpus_id = get_id corpus_desc in
-    let config = get_config corpus_desc in
-    let directory = get_directory corpus_desc in
+  let table_and_desc build_dir corpus_id config conll_corpus =
 
     (* write table file *)
-    let stat = Conll_stat.build ~config ("upos", None) ("ExtPos", Some "upos") corpus in
+    let stat = Conll_stat.build ~config ("upos", None) ("ExtPos", Some "upos") conll_corpus in
     let html = Conll_stat.to_html corpus_id ("upos", None) ("ExtPos", Some "upos") stat in
-    let out_file = Filename.concat directory (corpus_id ^ "_table.html") in
+    let out_file = Filename.concat build_dir "table.html" in
     let () = CCIO.with_out out_file (fun oc -> CCIO.write_line oc html) in
 
-    let (nb_trees, nb_tokens) = Conll_corpus.sizes corpus in
-    let desc = `Assoc (CCList.filter_map CCFun.id [
-        Some ("nb_trees", `Int nb_trees);
-        Some ("nb_tokens", `Int nb_tokens);
-          (
-            if is_dynamic corpus_desc
-            then Some ("update", `Int (int_of_float ((Unix.gettimeofday ()) *. 1000.)))
-            else None
-          )
-        ]) in
-      let () = Yojson.Basic.to_file (Filename.concat directory (corpus_id ^ "_desc.json")) desc in
+    let (nb_trees, nb_tokens) = Conll_corpus.sizes conll_corpus in
+    let desc = `Assoc [
+        ("nb_trees", `Int nb_trees);
+        ("nb_tokens", `Int nb_tokens);
+        ("update", `Int (int_of_float ((Unix.gettimeofday ()) *. 1000.)))
+        ] in
+      let () = Yojson.Basic.to_file (Filename.concat build_dir "desc.json") desc in
       ()
 
   (* ---------------------------------------------------------------------------------------------------- *)
@@ -450,20 +439,25 @@ module Corpus_desc = struct
     let config = get_config corpus_desc in
     let corpus_id = get_id corpus_desc in
     let full_files = get_full_files corpus_desc in
-    (* List.iter (fun x -> printf "+++++++ %s\n%!" x) full_files; *)
     let directory = get_directory corpus_desc in
-    let marshal_file = Filename.concat directory ((get_id corpus_desc) ^ ".marshal") in
+
+    let build_dir = Filename.concat directory "_build_grew" in
+    let () = 
+    match Sys.file_exists build_dir with
+    | false -> Unix.mkdir build_dir 0o755
+    | true ->
+      match Sys.is_directory build_dir with
+      | true -> ()
+      | false -> Error.run "A file name `_build_grew` already exists in directory `%s`" directory in
+
+    let marshal_file = Filename.concat build_dir ("marshal") in
 
     let log_file =
       match get_kind corpus_desc with
       | Conll _ ->
-        begin
-          let log = Filename.concat directory (sprintf "%s.log" corpus_id) in
-          try 
-            close_out (open_out log); 
-            Some log
-          with exc -> Error.warning "Cannot create file %s (%s)" log (Printexc.to_string exc); None
-        end
+        let log = Filename.concat build_dir "log" in
+        let _ = close_out (open_out log) in
+        Some log
       | _ -> None in
 
     try
@@ -471,7 +465,7 @@ module Corpus_desc = struct
         | Conll columns ->
           let conll_corpus = Conll_corpus.load_list ?log_file ~config ?columns full_files in
           let columns = Conll_corpus.get_columns conll_corpus in
-          table_and_desc corpus_desc conll_corpus;
+          let () = table_and_desc build_dir corpus_id config conll_corpus in
           let items = CCArray.filter_map (fun (sent_id,conllx) ->
               try
                 let graph = G_graph.of_json (Conll.to_json conllx) in
