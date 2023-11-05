@@ -63,11 +63,11 @@ module Loader = struct
   let loc_grs file =
     try
       Global.new_file file;
-      Global.update_grs_timestamp file;
       let in_ch = open_in file in
       let lexbuf = Lexing.from_channel in_ch in
       let grs = parse_handle "loc_grs" (Grew_parser.grs Grew_lexer.global) lexbuf in
       close_in in_ch;
+      Global.update_grs_timestamp file;
       grs
     with Sys_error msg -> Error.parse ~loc:(Loc.file file) "[Grew_loader.Loader.grs] %s" msg
 
