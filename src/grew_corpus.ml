@@ -342,28 +342,33 @@ module Corpus_desc = struct
       | (Some x,_) -> Error.run "[Corpus.load_json] Unknown \"kind\":\"%s\" field in corpus: \"%s\"" x (get_id corpus_desc)
     with Type_error _ -> Error.run "[Corpus.load_json] \"kind\" must be a string in corpus: \"%s\"" (get_id corpus_desc)
 
-  let expand_directory = function
-    | `Assoc l -> 
-      `Assoc 
-        (List.map 
-          (function 
-          | ("directory", `String d) -> ("directory", `String (String_.extend_path d)) 
-          | ("grs", `String d) -> ("grs", `String (String_.extend_path d)) 
+  let expand_and_check = function
+    | `Assoc l ->
+      let (id_flag, dir_flag) = (ref false, ref false) in
+      let new_l = `Assoc 
+        (List.map
+          (function
+          | ("id", `String _) as i -> id_flag := true; i
+          | ("directory", `String d) -> dir_flag := true; ("directory", `String (String_.extend_path d))
+          | ("grs", `String d) -> ("grs", `String (String_.extend_path d))
           | x -> x
-          ) l
-        )
+          ) l) in
+          begin
+            match (!id_flag, !dir_flag) with
+            | (true, true) -> new_l
+            | (false, _) -> Error.run "[Corpus_desc] ill-formed JSON file (missing `id` field)"
+            | (_, false) -> Error.run "[Corpus_desc] ill-formed JSON file (missing `directory` field)"
+          end
     | _ -> Error.run "[Corpus_desc] ill-formed JSON file (corpus desc is not a JSON object)"
 
   let load_json json_file =
-    json_file 
+    json_file
     |> Yojson.Basic.from_file 
     |> to_list
-    |> (List.map expand_directory)
-
-  exception Dir_not_found of string
+    |> (List.map expand_and_check)
 
   (* get the list of paths for all file with [extension] in the [directory] *)
-  (* raises Dir_not_found if the directory does not exist *)
+  (* raises Error.run if the directory does not exist *)
   let get_full_local_files directory extension = 
     try
       let files = Sys.readdir directory in
@@ -373,7 +378,7 @@ module Corpus_desc = struct
           then (Filename.concat directory file) :: acc
           else acc
         ) files []
-    with Sys_error _ -> raise (Dir_not_found directory)
+    with Sys_error _ -> Error.run "Cannot read directory `%s`" directory
 
   let get_full_files corpus_desc =
     let directory = get_directory corpus_desc in
