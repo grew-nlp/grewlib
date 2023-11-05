@@ -342,9 +342,23 @@ module Corpus_desc = struct
       | (Some x,_) -> Error.run "[Corpus.load_json] Unknown \"kind\":\"%s\" field in corpus: \"%s\"" x (get_id corpus_desc)
     with Type_error _ -> Error.run "[Corpus.load_json] \"kind\" must be a string in corpus: \"%s\"" (get_id corpus_desc)
 
+  let expand_directory = function
+    | `Assoc l -> 
+      `Assoc 
+        (List.map 
+          (function 
+          | ("directory", `String d) -> ("directory", `String (String_.extend_path d)) 
+          | ("grs", `String d) -> ("grs", `String (String_.extend_path d)) 
+          | x -> x
+          ) l
+        )
+    | _ -> Error.run "[Corpus_desc] ill-formed JSON file (corpus desc is not a JSON object)"
 
   let load_json json_file =
-    json_file |> Yojson.Basic.from_file |> to_list
+    json_file 
+    |> Yojson.Basic.from_file 
+    |> to_list
+    |> (List.map expand_directory)
 
   exception Dir_not_found of string
 

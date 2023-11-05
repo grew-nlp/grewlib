@@ -84,6 +84,10 @@ module String_: sig
       "x.y.z" -> Some ".z"
       "xyz" -> None  *)
   val get_suffix_opt: string -> string option
+
+  (* [extend_path path] replaces each substring "${XXX}" in [path] by the value of the env variable XXX.
+     raise [Error.run] if some variable is undefined. *)
+  val extend_path: string -> string
 end
 
 (* ================================================================================ *)
