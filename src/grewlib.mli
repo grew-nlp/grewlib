@@ -273,6 +273,7 @@ module Corpus: sig
 
 end
 
+(* ================================================================================ *)
 module Corpus_desc : sig
 
   (** This module encodes the notion of corpus description which is mainly used in Grew-match *)
@@ -285,29 +286,34 @@ module Corpus_desc : sig
   val get_config: t -> Conll_config.t
 
   val get_id: t -> string
-  val get_field_opt: string -> t -> string option
-  val get_display: t -> int option
+
   val get_directory: t -> string
 
+  val get_field_opt: string -> t -> string option
+
+  val get_display: t -> int option
+
   val is_rtl: t -> bool
+
   val is_audio: t -> bool
 
-  (** [build_corpus corpusbank_folder t] returns the corpus described *)
-  val build_corpus: string -> t -> Corpus.t
+  (** [build_corpus t] returns the corpus described *)
+  val build_corpus: t -> Corpus.t
 
-  (** [load_corpus_opt corpusbank_folder t] returns the corpus if it is compiled *)
-  val load_corpus_opt: string -> t -> Corpus.t option
+  (** [load_corpus_opt t] returns the corpus if it is compiled *)
+  val load_corpus_opt: t -> Corpus.t option
 
-  val get_files: string -> t -> string list
+  (** [get_files t] returns the list of full path of files considered in the corpus *)
+  val get_files: t -> string list
 
-  (** [compile corpusbank_folder t] compiles the corpus
-       - if the compiled file is older than one if the corpora files
+  (** [compile t] compiles the corpus
+       - if the compiled file does not exist or is older than one if the corpora files
        - or if [force] is `true` (default is `false`) *)
-  val compile: ?force:bool -> string -> t -> unit
+  val compile: ?force:bool -> t -> unit
 
-  (** [clean corpusbank_folder t] remove the compiled file, if any *)
-  val clean: string -> t -> unit
-end
+  (** [clean t] remove the compiled file, if any *)
+  val clean: t -> unit
+end (* module Corpus_desc *)
 
 (* ================================================================================ *)
 module Sbn: sig

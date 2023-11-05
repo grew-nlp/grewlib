@@ -392,36 +392,59 @@ module Corpus_desc = struct
 
   type t = Grew_corpus.Corpus_desc.t
 
-  let get_directory = Grew_corpus.Corpus_desc.get_directory
-  let get_id = Grew_corpus.Corpus_desc.get_id
+  let load_json filename =
+    Grewlib.handle
+      ~name:"Corpus.load_json"
+      (fun () -> Grew_corpus.Corpus_desc.load_json filename)
+      ()
   let get_config = Grew_corpus.Corpus_desc.get_config
-  let is_rtl = Grew_corpus.Corpus_desc.is_rtl
-  let get_display = Grew_corpus.Corpus_desc.get_display
-  let is_audio = Grew_corpus.Corpus_desc.is_audio
+    
+  let get_id = Grew_corpus.Corpus_desc.get_id
 
-
+  let get_directory = Grew_corpus.Corpus_desc.get_directory
+    
   let get_field_opt = Grew_corpus.Corpus_desc.get_field_opt
 
+  let get_display = Grew_corpus.Corpus_desc.get_display
+
+  let is_rtl = Grew_corpus.Corpus_desc.is_rtl
+
+  let is_audio = Grew_corpus.Corpus_desc.is_audio
 
   let build_corpus t =
-    Grewlib.handle ~name:"Corpus.build_corpus" (fun () -> Grew_corpus.Corpus_desc.build_corpus t) ()
+    Grewlib.handle 
+      ~name:"Corpus.build_corpus" 
+      (fun () -> Grew_corpus.Corpus_desc.build_corpus t)
+      ()
 
   let load_corpus_opt t =
-    Grewlib.handle ~name:"Corpus.load_corpus_opt" (fun () -> Grew_corpus.Corpus_desc.load_corpus_opt t) ()
+    Grewlib.handle
+      ~name:"Corpus.load_corpus_opt" 
+      (fun () -> Grew_corpus.Corpus_desc.load_corpus_opt t)
+      ()
 
-  let get_files corpora_folder t =
-    Grewlib.handle ~name:"Corpus.get_files" (fun () -> Grew_corpus.Corpus_desc.get_files corpora_folder t) ()
-  
-  let load_json filename =
-    Grewlib.handle ~name:"Corpus.load_json" (fun () -> Grew_corpus.Corpus_desc.load_json filename) ()
+  let get_files t =
+    Grewlib.handle 
+      ~name:"Corpus.get_files" 
+      (fun () -> Grew_corpus.Corpus_desc.get_files t)
+      ()
 
-  let compile ?force corpora_folder t =
-    Grewlib.handle ~name:"Corpus.compile" (fun () -> Grew_corpus.Corpus_desc.compile ?force corpora_folder t) ()
+  let compile ?force t =
+    Grewlib.handle
+      ~name:"Corpus.compile" 
+      (fun () -> Grew_corpus.Corpus_desc.compile ?force t)
+      ()
 
-  let clean corpora_folder t =
-    Grewlib.handle ~name:"Corpus.clean" (fun () -> Grew_corpus.Corpus_desc.clean corpora_folder t) ()
-end
+  let clean t =
+    Grewlib.handle
+      ~name:"Corpus.clean"
+      (fun () -> Grew_corpus.Corpus_desc.clean t)
+      ()
+end (* module Corpus_desc *)
 
+(* ==================================================================================================== *)
+(** {2 Sbn} *)
+(* ==================================================================================================== *)
 module Sbn = struct
   let to_json t =
     Grewlib.handle ~name:"Sbn.to_json" (fun () -> Grew_utils.Sbn.to_json t) ()

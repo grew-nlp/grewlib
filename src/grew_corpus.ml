@@ -362,32 +362,31 @@ module Corpus_desc = struct
 
   exception Dir_not_found of string
 
-  (* get the list of paths for all file with [extension] in the [folder] *)
+  (* get the list of paths for all file with [extension] in the [directory] *)
   (* raises Dir_not_found if the directory does not exist *)
-  let get_files base folder extension = 
-    let full_folder = Filename.concat base folder in 
-    try 
-      let files = Sys.readdir full_folder in
+  let get_full_local_files directory extension = 
+    try
+      let files = Sys.readdir directory in
       Array.fold_right
         (fun file acc ->
           if Filename.extension file = extension
-          then (Filename.concat full_folder file) :: acc
+          then (Filename.concat directory file) :: acc
           else acc
         ) files []
-    with Sys_error _ -> raise (Dir_not_found full_folder)
+    with Sys_error _ -> raise (Dir_not_found directory)
 
-  let get_full_files corpora_folder corpus_desc =
-    let folder = get_directory corpus_desc in
+  let get_full_files corpus_desc =
+    let directory = get_directory corpus_desc in
     match member "files" corpus_desc with
-    | `Null -> get_files corpora_folder folder ".conllu"
-    | `String s -> get_files corpora_folder folder s
-    | `List l -> List.map (fun f -> Filename.concat folder (to_string f)) l
+    | `Null -> get_full_local_files directory ".conllu"
+    | `String s -> get_full_local_files directory s
+    | `List l -> List.map (fun f -> Filename.concat directory (to_string f)) l
     | _ -> failwith "Type error"
 
   (* ---------------------------------------------------------------------------------------------------- *)
-  let build_corpus corpora_folder corpus_desc =
+  let build_corpus corpus_desc =
     let config = get_config corpus_desc in
-    let conll_corpus = Conll_corpus.load_list ~config (get_full_files corpora_folder corpus_desc) in
+    let conll_corpus = Conll_corpus.load_list ~config (get_full_files corpus_desc) in
     let columns = Conll_corpus.get_columns conll_corpus in
     let items =
       CCArray.filter_map (fun (sent_id,conll) ->
@@ -404,9 +403,11 @@ module Corpus_desc = struct
       { Corpus.items; kind=Conll (Some columns) }
 
   (* ---------------------------------------------------------------------------------------------------- *)
-  let load_corpus_opt corpora_folder corpus_desc =
-    let corpus_folder = Filename.concat corpora_folder (get_directory corpus_desc) in
-    let marshal_file = Filename.concat corpus_folder ((get_id corpus_desc) ^ ".marshal") in
+  let load_corpus_opt corpus_desc =
+    let marshal_file = 
+      Filename.concat 
+        (get_directory corpus_desc) 
+        ((get_id corpus_desc) ^ ".marshal") in
     try
       let in_ch = open_in_bin marshal_file in
       let data = (Marshal.from_channel in_ch : Corpus.t) in
@@ -415,15 +416,15 @@ module Corpus_desc = struct
     with Sys_error _ -> None
 
   (* ---------------------------------------------------------------------------------------------------- *)
-  let table_and_desc corpora_folder corpus_desc corpus =
+  let table_and_desc corpus_desc corpus =
     let corpus_id = get_id corpus_desc in
     let config = get_config corpus_desc in
-    let corpus_folder = Filename.concat corpora_folder (get_directory corpus_desc) in
+    let directory = get_directory corpus_desc in
 
     (* write table file *)
     let stat = Conll_stat.build ~config ("upos", None) ("ExtPos", Some "upos") corpus in
     let html = Conll_stat.to_html corpus_id ("upos", None) ("ExtPos", Some "upos") stat in
-    let out_file = Filename.concat corpus_folder (corpus_id ^ "_table.html") in
+    let out_file = Filename.concat directory (corpus_id ^ "_table.html") in
     let () = CCIO.with_out out_file (fun oc -> CCIO.write_line oc html) in
 
     let (nb_trees, nb_tokens) = Conll_corpus.sizes corpus in
@@ -436,24 +437,23 @@ module Corpus_desc = struct
             else None
           )
         ]) in
-      let () = Yojson.Basic.to_file (Filename.concat corpus_folder (corpus_id ^ "_desc.json")) desc in
+      let () = Yojson.Basic.to_file (Filename.concat directory (corpus_id ^ "_desc.json")) desc in
       ()
 
   (* ---------------------------------------------------------------------------------------------------- *)
-  (* [grew_match] is a folder where tables, logs and corpus desc are stored *)
-  let build_marshal_file corpora_folder corpus_desc =
+  let build_marshal_file corpus_desc =
     let config = get_config corpus_desc in
     let corpus_id = get_id corpus_desc in
-    let full_files = get_full_files corpora_folder corpus_desc in
-    List.iter (fun x -> printf "+++++++ %s\n%!" x) full_files;
-    let corpus_folder = Filename.concat corpora_folder (get_directory corpus_desc) in
-    let marshal_file = Filename.concat corpus_folder ((get_id corpus_desc) ^ ".marshal") in
+    let full_files = get_full_files corpus_desc in
+    (* List.iter (fun x -> printf "+++++++ %s\n%!" x) full_files; *)
+    let directory = get_directory corpus_desc in
+    let marshal_file = Filename.concat directory ((get_id corpus_desc) ^ ".marshal") in
 
     let log_file =
       match get_kind corpus_desc with
       | Conll _ ->
         begin
-          let log = Filename.concat corpus_folder (sprintf "%s.log" corpus_id) in
+          let log = Filename.concat directory (sprintf "%s.log" corpus_id) in
           try 
             close_out (open_out log); 
             Some log
@@ -466,7 +466,7 @@ module Corpus_desc = struct
         | Conll columns ->
           let conll_corpus = Conll_corpus.load_list ?log_file ~config ?columns full_files in
           let columns = Conll_corpus.get_columns conll_corpus in
-          table_and_desc corpora_folder corpus_desc conll_corpus;
+          table_and_desc corpus_desc conll_corpus;
           let items = CCArray.filter_map (fun (sent_id,conllx) ->
               try
                 let graph = G_graph.of_json (Conll.to_json conllx) in
@@ -524,34 +524,20 @@ module Corpus_desc = struct
     | Error.Run (msg,_) -> Error.warning "[Error] %s, fail to load corpus %s: skip it" msg (get_id corpus_desc)
     | exc -> Error.warning "[Error] fail to load corpus %s, skip it\nexception: %s" (get_id corpus_desc) (Printexc.to_string exc)
 
-  (* get the list of paths for all file with [extension] in the [folder] *)
-  let list_files base folder extension = 
-    let full_folder = Filename.concat base folder in 
-    try 
-      let files = Sys.readdir full_folder in
-      Array.fold_right
-        (fun file acc ->
-          if Filename.extension file = extension
-          then (Filename.concat folder file) :: acc
-          else acc
-        ) files []
-    with Sys_error _ -> Error.run "Directory not found: %s" full_folder
 
-  let get_files corpora_folder corpus_desc =
-    let folder = get_directory corpus_desc in
+  let get_files corpus_desc =
+    let directory = get_directory corpus_desc in
     match member "files" corpus_desc with
-    | `Null -> list_files corpora_folder folder ".conllu"
-    | `String s -> list_files corpora_folder folder s
-    | `List l -> List.map (fun f -> Filename.concat folder (to_string f)) l
+    | `Null -> get_full_local_files directory ".conllu"
+    | `String s -> get_full_local_files directory s
+    | `List l -> List.map (fun f -> Filename.concat directory (to_string f)) l
     | _ -> failwith "Type error"
 
-
   (* ---------------------------------------------------------------------------------------------------- *)
-  let compile ?(force=false) corpora_folder corpus_desc =
-    let full_files = get_full_files corpora_folder corpus_desc in
-    let corpus_folder = Filename.concat corpora_folder (get_directory corpus_desc) in
-    let marshal_file = Filename.concat corpus_folder ((get_id corpus_desc) ^ ".marshal") in
-    let really_marshal () = build_marshal_file corpora_folder corpus_desc in
+  let compile ?(force=false) corpus_desc =
+    let full_files = get_full_files corpus_desc in
+    let marshal_file = Filename.concat (get_directory corpus_desc) ((get_id corpus_desc) ^ ".marshal") in
+    let really_marshal () = build_marshal_file corpus_desc in
     if force
     then really_marshal ()
     else
@@ -566,9 +552,8 @@ module Corpus_desc = struct
         really_marshal ()
 
   (* ---------------------------------------------------------------------------------------------------- *)
-  let clean corpora_folder corpus_desc  =
-  let corpus_folder = Filename.concat corpora_folder (get_directory corpus_desc) in
-  let marshal_file = Filename.concat corpus_folder ((get_id corpus_desc) ^ ".marshal") in
-  if Sys.file_exists marshal_file then Unix.unlink marshal_file
+  let clean corpus_desc =
+    let marshal_file = Filename.concat (get_directory corpus_desc) ((get_id corpus_desc) ^ ".marshal") in
+    if Sys.file_exists marshal_file then Unix.unlink marshal_file
 
 end (* module Corpus_desc *)

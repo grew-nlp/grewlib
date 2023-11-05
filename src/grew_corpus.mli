@@ -72,9 +72,8 @@ end
 module Corpus_desc : sig
   type t = Yojson.Basic.t
 
-  (* val build: string -> string -> t *)
-  val build_corpus: string -> t -> Corpus.t
-  val load_corpus_opt: string -> t -> Corpus.t option
+  val build_corpus: t -> Corpus.t
+  val load_corpus_opt: t -> Corpus.t option
 
   val get_config: t -> Conll_config.t
 
@@ -86,9 +85,9 @@ module Corpus_desc : sig
   val get_directory: t -> string
   val load_json: string -> t list
 
-  val get_files: string -> t -> string list
+  val get_files: t -> string list
 
-  val compile: ?force:bool -> string -> t -> unit
+  val compile: ?force:bool -> t -> unit
 
-  val clean: string -> t -> unit
+  val clean: t -> unit
 end

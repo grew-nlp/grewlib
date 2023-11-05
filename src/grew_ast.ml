@@ -339,7 +339,7 @@ module Ast = struct
     lexicon_info: lexicon_info;
     rule_doc: string list;
     rule_loc: Loc.t;
-    rule_dir: string option; (* the real folder where the file is defined *)
+    rule_dir: string option; (* the real directory where the file is defined *)
     rule_path: string;
   }
 
