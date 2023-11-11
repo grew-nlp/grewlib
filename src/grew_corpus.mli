@@ -63,10 +63,6 @@ module Corpus : sig
       Request.cluster_item list ->         (* The list of element used for clustering *)
     t -> 
       ('a Clustered.t * string * float)  (* (output, statut, ratio) status is "ok", "timeout" or "over" *)
-
-  (** [compile dir marshal_file t]  *)
-  val compile: string -> string -> t -> unit
-
 end
 
 module Corpus_desc : sig
@@ -83,7 +79,9 @@ module Corpus_desc : sig
   val get_field_opt: string -> t -> string option
   val get_display: t -> int option
   val get_directory: t -> string
-  val load_json: string -> t list
+  val load_json: ?env: (string * string) list -> string -> t list
+
+  val to_json: t -> Yojson.Basic.t
 
   val get_files: t -> string list
 

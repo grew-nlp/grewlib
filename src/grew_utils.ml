@@ -129,16 +129,19 @@ module String_ = struct
     with
     | Found i -> Some (String.sub file_name i (len-i))
 
-  (* [extend_path path] replaces each substring "${XXX}" in [path] by the value of the env variable XXX.
+  (* [extend_path ~env path] replaces each substring "${XXX}" in [path] by the value of the env variable XXX.
      raise [Error.run] if some variable is undefined. *)
-  let extend_path path =
+  let extend_path ~env path =
     Str.global_substitute
       (Str.regexp {|\${\([^}]*\)}|})
       (fun _ ->
         let varname = Str.matched_group 1 path in
           match Sys.getenv_opt varname with
           | Some v -> v
-          | None -> Error.run "Environment variable `%s` is undefined" varname
+          | None ->
+            match List.assoc_opt varname env with
+            | Some v -> v
+            | None -> Error.run "Environment variable `%s` is undefined" varname
       )
       path
 end (* module String *)

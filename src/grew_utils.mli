@@ -87,7 +87,7 @@ module String_: sig
 
   (* [extend_path path] replaces each substring "${XXX}" in [path] by the value of the env variable XXX.
      raise [Error.run] if some variable is undefined. *)
-  val extend_path: string -> string
+  val extend_path: env:(string * string) list -> string -> string
 end
 
 (* ================================================================================ *)

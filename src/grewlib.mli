@@ -268,9 +268,6 @@ module Corpus: sig
       ('a Clustered.t * string * float)  (* (output, statut, ratio) status is "ok", "timeout" or "over" *)
   (** search for a request in a corpus , with timeout and a bounded number of solutions *)
 
-  (** [compile dir marshal_file t]  *)
-  val compile: string -> string -> t -> unit
-
 end
 
 (* ================================================================================ *)
@@ -279,8 +276,10 @@ module Corpus_desc : sig
   (** This module encodes the notion of corpus description which is mainly used in Grew-match *)
   type t
 
+  val to_json: t -> Yojson.Basic.t
+
   (** [load_json filename] returns the list of corpus_desc described in the json file [filename] *)
-  val load_json: string -> t list
+  val load_json: ?env:(string * string) list -> string -> t list
 
   (** [get_config t] returns config defined in the corpus description *)
   val get_config: t -> Conll_config.t

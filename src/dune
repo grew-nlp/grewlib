@@ -25,6 +25,7 @@
     unix
     ANSITerminal 
     containers 
+    fileutils
     yojson 
     amr 
     conll

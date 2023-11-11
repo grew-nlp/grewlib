@@ -380,8 +380,6 @@ module Corpus = struct
   let bounded_search ~config ?ordering bound timeout null update request cluster_item_list corpus =
     Grewlib.handle ~name:"Corpus.search" 
     (fun () -> Grew_corpus.Corpus.bounded_search ~config ?ordering bound timeout null update request cluster_item_list corpus) ()
-  let compile = Grew_corpus.Corpus.compile
-
 end (* module Corpus *)
 
 
@@ -392,17 +390,19 @@ module Corpus_desc = struct
 
   type t = Grew_corpus.Corpus_desc.t
 
-  let load_json filename =
+  let to_json = Grew_corpus.Corpus_desc.to_json
+
+  let load_json ?env filename =
     Grewlib.handle
-      ~name:"Corpus.load_json"
-      (fun () -> Grew_corpus.Corpus_desc.load_json filename)
+      ~name:"Corpus_desc.load_json"
+      (fun () -> Grew_corpus.Corpus_desc.load_json ?env filename)
       ()
   let get_config = Grew_corpus.Corpus_desc.get_config
     
   let get_id = Grew_corpus.Corpus_desc.get_id
 
   let get_directory = Grew_corpus.Corpus_desc.get_directory
-    
+
   let get_field_opt = Grew_corpus.Corpus_desc.get_field_opt
 
   let get_display = Grew_corpus.Corpus_desc.get_display

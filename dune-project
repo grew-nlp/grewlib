@@ -33,6 +33,7 @@
    dune 
    menhir
    yojson
+   fileutils
    ANSITerminal
    (containers ( >= "3.6" ))
    (amr ( >= "0.6.0" )) 

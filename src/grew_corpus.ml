@@ -289,12 +289,6 @@ module Corpus = struct
     | Timeout r -> (x, "timeout", r)
     | Over r -> (x, "max_results", r)
     )
-
-  let compile dir marshal_file t =
-    let out_ch = open_out_bin (Filename.concat dir marshal_file) in
-    Marshal.to_channel out_ch t [];
-    close_out out_ch
-
 end (* module Corpus *)
 
 (* ==================================================================================================== *)
@@ -303,6 +297,7 @@ module Corpus_desc = struct
 
   type t = Yojson.Basic.t
 
+  let to_json t = t
   let get_id corpus_desc = corpus_desc |> member "id" |> to_string
 
   let get_field_opt field corpus_desc = corpus_desc |> member field |> to_string_option
@@ -338,15 +333,15 @@ module Corpus_desc = struct
       | (Some x,_) -> Error.run "[Corpus.load_json] Unknown \"kind\":\"%s\" field in corpus: \"%s\"" x (get_id corpus_desc)
     with Type_error _ -> Error.run "[Corpus.load_json] \"kind\" must be a string in corpus: \"%s\"" (get_id corpus_desc)
 
-  let expand_and_check = function
+  let expand_and_check ~env = function
     | `Assoc l ->
       let (id_flag, dir_flag) = (ref false, ref false) in
       let new_l = `Assoc 
         (List.map
           (function
           | ("id", `String _) as i -> id_flag := true; i
-          | ("directory", `String d) -> dir_flag := true; ("directory", `String (String_.extend_path d))
-          | ("grs", `String d) -> ("grs", `String (String_.extend_path d))
+          | ("directory", `String d) -> dir_flag := true; ("directory", `String (String_.extend_path ~env d))
+          | ("grs", `String d) -> ("grs", `String (String_.extend_path ~env d))
           | x -> x
           ) l) in
           begin
@@ -357,11 +352,11 @@ module Corpus_desc = struct
           end
     | _ -> Error.run "[Corpus_desc] ill-formed JSON file (corpus desc is not a JSON object)"
 
-  let load_json json_file =
+  let load_json ?(env=[]) json_file =
     json_file
     |> Yojson.Basic.from_file 
     |> to_list
-    |> (List.map expand_and_check)
+    |> (List.map (expand_and_check ~env))
 
   (* get the list of paths for all file with [extension] in the [directory] *)
   (* raises Error.run if the directory does not exist *)
@@ -552,7 +547,7 @@ module Corpus_desc = struct
 
   (* ---------------------------------------------------------------------------------------------------- *)
   let clean corpus_desc =
-    let marshal_file = Filename.concat (get_directory corpus_desc) ((get_id corpus_desc) ^ ".marshal") in
-    if Sys.file_exists marshal_file then Unix.unlink marshal_file
-
+    let build_dir = Filename.concat (get_directory corpus_desc) "_build_grew" in
+    let _ = FileUtil.rm ~recurse:true [build_dir] in
+    ()
 end (* module Corpus_desc *)
