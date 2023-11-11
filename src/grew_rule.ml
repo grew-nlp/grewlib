@@ -91,7 +91,7 @@ module Constraint = struct
     (*   e1.level < 3   *)
     | Feature_ineq_cst of Ast.ineq * base * string * float
     (*   N [upos=VERB]   *)
-    (* ⚠ used only when a extension imposes a fs on a node also defined by the kernel request part *)
+    (* ⚠ used only when an extension imposes a fs on a node also defined by the kernel request part *)
     | Filter of Pid.t * P_fs.t list
     (*   N << M   *)
     | Node_large_prec of Pid.t * Pid.t
@@ -203,15 +203,24 @@ module Request = struct
     )
 
   let build_ker_basic ~config lexicons basic_ast =
-    let (graph, ker_table, edge_ids) = P_graph.of_ast ~config lexicons basic_ast in
-    (
-      {
-        graph = graph;
-        constraints = List.map (Constraint.build ~config lexicons ker_table [||] edge_ids) basic_ast.Ast.req_const
-      },
-      ker_table,
-      edge_ids
-    )
+    let (pre_graph, ker_table, edge_ids) = P_graph.of_ast ~config lexicons basic_ast in
+    let pre_constraints = List.map (Constraint.build ~config lexicons ker_table [||] edge_ids) basic_ast.Ast.req_const in
+    
+    (* optimisation: move constraints like "N.upos=VERB" into the graph *)
+    let (graph, constraints) = 
+      List.fold_left
+        (fun (acc_graph, acc_constraints) constraint_ ->
+          match constraint_ with
+          | Constraint.Feature_cmp_value (_cmp, Node_id node_id, _feat_name, _feat_value) ->
+            let p_node = P_graph.find node_id acc_graph in
+            let p_fs = P_fs.build_atom _cmp _feat_name _feat_value in
+            let new_p_node = P_node.unif_fs_disj [p_fs] p_node in
+            let new_graph = P_graph.set_node node_id new_p_node acc_graph in
+            (new_graph, acc_constraints)
+          | _ -> (acc_graph, constraint_ :: acc_constraints)
+        ) (pre_graph, []) pre_constraints in
+
+    ({graph; constraints}, ker_table, edge_ids)
 
   (* It may raise [P_fs.Fail_unif] in case of contradiction on constraints *)
   let build_ext_basic ~config lexicons ker_table edge_ids basic_ast =

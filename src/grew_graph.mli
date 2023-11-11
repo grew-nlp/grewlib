@@ -27,6 +27,8 @@ module P_graph: sig
 
   val find: Pid.t -> t -> P_node.t
 
+  val set_node: Pid.t -> P_node.t -> t -> t
+
   (** [is_injective pid t] returns true iff the identifier [pid] ends with `$` *)
   val is_injective: Pid.t -> t list -> bool
 

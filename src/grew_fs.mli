@@ -72,6 +72,8 @@ module P_fs: sig
 
   val of_ast: Lexicons.t -> Ast.feature list -> t
 
+  val build_atom: Cmp.t -> string -> Feature_value.t -> t
+
   val to_string: t -> string
 
   val to_dep: ?filter: (string -> bool) -> t -> string

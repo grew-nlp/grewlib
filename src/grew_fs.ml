@@ -360,6 +360,9 @@ module P_fs = struct
     let unsorted = List.map (P_feature.build lexicons) ast_fs in
     List.sort P_feature.compare unsorted
 
+  let build_atom cmp feat_name feat_value =
+    [(feat_name, P_feature.Pfv_list (cmp, [feat_value]))]
+    
   let feat_list t =
     List.map (function
         | (fn, P_feature.Else (_,fn2,_)) -> (fn, Some fn2)

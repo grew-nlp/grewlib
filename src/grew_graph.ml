@@ -26,6 +26,8 @@ module P_graph = struct
 
   let find = Pid_map.find
 
+  let set_node = Pid_map.add 
+
   let pid_name_list t = Pid_map.fold (fun _ node acc -> (P_node.get_name node)::acc) t []
 
   (** [get_name pid p_graph_list] returns the name of node with [pid] in the first [p_graph] in the list for which [pid] is defined *)
