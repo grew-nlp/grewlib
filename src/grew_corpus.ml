@@ -400,10 +400,7 @@ module Corpus_desc = struct
 
   (* ---------------------------------------------------------------------------------------------------- *)
   let load_corpus_opt corpus_desc =
-    let marshal_file = 
-      Filename.concat 
-        (get_directory corpus_desc) 
-        ((get_id corpus_desc) ^ ".marshal") in
+    let marshal_file = Filename.concat (get_directory corpus_desc) "_build_grew/marshal" in
     try
       let in_ch = open_in_bin marshal_file in
       let data = (Marshal.from_channel in_ch : Corpus.t) in
@@ -437,6 +434,8 @@ module Corpus_desc = struct
     let directory = get_directory corpus_desc in
 
     let build_dir = Filename.concat directory "_build_grew" in
+    (* remove the previous log file (if any) *)
+    let _ = try Unix.unlink (Filename.concat build_dir "log") with Unix.Unix_error _ -> () in
     let () = 
     match Sys.file_exists build_dir with
     | false -> Unix.mkdir build_dir 0o755
@@ -445,14 +444,11 @@ module Corpus_desc = struct
       | true -> ()
       | false -> Error.run "A file name `_build_grew` already exists in directory `%s`" directory in
 
-    let marshal_file = Filename.concat build_dir ("marshal") in
+    let marshal_file = Filename.concat build_dir "marshal" in
 
     let log_file =
       match get_kind corpus_desc with
-      | Conll _ ->
-        let log = Filename.concat build_dir "log" in
-        let _ = close_out (open_out log) in
-        Some log
+      | Conll _ -> Some (Filename.concat build_dir "log")
       | _ -> None in
 
     try
@@ -530,12 +526,12 @@ module Corpus_desc = struct
   (* ---------------------------------------------------------------------------------------------------- *)
   let compile ?(force=false) corpus_desc =
     let full_files = get_full_files corpus_desc in
-    let marshal_file = Filename.concat (get_directory corpus_desc) ((get_id corpus_desc) ^ ".marshal") in
     let really_marshal () = build_marshal_file corpus_desc in
     if force
     then really_marshal ()
     else
       try
+        let marshal_file = Filename.concat (get_directory corpus_desc) "_build_grew/marshal" in
         let marshal_time = (Unix.stat marshal_file).Unix.st_mtime in
         if List.exists (fun f -> (Unix.stat f).Unix.st_mtime > marshal_time) full_files
         then really_marshal () (* one of the data files is more recent than the marshal file *)
