@@ -333,22 +333,41 @@ module Corpus_desc = struct
       | (Some x,_) -> Error.run "[Corpus.load_json] Unknown \"kind\":\"%s\" field in corpus: \"%s\"" x (get_id corpus_desc)
     with Type_error _ -> Error.run "[Corpus.load_json] \"kind\" must be a string in corpus: \"%s\"" (get_id corpus_desc)
 
+
+  let read_dir directory =
+    try
+      let file_seq = CCIO.File.read_dir directory in
+      let rec loop () =
+        match file_seq () with
+        | Some file -> file :: loop ()
+        | None -> [] in
+      loop ()
+    with Sys_error _ -> []
+  
+    (* replace ${…} with env var and add the list of files in "_build_grew_ folder" *)
   let expand_and_check ~env = function
     | `Assoc l ->
-      let (id_flag, dir_flag) = (ref false, ref false) in
-      let new_l = `Assoc 
-        (List.map
-          (function
+      let (id_flag, dir) = (ref false, ref "") in
+      let new_l = 
+        List.map (function
           | ("id", `String _) as i -> id_flag := true; i
-          | ("directory", `String d) -> dir_flag := true; ("directory", `String (String_.extend_path ~env d))
+          | ("directory", `String d) -> 
+            let ext_d = String_.extend_path ~env d in
+            dir := ext_d;
+            ("directory", `String ext_d)
           | ("grs", `String d) -> ("grs", `String (String_.extend_path ~env d))
           | x -> x
-          ) l) in
+        ) l in
           begin
-            match (!id_flag, !dir_flag) with
-            | (true, true) -> new_l
+            match (!id_flag, !dir) with
             | (false, _) -> Error.run "[Corpus_desc] ill-formed JSON file (missing `id` field)"
-            | (_, false) -> Error.run "[Corpus_desc] ill-formed JSON file (missing `directory` field)"
+            | (_, "") -> Error.run "[Corpus_desc] ill-formed JSON file (missing `directory` field)"
+            | (true, d) -> 
+              let build_files = 
+                (Filename.concat d "_build_grew")
+                |> read_dir
+                |> List.map (fun x -> `String x) in
+              `Assoc (("_build_grew", `List build_files) :: new_l)
           end
     | _ -> Error.run "[Corpus_desc] ill-formed JSON file (corpus desc is not a JSON object)"
 
