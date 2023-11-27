@@ -386,10 +386,13 @@ module Corpus_desc = struct
     | _ -> Error.run "[Corpus_desc] ill-formed JSON file (corpus desc is not a JSON object)"
 
   let load_json ?(env=[]) json_file =
-    json_file
-    |> Yojson.Basic.from_file 
-    |> to_list
-    |> (List.map (expand_and_check ~env))
+    try
+      json_file
+      |> Yojson.Basic.from_file 
+      |> to_list
+      |> (List.map (expand_and_check ~env))
+    with Yojson.Json_error _ -> Error.run "[Corpus_desc.load_json] ill-formed JSON file"
+
 
   (* get the list of paths for all file with [extension] in the [directory] *)
   (* raises Error.run if the directory does not exist *)
@@ -526,7 +529,7 @@ module Corpus_desc = struct
                   with Yojson.Json_error msg -> Error.run ~loc:(Loc.file file) "Error in the JSON file format: %s" msg
               ) full_files
             ) in
-          {Corpus.items; kind }
+            {Corpus.items; kind }
 
         | Gr -> Error.run "Gr corpora are not supported in file compilation" in
       let _ = Error.info "[%s] %d graphs loaded" (get_id corpus_desc) (Array.length data.items) in
