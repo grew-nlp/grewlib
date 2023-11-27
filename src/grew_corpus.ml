@@ -310,6 +310,20 @@ module Corpus_desc = struct
     try corpus_desc |> member "directory" |> to_string
     with Type_error _ -> Error.run "[Corpus_desc.get_directory] \"directory\" field is mandatory and must be a string in %s" (get_id corpus_desc)
 
+  let ensure_directory dir =
+    match Sys.file_exists dir with
+    | false -> Unix.mkdir dir 0o755
+    | true ->
+      match Sys.is_directory dir with
+      | true -> ()
+      | false -> Error.run "Cannot build directory `%s`, a file with the same name already exists" dir
+
+  let get_build_directory ?(ensure_build=false) corpus_desc =
+    let intermediate_dir = Filename.concat (get_directory corpus_desc) "_build_grew" in
+    let build_dir = Filename.concat intermediate_dir (get_id corpus_desc) in
+    if ensure_build then (ensure_directory intermediate_dir; ensure_directory build_dir);
+    build_dir
+
   let is_rtl corpus_desc =
     try corpus_desc |> member "rtl" |> to_bool
     with Type_error _ -> false
@@ -344,30 +358,30 @@ module Corpus_desc = struct
       loop ()
     with Sys_error _ -> []
   
-    (* replace ${…} with env var and add the list of files in "_build_grew_ folder" *)
+  (* replace ${…} with value of the environment variable and add the list of built files in the field "built_files" *)
   let expand_and_check ~env = function
     | `Assoc l ->
-      let (id_flag, dir) = (ref false, ref "") in
+      let (id_flag, dir) = (ref None, ref None) in
       let new_l = 
         List.map (function
-          | ("id", `String _) as i -> id_flag := true; i
+          | ("id", `String id) as i -> id_flag := Some id; i
           | ("directory", `String d) -> 
             let ext_d = String_.extend_path ~env d in
-            dir := ext_d;
+            dir := Some ext_d;
             ("directory", `String ext_d)
           | ("grs", `String d) -> ("grs", `String (String_.extend_path ~env d))
           | x -> x
         ) l in
           begin
             match (!id_flag, !dir) with
-            | (false, _) -> Error.run "[Corpus_desc] ill-formed JSON file (missing `id` field)"
-            | (_, "") -> Error.run "[Corpus_desc] ill-formed JSON file (missing `directory` field)"
-            | (true, d) -> 
-              let build_files = 
-                (Filename.concat d "_build_grew")
+            | (None, _) -> Error.run "[Corpus_desc] ill-formed JSON file (missing `id` field)"
+            | (_, None) -> Error.run "[Corpus_desc] ill-formed JSON file (missing `directory` field)"
+            | (Some id, Some dir) -> 
+              let built_files = 
+                (Filename.concat dir (Filename.concat "_build_grew" id))
                 |> read_dir
                 |> List.map (fun x -> `String x) in
-              `Assoc (("_build_grew", `List build_files) :: new_l)
+              `Assoc (("built_files", `List built_files) :: new_l)
           end
     | _ -> Error.run "[Corpus_desc] ill-formed JSON file (corpus desc is not a JSON object)"
 
@@ -419,7 +433,7 @@ module Corpus_desc = struct
 
   (* ---------------------------------------------------------------------------------------------------- *)
   let load_corpus_opt corpus_desc =
-    let marshal_file = Filename.concat (get_directory corpus_desc) "_build_grew/marshal" in
+    let marshal_file = Filename.concat (get_build_directory corpus_desc) "marshal" in
     try
       let in_ch = open_in_bin marshal_file in
       let data = (Marshal.from_channel in_ch : Corpus.t) in
@@ -450,21 +464,12 @@ module Corpus_desc = struct
     let config = get_config corpus_desc in
     let corpus_id = get_id corpus_desc in
     let full_files = get_full_files corpus_desc in
-    let directory = get_directory corpus_desc in
 
-    let build_dir = Filename.concat directory "_build_grew" in
+    let build_dir = get_build_directory ~ensure_build:true corpus_desc in
     (* remove the previous log file (if any) *)
-    let _ = try Unix.unlink (Filename.concat build_dir "log") with Unix.Unix_error _ -> () in
-    let () = 
-    match Sys.file_exists build_dir with
-    | false -> Unix.mkdir build_dir 0o755
-    | true ->
-      match Sys.is_directory build_dir with
-      | true -> ()
-      | false -> Error.run "A file name `_build_grew` already exists in directory `%s`" directory in
-
     let marshal_file = Filename.concat build_dir "marshal" in
 
+    let _ = try Unix.unlink (Filename.concat build_dir "log") with Unix.Unix_error _ -> () in
     let log_file =
       match get_kind corpus_desc with
       | Conll _ -> Some (Filename.concat build_dir "log")
@@ -550,7 +555,7 @@ module Corpus_desc = struct
     then really_marshal ()
     else
       try
-        let marshal_file = Filename.concat (get_directory corpus_desc) "_build_grew/marshal" in
+        let marshal_file = Filename.concat (get_build_directory corpus_desc) "marshal" in
         let marshal_time = (Unix.stat marshal_file).Unix.st_mtime in
         if List.exists (fun f -> (Unix.stat f).Unix.st_mtime > marshal_time) full_files
         then really_marshal () (* one of the data files is more recent than the marshal file *)
@@ -562,7 +567,7 @@ module Corpus_desc = struct
 
   (* ---------------------------------------------------------------------------------------------------- *)
   let clean corpus_desc =
-    let build_dir = Filename.concat (get_directory corpus_desc) "_build_grew" in
+    let build_dir = get_build_directory corpus_desc in
     let _ = FileUtil.rm ~recurse:true [build_dir] in
     ()
 end (* module Corpus_desc *)
