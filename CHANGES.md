@@ -1,3 +1,6 @@
+## 1.14.1 (2023/12/03)
+  - Change lexer for mSUD labels (like "mod/m")
+
 # 1.14.0 (2023/11/11)
   - add disjunction in Node definition (feature request: https://github.com/grew-nlp/grew/issues/47)
   - Optimise request representation
