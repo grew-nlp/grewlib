@@ -219,7 +219,13 @@ module G_graph: sig
   val to_dot: ?main_feat:string -> ?deco:G_deco.t -> config:Conll_config.t -> t -> string
   val to_sentence: ?pivot: string -> ?deco:G_deco.t -> t -> string
 
-  val to_sentence_audio: ?deco:G_deco.t -> t -> (string * (float * float) option)
+  (** [to_sentence_audio ~deco graph] computes the needed information for Grew-match with audio.
+      The output contains:
+      - the HTML string with sound offset
+      - the first/last offsets of the sentence
+      - the sound_url metadata
+  *)
+  val to_sentence_audio: ?deco:G_deco.t -> t -> (string * (float * float) option * string option)
 
   val to_dep: ?filter: (string -> bool) -> ?no_root:bool -> ?main_feat:string -> ?deco:G_deco.t -> config:Conll_config.t -> t -> string
 

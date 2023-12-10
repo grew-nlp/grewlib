@@ -1105,19 +1105,18 @@ module G_graph = struct
         | None -> to_buff (new_current_form, new_flag_highlight, new_flag_sa) in
       loop None false true init_gid;
       Buffer.contents buff
-
-  let start_time gnode = 
+  let bound_time gnode = 
     let fs = G_node.get_fs gnode in
-    match (G_fs.get_value_opt "_start" fs, G_fs.get_value_opt "AlignBegin" fs) with
+    let start_opt = match (G_fs.get_value_opt "_start" fs, G_fs.get_value_opt "AlignBegin" fs) with
     | (Some (Float start),_) -> Some start
     | (_,Some (Float align_begin)) -> Some (align_begin /. 1000.)
     | _ -> None
-
-  let end_time gnode = 
-    let fs = G_node.get_fs gnode in
-    match (G_fs.get_value_opt "_stop" fs, G_fs.get_value_opt "AlignEnd" fs) with
+    and ending_opt = match (G_fs.get_value_opt "_stop" fs, G_fs.get_value_opt "AlignEnd" fs) with
     | (Some (Float stop),_) -> Some stop
     | (_,Some (Float align_end)) -> Some (align_end /. 1000.)
+    | _ -> None in
+    match (start_opt, ending_opt) with
+    | (Some s, Some e) -> Some (s,e)
     | _ -> None
 
   let to_sentence_audio ?(deco=G_deco.empty) graph =
@@ -1127,37 +1126,35 @@ module G_graph = struct
     let snodes = List.sort (fun (_,n1) (_,n2) -> G_node.compare n1 n2) nodes in
 
     let buff = Buffer.create 32 in
-    CCList.iteri (fun i (gid, gnode) ->
-        match G_fs.to_word_opt (G_node.get_fs gnode) with
+    let sentence_bounds = ref None in
+    List.iter
+      (fun (gid, gnode) ->
+        let g_fs = G_node.get_fs gnode in
+        match G_fs.to_word_opt g_fs with
         | None -> ()
+        | Some "__0__" -> ()
         | Some word ->
-          match (start_time gnode, end_time gnode) with 
-          | (Some s, Some e) -> 
-            (* let (start, dur) = start_dur gnode in *)
+          let word_no_escape = Str.global_replace (Str.regexp_string "\\\"") "\"" word in
+          match bound_time gnode with
+          | Some (start, ending) ->
+            begin
+              match !sentence_bounds with
+              | None -> sentence_bounds := Some (start, ending)
+              | Some (s, _) -> sentence_bounds := Some (s, ending)
+            end;
             Printf.bprintf buff
-              "<span id=\"tok%d\" data-dur=\"%g\" data-begin=\"%g\" tabindex=\"0\" data-index=\"%d\" %s>%s </span>"
-              i (e -. s) s i
-              (match i, is_highlighted_gid gid with
-               | (1, true) -> "class=\"speaking highlight\""
-               | (1, false) -> "class=\"speaking\""
-               | (_, true) -> "class=\"highlight\""
-               | (_, false) -> ""
-              )
-              word
-          | _ -> Printf.bprintf buff "%s " word
-      ) snodes;
-
-    let bounds =
-      match (CCList.nth_opt snodes 1, CCList.last_opt snodes) with (* 0 is the "conll root node" *)
-      | (Some (_,first_node), Some (_,last_node)) ->
-        begin
-          match (start_time first_node, end_time last_node) with
-          | (Some i, Some f) -> Some (i,f)
-          | _ -> None
-        end
-      | _ -> None in
-
-    (Buffer.contents buff, bounds)
+              "<span data-begin=\"%g\" data-dur=\"%g\" tabindex=\"0\" %s>%s </span>"
+              start
+              (ending -. start)
+              (if is_highlighted_gid gid then "class=\"highlight\"" else "")
+              word_no_escape
+          | None -> 
+            Printf.bprintf buff 
+              "<span %s>%s </span>"
+              (if is_highlighted_gid gid then "class=\"highlight\"" else "")
+              word_no_escape
+      ) snodes; 
+    (Buffer.contents buff, !sentence_bounds, get_meta_opt "sound_url" graph)
 
 
   let remove_conll_root_node graph =
@@ -1167,7 +1164,7 @@ module G_graph = struct
         (fun gid node -> 
            if G_node.is_conll_zero node
            then raise (Find gid) 
-        )  graph.map; graph
+        ) graph.map; graph
     with Find gid_root -> match del_node_opt gid_root graph with
       | Some g -> g
       | None -> graph

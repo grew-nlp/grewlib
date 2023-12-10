@@ -284,7 +284,6 @@ module G_fs = struct
         | None -> None
 
   (* ---------------------------------------------------------------------- *)
-
   let escape s = s 
     |> Str.global_replace (Str.regexp "#") "__SHARP__"
     (* escape backslash *)
@@ -298,10 +297,11 @@ module G_fs = struct
 
     let is_highlithed feat_name =
       (List.mem_assoc feat_name highlighted_feat_list) ||
-      (List.exists (function
-           | (f, Some g) when g = feat_name && (not (List.mem_assoc f t)) && (List.mem_assoc g t) -> true
-           | _ -> false
-         ) highlighted_feat_list
+      (List.exists
+        (function
+          | (f, Some g) when g = feat_name && (not (List.mem_assoc f t)) && (List.mem_assoc g t) -> true
+          | _ -> false
+        ) highlighted_feat_list
       ) in
 
     let (main_opt, sub) = get_main ?main_feat t in
