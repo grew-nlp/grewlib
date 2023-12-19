@@ -1188,10 +1188,11 @@ module G_graph = struct
     let sorted_ordered_nodes = List.sort (fun (_,n1) (_,n2) -> G_node.compare n1 n2) ordered_nodes in
 
     let insert (gid,node) nodes =
-      match (G_fs.get_value_opt "parseme" (G_node.get_fs node), G_fs.get_value_opt "frsemcor" (G_node.get_fs node)) with
-      | (None, None) -> (* dmrs node *)
+      let fs = G_node.get_fs node in
+      match (G_fs.get_value_opt "parseme" fs, G_fs.get_value_opt "frsemcor" fs, G_fs.get_value_opt "Cxn" fs) with
+      | (None, None, None) -> (* dmrs node *)
         (gid,node) :: nodes
-      | _ -> (* parseme / frsemcor node --> place it before its first lexical item *)
+      | _ -> (* parseme / frsemcor / Cxn node --> place it before its first lexical item *)
         let next_ids = Gid_massoc.fold (fun acc gid _ -> gid::acc) [] (G_node.get_next node) in
         let rec loop = function
           | [] -> [(gid,node)]

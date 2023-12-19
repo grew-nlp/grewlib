@@ -115,6 +115,9 @@ module G_edge = struct
         | Some (String "MWE") -> ["color=#ffa000"; "forecolor=#ffa000"; "bottom"]
         | Some (String "NE") -> ["color=#9900FF"; "forecolor=#9900FF"; "bottom"]
         | _ ->
+        match List_.sort_assoc_opt "Cxn" fs with
+        | Some (String _) -> ["color=#12cd56"; "forecolor=#12cd56"; "bottom"]
+        | _ ->
         match List_.sort_assoc_opt "frsemcor" fs with
         | Some (String _) -> ["color=#12cd56"; "forecolor=#12cd56"; "bottom"]
         | _ ->
