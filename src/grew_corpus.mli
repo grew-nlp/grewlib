@@ -73,8 +73,7 @@ module Corpus_desc : sig
 
   val get_config: t -> Conll_config.t
 
-  val is_rtl: t -> bool
-  val is_audio: t -> bool
+  val get_flag: string -> t -> bool
   val get_id: t -> string
   val get_field_opt: string -> t -> string option
   val get_display: t -> int option

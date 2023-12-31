@@ -298,9 +298,7 @@ module Corpus_desc : sig
 
   val get_display: t -> int option
 
-  val is_rtl: t -> bool
-
-  val is_audio: t -> bool
+  val get_flag: string -> t -> bool
 
   (** [build_corpus t] returns the corpus described *)
   val build_corpus: t -> Corpus.t

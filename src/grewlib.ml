@@ -407,9 +407,7 @@ module Corpus_desc = struct
 
   let get_display = Grew_corpus.Corpus_desc.get_display
 
-  let is_rtl = Grew_corpus.Corpus_desc.is_rtl
-
-  let is_audio = Grew_corpus.Corpus_desc.is_audio
+  let get_flag = Grew_corpus.Corpus_desc.get_flag
 
   let build_corpus t =
     Grewlib.handle 
