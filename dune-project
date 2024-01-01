@@ -25,10 +25,7 @@
  (description "Grew implements a Graph Rewriting system to be used in NLP")
  (depends 
    (ocaml 
-     (and
       ( >= "4.13.0" )
-      ( < "5.0.0" )  ; eliom based grew codes require this
-     )
     )
    dune 
    menhir
