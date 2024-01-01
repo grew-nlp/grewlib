@@ -221,7 +221,7 @@ module G_fs = struct
 
   (* ---------------------------------------------------------------------- *)
   let get_main ?main_feat t =
-    let default_list = ["form"; "lemma"; "gpred"; "label"; "SylForm"] in
+    let default_list = ["form"; "lemma"; "gpred"; "label"; "SylForm"; "Cxn"] in
     let main_list = match main_feat with
       | None -> default_list
       | Some string -> (Str.split (Str.regexp "\\( *; *\\)\\|#") string) @ default_list in
@@ -307,10 +307,16 @@ module G_fs = struct
     let (main_opt, sub) = get_main ?main_feat t in
     let sub = List.sort G_feature.print_cmp sub in
 
-    let color = match (get_value_opt "parseme" t, get_value_opt "frsemcor" t) with
-      | (Some (Feature_value.String "NE"), None) -> ":C:#9900FF"
-      | (Some (Feature_value.String "MWE"), None) -> ":C:#ffa000"
-      | (None, Some _) -> ":C:#12CD56"
+    let color = 
+      match get_value_opt "parseme" t with
+      | Some (Feature_value.String "NE") -> ":C:#9900FF"
+      | Some (Feature_value.String "MWE") -> ":C:#ffa000"
+      | _ ->
+      match get_value_opt "frsemcor" t with
+      | Some _ -> ":C:#12CD56"
+      | _ ->
+      match get_value_opt "Cxn" t with
+      | Some _ -> ":C:#12CD56"
       | _ -> "" in
 
     let main = match main_opt with

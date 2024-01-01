@@ -672,15 +672,19 @@ module G_graph = struct
     let nodes =
       Gid_map.fold
         (fun gid node acc ->
-           let item = (Gid.to_string gid, G_fs.to_json (G_node.get_fs node)) in
+           let item = (G_node.get_name gid node, G_fs.to_json (G_node.get_fs node)) in
            item :: acc
         ) graph.map []
       |> List.rev in
 
+    let name_of_gid gid =
+      let node = find gid graph in
+      G_node.get_name gid node in
+
     let edges =
       Gid_map.fold
         (fun src_gid node acc ->
-           let src = `String (Gid.to_string src_gid) in
+           let src = `String (G_node.get_name src_gid node) in
            Gid_massoc.fold
             (fun acc2 tar_gid edge ->
               match G_edge.to_json_opt edge with
@@ -689,24 +693,24 @@ module G_graph = struct
                 (`Assoc [
                     ("src", src);
                     ("label", js);
-                    ("tar", `String (Gid.to_string tar_gid));
+                    ("tar", `String (name_of_gid tar_gid));
                   ]
                 ) :: acc2
             ) acc (G_node.get_next node)
         ) graph.map [] in
 
-    let order = List.map (fun s -> `String (Gid.to_string s)) (get_ordered_gids graph) in
+    let order = List.map (fun s -> `String (name_of_gid s)) (get_ordered_gids graph) in
 
     let modified_nodes =
       List.map
         (fun (gid,(_,hf_list)) ->
-           `Assoc [("id", `String (Gid.to_string gid)); ("features", `List (List.map (fun (fn, _) -> `String fn) hf_list))]
+           `Assoc [("id", `String (name_of_gid gid)); ("features", `List (List.map (fun (fn, _) -> `String fn) hf_list))]
         ) graph.impact.nodes in
 
     let modified_edges =
       List.map
         (fun (gid1,edge,gid2) ->
-           `Assoc [("src", `String (Gid.to_string gid1)); ("edge", G_edge.to_json edge); ("tar", `String (Gid.to_string gid2))]
+           `Assoc [("src", `String (name_of_gid gid1)); ("edge", G_edge.to_json edge); ("tar", `String (name_of_gid gid2))]
         ) graph.impact.edges in
 
     let full_assoc_list = [
@@ -1185,10 +1189,11 @@ module G_graph = struct
     let sorted_ordered_nodes = List.sort (fun (_,n1) (_,n2) -> G_node.compare n1 n2) ordered_nodes in
 
     let insert (gid,node) nodes =
-      match (G_fs.get_value_opt "parseme" (G_node.get_fs node), G_fs.get_value_opt "frsemcor" (G_node.get_fs node)) with
-      | (None, None) -> (* dmrs node *)
+      let fs = G_node.get_fs node in
+      match (G_fs.get_value_opt "parseme" fs, G_fs.get_value_opt "frsemcor" fs, G_fs.get_value_opt "Cxn" fs) with
+      | (None, None, None) -> (* dmrs node *)
         (gid,node) :: nodes
-      | _ -> (* parseme / frsemcor node --> place it before its first lexical item *)
+      | _ -> (* parseme / frsemcor / Cxn node --> place it before its first lexical item *)
         let next_ids = Gid_massoc.fold (fun acc gid _ -> gid::acc) [] (G_node.get_next node) in
         let rec loop = function
           | [] -> [(gid,node)]
