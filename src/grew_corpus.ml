@@ -387,7 +387,7 @@ module Corpus_desc = struct
       |> Yojson.Basic.from_file 
       |> to_list
       |> (List.map (expand_and_check ~env))
-    with Yojson.Json_error _ -> Error.run "[Corpus_desc.load_json] ill-formed JSON file"
+    with Yojson.Json_error _ | Type_error _ -> Error.run "[Corpus_desc.load_json] ill-formed JSON file"
 
 
   (* get the list of paths for all file with [extension] in the [directory] *)
