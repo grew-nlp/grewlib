@@ -1,0 +1,5 @@
+# Tex/graphviz generated files
+*.aux
+*.pdf
+*.log
+
