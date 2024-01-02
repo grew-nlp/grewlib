@@ -1,3 +1,8 @@
+# 1.15.0 (2024/01/02)
+  - remove ocaml version constraint "< 5"
+  - Use Conll id in Graph.to_json
+  - Handle Cxn coloring
+
 ## 1.14.1 (2023/12/03)
   - Change lexer for mSUD labels (like "mod/m")
 
