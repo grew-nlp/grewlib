@@ -1,8 +1,7 @@
+# ignore files related to dune
 _build
-.DS_Store
-DATADIR
-dev/*.aux
-dev/*.pdf
-dev/*.log
+
+# Text editor and system
 .vscode
-switch_*.sh
+.DS_Store
+
