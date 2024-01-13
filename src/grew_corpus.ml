@@ -244,7 +244,7 @@ module Corpus = struct
     | Timeout of float
     | Over of float
   
-  let bounded_search ~config ?(ordering = None) bound timeout null update request cluster_item_list corpus =
+  let bounded_search ?(json_label=false) ~config ?(ordering = None) bound timeout null update request cluster_item_list corpus =
     let len = size corpus in
     let permut_fct = match ordering with
     | Some "length" -> let perm = permut_length corpus in fun x -> perm.(x)
@@ -278,7 +278,7 @@ module Corpus = struct
                     let cluster_value_list = 
                       List.map 
                         (fun cluster_item ->
-                          Matching.get_clust_value_opt ~config cluster_item request graph matching 
+                          Matching.get_clust_value_opt ~json_label ~config cluster_item request graph matching 
                         ) cluster_item_list in
                       Clustered.update (update graph_index sent_id pos_in_graph nb_in_graph matching) cluster_value_list null acc2
                 ) acc matchings in
