@@ -243,8 +243,8 @@ module Corpus = struct
     | Ok
     | Timeout of float
     | Over of float
-  
-  let bounded_search ~config ?(ordering = None) bound timeout null update request cluster_item_list corpus =
+
+  let bounded_search ?(json_label=false) ~config ?(ordering = None) bound timeout null update request cluster_item_list corpus =
     let len = size corpus in
     let permut_fct = match ordering with
     | Some "length" -> let perm = permut_length corpus in fun x -> perm.(x)
@@ -253,7 +253,7 @@ module Corpus = struct
     let matching_counter = ref 0 in
     let init_time = Unix.gettimeofday() in
     let status = ref Ok in
-    let check graph_counter = 
+    let check graph_counter =
       (match bound with Some b when !matching_counter > b -> status := Over ((float graph_counter) /. (float (Array.length corpus.items))) | _ -> ());
       (match timeout with Some b when Unix.gettimeofday() -. init_time >= b -> status := Timeout ((float graph_counter) /. (float (Array.length corpus.items))) | _ -> ()) in
 
@@ -268,9 +268,9 @@ module Corpus = struct
             let matchings = Matching.search_request_in_graph ~config request graph in
             let nb_in_graph = List.length matchings in
             let new_acc = 
-              CCList.foldi
+              CCList.foldi (* TODO: replace by loop or exception to avoid useless steps *)
                 (fun acc2 pos_in_graph matching ->
-                  incr matching_counter; 
+                  incr matching_counter;
                   check graph_counter;
                   if !status <> Ok
                   then acc2
@@ -278,9 +278,9 @@ module Corpus = struct
                     let cluster_value_list = 
                       List.map 
                         (fun cluster_item ->
-                          Matching.get_clust_value_opt ~config cluster_item request graph matching 
+                          Matching.get_clust_value_opt ~json_label ~config cluster_item request graph matching 
                         ) cluster_item_list in
-                      Clustered.update (update graph_index sent_id pos_in_graph nb_in_graph matching) cluster_value_list null acc2
+                      Clustered.update (update graph_index sent_id graph pos_in_graph nb_in_graph matching) cluster_value_list null acc2
                 ) acc matchings in
             loop new_acc (graph_counter + 1)
           end in

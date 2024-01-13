@@ -48,17 +48,19 @@ module Corpus : sig
   val search: ?json_label:bool -> config:Conll_config.t -> 'a -> (string -> G_graph.t -> Matching.t -> 'a -> 'a) -> Request.t -> Request.cluster_item list -> t -> 'a Clustered.t
 
   val bounded_search: 
+    ?json_label:bool -> 
     config:Conll_config.t ->
-    ?ordering: string option ->  (* if value is "length", graph are considered by size, if value is "shuffle", graph order is randomiez, else a default order is used  *)
+    ?ordering: string option ->  (* if value is "length", graph are considered by size, if value is "shuffle", graph order is randomize, else a default order is used  *)
     int option ->                (* bound on the number of matching *)
     float option ->              (* Timeout in seconds *)  
     'a ->                        (* The null value to build clusters *)
     (* The update function to build clusters. Parameters ares: *)
     (*  * int    --> graph_index in the corpus *)
     (*  * string --> sent_id *)
+    (*  * G_graph.t --> the graph *)
     (*  * int    --> position of the matching in the ≠ matchings for the same graph *)
     (*  * int    --> number of matching in the current graph  *)
-    (int -> string -> int -> int -> Matching.t -> 'a -> 'a) ->
+    (int -> string -> G_graph.t -> int -> int -> Matching.t -> 'a -> 'a) ->
     Request.t ->
       Request.cluster_item list ->         (* The list of element used for clustering *)
     t -> 
