@@ -257,6 +257,7 @@ module Corpus: sig
    *)
 
   val bounded_search: 
+    ?json_label: bool ->
     config:Conll_config.t ->
     ?ordering: string option ->  (* if value is "length", graph are considered by size, if value is "shuffle", graph order is randomiez, else a default order is used  *)
     int option ->                (* bound on the number of matching *)
