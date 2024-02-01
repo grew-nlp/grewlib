@@ -1,3 +1,6 @@
+## 1.15.1 (2024/02/01)
+  - Adapt numerical features for prosody encoding
+
 # 1.15.0 (2024/01/02)
   - remove ocaml version constraint "< 5"
   - Use Conll id in Graph.to_json
