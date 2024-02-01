@@ -261,12 +261,13 @@ module Corpus: sig
     config:Conll_config.t ->
     ?ordering: string option ->  (* if value is "length", graph are considered by size, if value is "shuffle", graph order is randomiez, else a default order is used  *)
     int option ->                (* bound on the number of matching *)
-    float option ->              (* Timeunt in seconds *)  
+    float option ->              (* Timeout in seconds *)  
     'a ->                        (* null value to build clusters *)
-    (int -> string -> int -> int -> Matching.t -> 'a -> 'a) ->
-    (* update function to build clusters. Parameters ares:
+    (int -> string -> Graph.t -> int -> int -> Matching.t -> 'a -> 'a) ->
+    (* update function to build clusters. Parameters are:
        * int    --> graph_index in the corpus
        * string --> sent_id
+       * G_graph.t --> the graph
        * int    --> position of the matching in the ≠ matchings for the same graph
        * int    --> number of matching in the current graph  *)
     Request.t ->

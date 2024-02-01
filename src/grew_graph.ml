@@ -1299,36 +1299,49 @@ module G_graph = struct
     (* nodes *)
     Layers.iter
       (fun layer_opt node_list ->
-         CCOption.iter (fun l -> bprintf buff "	subgraph cluster_%s {\n" l) layer_opt;
-         List.iter (
-           fun (id,node) ->
-             let decorated_feat =
+        CCOption.iter (fun l -> bprintf buff "	subgraph cluster_%s {\n" l) layer_opt;
+        List.iter (
+          fun (id,node) ->
+            let fs = G_node.get_fs node in
+            let shape = match 
+              (
+                fs |> G_fs.get_value_opt "type" |> CCOption.map Feature_value.to_string,
+                fs |> G_fs.get_value_opt "label" |> CCOption.map Feature_value.to_string
+              )
+             with
+            | (Some "v",_) -> "shape=oval, "
+            | (Some "f", Some "temp") -> "style=filled, color=\"#3e9fcf\", shape=invhouse, "
+            | (Some "f", Some "neg") -> "style=filled, color=\"#CFB464\", shape=invhouse, "
+            | (Some "f", Some "modal") -> "style=filled, color=\"#45a729\", shape=invhouse, "
+            | (Some "f", Some "quant") -> "style=filled, color=\"#f07065\", shape=invhouse, "
+            | (Some "f", Some "loc") -> "style=filled, color=\"pink\", shape=invhouse, "
+            | _ -> "" in
+
+            let decorated_feat =
                try List.assoc id deco.G_deco.nodes
                with Not_found -> ("",[]) in
-             let fs = G_node.get_fs node |> G_fs.del_feat "layer" in
+            let fs = G_node.get_fs node |> G_fs.del_feat "layer" |> G_fs.del_feat "type" in
 
-             match G_fs.to_dot ~decorated_feat ?main_feat fs with
-             | "" -> bprintf buff "  N_%s [label=\"\"]\n" (Gid.to_string id)
-             | s -> bprintf buff "  N_%s [label=<%s>]\n"
-                      (Gid.to_string id)
-                      s
-         ) node_list;
+            match G_fs.to_dot ~decorated_feat ?main_feat fs with
+            | "" -> bprintf buff "  N_%s [%slabel=\"\"]\n" (Gid.to_string id) shape
+            | s -> bprintf buff "  N_%s [%slabel=<%s>]\n" (Gid.to_string id) shape s
+          ) node_list;
          CCOption.iter (fun _ -> bprintf buff "	}\n") layer_opt
       ) layers;
 
     (* edges *)
     Gid_map.iter
       (fun id node ->
-         Gid_massoc.iter
-           (fun tar g_edge ->
-              let deco = List.mem (id,g_edge,tar) deco.G_deco.edges in
-              if g_edge = G_edge.sub
-              then bprintf buff "  N_%s -> N_%s [dir=none];\n" (Gid.to_string id) (Gid.to_string tar)
-              else
-                match G_edge.to_dot_opt ~config ~deco g_edge with
-                | None -> ()
-                | Some string_edge -> bprintf buff "  N_%s -> N_%s%s;\n" (Gid.to_string id) (Gid.to_string tar) string_edge
-           ) (G_node.get_next node)
+        Gid_massoc.iter
+          (fun tar g_edge ->
+            let deco = List.mem (id,g_edge,tar) deco.G_deco.edges in
+            if g_edge = G_edge.sub
+            then bprintf buff "  N_%s -> N_%s [dir=none];\n" (Gid.to_string id) (Gid.to_string tar)
+            else
+              match G_edge.to_dot_opt ~config ~deco g_edge with
+              | None -> ()
+              | Some string_edge -> bprintf buff "  N_%s -> N_%s%s;\n" (Gid.to_string id) (Gid.to_string tar) string_edge
+          ) (G_node.get_next node)
       ) graph.map;
 
     (* more edge in debug modes *)

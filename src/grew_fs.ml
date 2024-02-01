@@ -240,10 +240,11 @@ module G_fs = struct
 
     let is_highlithed feat_name =
       (List.mem_assoc feat_name highlighted_feat_list) ||
-      (List.exists (function
-           | (f, Some g) when g = feat_name && (not (List.mem_assoc f t)) && (List.mem_assoc g t) -> true
-           | _ -> false
-         ) highlighted_feat_list
+      (List.exists
+        (function
+          | (f, Some g) when g = feat_name && (not (List.mem_assoc f t)) && (List.mem_assoc g t) -> true
+          | _ -> false
+        ) highlighted_feat_list
       ) in
 
     let buff = Buffer.create 32 in
@@ -269,7 +270,7 @@ module G_fs = struct
 
     match Buffer.contents buff with
     | "" -> ""
-    | s -> sprintf "<TABLE BORDER=\"0\" CELLBORDER=\"0\" CELLSPACING=\"0\">\n%s\n</TABLE>\n" s
+    | s -> sprintf "<TABLE BORDER=\"0\" CELLBORDER=\"0\" CELLSPACING=\"0\">\n%s</TABLE>\n" s
 
   (* ---------------------------------------------------------------------- *)
   let to_word_opt (t:t) =

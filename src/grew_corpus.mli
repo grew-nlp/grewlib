@@ -57,9 +57,10 @@ module Corpus : sig
     (* The update function to build clusters. Parameters ares: *)
     (*  * int    --> graph_index in the corpus *)
     (*  * string --> sent_id *)
+    (*  * G_graph.t --> the graph *)
     (*  * int    --> position of the matching in the ≠ matchings for the same graph *)
     (*  * int    --> number of matching in the current graph  *)
-    (int -> string -> int -> int -> Matching.t -> 'a -> 'a) ->
+    (int -> string -> G_graph.t -> int -> int -> Matching.t -> 'a -> 'a) ->
     Request.t ->
       Request.cluster_item list ->         (* The list of element used for clustering *)
     t -> 
