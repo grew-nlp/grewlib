@@ -1011,7 +1011,8 @@ module Matching = struct
         let i = floor (f /. gap) in
         sprintf "[%g, %g[" (i *. gap) ((i +. 1.) *. gap)
 
-  type key = 
+  type key =
+    | Meta of string
     | Rel_order of string list
     | Sym_rel of (string * string)
     | Rel of (string * string)
@@ -1019,6 +1020,7 @@ module Matching = struct
     | Continuous of ((string * string) * float * float option * float option)
 
   let parse_key string_key =
+    let string_key = String.trim string_key in
     if CCString.contains string_key '#'
     then Rel_order (string_key |> (Str.split (Str.regexp "#")) |> List.map String.trim)
     else 
@@ -1043,6 +1045,7 @@ module Matching = struct
         | [Str.Text k] ->
           begin 
             match Str.split (Str.regexp "\\.") k with
+            | ["global"; key] -> Meta key
             | [id; feature_name] -> Feat (id, Str.split (Str.regexp "/") feature_name)
             | _ -> Error.run "Cannot parse cluster key %s" string_key
           end
@@ -1050,6 +1053,7 @@ module Matching = struct
 
   let get_value_opt ?(json_label=false) ~config string_key request graph matching =
     match parse_key string_key with
+    | Meta key -> graph |> G_graph.get_meta_list |> List.assoc_opt key
     | Rel_order pid_name_list -> get_relative_order pid_name_list request graph matching
     | Sym_rel (pid_name_1, pid_name_2) -> Some (get_link ~config true pid_name_1 pid_name_2 request graph matching)
     | Rel (pid_name_1, pid_name_2) -> Some (get_link ~config false pid_name_1 pid_name_2 request graph matching)
