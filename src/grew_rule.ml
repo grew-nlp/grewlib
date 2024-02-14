@@ -1028,28 +1028,33 @@ module Matching = struct
       | [Str.Text n1; Str.Delim "<->"; Str.Text n2] -> Sym_rel (String.trim n1, String.trim n2)
       | [Str.Text n1; Str.Delim "->"; Str.Text n2] -> Rel (String.trim n1, String.trim n2)
       | _ -> 
-        match Str.full_split (Str.regexp "\\[\\|\\]") string_key with 
-        
+        match Str.full_split (Str.regexp "\\[\\|\\]") string_key with
         | [Str.Text feat; Str.Delim "["; Str.Text params; Str.Delim "]" ] ->
-          let fs = params
-          |> Str.split (Str.regexp " *, *")
-          |> List.map (fun param_item -> match Str.split (Str.regexp " *= *") param_item with [f;v] -> (f,v) | _ -> Error.run "Cannot parse cluster key %s" string_key) in
-          (
+          let fs =
+            params
+            |> Str.split (Str.regexp " *, *")
+            |> List.map 
+              (fun param_item -> 
+                match Str.split (Str.regexp " *= *") param_item with 
+                | [f;v] -> (f,v) 
+                | _ -> Error.run "Cannot parse cluster key `%s`" string_key
+              ) in
+          begin
             match (List.assoc_opt "gap" fs, List.assoc_opt "min" fs, List.assoc_opt "max" fs) with
             | (None, _,_) -> Error.run "Missing gap"
             | (Some gap, min_opt, max_opt) ->
               match Str.split (Str.regexp "\\.") (String.trim feat) with
               | [id; fn] -> Continuous ((id, fn), float_of_string gap, float_of_string <$> min_opt, float_of_string <$> max_opt)
-              | _ -> Error.run "Cannot parse cluster key %s" string_key
-          )
+              | _ -> Error.run "Cannot parse cluster key `%s`" string_key
+          end
         | [Str.Text k] ->
           begin 
             match Str.split (Str.regexp "\\.") k with
             | ["global"; key] -> Meta key
             | [id; feature_name] -> Feat (id, Str.split (Str.regexp "/") feature_name)
-            | _ -> Error.run "Cannot parse cluster key %s" string_key
+            | _ -> Error.run "Cannot parse cluster key `%s`" string_key
           end
-        | _ -> Error.run "Cannot parse cluster key %s" string_key
+        | _ -> Error.run "Cannot parse cluster key `%s`" string_key
 
   let get_value_opt ?(json_label=false) ~config string_key request graph matching =
     match parse_key string_key with
