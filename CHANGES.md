@@ -1,3 +1,6 @@
+## 1.15.2 (2024/02/22)
+  - Change bounded_search type for new grewpy_backend
+
 ## 1.15.1 (2024/02/01)
   - Adapt numerical features for prosody encoding
 
