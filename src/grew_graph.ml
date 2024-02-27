@@ -220,13 +220,16 @@ module P_graph = struct
 
            match ast_edge.Ast.edge_label_cst with
            | Ast.Pred ->
-             (match map_add_edge_opt src_pid P_edge.succ tar_pid acc_map with
-              | Some _acc2 -> (match map_add_edge_opt tar_pid P_edge.pred src_pid acc_map with (* TODO: check unused acc2 *)
-                  | Some m -> (m, acc_edge_ids)
-                  | None -> Error.build ~loc "[P_graph.build_extension] try to build a graph with twice the order edge"
-                )
-              | None -> Error.build ~loc "[P_graph.build_extension] try to build a graph with twice the order edge"
-             )
+             begin
+               match map_add_edge_opt src_pid P_edge.succ tar_pid acc_map with
+               | None -> Error.build ~loc "[P_graph.build_extension] try to build a graph with twice the order edge"
+               | Some acc2 -> 
+                 begin
+                   match map_add_edge_opt tar_pid P_edge.pred src_pid acc2 with
+                   | None -> Error.build ~loc "[P_graph.build_extension] try to build a graph with twice the order edge"
+                   | Some m -> (m, acc_edge_ids)
+                 end
+             end
            | _ ->
              let edge = P_edge.of_ast ~config (ast_edge, loc) in
              (match map_add_edge_opt src_pid edge tar_pid acc_map with
