@@ -143,27 +143,27 @@ module P_graph = struct
     let (map,edge_ids) =
       List.fold_left
         (fun (acc_map,acc_edge_ids) (ast_edge, loc) ->
-           let src_pid = Pid.Ker (Id.build ~loc ast_edge.Ast.src ker_table) in
-           let tar_pid = Pid.Ker (Id.build ~loc ast_edge.Ast.tar ker_table) in
-           match ast_edge.Ast.edge_label_cst with
-           | Ast.Pred -> (* X < Y *)
-             begin
-               match map_add_edge_opt src_pid P_edge.succ tar_pid acc_map with
-               | None -> Error.build ~loc "[P_graph.build] try to build a graph with twice the order edge"
-               | Some acc2 ->
-                 begin
-                   match map_add_edge_opt tar_pid P_edge.pred src_pid acc2 with
-                   | None -> Error.build ~loc "[P_graph.build] try to build a graph with twice the order edge"
-                   | Some m -> (m, acc_edge_ids)
-                 end
-             end
-           | _ ->
-             let edge = P_edge.of_ast ~config (ast_edge, loc) in
-             begin
-               match map_add_edge_opt src_pid edge tar_pid acc_map with
-               | Some m -> (m, match ast_edge.Ast.edge_id with Some id -> id::acc_edge_ids | None -> acc_edge_ids)
-               | None -> Error.build ~loc "[P_graph.build] try to build a graph with twice the same edge %s" (P_edge.to_string ~config edge)
-             end
+          let src_pid = Pid.Ker (Id.build ~loc ast_edge.Ast.src ker_table) in
+          let tar_pid = Pid.Ker (Id.build ~loc ast_edge.Ast.tar ker_table) in
+          match ast_edge.Ast.edge_label_cst with
+          | Ast.Pred -> (* X < Y *)
+            begin
+              match map_add_edge_opt src_pid P_edge.succ tar_pid acc_map with
+              | None -> Error.build ~loc "[P_graph.build] try to build a graph with twice the order edge"
+              | Some acc2 ->
+                begin
+                  match map_add_edge_opt tar_pid P_edge.pred src_pid acc2 with
+                  | None -> Error.build ~loc "[P_graph.build] try to build a graph with twice the order edge"
+                  | Some m -> (m, acc_edge_ids)
+                end
+            end
+          | _ ->
+            let edge = P_edge.of_ast ~config (ast_edge, loc) in
+            begin
+              match map_add_edge_opt src_pid edge tar_pid acc_map with
+              | Some m -> (m, match ast_edge.Ast.edge_id with Some id -> id::acc_edge_ids | None -> acc_edge_ids)
+              | None -> Error.build ~loc "[P_graph.build] try to build a graph with twice the same edge %s" (P_edge.to_string ~config edge)
+            end
         ) (map_without_edges,[]) full_edge_list in
 
     (map, ker_table, edge_ids)
@@ -207,33 +207,35 @@ module P_graph = struct
     let (ext_map_with_all_edges, new_edge_ids) =
       List.fold_left
         (fun (acc_map, acc_edge_ids) (ast_edge, loc) ->
-           let src = ast_edge.Ast.src
-           and tar = ast_edge.Ast.tar in
-           let src_pid =
-             match Id.build_opt src ker_table with
-             | Some i -> Pid.Ker i
-             | None -> Pid.Ext (Id.build ~loc src ext_table) in
-           let tar_pid =
-             match Id.build_opt tar ker_table with
-             | Some i -> Pid.Ker i
-             | None -> Pid.Ext (Id.build ~loc tar ext_table) in
+          let src = ast_edge.Ast.src
+          and tar = ast_edge.Ast.tar in
+          let src_pid =
+            match Id.build_opt src ker_table with
+            | Some i -> Pid.Ker i
+            | None -> Pid.Ext (Id.build ~loc src ext_table) in
+          let tar_pid =
+            match Id.build_opt tar ker_table with
+            | Some i -> Pid.Ker i
+            | None -> Pid.Ext (Id.build ~loc tar ext_table) in
 
-           match ast_edge.Ast.edge_label_cst with
-           | Ast.Pred ->
-             (match map_add_edge_opt src_pid P_edge.succ tar_pid acc_map with
-              | Some _acc2 -> (match map_add_edge_opt tar_pid P_edge.pred src_pid acc_map with (* TODO: check unused acc2 *)
-                  | Some m -> (m, acc_edge_ids)
-                  | None -> Error.build ~loc "[P_graph.build_extension] try to build a graph with twice the order edge"
-                )
+          match ast_edge.Ast.edge_label_cst with
+          | Ast.Pred ->
+            begin
+              match map_add_edge_opt src_pid P_edge.succ tar_pid acc_map with
               | None -> Error.build ~loc "[P_graph.build_extension] try to build a graph with twice the order edge"
-             )
-           | _ ->
-             let edge = P_edge.of_ast ~config (ast_edge, loc) in
-             (match map_add_edge_opt src_pid edge tar_pid acc_map with
-              | Some m -> (m, match ast_edge.Ast.edge_id with Some id -> id::acc_edge_ids | None -> acc_edge_ids)
-              | None -> Error.build ~loc "[P_graph.build_extension] try to build a graph with twice the same edge %s"
+              | Some acc2 -> 
+                begin
+                  match map_add_edge_opt tar_pid P_edge.pred src_pid acc2 with
+                  | None -> Error.build ~loc "[P_graph.build_extension] try to build a graph with twice the order edge"
+                  | Some m -> (m, acc_edge_ids)
+                end
+            end
+          | _ ->
+            let edge = P_edge.of_ast ~config (ast_edge, loc) in
+            match map_add_edge_opt src_pid edge tar_pid acc_map with
+            | Some m -> (m, match ast_edge.Ast.edge_id with Some id -> id::acc_edge_ids | None -> acc_edge_ids)
+            | None -> Error.build ~loc "[P_graph.build_extension] try to build a graph with twice the same edge %s"
                           (P_edge.to_string ~config edge)
-             )
         ) (ext_map_without_edges, edge_ids) full_edge_list in
 
         (ext_map_with_all_edges, filter_on_ker_nodes, ext_table, new_edge_ids)
@@ -245,15 +247,16 @@ module P_graph = struct
     let not_root_set =
       Pid_map.fold
         (fun _ p_node acc ->
-           Pid_massoc.fold
-             (fun acc2 tar_pid _ -> Pid_set.add tar_pid acc2
-             ) acc (P_node.get_next p_node)
+          Pid_massoc.fold
+            (fun acc2 tar_pid _ -> 
+              Pid_set.add tar_pid acc2
+            ) acc (P_node.get_next p_node)
         ) p_graph Pid_set.empty in
     Pid_map.fold
       (fun pid _ acc ->
-         if Pid_set.mem pid not_root_set
-         then acc
-         else pid::acc
+        if Pid_set.mem pid not_root_set
+        then acc
+        else pid::acc
       ) p_graph []
 end (* module P_graph *)
 
@@ -276,9 +279,9 @@ module G_deco = struct
       nodes =
         List.fold_left
           (fun acc ((gid2, (_,hf_list2)) as item2) ->
-             match List.assoc_opt gid2 acc with
-             | None -> item2 :: acc
-             | Some (pid1,hf_list1) -> (gid2, (pid1, hf_list1 @ hf_list2)) :: (List.remove_assoc gid2 acc)
+            match List.assoc_opt gid2 acc with
+            | None -> item2 :: acc
+            | Some (pid1,hf_list1) -> (gid2, (pid1, hf_list1 @ hf_list2)) :: (List.remove_assoc gid2 acc)
           ) deco1.nodes deco2.nodes;
       edges = deco1.edges @ deco2.edges;
     }
@@ -331,24 +334,20 @@ module G_graph = struct
             let tmp_todo = 
               Gid_massoc.fold_on_list 
                 (fun acc gid' _ ->
-                   if (Gid_set.mem gid' tmp_ok) || (Gid_map.mem gid' todo)
-                   then acc
-                   else Gid_map.add gid' (depth-1) acc
+                  if (Gid_set.mem gid' tmp_ok) || (Gid_map.mem gid' todo)
+                  then acc
+                  else Gid_map.add gid' (depth-1) acc
                 ) (Gid_map.remove gid todo) next in
             (tmp_todo, tmp_ok) in
         loop (new_todo, new_ok) in 
     let selected_nodes = loop (todo_init, Gid_set.empty) in
     let sub_map = Gid_set.fold 
         (fun gid acc ->
-           let node = find gid graph in
-           let new_next = Gid_massoc.filter_key (fun gid -> Gid_set.mem gid selected_nodes) (G_node.get_next node) in
-           let new_node = G_node.set_next new_next node in
-           Gid_map.add gid new_node acc
+          let node = find gid graph in
+          let new_next = Gid_massoc.filter_key (fun gid -> Gid_set.mem gid selected_nodes) (G_node.get_next node) in
+          let new_node = G_node.set_next new_next node in
+          Gid_map.add gid new_node acc
         ) selected_nodes Gid_map.empty in
-
-    (* printf "|nodes|=%d  |edges|=%d\n%!" 
-      (Gid_map.cardinal sub_map)
-      (Gid_map.fold (fun _ n acc -> Gid_massoc.fold (fun acc2 _ _ -> acc2+1) acc (G_node.get_next n)) sub_map 0); *)
 
     {empty with map= sub_map}
 
@@ -481,7 +480,8 @@ module G_graph = struct
     let open Yojson.Basic.Util in
     let meta =
       try json |> member "meta" |> to_assoc 
-          |> CCList.filter_map (fun (k,v) -> 
+          |> CCList.filter_map
+            (fun (k,v) -> 
               match v with 
               | `String s -> Some (k,s)
               | `Int i -> Some (k, string_of_int i)
@@ -513,13 +513,13 @@ module G_graph = struct
           |> to_assoc
           |> List.rev_map (* usage of rev_map to avoid stack overflow on large graph like lexical networks *)
             (fun (id,json_node) ->
-               let fs =
-                 try [("label", json_node |> to_string)]
-                 with Type_error _ ->
-                   json_node
-                   |> to_assoc
-                   |> List.map (fun (feat_name,json_value) -> (feat_name, json_value |> to_string)) in
-               (id,fs)
+              let fs =
+                try [("label", json_node |> to_string)]
+                with Type_error _ ->
+                  json_node
+                  |> to_assoc
+                  |> List.map (fun (feat_name,json_value) -> (feat_name, json_value |> to_string)) in
+              (id,fs)
             )
           |> List.rev  (* restore initial order *)
         with Type_error _ ->
@@ -536,64 +536,64 @@ module G_graph = struct
           |> to_list 
           |> List.rev_map (* usage of rev_map to avoid stack overflow on large graph like lexical networks *)
             (fun json_edge ->
-               let fs =
-                 try
-                   (* if [json_edge] is of type string, it is interpreted as [1=value] *)
-                   try [("1", Feature_value.parse "1" (json_edge |> member "label" |> to_string))]
-                   with Type_error _ ->
-                     json_edge
-                     |> member "label"
-                     |> to_assoc
-                     |> List.map (fun (x,y) -> (x,Feature_value.parse x (to_string y))) 
-                 with Type_error _ -> 
-                   Error.build
-                     "[G_graph.of_json%s] Cannot parse field json `edge` (See https://grew.fr/doc/json):\n%s"
-                     (sent_id_text ())
-                     (Yojson.Basic.pretty_to_string json_edge) in
-               let src = match json_edge |> member "src" with
-                 | `String s -> s
-                 | `Null ->
-                   Error.build
-                     "[G_graph.of_json%s] Missing field `src` in json `edge` (See https://grew.fr/doc/json):\n%s"
-                     (sent_id_text ())
-                     (Yojson.Basic.pretty_to_string json_edge) 
-                 | _ ->
-                   Error.build
-                     "[G_graph.of_json%s] `src` must be a string in json `edge` (See https://grew.fr/doc/json):\n%s"
-                     (sent_id_text ())
-                     (Yojson.Basic.pretty_to_string json_edge) in
-               let tar = match json_edge |> member "tar" with
-                 | `String s -> s
-                 | `Null ->
-                   Error.build
-                     "[G_graph.of_json%s] Missing field `tar` in json `edge` (See https://grew.fr/doc/json):\n%s"
-                     (sent_id_text ())
-                     (Yojson.Basic.pretty_to_string json_edge) 
-                 | _ ->
-                   Error.build
-                     "[G_graph.of_json%s] `tar` must be a string in json `edge` (See https://grew.fr/doc/json):\n%s"
-                     (sent_id_text ())
-                     (Yojson.Basic.pretty_to_string json_edge) in
+              let fs =
+                try
+                  (* if [json_edge] is of type string, it is interpreted as [1=value] *)
+                  try [("1", Feature_value.parse "1" (json_edge |> member "label" |> to_string))]
+                  with Type_error _ ->
+                    json_edge
+                    |> member "label"
+                    |> to_assoc
+                    |> List.map (fun (x,y) -> (x,Feature_value.parse x (to_string y))) 
+                with Type_error _ -> 
+                  Error.build
+                    "[G_graph.of_json%s] Cannot parse field json `edge` (See https://grew.fr/doc/json):\n%s"
+                    (sent_id_text ())
+                    (Yojson.Basic.pretty_to_string json_edge) in
+              let src = match json_edge |> member "src" with
+                | `String s -> s
+                | `Null ->
+                  Error.build
+                    "[G_graph.of_json%s] Missing field `src` in json `edge` (See https://grew.fr/doc/json):\n%s"
+                      (sent_id_text ())
+                      (Yojson.Basic.pretty_to_string json_edge) 
+                | _ ->
+                  Error.build
+                    "[G_graph.of_json%s] `src` must be a string in json `edge` (See https://grew.fr/doc/json):\n%s"
+                      (sent_id_text ())
+                      (Yojson.Basic.pretty_to_string json_edge) in
+              let tar = match json_edge |> member "tar" with
+                | `String s -> s
+                | `Null ->
+                  Error.build
+                    "[G_graph.of_json%s] Missing field `tar` in json `edge` (See https://grew.fr/doc/json):\n%s"
+                      (sent_id_text ())
+                      (Yojson.Basic.pretty_to_string json_edge) 
+                | _ ->
+                  Error.build
+                    "[G_graph.of_json%s] `tar` must be a string in json `edge` (See https://grew.fr/doc/json):\n%s"
+                      (sent_id_text ())
+                      (Yojson.Basic.pretty_to_string json_edge) in
                (src,fs,tar)
             )
           |> List.rev  (* restore initial order *)
         with Type_error _ -> 
           Error.build
             "[G_graph.of_json%s] Cannot parse field `edges` (See https://grew.fr/doc/json):\n%s"
-            (sent_id_text ())
-            (Yojson.Basic.pretty_to_string json_edges) in
+              (sent_id_text ())
+              (Yojson.Basic.pretty_to_string json_edges) in
 
     (* build a map with nodes only *)
     let (map_without_edges, table, final_index) =
       List.fold_left
         (fun (acc_map, acc_table, acc_index) (node_id, fs_items) ->
-           let fs = G_fs.of_items fs_items in
-           let new_node = G_node.set_name node_id (G_node.set_fs fs G_node.empty) in
-           (
-             Gid_map.add acc_index new_node acc_map,
-             String_map.add node_id acc_index acc_table,
-             acc_index + 1
-           )
+          let fs = G_fs.of_items fs_items in
+          let new_node = G_node.set_name node_id (G_node.set_fs fs G_node.empty) in
+          (
+            Gid_map.add acc_index new_node acc_map,
+            String_map.add node_id acc_index acc_table,
+            acc_index + 1
+          )
         ) (Gid_map.empty, String_map.empty, 0) nodes in
 
     let order = match json |> member "order" with
@@ -604,17 +604,15 @@ module G_graph = struct
           |> to_list 
           |> List.map 
             (fun x -> 
-               try String_map.find (x |> to_string) table
-               with Not_found ->
-                 Error.build 
-                   "[G_graph.of_json%s] unknown node identifier `%s` used in `order`"
-                   (sent_id_text ()) 
-                   (x |> to_string)
+              try String_map.find (x |> to_string) table
+              with Not_found ->
+                Error.build "[G_graph.of_json%s] unknown node identifier `%s` used in `order`"
+                  (sent_id_text ()) 
+                  (x |> to_string)
             )
         with
         | Type_error _ -> 
-          Error.build 
-            "[G_graph.of_json%s] cannot parse `order` field, it should be a list of string but is:\n%s"
+          Error.build "[G_graph.of_json%s] cannot parse `order` field, it should be a list of string but is:\n%s"
             (sent_id_text ()) 
             (Yojson.Basic.pretty_to_string json_order) in
 
@@ -636,16 +634,18 @@ module G_graph = struct
     let map =
       List.fold_left
         (fun acc (id_src, edge_items, id_tar) ->
-           match (String_map.find_opt id_src table, String_map.find_opt id_tar table) with
-           | (Some gid_1, Some gid_2) ->
-             let edge = G_edge.from_items edge_items in
-             (match map_add_edge_opt acc gid_1 edge gid_2 with
+          match (String_map.find_opt id_src table, String_map.find_opt id_tar table) with
+          | (Some gid_1, Some gid_2) ->
+            let edge = G_edge.from_items edge_items in
+            begin
+              match map_add_edge_opt acc gid_1 edge gid_2 with
               | Some g -> g
-              | None -> Error.build "[G_graph.of_json%s] try to build a graph with twice the same edge `%s`from `%s` to `%s`" 
-                (sent_id_text ()) (G_edge.dump edge) id_src id_tar
-             )
-           | (None, _) -> Error.build "[G_graph.of_json%s] undefined node id `%s` used as `src` in edges" (sent_id_text ()) id_src
-           | (_, None) -> Error.build "[G_graph.of_json%s] undefined node id `%s` used as `tar` in edges" (sent_id_text ()) id_tar
+              | None -> 
+                Error.build "[G_graph.of_json%s] try to build a graph with twice the same edge `%s`from `%s` to `%s`" 
+                  (sent_id_text ()) (G_edge.dump edge) id_src id_tar
+            end
+          | (None, _) -> Error.build "[G_graph.of_json%s] undefined node id `%s` used as `src` in edges" (sent_id_text ()) id_src
+          | (_, None) -> Error.build "[G_graph.of_json%s] undefined node id `%s` used as `tar` in edges" (sent_id_text ()) id_tar
         ) maps_with_order edges in
 
     { empty with
@@ -659,9 +659,9 @@ module G_graph = struct
     let gid_position_list =
       Gid_map.fold
         (fun gid node acc ->
-           match G_node.get_position_opt node with
-           | None -> acc
-           | Some p -> (gid,p) :: acc
+          match G_node.get_position_opt node with
+          | None -> acc
+          | Some p -> (gid,p) :: acc
         ) graph.map [] in
     List.map fst (List.sort (fun (_,p1) (_,p2) -> Stdlib.compare p1 p2) gid_position_list)
 
@@ -672,8 +672,8 @@ module G_graph = struct
     let nodes =
       Gid_map.fold
         (fun gid node acc ->
-           let item = (G_node.get_name gid node, G_fs.to_json (G_node.get_fs node)) in
-           item :: acc
+          let item = (G_node.get_name gid node, G_fs.to_json (G_node.get_fs node)) in
+          item :: acc
         ) graph.map []
       |> List.rev in
 
@@ -684,18 +684,12 @@ module G_graph = struct
     let edges =
       Gid_map.fold
         (fun src_gid node acc ->
-           let src = `String (G_node.get_name src_gid node) in
-           Gid_massoc.fold
+          let src = `String (G_node.get_name src_gid node) in
+          Gid_massoc.fold
             (fun acc2 tar_gid edge ->
               match G_edge.to_json_opt edge with
               | None -> acc2
-              | Some js ->
-                (`Assoc [
-                    ("src", src);
-                    ("label", js);
-                    ("tar", `String (name_of_gid tar_gid));
-                  ]
-                ) :: acc2
+              | Some js -> (`Assoc [("src", src); ("label", js); ("tar", `String (name_of_gid tar_gid)) ]) :: acc2
             ) acc (G_node.get_next node)
         ) graph.map [] in
 
@@ -704,13 +698,13 @@ module G_graph = struct
     let modified_nodes =
       List.map
         (fun (gid,(_,hf_list)) ->
-           `Assoc [("id", `String (name_of_gid gid)); ("features", `List (List.map (fun (fn, _) -> `String fn) hf_list))]
+          `Assoc [("id", `String (name_of_gid gid)); ("features", `List (List.map (fun (fn, _) -> `String fn) hf_list))]
         ) graph.impact.nodes in
 
     let modified_edges =
       List.map
         (fun (gid1,edge,gid2) ->
-           `Assoc [("src", `String (name_of_gid gid1)); ("edge", G_edge.to_json edge); ("tar", `String (name_of_gid gid2))]
+          `Assoc [("src", `String (name_of_gid gid1)); ("edge", G_edge.to_json edge); ("tar", `String (name_of_gid gid2))]
         ) graph.impact.edges in
 
     let full_assoc_list = [
@@ -724,7 +718,8 @@ module G_graph = struct
 
     (* remove fields with empty data *)
     `Assoc (
-      List.filter (function
+      List.filter
+        (function
           | (_,`List []) -> false
           | (_,`Assoc []) -> false
           | _ -> true
@@ -749,10 +744,11 @@ module G_graph = struct
         let fid = fresh_id () in
         let new_node = G_node.build_pst_node ~loc cat in
         let with_mother = Gid_map.add fid new_node nodes in
-        let new_nodes = List.fold_left
+        let new_nodes =
+          List.fold_left
             (fun map daughter ->
-               let (daughter_id, new_map) = loop map daughter in
-               map_add_edge fid G_edge.sub daughter_id new_map
+              let (daughter_id, new_map) = loop map daughter in
+              map_add_edge fid G_edge.sub daughter_id new_map
             ) with_mother daughters in
         (fid, new_nodes) in
 
@@ -935,9 +931,9 @@ module G_graph = struct
       let new_map =
         Gid_map.fold
           (fun id value acc ->
-             if id = node_id
-             then acc
-             else Gid_map.add id (G_node.remove_key node_id value) acc
+            if id = node_id
+            then acc
+            else Gid_map.add id (G_node.remove_key node_id value) acc
           ) (map_unorder node_id graph.map) Gid_map.empty in
       Some { graph with map = new_map }
 
@@ -955,18 +951,18 @@ module G_graph = struct
     let (new_src_next, new_tar_next) =
       Gid_massoc.fold
         (fun (acc_src_next,acc_tar_next) next_gid edge ->
-           if Label_cst.match_ ~config label_cst edge && not (is_gid_local next_gid)
-           then
-             match Gid_massoc.add_opt next_gid edge acc_tar_next with
-             | None when !Global.safe_commands -> Error.run ~loc "The [shift_out] command tries to build a duplicate edge (with label \"%s\")" (G_edge.dump ~config  edge)
-             | None ->
-               del_edges := (src_gid,edge,next_gid) :: !del_edges;
-               (Gid_massoc.remove next_gid edge acc_src_next, acc_tar_next)
-             | Some new_acc_tar_next ->
-               del_edges := (src_gid,edge,next_gid) :: !del_edges;
-               add_edges := (tar_gid,edge,next_gid) :: !add_edges;
-               (Gid_massoc.remove next_gid edge acc_src_next, new_acc_tar_next)
-           else (acc_src_next,acc_tar_next)
+          if Label_cst.match_ ~config label_cst edge && not (is_gid_local next_gid)
+          then
+            match Gid_massoc.add_opt next_gid edge acc_tar_next with
+            | None when !Global.safe_commands -> Error.run ~loc "The [shift_out] command tries to build a duplicate edge (with label \"%s\")" (G_edge.dump ~config  edge)
+            | None ->
+              del_edges := (src_gid,edge,next_gid) :: !del_edges;
+              (Gid_massoc.remove next_gid edge acc_src_next, acc_tar_next)
+            | Some new_acc_tar_next ->
+              del_edges := (src_gid,edge,next_gid) :: !del_edges;
+              add_edges := (tar_gid,edge,next_gid) :: !add_edges;
+              (Gid_massoc.remove next_gid edge acc_src_next, new_acc_tar_next)
+          else (acc_src_next,acc_tar_next)
         )
         (src_next, tar_next) src_next in
 
@@ -983,39 +979,40 @@ module G_graph = struct
     let new_map =
       Gid_map.mapi
         (fun node_id node ->
-           if is_gid_local node_id (* shift does not move request edges *)
-           then node
-           else
-             let node_next = G_node.get_next node in
-             match Gid_massoc.assoc src_gid node_next with
-             | [] -> node (* no edges from node to src *)
-             | node_src_edges ->
-               let node_tar_edges = Gid_massoc.assoc tar_gid node_next in
-               let (new_node_src_edges, new_node_tar_edges) =
-                 List.fold_left
-                   (fun (acc_node_src_edges,acc_node_tar_edges) edge ->
-                      if Label_cst.match_ ~config label_cst edge
-                      then
-                        match List_.usort_insert_opt edge acc_node_tar_edges with
-                        | None when !Global.safe_commands ->
-                          Error.run ~loc "The [shift_in] command tries to build a duplicate edge (with label \"%s\")" (G_edge.dump ~config edge)
-                        | None ->
-                          del_edges := (node_id,edge,src_gid) :: !del_edges;
-                          (List_.usort_remove edge acc_node_src_edges, acc_node_tar_edges)
-                        | Some l ->
-                          del_edges := (node_id,edge,src_gid) :: !del_edges;
-                          add_edges := (node_id,edge,tar_gid) :: !add_edges;
-                          (List_.usort_remove edge acc_node_src_edges, l)
-                      else (acc_node_src_edges,acc_node_tar_edges)
-                   )
-                   (node_src_edges, node_tar_edges) node_src_edges in
-               let new_next =
-                 node_next
-                 |> (Gid_massoc.replace src_gid new_node_src_edges)
-                 |> (Gid_massoc.replace tar_gid new_node_tar_edges) in
-               G_node.set_next new_next node
+          if is_gid_local node_id (* shift does not move request edges *)
+          then node
+          else
+            let node_next = G_node.get_next node in
+            match Gid_massoc.assoc src_gid node_next with
+            | [] -> node (* no edges from node to src *)
+            | node_src_edges ->
+              let node_tar_edges = Gid_massoc.assoc tar_gid node_next in
+              let (new_node_src_edges, new_node_tar_edges) =
+                List.fold_left
+                  (fun (acc_node_src_edges,acc_node_tar_edges) edge ->
+                    if Label_cst.match_ ~config label_cst edge
+                    then
+                      match List_.usort_insert_opt edge acc_node_tar_edges with
+                      | None when !Global.safe_commands ->
+                        Error.run ~loc "The [shift_in] command tries to build a duplicate edge (with label \"%s\")" (G_edge.dump ~config edge)
+                      | None ->
+                        del_edges := (node_id,edge,src_gid) :: !del_edges;
+                        (List_.usort_remove edge acc_node_src_edges, acc_node_tar_edges)
+                      | Some l ->
+                        del_edges := (node_id,edge,src_gid) :: !del_edges;
+                        add_edges := (node_id,edge,tar_gid) :: !add_edges;
+                        (List_.usort_remove edge acc_node_src_edges, l)
+                    else (acc_node_src_edges,acc_node_tar_edges)
+                  )
+                  (node_src_edges, node_tar_edges) node_src_edges in
+              let new_next =
+                node_next
+                |> (Gid_massoc.replace src_gid new_node_src_edges)
+                |> (Gid_massoc.replace tar_gid new_node_tar_edges) in
+              G_node.set_next new_next node
         ) graph.map in
-    ( { graph with map = new_map },
+    (
+      { graph with map = new_map },
       !del_edges,
       !add_edges
     )
@@ -1067,12 +1064,13 @@ module G_graph = struct
 
     let exception Find of Gid.t in
     let init_gid_opt =
-      try Gid_map.iter
-            (fun gid node ->
-               match (G_node.get_pred_opt node, G_node.get_succ_opt node) with
-               | (None, Some _) -> raise (Find gid)
-               | _ -> ()
-            ) graph.map; None
+      try
+        Gid_map.iter
+          (fun gid node ->
+            match (G_node.get_pred_opt node, G_node.get_succ_opt node) with
+            | (None, Some _) -> raise (Find gid)
+            | _ -> ()
+          ) graph.map; None
       with Find node -> Some node in
 
     match init_gid_opt with
@@ -1090,8 +1088,7 @@ module G_graph = struct
           | (Some s, false, false) -> bprintf buff "%s" s
           | (Some s, false, true) -> bprintf buff "%s " s
           | (Some s, true, false) -> bprintf buff "<span class=\"highlight\">%s</span>" s
-          | (Some s, true, true) -> bprintf buff "<span class=\"highlight\">%s</span> " s
-        in
+          | (Some s, true, true) -> bprintf buff "<span class=\"highlight\">%s</span> " s in
         let node = Gid_map.find gid graph.map in
         let fs = G_node.get_fs node in
         let (new_current_form, new_flag_highlight, new_flag_sa) =
@@ -1166,8 +1163,8 @@ module G_graph = struct
     try 
       Gid_map.iter 
         (fun gid node -> 
-           if G_node.is_conll_zero node
-           then raise (Find gid) 
+          if G_node.is_conll_zero node
+          then raise (Find gid) 
         ) graph.map; graph
     with Find gid_root -> match del_node_opt gid_root graph with
       | Some g -> g
@@ -1179,11 +1176,12 @@ module G_graph = struct
     let graph = if no_root then remove_conll_root_node graph else graph in 
 
     (* split lexical // non-lexical nodes *)
-    let (ordered_nodes, non_ordered_nodes) = Gid_map.fold
+    let (ordered_nodes, non_ordered_nodes) =
+      Gid_map.fold
         (fun gid node (acc1, acc2) ->
-           match G_node.get_position_opt node with
-           | None -> (acc1, (gid,node)::acc2)
-           | Some _ -> ((gid,node)::acc1, acc2)
+          match G_node.get_position_opt node with
+          | None -> (acc1, (gid,node)::acc2)
+          | Some _ -> ((gid,node)::acc1, acc2)
         ) graph.map ([],[]) in
 
     let sorted_ordered_nodes = List.sort (fun (_,n1) (_,n2) -> G_node.compare n1 n2) ordered_nodes in
@@ -1202,7 +1200,8 @@ module G_graph = struct
         loop nodes in
 
     (* insertion of non lexical node to a sensible position in the linear order *)
-    let nodes = List.fold_left (
+    let nodes =
+      List.fold_left (
         fun acc gid_node -> insert gid_node acc
       ) sorted_ordered_nodes non_ordered_nodes in
 
@@ -1213,31 +1212,31 @@ module G_graph = struct
     (* nodes *)
     List.iter
       (fun (id, node) ->
-         let decorated_feat = try List.assoc id deco.G_deco.nodes with Not_found -> ("",[]) in
-         let fs = G_node.get_fs node in
+        let decorated_feat = try List.assoc id deco.G_deco.nodes with Not_found -> ("",[]) in
+        let fs = G_node.get_fs node in
 
-         let loop_edge = Gid_massoc.assoc id (G_node.get_next node) in
-         let loops = List.map (fun edge -> sprintf "[[%s]]:B:#82CAAF" (G_edge.dump ~config edge)) loop_edge in
+        let loop_edge = Gid_massoc.assoc id (G_node.get_next node) in
+        let loops = List.map (fun edge -> sprintf "[[%s]]:B:#82CAAF" (G_edge.dump ~config edge)) loop_edge in
 
-         let tail =
-           match (!Global.debug, G_node.get_position_opt node) with
-           | (true, Some pos) -> (sprintf "position=%d:B:lightblue" pos) :: loops
-           | _ -> loops in
+        let tail =
+          match (!Global.debug, G_node.get_position_opt node) with
+          | (true, Some pos) -> (sprintf "position=%d:B:lightblue" pos) :: loops
+          | _ -> loops in
   
-         let dep_fs = G_fs.to_dep ~decorated_feat ~tail ?filter ?main_feat fs in
+        let dep_fs = G_fs.to_dep ~decorated_feat ~tail ?filter ?main_feat fs in
 
-         let style =
-           match G_fs.get_value_opt "void" fs with
-           | Some (String "y") -> "; forecolor=red; subcolor=red; "
-           | _ ->
-           match G_fs.get_value_opt "wordform" fs with
-           | Some (String "__EMPTY__") -> "; forecolor=#cc00cb; subcolor=#cc00cb; "
-           | _ -> "" in
+        let style =
+          match G_fs.get_value_opt "void" fs with
+          | Some (String "y") -> "; forecolor=red; subcolor=red; "
+          | _ ->
+          match G_fs.get_value_opt "wordform" fs with
+          | Some (String "__EMPTY__") -> "; forecolor=#cc00cb; subcolor=#cc00cb; "
+          | _ -> "" in
 
-         bprintf buff "N_%s { %s%s }\n"
-           (Gid.to_string id)
-           dep_fs
-           style
+        bprintf buff "N_%s { %s%s }\n"
+          (Gid.to_string id)
+          dep_fs
+          style
       ) nodes;
     bprintf buff "} \n";
 
@@ -1248,16 +1247,16 @@ module G_graph = struct
     then
       List.iter
         (fun (id, node) ->
-           begin
-             match G_node.get_pred_opt node with
-             | None -> ()
-             | Some p -> bprintf buff "N_%s -> N_%s { label=\"__PREC__\"; bottom; style=dot; color=lightblue; forecolor=lightblue; }\n" (Gid.to_string id) (Gid.to_string p)
-           end;
-           begin
-             match G_node.get_succ_opt node with
-             | None -> ()
-             | Some s -> bprintf buff "N_%s -> N_%s { label=\"__SUCC__\"; bottom; style=dot; color=lightblue; forecolor=lightblue; }\n" (Gid.to_string id) (Gid.to_string s)
-           end
+          begin
+            match G_node.get_pred_opt node with
+            | None -> ()
+            | Some p -> bprintf buff "N_%s -> N_%s { label=\"__PREC__\"; bottom; style=dot; color=lightblue; forecolor=lightblue; }\n" (Gid.to_string id) (Gid.to_string p)
+          end;
+          begin
+            match G_node.get_succ_opt node with
+            | None -> ()
+            | Some s -> bprintf buff "N_%s -> N_%s { label=\"__SUCC__\"; bottom; style=dot; color=lightblue; forecolor=lightblue; }\n" (Gid.to_string id) (Gid.to_string s)
+          end
         ) sorted_ordered_nodes;
 
     Gid_map.iter
@@ -1287,13 +1286,14 @@ module G_graph = struct
     bprintf buff "digraph G {\n";
     bprintf buff "  node [shape=box];\n";
 
-    let layers = Gid_map.fold
+    let layers =
+      Gid_map.fold
         (fun id node acc ->
-           let layer_opt = G_fs.get_value_opt "layer" (G_node.get_fs node) |> CCOption.map Feature_value.to_string in
-           let prev = match Layers.find_opt layer_opt acc with
-             | None -> []
-             | Some l -> l in
-           Layers.add layer_opt ((id,node) :: prev) acc
+          let layer_opt = G_fs.get_value_opt "layer" (G_node.get_fs node) |> CCOption.map Feature_value.to_string in
+          let prev = match Layers.find_opt layer_opt acc with
+            | None -> []
+            | Some l -> l in
+          Layers.add layer_opt ((id,node) :: prev) acc
         ) graph.map Layers.empty in
 
     (* nodes *)
@@ -1318,8 +1318,8 @@ module G_graph = struct
             | _ -> "" in
 
             let decorated_feat =
-               try List.assoc id deco.G_deco.nodes
-               with Not_found -> ("",[]) in
+              try List.assoc id deco.G_deco.nodes
+              with Not_found -> ("",[]) in
             let fs = G_node.get_fs node |> G_fs.del_feat "layer" |> G_fs.del_feat "type" in
 
             match G_fs.to_dot ~decorated_feat ?main_feat fs with
@@ -1347,16 +1347,14 @@ module G_graph = struct
     (* more edge in debug modes *)
     Gid_map.iter
       (fun id node ->
-         begin
-           match G_node.get_succ_opt node with
-           | Some s -> 
-              (* make ordered nodes appear at the same level and in the right order with white (lightblue in debug) edges *)
-              bprintf buff " { rank=same; N_%s; N_%s; }\n" (Gid.to_string id) (Gid.to_string s);
-              let color = if !Global.debug then "lightblue" else "white" in 
-                bprintf buff "  N_%s -> N_%s [label=\"SUCC\", style=dotted, fontcolor=%s, color=%s];\n"
-                (Gid.to_string id) (Gid.to_string s) color color
-           | _ -> ()
-         end
+        match G_node.get_succ_opt node with
+        | Some s -> 
+          (* make ordered nodes appear at the same level and in the right order with white (lightblue in debug) edges *)
+          bprintf buff " { rank=same; N_%s; N_%s; }\n" (Gid.to_string id) (Gid.to_string s);
+          let color = if !Global.debug then "lightblue" else "white" in 
+          bprintf buff "  N_%s -> N_%s [label=\"SUCC\", style=dotted, fontcolor=%s, color=%s];\n"
+            (Gid.to_string id) (Gid.to_string s) color color
+        | _ -> ()
       ) graph.map;
 
     bprintf buff "}\n";
@@ -1366,53 +1364,56 @@ module G_graph = struct
   let get_feature_values feature_name t =
     Gid_map.fold
       (fun _ node acc ->
-         match G_fs.get_value_opt feature_name (G_node.get_fs node) with
-         | None -> acc
-         | Some v -> String_set.add (Feature_value.to_string v) acc
+        match G_fs.get_value_opt feature_name (G_node.get_fs node) with
+        | None -> acc
+        | Some v -> String_set.add (Feature_value.to_string v) acc
       ) t.map String_set.empty
 
   let get_relations ~config t =
     Gid_map.fold
       (fun _ node acc ->
-         Gid_massoc.fold_on_list
-           (fun acc2 _ edges ->
-              List.fold_left
-                (fun acc3 edge ->
-                   match G_edge.to_string_opt ~config edge with
-                   | None -> acc3
-                   | Some e -> String_set.add e acc3
-                ) acc2 edges
-           ) acc (G_node.get_next node)
+        Gid_massoc.fold_on_list
+          (fun acc2 _ edges ->
+            List.fold_left
+              (fun acc3 edge ->
+                match G_edge.to_string_opt ~config edge with
+                | None -> acc3
+                | Some e -> String_set.add e acc3
+              ) acc2 edges
+          ) acc (G_node.get_next node)
       ) t.map String_set.empty
 
   let get_features t =
     Gid_map.fold
       (fun _ node acc ->
-         String_set.union
-           (G_fs.get_features (G_node.get_fs node))
-           acc
+        String_set.union
+          (G_fs.get_features (G_node.get_fs node))
+          acc
       ) t.map String_set.empty
 
   let append_in_ag_lex keys t proj = 
     fold_node 
       (fun node acc -> 
-         if G_node.is_conll_zero node
-         then acc
-         else G_node.append_in_ag_lex keys node acc 
+        if G_node.is_conll_zero node
+        then acc
+        else G_node.append_in_ag_lex keys node acc 
       ) t proj 
 
   let is_projective t =
     let (arc_positions, _) =
-      Gid_map.fold (fun src_gid src_node (acc, acc_map) ->
+      Gid_map.fold
+        (fun src_gid src_node (acc, acc_map) ->
           match G_node.get_position_opt src_node with
           | None -> (acc, acc_map)
           | Some src_position ->
-            let new_acc = Gid_massoc.fold (fun acc2 tar_gid _ ->
-                let tar_node = find tar_gid t in
-                match G_node.get_position_opt tar_node with
-                | None -> acc2
-                | Some tar_position -> (min src_position tar_position, max src_position tar_position) :: acc2
-              ) acc (G_node.get_next_basic src_node) in
+            let new_acc =
+              Gid_massoc.fold 
+                (fun acc2 tar_gid _ ->
+                  let tar_node = find tar_gid t in
+                  match G_node.get_position_opt tar_node with
+                  | None -> acc2
+                  | Some tar_position -> (min src_position tar_position, max src_position tar_position) :: acc2
+                ) acc (G_node.get_next_basic src_node) in
             (new_acc, Int_map.add src_position src_gid acc_map)
         ) t.map ([], Int_map.empty) in
     Dependencies.is_projective arc_positions
@@ -1433,18 +1434,18 @@ module G_graph = struct
     let non_roots =
       Gid_map.fold
         (fun gid node acc ->
-           Gid_massoc.fold_on_list (
-             fun acc2 next_gid _ ->
-               if dfs_debug then printf " %s ---> %s\n%!" (Gid.to_string gid) (Gid.to_string next_gid);
-               Gid_set.add next_gid acc2
-           ) acc (G_node.get_next_basic node)
+          Gid_massoc.fold_on_list
+            (fun acc2 next_gid _ ->
+              if dfs_debug then printf " %s ---> %s\n%!" (Gid.to_string gid) (Gid.to_string next_gid);
+              Gid_set.add next_gid acc2
+            ) acc (G_node.get_next_basic node)
         ) graph.map Gid_set.empty in
     let roots =
       Gid_map.fold
         (fun gid _ acc ->
-           if Gid_set.mem gid non_roots
-           then acc
-           else Gid_set.add gid acc
+          if Gid_set.mem gid non_roots
+          then acc
+          else Gid_set.add gid acc
         ) graph.map Gid_set.empty in
     roots
 
@@ -1472,7 +1473,8 @@ module G_graph = struct
       info := {!info with intervals = Gid_map.add gid (Pre !clock) !info.intervals};
       incr clock;
       let node = Gid_map.find gid graph.map in
-      Gid_massoc.iter (fun next_gid _ ->
+      Gid_massoc.iter
+        (fun next_gid _ ->
           try
             match Gid_map.find next_gid !info.intervals with
             | Pre _ -> info := {!info with back_edges = (gid, next_gid) :: !info.back_edges};
@@ -1487,7 +1489,8 @@ module G_graph = struct
     let roots = get_roots graph in
     let nb_roots = Gid_set.cardinal roots in
     if dfs_debug then Printf.printf "|roots| = %d\n" nb_roots;
-    Gid_set.iter (fun gid ->
+    Gid_set.iter
+      (fun gid ->
         if dfs_debug then Printf.printf "  -----> explore %s\n" (Gid.to_string gid);
         explore gid
       ) roots;
@@ -1495,7 +1498,8 @@ module G_graph = struct
     if dfs_debug then
       begin
         Printf.printf "======== Intervals =======\n";
-        Gid_map.iter (fun gid node ->
+        Gid_map.iter
+          (fun gid node ->
             match Gid_map.find_opt gid !info.intervals with
             | None -> Printf.printf "None! %s" (Gid.to_string gid)
             | Some (Pre _) -> Printf.printf "Pre! %s" (Gid.to_string gid)
@@ -1505,12 +1509,14 @@ module G_graph = struct
           ) graph.map;
 
         Printf.printf "======== Back_edges =======\n";
-        List.iter (fun (gid1, gid2) ->
+        List.iter 
+          (fun (gid1, gid2) ->
             Printf.printf "%s --> %s\n" (Gid.to_string gid1) (Gid.to_string gid2)
           ) !info.back_edges;
 
         Printf.printf "======== nontree_edges =======\n";
-        List.iter (fun (gid1, gid2) ->
+        List.iter
+          (fun (gid1, gid2) ->
             Printf.printf "%s --> %s\n" (Gid.to_string gid1) (Gid.to_string gid2)
           ) !info.nontree_edges
       end;
