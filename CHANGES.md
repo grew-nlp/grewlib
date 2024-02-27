@@ -1,3 +1,6 @@
+## 1.15.3 (2024/02/27)
+  - Fix https://github.com/grew-nlp/grewpy/issues/5
+
 ## 1.15.2 (2024/02/22)
   - Change bounded_search type for new grewpy_backend
 
