@@ -732,6 +732,10 @@ module Feature_value = struct
     "MeanF0Normalized";
     "DurationNormalized";
     "MeanF0Normalized";
+    "MeanF0NormalizedGlobal";
+    "MaxAmplitudeNormalizedGlobal";
+    "DurationNormalizedGlobal";
+    "AvgAmplitudeNormalizedGlobal";
   ]
 
   let parse ?loc feature_name string_value =
