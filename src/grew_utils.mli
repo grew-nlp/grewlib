@@ -84,6 +84,12 @@ module String_: sig
       "x.y.z" -> Some ".z"
       "xyz" -> None  *)
   val get_suffix_opt: string -> string option
+
+  (* dedicated "string_of_float" function which avoids the trailing dot
+    string_of_float 2. --> "2."
+    of_float_clean 2. --> "2"
+  *)
+  val of_float_clean: float -> string
 end
 
 (* ================================================================================ *)

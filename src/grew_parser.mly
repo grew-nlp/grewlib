@@ -159,7 +159,7 @@ simple_id_with_loc:
 
 simple_id_or_float:
         | id=ID       { Ast.parse_simple_ident id }
-        | v=number     { Printf.sprintf "%g" v }
+        | v=number    { String_.of_float_clean v }
 
 node_id:
         | id=ID       { Ast.parse_node_ident id }
@@ -173,7 +173,7 @@ feature_ident_with_loc :
 feature_value:
         | v=ID        { Ast.parse_simple_ident v }
         | v=STRING    { v }
-        | v=number    { Printf.sprintf "%g" v }
+        | v=number    { String_.of_float_clean v }
 
 simple_or_pointed :
         | id=ID       { Ast.parse_simple_or_pointed id }
@@ -184,7 +184,7 @@ simple_or_pointed_with_loc :
 request_feature_value:
         | v=ID        { Ast.parse_simple_or_pointed v }
         | v=STRING    { Ast.Simple v }
-        | v=number    { Ast.Simple (Printf.sprintf "%g" v) }
+        | v=number    { Ast.Simple (String_.of_float_clean v) }
 
 ineq_value:
         | v=ID    { Ineq_sofi (Ast.parse_simple_or_pointed v) }
@@ -272,7 +272,7 @@ basic:
 edge_item:
         | id=ID       { Ast.parse_node_ident id }
         | v=STRING    { v }
-        | v=number    { Printf.sprintf "%g" v }
+        | v=number    { String_.of_float_clean v }
 
 label_atom:
         | name=simple_id_or_float EQUAL l=separated_nonempty_list(PIPE,edge_item) { Ast.Atom_eq (name, l)}
@@ -815,7 +815,7 @@ concat_item:
             | Ast.Pointed (s1, s2) -> Ast.Qfn_or_lex_item ((s1, s2), r)
           }
         | s=STRING         { Ast.String_item (s, (None,None)) }
-        | f=number         { Ast.String_item (Printf.sprintf "%g" f, (None,None)) }
+        | f=number         { Ast.String_item (String_.of_float_clean f, (None,None)) }
 
 range:
         | LBRACKET x=INT DDOT y=INT RBRACKET  { (Some x, Some y) }
