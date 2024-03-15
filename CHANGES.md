@@ -1,3 +1,9 @@
+## 1.15.4 (2024/03/15)
+  - Avoid syntax error when "#END" is at the end of a file without newline
+  - String_.of_float_clean (https://github.com/Arborator/arborator-frontend/issues/360)
+  - new function Request.json_bound_names
+  - ⚠️ remove function Request.pid_name_list
+
 ## 1.15.3 (2024/02/27)
   - Fix https://github.com/grew-nlp/grewpy/issues/5
 
