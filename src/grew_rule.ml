@@ -264,7 +264,10 @@ module Request = struct
     | l -> let global = `Assoc [("global", `List (List.map (fun glob -> `String (Ast.glob_to_string glob)) l))] in
       `List (global:: pattern :: without_list )
 
-  let pid_name_list request = P_graph.pid_name_list request.ker.graph
+  let json_bound_names request = 
+    let nodes = P_graph.pid_name_list request.ker.graph |> List.map (fun x -> `String x) in
+    let edges = get_edge_ids request.ker |> List.map (fun x -> `String x) in
+  `Assoc [("nodes", `List nodes); ("edges", `List edges)]
 
   let of_ast ~config ?(lexicons=[]) request_ast =
     let (ker, ker_table, edge_ids) =

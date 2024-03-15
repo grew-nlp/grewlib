@@ -97,20 +97,20 @@ and string_lex re target = parse
 
 (* a dedicated lexer for local lexicons: read everything until "#END" *)
 and lp_lex name target = parse
-| newline                     { (match Global.get_line_opt () with
-                                | None -> raise (Error "no loc in lexer")
-                                | Some l -> lexicon_lines := (l, Buffer.contents buff) :: !lexicon_lines
-                                );
-                                Global.new_line ();
-                                Lexing.new_line lexbuf;
-                                Buffer.clear buff;
-                                lp_lex name target lexbuf
-                              }
-| _ as c                      { bprintf buff "%c" c; lp_lex name target lexbuf }
-| "#END" [' ' '\t']* newline  { Global.new_line ();
-                                let lines= List.rev !lexicon_lines in
-                                LEX_PAR (name, lines)
-                              }
+| newline { (match Global.get_line_opt () with
+            | None -> raise (Error "no loc in lexer")
+            | Some l -> lexicon_lines := (l, Buffer.contents buff) :: !lexicon_lines
+            );
+            Global.new_line ();
+            Lexing.new_line lexbuf;
+            Buffer.clear buff;
+            lp_lex name target lexbuf
+          }
+| _ as c  { bprintf buff "%c" c; lp_lex name target lexbuf }
+| "#END"  {
+            let lines = List.rev !lexicon_lines in
+            LEX_PAR (name, lines)
+          }
 
 (* The lexer must be different when label_ident are parsed.
    The [global] lexer calls either [label_parser] or [standard] depending on the flag [Global.label_flag].

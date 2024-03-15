@@ -144,6 +144,13 @@ module String_ = struct
             | None -> Error.run "Environment variable `%s` is undefined" varname
       )
       path
+
+  let of_float_clean f =
+    let s = string_of_float f in
+    if String.ends_with ~suffix:"." s
+    then String.sub s 0 ((String.length s) - 1)
+    else s
+
 end (* module String *)
 
 (* ================================================================================ *)
@@ -752,11 +759,13 @@ module Feature_value = struct
     | String s -> s
       |> Str.global_replace (Str.regexp "\"") "\\\""
       |> sprintf (if quote then "\"%s\"" else "%s")
-    | Float f -> sprintf "%g" f
+    | Float f -> 
+        printf "%f --> %s\n%!" f (String_.of_float_clean f);
+      String_.of_float_clean f
 
   let to_json = function
     | String s -> `String s
-    | Float f -> `String (sprintf "%g" f)
+    | Float f -> `String (String_.of_float_clean f)
 
   let extract_range ?loc range = function
     | String s -> String (Range.extract range s)

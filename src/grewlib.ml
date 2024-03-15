@@ -176,9 +176,9 @@ module Request = struct
       ~name:"Request.parse_basic"
       (fun () -> Grew_rule.Request.build_whether ~config request (Grew_loader.Parser.basic desc)) ()
 
-  let pid_name_list request =
-    Grewlib.handle ~name:"Request.pid_list"
-      (fun () -> List.map (fun x -> x) (Grew_rule.Request.pid_name_list request)
+  let json_bound_names request =
+    Grewlib.handle ~name:"Request.json_bound_names"
+      (fun () -> Grew_rule.Request.json_bound_names request
       ) ()
   let of_json ~config grs =
     Grewlib.handle ~name:"Request.of_json"
