@@ -760,7 +760,6 @@ module Feature_value = struct
       |> Str.global_replace (Str.regexp "\"") "\\\""
       |> sprintf (if quote then "\"%s\"" else "%s")
     | Float f -> 
-        printf "%f --> %s\n%!" f (String_.of_float_clean f);
       String_.of_float_clean f
 
   let to_json = function
