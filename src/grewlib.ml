@@ -180,6 +180,11 @@ module Request = struct
     Grewlib.handle ~name:"Request.pid_list"
       (fun () -> List.map (fun x -> x) (Grew_rule.Request.pid_name_list request)
       ) ()
+
+  let json_bound_names request =
+    Grewlib.handle ~name:"Request.json_bound_names"
+      (fun () -> Grew_rule.Request.json_bound_names request
+      ) ()
   let of_json ~config grs =
     Grewlib.handle ~name:"Request.of_json"
       (fun () ->

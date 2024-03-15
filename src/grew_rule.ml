@@ -266,6 +266,11 @@ module Request = struct
 
   let pid_name_list request = P_graph.pid_name_list request.ker.graph
 
+  let json_bound_names request = 
+    let nodes = pid_name_list request |> List.map (fun x -> `String x) in
+    let edges = get_edge_ids request.ker |> List.map (fun x -> `String x) in
+  `Assoc [("nodes", `List nodes); ("edges", `List edges)]
+
   let of_ast ~config ?(lexicons=[]) request_ast =
     let (ker, ker_table, edge_ids) =
       try build_ker_basic ~config lexicons request_ast.Ast.req_pos
