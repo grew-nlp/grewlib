@@ -290,7 +290,7 @@ module Request = struct
     | Key of string
     | Whether of basic
   
-  (* Note that we need to know the request in order to build the baisc type *)
+  (* Note that we need to know the request in order to build the basic type *)
   let parse_cluster_item ~config request s =
     let clean_s = CCString.trim s in
     if clean_s.[0] = '{'
