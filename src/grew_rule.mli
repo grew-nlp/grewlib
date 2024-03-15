@@ -19,8 +19,6 @@ module Request : sig
 
   type t
 
-  val pid_name_list: t -> Id.name list
-
   (** [json_bound_names request] returns a JSON object with two items: "nodes" and "edges", 
       each associated to a list of string for bound nodes and edges *)
   val json_bound_names: t -> Yojson.Basic.t
