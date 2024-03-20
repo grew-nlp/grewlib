@@ -111,6 +111,18 @@ module Range = struct
         else char_list |> CCList.drop init |> CCList.take (final - init) |> CCUtf8_string.of_list |> CCUtf8_string.to_string
 end (* module Range *)
 
+(* ==================================================================================================== *)
+module File = struct
+  (* get the last modif time of a [file]. Returns [min_float] if the file does not exist *)
+  let last_modif file =
+    try
+      let stat = Unix.stat file in
+      stat.Unix.st_mtime
+    with Unix.Unix_error _ -> Float.min_float
+  
+  let concat_names l = List.fold_left Filename.concat "" l
+end
+
 (* ================================================================================ *)
 module String_ = struct
   let rm_first_char = function "" -> "" | s -> String.sub s 1 ((String.length s) - 1)

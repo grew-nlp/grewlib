@@ -68,8 +68,14 @@ module Range: sig
      NB: indexes correspond to UTF-8 chars. ex: [extract (None, Some (-1)) "été"] ==> "ét"
   *)
   val extract: t -> string -> string
-
 end
+
+(* ================================================================================ *)
+module File :
+  sig
+    val last_modif : string -> float
+    val concat_names : string list -> string
+  end
 
 (* ================================================================================ *)
 module String_: sig

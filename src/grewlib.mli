@@ -327,6 +327,31 @@ module Corpus_desc : sig
 end (* module Corpus_desc *)
 
 (* ================================================================================ *)
+module Corpusbank : sig
+  type t
+
+  val iter:
+    ?filter: (string -> bool) ->
+    (string -> Corpus_desc.t -> unit) ->
+      t -> unit
+
+  val fold:
+    ?filter: (string -> bool) ->
+    (string -> Corpus_desc.t -> 'a -> 'a) ->
+      t -> 'a -> 'a
+  
+  val load: string -> t
+
+  val build_filter : string list -> (string -> bool)
+
+  val get_corpus_desc_opt : t -> string -> Corpus_desc.t option
+
+  val dump_status : ?verbose:bool -> t  -> unit
+
+  val build_derived: t -> Corpus_desc.t -> unit
+end
+
+(* ================================================================================ *)
 module Sbn: sig
   val to_json: string -> Yojson.Basic.t
 end

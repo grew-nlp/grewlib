@@ -72,7 +72,7 @@ module Corpus : sig
 end
 
 module Corpus_desc : sig
-  type t = Yojson.Basic.t
+  type t
 
   val build_corpus: t -> Corpus.t
   val load_corpus_opt: t -> Corpus.t option
@@ -93,4 +93,28 @@ module Corpus_desc : sig
   val compile: ?force:bool -> t -> unit
 
   val clean: t -> unit
+end
+
+module Corpusbank : sig
+  type t
+
+  val iter:
+    ?filter: (string -> bool) ->
+    (string -> Corpus_desc.t -> unit) ->
+      t -> unit
+
+  val fold:
+    ?filter: (string -> bool) ->
+    (string -> Corpus_desc.t -> 'a -> 'a) ->
+      t -> 'a -> 'a
+
+  val load: string -> t
+
+  val build_filter : string list -> (string -> bool)
+
+  val get_corpus_desc_opt : t -> string -> Corpus_desc.t option
+
+  val dump_status : ?verbose:bool -> t  -> unit
+
+  val build_derived: t -> Corpus_desc.t -> unit
 end

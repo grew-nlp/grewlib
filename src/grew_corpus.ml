@@ -17,6 +17,7 @@ open Grew_utils
 open Grew_loader
 open Grew_graph
 open Grew_rule
+open Grew_grs
 
 (* ==================================================================================================== *)
 module Pst_corpus = struct
@@ -304,6 +305,7 @@ module Corpus_desc = struct
   type t = Yojson.Basic.t
 
   let to_json t = t
+
   let get_id corpus_desc = corpus_desc |> member "id" |> to_string
 
   let get_field_opt field corpus_desc = corpus_desc |> member field |> to_string_option
@@ -558,22 +560,27 @@ module Corpus_desc = struct
     | _ -> failwith "Type error"
 
   (* ---------------------------------------------------------------------------------------------------- *)
+  let outdated corpus_desc built_file =
+    try
+      let full_built_file = Filename.concat (get_build_directory corpus_desc) built_file in
+      let built_file_time = (Unix.stat full_built_file).Unix.st_mtime in
+      List.exists (fun f -> (Unix.stat f).Unix.st_mtime > built_file_time) (get_full_files corpus_desc)
+    with Unix.Unix_error _ -> true
+
+    (* ---------------------------------------------------------------------------------------------------- *)
+  let need_compile corpus_desc = outdated corpus_desc "marshal"
+
+  (* ---------------------------------------------------------------------------------------------------- *)
+  let need_validate corpus_desc =
+    match get_field_opt "validation" corpus_desc with
+    | Some "ud" -> outdated corpus_desc "valid_ud.txt"
+    | Some "sud" -> outdated corpus_desc "valid_sud.json" 
+    (* TODO parseme validation??*)
+    | _ -> false
+
+  (* ---------------------------------------------------------------------------------------------------- *)
   let compile ?(force=false) corpus_desc =
-    let full_files = get_full_files corpus_desc in
-    let really_marshal () = build_marshal_file corpus_desc in
-    if force
-    then really_marshal ()
-    else
-      try
-        let marshal_file = Filename.concat (get_build_directory corpus_desc) "marshal" in
-        let marshal_time = (Unix.stat marshal_file).Unix.st_mtime in
-        if List.exists (fun f -> (Unix.stat f).Unix.st_mtime > marshal_time) full_files
-        then really_marshal () (* one of the data files is more recent than the marshal file *)
-        else Error.info "--> %s is uptodate" (get_id corpus_desc)
-      with
-      | Unix.Unix_error _ ->
-        (* the marshal file does not exists *)
-        really_marshal ()
+    if force || (need_compile corpus_desc) then build_marshal_file corpus_desc
 
   (* ---------------------------------------------------------------------------------------------------- *)
   let clean corpus_desc =
@@ -581,3 +588,275 @@ module Corpus_desc = struct
     let _ = FileUtil.rm ~recurse:true [build_dir] in
     ()
 end (* module Corpus_desc *)
+
+
+let green x = Printf.ksprintf (fun s -> ANSITerminal.eprintf [ANSITerminal.green] "%s" s; eprintf "%!") x
+let blue x = Printf.ksprintf (fun s -> ANSITerminal.eprintf [ANSITerminal.blue] "%s" s; eprintf "%!") x
+let red x = Printf.ksprintf (fun s -> ANSITerminal.eprintf [ANSITerminal.red] "%s" s; eprintf "%!") x
+let magenta x = Printf.ksprintf (fun s -> ANSITerminal.eprintf [ANSITerminal.magenta] "%s" s; eprintf "%!") x
+
+let _cprint color x = Printf.ksprintf (fun s -> ANSITerminal.eprintf [color] "%s" s; eprintf "%!") x
+
+
+(* ==================================================================================================== *)
+module Corpusbank = struct
+  type t = Corpus_desc.t String_map.t
+
+  let iter ?(filter=fun _ -> true) fct t =
+    String_map.iter 
+    (fun corpus_id corpus_desc ->
+      if filter corpus_id
+      then fct corpus_id corpus_desc
+    ) t
+
+  let fold ?(filter=fun _ -> true) fct t init =
+    String_map.fold 
+    (fun corpus_id corpus_desc acc ->
+      if filter corpus_id
+      then fct corpus_id corpus_desc acc
+      else acc
+    ) t init
+
+  let read_files ?dir files = 
+    let data = List.fold_left
+      (fun acc file ->
+        if Filename.extension file = ".json"
+        then
+          begin
+            let full_file = match dir with Some d -> Filename.concat d file | None -> file in
+            let descs = Corpus_desc.load_json full_file in
+            List.fold_left
+              (fun acc2 desc ->
+                let id = Corpus_desc.get_id desc in
+                  if String_map.mem id acc2
+                  then Error.run "Duplicate definition of corpus_id `%s`" id
+                  else String_map.add id desc acc2
+              ) acc descs
+        end
+        else acc
+      ) String_map.empty files in
+    data
+
+  let read_directory dir = 
+    let all_files = Array.to_list (Sys.readdir dir) in
+    read_files ~dir all_files
+
+  let load input = 
+    try
+      if Sys.is_directory input
+      then read_directory input
+      else read_files [input]
+    with Sys_error _ -> Error.run "corpusbank `%s` not found" input
+
+  let build_filter patterns =
+    let anon_regexp = List.map (fun s -> Re.compile (Re.Glob.glob ~anchored:true s)) patterns in
+    let filter id = match anon_regexp with
+    | [] -> true
+    | l -> List.exists (fun re -> Re.execp re id) l in
+    filter
+
+  let get_corpus_desc_opt corpusbank corpus_id = 
+    String_map.find_opt corpus_id corpusbank
+
+  type status =
+  | Ok
+  | Need_validate
+  | Need_compile
+  | Need_build of string list
+  | Err of string
+
+  let string_of_status = function
+  | Ok -> "Ok"
+  | Need_validate -> "Need_validate"
+  | Need_compile -> "Need_compile"
+  | Need_build _ -> "Need_build"
+  | Err _ -> "Error"
+
+  let print_of_status stat s = match stat with
+  | "Ok" -> green s
+  | "Error" -> red s
+  | "Need_build" -> magenta s
+  | _ -> blue s
+
+  let _color_of_status = function
+  | "Ok" -> ANSITerminal.green
+  | "Error" -> ANSITerminal.red
+  | "Need_build" -> ANSITerminal.magenta
+  | _ -> ANSITerminal.blue
+
+
+  let grs_timestamps = ref String_map.empty
+
+  let get_grs_timestamp grs_file =
+    match String_map.find_opt grs_file !grs_timestamps with
+    | Some s -> s
+    | None ->
+      (* Load with a default config... just for getting the timestamp --> config must be in GRS!! *)
+      let grs = Grs.load ~config:(Conll_config.build "sud") grs_file in
+      let grs_timestamp = grs |> Grs.get_timestamp_opt |> CCOption.get_exn_or "Bug grs_timestamp" in
+      grs_timestamps := String_map.add grs_file grs_timestamp !grs_timestamps;
+      grs_timestamp
+
+  let status_when_build_ok corpus_desc =
+    if Corpus_desc.need_compile corpus_desc
+    then Need_compile
+    else
+      if Corpus_desc.need_validate corpus_desc
+      then Need_validate
+      else Ok
+
+  let build_status_map corpusbank =
+    let rec update corpus_id acc =
+      match get_corpus_desc_opt corpusbank corpus_id with
+      | None -> String_map.add corpus_id (Err (sprintf "No desc found for `%s`" corpus_id)) acc
+      | Some corpus_desc ->
+        match String_map.find_opt corpus_id acc with
+        | Some _ -> acc (* already computed in a previous recursive call *)
+        | None ->
+          match (Corpus_desc.get_field_opt "src" corpus_desc, Corpus_desc.get_field_opt "grs" corpus_desc) with
+          | (None, None) -> String_map.add corpus_id (status_when_build_ok corpus_desc) acc
+          | (None, Some _) -> Error.build "corpus `%s` is described with a `grs` but without `src`" corpus_id
+          | (Some _, None) -> Error.build "corpus `%s` is described with a `src` but without `grs`" corpus_id
+          | (Some src_corpus_id, Some grs_file) ->
+            let new_acc = update src_corpus_id acc in (* update status of src_corpus first *)
+            begin
+              match String_map.find src_corpus_id new_acc with
+              | Err m -> String_map.add corpus_id (Err (sprintf "depend on `%s` [%s]" src_corpus_id m)) acc
+              | Need_build _ -> String_map.add corpus_id (Need_build [sprintf "depend on unbuilt `%s`" src_corpus_id]) acc
+              | _ -> 
+                match get_corpus_desc_opt corpusbank src_corpus_id with
+                | None -> assert false (* None is caught in previous match as `Err` *)
+                | Some src_corpus_desc ->
+                  try
+                    let src_files = Corpus_desc.get_files src_corpus_desc in
+                    let directory = Corpus_desc.get_directory corpus_desc in
+                    let old_tar_files = ref (String_set.of_list (Corpus_desc.get_files corpus_desc)) in
+                    let grs_timestamp = get_grs_timestamp grs_file in
+                    let msg_list = List.fold_left
+                      (fun acc src ->
+                        let tar_basename = Filename.basename src in (* TODO: handle replacement in names like ud -> sud *)
+                        let tar = Filename.concat directory tar_basename in 
+                        old_tar_files := String_set.remove tar !old_tar_files;
+                        if max grs_timestamp (File.last_modif src) > (File.last_modif tar)
+                        then (sprintf "file `%s` need to be rebuilt" tar) :: acc
+                        else acc
+                      ) [] src_files in 
+                    match (msg_list, !old_tar_files |> String_set.to_seq |> List.of_seq) with
+                    | ([], []) -> String_map.add corpus_id (status_when_build_ok corpus_desc) acc
+                    | (msg_list, unwanted_files) -> 
+                      let unwanted_msg_list = List.map (fun f -> sprintf "file `%s` must be removed" f) unwanted_files in
+                      String_map.add corpus_id (Need_build (msg_list @ unwanted_msg_list)) acc
+                  with exc -> String_map.add corpus_id (Err (sprintf "Unexpected exception, for corpus_id `%s`, %s" corpus_id (Printexc.to_string exc))) acc
+            end in
+    String_map.fold (
+      fun corpus_id _ acc -> update corpus_id acc
+    ) corpusbank String_map.empty
+
+  let dump_status ?(verbose=false) corpusbank = 
+    let status = build_status_map corpusbank in
+    let counters = ref String_map.empty in
+    let count s =
+      let new_sum = match String_map.find_opt s !counters with None -> 1 | Some n -> n+1 in
+      counters := String_map.add s new_sum !counters in
+    String_map.iter (
+      fun corpus_id stat_corpus ->
+        let string_status = string_of_status stat_corpus in
+        let () = count string_status in
+        let print = print_of_status string_status in
+        match stat_corpus with
+        | Ok -> if verbose then print "OK -------------> %s\n" corpus_id
+        | Need_validate ->      print "need validate --> %s\n" corpus_id;
+        | Need_compile ->       print "need compile ---> %s\n" corpus_id;
+        | Need_build msg_list -> 
+                                print "need rebuild ---> %s \n" corpus_id;
+            if verbose then List.iter (fun msg -> print "    • %s\n%!" msg) msg_list
+        | Err msg ->
+          red "Error ----------> %s [%s]\n" corpus_id msg;
+          ()
+
+    ) status;
+    printf "----------------------------------\n%!";
+    String_map.iter 
+      (fun stat count ->
+        (print_of_status stat ) "%15s ----> %d\n%!" stat count
+      ) !counters;
+
+    printf "%15s ----> %d\n%!" "Total" (String_map.fold (fun _ c acc -> c + acc) !counters 0);
+    printf "----------------------------------\n%!"
+
+  let transform grs_config columns grs strat (src_config, src_file) (tar_config, tar_file) =
+    let src_corpus = Corpus.from_file ~config:src_config src_file in
+    let out_ch = open_out tar_file in
+    Corpus.iteri
+      (fun _ _ gr ->
+      (* Counter.print index len sent_id; *)
+
+      (* Grew_grs.Grs.simple_rewrite ~config grs strat gr *)
+
+        match Grs.simple_rewrite ~config:grs_config grs strat gr with
+          | [graph] -> fprintf out_ch "%s\n" (graph |> G_graph.to_json |> Conll.of_json |> Conll.to_string ~config:tar_config ~columns)
+          | _ -> Error.run "More than one normal form (src_file=%s)" src_file
+      ) src_corpus;
+      (* Counter.finish (); *)
+      (* final (); *)
+      close_out out_ch
+
+  let rec build_derived corpusbank corpus_desc =
+    let corpus_id = Corpus_desc.get_id corpus_desc in
+    let columns = Corpus_desc.get_field_opt "columns" corpus_desc |> CCOption.map_or Conll_columns.build ~default:Conll_columns.default in
+    match (Corpus_desc.get_field_opt "src" corpus_desc, Corpus_desc.get_field_opt "grs" corpus_desc, Corpus_desc.get_field_opt "strat" corpus_desc) with
+    | (None, _, _) -> () (* this is a native corpus *)
+    | (Some _, None, _) -> red "ERROR: in description for corpus_id: `%s`, src but no grs" corpus_id
+    | (Some src_corpus_id, Some grs_file, strat_opt) ->
+      match get_corpus_desc_opt corpusbank src_corpus_id with
+      | None -> red "ERROR: no description for src_corpus_id: `%s`" src_corpus_id
+      | Some src_corpus_desc -> 
+          (* first, recursively build until native corpus *)
+          let () = build_derived corpusbank src_corpus_desc in
+  
+          let directory = Corpus_desc.get_directory corpus_desc in
+          let () = 
+            match Sys.file_exists directory with
+            | false -> Unix.mkdir directory 0o755
+            | true ->
+              match Sys.is_directory directory with
+              | true -> ()
+              | false -> Error.build "Cannot build directory `%s` for corpus `%s` (a file with the same name exists!)" directory corpus_id in
+  
+          let grs_config = match Corpus_desc.get_field_opt "grs_config" corpus_desc with
+          | Some c -> Conll_config.build c
+          | None -> Corpus_desc.get_config corpus_desc in (* If no grs_config is defined, tar_config is used *)
+  
+          let grs = Grs.load ~config:grs_config grs_file in
+          let grs_timestamp = grs |> Grs.get_timestamp_opt |> CCOption.get_exn_or "Bug grs_timestamp" in
+          let strat = strat_opt |> CCOption.get_or ~default:"main" in
+  
+          let src_files = Corpus_desc.get_files src_corpus_desc in
+          let src_config = Corpus_desc.get_config src_corpus_desc in
+  
+          let tar_config = Corpus_desc.get_config corpus_desc in
+  
+          let old_tar_files = ref (String_set.of_list (Corpus_desc.get_files corpus_desc)) in
+          let () = List.iter
+            (fun src ->
+              let tar_basename = Filename.basename src in (* TODO: handle replacement in names like ud -> sud *)
+              let tar = Filename.concat directory tar_basename in 
+              old_tar_files := String_set.remove tar !old_tar_files;
+              if max grs_timestamp (File.last_modif src) > (File.last_modif tar)
+              then
+                begin
+                  eprintf "update %s from %s\n%!" tar src;
+                  transform grs_config columns grs strat (src_config,src) (tar_config,tar)
+                end
+              else
+                eprintf "%s is uptodate\n%!" tar
+            ) src_files in
+  
+          let () = String_set.iter
+            (fun f ->
+              eprintf "remove file %s\n%!" f;
+              Unix.unlink f
+            ) !old_tar_files in
+          ()
+  
+end

@@ -23,6 +23,7 @@
   (libraries 
     str
     unix
+    re
     ANSITerminal 
     containers 
     fileutils

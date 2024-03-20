@@ -444,6 +444,54 @@ module Corpus_desc = struct
 end (* module Corpus_desc *)
 
 (* ==================================================================================================== *)
+(** {2 Corpus_desc} *)
+(* ==================================================================================================== *)
+module Corpusbank = struct
+  type t = Grew_corpus.Corpusbank.t
+
+  let iter ?filter fct t =
+    Grewlib.handle
+      ~name:"Corpusbank.iter"
+      (fun () -> Grew_corpus.Corpusbank.iter ?filter fct t)
+      ()
+  let fold ?filter fct t init =
+    Grewlib.handle
+      ~name:"Corpusbank.fold"
+      (fun () -> Grew_corpus.Corpusbank.fold ?filter fct t init)
+      ()
+
+  let load s =
+    Grewlib.handle
+      ~name:"Corpusbank.load"
+      (fun () -> Grew_corpus.Corpusbank.load s)
+      ()
+
+  let build_filter patterns =
+    Grewlib.handle
+      ~name:"Corpusbank.build_filter"
+      (fun () -> Grew_corpus.Corpusbank.build_filter patterns)
+      ()
+
+  let get_corpus_desc_opt corpusbank corpus_id =
+    Grewlib.handle
+      ~name:"Corpusbank.get_corpus_desc_opt"
+      (fun () -> Grew_corpus.Corpusbank.get_corpus_desc_opt corpusbank corpus_id)
+      ()
+
+  let dump_status ?verbose t =
+    Grewlib.handle
+      ~name:"Corpus.dump_status" 
+      (fun () -> Grew_corpus.Corpusbank.dump_status ?verbose t)
+      ()
+  let build_derived corpusbank corpus_id =
+    Grewlib.handle
+      ~name:"Corpus.build_derived" 
+      (fun () -> Grew_corpus.Corpusbank.build_derived corpusbank corpus_id)
+      ()
+
+end
+
+(* ==================================================================================================== *)
 (** {2 Sbn} *)
 (* ==================================================================================================== *)
 module Sbn = struct
