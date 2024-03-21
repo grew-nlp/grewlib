@@ -275,6 +275,10 @@ module Corpus: sig
   (** [compile dir marshal_file t]  *)
   val compile: string -> string -> t -> unit
 
+  val count_feature_values: 
+    ?filter: (string -> bool) ->
+    t -> int String_map.t String_map.t
+
 end
 
 (* ==================================================================================================== *)

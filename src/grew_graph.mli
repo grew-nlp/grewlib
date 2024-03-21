@@ -248,6 +248,11 @@ module G_graph: sig
   val get_relations:  config:Conll_config.t -> t -> String_set.t
   val get_features: t -> String_set.t
 
+  val count_feature_values:
+    ?filter: (string -> bool) ->
+    ?acc:int String_map.t String_map.t ->
+    t -> int String_map.t String_map.t
+
   val subgraph: t -> Gid_map.key list -> int -> t
 end (* module G_graph *)
 

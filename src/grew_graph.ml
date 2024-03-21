@@ -1363,6 +1363,37 @@ module G_graph = struct
     bprintf buff "}\n";
     Buffer.contents buff
 
+  let add_feat_value feat_name feat_value acc =
+    let string_feat_value = Feature_value.to_string feat_value in
+    let old_sub =
+      String_map.find_opt feat_name acc
+      |> CCOption.get_or ~default: String_map.empty in
+    let old_count = 
+      String_map.find_opt string_feat_value old_sub
+      |> CCOption.get_or ~default: 0 in
+    String_map.add feat_name 
+      (String_map.add string_feat_value (old_count + 1) old_sub) acc
+
+  let count_feature_values ?(filter=fun _ -> true) ?(acc=String_map.empty) t =
+    Gid_map.fold
+      (fun _ node acc2 ->
+        if G_node.is_conll_zero node
+        then acc2
+        else 
+          let fs = G_node.get_fs node in
+          let features = G_fs.get_features fs in
+          String_set.fold
+          (fun feat_name acc3 ->
+            if filter feat_name
+            then
+              match G_fs.get_value_opt feat_name fs with
+              | None -> assert false
+              | Some v -> add_feat_value feat_name v acc3
+            else
+              acc3
+          ) features acc2
+      ) t.map acc
+
   (* -------------------------------------------------------------------------------- *)
   let get_feature_values feature_name t =
     Gid_map.fold

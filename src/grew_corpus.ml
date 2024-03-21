@@ -295,7 +295,12 @@ module Corpus = struct
     let out_ch = open_out_bin (Filename.concat dir marshal_file) in
     Marshal.to_channel out_ch t [];
     close_out out_ch
-  
+
+  let count_feature_values ?(filter=fun _ -> true) t =
+    fold_right 
+      (fun _ graph acc -> 
+        G_graph.count_feature_values ~filter ~acc (graph : G_graph.t)
+      ) t String_map.empty
 end
 
 (* ==================================================================================================== *)
