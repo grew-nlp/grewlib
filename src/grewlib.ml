@@ -381,6 +381,8 @@ module Corpus = struct
     Grewlib.handle ~name:"Corpus.search" 
     (fun () -> Grew_corpus.Corpus.bounded_search ~json_label ~config ?ordering bound timeout null update request cluster_item_list corpus) ()
 
+  let count_feature_values = Grew_corpus.Corpus.count_feature_values
+
 end (* module Corpus *)
 
 

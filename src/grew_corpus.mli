@@ -65,6 +65,10 @@ module Corpus : sig
       Request.cluster_item list ->         (* The list of element used for clustering *)
     t -> 
       ('a Clustered.t * string * float)  (* (output, statut, ratio) status is "ok", "timeout" or "over" *)
+
+  val count_feature_values: 
+    ?filter: (string -> bool) ->
+    t -> int String_map.t String_map.t
 end
 
 module Corpus_desc : sig

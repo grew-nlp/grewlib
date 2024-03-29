@@ -289,6 +289,12 @@ module Corpus = struct
     | Timeout r -> (x, "timeout", r)
     | Over r -> (x, "max_results", r)
     )
+
+  let count_feature_values ?(filter=fun _ -> true) t =
+    fold_right 
+      (fun _ graph acc -> 
+        G_graph.count_feature_values ~filter ~acc (graph : G_graph.t)
+      ) t String_map.empty
 end (* module Corpus *)
 
 (* ==================================================================================================== *)

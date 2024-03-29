@@ -278,6 +278,10 @@ module Corpus: sig
       ('a Clustered.t * string * float)  (* (output, statut, ratio) status is "ok", "timeout" or "over" *)
   (** search for a request in a corpus , with timeout and a bounded number of solutions *)
 
+  val count_feature_values: 
+    ?filter: (string -> bool) ->
+    t -> int String_map.t String_map.t
+
 end
 
 (* ================================================================================ *)
