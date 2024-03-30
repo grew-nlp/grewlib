@@ -158,7 +158,7 @@ module Graph = struct
 end
 
 (* ==================================================================================================== *)
-(** {2 Requests} *)
+(** {2 Request} *)
 (* ==================================================================================================== *)
 module Request = struct
   type t = Grew_rule.Request.t
@@ -166,33 +166,28 @@ module Request = struct
   type basic = Grew_rule.Request.basic
 
   let load ~config file =
-    Grewlib.handle ~name:"Request.load" (fun () -> Grew_rule.Request.of_ast ~config (Grew_loader.Loader.request file)) ()
+    Grewlib.handle 
+      ~name:"Request.load" 
+      (fun () -> Grew_rule.Request.load ~config file) ()
 
-  let parse ~config desc =
-    Grewlib.handle ~name:"Request.parse" (fun () -> Grew_rule.Request.of_ast ~config (Grew_loader.Parser.request desc)) ()
-
-  let parse_basic ~config request desc =
-    Grewlib.handle
-      ~name:"Request.parse_basic"
-      (fun () -> Grew_rule.Request.build_whether ~config request (Grew_loader.Parser.basic desc)) ()
+  let parse ~config code =
+    Grewlib.handle 
+      ~name:"Request.parse" 
+      (fun () -> Grew_rule.Request.parse ~config code) ()
 
   let json_bound_names request =
     Grewlib.handle ~name:"Request.json_bound_names"
-      (fun () -> Grew_rule.Request.json_bound_names request
-      ) ()
+      (fun () -> Grew_rule.Request.json_bound_names request) ()
+
   let of_json ~config grs =
     Grewlib.handle ~name:"Request.of_json"
-      (fun () ->
-         Grew_rule.Request.of_json ~config grs
-      ) ()
+      (fun () -> Grew_rule.Request.of_json ~config grs) ()
   
   type cluster_item = Grew_rule.Request.cluster_item
 
   let parse_cluster_item ~config request string_item =
     Grewlib.handle ~name:"Request.parse_cluster_item"
-      (fun () ->
-         Grew_rule.Request.parse_cluster_item ~config request string_item
-      ) ()
+      (fun () -> Grew_rule.Request.parse_cluster_item ~config request string_item) ()
 
 end
 

@@ -269,18 +269,24 @@ module Request = struct
     let edges = get_edge_ids request.ker |> List.map (fun x -> `String x) in
   `Assoc [("nodes", `List nodes); ("edges", `List edges)]
 
-  let of_ast ~config ?(lexicons=[]) request_ast =
+  let of_ast ~config request_ast =
     let (ker, ker_table, edge_ids) =
-      try build_ker_basic ~config lexicons request_ast.Ast.req_pos
+      try build_ker_basic ~config [] request_ast.Ast.req_pos
       with P_fs.Fail_unif -> Error.build "feature structures declared in the `pattern` clauses are inconsistent " in
     let exts =
       List_.try_map
         P_fs.Fail_unif (* Skip the without parts that are incompatible with the match part *)
         (fun (basic_ast, flag) -> 
-          (build_ext_basic ~config lexicons ker_table edge_ids basic_ast, flag)
+          (build_ext_basic ~config [] ker_table edge_ids basic_ast, flag)
         )
         request_ast.Ast.req_exts in
     { ker; exts; global=request_ast.req_glob; table=ker_table; edge_ids; meta=[]}
+
+  let load ~config file = 
+    of_ast ~config (Grew_loader.Loader.request file)
+
+  let parse ~config code = 
+    of_ast ~config (Grew_loader.Parser.request code)
 
   let build_whether ~config request basic_ast =
     build_ext_basic ~config [] request.table request.edge_ids (Ast.complete_basic basic_ast)

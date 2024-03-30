@@ -23,11 +23,9 @@ module Request : sig
       each associated to a list of string for bound nodes and edges *)
   val json_bound_names: t -> Yojson.Basic.t
 
-  val of_ast: config:Conll.Conll_config.t -> ?lexicons: Lexicons.t -> Ast.request -> t
+  val load: config:Conll.Conll_config.t -> string -> t
 
-  val build_whether: config:Conll.Conll_config.t -> t -> Ast.basic -> basic
-
-  val string_of_json: Yojson.Basic.t -> string
+  val parse: config:Conll.Conll_config.t -> string -> t
 
   val of_json: config:Conll.Conll_config.t -> Yojson.Basic.t -> t
 

@@ -106,9 +106,6 @@ module Request : sig
   (** [parse description] returns the request described in the [descriprion] string *)
   val parse: config:Conll_config.t -> string -> t
 
-  (** [parse_basic description] returns the basic described in the [descriprion] string *)
-  val parse_basic: config:Conll_config.t -> t -> string -> basic
-
   (** [json_bound_names request] returns a JSON object with two items: "nodes" and "edges", 
       each associated to a list of string for bound nodes and edges *)
   val json_bound_names: t -> Yojson.Basic.t
