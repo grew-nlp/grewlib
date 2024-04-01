@@ -93,6 +93,8 @@ module Corpus_desc : sig
   val compile: ?force:bool -> t -> unit
 
   val clean: t -> unit
+
+  val validate: ?env: (string * string) list -> t -> unit
 end
 
 module Corpusbank : sig
@@ -118,3 +120,4 @@ module Corpusbank : sig
 
   val build_derived: t -> Corpus_desc.t -> unit
 end
+

@@ -19,6 +19,32 @@ open Grew_graph
 open Grew_rule
 open Grew_grs
 
+let green x = Printf.ksprintf (fun s -> ANSITerminal.eprintf [ANSITerminal.green] "%s" s; eprintf "%!") x
+let blue x = Printf.ksprintf (fun s -> ANSITerminal.eprintf [ANSITerminal.blue] "%s" s; eprintf "%!") x
+let red x = Printf.ksprintf (fun s -> ANSITerminal.eprintf [ANSITerminal.red] "%s" s; eprintf "%!") x
+let magenta x = Printf.ksprintf (fun s -> ANSITerminal.eprintf [ANSITerminal.magenta] "%s" s; eprintf "%!") x
+
+let _cprint color x = Printf.ksprintf (fun s -> ANSITerminal.eprintf [color] "%s" s; eprintf "%!") x
+
+let now () =  (* TODO: move elsewhere *)
+let gm = Unix.localtime (Unix.time ()) in
+Printf.sprintf "%02d/%02d/%02d - %02d:%02d"
+  (gm.Unix.tm_year - 100)
+  (gm.Unix.tm_mon + 1)
+  gm.Unix.tm_mday
+  gm.Unix.tm_hour
+  gm.Unix.tm_min
+
+let getenv env key =
+match (List.assoc_opt key env, Sys.getenv_opt key) with
+| (Some v, _) -> v
+| (None, Some v) -> v
+| (None, None) -> Error.run "Can't find definition for `%s` env variable" key
+
+
+
+
+
 (* ==================================================================================================== *)
 module Pst_corpus = struct
   let load_files files =
@@ -326,10 +352,11 @@ module Corpus_desc = struct
       | true -> ()
       | false -> Error.run "Cannot build directory `%s`, a file with the same name already exists" dir
 
-  let get_build_directory ?(ensure_build=false) corpus_desc =
+  let get_build_directory corpus_desc =
     let intermediate_dir = Filename.concat (get_directory corpus_desc) "_build_grew" in
+    ensure_directory intermediate_dir;
     let build_dir = Filename.concat intermediate_dir (get_id corpus_desc) in
-    if ensure_build then (ensure_directory intermediate_dir; ensure_directory build_dir);
+    ensure_directory build_dir;
     build_dir
 
   let get_flag flag corpus_desc =
@@ -477,7 +504,7 @@ module Corpus_desc = struct
     let config = get_config corpus_desc in
     let full_files = get_full_files corpus_desc in
 
-    let build_dir = get_build_directory ~ensure_build:true corpus_desc in
+    let build_dir = get_build_directory corpus_desc in
     (* remove the previous log file (if any) *)
     let marshal_file = Filename.concat build_dir "marshal" in
 
@@ -587,15 +614,163 @@ module Corpus_desc = struct
     let build_dir = get_build_directory corpus_desc in
     let _ = FileUtil.rm ~recurse:true [build_dir] in
     ()
-end (* module Corpus_desc *)
+
+  type item = {
+    request: string list; (* JSON does not support multi line strings *)
+    description: string;
+    level: string;
+  }
+  
+  type modul = {
+    title: string;
+    items: item list;
+    languages: string list option; (* list of the languages codes restriction, None for all lang *)
+  }
+
+  let load_modul json_file =
+    let open Yojson.Basic.Util in
+
+    let json =
+      try Yojson.Basic.from_file json_file
+      with Yojson.Json_error msg -> Error.run "[Corpus_desc.load_modul] file `%s`: %s" json_file msg in
+
+    let parse_one json =
+      let request =
+        try json |> member "request" |> to_string |> (fun x -> [x])
+        with Type_error _ ->
+        try json
+            |> member "request"
+            |> to_list
+            |> (List.map to_string)
+        with Type_error (_,_) ->
+          Error.run "[Corpus_desc.load_modul] file `%s`: cannot read \"request\" field " json_file in
+      let description =
+        try json |> member "description" |> to_string
+        with Type_error _ -> "No description" in
+      let level =
+        try json |> member "level" |> to_string
+        with Type_error _ -> "No level" in
+
+      { request; description; level } in
+
+    let title =
+      try json |> member "title" |> to_string
+      with Type_error (_,_) ->
+        Error.run "[Corpus_desc.load_modul] file `%s`: cannot read \"title\" field " json_file in
+        let items = List.map parse_one (json |> member "items" |> to_list) in
+    let languages = try Some (json |> member "languages" |> to_list |> List.map to_string) with Type_error _ -> None in
+    { title; items; languages }
 
 
-let green x = Printf.ksprintf (fun s -> ANSITerminal.eprintf [ANSITerminal.green] "%s" s; eprintf "%!") x
-let blue x = Printf.ksprintf (fun s -> ANSITerminal.eprintf [ANSITerminal.blue] "%s" s; eprintf "%!") x
-let red x = Printf.ksprintf (fun s -> ANSITerminal.eprintf [ANSITerminal.red] "%s" s; eprintf "%!") x
-let magenta x = Printf.ksprintf (fun s -> ANSITerminal.eprintf [ANSITerminal.magenta] "%s" s; eprintf "%!") x
+  (* -------------------------------------------------------------------------------- *)
+  let check modul_list out_file corpus_desc =
+    let corpus = build_corpus corpus_desc in
+    let config = get_config corpus_desc in
+    let corpus_id = get_id corpus_desc in
 
-let _cprint color x = Printf.ksprintf (fun s -> ANSITerminal.eprintf [color] "%s" s; eprintf "%!") x
+    let modules =
+      `List
+        (CCList.filter_map
+          (fun modul ->
+            match (get_field_opt "lang" corpus_desc, modul.languages) with
+              | (Some lang, Some lang_list) when not (List.mem lang lang_list) -> None
+              | _ ->
+                let (out_items : Yojson.Basic.t) =
+                  `List
+                    (List.map
+                      (fun item ->
+                        let grew_request = 
+                          try Request.parse ~config (String.concat "\n" item.request)
+                          with Grew_utils.Error.Parse (msg, _) ->
+                            Error.run "[Corpus_desc.check] cannot parse request with desc: %s (%s)" item.description msg in
+                        let count =
+                          Corpus.fold_left (fun acc _ graph ->
+                              acc + (List.length (Matching.search_request_in_graph ~config grew_request graph))
+                            ) 0 corpus in
+                        `Assoc [
+                          "count", `Int count;
+                          "request", `List (List.map (fun x -> `String x) item.request);
+                          "description", `String item.description;
+                          "level", `String item.level
+                        ]
+                      ) modul.items
+                    ) in
+              Some (`Assoc ["title", `String modul.title; "items", out_items])
+          ) modul_list
+        ) in
+
+    let json = `Assoc [
+        "corpus", `String corpus_id;
+        "date", `String (now ());
+        "modules", modules
+      ] in
+
+    CCIO.with_out out_file (fun out_ch -> fprintf out_ch "%s\n" (Yojson.Basic.pretty_to_string json))
+
+
+  let validate_sud modules_directory corpus_desc =
+    let all_files = Sys.readdir modules_directory |> Array.to_list in
+    let json_files = List.filter (fun file -> Filename.extension file = ".json") all_files in
+    let full_files = List.map (fun file -> Filename.concat modules_directory file) json_files in
+    let modules_time = List.fold_left (fun acc file -> max acc (File.last_modif file)) Float.min_float full_files in
+    let validator_list = List.map load_modul full_files in
+
+    let corpus_id = get_id corpus_desc in
+    let valid_file = Filename.concat (get_build_directory corpus_desc) "valid_sud.json" in
+    let valid_time = File.last_modif valid_file in
+    let files = get_files corpus_desc in
+    let files_time = List.fold_left (fun acc file -> max acc (File.last_modif file)) Float.min_float files in
+    if valid_time > files_time && valid_time > modules_time
+      then Error.info "%s --> SUD validation is uptodate" corpus_id
+      else
+        begin
+          Error.info "SUD validation of %s%!" corpus_id;
+          check validator_list valid_file corpus_desc
+        end
+
+  let validate ?(env=[]) corpus_desc =
+    match get_field_opt "validation" corpus_desc with
+    | None -> ()  (* No validation defined for this corpus *)
+    | Some "ud" | Some "UD" -> 
+      begin
+        let validate_script = Filename.concat (getenv env "UDTOOLS") "validate.py" in
+        let corpus_id = get_id corpus_desc in
+        let lang_opt = get_field_opt "lang" corpus_desc in
+        let valid_file = Filename.concat (get_build_directory corpus_desc) "valid_ud.txt" in
+        let valid_time = File.last_modif valid_file in
+        let files = get_files corpus_desc in
+        let files_time = List.fold_left (fun acc file -> max acc (File.last_modif file)) Float.min_float files in
+        if valid_time > files_time
+        then Error.info "%s --> UD validation is uptodate" corpus_id
+        else
+          let out_ch = open_out valid_file in
+          Printf.fprintf out_ch "%s\n" (now ());
+          let args = match lang_opt with
+            | Some l -> sprintf "--lang=%s" l
+            | None -> 
+              Printf.fprintf out_ch "WARNING: no lang defined, validation only up to level 3\n";
+              "--lang=unknown --level=3" in
+          close_out out_ch;
+            List.iter (fun file ->
+            printf "validate %s file of %s\n%!" (Filename.basename file) corpus_id;
+            let out_ch = open_out_gen [Open_append] 0o644 valid_file in
+            Printf.fprintf out_ch "================================ %s ================================\n" (Filename.basename file);
+            close_out out_ch;
+            let command = sprintf "%s %s --max-err 0 %s 2>>  %s || true" validate_script args file valid_file in
+            match Sys.command command with
+              | 0 -> ()
+              | _ -> Error.warning "Error when running UD Python validation script on file %s" (Filename.basename file);
+          ) files
+      end
+    | Some "sud" | Some "SUD" -> 
+      let modules_directory = getenv env "SUDVALIDATION" in
+      validate_sud modules_directory corpus_desc
+    | Some "parseme" -> Error.warning "Parseme validation os not yet available"
+    | Some s -> Error.run "Unknown validation `%s`" s
+
+  end (* module Corpus_desc *)
+
+
 
 
 (* ==================================================================================================== *)

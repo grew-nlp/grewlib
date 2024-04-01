@@ -321,6 +321,8 @@ module Corpus_desc : sig
 
   (** [clean t] remove the compiled file, if any *)
   val clean: t -> unit
+
+  val validate: ?env: (string * string) list -> t -> unit
 end (* module Corpus_desc *)
 
 (* ================================================================================ *)

@@ -436,7 +436,11 @@ module Corpus_desc = struct
       ~name:"Corpus.clean"
       (fun () -> Grew_corpus.Corpus_desc.clean t)
       ()
-end (* module Corpus_desc *)
+
+  let validate ?env t =
+    Grewlib.handle ~name:"Corpus_desc.validate" (fun () -> Grew_corpus.Corpus_desc.validate ?env t) ()
+  end (* module Corpus_desc *)
+
 
 (* ==================================================================================================== *)
 (** {2 Corpus_desc} *)
@@ -483,8 +487,8 @@ module Corpusbank = struct
       ~name:"Corpus.build_derived" 
       (fun () -> Grew_corpus.Corpusbank.build_derived corpusbank corpus_id)
       ()
-
 end
+
 
 (* ==================================================================================================== *)
 (** {2 Sbn} *)
