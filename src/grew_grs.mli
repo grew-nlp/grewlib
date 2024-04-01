@@ -24,7 +24,6 @@ module Grs : sig
 
 
   val to_json: config:Conll_config.t -> t -> Yojson.Basic.t
-  val dump: t -> unit
 
   val get_strat_list: t -> string list
   val get_strat_lists: t -> (string list * string list)

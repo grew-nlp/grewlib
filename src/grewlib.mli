@@ -155,8 +155,6 @@ module Grs : sig
 
   val to_json: config:Conll_config.t -> t -> Yojson.Basic.t
 
-  val dump: t -> unit
-
   val get_strat_list: t -> string list
 
   (** [get_strat_lists grs] returns two lists:
@@ -345,7 +343,7 @@ module Corpusbank : sig
 
   val get_corpus_desc_opt : t -> string -> Corpus_desc.t option
 
-  val dump_status : ?verbose:bool -> t  -> unit
+  val print_status : ?verbose:bool -> t  -> unit
 
   val build_derived: t -> Corpus_desc.t -> unit
 end

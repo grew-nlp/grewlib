@@ -53,12 +53,12 @@ module Decl = struct
       with Type_error _ -> 
         Error.build "[Decl.string_of_json]"
 
-  let rec dump indent = function
+  let rec _dump indent = function
     | Rule r -> printf "%srule %s\n" (String.make indent ' ') (Rule.get_name r)
     | Strategy (name, _) -> printf "%sstrat %s\n" (String.make indent ' ') name
     | Package (name, decl_list) ->
       printf "%spackage %s:\n" (String.make indent ' ') name;
-      List.iter (dump (indent + 2)) decl_list
+      List.iter (_dump (indent + 2)) decl_list
     
 end (* module Decl *)
 
@@ -92,9 +92,9 @@ module Grs = struct
 
   let get_timestamp_opt grs = grs.timestamp
 
-  let dump t =
+  let _dump t =
     printf "================ Grs ================\n";
-    List.iter (Decl.dump 0) t.decls;
+    List.iter (Decl._dump 0) t.decls;
     printf "================ Grs ================\n%!";
     ()
 

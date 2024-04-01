@@ -92,9 +92,6 @@ module Clustered : sig
       more than one couple of value for Gender and Number with the same triple (form, lemma, upos).
   *)
 
-  val dump: ('a -> string) -> 'a t -> unit
-  (** outputs a raw display of the structure (to be used only for debug) *)
-
   val get_all_keys: int -> _ t -> string option list
   
 end (* module Clustered *)

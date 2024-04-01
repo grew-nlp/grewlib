@@ -976,13 +976,13 @@ module Matching = struct
       begin
         match G_edge.to_json_opt edge with
         | Some s -> Some (Yojson.Basic.to_string s)
-        | None -> Error.bug "[Matching.get_feat_value_opt#1] internal edge %s" (G_edge.dump ~config edge)
+        | None -> Error.bug "[Matching.get_feat_value_opt#1] internal edge %s" (G_edge.to_string ~config edge)
       end
     | (Some (_,edge,_), ["label"]) ->
       begin
         match G_edge.to_string_opt ~config edge with
         | Some s -> Some s
-        | None -> Error.bug "[Matching.get_feat_value_opt#2] internal edge %s" (G_edge.dump ~config edge)
+        | None -> Error.bug "[Matching.get_feat_value_opt#2] internal edge %s" (G_edge.to_string ~config edge)
       end
     | (Some edge, ["length"]) -> string_of_int <$> (G_graph.edge_length_opt edge graph)
     | (Some edge, ["delta"]) -> string_of_int <$> (G_graph.edge_delta_opt edge graph)
@@ -1335,7 +1335,7 @@ module Rule = struct
       begin
         match G_graph.add_edge_opt src_gid edge tar_gid state.graph with
         | None when !Global.safe_commands ->
-          Error.run ~loc "ADD_EDGE: the edge '%s' already exists" (G_edge.dump ~config edge)
+          Error.run ~loc "ADD_EDGE: the edge '%s' already exists" (G_edge.to_string ~config edge)
         | None -> state
         | Some new_graph -> {state with graph = new_graph; effective = true}
       end
@@ -1381,7 +1381,7 @@ module Rule = struct
       begin
         match G_graph.add_edge_opt src_gid edge tar_gid state.graph with
         | None when !Global.safe_commands ->
-          Error.run ~loc "ADD_EDGE_ITEMS: the edge '%s' already exists" (G_edge.dump ~config edge)
+          Error.run ~loc "ADD_EDGE_ITEMS: the edge '%s' already exists" (G_edge.to_string ~config edge)
         | None -> state
         | Some new_graph -> {state with graph = new_graph; effective = true}
       end
@@ -1390,7 +1390,7 @@ module Rule = struct
       let src_gid = node_find src_cn in
       let tar_gid = node_find tar_cn in
       (match G_graph.del_edge_opt ~loc src_gid edge tar_gid state.graph with
-       | None when !Global.safe_commands -> Error.run ~loc "DEL_EDGE_EXPL: the edge '%s' does not exist" (G_edge.dump ~config edge)
+       | None when !Global.safe_commands -> Error.run ~loc "DEL_EDGE_EXPL: the edge '%s' does not exist" (G_edge.to_string ~config edge)
        | None -> state
        | Some new_graph -> {state with graph = new_graph; effective = true}
       )
@@ -1674,7 +1674,7 @@ module Rule = struct
       begin
         match G_graph.add_edge_opt src_gid edge tar_gid gwh.Graph_with_history.graph with
         | None when !Global.safe_commands ->
-          Error.run ~loc "ADD_EDGE: the edge '%s' already exists" (G_edge.dump ~config edge)
+          Error.run ~loc "ADD_EDGE: the edge '%s' already exists" (G_edge.to_string ~config edge)
         | None -> Graph_with_history_set.singleton gwh
         | Some new_graph ->
           Graph_with_history_set.singleton
@@ -1724,7 +1724,7 @@ module Rule = struct
       begin
         match G_graph.add_edge_opt src_gid edge tar_gid gwh.Graph_with_history.graph with
         | None when !Global.safe_commands ->
-          Error.run ~loc "ADD_EDGE_ITEMS: the edge '%s' already exists" (G_edge.dump ~config edge)
+          Error.run ~loc "ADD_EDGE_ITEMS: the edge '%s' already exists" (G_edge.to_string ~config edge)
         | None -> Graph_with_history_set.singleton gwh
         | Some new_graph -> Graph_with_history_set.singleton
                               {gwh with
@@ -1738,7 +1738,7 @@ module Rule = struct
       let tar_gid = node_find tar_cn in
       (match G_graph.del_edge_opt ~loc src_gid edge tar_gid gwh.Graph_with_history.graph with
        | None when !Global.safe_commands ->
-         Error.run ~loc "DEL_EDGE_EXPL: the edge '%s' does not exist" (G_edge.dump ~config edge)
+         Error.run ~loc "DEL_EDGE_EXPL: the edge '%s' does not exist" (G_edge.to_string ~config edge)
        | None -> Graph_with_history_set.singleton gwh
        | Some new_graph -> Graph_with_history_set.singleton
                              {gwh with

@@ -8,7 +8,6 @@
 (*    Authors: see AUTHORS file                                                   *)
 (**********************************************************************************)
 
-open Conll
 
 open Grew_types
 open Grew_utils
@@ -47,7 +46,6 @@ module G_node: sig
 
   val out_edges: t -> int
 
-  val dump: config:Conll_config.t -> t -> string
 
   val build_pst_leaf: ?loc:Loc.t -> string -> t
   val build_pst_node: ?loc:Loc.t -> string -> t

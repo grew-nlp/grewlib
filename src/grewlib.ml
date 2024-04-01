@@ -248,12 +248,6 @@ module Grs = struct
          Grew_grs.Grs.to_json ~config grs
       ) ()
 
-  let dump grs =
-    Grewlib.handle ~name:"Grs.dump"
-      (fun () ->
-         Grew_grs.Grs.dump grs
-      ) ()
-
   let get_strat_list grs =
     Grewlib.handle ~name:"Grs.get_strat_list"
       (fun () ->
@@ -477,10 +471,10 @@ module Corpusbank = struct
       (fun () -> Grew_corpus.Corpusbank.get_corpus_desc_opt corpusbank corpus_id)
       ()
 
-  let dump_status ?verbose t =
+  let print_status ?verbose t =
     Grewlib.handle
-      ~name:"Corpus.dump_status" 
-      (fun () -> Grew_corpus.Corpusbank.dump_status ?verbose t)
+      ~name:"Corpus.print_status" 
+      (fun () -> Grew_corpus.Corpusbank.print_status ?verbose t)
       ()
   let build_derived corpusbank corpus_id =
     Grewlib.handle

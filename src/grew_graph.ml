@@ -42,13 +42,13 @@ module P_graph = struct
     let pid_name = get_name pid graph_list in
     String.get pid_name ((String.length pid_name) - 1) <> '$'
 
-    let dump bases t =
-    printf "============ P_graph.dump ===========\n";
+    let _dump bases t =
+    printf "============ P_graph._dump ===========\n";
       Pid_map.iter
         (fun pid _ -> 
           printf "pid=%s   name=%s    node=…\n%!" (Pid.to_string pid) (get_name pid bases)
         ) t;
-    printf "///========= P_graph.dump ========///\n"
+    printf "///========= P_graph._dump ========///\n"
 
     
   let to_json_list ~config ?(base=empty) t =
@@ -642,7 +642,7 @@ module G_graph = struct
               | Some g -> g
               | None -> 
                 Error.build "[G_graph.of_json%s] try to build a graph with twice the same edge `%s`from `%s` to `%s`" 
-                  (sent_id_text ()) (G_edge.dump edge) id_src id_tar
+                  (sent_id_text ()) (G_edge.to_string edge) id_src id_tar
             end
           | (None, _) -> Error.build "[G_graph.of_json%s] undefined node id `%s` used as `src` in edges" (sent_id_text ()) id_src
           | (_, None) -> Error.build "[G_graph.of_json%s] undefined node id `%s` used as `tar` in edges" (sent_id_text ()) id_tar
@@ -954,7 +954,7 @@ module G_graph = struct
           if Label_cst.match_ ~config label_cst edge && not (is_gid_local next_gid)
           then
             match Gid_massoc.add_opt next_gid edge acc_tar_next with
-            | None when !Global.safe_commands -> Error.run ~loc "The [shift_out] command tries to build a duplicate edge (with label \"%s\")" (G_edge.dump ~config  edge)
+            | None when !Global.safe_commands -> Error.run ~loc "The [shift_out] command tries to build a duplicate edge (with label \"%s\")" (G_edge.to_string ~config  edge)
             | None ->
               del_edges := (src_gid,edge,next_gid) :: !del_edges;
               (Gid_massoc.remove next_gid edge acc_src_next, acc_tar_next)
@@ -994,7 +994,7 @@ module G_graph = struct
                     then
                       match List_.usort_insert_opt edge acc_node_tar_edges with
                       | None when !Global.safe_commands ->
-                        Error.run ~loc "The [shift_in] command tries to build a duplicate edge (with label \"%s\")" (G_edge.dump ~config edge)
+                        Error.run ~loc "The [shift_in] command tries to build a duplicate edge (with label \"%s\")" (G_edge.to_string ~config edge)
                       | None ->
                         del_edges := (node_id,edge,src_gid) :: !del_edges;
                         (List_.usort_remove edge acc_node_src_edges, acc_node_tar_edges)
@@ -1216,7 +1216,7 @@ module G_graph = struct
         let fs = G_node.get_fs node in
 
         let loop_edge = Gid_massoc.assoc id (G_node.get_next node) in
-        let loops = List.map (fun edge -> sprintf "[[%s]]:B:#82CAAF" (G_edge.dump ~config edge)) loop_edge in
+        let loops = List.map (fun edge -> sprintf "[[%s]]:B:#82CAAF" (G_edge.to_string ~config edge)) loop_edge in
 
         let tail =
           match (!Global.debug, G_node.get_position_opt node) with

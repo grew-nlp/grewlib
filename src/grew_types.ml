@@ -75,7 +75,8 @@ module Clustered = struct
       | Some s -> first_layer :: s
       
   
-  let dump to_string t = 
+  (** outputs a raw display of the structure (to be used only for debug) *)
+  let _dump to_string t = 
     let rec loop indent = function 
     | Empty _ -> Printf.printf "__EMPTY__\n%!"
     | Leaf a -> Printf.printf "%s%s\n%!" (String.make indent ' ') (to_string a)

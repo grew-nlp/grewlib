@@ -24,7 +24,7 @@ module G_edge: sig
   val succ: t
 
   (** [is_fs t] returns [true] iff the edge is a regular fs. *)
-    val is_fs: t -> bool
+  val is_fs: t -> bool
 
   (** [is_basic t] returns [true] iff the edge is a regular fs without the [enhanced=Yes] feature.
       Used to get the subset of edges to take into account in graph structure checking. *)
@@ -52,7 +52,7 @@ module G_edge: sig
   val to_string_opt: config:Conll_config.t -> t -> string option
 
   (* robust printing: to be used only in error reporting *)
-  val dump: ?config:Conll_config.t -> t -> string
+  val to_string: ?config:Conll_config.t -> t -> string
 
   (** [to_json_opt t] returns [Some js] where [js] is the json data usable in Conll
       [None] is returned if [t] is a special edge *)

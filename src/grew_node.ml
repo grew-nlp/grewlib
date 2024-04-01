@@ -60,10 +60,10 @@ module G_node = struct
   let out_edges n =
     Gid_massoc.fold (fun acc _ edge -> if G_edge.is_fs edge then acc+1 else acc) 0 n.next
   
-  let dump ~config t =
+  let _dump ~config t =
     Printf.sprintf "  fs=[%s]\n  next=%s\n"
       (G_fs.to_string t.fs)
-      (Gid_massoc.to_string (G_edge.dump ~config) t.next)
+      (Gid_massoc.to_string (G_edge.to_string ~config) t.next)
 
   let empty = {
     name = None;

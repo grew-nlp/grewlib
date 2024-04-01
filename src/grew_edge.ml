@@ -89,7 +89,7 @@ module G_edge = struct
     | Fs fs -> (match G_edge_fs.to_string_result ~config fs with Ok s -> Some s | _ -> None)
     | _ -> None
 
-  let dump ?config edge = match (edge, config) with
+  let to_string ?config edge = match (edge, config) with
     | (Fs fs, Some config) -> G_edge_fs.to_string ~config fs
     | (Fs fs, None) -> String.concat "," (List.map (fun (f,v) -> sprintf "%s=%s" f (Feature_value.to_string v)) fs)
     | (Sub, _) -> "__SUB__"

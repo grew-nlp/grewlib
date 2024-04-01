@@ -33,7 +33,6 @@ module P_graph: sig
   val is_injective: Pid.t -> t list -> bool
 
   val get_name: Pid.t -> t list -> string
-  val dump: t list -> t -> unit
 
   val roots: t -> Pid.t list
 

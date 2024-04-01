@@ -72,7 +72,7 @@ module P_feature = struct
   let compare feat1 feat2 = Stdlib.compare (get_name feat1) (get_name feat2)
 
   let _dump (feature_name, p_feature_value) =
-    printf "[P_feature.dump]\n";
+    printf "[P_feature._dump]\n";
     printf "%s%s\n"
       feature_name
       (match p_feature_value with

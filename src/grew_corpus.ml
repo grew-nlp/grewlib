@@ -927,7 +927,7 @@ module Corpusbank = struct
       fun corpus_id _ acc -> update corpus_id acc
     ) corpusbank String_map.empty
 
-  let dump_status ?(verbose=false) corpusbank = 
+  let print_status ?(verbose=false) corpusbank = 
     let status = build_status_map corpusbank in
     let counters = ref String_map.empty in
     let count s =

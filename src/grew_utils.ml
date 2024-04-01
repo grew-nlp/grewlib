@@ -649,10 +649,8 @@ module Dependencies = struct
     let sorted_edge_list = List.sort lex_cmp edge_list in
     let rec loop position from_here from_before = function
       | [] ->
-        (* Printf.printf "=N=> pos=%d H=[%s] B=[%s]\n" position (String.concat "," (List.map string_of_int from_here)) (String.concat "," (List.map string_of_int from_before)); *)
         true
       | (i,j) :: tail ->
-        (* Printf.printf "=S=> (%d, %d) pos=%d H=[%s] B=[%s]\n" i j position (String.concat "," (List.map string_of_int from_here)) (String.concat "," (List.map string_of_int from_before)); *)
         let rec reduce_from_before = function
           | h::t when h <= i -> reduce_from_before t
           | l -> l in
@@ -660,7 +658,6 @@ module Dependencies = struct
           if i > position
           then ([], reduce_from_before (from_here @ from_before))
           else (from_here, reduce_from_before from_before) in
-        (* Printf.printf "   ...> NH=[%s] NB=[%s]\n" (String.concat "," (List.map string_of_int new_from_here)) (String.concat "," (List.map string_of_int new_from_before)); *)
         match new_from_before with
         | h::_ when j > h -> false
         | h::_ when j = h -> loop i new_from_here new_from_before tail
