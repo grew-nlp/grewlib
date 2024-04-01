@@ -19,12 +19,6 @@ open Grew_graph
 open Grew_rule
 open Grew_grs
 
-let green x = Printf.ksprintf (fun s -> ANSITerminal.eprintf [ANSITerminal.green] "%s" s; eprintf "%!") x
-let blue x = Printf.ksprintf (fun s -> ANSITerminal.eprintf [ANSITerminal.blue] "%s" s; eprintf "%!") x
-let red x = Printf.ksprintf (fun s -> ANSITerminal.eprintf [ANSITerminal.red] "%s" s; eprintf "%!") x
-let magenta x = Printf.ksprintf (fun s -> ANSITerminal.eprintf [ANSITerminal.magenta] "%s" s; eprintf "%!") x
-
-let _cprint color x = Printf.ksprintf (fun s -> ANSITerminal.eprintf [color] "%s" s; eprintf "%!") x
 
 let now () =  (* TODO: move elsewhere *)
 let gm = Unix.localtime (Unix.time ()) in
@@ -457,7 +451,7 @@ module Corpus_desc = struct
           let graph = G_graph.of_json (Conll.to_json conll) in
           Some {Corpus.sent_id; text=G_graph.to_sentence graph; graph }
           with Error.Build (msg, loc_opt) ->
-            Error.warning "[build_corpus, sent_id=%s%s] skipped: %s"
+            Warning.blue "[build_corpus, sent_id=%s%s] skipped: %s"
               sent_id
               (match loc_opt with None -> "" | Some loc -> "; " ^ (Loc.to_string loc))
               msg;
@@ -525,7 +519,7 @@ module Corpus_desc = struct
                 let graph = G_graph.of_json (Conll.to_json conllx) in
                 Some {Corpus.sent_id; text=G_graph.to_sentence graph; graph }
               with Error.Build (msg, loc_opt) ->
-                Error.warning "[build_marshal_file, sent_id=%s%s] skipped: %s"
+                Warning.blue "[build_marshal_file, sent_id=%s%s] skipped: %s"
                   sent_id
                   (match loc_opt with None -> "" | Some loc -> "; " ^ (Loc.to_string loc))
                   msg; None
@@ -538,7 +532,7 @@ module Corpus_desc = struct
               try
                 let graph = G_graph.of_pst (Parser.phrase_structure_tree pst) in
                 Some {Corpus.sent_id; text=G_graph.to_sentence graph; graph }
-              with exc -> Error.warning "[id=%s] PST skipped [exception: %s]" sent_id (Printexc.to_string exc); None
+              with exc -> Warning.blue "[id=%s] PST skipped [exception: %s]" sent_id (Printexc.to_string exc); None
             ) pst_corpus in
           {Corpus.items; kind= Pst }
 
@@ -553,7 +547,7 @@ module Corpus_desc = struct
                 let graph = G_graph.of_json json in
                 let text = match G_graph.get_meta_opt "text" graph with Some t -> t | None -> "__missing text metadata__" in
                 Some {Corpus.sent_id; text; graph }
-              with exc -> Error.warning "[id=%s] AMR skipped [exception: %s]" sent_id (Printexc.to_string exc); None
+              with exc -> Warning.blue "[id=%s] AMR skipped [exception: %s]" sent_id (Printexc.to_string exc); None
             ) amr_corpus in
           {Corpus.items; kind= Amr }
 
@@ -568,14 +562,14 @@ module Corpus_desc = struct
             {Corpus.items; kind }
 
         | Gr -> Error.run "Gr corpora are not supported in file compilation" in
-      let _ = Error.info "[%s] %d graphs loaded" (get_id corpus_desc) (Array.length data.items) in
+      let _ = Info.green "[%s] %d graphs loaded" (get_id corpus_desc) (Array.length data.items) in
       let out_ch = open_out_bin marshal_file in
       Marshal.to_channel out_ch data [];
       close_out out_ch
     with
-    | Conll_error json -> Error.warning "[Conll_error] fail to load corpus %s, skip it\nexception: %s" (get_id corpus_desc) (Yojson.Basic.pretty_to_string json)
-    | Error.Run (msg,_) -> Error.warning "[Error] %s, fail to load corpus %s: skip it" msg (get_id corpus_desc)
-    | exc -> Error.warning "[Error] fail to load corpus %s, skip it\nexception: %s" (get_id corpus_desc) (Printexc.to_string exc)
+    | Conll_error json -> Warning.blue "[Conll_error] fail to load corpus %s, skip it\nexception: %s" (get_id corpus_desc) (Yojson.Basic.pretty_to_string json)
+    | Error.Run (msg,_) -> Warning.blue "[Error] %s, fail to load corpus %s: skip it" msg (get_id corpus_desc)
+    | exc -> Warning.blue "[Error] fail to load corpus %s, skip it\nexception: %s" (get_id corpus_desc) (Printexc.to_string exc)
 
 
   let get_files corpus_desc =
@@ -721,10 +715,10 @@ module Corpus_desc = struct
     let files = get_files corpus_desc in
     let files_time = List.fold_left (fun acc file -> max acc (File.last_modif file)) Float.min_float files in
     if valid_time > files_time && valid_time > modules_time
-      then Error.info "%s --> SUD validation is uptodate" corpus_id
+      then Info.green "%s --> SUD validation is uptodate" corpus_id
       else
         begin
-          Error.info "SUD validation of %s%!" corpus_id;
+          Info.green "SUD validation of %s%!" corpus_id;
           check validator_list valid_file corpus_desc
         end
 
@@ -741,7 +735,7 @@ module Corpus_desc = struct
         let files = get_files corpus_desc in
         let files_time = List.fold_left (fun acc file -> max acc (File.last_modif file)) Float.min_float files in
         if valid_time > files_time
-        then Error.info "%s --> UD validation is uptodate" corpus_id
+        then Info.green "%s --> UD validation is uptodate" corpus_id
         else
           let out_ch = open_out valid_file in
           Printf.fprintf out_ch "%s\n" (now ());
@@ -759,14 +753,29 @@ module Corpus_desc = struct
             let command = sprintf "%s %s --max-err 0 %s 2>>  %s || true" validate_script args file valid_file in
             match Sys.command command with
               | 0 -> ()
-              | _ -> Error.warning "Error when running UD Python validation script on file %s" (Filename.basename file);
+              | _ -> Warning.blue "Error when running UD Python validation script on file %s" (Filename.basename file);
           ) files
       end
     | Some "sud" | Some "SUD" -> 
       let modules_directory = getenv env "SUDVALIDATION" in
       validate_sud modules_directory corpus_desc
-    | Some "parseme" -> Error.warning "Parseme validation os not yet available"
+    | Some "parseme" -> Warning.blue "Parseme validation os not yet available"
     | Some s -> Error.run "Unknown validation `%s`" s
+
+  let show corpus_desc =
+    Info.green "<><><> %s <><><>" (get_id corpus_desc) ;
+    match corpus_desc with
+    | `Assoc l ->
+      let indent = List.fold_left
+        (fun acc (k,_) -> max acc (String.length k)) 0 l in
+      List.iter 
+      (fun (k,v) -> 
+        Info.blue "   %s%s --> %s%!" 
+          (String.make (indent - (String.length k)) ' ')
+          k
+          (Yojson.Basic.pretty_to_string v)
+      ) l
+    | _ -> assert false
 
   end (* module Corpus_desc *)
 
@@ -848,10 +857,10 @@ module Corpusbank = struct
   | Err _ -> "Error"
 
   let print_of_status stat s = match stat with
-  | "Ok" -> green s
-  | "Error" -> red s
-  | "Need_build" -> magenta s
-  | _ -> blue s
+  | "Ok" -> Info.green s
+  | "Error" -> Info.red s
+  | "Need_build" -> Info.magenta s
+  | _ -> Info.blue s
 
   let _color_of_status = function
   | "Ok" -> ANSITerminal.green
@@ -939,25 +948,25 @@ module Corpusbank = struct
         let () = count string_status in
         let print = print_of_status string_status in
         match stat_corpus with
-        | Ok -> if verbose then print "OK -------------> %s\n" corpus_id
-        | Need_validate ->      print "need validate --> %s\n" corpus_id;
-        | Need_compile ->       print "need compile ---> %s\n" corpus_id;
+        | Ok -> if verbose then print "OK -------------> %s" corpus_id
+        | Need_validate ->      print "need validate --> %s" corpus_id;
+        | Need_compile ->       print "need compile ---> %s" corpus_id;
         | Need_build msg_list -> 
-                                print "need rebuild ---> %s \n" corpus_id;
+                                print "need rebuild ---> %s" corpus_id;
             if verbose then List.iter (fun msg -> print "    • %s\n%!" msg) msg_list
         | Err msg ->
-          red "Error ----------> %s [%s]\n" corpus_id msg;
+          Info.red "Error ----------> %s [%s]" corpus_id msg;
           ()
 
     ) status;
-    printf "----------------------------------\n%!";
+    Info.print "----------------------------------%!";
     String_map.iter 
       (fun stat count ->
-        (print_of_status stat ) "%15s ----> %d\n%!" stat count
+        (print_of_status stat ) "%15s ----> %d%!" stat count
       ) !counters;
 
-    printf "%15s ----> %d\n%!" "Total" (String_map.fold (fun _ c acc -> c + acc) !counters 0);
-    printf "----------------------------------\n%!"
+    Info.print "%15s ----> %d%!" "Total" (String_map.fold (fun _ c acc -> c + acc) !counters 0);
+    Info.print "----------------------------------%!"
 
   let transform grs_config columns grs strat (src_config, src_file) (tar_config, tar_file) =
     let src_corpus = Corpus.from_file ~config:src_config src_file in
@@ -981,10 +990,10 @@ module Corpusbank = struct
     let columns = Corpus_desc.get_field_opt "columns" corpus_desc |> CCOption.map_or Conll_columns.build ~default:Conll_columns.default in
     match (Corpus_desc.get_field_opt "src" corpus_desc, Corpus_desc.get_field_opt "grs" corpus_desc, Corpus_desc.get_field_opt "strat" corpus_desc) with
     | (None, _, _) -> () (* this is a native corpus *)
-    | (Some _, None, _) -> red "ERROR: in description for corpus_id: `%s`, src but no grs" corpus_id
+    | (Some _, None, _) -> Info.red "ERROR: in description for corpus_id: `%s`, src but no grs" corpus_id
     | (Some src_corpus_id, Some grs_file, strat_opt) ->
       match get_corpus_desc_opt corpusbank src_corpus_id with
-      | None -> red "ERROR: no description for src_corpus_id: `%s`" src_corpus_id
+      | None -> Info.red "ERROR: no description for src_corpus_id: `%s`" src_corpus_id
       | Some src_corpus_desc -> 
           (* first, recursively build until native corpus *)
           let () = build_derived corpusbank src_corpus_desc in

@@ -59,21 +59,25 @@ module Error = struct
   exception Parse of (string * Loc.t option)
   let parse_ ?loc message = raise (Parse (message, loc))
   let parse ?loc = Printf.ksprintf (parse_ ?loc)
+end (* module Error *)
 
-  let warning_ ?loc message =
+(* ================================================================================ *)
+module Warning = struct
+  let blue_ ?loc message =
     let prefix = match loc with Some l -> sprintf "[%s] " (Loc.to_string l) | None -> "" in
     ANSITerminal.eprintf [ANSITerminal.blue] "%s%s\n%!" prefix message;
     flush stderr
-  let warning ?loc = Printf.ksprintf (warning_ ?loc)
+  let blue ?loc = Printf.ksprintf (blue_ ?loc)
+end
 
-  let info_ ?loc message =
-    let prefix = match loc with Some l -> sprintf "[%s] " (Loc.to_string l) | None -> "" in
-    ANSITerminal.eprintf [ANSITerminal.green] "%s%s\n%!" prefix message;
-    flush stderr
-  let info ?loc = Printf.ksprintf (info_ ?loc)
-
-end (* module Error *)
-
+(* ================================================================================ *)
+module Info = struct
+  let print x = Printf.ksprintf (fun s -> ANSITerminal.printf [] "%s\n" s; flush stdout) x
+  let green x = Printf.ksprintf (fun s -> ANSITerminal.printf [ANSITerminal.green] "%s\n" s; flush stdout) x
+  let blue x = Printf.ksprintf (fun s -> ANSITerminal.printf [ANSITerminal.blue] "%s\n" s; flush stdout) x
+  let red x = Printf.ksprintf (fun s -> ANSITerminal.printf [ANSITerminal.red] "%s\n" s; flush stdout) x
+  let magenta x = Printf.ksprintf (fun s -> ANSITerminal.printf [ANSITerminal.magenta] "%s\n" s; flush stdout) x
+end
 
 (* ================================================================================ *)
 module Range = struct

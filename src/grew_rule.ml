@@ -1243,7 +1243,7 @@ module Rule = struct
         (fun (acc,position) (basic_ast, flag) ->
            try ((Request.build_ext_basic ~config lexicons ker_table edge_ids basic_ast, flag) :: acc, position+1)
            with P_fs.Fail_unif ->
-             Error.warning ~loc:rule_ast.Ast.rule_loc "In rule \"%s\", the wihtout number %d cannot be satisfied, it is skipped"
+             Warning.blue ~loc:rule_ast.Ast.rule_loc "In rule \"%s\", the wihtout number %d cannot be satisfied, it is skipped"
                rule_ast.Ast.rule_id position;
              (acc, position+1)
         ) ([],1) rule_ast.Ast.request.Ast.req_exts in

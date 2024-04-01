@@ -94,6 +94,8 @@ module Corpus_desc : sig
 
   val clean: t -> unit
 
+  val show: t -> unit
+
   val validate: ?env: (string * string) list -> t -> unit
 end
 

@@ -51,10 +51,20 @@ module Error: sig
 
   exception Parse of (string * Loc.t option)
   val parse: ?loc: Loc.t -> ('a, unit, string, 'b) format4 -> 'a
+end
 
-  val warning: ?loc: Loc.t -> ('a, unit, string, unit) format4 -> 'a
+(* ================================================================================ *)
+module Warning : sig
+  val blue: ?loc: Loc.t -> ('a, unit, string, unit) format4 -> 'a
+end
 
-  val info: ?loc: Loc.t -> ('a, unit, string, unit) format4 -> 'a
+(* ================================================================================ *)
+module Info : sig
+  val print: ('a, unit, string, unit) format4 -> 'a
+  val green: ('a, unit, string, unit) format4 -> 'a
+  val blue: ('a, unit, string, unit) format4 -> 'a
+  val red: ('a, unit, string, unit) format4 -> 'a
+  val magenta: ('a, unit, string, unit) format4 -> 'a
 end
 
 (* ================================================================================ *)

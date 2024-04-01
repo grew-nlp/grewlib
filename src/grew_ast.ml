@@ -357,7 +357,7 @@ module Ast = struct
       let rec loop = function
         | [] -> []
         | x::y::tail when x=y ->
-          Error.warning "In the declaration of the feature name \"%s\", the value \"%s\" appears more than once" feature_name x;
+          Warning.blue "In the declaration of the feature name \"%s\", the value \"%s\" appears more than once" feature_name x;
           loop (y::tail)
         | x::tail -> x:: (loop tail)
       in loop sorted_list in
