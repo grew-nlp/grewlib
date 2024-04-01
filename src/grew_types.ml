@@ -8,6 +8,8 @@
 (*    Authors: see AUTHORS file                                                   *)
 (**********************************************************************************)
 
+open Printf
+
 module String_set = Set.Make (String)
 
 module String_map = Map.Make (String)
@@ -78,12 +80,12 @@ module Clustered = struct
   (** outputs a raw display of the structure (to be used only for debug) *)
   let _dump to_string t = 
     let rec loop indent = function 
-    | Empty _ -> Printf.printf "__EMPTY__\n%!"
-    | Leaf a -> Printf.printf "%s%s\n%!" (String.make indent ' ') (to_string a)
+    | Empty _ -> printf "__EMPTY__\n%!"
+    | Leaf a -> printf "%s%s\n%!" (String.make indent ' ') (to_string a)
     | Node som -> 
       String_opt_map.iter
       (fun key a ->
-        Printf.printf "%s%s\n%!" (String.make indent ' ') (CCOption.get_or ~default:"__undefined__" key);
+        printf "%s%s\n%!" (String.make indent ' ') (CCOption.get_or ~default:"__undefined__" key);
         loop (indent+1) a
       ) som in
     loop 0 t

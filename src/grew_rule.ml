@@ -1429,7 +1429,6 @@ module Rule = struct
       end
 
     | Command.UPDATE_EDGE_FEAT (edge_id, feat_name, item_list) ->
-      printf "*** Command.UPDATE_EDGE_FEAT ***, edge_id=%s, feat_name=%s, |item_list|=%d\n%!" edge_id feat_name (List.length item_list);
       begin
         match String_map.find_opt edge_id state.e_mapping with
         | None -> Error.run ~loc "UPDATE_EDGE_FEAT (LHS) The edge identifier '%s' is undefined" edge_id
