@@ -339,13 +339,11 @@ module Corpus_desc = struct
     with Type_error _ -> Error.run "[Corpus_desc.get_directory] \"directory\" field is mandatory and must be a string in %s" (get_id corpus_desc)
 
   let ensure_directory dir =
-    match Sys.file_exists dir with
-    | false -> Unix.mkdir dir 0o755
-    | true ->
-      match Sys.is_directory dir with
-      | true -> ()
-      | false -> Error.run "Cannot build directory `%s`, a file with the same name already exists" dir
-
+    match File.get_path_status dir with
+    | Directory -> ()
+    | File -> Error.run "Cannot build directory `%s`, a file with the same name already exists" dir
+    | Dont_exist -> Unix.mkdir dir 0o755
+  
   let get_build_directory corpus_desc =
     let intermediate_dir = Filename.concat (get_directory corpus_desc) "_build_grew" in
     ensure_directory intermediate_dir;
@@ -818,12 +816,11 @@ module Corpusbank = struct
     let all_files = Array.to_list (Sys.readdir dir) in
     read_files ~dir all_files
 
-  let load input = 
-    try
-      if Sys.is_directory input
-      then read_directory input
-      else read_files [input]
-    with Sys_error _ -> Error.run "corpusbank `%s` not found" input
+  let load input =
+    match File.get_path_status input with
+    | Directory -> read_directory input
+    | File -> read_files [input]
+    | Dont_exist -> Error.run "corpusbank `%s` not found" input
 
   let build_filter patterns =
     let anon_regexp = List.map (fun s -> Re.compile (Re.Glob.glob ~anchored:true s)) patterns in
@@ -839,14 +836,16 @@ module Corpusbank = struct
   | Ok
   | Need_validate
   | Need_compile
-  | Need_build of string list
+  | Need_build
+  | Need_rebuild of string list
   | Err of string
 
   let string_of_status = function
   | Ok -> "Ok"
   | Need_validate -> "Need_validate"
   | Need_compile -> "Need_compile"
-  | Need_build _ -> "Need_build"
+  | Need_build -> "Need_build"
+  | Need_rebuild _ -> "Need_rebuild"
   | Err _ -> "Error"
 
   let print_of_status stat s = match stat with
@@ -875,12 +874,16 @@ module Corpusbank = struct
       grs_timestamp
 
   let status_when_build_ok corpus_desc =
-    if Corpus_desc.need_compile corpus_desc
-    then Need_compile
-    else
-      if Corpus_desc.need_validate corpus_desc
-      then Need_validate
-      else Ok
+    let directory = Corpus_desc.get_directory corpus_desc in
+    match File.get_path_status directory with
+    | File -> Err (sprintf "`%s` exists but it is not a directory" directory)
+    | Dont_exist -> Err (sprintf "directory `%s` does not exist" directory)
+    | Directory ->
+      if Corpus_desc.need_compile corpus_desc
+      then Need_compile
+        else if Corpus_desc.need_validate corpus_desc
+        then Need_validate
+        else Ok
 
   let build_status_map corpusbank =
     let rec update corpus_id acc =
@@ -895,36 +898,41 @@ module Corpusbank = struct
           | (None, Some _) -> Error.build "corpus `%s` is described with a `grs` but without `src`" corpus_id
           | (Some _, None) -> Error.build "corpus `%s` is described with a `src` but without `grs`" corpus_id
           | (Some src_corpus_id, Some grs_file) ->
-            let new_acc = update src_corpus_id acc in (* update status of src_corpus first *)
-            begin
-              match String_map.find src_corpus_id new_acc with
-              | Err m -> String_map.add corpus_id (Err (sprintf "depend on `%s` [%s]" src_corpus_id m)) acc
-              | Need_build _ -> String_map.add corpus_id (Need_build [sprintf "depend on unbuilt `%s`" src_corpus_id]) acc
-              | _ -> 
-                match get_corpus_desc_opt corpusbank src_corpus_id with
-                | None -> assert false (* None is caught in previous match as `Err` *)
-                | Some src_corpus_desc ->
-                  try
-                    let src_files = Corpus_desc.get_files src_corpus_desc in
-                    let directory = Corpus_desc.get_directory corpus_desc in
-                    let old_tar_files = ref (String_set.of_list (Corpus_desc.get_files corpus_desc)) in
-                    let grs_timestamp = get_grs_timestamp grs_file in
-                    let msg_list = List.fold_left
-                      (fun acc src ->
-                        let tar_basename = Filename.basename src in (* TODO: handle replacement in names like ud -> sud *)
-                        let tar = Filename.concat directory tar_basename in 
-                        old_tar_files := String_set.remove tar !old_tar_files;
-                        if max grs_timestamp (File.last_modif src) > (File.last_modif tar)
-                        then (sprintf "file `%s` need to be rebuilt" tar) :: acc
-                        else acc
-                      ) [] src_files in 
-                    match (msg_list, !old_tar_files |> String_set.to_seq |> List.of_seq) with
-                    | ([], []) -> String_map.add corpus_id (status_when_build_ok corpus_desc) acc
-                    | (msg_list, unwanted_files) -> 
-                      let unwanted_msg_list = List.map (fun f -> sprintf "file `%s` must be removed" f) unwanted_files in
-                      String_map.add corpus_id (Need_build (msg_list @ unwanted_msg_list)) acc
-                  with exc -> String_map.add corpus_id (Err (sprintf "Unexpected exception, for corpus_id `%s`, %s" corpus_id (Printexc.to_string exc))) acc
-            end in
+            let directory = Corpus_desc.get_directory corpus_desc in
+            match File.get_path_status directory with
+            | File -> String_map.add corpus_id (Err (sprintf "corpus `%s`: `%s` exists but it is not a directory" corpus_id directory)) acc
+            | Dont_exist ->  String_map.add corpus_id Need_build acc
+            | Directory ->
+              let new_acc = update src_corpus_id acc in (* update status of src_corpus first *)
+              begin
+                match String_map.find src_corpus_id new_acc with
+                | Err _ -> String_map.add corpus_id (Err (sprintf "depend on erroneous `%s`" src_corpus_id)) acc
+                | Need_build | Need_rebuild _ -> String_map.add corpus_id (Need_rebuild [sprintf "depend on unbuilt `%s`" src_corpus_id]) acc
+                | _ -> 
+                  match get_corpus_desc_opt corpusbank src_corpus_id with
+                  | None -> assert false (* None is caught in previous match as `Err` *)
+                  | Some src_corpus_desc ->
+                    try
+                      let src_files = Corpus_desc.get_files src_corpus_desc in
+                      let directory = Corpus_desc.get_directory corpus_desc in
+                      let old_tar_files = ref (String_set.of_list (Corpus_desc.get_files corpus_desc)) in
+                      let grs_timestamp = get_grs_timestamp grs_file in
+                      let msg_list = List.fold_left
+                        (fun acc src ->
+                          let tar_basename = Filename.basename src in (* TODO: handle replacement in names like ud -> sud *)
+                          let tar = Filename.concat directory tar_basename in 
+                          old_tar_files := String_set.remove tar !old_tar_files;
+                          if max grs_timestamp (File.last_modif src) > (File.last_modif tar)
+                          then (sprintf "file `%s` need to be rebuilt" tar) :: acc
+                          else acc
+                        ) [] src_files in 
+                      match (msg_list, !old_tar_files |> String_set.to_seq |> List.of_seq) with
+                      | ([], []) -> String_map.add corpus_id (status_when_build_ok corpus_desc) acc
+                      | (msg_list, unwanted_files) -> 
+                        let unwanted_msg_list = List.map (fun f -> sprintf "file `%s` must be removed" f) unwanted_files in
+                        String_map.add corpus_id (Need_rebuild (msg_list @ unwanted_msg_list)) acc
+                    with exc -> String_map.add corpus_id (Err (sprintf "Unexpected exception, for corpus_id `%s`, %s" corpus_id (Printexc.to_string exc))) acc
+              end in 
     String_map.fold (
       fun corpus_id _ acc -> update corpus_id acc
     ) corpusbank String_map.empty
@@ -944,7 +952,8 @@ module Corpusbank = struct
         | Ok -> if verbose then print "OK -------------> %s" corpus_id
         | Need_validate ->      print "need validate --> %s" corpus_id;
         | Need_compile ->       print "need compile ---> %s" corpus_id;
-        | Need_build msg_list -> 
+        | Need_build ->         print "need build -----> %s" corpus_id;
+        | Need_rebuild msg_list -> 
                                 print "need rebuild ---> %s" corpus_id;
             if verbose then List.iter (fun msg -> print "    • %s\n%!" msg) msg_list
         | Err msg ->
@@ -992,14 +1001,8 @@ module Corpusbank = struct
           let () = build_derived corpusbank src_corpus_desc in
   
           let directory = Corpus_desc.get_directory corpus_desc in
-          let () = 
-            match Sys.file_exists directory with
-            | false -> Unix.mkdir directory 0o755
-            | true ->
-              match Sys.is_directory directory with
-              | true -> ()
-              | false -> Error.build "Cannot build directory `%s` for corpus `%s` (a file with the same name exists!)" directory corpus_id in
-  
+          Corpus_desc.ensure_directory directory;
+
           let grs_config = match Corpus_desc.get_field_opt "grs_config" corpus_desc with
           | Some c -> Conll_config.build c
           | None -> Corpus_desc.get_config corpus_desc in (* If no grs_config is defined, tar_config is used *)

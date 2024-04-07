@@ -125,6 +125,18 @@ module File = struct
     with Unix.Unix_error _ -> Float.min_float
   
   let concat_names l = List.fold_left Filename.concat "" l
+
+  type path_status = 
+  | File 
+  | Directory
+  | Dont_exist
+
+  let get_path_status path =
+    try 
+      match Sys.is_directory path with
+      | true -> Directory
+      | false -> File
+    with Sys_error _ -> Dont_exist
 end
 
 (* ================================================================================ *)

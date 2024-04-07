@@ -85,6 +85,13 @@ module File :
   sig
     val last_modif : string -> float
     val concat_names : string list -> string
+
+    type path_status = 
+    | File 
+    | Directory
+    | Dont_exist
+
+    val get_path_status: string -> path_status
   end
 
 (* ================================================================================ *)
