@@ -118,7 +118,7 @@ module Corpusbank : sig
 
   val get_corpus_desc_opt : t -> string -> Corpus_desc.t option
 
-  val print_status : ?verbose:bool -> t  -> unit
+  val print_status : ?verbose:bool -> ?filter:(string -> bool) -> t  -> unit
 
   val build_derived: t -> Corpus_desc.t -> unit
 end

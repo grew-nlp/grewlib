@@ -885,7 +885,7 @@ module Corpusbank = struct
         then Need_validate
         else Ok
 
-  let build_status_map corpusbank =
+  let build_status_map ~filter corpusbank =
     let rec update corpus_id acc =
       match get_corpus_desc_opt corpusbank corpus_id with
       | None -> String_map.add corpus_id (Err (sprintf "No desc found for `%s`" corpus_id)) acc
@@ -933,12 +933,12 @@ module Corpusbank = struct
                         String_map.add corpus_id (Need_rebuild (msg_list @ unwanted_msg_list)) acc
                     with exc -> String_map.add corpus_id (Err (sprintf "Unexpected exception, for corpus_id `%s`, %s" corpus_id (Printexc.to_string exc))) acc
               end in 
-    String_map.fold (
+    fold ~filter (
       fun corpus_id _ acc -> update corpus_id acc
     ) corpusbank String_map.empty
 
-  let print_status ?(verbose=false) corpusbank = 
-    let status = build_status_map corpusbank in
+  let print_status ?(verbose=false) ?(filter=(fun _ -> true)) corpusbank = 
+    let status = build_status_map ~filter corpusbank in
     let counters = ref String_map.empty in
     let count s =
       let new_sum = match String_map.find_opt s !counters with None -> 1 | Some n -> n+1 in
@@ -949,15 +949,13 @@ module Corpusbank = struct
         let () = count string_status in
         let print = print_of_status string_status in
         match stat_corpus with
-        | Ok -> if verbose then print "OK -------------> %s" corpus_id
-        | Need_validate ->      print "need validate --> %s" corpus_id;
-        | Need_compile ->       print "need compile ---> %s" corpus_id;
-        | Need_build ->         print "need build -----> %s" corpus_id;
-        | Need_rebuild msg_list -> 
-                                print "need rebuild ---> %s" corpus_id;
+        | Ok -> if verbose then    print "OK -------------> %s" corpus_id
+        | Need_validate ->         print "need validate --> %s" corpus_id;
+        | Need_compile ->          print "need compile ---> %s" corpus_id;
+        | Need_build ->            print "need build -----> %s" corpus_id;
+        | Need_rebuild msg_list -> print "need rebuild ---> %s" corpus_id;
             if verbose then List.iter (fun msg -> print "    • %s\n%!" msg) msg_list
-        | Err msg ->
-          Info.red "Error ----------> %s [%s]" corpus_id msg;
+        | Err msg -> Info.red "Error ----------> %s [%s]" corpus_id msg;
           ()
 
     ) status;
@@ -976,9 +974,7 @@ module Corpusbank = struct
     Corpus.iteri
       (fun _ _ gr ->
       (* Counter.print index len sent_id; *)
-
       (* Grew_grs.Grs.simple_rewrite ~config grs strat gr *)
-
         match Grs.simple_rewrite ~config:grs_config grs strat gr with
           | [graph] -> fprintf out_ch "%s\n" (graph |> G_graph.to_json |> Conll.of_json |> Conll.to_string ~config:tar_config ~columns)
           | _ -> Error.run "More than one normal form (src_file=%s)" src_file
