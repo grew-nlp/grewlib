@@ -63,11 +63,11 @@ end (* module Error *)
 
 (* ================================================================================ *)
 module Warning = struct
-  let blue_ ?loc message =
+  let magenta_ ?loc message =
     let prefix = match loc with Some l -> sprintf "[%s] " (Loc.to_string l) | None -> "" in
-    ANSITerminal.eprintf [ANSITerminal.blue] "%s%s\n%!" prefix message;
+    ANSITerminal.eprintf [ANSITerminal.magenta] "%s%s\n%!" prefix message;
     flush stderr
-  let blue ?loc = Printf.ksprintf (blue_ ?loc)
+  let magenta ?loc = Printf.ksprintf (magenta_ ?loc)
 end
 
 (* ================================================================================ *)

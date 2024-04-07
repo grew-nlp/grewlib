@@ -55,7 +55,7 @@ end
 
 (* ================================================================================ *)
 module Warning : sig
-  val blue: ?loc: Loc.t -> ('a, unit, string, unit) format4 -> 'a
+  val magenta: ?loc: Loc.t -> ('a, unit, string, unit) format4 -> 'a
 end
 
 (* ================================================================================ *)

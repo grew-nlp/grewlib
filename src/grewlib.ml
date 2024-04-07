@@ -95,7 +95,7 @@ module Graph = struct
          | Some ".conll" | Some ".conllu" -> load_conll ~config file
          | Some ".cst" -> load_pst file
          | _ ->
-           Grew_utils.Warning.blue "Unknown file format for input graph '%s', try to guess..." file;
+           Grew_utils.Warning.magenta "Unknown file format for input graph '%s', try to guess..." file;
            let rec loop = function
              | [] -> Grew_utils.Error.bug "[Grewlib.load_graph] Cannot guess input file format of file '%s'." file
              | load_fct :: tail -> try load_fct file with _ -> loop tail in

@@ -501,7 +501,7 @@ module G_graph = struct
       (function 
         | "meta" | "nodes" | "edges" | "order" -> ()
         | x -> 
-          Warning.blue "[G_graph.of_json%s] Unknown field `%s` (See https://grew.fr/doc/json)" (sent_id_text ()) x 
+          Warning.magenta "[G_graph.of_json%s] Unknown field `%s` (See https://grew.fr/doc/json)" (sent_id_text ()) x 
       ) (keys json);
 
     let nodes =

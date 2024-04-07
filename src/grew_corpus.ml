@@ -430,20 +430,20 @@ module Corpus_desc = struct
           then (Filename.concat directory file) :: acc
           else acc
         ) files []
-    with Sys_error _ -> Error.run "Cannot read directory `%s`" directory
+    with Sys_error msg -> Error.run "%s" msg
 
-  let get_full_files corpus_desc =
+  let get_files corpus_desc =
     let directory = get_directory corpus_desc in
     match member "files" corpus_desc with
     | `Null -> get_full_local_files directory ".conllu"
     | `String s -> get_full_local_files directory s
     | `List l -> List.map (fun f -> Filename.concat directory (to_string f)) l
-    | _ -> failwith "Type error"
+    | _ -> Error.run "[Corpus_desc] ill-formed JSON file (unexpected `files` field)"
 
   (* ---------------------------------------------------------------------------------------------------- *)
   let build_corpus corpus_desc =
     let config = get_config corpus_desc in
-    let conll_corpus = Conll_corpus.load_list ~config (get_full_files corpus_desc) in
+    let conll_corpus = Conll_corpus.load_list ~config (get_files corpus_desc) in
     let columns = Conll_corpus.get_columns conll_corpus in
     let items =
       CCArray.filter_map (fun (sent_id,conll) ->
@@ -451,7 +451,7 @@ module Corpus_desc = struct
           let graph = G_graph.of_json (Conll.to_json conll) in
           Some {Corpus.sent_id; text=G_graph.to_sentence graph; graph }
           with Error.Build (msg, loc_opt) ->
-            Warning.blue "[build_corpus, sent_id=%s%s] skipped: %s"
+            Warning.magenta "[build_corpus, sent_id=%s%s] skipped: %s"
               sent_id
               (match loc_opt with None -> "" | Some loc -> "; " ^ (Loc.to_string loc))
               msg;
@@ -496,12 +496,12 @@ module Corpus_desc = struct
   (* ---------------------------------------------------------------------------------------------------- *)
   let build_marshal_file corpus_desc =
     let config = get_config corpus_desc in
-    let full_files = get_full_files corpus_desc in
+    let full_files = get_files corpus_desc in
 
     let build_dir = get_build_directory corpus_desc in
-    (* remove the previous log file (if any) *)
     let marshal_file = Filename.concat build_dir "marshal" in
 
+    (* remove the previous log file (if any) *)
     let _ = try Unix.unlink (Filename.concat build_dir "log") with Unix.Unix_error _ -> () in
     let log_file =
       match get_kind corpus_desc with
@@ -509,6 +509,7 @@ module Corpus_desc = struct
       | _ -> None in
 
     try
+      
       let (data : Corpus.t) = match get_kind corpus_desc with
         | Conll columns ->
           let conll_corpus = Conll_corpus.load_list ?log_file ~config ?columns full_files in
@@ -519,7 +520,7 @@ module Corpus_desc = struct
                 let graph = G_graph.of_json (Conll.to_json conllx) in
                 Some {Corpus.sent_id; text=G_graph.to_sentence graph; graph }
               with Error.Build (msg, loc_opt) ->
-                Warning.blue "[build_marshal_file, sent_id=%s%s] skipped: %s"
+                Warning.magenta "[build_marshal_file, sent_id=%s%s] skipped: %s"
                   sent_id
                   (match loc_opt with None -> "" | Some loc -> "; " ^ (Loc.to_string loc))
                   msg; None
@@ -532,7 +533,7 @@ module Corpus_desc = struct
               try
                 let graph = G_graph.of_pst (Parser.phrase_structure_tree pst) in
                 Some {Corpus.sent_id; text=G_graph.to_sentence graph; graph }
-              with exc -> Warning.blue "[id=%s] PST skipped [exception: %s]" sent_id (Printexc.to_string exc); None
+              with exc -> Warning.magenta "[id=%s] PST skipped [exception: %s]" sent_id (Printexc.to_string exc); None
             ) pst_corpus in
           {Corpus.items; kind= Pst }
 
@@ -547,7 +548,7 @@ module Corpus_desc = struct
                 let graph = G_graph.of_json json in
                 let text = match G_graph.get_meta_opt "text" graph with Some t -> t | None -> "__missing text metadata__" in
                 Some {Corpus.sent_id; text; graph }
-              with exc -> Warning.blue "[id=%s] AMR skipped [exception: %s]" sent_id (Printexc.to_string exc); None
+              with exc -> Warning.magenta "[id=%s] AMR skipped [exception: %s]" sent_id (Printexc.to_string exc); None
             ) amr_corpus in
           {Corpus.items; kind= Amr }
 
@@ -567,25 +568,17 @@ module Corpus_desc = struct
       Marshal.to_channel out_ch data [];
       close_out out_ch
     with
-    | Conll_error json -> Warning.blue "[Conll_error] fail to load corpus %s, skip it\nexception: %s" (get_id corpus_desc) (Yojson.Basic.pretty_to_string json)
-    | Error.Run (msg,_) -> Warning.blue "[Error] %s, fail to load corpus %s: skip it" msg (get_id corpus_desc)
-    | exc -> Warning.blue "[Error] fail to load corpus %s, skip it\nexception: %s" (get_id corpus_desc) (Printexc.to_string exc)
-
-
-  let get_files corpus_desc =
-    let directory = get_directory corpus_desc in
-    match member "files" corpus_desc with
-    | `Null -> get_full_local_files directory ".conllu"
-    | `String s -> get_full_local_files directory s
-    | `List l -> List.map (fun f -> Filename.concat directory (to_string f)) l
-    | _ -> failwith "Type error"
+    | Conll_error json -> Warning.magenta "[Conll_error] skip corpus `%s`:\n%s" (get_id corpus_desc) (Yojson.Basic.pretty_to_string json)
+    | Sys_error msg -> Warning.magenta "[Sys_error] skip corpus `%s`: %s" (get_id corpus_desc) msg
+    | Error.Run (msg,_) -> Warning.magenta "[Error] skip corpus `%s`: %s" (get_id corpus_desc) msg
+    | exc -> Warning.magenta "[Unexepected error] skip corpus %s\nexception: %s" (get_id corpus_desc) (Printexc.to_string exc)
 
   (* ---------------------------------------------------------------------------------------------------- *)
   let outdated corpus_desc built_file =
     try
       let full_built_file = Filename.concat (get_build_directory corpus_desc) built_file in
       let built_file_time = (Unix.stat full_built_file).Unix.st_mtime in
-      List.exists (fun f -> (Unix.stat f).Unix.st_mtime > built_file_time) (get_full_files corpus_desc)
+      List.exists (fun f -> (Unix.stat f).Unix.st_mtime > built_file_time) (get_files corpus_desc)
     with Unix.Unix_error _ -> true
 
     (* ---------------------------------------------------------------------------------------------------- *)
@@ -753,13 +746,13 @@ module Corpus_desc = struct
             let command = sprintf "%s %s --max-err 0 %s 2>>  %s || true" validate_script args file valid_file in
             match Sys.command command with
               | 0 -> ()
-              | _ -> Warning.blue "Error when running UD Python validation script on file %s" (Filename.basename file);
+              | _ -> Warning.magenta "Error when running UD Python validation script on file %s" (Filename.basename file);
           ) files
       end
     | Some "sud" | Some "SUD" -> 
       let modules_directory = getenv env "SUDVALIDATION" in
       validate_sud modules_directory corpus_desc
-    | Some "parseme" -> Warning.blue "Parseme validation os not yet available"
+    | Some "parseme" -> Warning.magenta "Parseme validation os not yet available"
     | Some s -> Error.run "Unknown validation `%s`" s
 
   let show corpus_desc =
@@ -1029,16 +1022,14 @@ module Corpusbank = struct
               if max grs_timestamp (File.last_modif src) > (File.last_modif tar)
               then
                 begin
-                  eprintf "update %s from %s\n%!" tar src;
+                  Info.green "corpus `%s` build %s" corpus_id (Filename.basename tar) ;
                   transform grs_config columns grs strat (src_config,src) (tar_config,tar)
                 end
-              else
-                eprintf "%s is uptodate\n%!" tar
             ) src_files in
   
           let () = String_set.iter
             (fun f ->
-              eprintf "remove file %s\n%!" f;
+              Info.green "remove file %s\n%!" f;
               Unix.unlink f
             ) !old_tar_files in
           ()
