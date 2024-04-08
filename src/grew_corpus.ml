@@ -1032,5 +1032,25 @@ module Corpusbank = struct
               Unix.unlink f
             ) !old_tar_files in
           ()
-  
+
+  let compile ?(filter=fun _ -> true) corpusbank =
+    let status_map = build_status_map ~filter corpusbank in
+    iter ~filter 
+      (fun corpus_id corpus_desc -> 
+        match String_map.find corpus_id status_map with
+        | Need_compile -> Corpus_desc.compile corpus_desc
+        | Need_build | Need_rebuild _ -> Warning.magenta "Skip `%s`, build is needed before compile" corpus_id
+        | Err msg -> Warning.magenta "Skip `%s`, Error: %s" corpus_id msg
+        | Ok | Need_validate -> ()
+      ) corpusbank
+
+  let build ?(filter=fun _ -> true) corpusbank =
+    let status_map = build_status_map ~filter corpusbank in
+    iter ~filter 
+      (fun corpus_id corpus_desc -> 
+        match String_map.find corpus_id status_map with
+        | Need_build | Need_rebuild _ -> build_derived corpusbank corpus_desc
+        | Err msg -> Warning.magenta "Skip `%s`, Error: %s" corpus_id msg
+        | Need_compile | Ok | Need_validate -> ()
+      ) corpusbank
 end

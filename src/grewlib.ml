@@ -482,10 +482,17 @@ module Corpusbank = struct
       ~name:"Corpus.print_status" 
       (fun () -> Grew_corpus.Corpusbank.print_status ?verbose ?filter t)
       ()
-  let build_derived corpusbank corpus_id =
+
+  let compile ?filter t  =
     Grewlib.handle
-      ~name:"Corpus.build_derived" 
-      (fun () -> Grew_corpus.Corpusbank.build_derived corpusbank corpus_id)
+      ~name:"Corpusbank.compile"
+      (fun () -> Grew_corpus.Corpusbank.compile ?filter t )
+      ()
+
+  let build ?filter t  =
+    Grewlib.handle
+      ~name:"Corpusbank.build"
+      (fun () -> Grew_corpus.Corpusbank.build ?filter t )
       ()
 end
 

@@ -348,7 +348,10 @@ module Corpusbank : sig
 
   val print_status : ?verbose:bool -> ?filter:(string -> bool) -> t  -> unit
 
-  val build_derived: t -> Corpus_desc.t -> unit
+  val build: ?filter: (string -> bool) -> t -> unit
+
+  val compile: ?filter: (string -> bool) -> t -> unit
+
 end
 
 (* ================================================================================ *)
