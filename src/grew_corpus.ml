@@ -351,6 +351,7 @@ module Corpus_desc = struct
     ensure_directory build_dir;
     build_dir
 
+  (** default value is [false] *)
   let get_flag flag corpus_desc =
     try corpus_desc |> member flag |> to_bool
     with Type_error _ -> false
@@ -968,7 +969,8 @@ module Corpusbank = struct
     Info.print "%15s ----> %d%!" "Total" (String_map.fold (fun _ c acc -> c + acc) !counters 0);
     Info.print "----------------------------------%!"
 
-  let transform grs_config columns grs strat (src_config, src_file) (tar_config, tar_file) =
+  let transform grs_config columns grs strat text_from_tokens (src_config, src_file) (tar_config, tar_file) =
+    let fix = if text_from_tokens then Conll.text_from_tokens else CCFun.id in
     let src_corpus = Corpus.from_file ~config:src_config src_file in
     let out_ch = open_out tar_file in
     Corpus.iteri
@@ -976,7 +978,7 @@ module Corpusbank = struct
       (* Counter.print index len sent_id; *)
       (* Grew_grs.Grs.simple_rewrite ~config grs strat gr *)
         match Grs.simple_rewrite ~config:grs_config grs strat gr with
-          | [graph] -> fprintf out_ch "%s\n" (graph |> G_graph.to_json |> Conll.of_json |> Conll.to_string ~config:tar_config ~columns)
+          | [graph] -> fprintf out_ch "%s\n" (graph |> G_graph.to_json |> Conll.of_json |> fix |> Conll.to_string ~config:tar_config ~columns)
           | _ -> Error.run "More than one normal form (src_file=%s)" src_file
       ) src_corpus;
       (* Counter.finish (); *)
@@ -997,6 +999,7 @@ module Corpusbank = struct
           let () = build_derived corpusbank src_corpus_desc in
   
           let directory = Corpus_desc.get_directory corpus_desc in
+          let text_from_tokens = Corpus_desc.get_flag "text_from_tokens" corpus_desc in
           Corpus_desc.ensure_directory directory;
 
           let grs_config = match Corpus_desc.get_field_opt "grs_config" corpus_desc with
@@ -1022,7 +1025,7 @@ module Corpusbank = struct
               then
                 begin
                   Info.green "corpus `%s` build %s" corpus_id (Filename.basename tar) ;
-                  transform grs_config columns grs strat (src_config,src) (tar_config,tar)
+                  transform grs_config columns grs strat text_from_tokens (src_config,src) (tar_config,tar)
                 end
             ) src_files in
   

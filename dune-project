@@ -34,7 +34,7 @@
    ANSITerminal
    (containers ( >= "3.6" ))
    (amr ( >= "0.6.0" )) 
-   (conll ( >= "1.17" ))
+   (conll ( >= "1.18" ))
  )
  (tags
   (nlp "graph rewriting")
