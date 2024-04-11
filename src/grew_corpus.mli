@@ -96,7 +96,7 @@ module Corpus_desc : sig
 
   val show: t -> unit
 
-  val validate: ?env: (string * string) list -> t -> unit
+  val validate: ?verbose:bool -> ?env: (string * string) list -> t -> unit
 end
 
 module Corpusbank : sig

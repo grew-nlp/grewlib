@@ -345,11 +345,17 @@ module Corpus_desc = struct
     | Dont_exist -> Unix.mkdir dir 0o755
   
   let get_build_directory corpus_desc =
-    let intermediate_dir = Filename.concat (get_directory corpus_desc) "_build_grew" in
-    ensure_directory intermediate_dir;
-    let build_dir = Filename.concat intermediate_dir (get_id corpus_desc) in
-    ensure_directory build_dir;
-    build_dir
+    let dir = get_directory corpus_desc in
+    match File.get_path_status dir
+    with
+      | Directory ->
+        let intermediate_dir = Filename.concat (get_directory corpus_desc) "_build_grew" in
+        ensure_directory intermediate_dir;
+        let build_dir = Filename.concat intermediate_dir (get_id corpus_desc) in
+        ensure_directory build_dir;
+        build_dir
+      | File -> Error.run "corpus `%s`: `%s` is not a directory" (get_id corpus_desc) dir
+      | Dont_exist -> Error.run "corpus `%s`: the directory `%s` does not exist" (get_id corpus_desc) dir
 
   (** default value is [false] *)
   let get_flag flag corpus_desc =
@@ -383,7 +389,7 @@ module Corpus_desc = struct
     with Sys_error _ -> []
   
   (* replace ${…} with value of the environment variable and add the list of built files in the field "built_files" *)
-  let expand_and_check ~env = function
+  let expand_and_check ~env json_file = function
     | `Assoc l ->
       let (id_flag, dir) = (ref None, ref None) in
       let new_l = 
@@ -398,8 +404,8 @@ module Corpus_desc = struct
         ) l in
           begin
             match (!id_flag, !dir) with
-            | (None, _) -> Error.run "[Corpus_desc] ill-formed JSON file (missing `id` field)"
-            | (_, None) -> Error.run "[Corpus_desc] ill-formed JSON file (missing `directory` field)"
+            | (None, _) -> Error.run "[Corpus_desc] ill-formed JSON file (missing `id` field) in file `%s`" json_file
+            | (_, None) -> Error.run "[Corpus_desc] ill-formed JSON file (missing `directory` field) in file `%s`" json_file
             | (Some id, Some dir) -> 
               let built_files = 
                 (Filename.concat dir (Filename.concat "_build_grew" id))
@@ -407,16 +413,18 @@ module Corpus_desc = struct
                 |> List.map (fun x -> `String x) in
               `Assoc (("built_files", `List built_files) :: new_l)
           end
-    | _ -> Error.run "[Corpus_desc] ill-formed JSON file (corpus desc is not a JSON object)"
+    | _ -> Error.run "[Corpus_desc] ill-formed JSON file (corpus desc is not a JSON object) in file `%s` " json_file
 
   let load_json ?(env=[]) json_file =
     try
       json_file
       |> Yojson.Basic.from_file 
       |> to_list
-      |> (List.map (expand_and_check ~env))
-    with Yojson.Json_error _ | Type_error _ -> Error.run "[Corpus_desc.load_json] ill-formed JSON file"
-
+      |> (List.map (expand_and_check ~env json_file))
+    with 
+    | Yojson.Json_error msg -> Error.run "[Corpus_desc] JSON error `%s` in file `%s`" msg json_file
+    | Type_error (msg,_) -> Error.run "[Corpus_desc] ill-formed JSON file `%s` in file `%s" msg json_file
+    
 
   (* get the list of paths for all file with [extension] in the [directory] *)
   (* raises Error.run if the directory does not exist *)
@@ -694,7 +702,8 @@ module Corpus_desc = struct
     CCIO.with_out out_file (fun out_ch -> fprintf out_ch "%s\n" (Yojson.Basic.pretty_to_string json))
 
 
-  let validate_sud modules_directory corpus_desc =
+  let validate_sud ~verbose ~env corpus_desc =
+    let modules_directory = getenv env "SUDVALIDATION" in
     let all_files = Sys.readdir modules_directory |> Array.to_list in
     let json_files = List.filter (fun file -> Filename.extension file = ".json") all_files in
     let full_files = List.map (fun file -> Filename.concat modules_directory file) json_files in
@@ -707,52 +716,53 @@ module Corpus_desc = struct
     let files = get_files corpus_desc in
     let files_time = List.fold_left (fun acc file -> max acc (File.last_modif file)) Float.min_float files in
     if valid_time > files_time && valid_time > modules_time
-      then Info.green "%s --> SUD validation is uptodate" corpus_id
+      then (if verbose then Info.green "%s --> SUD validation is uptodate" corpus_id)
       else
         begin
-          Info.green "SUD validation of %s%!" corpus_id;
+          Info.green "SUD validation of %s" corpus_id;
           check validator_list valid_file corpus_desc
         end
 
-  let validate ?(env=[]) corpus_desc =
-    match get_field_opt "validation" corpus_desc with
-    | None -> ()  (* No validation defined for this corpus *)
-    | Some "ud" | Some "UD" -> 
-      begin
-        let validate_script = Filename.concat (getenv env "UDTOOLS") "validate.py" in
-        let corpus_id = get_id corpus_desc in
-        let lang_opt = get_field_opt "lang" corpus_desc in
-        let valid_file = Filename.concat (get_build_directory corpus_desc) "valid_ud.txt" in
-        let valid_time = File.last_modif valid_file in
-        let files = get_files corpus_desc in
-        let files_time = List.fold_left (fun acc file -> max acc (File.last_modif file)) Float.min_float files in
-        if valid_time > files_time
-        then Info.green "%s --> UD validation is uptodate" corpus_id
-        else
-          let out_ch = open_out valid_file in
-          Printf.fprintf out_ch "%s\n" (now ());
-          let args = match lang_opt with
-            | Some l -> sprintf "--lang=%s" l
-            | None -> 
-              Printf.fprintf out_ch "WARNING: no lang defined, validation only up to level 3\n";
-              "--lang=unknown --level=3" in
-          close_out out_ch;
-            List.iter (fun file ->
-            printf "validate %s file of %s\n%!" (Filename.basename file) corpus_id;
-            let out_ch = open_out_gen [Open_append] 0o644 valid_file in
-            Printf.fprintf out_ch "================================ %s ================================\n" (Filename.basename file);
-            close_out out_ch;
-            let command = sprintf "%s %s --max-err 0 %s 2>>  %s || true" validate_script args file valid_file in
-            match Sys.command command with
-              | 0 -> ()
-              | _ -> Warning.magenta "Error when running UD Python validation script on file %s" (Filename.basename file);
-          ) files
-      end
-    | Some "sud" | Some "SUD" -> 
-      let modules_directory = getenv env "SUDVALIDATION" in
-      validate_sud modules_directory corpus_desc
-    | Some "parseme" -> Warning.magenta "Parseme validation os not yet available"
-    | Some s -> Error.run "Unknown validation `%s`" s
+  let validate_ud ~verbose ~env corpus_desc =
+    let validate_script = Filename.concat (getenv env "UDTOOLS") "validate.py" in
+    let corpus_id = get_id corpus_desc in
+    let lang_opt = get_field_opt "lang" corpus_desc in
+    let valid_file = Filename.concat (get_build_directory corpus_desc) "valid_ud.txt" in
+    let valid_time = File.last_modif valid_file in
+    let files = get_files corpus_desc in
+    let files_time = List.fold_left (fun acc file -> max acc (File.last_modif file)) Float.min_float files in
+    if valid_time > files_time
+    then (if verbose then Info.green "%s --> UD validation is uptodate" corpus_id)
+    else
+      let out_ch = open_out valid_file in
+      Printf.fprintf out_ch "%s\n" (now ());
+      let args = match lang_opt with
+        | Some l -> sprintf "--lang=%s" l
+        | None -> 
+          Printf.fprintf out_ch "WARNING: no lang defined, validation only up to level 3\n";
+          "--lang=unknown --level=3" in
+      close_out out_ch;
+        List.iter (fun file ->
+          Info.green "UD validation of file %s [in corpus %s]" (Filename.basename file) corpus_id;
+        let out_ch = open_out_gen [Open_append] 0o644 valid_file in
+        Printf.fprintf out_ch "================================ %s ================================\n" (Filename.basename file);
+        close_out out_ch;
+        let command = sprintf "%s %s --max-err 0 %s 2>>  %s || true" validate_script args file valid_file in
+        match Sys.command command with
+          | 0 -> ()
+          | _ -> Warning.magenta "Error when running UD Python validation script on file %s" (Filename.basename file);
+      ) files
+
+
+
+  let validate ?(verbose=false) ?(env=[]) corpus_desc =
+    try
+      match get_field_opt "validation" corpus_desc with
+      | None -> ()  (* No validation defined for this corpus *)
+      | Some "ud" | Some "UD" -> validate_ud ~verbose ~env corpus_desc
+      | Some "sud" | Some "SUD" -> validate_sud ~verbose ~env corpus_desc
+      | Some s -> Error.run "Unknown validation `%s`" s
+    with Unix.Unix_error (_x,_y,_z) -> Warning.magenta "Skip `%s`, Error %s %s" (get_id corpus_desc) _y _z
 
   let show corpus_desc =
     Info.green "<><><> %s <><><>" (get_id corpus_desc) ;
@@ -824,10 +834,15 @@ module Corpusbank = struct
     | Dont_exist -> Error.run "corpusbank `%s` not found" input
 
   let build_filter patterns =
-    let anon_regexp = List.map (fun s -> Re.compile (Re.Glob.glob ~anchored:true s)) patterns in
+    let extended_patterns = List.map (fun s -> "*"^s^"*") patterns in
+    let string_pattern = match extended_patterns with
+      | [] -> "match(*)"
+      | _ ->String.concat " & " (List.map (fun s -> "match("^s^")") extended_patterns) in
+    Info.green "<========= Corpora matching: %s =========>" string_pattern;
+    let anon_regexp = List.map (fun s -> Re.compile (Re.Glob.glob ~anchored:true s)) extended_patterns in
     let filter id = match anon_regexp with
     | [] -> true
-    | l -> List.exists (fun re -> Re.execp re id) l in
+    | l -> List.for_all (fun re -> Re.execp re id) l in
     filter
 
   let get_corpus_desc_opt corpusbank corpus_id = 
@@ -955,7 +970,7 @@ module Corpusbank = struct
         | Need_compile ->          print "need compile ---> %s" corpus_id;
         | Need_build ->            print "need build -----> %s" corpus_id;
         | Need_rebuild msg_list -> print "need rebuild ---> %s" corpus_id;
-            if verbose then List.iter (fun msg -> print "    • %s\n%!" msg) msg_list
+            if verbose then List.iter (fun msg -> print "    ➔ %s%!" msg) msg_list
         | Err msg -> Info.red "Error ----------> %s [%s]" corpus_id msg;
           ()
 

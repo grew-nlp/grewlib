@@ -323,7 +323,7 @@ module Corpus_desc : sig
   (** [show t] print the corpus config *)
   val show: t -> unit
 
-  val validate: ?env: (string * string) list -> t -> unit
+  val validate: ?verbose:bool -> ?env: (string * string) list -> t -> unit
 end (* module Corpus_desc *)
 
 (* ================================================================================ *)

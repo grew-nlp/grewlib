@@ -437,8 +437,8 @@ module Corpus_desc = struct
       (fun () -> Grew_corpus.Corpus_desc.show t)
       ()
 
-  let validate ?env t =
-    Grewlib.handle ~name:"Corpus_desc.validate" (fun () -> Grew_corpus.Corpus_desc.validate ?env t) ()
+  let validate ?verbose ?env t =
+    Grewlib.handle ~name:"Corpus_desc.validate" (fun () -> Grew_corpus.Corpus_desc.validate ?verbose ?env t) ()
   end (* module Corpus_desc *)
 
 
