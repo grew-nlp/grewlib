@@ -148,10 +148,12 @@ module Ast = struct
   }
   type edge = u_edge * Loc.t
 
-  type ineq = Lt | Gt | Le | Ge
+  type ineq = Eq | Neq| Lt | Gt | Le | Ge
 
   let check_ineq v1 ineq v2 =
     match ineq with
+    | Eq -> v1 = v2
+    | Neq -> v1 <> v2
     | Lt -> v1 < v2
     | Gt -> v1 > v2
     | Le -> v1 <= v2
@@ -162,6 +164,8 @@ module Ast = struct
     | Gt -> ">"
     | Le -> "≤"
     | Ge -> "≥"
+    | Eq -> "="
+    | Neq -> "≠"
 
   type u_const =
     | Cst_out of Id.name * edge_label_cst
@@ -175,6 +179,8 @@ module Ast = struct
     | Large_prec of Id.name * Id.name
     | Edge_disjoint of Id.name * Id.name
     | Edge_crossing of Id.name * Id.name
+    | Delta of Id.name * Id.name * ineq * int
+    | Length of Id.name * Id.name * ineq * int
 
   type const = u_const * Loc.t
 
