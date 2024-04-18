@@ -768,6 +768,14 @@ module Feature_value = struct
     "MaxAmplitudeNormalizedGlobal";
     "DurationNormalizedGlobal";
     "AvgAmplitudeNormalizedGlobal";
+    "DurationGlobalZscore";
+    "DurationLocalZscore";
+    "MeanF0GlobalZscore";
+    "MeanF0LocalZscore";
+    "AvgAmplitudeGlobalZscore";
+    "AvgAmplitudeLocalZscore";
+    "MaxAmplitudeGlobalZscore";
+    "MaxAmplitudeLocalZscore";
   ]
 
   let parse ?loc feature_name string_value =
