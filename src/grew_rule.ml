@@ -1050,6 +1050,8 @@ module Matching = struct
     | Rel of (string * string)
     | Feat of (string * string list)
     | Continuous of ((string * string) * float * float option * float option)
+    | Delta of (string * string)
+    | Length of (string * string)
 
   let parse_key string_key =
     let string_key = String.trim string_key in
@@ -1084,9 +1086,35 @@ module Matching = struct
             match Str.split (Str.regexp "\\.") k with
             | ["global"; key] -> Meta key
             | [id; feature_name] -> Feat (id, Str.split (Str.regexp "/") feature_name)
-            | _ -> Error.run "Cannot parse cluster key `%s`" string_key
+            | _ ->
+              begin
+                match Str.full_split (Str.regexp "[(),]") string_key with
+                | [Str.Text oper; Str.Delim "("; Str.Text n1; Str.Delim ","; Str.Text n2; Str.Delim ")" ] ->
+                  begin
+                    match String.trim oper with 
+                    | "delta" -> Delta(String.trim n1, String.trim n2)
+                    | "length" -> Length(String.trim n1, String.trim n2)
+                    | _ -> Error.run "Cannot parse cluster key `%s`" string_key
+                  end
+                | _ -> Error.run "Cannot parse cluster key `%s`" string_key
+              end
           end
         | _ -> Error.run "Cannot parse cluster key `%s`" string_key
+
+
+  let delta request graph matching pid1 pid2 =
+    let (_, node1) = search_pid_name request graph matching pid1 in
+    let (_, node2) = search_pid_name request graph matching pid2 in
+    match (G_node.get_position_opt node1, G_node.get_position_opt node2) with
+    | (Some p1, Some p2) -> Some (string_of_int (p2 - p1))
+    | _ -> None
+
+  let length request graph matching pid1 pid2 =
+    let (_, node1) = search_pid_name request graph matching pid1 in
+    let (_, node2) = search_pid_name request graph matching pid2 in
+    match (G_node.get_position_opt node1, G_node.get_position_opt node2) with
+    | (Some p1, Some p2) -> Some (string_of_int (Int.abs (p2 - p1)))
+    | _ -> None
 
   let get_value_opt ?(json_label=false) ~config string_key request graph matching =
     match parse_key string_key with
@@ -1096,6 +1124,8 @@ module Matching = struct
     | Rel (pid_name_1, pid_name_2) -> Some (get_link ~config false pid_name_1 pid_name_2 request graph matching)
     | Feat (id, splitted_feature_names) -> get_feat_value_opt ~json_label ~config request graph matching (id, splitted_feature_names)
     | Continuous params -> Some (get_interval request graph matching params)
+    | Delta (pid1, pid2) -> delta request graph matching pid1 pid2 
+    | Length (pid1, pid2) -> length request graph matching pid1 pid2 
 
   let get_clust_value_opt ?(json_label=false) ~config cluster_item request graph matching =
     match cluster_item with
