@@ -229,7 +229,7 @@ module G_fs = struct
       | [] -> (None, t)
       | feat_name :: tail ->
         match (feat_name, List_.sort_assoc_opt feat_name t) with
-        | ("form", Some (Feature_value.String "_")) -> loop tail
+        | ("form", Some (Feature_value.String "_")) | ("form", Some (Feature_value.String "__NOFORM__")) -> loop tail
         | (_,Some atom) -> (Some (feat_name, atom), List_.sort_remove_assoc feat_name t)
         | (_,None) -> loop tail in
     loop main_list
