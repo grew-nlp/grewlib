@@ -95,8 +95,8 @@ module Ast : sig
   }
   type edge = u_edge * Loc.t
 
-  type ineq = Lt | Gt | Le | Ge
-  val check_ineq: float -> ineq -> float -> bool
+  type ineq = Eq | Neq| Lt | Gt | Le | Ge
+  val check_ineq: 'a -> ineq -> 'a -> bool
   val string_of_ineq: ineq -> string
 
   type u_const =
@@ -111,6 +111,9 @@ module Ast : sig
     | Large_prec of Id.name * Id.name
     | Edge_disjoint of Id.name * Id.name
     | Edge_crossing of Id.name * Id.name
+    | Delta of Id.name * Id.name * ineq * int
+    | Length of Id.name * Id.name * ineq * int
+
 
   type const = u_const * Loc.t
 

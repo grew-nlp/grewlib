@@ -577,9 +577,25 @@ clause_item:
               | ("label", n) | (n, "label") -> Error.build ~loc "Unexpected operator '%s'" n
               | (n, m) -> Error.build ~loc "Unexpected operators '%s' and '%s'" n m
             }
+
+        /*    delta(X,Y) <= 2      */
+        /*    length(X,Y) = 4      */
+        | id0_loc=simple_id_with_loc LPAREN n1=simple_id COMMA n2=simple_id RPAREN ineq=ineq value = INT
+            { match (id0_loc) with
+             | ("delta", loc) -> Clause_const (Ast.Delta (n1, n2, ineq, value), loc)
+             | ("length", loc) -> Clause_const(Ast.Length (n1, n2, ineq, value), loc)
+             | (x, loc) -> Error.build ~loc "Unexpected operators '%s'" x
+            }
+
 /*** end clause_item ***/
 
-
+ineq:
+  | DISEQUAL { Ast.Neq }
+  | EQUAL    { Ast.Eq }
+  | LT       { Ast.Lt }
+  | GT       { Ast.Gt }
+  | LE       { Ast.Le }
+  | GE       { Ast.Ge }
 
 
 node_features:

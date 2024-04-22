@@ -101,6 +101,8 @@ module Constraint = struct
     | Edge_relative of edge_relative_position * string * string
     (*   N << e2   *)
     | Covered of Pid.t * string (* node_id, edge_id *)
+    | Delta of Pid.t * Pid.t * Ast.ineq * int
+    | Length of Pid.t * Pid.t * Ast.ineq * int
 
   let to_json ~config p_graph_list const =
     let pid_name pid = P_graph.get_name pid p_graph_list in
@@ -129,6 +131,8 @@ module Constraint = struct
     | Edge_relative (Crossing, eid1, eid2) -> sprintf "%s >< %s" eid1 eid2
     | Edge_relative (Included, eid1, eid2) ->  sprintf "%s << %s" eid1 eid2
     | Edge_relative (Contained, _, _) -> Error.bug "Unexpected Edge_relative"
+    | Delta (pid1, pid2, ineq, v) -> sprintf "delta (%s,%s) %s %d" (pid_name pid1) (pid_name pid2) (Ast.string_of_ineq ineq) v
+    | Length (pid1, pid2, ineq, v) -> sprintf "length (%s,%s) %s %d" (pid_name pid1) (pid_name pid2) (Ast.string_of_ineq ineq) v
 
   let build ~config lexicons ker_table ext_table edge_ids const =
     let parse_id loc id = match (Id.build_opt id ker_table, Id.build_opt id ext_table) with
@@ -180,6 +184,8 @@ module Constraint = struct
       Edge_relative (Disjoint, eid1, eid2)
     | (Ast.Edge_crossing (eid1, eid2), _) ->
       Edge_relative (Crossing, eid1, eid2)
+    | (Ast.Delta (pid1, pid2, ineq, value), loc) -> Delta (pid_of_name loc pid1, pid_of_name loc pid2, ineq, value) 
+    | (Ast.Length  (pid1, pid2, ineq, value), loc) -> Length (pid_of_name loc pid1, pid_of_name loc pid2, ineq, value) 
 
 end (* module Constraint *)
 
@@ -667,8 +673,25 @@ module Matching = struct
         | (Some edge) when G_graph.covered gnode edge graph -> matching
         | Some _ -> raise Fail
         | (None) -> Error.run "Edge identifier '%s' not found" eid;
-
       end
+      | Delta (pid1, pid2, ineq, value) -> 
+        let gnode1 = G_graph.find (Pid_map.find pid1 matching.n_match |> snd) graph in
+        let gnode2 = G_graph.find (Pid_map.find pid2 matching.n_match |> snd) graph in
+        begin
+          match (G_node.get_position_opt gnode1, G_node.get_position_opt gnode2) with
+          | Some i1, Some i2 -> if Ast.check_ineq (i2 - i1) ineq value then matching else raise Fail
+          | _ -> raise Fail
+        end
+  
+      | Length (pid1, pid2, ineq, value) ->
+        let gnode1 = G_graph.find (Pid_map.find pid1 matching.n_match |> snd) graph in
+        let gnode2 = G_graph.find (Pid_map.find pid2 matching.n_match |> snd) graph in
+        begin
+          match (G_node.get_position_opt gnode1, G_node.get_position_opt gnode2) with
+          | Some i1, Some i2 -> if Ast.check_ineq (Int.abs (i2 - i1)) ineq value then matching else raise Fail
+          | _ -> raise Fail
+        end
+
 
   (*  ---------------------------------------------------------------------- *)
   (* returns all extension of the partial input matching *)
@@ -1027,6 +1050,8 @@ module Matching = struct
     | Rel of (string * string)
     | Feat of (string * string list)
     | Continuous of ((string * string) * float * float option * float option)
+    | Delta of (string * string)
+    | Length of (string * string)
 
   let parse_key string_key =
     let string_key = String.trim string_key in
@@ -1061,9 +1086,35 @@ module Matching = struct
             match Str.split (Str.regexp "\\.") k with
             | ["global"; key] -> Meta key
             | [id; feature_name] -> Feat (id, Str.split (Str.regexp "/") feature_name)
-            | _ -> Error.run "Cannot parse cluster key `%s`" string_key
+            | _ ->
+              begin
+                match Str.full_split (Str.regexp "[(),]") string_key with
+                | [Str.Text oper; Str.Delim "("; Str.Text n1; Str.Delim ","; Str.Text n2; Str.Delim ")" ] ->
+                  begin
+                    match String.trim oper with 
+                    | "delta" -> Delta(String.trim n1, String.trim n2)
+                    | "length" -> Length(String.trim n1, String.trim n2)
+                    | _ -> Error.run "Cannot parse cluster key `%s`" string_key
+                  end
+                | _ -> Error.run "Cannot parse cluster key `%s`" string_key
+              end
           end
         | _ -> Error.run "Cannot parse cluster key `%s`" string_key
+
+
+  let delta request graph matching pid1 pid2 =
+    let (_, node1) = search_pid_name request graph matching pid1 in
+    let (_, node2) = search_pid_name request graph matching pid2 in
+    match (G_node.get_position_opt node1, G_node.get_position_opt node2) with
+    | (Some p1, Some p2) -> Some (string_of_int (p2 - p1))
+    | _ -> None
+
+  let length request graph matching pid1 pid2 =
+    let (_, node1) = search_pid_name request graph matching pid1 in
+    let (_, node2) = search_pid_name request graph matching pid2 in
+    match (G_node.get_position_opt node1, G_node.get_position_opt node2) with
+    | (Some p1, Some p2) -> Some (string_of_int (Int.abs (p2 - p1)))
+    | _ -> None
 
   let get_value_opt ?(json_label=false) ~config string_key request graph matching =
     match parse_key string_key with
@@ -1073,6 +1124,8 @@ module Matching = struct
     | Rel (pid_name_1, pid_name_2) -> Some (get_link ~config false pid_name_1 pid_name_2 request graph matching)
     | Feat (id, splitted_feature_names) -> get_feat_value_opt ~json_label ~config request graph matching (id, splitted_feature_names)
     | Continuous params -> Some (get_interval request graph matching params)
+    | Delta (pid1, pid2) -> delta request graph matching pid1 pid2 
+    | Length (pid1, pid2) -> length request graph matching pid1 pid2 
 
   let get_clust_value_opt ?(json_label=false) ~config cluster_item request graph matching =
     match cluster_item with
