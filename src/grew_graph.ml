@@ -1171,8 +1171,7 @@ module G_graph = struct
       | None -> graph
 
   (* -------------------------------------------------------------------------------- *)
-  let to_dep ?filter ?(no_root=false) ?main_feat ?(deco=G_deco.empty) ~config graph =
-
+  let to_dep ?filter ?(no_root=false) ?(pid=true) ?main_feat ?(deco=G_deco.empty) ~config graph =
     let graph = if no_root then remove_conll_root_node graph else graph in 
 
     (* split lexical // non-lexical nodes *)
@@ -1212,7 +1211,11 @@ module G_graph = struct
     (* nodes *)
     List.iter
       (fun (id, node) ->
-        let decorated_feat = try List.assoc id deco.G_deco.nodes with Not_found -> ("",[]) in
+        let decorated_feat =
+          match (List.assoc_opt id deco.G_deco.nodes, pid) with
+          | (None, _) -> ("",[])
+          | (Some (_,x), false) -> ("", x)
+          | (Some x, true) -> x in
         let fs = G_node.get_fs node in
 
         let loop_edge = Gid_massoc.assoc id (G_node.get_next node) in

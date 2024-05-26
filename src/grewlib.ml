@@ -120,8 +120,8 @@ module Graph = struct
   let to_dot ?main_feat ~config ?(deco=Grew_graph.G_deco.empty) graph =
     Grewlib.handle ~name:"Graph.to_dot" (fun () -> Grew_graph.G_graph.to_dot ?main_feat ~config graph ~deco) ()
 
-  let to_dep ?filter ?no_root ?main_feat ?(deco=Grew_graph.G_deco.empty) ~config graph =
-    Grewlib.handle ~name:"Graph.to_dep" (fun () -> Grew_graph.G_graph.to_dep ?filter ?no_root ?main_feat ~deco ~config graph) ()
+  let to_dep ?filter ?no_root ?pid ?main_feat ?(deco=Grew_graph.G_deco.empty) ~config graph =
+    Grewlib.handle ~name:"Graph.to_dep" (fun () -> Grew_graph.G_graph.to_dep ?filter ?no_root ?pid ?main_feat ~deco ~config graph) ()
 
   let of_json graph =
     Grewlib.handle ~name:"Graph.of_json" (fun () -> Grew_graph.G_graph.of_json graph) ()

@@ -70,7 +70,7 @@ module Graph : sig
 
   val to_dot : ?main_feat:string -> config:Conll_config.t -> ?deco:Deco.t -> t -> string
 
-  val to_dep : ?filter: (string -> bool) -> ?no_root:bool -> ?main_feat:string -> ?deco:Deco.t -> config:Conll_config.t -> t -> string
+  val to_dep : ?filter: (string -> bool) -> ?no_root:bool -> ?pid:bool -> ?main_feat:string -> ?deco:Deco.t -> config:Conll_config.t -> t -> string
 
   val get_meta_opt: string -> t -> string option
 
