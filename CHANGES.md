@@ -1,3 +1,8 @@
+# 1.16.0 (2024/06/02)
+  - New code for corpusbank handling
+  - New syntax in request and key clusrtering (`length` and `delta` between two nodes)
+  - New function `Corpus.count_feature_values`
+
 ## 1.15.4 (2024/03/15)
   - Avoid syntax error when "#END" is at the end of a file without newline
   - String_.of_float_clean (https://github.com/Arborator/arborator-frontend/issues/360)
