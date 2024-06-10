@@ -477,9 +477,10 @@ module Corpus_desc = struct
     with Sys_error _ -> None
 
   (* ---------------------------------------------------------------------------------------------------- *)
-  let table_and_desc build_dir corpus_desc conll_corpus =
+  let table_and_desc corpus_desc conll_corpus =
     let config = get_config corpus_desc in
     let corpus_id = get_id corpus_desc in
+    let build_dir = get_build_directory corpus_desc in
 
     (* write table file *)
     let stat = Conll_stat.build ~config ("upos", None) ("ExtPos", Some "upos") conll_corpus in
@@ -521,7 +522,7 @@ module Corpus_desc = struct
         | Conll columns ->
           let conll_corpus = Conll_corpus.load_list ?log_file ~config ?columns full_files in
           let columns = Conll_corpus.get_columns conll_corpus in
-          let () = table_and_desc build_dir corpus_desc conll_corpus in
+          let () = table_and_desc corpus_desc conll_corpus in
           let items = CCArray.filter_map (fun (sent_id,conllx) ->
               try
                 let graph = G_graph.of_json (Conll.to_json conllx) in
