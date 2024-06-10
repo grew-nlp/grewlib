@@ -1032,6 +1032,8 @@ module Corpusbank = struct
           let tar_config = Corpus_desc.get_config corpus_desc in
   
           let old_tar_files = ref (String_set.of_list (Corpus_desc.get_files corpus_desc)) in
+          let tgz_needed = ref false in
+
           let () = List.iter
             (fun src ->
               let tar_basename = Filename.basename src in (* TODO: handle replacement in names like ud -> sud *)
@@ -1041,6 +1043,7 @@ module Corpusbank = struct
               then
                 begin
                   Info.green "corpus `%s` build %s" corpus_id (Filename.basename tar) ;
+                  tgz_needed := true;
                   transform grs_config columns grs strat text_from_tokens (src_config,src) (tar_config,tar)
                 end
             ) src_files in
@@ -1050,8 +1053,24 @@ module Corpusbank = struct
               Info.green "remove file %s\n%!" f;
               Unix.unlink f
             ) !old_tar_files in
-          ()
 
+          let () =
+            if !tgz_needed
+            then
+              let build_dir = Corpus_desc.get_build_directory corpus_desc in
+              let corpus_id = Corpus_desc.get_id corpus_desc in
+              let name = Filename.basename directory in
+              let tgz_file = Filename.concat build_dir (sprintf "%s.tgz" corpus_id) in
+              let parent = Filename.dirname directory in
+              let cmd = sprintf "cd %s && tar zcf %s %s/*.conllu" parent tgz_file name in
+              begin
+                match Sys.command cmd with
+                | 0 -> Info.green "updated file %s.tgz" tgz_file;
+                | _ -> Warning.magenta "error in %s.tgz production" tgz_file
+              end
+
+          in ()
+  
   let compile ?(filter=fun _ -> true) corpusbank =
     let status_map = build_status_map ~filter corpusbank in
     iter ~filter 
