@@ -2,7 +2,7 @@
 
 (name grewlib)
 
-(version 1.16.0)
+(version 1.16.1)
 
 (using menhir 2.0)
 
@@ -29,6 +29,7 @@
     )
    dune 
    menhir
+   re
    yojson
    fileutils
    ANSITerminal
