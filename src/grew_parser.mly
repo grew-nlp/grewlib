@@ -30,8 +30,10 @@ type req_item =
 
 let get_loc () = Global.get_loc ()
 let localize t = (t,get_loc ())
+
 %}
 
+%token SHARP                       /* # */
 %token LACC                        /* { */
 %token RACC                        /* } */
 %token LBRACKET                    /* [ */
@@ -61,6 +63,7 @@ let localize t = (t,get_loc ())
 %token PIPE                        /* | */
 
 %token EDGE                        /* -> */
+%token BIEDGE                      /* <-> */
 %token LTR_EDGE_LEFT               /* -[ */
 %token LTR_EDGE_LEFT_NEG           /* -[^ */
 %token LTR_EDGE_RIGHT              /* ]-> */
@@ -95,6 +98,9 @@ let localize t = (t,get_loc ())
 %token UNORDER                     /* unorder */
 %token INSERT                      /* insert */
 
+%token DELTA                       /* delta */
+%token LENGTH                      /* length */
+
 %token PICK                        /* Pick */
 %token ALT                         /* Alt */
 %token SEQ                         /* Seq */
@@ -115,6 +121,7 @@ let localize t = (t,get_loc ())
 %token <string list>           COMMENT
 %token <string * (int *string) list>  LEX_PAR
 
+
 %token EOF                         /* end of file */
 
 %start <Grew_ast.Ast.basic> basic
@@ -122,6 +129,7 @@ let localize t = (t,get_loc ())
 
 %start <Grew_ast.Ast.grs> grs
 %start <Grew_ast.Ast.strat> strat_alone
+%start <Grew_ast.Ast.key>  key
 
 
 /* parsing of the string representation of the constituent representation of Sequoia */
@@ -163,6 +171,9 @@ simple_id_or_float:
 
 node_id:
         | id=ID       { Ast.parse_node_ident id }
+
+key_id:
+        | id=ID       { Ast.parse_key_ident id }
 
 feature_ident :
         | id=ID       { Ast.parse_feature_ident id }
@@ -926,4 +937,29 @@ strat_desc:
 
 strat_alone:
   | s = strat_desc EOF  { s }
+
+key:
+  | k = inkey EOF  { k }
+
+inkey:
+  | i1 = simple_id SHARP l = separated_nonempty_list (SHARP, simple_id)  { Ast.Rel_order (i1 :: l) }
+  | x = simple_id EDGE y = simple_id { Ast.Rel (x,y)}
+  | x = simple_id BIEDGE y = simple_id { Ast.Sym_rel (x,y)}
+  | s = key_id { 
+      match s with 
+      | ("global", [one]) -> Ast.Meta one
+      | ("global", _) -> Error.build "syntax error in key: more then one feat value in global"
+      | _ -> Ast.Feat s
+  }
+  | DELTA LPAREN x=simple_id COMMA y=simple_id RPAREN { Ast.Delta(x,y) }
+  | LENGTH LPAREN x=simple_id COMMA y=simple_id RPAREN { Ast.Length(x,y) }
+  | fi = feature_ident LBRACKET l = separated_nonempty_list (COMMA, cont_key_value) RBRACKET  
+      {
+        match List.assoc_opt "gap" l with
+        | None -> Error.build "syntax error in key: gap parameter is required"
+        | Some g -> Ast.Continuous (fi, g, List.assoc_opt "min" l, List.assoc_opt "max" l )
+      }
+
+cont_key_value:
+  | fn=simple_id EQUAL value = FLOAT  { (fn, value)}
 %%

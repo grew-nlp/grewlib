@@ -1043,65 +1043,6 @@ module Matching = struct
         let i = floor (f /. gap) in
         sprintf "[%g, %g[" (i *. gap) ((i +. 1.) *. gap)
 
-  type key =
-    | Meta of string
-    | Rel_order of string list
-    | Sym_rel of (string * string)
-    | Rel of (string * string)
-    | Feat of (string * string list)
-    | Continuous of ((string * string) * float * float option * float option)
-    | Delta of (string * string)
-    | Length of (string * string)
-
-  let parse_key string_key =
-    let string_key = String.trim string_key in
-    if CCString.contains string_key '#'
-    then Rel_order (string_key |> (Str.split (Str.regexp "#")) |> List.map String.trim)
-    else 
-      match Str.full_split (Str.regexp "<?->") string_key with 
-      | [Str.Text n1; Str.Delim "<->"; Str.Text n2] -> Sym_rel (String.trim n1, String.trim n2)
-      | [Str.Text n1; Str.Delim "->"; Str.Text n2] -> Rel (String.trim n1, String.trim n2)
-      | _ -> 
-        match Str.full_split (Str.regexp "\\[\\|\\]") string_key with
-        | [Str.Text feat; Str.Delim "["; Str.Text params; Str.Delim "]" ] ->
-          let fs =
-            params
-            |> Str.split (Str.regexp " *, *")
-            |> List.map 
-              (fun param_item -> 
-                match Str.split (Str.regexp " *= *") param_item with 
-                | [f;v] -> (f,v) 
-                | _ -> Error.run "Cannot parse cluster key `%s`" string_key
-              ) in
-          begin
-            match (List.assoc_opt "gap" fs, List.assoc_opt "min" fs, List.assoc_opt "max" fs) with
-            | (None, _,_) -> Error.run "Missing gap"
-            | (Some gap, min_opt, max_opt) ->
-              match Str.split (Str.regexp "\\.") (String.trim feat) with
-              | [id; fn] -> Continuous ((id, fn), float_of_string gap, float_of_string <$> min_opt, float_of_string <$> max_opt)
-              | _ -> Error.run "Cannot parse cluster key `%s`" string_key
-          end
-        | [Str.Text k] ->
-          begin 
-            match Str.split (Str.regexp "\\.") k with
-            | ["global"; key] -> Meta key
-            | [id; feature_name] -> Feat (id, Str.split (Str.regexp "/") feature_name)
-            | _ ->
-              begin
-                match Str.full_split (Str.regexp "[(),]") string_key with
-                | [Str.Text oper; Str.Delim "("; Str.Text n1; Str.Delim ","; Str.Text n2; Str.Delim ")" ] ->
-                  begin
-                    match String.trim oper with 
-                    | "delta" -> Delta(String.trim n1, String.trim n2)
-                    | "length" -> Length(String.trim n1, String.trim n2)
-                    | _ -> Error.run "Cannot parse cluster key `%s`" string_key
-                  end
-                | _ -> Error.run "Cannot parse cluster key `%s`" string_key
-              end
-          end
-        | _ -> Error.run "Cannot parse cluster key `%s`" string_key
-
-
   let delta request graph matching pid1 pid2 =
     let (_, node1) = search_pid_name request graph matching pid1 in
     let (_, node2) = search_pid_name request graph matching pid2 in
@@ -1117,8 +1058,8 @@ module Matching = struct
     | _ -> None
 
   let get_value_opt ?(json_label=false) ~config string_key request graph matching =
-    match parse_key string_key with
-    | Meta key -> graph |> G_graph.get_meta_list |> List.assoc_opt key
+    match Parser.key string_key with
+    | Ast.Meta key -> graph |> G_graph.get_meta_list |> List.assoc_opt key
     | Rel_order pid_name_list -> get_relative_order pid_name_list request graph matching
     | Sym_rel (pid_name_1, pid_name_2) -> Some (get_link ~config true pid_name_1 pid_name_2 request graph matching)
     | Rel (pid_name_1, pid_name_2) -> Some (get_link ~config false pid_name_1 pid_name_2 request graph matching)

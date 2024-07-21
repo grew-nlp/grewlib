@@ -186,4 +186,13 @@ module Parser = struct
       let strategy = parse_handle "[Grew_loader.Parser.strategy]" (Grew_parser.strat_alone Grew_lexer.global) lexbuf in
       strategy
     with Sys_error msg -> Error.parse "[Grew_loader.Parser.strategy] %s" msg
+
+  (* ------------------------------------------------------------------------------------------*)
+  let key s =
+    try
+      Global.new_string ();
+      let lexbuf = Lexing.from_string s in
+      let k = parse_handle "[Grew_loader.Parser.key]" (Grew_parser.key Grew_lexer.key) lexbuf in
+      k
+    with Sys_error msg -> Error.parse "[Grew_loader.Parser.key] %s" msg
 end (* module Parser *)

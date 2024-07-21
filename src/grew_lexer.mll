@@ -30,6 +30,9 @@
 let digit = ['0'-'9']
 let letter = ['a'-'z' 'A'-'Z']
 
+let float =  "-"? digit+ ('.' digit*)
+let int = "-"? digit+
+
 (* a general_ident is an arbitrary sequence of:
    - letter
    - digit
@@ -47,6 +50,8 @@ let label_ident =
 let general_ident =
   (letter | '_' ) |
   (letter | '_' | '.' ) (letter | digit | '_' | '\'' | '-' | '.' | '$')* (letter | digit | '_' | '\'' | '.' | '$')
+
+let key_ident = (letter | digit | '_' | '\'' | '-' | '.' | '/')+
 
 let newline = '\r' | '\n' | "\r\n"
 
@@ -203,8 +208,8 @@ and standard target = parse
 | "Empty"         { EMPTY }
 | "Onf"           { ONF }
 
-| "-"? digit+ ('.' digit*) as number  { FLOAT (float_of_string number) }
-| "-"? digit+ as number  { INT (int_of_string number) }
+| float as number { FLOAT (float_of_string number) }
+| int as number   { INT (int_of_string number) }
 
 | '$' general_ident      { raise (Error "Syntax of lexicon has changed! Please read grew.fr/lexicons_change for updating instructions") }
 
@@ -265,3 +270,24 @@ and const = parse
   | '('                   { LPAREN }
   | ')'                   { RPAREN }
   | [^'(' ')' ' ']+ as id { ID id }
+
+and key = parse
+  | [' ' '\t']       { key lexbuf }
+  | newline          { Global.new_line (); Lexing.new_line lexbuf; key lexbuf}
+  | '#'              { SHARP }
+  | '/'              { SLASH }
+  | '='              { EQUAL }
+  | '['              { LBRACKET }
+  | ']'              { RBRACKET }
+  | '('              { LPAREN }
+  | ')'              { RPAREN }
+  | ','              { COMMA }
+  | "->"             { EDGE }
+  | "<->"            { BIEDGE }
+  | "delta"          { DELTA }
+  | "length"         { LENGTH }
+  | float as number  { FLOAT (float_of_string number) }
+  | int as number    { FLOAT (float_of_string number) }
+  | key_ident as id  { ID id }
+  | eof              { EOF }
+  | _ as c           { raise (Error (sprintf "unexpected character '%c'" c)) }

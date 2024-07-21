@@ -56,6 +56,15 @@ module Ast = struct
     | [Str.Text base; Str.Delim "."; Str.Text fn] -> (base, fn)
     | _ -> Error.build "The identifier '%s' must be a feature identifier (with exactly one '.' symbol, like \"V.cat\" for instance)" s
 
+
+  type key_ident = Id.name * string list
+
+  let parse_key_ident s = 
+    check_special "feature ident" ["."] s;
+    match Str.full_split (Str.regexp "\\.") s with
+    | [Str.Text feature_name; Str.Delim "."; Str.Text values] -> (feature_name, Str.split (Str.regexp "/") values)
+    | _ -> Error.build "The identifier '%s' must be a key identifier (with exactly one '.' symbol, like \"X.Number\" for instance)" s
+
   (* ---------------------------------------------------------------------- *)
   (* simple_or_pointed: union of simple_ident, feature_ident and lex field *)
   (* Note: used for parsing of "X < Y" and "X.feat < Y.feat" without conflicts *)
@@ -473,6 +482,24 @@ module Ast = struct
         | Rule {rule_id; _} -> rule_id :: acc
         | _ -> acc
       ) [] grs
+
+  type key =
+    (* global.text *)
+    | Meta of string
+    (* S#V#O *)
+    | Rel_order of string list
+    (* X <-> Y *)
+    | Sym_rel of (string * string)
+    (* X -> Y *)
+    | Rel of (string * string)
+    (* X.Number *)
+    | Feat of (string * string list)
+    (* X.MeanFO [gap=10, min=20, max=100] *)
+    | Continuous of ((string * string) * float * float option * float option)
+    (* delta (X,Y) *)
+    | Delta of (string * string)
+    (* length (X,Y) *)
+    | Length of (string * string)
 
 end (* module Ast *)
 

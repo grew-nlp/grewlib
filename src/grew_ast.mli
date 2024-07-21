@@ -47,6 +47,9 @@ module Ast : sig
 
   val parse_simple_or_pointed: string -> simple_or_pointed
 
+  type key_ident = Id.name * string list
+  val parse_key_ident: string -> key_ident
+
   (* ---------------------------------------------------------------------- *)
   type feature_kind =
     | Feat_kind_list of Cmp.t * string list
@@ -259,6 +262,24 @@ module Ast : sig
 
   (* return the list of rules declared at the top level *)
   val rule_list: grs -> string list
+
+  type key =
+    (* global.text *)
+    | Meta of string
+    (* S#V#O *)
+    | Rel_order of string list
+    (* X <-> Y *)
+    | Sym_rel of (string * string)
+    (* X -> Y *)
+    | Rel of (string * string)
+    (* X.Number *)
+    | Feat of (string * string list)
+    (* X.MeanFO [gap=10, min=20, max=100] *)
+    | Continuous of ((string * string) * float * float option * float option)
+    (* delta (X,Y) *)
+    | Delta of (string * string)
+    (* length (X,Y) *)
+    | Length of (string * string)
 
 end (* module Ast *)
 
