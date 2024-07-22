@@ -206,7 +206,7 @@ module G_graph: sig
       If a feature of the same name already exists in [tar_id], the two values are concatenated (separated by [separator]).
       The output is [None] if no changes are made on [tar_id], [Some (new_graph, trace)] else where [trace] is the list of updated features in [tar_id]
   *)
-  val concat_feats_opt: ?loc:Loc.t -> t -> Ast.side ->  Gid.t -> Gid.t -> string -> string -> (t * (string * Feature_value.t) list) option
+  val concat_feats_opt: ?loc:Loc.t -> t -> Ast.side ->  Gid.t -> Gid.t -> string -> Regexp.t -> (t * (string * Feature_value.t) list) option
 
   (** [del_feat_opt graph node_id feat_name] returns [graph] where the feat [feat_name] of [node_id] is deleted
       If the feature is not present, [None] is returned. *)

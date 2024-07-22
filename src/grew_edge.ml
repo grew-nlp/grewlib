@@ -202,7 +202,7 @@ module Label_cst = struct
     (* [^comp:obj|comp@pass] *)
     | Neg of G_edge_fs.t list
     (* [RE"aux.*"]  compiled and string version *)
-    | Regexp of (Str.regexp * string)
+    | Regexp of Regexp.t
     (* [1=subj, 2=*, !3] *)
     | Atom_list of atom_cst list
     | Pred
@@ -211,7 +211,7 @@ module Label_cst = struct
   let to_string ~config = function
     | Pos fs_list -> (String.concat "|" (List.map (G_edge_fs.to_string ~config) fs_list))
     | Neg fs_list -> "^"^(String.concat "|" (List.map (G_edge_fs.to_string ~config) fs_list))
-    | Regexp (_,re) -> "re\""^re^"\""
+    | Regexp re -> Regexp.to_string re
     | Atom_list l ->
       String.concat ","
         (List.map
@@ -247,10 +247,10 @@ module Label_cst = struct
     | (Pos fs_list, G_edge.Fs g_fs) -> List.exists (fun p_fs -> p_fs = g_fs) fs_list
     | (Neg fs_list, G_edge.Fs g_fs) -> not (List.exists (fun p_fs -> p_fs = g_fs) fs_list)
     | (Atom_list l, G_edge.Fs fs) -> List.for_all (match_atom fs) l
-    | (Regexp (re,_), g_edge)  ->
+    | (Regexp re, g_edge)  ->
       begin
         match G_edge.to_compact_opt ~config g_edge with
-        | Some s -> String_.re_match re s
+        | Some s -> Regexp.re_match re s
         | None -> false
       end
     | _ -> false
@@ -263,7 +263,7 @@ module Label_cst = struct
   let of_ast ?loc ~config = function
     | Ast.Neg_list p_labels -> Neg (List.sort compare (List.map (G_edge_fs.from_string ~config) p_labels))
     | Ast.Pos_list p_labels -> Pos (List.sort compare (List.map (G_edge_fs.from_string ~config) p_labels))
-    | Ast.Regexp re -> Regexp (Str.regexp re, re)
+    | Ast.Regexp re -> Regexp re
     | Ast.Atom_list l -> Atom_list (List.map (build_atom ?loc) l)
     | Ast.Pred -> Error.bug "[Label_cst.of_ast]"
 end (* module Label_cst *)

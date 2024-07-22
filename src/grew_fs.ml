@@ -61,7 +61,7 @@ module P_feature = struct
   type p_feature_value =
     | Pfv_list of Cmp.t * Feature_value.t list (* value (Eq,[]) must not be used *)
     | Pfv_lex of Cmp.t * string * string
-    | Pfv_re of Cmp.t * string
+    | Pfv_re of Cmp.t * Regexp.t
     | Absent
     | Else of (Feature_value.t * string * Feature_value.t)
 
@@ -79,7 +79,7 @@ module P_feature = struct
        | Pfv_list (Neq, []) -> "=*"
        | Pfv_list (cmp,l) -> sprintf "%s%s" (Cmp.to_string cmp) (String.concat "|" (List.map Feature_value.to_string l))
        | Pfv_lex (cmp,lex,fn) -> sprintf "%s %s.%s" (Cmp.to_string cmp) lex fn
-       | Pfv_re (cmp,re) -> sprintf "%s re\"%s\"" (Cmp.to_string cmp) re
+       | Pfv_re (cmp,re) -> sprintf "%s %s" (Cmp.to_string cmp) (Regexp.to_string re)
        | Absent -> " must be Absent!"
        | Else (fv1,fn2,fv2) -> sprintf " = %s/%s = %s" (Feature_value.to_string fv1) fn2 (Feature_value.to_string fv2));
     printf "%!"
@@ -111,7 +111,7 @@ module P_feature = struct
     | (feat_name, Pfv_list (Neq,[])) -> sprintf "%s=*" feat_name
     | (feat_name, Pfv_list (cmp,atoms)) -> sprintf "%s%s%s" feat_name (Cmp.to_string cmp) (String.concat "|" (List.map (Feature_value.to_string ~quote) atoms))
     | (feat_name, Pfv_lex (cmp,lex,fn)) -> sprintf "%s%s%s.%s" feat_name (Cmp.to_string cmp) lex fn
-    | (feat_name, Pfv_re (cmp,re)) -> sprintf "%s%sre\"%s\"" feat_name (Cmp.to_string cmp) re
+    | (feat_name, Pfv_re (cmp,re)) -> sprintf "%s%s%s" feat_name (Cmp.to_string cmp) (Regexp.to_string re)
     | (feat_name, Absent) -> sprintf "!%s" feat_name
     | (feat_name, Else (fv1,fn2,fv2)) -> sprintf "%s=%s/%s=%s" feat_name (Feature_value.to_string ~quote fv1) fn2 (Feature_value.to_string ~quote fv2)
 
@@ -205,7 +205,7 @@ module G_fs = struct
             (fun (feature_name,_) ->
                match feature_name with
                | "form" | "lemma" | "upos" | "xpos" | "wordform" | "textform" -> false
-               | _ -> String_.re_match (Str.regexp regexp) feature_name
+               | _ -> Regexp.re_match regexp feature_name
             ) src with
     | [] -> None
     | sub_src ->
@@ -424,8 +424,8 @@ module P_fs = struct
       | ((_, P_feature.Pfv_list (Eq,fv))::_, (_, atom)::_) when not (List_.sort_mem atom fv) -> raise Fail
       | ((_, P_feature.Pfv_list (Neq,fv))::_, (_, atom)::_) when (List_.sort_mem atom fv) -> raise Fail
 
-      | ((_, P_feature.Pfv_re (Eq,re))::_, (_, atom)::_) when not (String_.re_match (Str.regexp re) (Feature_value.to_string atom)) -> raise Fail
-      | ((_, P_feature.Pfv_re (Neq,re))::_, (_, atom)::_) when (String_.re_match (Str.regexp re) (Feature_value.to_string atom)) -> raise Fail
+      | ((_, P_feature.Pfv_re (Eq,re))::_, (_, atom)::_) when not (Regexp.re_match re (Feature_value.to_string atom)) -> raise Fail
+      | ((_, P_feature.Pfv_re (Neq,re))::_, (_, atom)::_) when (Regexp.re_match re (Feature_value.to_string atom)) -> raise Fail
 
       | ((_, P_feature.Else (fv,_,_))::_, (_, atom)::_) when atom <> fv -> raise Fail
 

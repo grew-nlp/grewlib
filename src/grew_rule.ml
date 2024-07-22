@@ -85,7 +85,7 @@ module Constraint = struct
     (*   N.ExtPos/upos = NOUN *)
     | Feature_else of base * string * string * Feature_value.t
     (*   e.2 = re"…"   *)
-    | Feature_cmp_regexp of Cmp.t * base * string * string
+    | Feature_cmp_regexp of Cmp.t * base * string * Regexp.t
     (*   e1.level < e2.level   *)
     | Feature_ineq of Ast.ineq * base * string * base * string
     (*   e1.level < 3   *)
@@ -117,7 +117,7 @@ module Constraint = struct
     | Feature_cmp (cmp,id1,fn1,id2,fn2) -> sprintf "%s.%s %s %s.%s" (base_to_string id1) fn1 (Cmp.to_string cmp) (base_to_string id2) fn2
     | Feature_cmp_value (cmp,id,fn,value) -> sprintf "%s.%s %s %s" (base_to_string id) fn (Cmp.to_string cmp) (Feature_value.to_string ~quote:true value)
     | Feature_else (id, fn1, fn2, value) -> sprintf "%s.%s/%s %s" (base_to_string id) fn1 fn2 (Feature_value.to_string ~quote:true value)
-    | Feature_cmp_regexp (cmp,id,fn,regexp) -> sprintf "%s.%s %s re\"%s\"" (base_to_string id) fn (Cmp.to_string cmp) regexp
+    | Feature_cmp_regexp (cmp,id,fn,regexp) -> sprintf "%s.%s %s %s" (base_to_string id) fn (Cmp.to_string cmp) (Regexp.to_string regexp)
     | Feature_ineq (_,id1,fn1,id2,fn2) -> sprintf "%s.%s < %s.%s" (base_to_string id1) fn1 (base_to_string id2) fn2
     | Feature_ineq_cst (_,id,fn,f) -> sprintf "%s.%s  %g" (base_to_string id) fn f
     | Filter (pid, p_fs_list) -> 
@@ -642,8 +642,7 @@ module Matching = struct
         | Lex _ -> Error.run "[Matching.apply_cst] test regexp against lexicon is not available"
         | Value (Float _) -> Error.run "[Matching.apply_cst] test regexp against numeric value is not available"
         | Value (String string_feat) ->
-          let re = Str.regexp regexp in
-          match (cmp, String_.re_match re string_feat) with
+          match (cmp, Regexp.re_match regexp string_feat) with
           | (Eq, true) | (Neq, false) -> matching
           | _ -> raise Fail
       end
@@ -899,9 +898,9 @@ module Matching = struct
             end
           | (Ast.Glob_regexp (key, re), _) ->
             begin
-              match G_graph.get_meta_opt key graph with
-              | Some v -> String_.re_match (Str.regexp re) v
-              | None -> false
+              match (G_graph.get_meta_opt key graph, re) with
+              | (Some v, re) -> Regexp.re_match re v
+              | (None, _) -> false
             end
         ) glob_list
     else false

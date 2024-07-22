@@ -115,7 +115,7 @@ let localize t = (t,get_loc ())
 /* %token <Grew_ast.Ast.complex_id>   COMPLEX_ID*/
 
 %token <string>                STRING
-%token <string>                REGEXP
+%token <Grew_ast.Regexp.t>     REGEXP
 %token <float>                 FLOAT
 %token <int>                   INT
 %token <string list>           COMMENT
@@ -785,19 +785,19 @@ command:
 
         /*   append_feats M ==> N   */
         | APPEND_FEATS src_loc=simple_id_with_loc ARROW tar=simple_id
-            { let (src,loc) = src_loc in (Ast.Concat_feats (Append, src, tar, ".*", ""), loc) }
+            { let (src,loc) = src_loc in (Ast.Concat_feats (Append, src, tar, Regexp.Re ".*", ""), loc) }
 
         /*   prepend_feats M ==> N   */
         | PREPEND_FEATS src_loc=simple_id_with_loc ARROW tar=simple_id
-            { let (src,loc) = src_loc in (Ast.Concat_feats (Prepend, src, tar, ".*", ""), loc) }
+            { let (src,loc) = src_loc in (Ast.Concat_feats (Prepend, src, tar, Regexp.Re ".*", ""), loc) }
 
         /*   append_feats "+" M ==> N   */
         | APPEND_FEATS sep=STRING src_loc=simple_id_with_loc ARROW tar=simple_id
-            { let (src,loc) = src_loc in (Ast.Concat_feats (Append, src, tar, ".*", sep), loc) }
+            { let (src,loc) = src_loc in (Ast.Concat_feats (Append, src, tar, Regexp.Re ".*", sep), loc) }
 
         /*   prepend_feats "+" M ==> N   */
         | PREPEND_FEATS sep=STRING src_loc=simple_id_with_loc ARROW tar=simple_id
-            { let (src,loc) = src_loc in (Ast.Concat_feats (Prepend, src, tar, ".*", sep), loc) }
+            { let (src,loc) = src_loc in (Ast.Concat_feats (Prepend, src, tar, Regexp.Re ".*", sep), loc) }
 
         /*   append_feats M =[re"_MISC_.*"]=> N   */
         | APPEND_FEATS src_loc=simple_id_with_loc ARROW_LEFT regexp=REGEXP ARROW_RIGHT tar=simple_id

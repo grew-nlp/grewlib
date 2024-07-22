@@ -12,6 +12,23 @@ open Printf
 open Grew_utils
 open Grew_types
 
+(* ================================================================================ *)
+module Regexp = struct
+  type t = 
+  | Re of string
+  | Pcre of string
+  | Pcri of string
+
+  let to_string = function
+  | Re s -> sprintf "re\"%s\"" s
+  | Pcre s -> sprintf "pcre\"%s\"" s
+  | Pcri s -> sprintf "pcri\"%s\"" s
+
+  let re_match re string = 
+    match re with 
+    | Re s -> String_.re_match (Str.regexp s) string 
+    | _ -> failwith "TODO"
+end
 
 (* ================================================================================ *)
 module Ast = struct
@@ -87,7 +104,7 @@ module Ast = struct
   type feature_kind =
     | Feat_kind_list of Cmp.t * string list
     | Feat_kind_lex of Cmp.t * string * string
-    | Feat_kind_re of Cmp.t * string
+    | Feat_kind_re of Cmp.t * Regexp.t
     | Absent
     | Else of (string * string * string)
 
@@ -95,7 +112,7 @@ module Ast = struct
     | Feat_kind_list (Neq, []) -> ""
     | Feat_kind_list (cmp, fv_list) -> sprintf " %s %s" (Cmp.to_string cmp) (String.concat "|" fv_list)
     | Feat_kind_lex (cmp,lex,fn) -> sprintf " %s %s.%s" (Cmp.to_string cmp) lex fn
-    | Feat_kind_re (cmp,re) -> sprintf " %s re\"%s\"" (Cmp.to_string cmp) re
+    | Feat_kind_re (cmp,re) -> sprintf " %s re\"%s\"" (Cmp.to_string cmp) (Regexp.to_string re)
     | Absent -> " <> *"
     | Else (fv1, fn2, fv2) -> sprintf " = %s/%s = %s" fv1 fn2 fv2
 
@@ -137,7 +154,7 @@ module Ast = struct
   type edge_label_cst =
     | Pos_list of edge_label list           (*  A -[X|Y|Z]-> B      *)
     | Neg_list of edge_label list           (*  A -[^X|Y|Z]-> B     *)
-    | Regexp of string                      (*  A -[re"a.*"]-> B    *)
+    | Regexp of Regexp.t                    (*  A -[re"a.*"]-> B    *)
     | Atom_list of atom_edge_label_cst list (*  A -[1=subj, 2]-> B  *)
     | Pred                                  (*  A < B               *)
 
@@ -145,7 +162,7 @@ module Ast = struct
     | Neg_list [] -> ""
     | Pos_list labels -> sprintf "[%s]" (String.concat "|" labels)
     | Neg_list labels -> sprintf "[^%s]" (String.concat "|" labels)
-    | Regexp re -> sprintf "[re\"%s\"]" re
+    | Regexp re -> sprintf "[%s]" (Regexp.to_string re)
     | Atom_list l -> String.concat "," (List.map string_of_atom_edge_label_cst l)
     | Pred -> "PRED"
 
@@ -182,7 +199,7 @@ module Ast = struct
     | Feature_cmp of Cmp.t * feature_ident * feature_ident
     | Feature_ineq of ineq * feature_ident * feature_ident
     | Feature_ineq_cst of ineq * feature_ident * float
-    | Feature_cmp_regexp of Cmp.t * feature_ident * string
+    | Feature_cmp_regexp of Cmp.t * feature_ident * Regexp.t
     | Feature_cmp_value of Cmp.t * feature_ident * Feature_value.t
     | Feature_else of feature_ident * string * Feature_value.t  (* N.ExtPos/upos = NOUN ==> Else ((N,ExtPos), upos, NOUN)  *)
     | Large_prec of Id.name * Id.name
@@ -209,7 +226,7 @@ module Ast = struct
     | Glob_eq_list of string * string list
     | Glob_diff_list of string * string list
     | Glob_absent of string
-    | Glob_regexp of string * string
+    | Glob_regexp of string * Regexp.t
 
   type glob = u_glob * Loc.t
 
@@ -218,7 +235,7 @@ module Ast = struct
     | Glob_eq_list (s,l) -> sprintf "%s = %s" s (String.concat "|" l)
     | Glob_diff_list (s,l) -> sprintf "%s <> %s" s (String.concat "|" l)
     | Glob_absent s -> sprintf "!%s" s
-    | Glob_regexp (f,re) -> sprintf "%s = re\"%s\"" f re
+    | Glob_regexp (f,re) -> sprintf "%s = %s" f (Regexp.to_string re)
 
   type request = {
     req_glob: glob list;
@@ -295,7 +312,7 @@ module Ast = struct
     | Del_feat of feature_ident
     | Update_feat of feature_ident * concat_item list
     (* Concat_feats (side, src, tar, regexp, separator)*)
-    | Concat_feats of (side * Id.name * Id.name * string * string)
+    | Concat_feats of (side * Id.name * Id.name * Regexp.t * string)
     | Unorder of Id.name
 
     | Insert_before of (Id.name * Id.name)
@@ -330,13 +347,13 @@ module Ast = struct
     | Del_feat (act_id, feat_name) ->
       sprintf "del_feat %s.%s" act_id feat_name
     | Concat_feats (Append, src, tar, regexp, "") ->
-      sprintf "append_feats %s =%s=> %s" src regexp tar
+      sprintf "append_feats %s =%s=> %s" src (Regexp.to_string regexp) tar
     | Concat_feats (Append, src, tar, regexp, separator) ->
-      sprintf "append_feats \"%s\" %s =%s=> %s" separator src regexp tar
+      sprintf "append_feats \"%s\" %s =%s=> %s" separator src (Regexp.to_string regexp) tar
     | Concat_feats (Prepend, src, tar, regexp, "") ->
-      sprintf "prepend_feats %s =%s=> %s" src regexp tar
+      sprintf "prepend_feats %s =%s=> %s" src (Regexp.to_string regexp) tar
     | Concat_feats (Prepend, src, tar, regexp, separator) ->
-      sprintf "prepend_feats \"%s\" %s =%s=> %s" separator src regexp tar
+      sprintf "prepend_feats \"%s\" %s =%s=> %s" separator src (Regexp.to_string regexp) tar
     | Unorder n -> sprintf "unorder %s" n
     | Insert_before (n1,n2) -> sprintf "insert %s :< %s" n1 n2
     | Insert_after (n1,n2) -> sprintf "insert %s :> %s" n1 n2
@@ -623,3 +640,4 @@ module Lexicons = struct
       Error.build ?loc "Undefined field name \"%s\" in lexicon %s" field_name lexicon_name
     | _ -> ()
 end (* module Lexicons *)
+

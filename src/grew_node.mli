@@ -64,7 +64,7 @@ module G_node: sig
 
   val rename: (Gid.t * Gid.t) list -> t -> t
 
-  val concat_feats_opt: ?loc:Loc.t -> Ast.side -> t -> t -> string -> string -> (t * (string * Feature_value.t) list) option
+  val concat_feats_opt: ?loc:Loc.t -> Ast.side -> t -> t -> string -> Regexp.t -> (t * (string * Feature_value.t) list) option
   val shift: string -> int -> t -> t
   val unshift: string -> t -> t
 

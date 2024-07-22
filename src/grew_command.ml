@@ -62,7 +62,7 @@ module Command  = struct
     | SHIFT_EDGE of (command_node * command_node * Label_cst.t)
     | SHIFT_IN of (command_node * command_node * Label_cst.t)
     | SHIFT_OUT of (command_node * command_node * Label_cst.t)
-    | CONCAT_FEATS of (Ast.side * command_node * command_node * string * string)
+    | CONCAT_FEATS of (Ast.side * command_node * command_node * Regexp.t * string)
     | UNORDER of command_node
     | INSERT_BEFORE of (command_node * command_node)
     | INSERT_AFTER of (command_node * command_node)
@@ -135,7 +135,7 @@ module Command  = struct
         (match side with Append -> "append_feats" | Prepend -> "prepend_feats")
         (match separator with "" -> "" | s -> sprintf "\"%s\"" s)
         (node_to_string src) 
-        (match regexp with ".*" -> "" | s -> sprintf "[re\"%s\"]" s)
+        (sprintf "[%s]" (Regexp.to_string regexp))
         (node_to_string tar) 
       )
     | UNORDER cn -> `String (sprintf "unorder %s" (node_to_string cn))

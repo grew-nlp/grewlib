@@ -10,6 +10,19 @@
 
 open Grew_utils
 
+(* ================================================================================ *)
+module Regexp : sig
+  type t = 
+  | Re of string
+  | Pcre of string
+  | Pcri of string
+
+  val to_string: t -> string
+
+  val re_match: t -> string -> bool
+end
+
+(* ================================================================================ *)
 module Ast : sig
 
   (* ---------------------------------------------------------------------- *)
@@ -54,7 +67,7 @@ module Ast : sig
   type feature_kind =
     | Feat_kind_list of Cmp.t * string list
     | Feat_kind_lex of Cmp.t * string * string
-    | Feat_kind_re of Cmp.t * string
+    | Feat_kind_re of Cmp.t * Regexp.t
     | Absent
     | Else of (string * string * string)
 
@@ -86,7 +99,7 @@ module Ast : sig
   type edge_label_cst =
     | Pos_list of edge_label list           (*  X|Y|Z    *)
     | Neg_list of edge_label list           (*  ^X|Y|Z   *)
-    | Regexp of string                      (*  re"a.*"  *)
+    | Regexp of Regexp.t                    (*  re"a.*"  *)
     | Atom_list of atom_edge_label_cst list (* 1=subj, 2 *)
     | Pred
 
@@ -108,7 +121,7 @@ module Ast : sig
     | Feature_cmp of Cmp.t * feature_ident * feature_ident
     | Feature_ineq of ineq * feature_ident * feature_ident
     | Feature_ineq_cst of ineq * feature_ident * float
-    | Feature_cmp_regexp of Cmp.t * feature_ident * string
+    | Feature_cmp_regexp of Cmp.t * feature_ident * Regexp.t
     | Feature_cmp_value of Cmp.t * feature_ident * Feature_value.t
     | Feature_else of feature_ident * string * Feature_value.t  (* N.ExtPos/upos = NOUN ==> Else ((N,ExtPos), upos, NOUN)  *)
     | Large_prec of Id.name * Id.name
@@ -137,7 +150,7 @@ module Ast : sig
     | Glob_eq_list of string * string list
     | Glob_diff_list of string * string list
     | Glob_absent of string
-    | Glob_regexp of string * string
+    | Glob_regexp of string * Regexp.t
 
   type glob = u_glob * Loc.t
 
@@ -179,7 +192,7 @@ module Ast : sig
     | Del_feat of feature_ident
     | Update_feat of feature_ident * concat_item list
 
-    | Concat_feats of (side * Id.name * Id.name * string * string)
+    | Concat_feats of (side * Id.name * Id.name * Regexp.t * string)
     | Unorder of Id.name
 
     | Insert_before of (Id.name * Id.name)
@@ -320,3 +333,4 @@ module Lexicons : sig
 
   val check: ?loc:Loc.t -> string -> string -> t -> unit
 end (* module Lexicons *)
+

@@ -59,7 +59,7 @@ module G_fs: sig
   val pst_leaf: ?loc:Loc.t -> string -> t
   val pst_node: ?loc:Loc.t -> string -> t
 
-  val concat_feats_opt: ?loc:Loc.t -> Ast.side -> t -> t -> string -> string -> (t * (string * Feature_value.t) list) option
+  val concat_feats_opt: ?loc:Loc.t -> Ast.side -> t -> t -> string -> Regexp.t -> (t * (string * Feature_value.t) list) option
 
 end (* module G_fs *)
 

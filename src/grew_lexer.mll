@@ -91,7 +91,7 @@ and string_lex re target = parse
   | '\"'    {
     if !escaped
     then (bprintf buff "\""; escaped := false; string_lex re target lexbuf)
-    else (if re then REGEXP (Buffer.contents buff) else STRING (Buffer.contents buff))
+    else (if re then REGEXP (Grew_ast.Regexp.Re (Buffer.contents buff)) else STRING (Buffer.contents buff))
   }
   | _ as c {
     if !escaped then bprintf buff "\\";
