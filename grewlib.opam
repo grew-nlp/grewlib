@@ -19,7 +19,7 @@ depends: [
   "fileutils"
   "ANSITerminal"
   "containers" {>= "3.6"}
-  "amr" {>= "0.6.0"}
+  "amr" {>= "0.7.1"}
   "conll" {>= "1.18.1"}
   "odoc" {with-doc}
 ]

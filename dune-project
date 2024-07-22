@@ -24,9 +24,7 @@
  (synopsis "The main library for the Grew system")
  (description "Grew implements a Graph Rewriting system to be used in NLP")
  (depends 
-   (ocaml 
-      ( >= "4.13.0" )
-    )
+   (ocaml ( >= "4.13.0" ))
    dune 
    menhir
    re
@@ -34,7 +32,7 @@
    fileutils
    ANSITerminal
    (containers ( >= "3.6" ))
-   (amr ( >= "0.6.0" )) 
+   (amr ( >= "0.7.1" )) 
    (conll ( >= "1.18.1" ))
  )
  (tags
