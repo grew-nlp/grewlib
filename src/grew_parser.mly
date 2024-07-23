@@ -63,6 +63,7 @@ let localize t = (t,get_loc ())
 %token PIPE                        /* | */
 
 %token EDGE                        /* -> */
+%token EDGESTAR                    /* ->* */
 %token BIEDGE                      /* <-> */
 %token LTR_EDGE_LEFT               /* -[ */
 %token LTR_EDGE_LEFT_NEG           /* -[^ */
@@ -349,6 +350,11 @@ clause_item:
         /* =================================== */
         /* edge constraints                    */
         /* =================================== */
+
+
+        /*   A -*-> B   */
+        | n1_loc=simple_id_with_loc EDGESTAR n2=simple_id
+            { let (n1,loc) = n1_loc in Clause_const (Ast.Large_dom (n1,n2), loc) }
 
         /*   A -[X|Y]-> *   */
         | n1_loc=simple_id_with_loc labels=delimited(LTR_EDGE_LEFT,separated_nonempty_list(PIPE,label_ident),LTR_EDGE_RIGHT) STAR

@@ -57,8 +57,8 @@ module G_edge = struct
   let pred = Pred
   let succ = Succ
 
-  let is_fs = function
-    | Fs _ -> true
+  let is_real_link = function
+    | Fs _ | Sub -> true
     | _ -> false
 
   let is_basic = function

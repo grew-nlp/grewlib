@@ -1433,6 +1433,33 @@ module G_graph = struct
         else G_node.append_in_ag_lex keys node acc 
       ) t proj 
 
+  let check_large_dominance graph gid1 gid2 =
+    let exception Found in
+    let rec loop (todo, already_seen) =
+      match Gid_set.choose_opt todo with
+      | None -> false  (* we have visisted all nodes accessible from gid1 without finding gid2 *)
+      | Some chosen_gid ->
+        let node = Gid_map.find chosen_gid graph.map in
+        let new_todo = 
+          Gid_massoc.fold
+            (fun acc_todo next_gid g_edge ->
+              if not (G_edge.is_real_link g_edge)
+              then acc_todo
+              else
+                if next_gid = gid2
+                then raise Found
+                else
+                  if Gid_set.mem next_gid already_seen
+                  then acc_todo
+                  else Gid_set.add next_gid acc_todo
+            ) todo (G_node.get_next node) in
+        loop (Gid_set.remove chosen_gid new_todo, Gid_set.add chosen_gid already_seen) in
+    try 
+      if gid1 = gid2
+      then true
+      else loop (Gid_set.singleton gid1, Gid_set.empty)
+    with Found -> true
+
   let is_projective t =
     let (arc_positions, _) =
       Gid_map.fold

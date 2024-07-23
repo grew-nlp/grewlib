@@ -58,7 +58,7 @@ module G_node = struct
     | _ -> false
 
   let out_edges n =
-    Gid_massoc.fold (fun acc _ edge -> if G_edge.is_fs edge then acc+1 else acc) 0 n.next
+    Gid_massoc.fold (fun acc _ edge -> if G_edge.is_real_link edge then acc+1 else acc) 0 n.next
   
   let _dump ~config t =
     Printf.sprintf "  fs=[%s]\n  next=%s\n"

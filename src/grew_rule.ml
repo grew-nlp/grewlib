@@ -95,6 +95,8 @@ module Constraint = struct
     | Filter of Pid.t * P_fs.t list
     (*   N << M   *)
     | Node_large_prec of Pid.t * Pid.t
+    (*   X -*-> Y   *)
+    | Node_large_dom of Pid.t * Pid.t
     (*   e1 << e2   *)
     (*   e1 <> e2   *)
     (*   e1 >< e2   *)
@@ -126,6 +128,7 @@ module Constraint = struct
           (p_fs_list |> List.map P_fs.to_string |> List.map (sprintf "[%s]") |> String.concat "|")
         )
     | Node_large_prec (pid1, pid2) ->  sprintf "%s << %s" (pid_name pid1) (pid_name pid2)
+    | Node_large_dom (pid1, pid2) ->  sprintf "%s ->* %s" (pid_name pid1) (pid_name pid2)
     | Covered (pid1, eid2) -> sprintf "%s << %s" (pid_name pid1) eid2
     | Edge_relative (Disjoint, eid1, eid2) -> sprintf "%s <> %s" eid1 eid2
     | Edge_relative (Crossing, eid1, eid2) -> sprintf "%s >< %s" eid1 eid2
@@ -179,6 +182,8 @@ module Constraint = struct
         | (Node_id pid1, Edge_id eid2) -> Covered (pid1, eid2)
         | _ -> Error.build "Operator << cannot be used with \"edge << node\""
       end
+
+    | (Ast.Large_dom (pid1, pid2), loc) -> Node_large_dom (pid_of_name loc pid1, pid_of_name loc pid2)
 
     | (Ast.Edge_disjoint (eid1, eid2), _) ->
       Edge_relative (Disjoint, eid1, eid2)
@@ -656,6 +661,13 @@ module Matching = struct
         | _ -> raise Fail
       end
 
+    | Node_large_dom (pid1, pid2) ->
+      let gid1 = Pid_map.find pid1 matching.n_match |> snd in
+      let gid2 = Pid_map.find pid2 matching.n_match |> snd in
+      if G_graph.check_large_dominance graph gid1 gid2
+      then matching
+      else raise Fail
+
     | Edge_relative (erp, eid1, eid2) ->
       begin
         match (String_map.find_opt eid1 matching.e_match, String_map.find_opt eid2 matching.e_match) with
@@ -972,8 +984,8 @@ module Matching = struct
     let (gid_2, node_2) = search_pid_name request graph matching pid_name_2 in
     match 
     (
-      node_1 |> G_node.get_next |> (Gid_massoc.assoc gid_2) |> (List.filter G_edge.is_fs),
-      node_2 |> G_node.get_next |> (Gid_massoc.assoc gid_1) |> (List.filter G_edge.is_fs)
+      node_1 |> G_node.get_next |> (Gid_massoc.assoc gid_2) |> (List.filter G_edge.is_real_link),
+      node_2 |> G_node.get_next |> (Gid_massoc.assoc gid_1) |> (List.filter G_edge.is_real_link)
     ) with 
     | ([], []) -> "__none__"
     | ([], _) when not rev -> "__none__"

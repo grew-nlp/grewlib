@@ -232,6 +232,7 @@ module G_graph: sig
 
   val append_in_ag_lex: string list -> t -> int Clustered.t -> int Clustered.t
 
+  val check_large_dominance: t -> Gid.t -> Gid.t -> bool
 
   val is_projective: t -> bool
 

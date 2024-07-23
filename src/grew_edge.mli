@@ -23,8 +23,8 @@ module G_edge: sig
   val pred: t
   val succ: t
 
-  (** [is_fs t] returns [true] iff the edge is a regular fs. *)
-  val is_fs: t -> bool
+  (** [is_real_link t] returns [true] iff the edge is a regular link (i.e. not a special link encoding linear order). *)
+  val is_real_link: t -> bool
 
   (** [is_basic t] returns [true] iff the edge is a regular fs without the [enhanced=Yes] feature.
       Used to get the subset of edges to take into account in graph structure checking. *)

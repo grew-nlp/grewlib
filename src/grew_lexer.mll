@@ -258,6 +258,7 @@ and standard target = parse
 | '/'        { SLASH }
 
 | "->"       { EDGE }
+| "-*->"     { EDGESTAR }
 | "-[^"      { Global.label_flag := true; LTR_EDGE_LEFT_NEG }
 | "-["       { Global.label_flag := true; LTR_EDGE_LEFT }
 | "]->"      { LTR_EDGE_RIGHT }
