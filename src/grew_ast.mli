@@ -12,11 +12,12 @@ open Grew_utils
 
 (* ================================================================================ *)
 module Regexp : sig
-  type t = 
-  | Re of string
-  | Pcre of string
-  | Pcri of string
+  type t
 
+  val all: t
+  val re: string -> t
+  val pcre: string -> t
+  val pcri: string -> t
   val to_string: t -> string
 
   val re_match: t -> string -> bool

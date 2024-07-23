@@ -81,23 +81,31 @@ and comment_multi target = parse
 | newline { Global.new_line (); Lexing.new_line lexbuf; comment_multi target lexbuf }
 | _       { comment_multi target lexbuf }
 
-and string_lex re target = parse
+and string_lex re_opt target = parse
   | '\\' {
     if !escaped
-    then (bprintf buff "\\"; escaped := false; string_lex re target lexbuf)
-    else (escaped := true; string_lex re target lexbuf)
+    then (bprintf buff "\\"; escaped := false; string_lex re_opt target lexbuf)
+    else (escaped := true; string_lex re_opt target lexbuf)
   }
-  | newline { Global.new_line (); Lexing.new_line lexbuf; bprintf buff "\n"; string_lex re target lexbuf }
+  | newline { Global.new_line (); Lexing.new_line lexbuf; bprintf buff "\n"; string_lex re_opt target lexbuf }
   | '\"'    {
     if !escaped
-    then (bprintf buff "\""; escaped := false; string_lex re target lexbuf)
-    else (if re then REGEXP (Grew_ast.Regexp.Re (Buffer.contents buff)) else STRING (Buffer.contents buff))
+    then (bprintf buff "\""; escaped := false; string_lex re_opt target lexbuf)
+    else 
+      begin
+        match re_opt with
+        | None -> STRING (Buffer.contents buff)
+        | Some "re" -> REGEXP (Grew_ast.Regexp.re (Buffer.contents buff))
+        | Some "pcre" -> REGEXP (Grew_ast.Regexp.pcre (Buffer.contents buff))
+        | Some "pcri" -> REGEXP (Grew_ast.Regexp.pcri (Buffer.contents buff))
+        | Some _ -> assert false
+      end
   }
   | _ as c {
     if !escaped then bprintf buff "\\";
     escaped := false;
     bprintf buff "%c" c;
-    string_lex re target lexbuf
+    string_lex re_opt target lexbuf
   }
 
 (* a dedicated lexer for local lexicons: read everything until "#END" *)
@@ -147,8 +155,10 @@ and label_parser target = parse
 | "<>"  { DISEQUAL }
 
 | label_ident as id { ID id }
-| '"'      { Buffer.clear buff; string_lex false global lexbuf }
-| "re\""   { Buffer.clear buff; string_lex true global lexbuf }
+| '"'      { Buffer.clear buff; string_lex None global lexbuf }
+| "re\""   { Buffer.clear buff; string_lex (Some "re") global lexbuf }
+| "pcre\""   { Buffer.clear buff; string_lex (Some "pcre") global lexbuf }
+| "pcri\""   { Buffer.clear buff; string_lex (Some "pcri") global lexbuf }
 
 | "]->" { Global.label_flag := false; LTR_EDGE_RIGHT }
 | "]=>" { Global.label_flag := false; ARROW_RIGHT }
@@ -257,8 +267,10 @@ and standard target = parse
 | "=[^"      { Global.label_flag := true; ARROW_LEFT_NEG }
 | "]=>"      { ARROW_RIGHT }
 
-| '"'      { Buffer.clear buff; string_lex false global lexbuf }
-| "re\""   { Buffer.clear buff; string_lex true global lexbuf }
+| '"'      { Buffer.clear buff; string_lex None global lexbuf }
+| "re\""   { Buffer.clear buff; string_lex (Some "re") global lexbuf }
+| "pcre\""   { Buffer.clear buff; string_lex (Some "pcre") global lexbuf }
+| "pcri\""   { Buffer.clear buff; string_lex (Some "pcri") global lexbuf }
 
 | eof      { EOF }
 

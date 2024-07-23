@@ -15,19 +15,28 @@ open Grew_types
 (* ================================================================================ *)
 module Regexp = struct
   type t = 
-  | Re of string
-  | Pcre of string
-  | Pcri of string
+  | All
+  | Re of string * Str.regexp
+  | Pcre of string * Re.re
+  | Pcri of string * Re.re
 
+  let all = All
+  let re s = Re (s, Str.regexp s)
+  let pcre s = Pcre (s, Re__Pcre.regexp s)
+  let pcri s = Pcri (s, Re__Pcre.regexp ~flags:[`CASELESS] s)
   let to_string = function
-  | Re s -> sprintf "re\"%s\"" s
-  | Pcre s -> sprintf "pcre\"%s\"" s
-  | Pcri s -> sprintf "pcri\"%s\"" s
+  | All -> sprintf "re\".*\""
+  | Re (s,_) -> sprintf "re\"%s\"" s
+  | Pcre (s,_) -> sprintf "pcre\"%s\"" s
+  | Pcri (s,_) -> sprintf "pcri\"%s\"" s
 
   let re_match re string = 
     match re with 
-    | Re s -> String_.re_match (Str.regexp s) string 
-    | _ -> failwith "TODO"
+    | All -> true
+    | Re (_,re) -> String_.re_match re string 
+    | Pcre (_,rex) | Pcri (_,rex) -> 
+        try let groups = Re__Pcre.extract ~rex string in groups.(0) = string
+        with Not_found -> false
 end
 
 (* ================================================================================ *)
