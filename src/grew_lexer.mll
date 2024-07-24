@@ -64,23 +64,6 @@ rule comment target = parse
 | eof     { EOF }
 | _       { comment target lexbuf }
 
-and comment_multi_doc target = shortest
-| (_* as comment)"--%" {
-  let start = ref 0 in
-  try while (Str.search_forward (Str.regexp "\n") comment !start != -1) do
-    start := Str.match_end ();
-    Global.new_line ();
-    Lexing.new_line lexbuf;
-  done; assert false
-  with Not_found ->
-    COMMENT(split_comment comment)
-}
-
-and comment_multi target = parse
-| "*/"    { target lexbuf }
-| newline { Global.new_line (); Lexing.new_line lexbuf; comment_multi target lexbuf }
-| _       { comment_multi target lexbuf }
-
 and string_lex re_opt target = parse
   | '\\' {
     if !escaped
@@ -140,7 +123,6 @@ and global = parse
 
 and label_parser target = parse
 | [' ' '\t'] { global lexbuf }
-| "/*"       { comment_multi global lexbuf }
 | '%'        { comment global lexbuf }
 | newline    { Global.new_line (); Lexing.new_line lexbuf; global lexbuf}
 
@@ -168,8 +150,6 @@ and label_parser target = parse
 and standard target = parse
 | [' ' '\t'] { global lexbuf }
 
-| "%--"      { comment_multi_doc global lexbuf }
-| "/*"       { comment_multi global lexbuf }
 | '%'        { comment global lexbuf }
 
 | "#BEGIN" [' ' '\t']* (label_ident as li) [' ' '\t']* newline
