@@ -27,8 +27,8 @@ module Regexp = struct
   let to_string = function
   | All -> sprintf "re\".*\""
   | Re (s,_) -> sprintf "re\"%s\"" s
-  | Pcre (s,_) -> sprintf "pcre\"%s\"" s
-  | Pcri (s,_) -> sprintf "pcri\"%s\"" s
+  | Pcre (s,_) -> sprintf "/%s/" s
+  | Pcri (s,_) -> sprintf "/%s/i" s
 
   let re_match re string = 
     match re with 

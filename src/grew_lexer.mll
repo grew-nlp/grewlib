@@ -25,6 +25,9 @@
     List.filter (fun l -> not (Str.string_match (Str.regexp "[ \t]*$") l 0)) raw
 
   let buff = Buffer.create 32
+
+  let (previous_token: token option ref) = ref None
+  let push token = previous_token := Some token; token
 }
 
 let digit = ['0'-'9']
@@ -59,36 +62,55 @@ let newline = '\r' | '\n' | "\r\n"
 (* Rules                                                                           *)
 (* ------------------------------------------------------------------------------- *)
 
+(* ignore everything until newline *)
 rule comment target = parse
 | newline { Global.new_line (); Lexing.new_line lexbuf; target lexbuf }
 | eof     { EOF }
 | _       { comment target lexbuf }
 
-and string_lex re_opt target = parse
+(* lexing inside strings "xxx" *)
+and string_lex re target = parse
   | '\\' {
     if !escaped
-    then (bprintf buff "\\"; escaped := false; string_lex re_opt target lexbuf)
-    else (escaped := true; string_lex re_opt target lexbuf)
+    then (bprintf buff "\\"; escaped := false; string_lex re target lexbuf)
+    else (escaped := true; string_lex re target lexbuf)
   }
-  | newline { Global.new_line (); Lexing.new_line lexbuf; bprintf buff "\n"; string_lex re_opt target lexbuf }
+  | newline { Global.new_line (); Lexing.new_line lexbuf; bprintf buff "\n"; string_lex re target lexbuf }
   | '\"'    {
     if !escaped
-    then (bprintf buff "\""; escaped := false; string_lex re_opt target lexbuf)
-    else 
-      begin
-        match re_opt with
-        | None -> STRING (Buffer.contents buff)
-        | Some "re" -> REGEXP (Grew_ast.Regexp.re (Buffer.contents buff))
-        | Some "pcre" -> REGEXP (Grew_ast.Regexp.pcre (Buffer.contents buff))
-        | Some "pcri" -> REGEXP (Grew_ast.Regexp.pcri (Buffer.contents buff))
-        | Some _ -> assert false
-      end
+    then (bprintf buff "\""; escaped := false; string_lex re target lexbuf)
+    else (if re then REGEXP (Grew_ast.Regexp.re (Buffer.contents buff)) else STRING (Buffer.contents buff))
   }
   | _ as c {
     if !escaped then bprintf buff "\\";
     escaped := false;
     bprintf buff "%c" c;
-    string_lex re_opt target lexbuf
+    string_lex re target lexbuf
+  }
+
+(* lexing inside PCRE like regexp /xxx/ *)
+and pcre_lex target = parse
+  | '\\' {
+    if !escaped
+    then (bprintf buff "\\"; escaped := false; pcre_lex target lexbuf)
+    else (escaped := true; pcre_lex target lexbuf)
+  }
+  | newline { raise (Error "Newline are not allowed inside Pcre style regexp") }
+  | "/i"    {
+    if !escaped
+    then (bprintf buff "\\/i"; escaped := false; pcre_lex target lexbuf)
+    else REGEXP (Grew_ast.Regexp.pcri (Buffer.contents buff))
+  }
+  | "/"    {
+    if !escaped
+    then (bprintf buff "\\/"; escaped := false; pcre_lex target lexbuf)
+    else REGEXP (Grew_ast.Regexp.pcre (Buffer.contents buff))
+  }
+  | _ as c {
+    if !escaped then bprintf buff "\\";
+    escaped := false;
+    bprintf buff "%c" c;
+    pcre_lex target lexbuf
   }
 
 (* a dedicated lexer for local lexicons: read everything until "#END" *)
@@ -120,7 +142,7 @@ and global = parse
           else standard global lexbuf
         }
 
-
+(* lexing inside label declaration, like xxx in  -[xxx]-> *)
 and label_parser target = parse
 | [' ' '\t'] { global lexbuf }
 | '%'        { comment global lexbuf }
@@ -137,10 +159,10 @@ and label_parser target = parse
 | "<>"  { DISEQUAL }
 
 | label_ident as id { ID id }
-| '"'      { Buffer.clear buff; string_lex None global lexbuf }
-| "re\""   { Buffer.clear buff; string_lex (Some "re") global lexbuf }
-| "pcre\""   { Buffer.clear buff; string_lex (Some "pcre") global lexbuf }
-| "pcri\""   { Buffer.clear buff; string_lex (Some "pcri") global lexbuf }
+| '"'      { Buffer.clear buff; string_lex false global lexbuf }
+| "re\""   { Buffer.clear buff; string_lex true global lexbuf }
+
+| '/'     { Buffer.clear buff; pcre_lex global lexbuf }
 
 | "]->" { Global.label_flag := false; LTR_EDGE_RIGHT }
 | "]=>" { Global.label_flag := false; ARROW_RIGHT }
@@ -204,7 +226,6 @@ and standard target = parse
 | '$' general_ident      { raise (Error "Syntax of lexicon has changed! Please read grew.fr/lexicons_change for updating instructions") }
 
 | '*'   { STAR }
-| general_ident as id { ID id }
 
 | '{'   { LACC }
 | '}'   { RACC }
@@ -216,9 +237,7 @@ and standard target = parse
 | ';'   { SEMIC }
 | ','   { COMMA }
 | '+'   { PLUS }
-| '='   { EQUAL }
 | "!"   { BANG }
-| "<>"  { DISEQUAL }
 
 | "<"        { LT }
 | ">"        { GT }
@@ -235,7 +254,21 @@ and standard target = parse
 | ">=" | "≥" { GE }
 
 | '|'        { PIPE }
-| '/'        { SLASH }
+
+(* The symbol '/' should be interpreted differently dependending of the context. *)
+(* The push function stores the "previous" token in a global variable *)
+(* when '/' is read: *)
+(*  - if the previous token is an ID, then it is SLASH, used in f=v/g=w or X.f/g *)
+(*  - if the previous token is an STRING, then it is SLASH, used in f="v"/g=w *)
+(*  - if the previous token is different (only EQUAL and DISEQUAL in practise), then it is the start of a Pcre regexp *)
+(* NOTE: other tokens are not pushed so the previous token is not always accurate but it is when we need it! *)
+| general_ident as id { push (ID id) }
+| '='                 { push EQUAL }
+| "<>"                { push DISEQUAL }
+| '/'                 { match !previous_token with 
+                        | Some (ID _) | Some (STRING _) -> SLASH 
+                        | _ -> Buffer.clear buff; pcre_lex global lexbuf
+                      }
 
 | "->"       { EDGE }
 | "-*->"     { EDGESTAR }
@@ -248,10 +281,9 @@ and standard target = parse
 | "=[^"      { Global.label_flag := true; ARROW_LEFT_NEG }
 | "]=>"      { ARROW_RIGHT }
 
-| '"'      { Buffer.clear buff; string_lex None global lexbuf }
-| "re\""   { Buffer.clear buff; string_lex (Some "re") global lexbuf }
-| "pcre\""   { Buffer.clear buff; string_lex (Some "pcre") global lexbuf }
-| "pcri\""   { Buffer.clear buff; string_lex (Some "pcri") global lexbuf }
+| '"'      { Buffer.clear buff; string_lex false global lexbuf }
+| "re\""   { Buffer.clear buff; string_lex true global lexbuf }
+
 
 | eof      { EOF }
 
