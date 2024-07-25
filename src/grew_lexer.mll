@@ -271,7 +271,7 @@ and standard target = parse
                       }
 
 | "->"       { EDGE }
-| "-*->"     { EDGESTAR }
+| "->>"      { EDGESTAR }
 | "-[^"      { Global.label_flag := true; LTR_EDGE_LEFT_NEG }
 | "-["       { Global.label_flag := true; LTR_EDGE_LEFT }
 | "]->"      { LTR_EDGE_RIGHT }
