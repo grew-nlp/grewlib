@@ -79,7 +79,14 @@ and string_lex re target = parse
   | '\"'    {
     if !escaped
     then (bprintf buff "\""; escaped := false; string_lex re target lexbuf)
-    else (if re then REGEXP (Grew_ast.Regexp.re (Buffer.contents buff)) else STRING (Buffer.contents buff))
+    else
+      begin
+        let token = 
+          if re 
+          then REGEXP (Grew_ast.Regexp.re (Buffer.contents buff)) 
+          else STRING (Buffer.contents buff) in
+        push token
+      end
   }
   | _ as c {
     if !escaped then bprintf buff "\\";
@@ -104,7 +111,9 @@ and pcre_lex target = parse
   | "/"    {
     if !escaped
     then (bprintf buff "\\/"; escaped := false; pcre_lex target lexbuf)
-    else REGEXP (Grew_ast.Regexp.pcre (Buffer.contents buff))
+    else 
+      let token = REGEXP (Grew_ast.Regexp.pcre (Buffer.contents buff))
+      in push token
   }
   | _ as c {
     if !escaped then bprintf buff "\\";
@@ -265,8 +274,9 @@ and standard target = parse
 | general_ident as id { push (ID id) }
 | '='                 { push EQUAL }
 | "<>"                { push DISEQUAL }
-| '/'                 { match !previous_token with 
-                        | Some (ID _) | Some (STRING _) -> SLASH 
+| '/'                 { 
+                        match !previous_token with 
+                        | Some (ID _) | Some (STRING _) | Some (REGEXP _) -> SLASH 
                         | _ -> Buffer.clear buff; pcre_lex global lexbuf
                       }
 
