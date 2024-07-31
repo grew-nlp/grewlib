@@ -1,3 +1,10 @@
+## 1.16.2 (2024/07/31)
+  - New syntax for large dominance `X ->> Y` (see [doc](https://grew.fr/doc/request/#constraints-on-large-dominance))
+  - New syntax for PCRE regexp (see doc [here](https://grew.fr/doc/request/#constraints-on-feature-values) and [here](https://grew.fr/doc/request/#node-clauses))
+
+## 1.16.1 (2024/06/17)
+  - Fix missing dependency (to `re` lib)
+
 # 1.16.0 (2024/06/02)
   - New code for corpusbank handling
   - New syntax in request and key clusrtering (`length` and `delta` between two nodes)
