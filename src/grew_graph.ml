@@ -161,8 +161,8 @@ module P_graph = struct
             let edge = P_edge.of_ast ~config (ast_edge, loc) in
             begin
               match map_add_edge_opt src_pid edge tar_pid acc_map with
+              | None -> (acc_map, acc_edge_ids) (* redondant order request: ignore *)
               | Some m -> (m, match ast_edge.Ast.edge_id with Some id -> id::acc_edge_ids | None -> acc_edge_ids)
-              | None -> Error.build ~loc "[P_graph.build] try to build a graph with twice the same edge %s" (P_edge.to_string ~config edge)
             end
         ) (map_without_edges,[]) full_edge_list in
 
@@ -233,9 +233,8 @@ module P_graph = struct
           | _ ->
             let edge = P_edge.of_ast ~config (ast_edge, loc) in
             match map_add_edge_opt src_pid edge tar_pid acc_map with
+            | None -> (acc_map, acc_edge_ids) (* redondant order request: ignore *)
             | Some m -> (m, match ast_edge.Ast.edge_id with Some id -> id::acc_edge_ids | None -> acc_edge_ids)
-            | None -> Error.build ~loc "[P_graph.build_extension] try to build a graph with twice the same edge %s"
-                          (P_edge.to_string ~config edge)
         ) (ext_map_without_edges, edge_ids) full_edge_list in
 
         (ext_map_with_all_edges, filter_on_ker_nodes, ext_table, new_edge_ids)
