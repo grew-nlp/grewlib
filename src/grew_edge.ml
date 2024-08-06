@@ -277,13 +277,11 @@ module P_edge = struct
 
   let pred = { id=None; label_cst = Label_cst.Pred}
   let succ = { id=None; label_cst = Label_cst.Succ}
-  let cpt = ref 0
-  let fresh_name () = incr cpt; Some (sprintf "__e_%d__" !cpt)
 
   let get_id_opt t = t.id
 
   let of_ast ~config (ast_edge, loc) =
-    { id = (match ast_edge.Ast.edge_id with Some s -> Some s | None -> fresh_name ());
+    { id = ast_edge.Ast.edge_id;
       label_cst = Label_cst.of_ast ~loc ~config ast_edge.Ast.edge_label_cst
     }
 
@@ -291,14 +289,12 @@ module P_edge = struct
     let label = Label_cst.to_string ~config t.label_cst in
     match t.id with
     | None -> label
-    | Some id when String.length id > 1 && id.[0] = '_' && id.[1] = '_' -> label
     | Some id -> sprintf "%s:%s" id label
 
   let to_id_opt_and_string ~config t =
     let label = Label_cst.to_string ~config t.label_cst in
     match t.id with
     | None -> (None, label)
-    | Some id when String.length id > 1 && id.[0] = '_' && id.[1] = '_' -> (None, label)
     | Some id -> (Some id, label)
 
   type edge_matcher =
