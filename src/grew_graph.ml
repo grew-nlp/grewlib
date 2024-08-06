@@ -149,11 +149,11 @@ module P_graph = struct
           | Ast.Pred -> (* X < Y *)
             begin
               match map_add_edge_opt src_pid P_edge.succ tar_pid acc_map with
-              | None -> Error.build ~loc "[P_graph.build] try to build a graph with twice the order edge"
+              | None -> (acc_map, acc_edge_ids) (* redondant order request: ignore *)
               | Some acc2 ->
                 begin
                   match map_add_edge_opt tar_pid P_edge.pred src_pid acc2 with
-                  | None -> Error.build ~loc "[P_graph.build] try to build a graph with twice the order edge"
+                  | None -> Error.bug ~loc "[P_graph.of_ast] Inconsistent order encoding (non symetric order relations)"
                   | Some m -> (m, acc_edge_ids)
                 end
             end
@@ -222,11 +222,11 @@ module P_graph = struct
           | Ast.Pred ->
             begin
               match map_add_edge_opt src_pid P_edge.succ tar_pid acc_map with
-              | None -> Error.build ~loc "[P_graph.build_extension] try to build a graph with twice the order edge"
+              | None -> (acc_map, acc_edge_ids) (* redondant order request: ignore *)
               | Some acc2 -> 
                 begin
                   match map_add_edge_opt tar_pid P_edge.pred src_pid acc2 with
-                  | None -> Error.build ~loc "[P_graph.build_extension] try to build a graph with twice the order edge"
+                  | None -> Error.bug ~loc "[P_graph.of_ast_extension] Inconsistent order encoding (non symetric order relations)"
                   | Some m -> (m, acc_edge_ids)
                 end
             end
