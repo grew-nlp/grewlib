@@ -368,7 +368,8 @@ module Corpus_desc = struct
 
   let get_kind corpus_desc =
     try match (corpus_desc |> member "kind" |> to_string_option, corpus_desc |> member "columns" |> to_string_option) with
-      | (None, columns_opt) | (Some "conll", columns_opt) -> Corpus.Conll (CCOption.map Conll_columns.build columns_opt)
+      | (None, columns_opt) | (Some "conll", columns_opt) ->
+          Corpus.Conll (CCOption.map (Conll_columns.of_list << (CCString.split_on_char ' ')) columns_opt)
       | (Some "pst",_) -> Pst
       | (Some "amr",_) -> Amr
       | (Some "dmrs",_) -> Dmrs
@@ -1003,7 +1004,7 @@ module Corpusbank = struct
 
   let rec build_derived corpusbank corpus_desc =
     let corpus_id = Corpus_desc.get_id corpus_desc in
-    let columns = Corpus_desc.get_field_opt "columns" corpus_desc |> CCOption.map_or Conll_columns.build ~default:Conll_columns.default in
+    let columns = Corpus_desc.get_field_opt "columns" corpus_desc |> CCOption.map_or (Conll_columns.of_list << (CCString.split_on_char ' ')) ~default:Conll_columns.default in
     match (Corpus_desc.get_field_opt "src" corpus_desc, Corpus_desc.get_field_opt "grs" corpus_desc, Corpus_desc.get_field_opt "strat" corpus_desc) with
     | (None, _, _) -> () (* this is a native corpus *)
     | (Some _, None, _) -> Info.red "ERROR: in description for corpus_id: `%s`, src but no grs" corpus_id

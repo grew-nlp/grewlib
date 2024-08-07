@@ -10,6 +10,9 @@
 
 open Printf
 
+
+let (<<) f g x = f(g(x))
+
 (* ================================================================================ *)
 module Cmp = struct
   (** This module introduces a two values types for Equalty / Disequality *)
