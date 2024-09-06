@@ -1246,11 +1246,16 @@ module Rule = struct
     let (exts,_) =
       List.fold_left
         (fun (acc,position) (basic_ast, flag) ->
-           try ((Request.build_ext_basic ~config lexicons ker_table edge_ids basic_ast, flag) :: acc, position+1)
-           with P_fs.Fail_unif ->
-             Warning.magenta ~loc:rule_ast.Ast.rule_loc "In rule \"%s\", the wihtout number %d cannot be satisfied, it is skipped"
-               rule_ast.Ast.rule_id position;
-             (acc, position+1)
+          try ((Request.build_ext_basic ~config lexicons ker_table edge_ids basic_ast, flag) :: acc, position+1)
+          with 
+          | P_fs.Fail_unif when flag ->
+            Error.build ~loc:rule_ast.Ast.rule_loc
+              "[Rule.build] in rule \"%s\": feature structures declared in the `with` clauses are inconsistent"
+              rule_ast.Ast.rule_id
+          | P_fs.Fail_unif -> 
+            Warning.magenta ~loc:rule_ast.Ast.rule_loc "In rule \"%s\", the without number %d cannot be satisfied, it is skipped"
+              rule_ast.Ast.rule_id position;
+            (acc, position+1)
         ) ([],1) rule_ast.Ast.request.Ast.req_exts in
     let commands = commands_of_ast ~config lexicons ker ker_table rule_ast.Ast.commands in
     {
