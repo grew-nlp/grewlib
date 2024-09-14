@@ -29,8 +29,6 @@ module Loc: sig
 
   val empty: t
 
-  val file_opt_line: string option -> int -> t
-  val file_opt_line_opt: string option -> int option -> t
   val file: string -> t
 
   val set_line: int -> t -> t
@@ -112,8 +110,8 @@ module String_: sig
 
   (* [extend_path path] replaces each substring "${XXX}" in [path] by the value of the env variable XXX.
      raise [Error.run] if some variable is undefined. *)
-
   val extend_path: env:(string * string) list -> string -> string
+
   (* dedicated "string_of_float" function which avoids the trailing dot
     string_of_float 2. --> "2."
     of_float_clean 2. --> "2"

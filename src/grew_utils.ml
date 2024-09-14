@@ -31,8 +31,6 @@ module Loc = struct
 
   let empty = (None, None)
   let file f = (Some f, None)
-  let file_opt_line fo l = (fo, Some l)
-  let file_opt_line_opt fo lo = (fo, lo)
   let set_line l (x,_) = (x, Some l)
 
   let get_line_opt = snd
