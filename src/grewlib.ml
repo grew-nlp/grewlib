@@ -383,6 +383,7 @@ module Corpus_desc = struct
   type t = Grew_corpus.Corpus_desc.t
 
   let to_json = Grew_corpus.Corpus_desc.to_json
+  let of_json = Grew_corpus.Corpus_desc.of_json
 
   let load_json ?env filename =
     Grewlib.handle

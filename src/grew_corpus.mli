@@ -87,6 +87,7 @@ module Corpus_desc : sig
   val load_json: ?env: (string * string) list -> string -> t list
 
   val to_json: t -> Yojson.Basic.t
+  val of_json: Yojson.Basic.t -> t
 
   val get_files: t -> string list
 

@@ -286,6 +286,7 @@ module Corpus_desc : sig
   type t
 
   val to_json: t -> Yojson.Basic.t
+  val of_json: Yojson.Basic.t -> t
 
   (** [load_json filename] returns the list of corpus_desc described in the json file [filename] *)
   val load_json: ?env:(string * string) list -> string -> t list

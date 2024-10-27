@@ -326,6 +326,7 @@ module Corpus_desc = struct
 
   let to_json t = t
 
+  let of_json t = t
   let get_id corpus_desc = corpus_desc |> member "id" |> to_string
 
   let get_field_opt field corpus_desc = corpus_desc |> member field |> to_string_option
@@ -705,6 +706,7 @@ module Corpus_desc = struct
 
 
   let validate_sud ~verbose ~env corpus_desc =
+    printf "====validate_sud=====\n%!";
     let modules_directory = getenv env "SUDVALIDATION" in
     let all_files = Sys.readdir modules_directory |> Array.to_list in
     let json_files = List.filter (fun file -> Filename.extension file = ".json") all_files in
@@ -1066,7 +1068,7 @@ module Corpusbank = struct
               let cmd = sprintf "cd %s && tar zcf %s %s/*.conllu" parent tgz_file name in
               begin
                 match Sys.command cmd with
-                | 0 -> Info.green "updated file %s.tgz" tgz_file;
+                | 0 -> Info.green "updated file %s" tgz_file;
                 | _ -> Warning.magenta "error in %s.tgz production" tgz_file
               end
 
