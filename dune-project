@@ -2,7 +2,7 @@
 
 (name grewlib)
 
-(version 1.16.2)
+(version 1.16.3)
 
 (using menhir 2.0)
 
@@ -33,7 +33,7 @@
    ANSITerminal
    (containers ( >= "3.6" ))
    (amr ( >= "0.7.1" )) 
-   (conll ( >= "1.18.1" ))
+   (conll ( >= "1.19.0" ))
  )
  (tags
   (nlp "graph rewriting")

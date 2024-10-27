@@ -1,3 +1,7 @@
+## 1.16.3 (2024/10/27)
+  - Adpat to conll 1.19.0
+  - Small bug fixes
+
 ## 1.16.2 (2024/07/31)
   - New syntax for large dominance `X ->> Y` (see [doc](https://grew.fr/doc/request/#constraints-on-large-dominance))
   - New syntax for PCRE regexp (see doc [here](https://grew.fr/doc/request/#constraints-on-feature-values) and [here](https://grew.fr/doc/request/#node-clauses))
