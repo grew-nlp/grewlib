@@ -26,6 +26,8 @@ module Grewlib = struct
     | Error msg -> raise (Error msg)
     | Bug msg -> raise (Bug msg)
 
+    | Sys_error msg -> raise (Error msg)
+
     (* Catch new exceptions *)
     | Grew_utils.Error.Parse (msg, Some loc) -> raise (Error (sprintf "%s %s" (Grew_utils.Loc.to_string loc) msg))
     | Grew_utils.Error.Parse (msg, None) -> raise (Error (sprintf "%s" msg))
