@@ -1,3 +1,6 @@
+## 1.16.4 (2024/10/28)
+  - Unicode Normalisation
+
 ## 1.16.3 (2024/10/27)
   - Adpat to conll 1.19.0
   - Small bug fixes
