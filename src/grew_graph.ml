@@ -482,7 +482,7 @@ module G_graph = struct
           |> CCList.filter_map
             (fun (k,v) -> 
               match v with 
-              | `String s -> Some (k,s)
+              | `String s -> Some (k,s |> String_.nfc)
               | `Int i -> Some (k, string_of_int i)
               | `Float f -> Some (k, String_.of_float_clean f)
               | _ -> None
@@ -543,7 +543,7 @@ module G_graph = struct
                     json_edge
                     |> member "label"
                     |> to_assoc
-                    |> List.map (fun (x,y) -> (x,Feature_value.parse x (to_string y))) 
+                    |> List.map (fun (x,y) -> (x, y |> to_string |> Feature_value.parse x)) 
                 with Type_error _ -> 
                   Error.build
                     "[G_graph.of_json%s] Cannot parse field json `edge` (See https://grew.fr/doc/json):\n%s"

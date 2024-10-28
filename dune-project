@@ -34,6 +34,7 @@
    (containers ( >= "3.6" ))
    (amr ( >= "0.7.1" )) 
    (conll ( >= "1.19.0" ))
+   uunf
  )
  (tags
   (nlp "graph rewriting")

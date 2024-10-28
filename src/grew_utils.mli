@@ -117,6 +117,10 @@ module String_: sig
     of_float_clean 2. --> "2"
   *)
   val of_float_clean: float -> string
+
+  (* Unicode normalisation *)
+  val nfc: string -> string
+
 end
 
 (* ================================================================================ *)

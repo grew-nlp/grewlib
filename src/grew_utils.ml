@@ -180,6 +180,7 @@ module String_ = struct
     then String.sub s 0 ((String.length s) - 1)
     else s
 
+  let nfc s = Uunf_string.normalize_utf_8 `NFC s
 end (* module String *)
 
 (* ================================================================================ *)
@@ -787,7 +788,7 @@ module Feature_value = struct
         | Some f -> Float f
         | None -> Error.run ?loc "The feature \"%s\" must be numeric, it cannot be associated with value: \"%s\"" feature_name string_value
       end
-    else String string_value
+    else String (string_value |> String_.nfc)
 
   let to_string ?(quote=false)= function
     | String s -> s
@@ -820,6 +821,7 @@ module Sbn = struct
   type state = Blank | Token of int | String of int
 
   let parse_line l =
+    let l = l  |> String_.nfc in
     let stack = ref [] in
     let rec loop state pos =
       match (state, l.[pos]) with

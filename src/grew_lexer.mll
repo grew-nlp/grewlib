@@ -84,7 +84,7 @@ and string_lex re target = parse
         let token = 
           if re 
           then REGEXP (Grew_ast.Regexp.re (Buffer.contents buff)) 
-          else STRING (Buffer.contents buff) in
+          else STRING (Buffer.contents buff |> String_.nfc) in
         push token
       end
   }
