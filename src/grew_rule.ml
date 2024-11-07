@@ -1943,6 +1943,7 @@ module Rule = struct
                                          Graph_with_history.graph = new_graph;
                                          added_gids = (created_name, new_gid) :: gwh.Graph_with_history.added_gids;
                                          added_gids_in_rule = (created_name,new_gid) :: gwh.added_gids_in_rule;
+                                         delta = Delta.insert_after new_gid base_gid gwh.Graph_with_history.delta;
                                        }
 
     | Command.NEW_BEFORE (created_name,base_cn) ->
@@ -1952,6 +1953,7 @@ module Rule = struct
                                          Graph_with_history.graph = new_graph;
                                          added_gids = (created_name, new_gid) :: gwh.Graph_with_history.added_gids;
                                          added_gids_in_rule = (created_name,new_gid) :: gwh.added_gids_in_rule;
+                                         delta = Delta.insert_before new_gid base_gid gwh.Graph_with_history.delta;
                                        }
 
     | Command.NEW_NODE (created_name) ->
