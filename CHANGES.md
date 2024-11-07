@@ -1,3 +1,6 @@
+## 1.16.5 (2024/11/07)
+  - Fix bug in graph comparison after add_edge
+
 ## 1.16.4 (2024/10/28)
   - Unicode Normalisation
 
