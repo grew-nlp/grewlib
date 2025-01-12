@@ -2,7 +2,7 @@
 
 (name grewlib)
 
-(version 1.16.5)
+(version 1.16.6)
 
 (using menhir 2.0)
 

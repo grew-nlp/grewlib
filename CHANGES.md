@@ -1,3 +1,6 @@
+## 1.16.6 (2025/01/12)
+  - Escape "<" and ">" in Graph.to_sentence*
+
 ## 1.16.5 (2024/11/07)
   - Fix bug in graph comparison after add_edge
 
