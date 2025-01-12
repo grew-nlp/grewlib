@@ -1081,13 +1081,14 @@ module G_graph = struct
       end
     | Some init_gid ->
       let buff = Buffer.create 32 in
+      let to_buff = function
+      | (None, _, _) -> ()
+      | (Some s, false, false) -> bprintf buff "%s" (String_.escape_lt_gt s)
+      | (Some s, false, true) -> bprintf buff "%s " (String_.escape_lt_gt s)
+      | (Some s, true, false) -> bprintf buff "<span class=\"highlight\">%s</span>" (String_.escape_lt_gt s)
+      | (Some s, true, true) -> bprintf buff "<span class=\"highlight\">%s</span> " (String_.escape_lt_gt s) in
+
       let rec loop current_form flag_highlight flag_sa gid =
-        let to_buff = function
-          | (None, _, _) -> ()
-          | (Some s, false, false) -> bprintf buff "%s" s
-          | (Some s, false, true) -> bprintf buff "%s " s
-          | (Some s, true, false) -> bprintf buff "<span class=\"highlight\">%s</span>" s
-          | (Some s, true, true) -> bprintf buff "<span class=\"highlight\">%s</span> " s in
         let node = Gid_map.find gid graph.map in
         let fs = G_node.get_fs node in
         let (new_current_form, new_flag_highlight, new_flag_sa) =
@@ -1105,6 +1106,7 @@ module G_graph = struct
         | None -> to_buff (new_current_form, new_flag_highlight, new_flag_sa) in
       loop None false true init_gid;
       Buffer.contents buff
+
   let bound_time gnode = 
     let fs = G_node.get_fs gnode in
     let start_opt = match (G_fs.get_value_opt "_start" fs, G_fs.get_value_opt "AlignBegin" fs) with
@@ -1147,12 +1149,12 @@ module G_graph = struct
               start
               (ending -. start)
               (if is_highlighted_gid gid then "class=\"highlight\"" else "")
-              word_no_escape
+              (String_.escape_lt_gt word_no_escape)
           | None -> 
             Printf.bprintf buff 
               "<span %s>%s </span>"
               (if is_highlighted_gid gid then "class=\"highlight\"" else "")
-              word_no_escape
+              (String_.escape_lt_gt word_no_escape)
       ) snodes; 
     (Buffer.contents buff, !sentence_bounds, get_meta_opt "sound_url" graph)
 

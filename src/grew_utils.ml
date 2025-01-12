@@ -181,6 +181,11 @@ module String_ = struct
     else s
 
   let nfc s = Uunf_string.normalize_utf_8 `NFC s
+
+  let escape_lt_gt s =
+    s 
+    |> Str.global_replace (Str.regexp_string ">") "&gt;"
+    |> Str.global_replace (Str.regexp_string "<") "&lt;"
 end (* module String *)
 
 (* ================================================================================ *)

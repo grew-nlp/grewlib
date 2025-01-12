@@ -121,6 +121,9 @@ module String_: sig
   (* Unicode normalisation *)
   val nfc: string -> string
 
+  (* replace '<' and '>' by '&lt;' and '&gt;' (for text insertion in HTML or in graphviz) *)
+  val escape_lt_gt: string -> string
+
 end
 
 (* ================================================================================ *)

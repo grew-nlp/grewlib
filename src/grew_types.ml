@@ -106,7 +106,7 @@ module Clustered = struct
   
   let get_opt null key_list t =
     let rec loop = function
-    | ([],Empty _) -> null
+    | ([], Empty _) -> null
     | ([], Leaf v) -> v
     | (key::key_tail, Node som) -> 
       begin
