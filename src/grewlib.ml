@@ -462,6 +462,12 @@ module Corpusbank = struct
       (fun () -> Grew_corpusbank.Corpusbank.fold ?filter fct t init)
       ()
 
+  let read_files files = 
+    Grewlib.handle
+      ~name:"Corpusbank.read_files"
+      (fun () -> Grew_corpusbank.Corpusbank.read_files files)
+      ()
+
   let load s =
     Grewlib.handle
       ~name:"Corpusbank.load"

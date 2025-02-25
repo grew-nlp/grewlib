@@ -341,6 +341,8 @@ module Corpusbank : sig
     (string -> Corpus_desc.t -> 'a -> 'a) ->
       t -> 'a -> 'a
   
+  val read_files: string list -> t
+
   val load: string -> t
 
   val build_filter : string list -> (string -> bool)

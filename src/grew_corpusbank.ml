@@ -34,29 +34,26 @@ module Corpusbank = struct
       else acc
     ) t init
 
-  let read_files ?dir files = 
-    let data = List.fold_left
-      (fun acc file ->
-        if Filename.extension file = ".json"
-        then
-          begin
-            let full_file = match dir with Some d -> Filename.concat d file | None -> file in
-            let descs = Corpus_desc.load_json full_file in
-            List.fold_left
-              (fun acc2 desc ->
-                let id = Corpus_desc.get_id desc in
-                  if String_map.mem id acc2
-                  then Error.run "Duplicate definition of corpus_id `%s`" id
-                  else String_map.add id desc acc2
-              ) acc descs
-        end
-        else acc
+  let read_files files = 
+    let data =
+      List.fold_left
+        (fun acc file ->
+          List.fold_left
+            (fun acc2 desc ->
+              let id = Corpus_desc.get_id desc in
+                if String_map.mem id acc2
+                then Error.run "Duplicate definition of corpus_id `%s`" id
+                else String_map.add id desc acc2
+            ) acc (Corpus_desc.load_json file)
       ) String_map.empty files in
     data
 
   let read_directory dir = 
-    let all_files = Array.to_list (Sys.readdir dir) in
-    read_files ~dir all_files
+    Sys.readdir dir
+    |> Array.to_list
+    |> List.filter (fun file -> Filename.extension file = ".json")
+    |> List.map (fun file -> Filename.concat dir file)
+    |> read_files
 
   let load input =
     match File.get_path_status input with
