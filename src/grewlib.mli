@@ -234,7 +234,7 @@ module Corpus: sig
   val search:
     ?json_label: bool ->
     config:Conll_config.t ->
-    'a ->                   (* null value to build clusters *)
+    'a ->                   (* default value to build clusters *)
     (string -> Graph.t -> Matching.t -> 'a -> 'a) ->
     (* update function to build clusters. Parameters ares:
         * string  --> sent_id
@@ -245,12 +245,12 @@ module Corpus: sig
     Request.cluster_item list ->    (* list of element used for clustering *)
     t ->
       'a Clustered.t
-  (** [search config null update request cluster_item_list corpus] returns a clustered structure
+  (** [search config default update request cluster_item_list corpus] returns a clustered structure
       representing the multilayer clustering following [cluster_item_list];
-      the computing of each cluster contents (of type ['a]) is controlled by the value [null] and the function [update].
+      the computing of each cluster contents (of type ['a]) is controlled by the value [default] and the function [update].
       Examples of usage:
-      * null=0, update=(fun _ _ _ x -> x+1)    for counting the number of occurrences
-      * null=[], update=(fun _ _ m x -> m::x)  for recording the matchings
+      * default=0, update=(fun _ _ _ x -> x+1)    for counting the number of occurrences
+      * default=[], update=(fun _ _ m x -> m::x)  for recording the matchings
    *)
 
   val bounded_search: 
@@ -259,7 +259,7 @@ module Corpus: sig
     ?ordering: string option ->  (* if value is "length", graph are considered by size, if value is "shuffle", graph order is randomiez, else a default order is used  *)
     int option ->                (* bound on the number of matching *)
     float option ->              (* Timeout in seconds *)  
-    'a ->                        (* null value to build clusters *)
+    'a ->                        (* default value to build clusters *)
     (int -> string -> Graph.t -> int -> int -> Matching.t -> 'a -> 'a) ->
     (* update function to build clusters. Parameters are:
        * int    --> graph_index in the corpus

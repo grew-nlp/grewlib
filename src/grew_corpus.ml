@@ -242,7 +242,7 @@ module Corpus = struct
     | _ -> None
 
   (* ---------------------------------------------------------------------------------------------------- *)
-  let search ?(json_label=false) ~config null update request cluster_item_list corpus =
+  let search ?(json_label=false) ~config default update request cluster_item_list corpus =
     let depth = List.length cluster_item_list in
     fold_left
     (fun acc sent_id graph ->
@@ -254,7 +254,7 @@ module Corpus = struct
           (fun cluster_item ->
             Matching.get_clust_value_opt ~json_label ~config cluster_item request graph matching 
           ) cluster_item_list in
-          Clustered.update (update sent_id graph matching) cluster_value_list null acc2
+          Clustered.update (update sent_id graph matching) cluster_value_list default acc2
       ) acc matchings
     ) (Clustered.empty depth) corpus
 
@@ -264,7 +264,7 @@ module Corpus = struct
     | Timeout of float
     | Over of float
 
-  let bounded_search ?(json_label=false) ~config ?(ordering = None) bound timeout null update request cluster_item_list corpus =
+  let bounded_search ?(json_label=false) ~config ?(ordering = None) bound timeout default update request cluster_item_list corpus =
     let depth = List.length cluster_item_list in
     let len = size corpus in
     let permut_fct = match ordering with
@@ -301,7 +301,7 @@ module Corpus = struct
                         (fun cluster_item ->
                           Matching.get_clust_value_opt ~json_label ~config cluster_item request graph matching 
                         ) cluster_item_list in
-                      Clustered.update (update graph_index sent_id graph pos_in_graph nb_in_graph matching) cluster_value_list null acc2
+                      Clustered.update (update graph_index sent_id graph pos_in_graph nb_in_graph matching) cluster_value_list default acc2
                 ) acc matchings in
             loop new_acc (graph_counter + 1)
           end in

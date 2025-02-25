@@ -104,23 +104,23 @@ module Clustered = struct
       Node som
   
   
-  let get_opt null key_list t =
+  let get_opt default key_list t =
     let rec loop = function
-    | ([], Empty _) -> null
+    | ([], Empty _) -> default
     | ([], Leaf v) -> v
     | (key::key_tail, Node som) -> 
       begin
         match String_opt_map.find_opt key som with
-      | None -> null
+      | None -> default
       | Some t' -> loop (key_tail, t')
       end
     | _ -> failwith "[Clustered.get_opt] inconsistent path"
     in loop (key_list,t)
   
-  let fold_layer null fct_leaf init fct_node closure t =
+  let fold_layer default fct_leaf init fct_node closure t =
     let rec loop t =
       match t with
-      | Empty _ -> fct_leaf null
+      | Empty _ -> fct_leaf default
       | Leaf l -> fct_leaf l
       | Node som -> closure (String_opt_map.fold (fun key sub acc -> fct_node key (loop sub) acc) som init) in
     loop t
@@ -188,12 +188,12 @@ module Clustered = struct
           ) som acc in
     loop [] init t 
 
-  let merge_keys misc_key merge_item null filter_list t =
+  let merge_keys misc_key merge_item default filter_list t =
     let d = depth t in
     fold
       (fun key_list item acc ->
         let new_key_list = List.map2 (fun f x -> if f x then x else misc_key) filter_list key_list in
-        update (fun x -> merge_item item x) new_key_list null acc
+        update (fun x -> merge_item item x) new_key_list default acc
       ) t (Empty d)
 
   let iter fct t =
