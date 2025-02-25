@@ -449,53 +449,53 @@ module Corpus_desc = struct
 (** {2 Corpus_desc} *)
 (* ==================================================================================================== *)
 module Corpusbank = struct
-  type t = Grew_corpus.Corpusbank.t
+  type t = Grew_corpusbank.Corpusbank.t
 
   let iter ?filter fct t =
     Grewlib.handle
       ~name:"Corpusbank.iter"
-      (fun () -> Grew_corpus.Corpusbank.iter ?filter fct t)
+      (fun () -> Grew_corpusbank.Corpusbank.iter ?filter fct t)
       ()
   let fold ?filter fct t init =
     Grewlib.handle
       ~name:"Corpusbank.fold"
-      (fun () -> Grew_corpus.Corpusbank.fold ?filter fct t init)
+      (fun () -> Grew_corpusbank.Corpusbank.fold ?filter fct t init)
       ()
 
   let load s =
     Grewlib.handle
       ~name:"Corpusbank.load"
-      (fun () -> Grew_corpus.Corpusbank.load s)
+      (fun () -> Grew_corpusbank.Corpusbank.load s)
       ()
 
   let build_filter patterns =
     Grewlib.handle
       ~name:"Corpusbank.build_filter"
-      (fun () -> Grew_corpus.Corpusbank.build_filter patterns)
+      (fun () -> Grew_corpusbank.Corpusbank.build_filter patterns)
       ()
 
   let get_corpus_desc_opt corpusbank corpus_id =
     Grewlib.handle
       ~name:"Corpusbank.get_corpus_desc_opt"
-      (fun () -> Grew_corpus.Corpusbank.get_corpus_desc_opt corpusbank corpus_id)
+      (fun () -> Grew_corpusbank.Corpusbank.get_corpus_desc_opt corpusbank corpus_id)
       ()
 
   let print_status ?verbose ?filter t =
     Grewlib.handle
       ~name:"Corpus.print_status" 
-      (fun () -> Grew_corpus.Corpusbank.print_status ?verbose ?filter t)
+      (fun () -> Grew_corpusbank.Corpusbank.print_status ?verbose ?filter t)
       ()
 
   let compile ?filter t  =
     Grewlib.handle
       ~name:"Corpusbank.compile"
-      (fun () -> Grew_corpus.Corpusbank.compile ?filter t )
+      (fun () -> Grew_corpusbank.Corpusbank.compile ?filter t )
       ()
 
   let build ?filter t  =
     Grewlib.handle
       ~name:"Corpusbank.build"
-      (fun () -> Grew_corpus.Corpusbank.build ?filter t )
+      (fun () -> Grew_corpusbank.Corpusbank.build ?filter t )
       ()
 end
 

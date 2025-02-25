@@ -84,6 +84,7 @@ module Corpus_desc : sig
   val get_field_opt: string -> t -> string option
   val get_display: t -> int option
   val get_directory: t -> string
+  val get_build_directory: t -> string
   val load_json: ?env: (string * string) list -> string -> t list
 
   val to_json: t -> Yojson.Basic.t
@@ -91,41 +92,14 @@ module Corpus_desc : sig
 
   val get_files: t -> string list
 
+  val need_compile: t -> bool
   val compile: ?force:bool -> t -> unit
 
   val clean: t -> unit
 
   val show: t -> unit
 
+  val need_validate: t -> bool
   val validate: ?verbose:bool -> ?env: (string * string) list -> t -> unit
-end
-
-module Corpusbank : sig
-  type t
-
-  val iter:
-    ?filter: (string -> bool) ->
-    (string -> Corpus_desc.t -> unit) ->
-      t -> unit
-
-  val fold:
-    ?filter: (string -> bool) ->
-    (string -> Corpus_desc.t -> 'a -> 'a) ->
-      t -> 'a -> 'a
-
-  val load: string -> t
-
-  val build_filter : string list -> (string -> bool)
-
-  val get_corpus_desc_opt : t -> string -> Corpus_desc.t option
-
-  val print_status : ?verbose:bool -> ?filter:(string -> bool) -> t  -> unit
-
-  val build_derived: t -> Corpus_desc.t -> unit
-
-  val build: ?filter: (string -> bool) -> t -> unit
-
-  val compile: ?filter: (string -> bool) -> t -> unit
-
 end
 

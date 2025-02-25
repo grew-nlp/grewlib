@@ -81,8 +81,7 @@ module Range: sig
 end
 
 (* ================================================================================ *)
-module File :
-  sig
+module File : sig
     val last_modif : string -> float
     val concat_names : string list -> string
 
@@ -92,7 +91,9 @@ module File :
     | Dont_exist
 
     val get_path_status: string -> path_status
-  end
+  
+    val ensure_directory: string -> unit
+end
 
 (* ================================================================================ *)
 module String_: sig
