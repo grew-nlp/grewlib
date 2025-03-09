@@ -59,13 +59,13 @@ module Clustered = struct
   (** outputs a raw display of the structure (to be used only for debug) *)
   let _dump to_string t = 
     let rec loop indent = function 
-    | Empty depth -> printf "__EMPTY of depth %d__\n%!" depth
-    | Leaf a -> printf "%s%s\n%!" (String.make indent ' ') (to_string a)
+    | Empty depth -> printf "%s_EMPTY of depth %d_\n%!" (String.make indent ' ') depth
+    | Leaf a -> printf "%s_LEAF_ %s\n%!" (String.make indent ' ') (to_string a)
     | Node som -> 
       String_opt_map.iter
       (fun key a ->
-        printf "%s%s\n%!" (String.make indent ' ') (CCOption.get_or ~default:"__undefined__" key);
-        loop (indent+1) a
+        printf "%s_NODE_ %s\n%!" (String.make indent ' ') (CCOption.get_or ~default:"__undefined__" key);
+        loop (indent+2) a
       ) som in
     loop 0 t
 
@@ -106,7 +106,7 @@ module Clustered = struct
   
   let get_opt default key_list t =
     let rec loop = function
-    | ([], Empty _) -> default
+    | (l, Empty d) when List.length l = d -> default
     | ([], Leaf v) -> v
     | (key::key_tail, Node som) -> 
       begin
@@ -179,7 +179,7 @@ module Clustered = struct
   
   let fold fct t init =
     let rec loop path acc = function
-    | Empty _ -> init
+    | Empty _ -> acc
     | Leaf l -> fct path l acc
     | Node som ->
         String_opt_map.fold 
