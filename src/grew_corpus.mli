@@ -1,7 +1,7 @@
 (**********************************************************************************)
 (*    grewlib • a Graph Rewriting library dedicated to NLP applications           *)
 (*                                                                                *)
-(*    Copyright 2011-2024 Inria, Université de Lorraine                           *)
+(*    Copyright 2011-2025 Inria, Université de Lorraine                           *)
 (*                                                                                *)
 (*    Webpage: https://grew.fr                                                    *)
 (*    License: CeCILL (see LICENSE folder or "http://cecill.info/")               *)
@@ -47,12 +47,12 @@ module Corpus : sig
 
   val search: ?json_label:bool -> config:Conll_config.t -> 'a -> (string -> G_graph.t -> Matching.t -> 'a -> 'a) -> Request.t -> Request.cluster_item list -> t -> 'a Clustered.t
 
-  val bounded_search: 
-    ?json_label:bool -> 
+  val bounded_search:
+    ?json_label:bool ->
     config:Conll_config.t ->
     ?ordering: string option ->  (* if value is "length", graph are considered by size, if value is "shuffle", graph order is randomize, else a default order is used  *)
     int option ->                (* bound on the number of matching *)
-    float option ->              (* Timeout in seconds *)  
+    float option ->              (* Timeout in seconds *)
     'a ->                        (* The default value to build clusters *)
     (* The update function to build clusters. Parameters ares: *)
     (*  * int    --> graph_index in the corpus *)
@@ -63,10 +63,10 @@ module Corpus : sig
     (int -> string -> G_graph.t -> int -> int -> Matching.t -> 'a -> 'a) ->
     Request.t ->
       Request.cluster_item list ->         (* The list of element used for clustering *)
-    t -> 
+    t ->
       ('a Clustered.t * string * float)  (* (output, statut, ratio) status is "ok", "timeout" or "over" *)
 
-  val count_feature_values: 
+  val count_feature_values:
     ?filter: (string -> bool) ->
     t -> int String_map.t String_map.t
 end

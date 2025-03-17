@@ -5,7 +5,7 @@
 (library
   (public_name grewlib)
   (name grewlib)
-  (private_modules 
+  (private_modules
     grew_ast
     grew_command
     grew_corpus
@@ -20,15 +20,15 @@
     grew_rule
     grew_utils
   )
-  (libraries 
+  (libraries
     str
     unix
     re
-    ANSITerminal 
-    containers 
+    ANSITerminal
+    containers
     fileutils
-    yojson 
-    amr 
+    yojson
+    amr
     conll
     uunf
   )

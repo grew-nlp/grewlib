@@ -1,7 +1,7 @@
 (**********************************************************************************)
 (*    grewlib • a Graph Rewriting library dedicated to NLP applications           *)
 (*                                                                                *)
-(*    Copyright 2011-2024 Inria, Université de Lorraine                           *)
+(*    Copyright 2011-2025 Inria, Université de Lorraine                           *)
 (*                                                                                *)
 (*    Webpage: https://grew.fr                                                    *)
 (*    License: CeCILL (see LICENSE folder or "http://cecill.info/")               *)
@@ -44,7 +44,7 @@ module Pst_corpus = struct
     Array.of_list
       (CCList.flat_map
         (fun file ->
-          let line_list = 
+          let line_list =
             CCIO.(with_in file read_lines_l)
             (* Blanks lines (empty or only with spaces and tabs) and lines starting with '%' are ignored. *)
             |> List.filter (fun line -> not ((Str.string_match (Str.regexp "^[ \t]*$") line 0) || (line.[0] = '%'))) in
@@ -61,7 +61,7 @@ end
 
 (* ==================================================================================================== *)
 module Corpus = struct
-  type kind = 
+  type kind =
     | Conll of Conll_columns.t option (* value is None in Corpus_desc and Some c once the corpus is really loaded *)
     | Pst | Amr | Gr | Json | Dmrs | Ucca
 
@@ -144,7 +144,8 @@ module Corpus = struct
   let get_graph position t = t.items.(position).graph
   let get_sent_id position t = t.items.(position).sent_id
 
-  let is_conll t = match t.kind with
+  let is_conll t =
+    match t.kind with
     | Conll _ | Dmrs -> true
     | _ -> false
 
@@ -177,10 +178,10 @@ module Corpus = struct
 
   let from_stdin ?ext ?log_file ?config () =
     match ext with
-    | Some ".json" -> 
+    | Some ".json" ->
       let s = CCIO.read_all stdin in
       { kind=Json; items = from_json (Yojson.Basic.from_string s)}
-    | Some ".conll" | Some ".conllu" | Some ".cupt" | Some ".orfeo" | Some ".frsemcor" 
+    | Some ".conll" | Some ".conllu" | Some ".cupt" | Some ".orfeo" | Some ".frsemcor"
     | _ -> (* TODO: use Conll by default --> more robust stuff needed *)
       let lines = CCIO.read_lines_l stdin in
       of_conllx_corpus (Conll_corpus.of_lines ?log_file ?config lines)
@@ -188,12 +189,12 @@ module Corpus = struct
   let from_string ?ext ?log_file ?config s =
     match ext with
     | Some ".json" -> { kind=Json; items = from_json (Yojson.Basic.from_string s)}
-    | Some ".conll" | Some ".conllu" | Some ".cupt" | Some ".orfeo" | Some ".frsemcor" 
+    | Some ".conll" | Some ".conllu" | Some ".cupt" | Some ".orfeo" | Some ".frsemcor"
     | _ -> (* TODO: use Conll by default --> more robust stuff needed *)
       let lines = Str.split (Str.regexp "\n") s in
       of_conllx_corpus (Conll_corpus.of_lines ?log_file ?config lines)
 
-  let of_json_file file = 
+  let of_json_file file =
     try { kind=Json; items = from_json ~loc: (Loc.file file) (Yojson.Basic.from_file file)}
     with Yojson.Json_error msg -> Error.run ~loc:(Loc.file file) "Error in the JSON file format: %s" msg
 
@@ -204,7 +205,7 @@ module Corpus = struct
       of_conllx_corpus (Conll_corpus.load ?log_file ?config file)
     | ".amr" | ".txt" ->
       of_amr_file file
-    | ".json" -> 
+    | ".json" ->
       of_json_file file
     | ext -> Error.run "Cannot load file `%s`, unknown extension `%s`" file ext
 
@@ -230,13 +231,13 @@ module Corpus = struct
     | ([],[],[],json_files) -> json_files |> List.map of_json_file |> merge
 
   (* val from_assoc_list: (string * G_graph.t) list -> t *)
-  let from_assoc_list l = 
+  let from_assoc_list l =
     {
       items = Array.of_list (List.map (fun (sent_id,graph) -> {sent_id; graph; text=""}) l);
       kind = Gr
     }
 
-  let get_columns_opt corpus = 
+  let get_columns_opt corpus =
     match corpus.kind with
     | Conll (Some c) -> Some c
     | _ -> None
@@ -248,18 +249,18 @@ module Corpus = struct
     (fun acc sent_id graph ->
       let matchings = Matching.search_request_in_graph ~config request graph in
       List.fold_left
-      (fun acc2 matching -> 
-        let cluster_value_list = 
-          List.map 
+      (fun acc2 matching ->
+        let cluster_value_list =
+          List.map
           (fun cluster_item ->
-            Matching.get_clust_value_opt ~json_label ~config cluster_item request graph matching 
+            Matching.get_clust_value_opt ~json_label ~config cluster_item request graph matching
           ) cluster_item_list in
           Clustered.update (update sent_id graph matching) cluster_value_list default acc2
       ) acc matchings
     ) (Clustered.empty depth) corpus
 
   (* ---------------------------------------------------------------------------------------------------- *)
-  type status = 
+  type status =
     | Ok
     | Timeout of float
     | Over of float
@@ -267,10 +268,11 @@ module Corpus = struct
   let bounded_search ?(json_label=false) ~config ?(ordering = None) bound timeout default update request cluster_item_list corpus =
     let depth = List.length cluster_item_list in
     let len = size corpus in
-    let permut_fct = match ordering with
-    | Some "length" -> let perm = permut_length corpus in fun x -> perm.(x)
-    | Some "shuffle" -> let mix = Array_.shuffle_N len in fun x -> mix.(x)
-    | _ -> fun x -> x in
+    let permut_fct =
+      match ordering with
+      | Some "length" -> let perm = permut_length corpus in fun x -> perm.(x)
+      | Some "shuffle" -> let mix = Array_.shuffle_N len in fun x -> mix.(x)
+      | _ -> fun x -> x in
     let matching_counter = ref 0 in
     let init_time = Unix.gettimeofday() in
     let status = ref Ok in
@@ -288,7 +290,7 @@ module Corpus = struct
             let sent_id = get_sent_id graph_index corpus in
             let matchings = Matching.search_request_in_graph ~config request graph in
             let nb_in_graph = List.length matchings in
-            let new_acc = 
+            let new_acc =
               CCList.foldi (* TODO: replace by loop or exception to avoid useless steps *)
                 (fun acc2 pos_in_graph matching ->
                   incr matching_counter;
@@ -296,16 +298,16 @@ module Corpus = struct
                   if !status <> Ok
                   then acc2
                   else
-                    let cluster_value_list = 
-                      List.map 
+                    let cluster_value_list =
+                      List.map
                         (fun cluster_item ->
-                          Matching.get_clust_value_opt ~json_label ~config cluster_item request graph matching 
+                          Matching.get_clust_value_opt ~json_label ~config cluster_item request graph matching
                         ) cluster_item_list in
                       Clustered.update (update graph_index sent_id graph pos_in_graph nb_in_graph matching) cluster_value_list default acc2
                 ) acc matchings in
             loop new_acc (graph_counter + 1)
           end in
-    loop (Clustered.empty depth) 0 
+    loop (Clustered.empty depth) 0
     |> (fun x -> match !status with
     | Ok -> (x, "complete", 1.)
     | Timeout r -> (x, "timeout", r)
@@ -313,8 +315,8 @@ module Corpus = struct
     )
 
   let count_feature_values ?(filter=fun _ -> true) t =
-    fold_right 
-      (fun _ graph acc -> 
+    fold_right
+      (fun _ graph acc ->
         G_graph.count_feature_values ~filter ~acc (graph : G_graph.t)
       ) t String_map.empty
 end (* module Corpus *)
@@ -345,7 +347,7 @@ module Corpus_desc = struct
     | Directory -> ()
     | File -> Error.run "Cannot build directory `%s`, a file with the same name already exists" dir
     | Dont_exist -> Unix.mkdir dir 0o755
-  
+
   let get_build_directory corpus_desc =
     let dir = get_directory corpus_desc in
     match File.get_path_status dir
@@ -390,15 +392,15 @@ module Corpus_desc = struct
         | None -> [] in
       loop ()
     with Sys_error _ -> []
-  
+
   (* replace ${…} with value of the environment variable and add the list of built files in the field "built_files" *)
   let expand_and_check ~env json_file = function
     | `Assoc l ->
       let (id_flag, dir) = (ref None, ref None) in
-      let new_l = 
+      let new_l =
         List.map (function
           | ("id", `String id) as i -> id_flag := Some id; i
-          | ("directory", `String d) -> 
+          | ("directory", `String d) ->
             let ext_d = String_.extend_path ~env d in
             dir := Some ext_d;
             ("directory", `String ext_d)
@@ -409,8 +411,8 @@ module Corpus_desc = struct
             match (!id_flag, !dir) with
             | (None, _) -> Error.run "[Corpus_desc] ill-formed JSON file (missing `id` field) in file `%s`" json_file
             | (_, None) -> Error.run "[Corpus_desc] ill-formed JSON file (missing `directory` field) in file `%s`" json_file
-            | (Some id, Some dir) -> 
-              let built_files = 
+            | (Some id, Some dir) ->
+              let built_files =
                 (Filename.concat dir (Filename.concat "_build_grew" id))
                 |> read_dir
                 |> List.map (fun x -> `String x) in
@@ -421,17 +423,17 @@ module Corpus_desc = struct
   let load_json ?(env=[]) json_file =
     try
       json_file
-      |> Yojson.Basic.from_file 
+      |> Yojson.Basic.from_file
       |> to_list
       |> (List.map (expand_and_check ~env json_file))
-    with 
+    with
     | Yojson.Json_error msg -> Error.run "[Corpus_desc] JSON error `%s` in file `%s`" msg json_file
     | Type_error (msg,_) -> Error.run "[Corpus_desc] ill-formed JSON file `%s` in file `%s" msg json_file
-    
+
 
   (* get the list of paths for all file with [extension] in the [directory] *)
   (* raises Error.run if the directory does not exist *)
-  let get_full_local_files directory extension = 
+  let get_full_local_files directory extension =
     try
       let files = Sys.readdir directory in
       Array.fold_right
@@ -520,8 +522,9 @@ module Corpus_desc = struct
       | _ -> None in
 
     try
-      
-      let (data : Corpus.t) = match get_kind corpus_desc with
+
+      let (data : Corpus.t) =
+        match get_kind corpus_desc with
         | Conll columns ->
           let conll_corpus = Conll_corpus.load_list ?log_file ~config ?columns full_files in
           let columns = Conll_corpus.get_columns conll_corpus in
@@ -549,10 +552,10 @@ module Corpus_desc = struct
           {Corpus.items; kind= Pst }
 
         | Amr ->
-          let amr_corpus = match full_files with
+          let amr_corpus =
+            match full_files with
             | [one] -> Amr_corpus.load one
-            | _ -> failwith "AMR multi-files corpus is not handled"
-          in
+            | _ -> failwith "AMR multi-files corpus is not handled" in
           let items = CCArray.filter_map (fun (sent_id,amr) ->
               try
                 let json = Amr.to_json ~unfold:true amr in
@@ -599,7 +602,7 @@ module Corpus_desc = struct
   let need_validate corpus_desc =
     match get_field_opt "validation" corpus_desc with
     | Some "ud" -> outdated corpus_desc "valid_ud.txt"
-    | Some "sud" -> outdated corpus_desc "valid_sud.json" 
+    | Some "sud" -> outdated corpus_desc "valid_sud.json"
     (* TODO parseme validation??*)
     | _ -> false
 
@@ -618,7 +621,7 @@ module Corpus_desc = struct
     description: string;
     level: string;
   }
-  
+
   type modul = {
     title: string;
     items: item list;
@@ -677,7 +680,7 @@ module Corpus_desc = struct
                   `List
                     (List.map
                       (fun item ->
-                        let grew_request = 
+                        let grew_request =
                           try Request.parse ~config (String.concat "\n" item.request)
                           with Grew_utils.Error.Parse (msg, _) ->
                             Error.run "[Corpus_desc.check] cannot parse request with desc: %s (%s)" item.description msg in
@@ -741,9 +744,10 @@ module Corpus_desc = struct
     else
       let out_ch = open_out valid_file in
       Printf.fprintf out_ch "%s\n" (now ());
-      let args = match lang_opt with
+      let args =
+        match lang_opt with
         | Some l -> sprintf "--lang=%s" l
-        | None -> 
+        | None ->
           Printf.fprintf out_ch "WARNING: no lang defined, validation only up to level 3\n";
           "--lang=unknown --level=3" in
       close_out out_ch;
@@ -775,9 +779,9 @@ module Corpus_desc = struct
     | `Assoc l ->
       let indent = List.fold_left
         (fun acc (k,_) -> max acc (String.length k)) 0 l in
-      List.iter 
-      (fun (k,v) -> 
-        Info.blue "   %s%s --> %s%!" 
+      List.iter
+      (fun (k,v) ->
+        Info.blue "   %s%s --> %s%!"
           (String.make (indent - (String.length k)) ' ')
           k
           (Yojson.Basic.pretty_to_string v)

@@ -1,7 +1,7 @@
 (**********************************************************************************)
 (*    grewlib • a Graph Rewriting library dedicated to NLP applications           *)
 (*                                                                                *)
-(*    Copyright 2011-2024 Inria, Université de Lorraine                           *)
+(*    Copyright 2011-2025 Inria, Université de Lorraine                           *)
 (*                                                                                *)
 (*    Webpage: https://grew.fr                                                    *)
 (*    License: CeCILL (see LICENSE folder or "http://cecill.info/")               *)
@@ -10,7 +10,7 @@
 
 {
   open Printf
-  
+
   open Grew_utils
   open Grew_parser
 
@@ -81,9 +81,9 @@ and string_lex re target = parse
     then (bprintf buff "\""; escaped := false; string_lex re target lexbuf)
     else
       begin
-        let token = 
-          if re 
-          then REGEXP (Grew_ast.Regexp.re (Buffer.contents buff)) 
+        let token =
+          if re
+          then REGEXP (Grew_ast.Regexp.re (Buffer.contents buff))
           else STRING (Buffer.contents buff |> String_.nfc) in
         push token
       end
@@ -111,7 +111,7 @@ and pcre_lex target = parse
   | "/"    {
     if !escaped
     then (bprintf buff "\\/"; escaped := false; pcre_lex target lexbuf)
-    else 
+    else
       let token = REGEXP (Grew_ast.Regexp.pcre (Buffer.contents buff))
       in push token
   }
@@ -274,9 +274,9 @@ and standard target = parse
 | general_ident as id { push (ID id) }
 | '='                 { push EQUAL }
 | "<>"                { push DISEQUAL }
-| '/'                 { 
-                        match !previous_token with 
-                        | Some (ID _) | Some (STRING _) | Some (REGEXP _) -> SLASH 
+| '/'                 {
+                        match !previous_token with
+                        | Some (ID _) | Some (STRING _) | Some (REGEXP _) -> SLASH
                         | _ -> Buffer.clear buff; pcre_lex global lexbuf
                       }
 

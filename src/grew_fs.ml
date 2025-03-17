@@ -1,7 +1,7 @@
 (**********************************************************************************)
 (*    grewlib • a Graph Rewriting library dedicated to NLP applications           *)
 (*                                                                                *)
-(*    Copyright 2011-2024 Inria, Université de Lorraine                           *)
+(*    Copyright 2011-2025 Inria, Université de Lorraine                           *)
 (*                                                                                *)
 (*    Webpage: https://grew.fr                                                    *)
 (*    License: CeCILL (see LICENSE folder or "http://cecill.info/")               *)
@@ -82,7 +82,8 @@ module P_feature = struct
   exception Fail_unif
 
   (** raise [P_feature.Fail_unif] *)
-  let unif_value v1 v2 = match (v1, v2) with
+  let unif_value v1 v2 =
+    match (v1, v2) with
     | (Absent, Absent) -> v1
     | (Absent, _)
     | (_, Absent) -> raise Fail_unif
@@ -149,8 +150,8 @@ module G_fs = struct
       | [] -> [(feature_name, value)]
       | ((fn,_)::_) as t when feature_name < fn -> (feature_name, value)::t
       | (fn,_)::t when feature_name = fn -> (feature_name, value)::t
-      | (fn,a)::t -> (fn,a) :: (loop t)
-    in loop t
+      | (fn,a)::t -> (fn,a) :: (loop t) in
+    loop t
 
   (* ---------------------------------------------------------------------- *)
   let set_atom ?loc feature_name atom t =
@@ -217,7 +218,8 @@ module G_fs = struct
   (* ---------------------------------------------------------------------- *)
   let get_main ?main_feat t =
     let default_list = ["form"; "lemma"; "gpred"; "label"; "SylForm"; "Cxn"] in
-    let main_list = match main_feat with
+    let main_list =
+      match main_feat with
       | None -> default_list
       | Some string -> (Str.split (Str.regexp "\\( *; *\\)\\|#") string) @ default_list in
     let rec loop = function
@@ -243,7 +245,8 @@ module G_fs = struct
       ) in
 
     let buff = Buffer.create 32 in
-    let () = match pid_name with
+    let () =
+      match pid_name with
       | "" -> ()
       | pid -> bprintf buff "<TR><TD COLSPAN=\"3\" BGCOLOR=\"#00FF00\"><B>[%s]</B></TD></TR>\n" pid in
 
@@ -280,7 +283,7 @@ module G_fs = struct
         | None -> None
 
   (* ---------------------------------------------------------------------- *)
-  let escape s = s 
+  let escape s = s
     |> Str.global_replace (Str.regexp "#") "__SHARP__"
     (* escape backslash *)
     |> Str.global_replace (Str.regexp "\\\\") "\\\\\\\\"
@@ -303,7 +306,7 @@ module G_fs = struct
     let (main_opt, sub) = get_main ?main_feat t in
     let sub = List.sort G_feature.print_cmp sub in
 
-    let color = 
+    let color =
       match get_value_opt "parseme" t with
       | Some (Feature_value.String "NE") -> ":C:#9900FF"
       | Some (Feature_value.String "MWE") -> ":C:#ffa000"
@@ -315,7 +318,8 @@ module G_fs = struct
       | Some _ -> ":C:#12CD56"
       | _ -> "" in
 
-    let main = match main_opt with
+    let main =
+      match main_opt with
       | None -> []
       | Some (feat_name, atom) ->
         let esc_atom = escape (Feature_value.to_string atom) in
@@ -325,11 +329,13 @@ module G_fs = struct
           else text] in
 
     (* add the request identifier *)
-    let word_list = match pid_name with
+    let word_list =
+      match pid_name with
       | "" -> main
       | _ -> (sprintf "[%s]:B:#8bf56e" pid_name)::main in
 
-    let word = match word_list with
+    let word =
+      match word_list with
       | [] -> ""
       | l ->  String.concat "#" l in
 
@@ -364,17 +370,18 @@ module P_fs = struct
 
   let build_atom cmp feat_name feat_value =
     [(feat_name, P_feature.Pfv_list (cmp, [feat_value]))]
-    
+
   let feat_list t =
     List.map (function
         | (fn, P_feature.Else (_,fn2,_)) -> (fn, Some fn2)
         | (fn, _) -> (fn, None)
       ) t
 
-  let to_string t = t |> List.map (P_feature.to_string ~quote:true) |> String.concat "," 
+  let to_string t = t |> List.map (P_feature.to_string ~quote:true) |> String.concat ","
 
   let to_dep ?filter t =
-    let reduced = match filter with
+    let reduced =
+      match filter with
       | None -> t
       | Some test -> List.filter (fun (fn,_) -> test fn) t in
     reduced |> List.map P_feature.to_string |> String.concat "#"
@@ -453,10 +460,10 @@ module P_fs = struct
         try (fn1,P_feature.unif_value v1 v2) :: (loop (t1,t2))
         with
         | P_feature.Fail_unif -> raise Fail_unif
-        | Error.Build (msg,_) -> Error.build "Feature '%s', %s" fn1 msg
-    in loop (fs1, fs2)
+        | Error.Build (msg,_) -> Error.build "Feature '%s', %s" fn1 msg in
+    loop (fs1, fs2)
 
-  let unif_disj fs_disj1 fs_disj2 = 
+  let unif_disj fs_disj1 fs_disj2 =
     CCList.product (fun (fs1:t) (fs2:t) -> try Some (unif fs1 fs2) with Fail_unif -> None) fs_disj1 fs_disj2
     |> CCList.filter_map CCFun.id
     |> (function [] -> raise Fail_unif | l -> l)

@@ -1,7 +1,7 @@
 (**********************************************************************************)
 (*    grewlib • a Graph Rewriting library dedicated to NLP applications           *)
 (*                                                                                *)
-(*    Copyright 2011-2024 Inria, Université de Lorraine                           *)
+(*    Copyright 2011-2025 Inria, Université de Lorraine                           *)
 (*                                                                                *)
 (*    Webpage: https://grew.fr                                                    *)
 (*    License: CeCILL (see LICENSE folder or "http://cecill.info/")               *)
@@ -33,7 +33,6 @@ end
 module Deco: sig
   type t
 end
-
 
 (* ==================================================================================================== *)
 (** {2 Graph} *)
@@ -106,7 +105,7 @@ module Request : sig
   (** [parse description] returns the request described in the [descriprion] string *)
   val parse: config:Conll_config.t -> string -> t
 
-  (** [json_bound_names request] returns a JSON object with two items: "nodes" and "edges", 
+  (** [json_bound_names request] returns a JSON object with two items: "nodes" and "edges",
       each associated to a list of string for bound nodes and edges *)
   val json_bound_names: t -> Yojson.Basic.t
 
@@ -194,8 +193,6 @@ module Rewrite: sig
   val log_rewrite: unit -> Yojson.Basic.t
 end
 
-
-
 (* ==================================================================================================== *)
 (** {2 Corpus} *)
 (* ==================================================================================================== *)
@@ -253,12 +250,12 @@ module Corpus: sig
       * default=[], update=(fun _ _ m x -> m::x)  for recording the matchings
    *)
 
-  val bounded_search: 
+  val bounded_search:
     ?json_label: bool ->
     config:Conll_config.t ->
     ?ordering: string option ->  (* if value is "length", graph are considered by size, if value is "shuffle", graph order is randomiez, else a default order is used  *)
     int option ->                (* bound on the number of matching *)
-    float option ->              (* Timeout in seconds *)  
+    float option ->              (* Timeout in seconds *)
     'a ->                        (* default value to build clusters *)
     (int -> string -> Graph.t -> int -> int -> Matching.t -> 'a -> 'a) ->
     (* update function to build clusters. Parameters are:
@@ -269,17 +266,19 @@ module Corpus: sig
        * int    --> number of matching in the current graph  *)
     Request.t ->
     Request.cluster_item list ->         (* The list of element used for clustering *)
-    t -> 
+    t ->
       ('a Clustered.t * string * float)  (* (output, statut, ratio) status is "ok", "timeout" or "over" *)
   (** search for a request in a corpus , with timeout and a bounded number of solutions *)
 
-  val count_feature_values: 
+  val count_feature_values:
     ?filter: (string -> bool) ->
     t -> int String_map.t String_map.t
 
 end
 
-(* ================================================================================ *)
+(* ==================================================================================================== *)
+(** {2 Corpus_desc} *)
+(* ==================================================================================================== *)
 module Corpus_desc : sig
 
   (** This module encodes the notion of corpus description which is mainly used in Grew-match *)
@@ -327,7 +326,9 @@ module Corpus_desc : sig
   val validate: ?verbose:bool -> ?env: (string * string) list -> t -> unit
 end (* module Corpus_desc *)
 
-(* ================================================================================ *)
+(* ==================================================================================================== *)
+(** {2 Corpusbank} *)
+(* ==================================================================================================== *)
 module Corpusbank : sig
   type t
 
@@ -340,7 +341,7 @@ module Corpusbank : sig
     ?filter: (string -> bool) ->
     (string -> Corpus_desc.t -> 'a -> 'a) ->
       t -> 'a -> 'a
-  
+
   val read_files: string list -> t
 
   val load: string -> t
@@ -357,7 +358,9 @@ module Corpusbank : sig
 
 end
 
-(* ================================================================================ *)
+(* ==================================================================================================== *)
+(** {2 Sbn} *)
+(* ==================================================================================================== *)
 module Sbn: sig
   val to_json: string -> Yojson.Basic.t
 end

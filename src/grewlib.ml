@@ -1,7 +1,7 @@
 (**********************************************************************************)
 (*    grewlib • a Graph Rewriting library dedicated to NLP applications           *)
 (*                                                                                *)
-(*    Copyright 2011-2024 Inria, Université de Lorraine                           *)
+(*    Copyright 2011-2025 Inria, Université de Lorraine                           *)
 (*                                                                                *)
 (*    Webpage: https://grew.fr                                                    *)
 (*    License: CeCILL (see LICENSE folder or "http://cecill.info/")               *)
@@ -93,15 +93,15 @@ module Graph = struct
   let load ~config file =
     Grewlib.handle ~name:"Graph.load_graph"
       (fun () ->
-         match Grew_utils.String_.get_suffix_opt file with
-         | Some ".conll" | Some ".conllu" -> load_conll ~config file
-         | Some ".cst" -> load_pst file
-         | _ ->
-           Grew_utils.Warning.magenta "Unknown file format for input graph '%s', try to guess..." file;
-           let rec loop = function
-             | [] -> Grew_utils.Error.bug "[Grewlib.load_graph] Cannot guess input file format of file '%s'." file
-             | load_fct :: tail -> try load_fct file with _ -> loop tail in
-           loop [load_conll ~config; load_pst]
+        match Grew_utils.String_.get_suffix_opt file with
+        | Some ".conll" | Some ".conllu" -> load_conll ~config file
+        | Some ".cst" -> load_pst file
+        | _ ->
+          Grew_utils.Warning.magenta "Unknown file format for input graph '%s', try to guess..." file;
+          let rec loop = function
+            | [] -> Grew_utils.Error.bug "[Grewlib.load_graph] Cannot guess input file format of file '%s'." file
+            | load_fct :: tail -> try load_fct file with _ -> loop tail in
+          loop [load_conll ~config; load_pst]
       ) ()
 
   let of_pst pst_string =
@@ -168,13 +168,13 @@ module Request = struct
   type basic = Grew_rule.Request.basic
 
   let load ~config file =
-    Grewlib.handle 
-      ~name:"Request.load" 
+    Grewlib.handle
+      ~name:"Request.load"
       (fun () -> Grew_rule.Request.load ~config file) ()
 
   let parse ~config code =
-    Grewlib.handle 
-      ~name:"Request.parse" 
+    Grewlib.handle
+      ~name:"Request.parse"
       (fun () -> Grew_rule.Request.parse ~config code) ()
 
   let json_bound_names request =
@@ -184,7 +184,7 @@ module Request = struct
   let of_json ~config grs =
     Grewlib.handle ~name:"Request.of_json"
       (fun () -> Grew_rule.Request.of_json ~config grs) ()
-  
+
   type cluster_item = Grew_rule.Request.cluster_item
 
   let parse_cluster_item ~config request string_item =
@@ -219,7 +219,7 @@ module Matching = struct
   let build_deco request matching = Grew_rule.Matching.build_deco request matching
 
     let get_clust_value_opt =
-    Grewlib.handle ~name:"Matching.get_clust_value_opt" 
+    Grewlib.handle ~name:"Matching.get_clust_value_opt"
     (fun () -> Grew_rule.Matching.get_clust_value_opt) ()
 end
 
@@ -364,12 +364,12 @@ module Corpus = struct
 
   let get_columns_opt = Grew_corpus.Corpus.get_columns_opt
 
-  let search ?(json_label=false) ~config default update request cluster_item_list corpus = 
-    Grewlib.handle ~name:"Corpus.search" 
+  let search ?(json_label=false) ~config default update request cluster_item_list corpus =
+    Grewlib.handle ~name:"Corpus.search"
     (fun () -> Grew_corpus.Corpus.search ~json_label ~config default update request cluster_item_list corpus) ()
 
   let bounded_search ?(json_label=false) ~config ?ordering bound timeout default update request cluster_item_list corpus =
-    Grewlib.handle ~name:"Corpus.search" 
+    Grewlib.handle ~name:"Corpus.search"
     (fun () -> Grew_corpus.Corpus.bounded_search ~json_label ~config ?ordering bound timeout default update request cluster_item_list corpus) ()
 
   let count_feature_values = Grew_corpus.Corpus.count_feature_values
@@ -393,7 +393,7 @@ module Corpus_desc = struct
       (fun () -> Grew_corpus.Corpus_desc.load_json ?env filename)
       ()
   let get_config = Grew_corpus.Corpus_desc.get_config
-    
+
   let get_id = Grew_corpus.Corpus_desc.get_id
 
   let get_directory = Grew_corpus.Corpus_desc.get_directory
@@ -405,26 +405,26 @@ module Corpus_desc = struct
   let get_flag = Grew_corpus.Corpus_desc.get_flag
 
   let build_corpus t =
-    Grewlib.handle 
-      ~name:"Corpus.build_corpus" 
+    Grewlib.handle
+      ~name:"Corpus.build_corpus"
       (fun () -> Grew_corpus.Corpus_desc.build_corpus t)
       ()
 
   let load_corpus_opt t =
     Grewlib.handle
-      ~name:"Corpus.load_corpus_opt" 
+      ~name:"Corpus.load_corpus_opt"
       (fun () -> Grew_corpus.Corpus_desc.load_corpus_opt t)
       ()
 
   let get_files t =
-    Grewlib.handle 
-      ~name:"Corpus.get_files" 
+    Grewlib.handle
+      ~name:"Corpus.get_files"
       (fun () -> Grew_corpus.Corpus_desc.get_files t)
       ()
 
   let compile ?force t =
     Grewlib.handle
-      ~name:"Corpus.compile" 
+      ~name:"Corpus.compile"
       (fun () -> Grew_corpus.Corpus_desc.compile ?force t)
       ()
 
@@ -462,7 +462,7 @@ module Corpusbank = struct
       (fun () -> Grew_corpusbank.Corpusbank.fold ?filter fct t init)
       ()
 
-  let read_files files = 
+  let read_files files =
     Grewlib.handle
       ~name:"Corpusbank.read_files"
       (fun () -> Grew_corpusbank.Corpusbank.read_files files)
@@ -488,7 +488,7 @@ module Corpusbank = struct
 
   let print_status ?verbose ?filter t =
     Grewlib.handle
-      ~name:"Corpus.print_status" 
+      ~name:"Corpus.print_status"
       (fun () -> Grew_corpusbank.Corpusbank.print_status ?verbose ?filter t)
       ()
 

@@ -1,7 +1,7 @@
 (**********************************************************************************)
 (*    grewlib • a Graph Rewriting library dedicated to NLP applications           *)
 (*                                                                                *)
-(*    Copyright 2011-2024 Inria, Université de Lorraine                           *)
+(*    Copyright 2011-2025 Inria, Université de Lorraine                           *)
 (*                                                                                *)
 (*    Webpage: https://grew.fr                                                    *)
 (*    License: CeCILL (see LICENSE folder or "http://cecill.info/")               *)
@@ -26,14 +26,14 @@ module P_graph = struct
 
   let find = Pid_map.find
 
-  let set_node = Pid_map.add 
+  let set_node = Pid_map.add
 
   let pid_name_list t = Pid_map.fold (fun _ node acc -> (P_node.get_name node)::acc) t []
 
   (** [get_name pid p_graph_list] returns the name of node with [pid] in the first [p_graph] in the list for which [pid] is defined *)
   let rec get_name pid = function
     | [] -> Error.run "inconsistent data in P_graph: pid `%s` not found" (Pid.to_string pid)
-    | p_graph :: tail -> 
+    | p_graph :: tail ->
       match Pid_map.find_opt pid p_graph with
       | Some node -> P_node.get_name node
       | None -> get_name pid tail
@@ -45,41 +45,41 @@ module P_graph = struct
     let _dump bases t =
     printf "============ P_graph._dump ===========\n";
       Pid_map.iter
-        (fun pid _ -> 
+        (fun pid _ ->
           printf "pid=%s   name=%s    node=…\n%!" (Pid.to_string pid) (get_name pid bases)
         ) t;
     printf "///========= P_graph._dump ========///\n"
 
-    
+
   let to_json_list ~config ?(base=empty) t =
     let local_get_name pid = get_name pid [base; t] in
-    let nodes = Pid_map.fold 
+    let nodes = Pid_map.fold
       (fun _ n acc ->
         if P_node.is_empty n
         then acc
-        else 
-          (`String 
-            (sprintf "%s %s" 
+        else
+          (`String
+            (sprintf "%s %s"
               (P_node.get_name n)
               (P_node.get_fs_disj n |> List.map P_fs.to_string |> List.map (sprintf "[%s]") |> String.concat "|")
             )
           ) :: acc
       ) t [] in
-    let full = Pid_map.fold 
-      (fun k n acc -> 
+    let full = Pid_map.fold
+      (fun k n acc ->
         let next = P_node.get_next n in
-        Pid_massoc.fold 
+        Pid_massoc.fold
           (fun acc2 pid_tar edge ->
             match P_edge.to_id_opt_and_string ~config edge with
             | (_,"__PRED__") -> acc2
             | (_,"__SUCC__") -> (`String (sprintf "%s < %s" (local_get_name k) (local_get_name pid_tar))) :: acc2
-            | (None, "^") -> (* Because no constraint is expressed as "not + empty set" *) 
+            | (None, "^") -> (* Because no constraint is expressed as "not + empty set" *)
                 (`String (sprintf "%s -> %s" (local_get_name k) (local_get_name pid_tar))) :: acc2
             | (None, e) ->
                 (`String (sprintf "%s -[%s]-> %s" (local_get_name k) e (local_get_name pid_tar))) :: acc2
-            | (Some id, "^") -> (* Because no constraint is expressed as "not + empty set" *) 
+            | (Some id, "^") -> (* Because no constraint is expressed as "not + empty set" *)
                 (`String (sprintf "%s: %s -> %s" id (local_get_name k) (local_get_name pid_tar))) :: acc2
-            | (Some id, e) -> 
+            | (Some id, e) ->
                 (`String (sprintf "%s: %s -[%s]-> %s" id (local_get_name k) e (local_get_name pid_tar))) :: acc2
           ) acc next
       ) t nodes in
@@ -118,7 +118,7 @@ module P_graph = struct
       | [] -> [P_node.of_ast lexicons (ast_node, loc)]
       | (node_id,p_node)::tail when ast_node.Ast.node_id = node_id ->
         begin
-          try 
+          try
           (node_id, P_node.unif_fs_disj (List.map (P_fs.of_ast lexicons) ast_node.Ast.fs_disj) p_node) :: tail
           with Error.Build (msg,_) -> raise (Error.Build (msg,Some loc))
         end
@@ -223,7 +223,7 @@ module P_graph = struct
             begin
               match map_add_edge_opt src_pid P_edge.succ tar_pid acc_map with
               | None -> (acc_map, acc_edge_ids) (* redondant order request: ignore *)
-              | Some acc2 -> 
+              | Some acc2 ->
                 begin
                   match map_add_edge_opt tar_pid P_edge.pred src_pid acc2 with
                   | None -> Error.bug ~loc "[P_graph.of_ast_extension] Inconsistent order encoding (non symetric order relations)"
@@ -247,7 +247,7 @@ module P_graph = struct
       Pid_map.fold
         (fun _ p_node acc ->
           Pid_massoc.fold
-            (fun acc2 tar_pid _ -> 
+            (fun acc2 tar_pid _ ->
               Pid_set.add tar_pid acc2
             ) acc (P_node.get_next p_node)
         ) p_graph Pid_set.empty in
@@ -319,7 +319,7 @@ module G_graph = struct
 
   let subgraph graph seed depth =
     let todo_init = List.fold_left (fun acc gid -> Gid_map.add gid depth acc) Gid_map.empty seed in
-    let rec loop (todo, ok) = 
+    let rec loop (todo, ok) =
       match Gid_map.choose_opt todo with
       | None -> ok
       | Some (gid, depth) ->
@@ -328,19 +328,19 @@ module G_graph = struct
         let (new_todo, new_ok) =
           if depth = 0
           then (Gid_map.remove gid todo, Gid_set.add gid ok)
-          else 
+          else
             let tmp_ok = Gid_set.add gid ok in
-            let tmp_todo = 
-              Gid_massoc.fold_on_list 
+            let tmp_todo =
+              Gid_massoc.fold_on_list
                 (fun acc gid' _ ->
                   if (Gid_set.mem gid' tmp_ok) || (Gid_map.mem gid' todo)
                   then acc
                   else Gid_map.add gid' (depth-1) acc
                 ) (Gid_map.remove gid todo) next in
             (tmp_todo, tmp_ok) in
-        loop (new_todo, new_ok) in 
+        loop (new_todo, new_ok) in
     let selected_nodes = loop (todo_init, Gid_set.empty) in
-    let sub_map = Gid_set.fold 
+    let sub_map = Gid_set.fold
         (fun gid acc ->
           let node = find gid graph in
           let new_next = Gid_massoc.filter_key (fun gid -> Gid_set.mem gid selected_nodes) (G_node.get_next node) in
@@ -478,10 +478,10 @@ module G_graph = struct
   let of_json (json: Yojson.Basic.t) =
     let open Yojson.Basic.Util in
     let meta =
-      try json |> member "meta" |> to_assoc 
+      try json |> member "meta" |> to_assoc
           |> CCList.filter_map
-            (fun (k,v) -> 
-              match v with 
+            (fun (k,v) ->
+              match v with
               | `String s -> Some (k,s |> String_.nfc)
               | `Int i -> Some (k, string_of_int i)
               | `Float f -> Some (k, String_.of_float_clean f)
@@ -490,17 +490,18 @@ module G_graph = struct
       with Type_error _ -> [] in
 
     (* for error reporting *)
-    let sent_id_text () = match (List.assoc_opt "sent_id"  meta, List.assoc_opt "source_sent_id"  meta)  with
+    let sent_id_text () =
+      match (List.assoc_opt "sent_id"  meta, List.assoc_opt "source_sent_id"  meta) with
       | (Some id,_) -> sprintf ", sent_id=%s" id
       | (None, Some id) -> sprintf ", source_sent_id=%s" id
       | _ -> "" in
 
     (* check that there is no unknown fields *)
     List.iter
-      (function 
+      (function
         | "meta" | "nodes" | "edges" | "order" -> ()
-        | x -> 
-          Warning.magenta "[G_graph.of_json%s] Unknown field `%s` (See https://grew.fr/doc/json)" (sent_id_text ()) x 
+        | x ->
+          Warning.magenta "[G_graph.of_json%s] Unknown field `%s` (See https://grew.fr/doc/json)" (sent_id_text ()) x
       ) (keys json);
 
     let nodes =
@@ -527,12 +528,13 @@ module G_graph = struct
             (sent_id_text ())
             (Yojson.Basic.pretty_to_string json_nodes) in
 
-    let edges = match json |> member "edges" with
+    let edges =
+      match json |> member "edges" with
       | `Null -> []
-      | json_edges -> 
-        try 
+      | json_edges ->
+        try
           json_edges
-          |> to_list 
+          |> to_list
           |> List.rev_map (* usage of rev_map to avoid stack overflow on large graph like lexical networks *)
             (fun json_edge ->
               let fs =
@@ -543,31 +545,33 @@ module G_graph = struct
                     json_edge
                     |> member "label"
                     |> to_assoc
-                    |> List.map (fun (x,y) -> (x, y |> to_string |> Feature_value.parse x)) 
-                with Type_error _ -> 
+                    |> List.map (fun (x,y) -> (x, y |> to_string |> Feature_value.parse x))
+                with Type_error _ ->
                   Error.build
                     "[G_graph.of_json%s] Cannot parse field json `edge` (See https://grew.fr/doc/json):\n%s"
                     (sent_id_text ())
                     (Yojson.Basic.pretty_to_string json_edge) in
-              let src = match json_edge |> member "src" with
+              let src =
+                match json_edge |> member "src" with
                 | `String s -> s
                 | `Null ->
                   Error.build
                     "[G_graph.of_json%s] Missing field `src` in json `edge` (See https://grew.fr/doc/json):\n%s"
                       (sent_id_text ())
-                      (Yojson.Basic.pretty_to_string json_edge) 
+                      (Yojson.Basic.pretty_to_string json_edge)
                 | _ ->
                   Error.build
                     "[G_graph.of_json%s] `src` must be a string in json `edge` (See https://grew.fr/doc/json):\n%s"
                       (sent_id_text ())
                       (Yojson.Basic.pretty_to_string json_edge) in
-              let tar = match json_edge |> member "tar" with
+              let tar =
+                match json_edge |> member "tar" with
                 | `String s -> s
                 | `Null ->
                   Error.build
                     "[G_graph.of_json%s] Missing field `tar` in json `edge` (See https://grew.fr/doc/json):\n%s"
                       (sent_id_text ())
-                      (Yojson.Basic.pretty_to_string json_edge) 
+                      (Yojson.Basic.pretty_to_string json_edge)
                 | _ ->
                   Error.build
                     "[G_graph.of_json%s] `tar` must be a string in json `edge` (See https://grew.fr/doc/json):\n%s"
@@ -576,7 +580,7 @@ module G_graph = struct
                (src,fs,tar)
             )
           |> List.rev  (* restore initial order *)
-        with Type_error _ -> 
+        with Type_error _ ->
           Error.build
             "[G_graph.of_json%s] Cannot parse field `edges` (See https://grew.fr/doc/json):\n%s"
               (sent_id_text ())
@@ -595,24 +599,25 @@ module G_graph = struct
           )
         ) (Gid_map.empty, String_map.empty, 0) nodes in
 
-    let order = match json |> member "order" with
+    let order =
+      match json |> member "order" with
       | `Null -> [] (* No "order" field *)
-      | json_order -> 
-        try 
-          json_order 
-          |> to_list 
-          |> List.map 
-            (fun x -> 
+      | json_order ->
+        try
+          json_order
+          |> to_list
+          |> List.map
+            (fun x ->
               try String_map.find (x |> to_string) table
               with Not_found ->
                 Error.build "[G_graph.of_json%s] unknown node identifier `%s` used in `order`"
-                  (sent_id_text ()) 
+                  (sent_id_text ())
                   (x |> to_string)
             )
         with
-        | Type_error _ -> 
+        | Type_error _ ->
           Error.build "[G_graph.of_json%s] cannot parse `order` field, it should be a list of string but is:\n%s"
-            (sent_id_text ()) 
+            (sent_id_text ())
             (Yojson.Basic.pretty_to_string json_order) in
 
     let rec loop_order (acc_map, acc_position) = function
@@ -639,8 +644,8 @@ module G_graph = struct
             begin
               match map_add_edge_opt acc gid_1 edge gid_2 with
               | Some g -> g
-              | None -> 
-                Error.build "[G_graph.of_json%s] try to build a graph with twice the same edge `%s`from `%s` to `%s`" 
+              | None ->
+                Error.build "[G_graph.of_json%s] try to build a graph with twice the same edge `%s`from `%s` to `%s`"
                   (sent_id_text ()) (G_edge.to_string edge) id_src id_tar
             end
           | (None, _) -> Error.build "[G_graph.of_json%s] undefined node id `%s` used as `src` in edges" (sent_id_text ()) id_src
@@ -790,14 +795,15 @@ module G_graph = struct
       | Some next_gid -> shift_position delta next_gid next_map
 
   (* -------------------------------------------------------------------------------- *)
-  let insert_before inserted_gid site_gid graph = 
+  let insert_before inserted_gid site_gid graph =
     let inserted_node = Gid_map.find inserted_gid graph.map
     and site_node = Gid_map.find site_gid graph.map in
     match (G_node.get_position_opt inserted_node, G_node.get_position_opt site_node) with
-    | (None, Some p) -> 
+    | (None, Some p) ->
       let shifted_map = shift_position 1 site_gid graph.map in
       let new_node = G_node.set_position p inserted_node in
-      let new_map = match G_node.get_pred_opt site_node with
+      let new_map =
+        match G_node.get_pred_opt site_node with
         | None ->
           shifted_map
           |> (Gid_map.add inserted_gid new_node)
@@ -813,13 +819,14 @@ module G_graph = struct
     | (_,None) -> Error.run "[G_node.insert_before] unordered node"
 
   (* -------------------------------------------------------------------------------- *)
-  let insert_after inserted_gid site_gid graph = 
+  let insert_after inserted_gid site_gid graph =
     let inserted_node = Gid_map.find inserted_gid graph.map
     and site_node = Gid_map.find site_gid graph.map in
     match (G_node.get_position_opt inserted_node, G_node.get_position_opt site_node) with
-    | (None, Some p) -> 
+    | (None, Some p) ->
       let new_node = G_node.set_position (p+1) inserted_node in
-      let new_map = match G_node.get_succ_opt site_node with
+      let new_map =
+        match G_node.get_succ_opt site_node with
         | None ->
           graph.map
           |> (Gid_map.add inserted_gid new_node)
@@ -838,13 +845,15 @@ module G_graph = struct
   (* -------------------------------------------------------------------------------- *)
   let add_before gid graph =
     let node = Gid_map.find gid graph.map in
-    let position = match G_node.get_position_opt node with
+    let position =
+      match G_node.get_position_opt node with
       | None -> Error.run "[G_node.add_before] unordered node"
       | Some p -> p in
     let shifted_map = shift_position 1 gid graph.map in
     let new_gid = graph.highest_index + 1 in
     let new_node = G_node.set_position position G_node.empty in
-    let new_map = match G_node.get_pred_opt node with
+    let new_map =
+      match G_node.get_pred_opt node with
       | None ->
         shifted_map
         |> (Gid_map.add new_gid new_node)
@@ -861,7 +870,8 @@ module G_graph = struct
   (* WARNING: use only if [last_gid] is the last ordered node in graph! *)
   let append last_gid graph =
     let last_node = Gid_map.find last_gid graph.map in
-    let position = match G_node.get_position_opt last_node with
+    let position =
+      match G_node.get_position_opt last_node with
       | None -> Error.run "[G_node.append] unordered nodes"
       | Some p -> p + 1 in
     let new_gid = graph.highest_index + 1 in
@@ -1052,7 +1062,8 @@ module G_graph = struct
     | _ -> true
 
   let to_sentence ?pivot ?(deco=G_deco.empty) graph =
-    let high_list = match pivot with
+    let high_list =
+      match pivot with
       | None -> List.map fst deco.nodes
       | Some pivot ->
         match List.find_opt (fun (_, (pid,_)) -> pid = pivot) deco.nodes with
@@ -1082,11 +1093,11 @@ module G_graph = struct
     | Some init_gid ->
       let buff = Buffer.create 32 in
       let to_buff = function
-      | (None, _, _) -> ()
-      | (Some s, false, false) -> bprintf buff "%s" (String_.escape_lt_gt s)
-      | (Some s, false, true) -> bprintf buff "%s " (String_.escape_lt_gt s)
-      | (Some s, true, false) -> bprintf buff "<span class=\"highlight\">%s</span>" (String_.escape_lt_gt s)
-      | (Some s, true, true) -> bprintf buff "<span class=\"highlight\">%s</span> " (String_.escape_lt_gt s) in
+        | (None, _, _) -> ()
+        | (Some s, false, false) -> bprintf buff "%s" (String_.escape_lt_gt s)
+        | (Some s, false, true) -> bprintf buff "%s " (String_.escape_lt_gt s)
+        | (Some s, true, false) -> bprintf buff "<span class=\"highlight\">%s</span>" (String_.escape_lt_gt s)
+        | (Some s, true, true) -> bprintf buff "<span class=\"highlight\">%s</span> " (String_.escape_lt_gt s) in
 
       let rec loop current_form flag_highlight flag_sa gid =
         let node = Gid_map.find gid graph.map in
@@ -1107,16 +1118,18 @@ module G_graph = struct
       loop None false true init_gid;
       Buffer.contents buff
 
-  let bound_time gnode = 
+  let bound_time gnode =
     let fs = G_node.get_fs gnode in
-    let start_opt = match (G_fs.get_value_opt "_start" fs, G_fs.get_value_opt "AlignBegin" fs) with
-    | (Some (Float start),_) -> Some start
-    | (_,Some (Float align_begin)) -> Some (align_begin /. 1000.)
-    | _ -> None
-    and ending_opt = match (G_fs.get_value_opt "_stop" fs, G_fs.get_value_opt "AlignEnd" fs) with
-    | (Some (Float stop),_) -> Some stop
-    | (_,Some (Float align_end)) -> Some (align_end /. 1000.)
-    | _ -> None in
+    let start_opt =
+      match (G_fs.get_value_opt "_start" fs, G_fs.get_value_opt "AlignBegin" fs) with
+      | (Some (Float start),_) -> Some start
+      | (_,Some (Float align_begin)) -> Some (align_begin /. 1000.)
+      | _ -> None
+    and ending_opt =
+      match (G_fs.get_value_opt "_stop" fs, G_fs.get_value_opt "AlignEnd" fs) with
+      | (Some (Float stop),_) -> Some stop
+      | (_,Some (Float align_end)) -> Some (align_end /. 1000.)
+      | _ -> None in
     match (start_opt, ending_opt) with
     | (Some s, Some e) -> Some (s,e)
     | _ -> None
@@ -1150,22 +1163,22 @@ module G_graph = struct
               (ending -. start)
               (if is_highlighted_gid gid then "class=\"highlight\"" else "")
               (String_.escape_lt_gt word_no_escape)
-          | None -> 
-            Printf.bprintf buff 
+          | None ->
+            Printf.bprintf buff
               "<span %s>%s </span>"
               (if is_highlighted_gid gid then "class=\"highlight\"" else "")
               (String_.escape_lt_gt word_no_escape)
-      ) snodes; 
+      ) snodes;
     (Buffer.contents buff, !sentence_bounds, get_meta_opt "sound_url" graph)
 
 
   let remove_conll_root_node graph =
     let exception Find of Gid.t in
-    try 
-      Gid_map.iter 
-        (fun gid node -> 
+    try
+      Gid_map.iter
+        (fun gid node ->
           if G_node.is_conll_zero node
-          then raise (Find gid) 
+          then raise (Find gid)
         ) graph.map; graph
     with Find gid_root -> match del_node_opt gid_root graph with
       | Some g -> g
@@ -1173,7 +1186,7 @@ module G_graph = struct
 
   (* -------------------------------------------------------------------------------- *)
   let to_dep ?filter ?(no_root=false) ?(pid=true) ?main_feat ?(deco=G_deco.empty) ~config graph =
-    let graph = if no_root then remove_conll_root_node graph else graph in 
+    let graph = if no_root then remove_conll_root_node graph else graph in
 
     (* split lexical // non-lexical nodes *)
     let (ordered_nodes, non_ordered_nodes) =
@@ -1226,7 +1239,7 @@ module G_graph = struct
           match (!Global.debug, G_node.get_position_opt node) with
           | (true, Some pos) -> (sprintf "position=%d:B:lightblue" pos) :: loops
           | _ -> loops in
-  
+
         let dep_fs = G_fs.to_dep ~decorated_feat ~tail ?filter ?main_feat fs in
 
         let style =
@@ -1294,7 +1307,8 @@ module G_graph = struct
       Gid_map.fold
         (fun id node acc ->
           let layer_opt = G_fs.get_value_opt "layer" (G_node.get_fs node) |> CCOption.map Feature_value.to_string in
-          let prev = match Layers.find_opt layer_opt acc with
+          let prev =
+            match Layers.find_opt layer_opt acc with
             | None -> []
             | Some l -> l in
           Layers.add layer_opt ((id,node) :: prev) acc
@@ -1307,12 +1321,12 @@ module G_graph = struct
         List.iter (
           fun (id,node) ->
             let fs = G_node.get_fs node in
-            let shape = match 
+            let shape = match
               (
                 fs |> G_fs.get_value_opt "type" |> CCOption.map Feature_value.to_string,
                 fs |> G_fs.get_value_opt "label" |> CCOption.map Feature_value.to_string
               )
-             with
+            with
             | (Some "v",_) -> "shape=oval, "
             | (Some "f", Some "temp") -> "style=filled, color=\"#3e9fcf\", shape=invhouse, "
             | (Some "f", Some "neg") -> "style=filled, color=\"#CFB464\", shape=invhouse, "
@@ -1352,10 +1366,10 @@ module G_graph = struct
     Gid_map.iter
       (fun id node ->
         match G_node.get_succ_opt node with
-        | Some s -> 
+        | Some s ->
           (* make ordered nodes appear at the same level and in the right order with white (lightblue in debug) edges *)
           bprintf buff " { rank=same; N_%s; N_%s; }\n" (Gid.to_string id) (Gid.to_string s);
-          let color = if !Global.debug then "lightblue" else "white" in 
+          let color = if !Global.debug then "lightblue" else "white" in
           bprintf buff "  N_%s -> N_%s [label=\"SUCC\", style=dotted, fontcolor=%s, color=%s];\n"
             (Gid.to_string id) (Gid.to_string s) color color
         | _ -> ()
@@ -1369,10 +1383,10 @@ module G_graph = struct
     let old_sub =
       String_map.find_opt feat_name acc
       |> CCOption.get_or ~default: String_map.empty in
-    let old_count = 
+    let old_count =
       String_map.find_opt string_feat_value old_sub
       |> CCOption.get_or ~default: 0 in
-    String_map.add feat_name 
+    String_map.add feat_name
       (String_map.add string_feat_value (old_count + 1) old_sub) acc
 
   let count_feature_values ?(filter=fun _ -> true) ?(acc=String_map.empty) t =
@@ -1380,7 +1394,7 @@ module G_graph = struct
       (fun _ node acc2 ->
         if G_node.is_conll_zero node
         then acc2
-        else 
+        else
           let fs = G_node.get_fs node in
           let features = G_fs.get_features fs in
           String_set.fold
@@ -1426,13 +1440,13 @@ module G_graph = struct
           acc
       ) t.map String_set.empty
 
-  let append_in_ag_lex keys t proj = 
-    fold_node 
-      (fun node acc -> 
+  let append_in_ag_lex keys t proj =
+    fold_node
+      (fun node acc ->
         if G_node.is_conll_zero node
         then acc
-        else G_node.append_in_ag_lex keys node acc 
-      ) t proj 
+        else G_node.append_in_ag_lex keys node acc
+      ) t proj
 
   let check_large_dominance graph gid1 gid2 =
     let exception Found in
@@ -1441,7 +1455,7 @@ module G_graph = struct
       | None -> false  (* we have visisted all nodes accessible from gid1 without finding gid2 *)
       | Some chosen_gid ->
         let node = Gid_map.find chosen_gid graph.map in
-        let new_todo = 
+        let new_todo =
           Gid_massoc.fold
             (fun acc_todo next_gid g_edge ->
               if not (G_edge.is_real_link g_edge)
@@ -1455,7 +1469,7 @@ module G_graph = struct
                   else Gid_set.add next_gid acc_todo
             ) todo (G_node.get_next node) in
         loop (Gid_set.remove chosen_gid new_todo, Gid_set.add chosen_gid already_seen) in
-    try 
+    try
       if gid1 = gid2
       then true
       else loop (Gid_set.singleton gid1, Gid_set.empty)
@@ -1469,7 +1483,7 @@ module G_graph = struct
           | None -> (acc, acc_map)
           | Some src_position ->
             let new_acc =
-              Gid_massoc.fold 
+              Gid_massoc.fold
                 (fun acc2 tar_gid _ ->
                   let tar_node = find tar_gid t in
                   match G_node.get_position_opt tar_node with
@@ -1629,7 +1643,7 @@ module Delta = struct
       | ((g,f),_)::tail (* when (g,f)=(gid,feat_name) *)               -> ((g,f), new_val_opt) :: tail in
     { t with feats = loop t.feats }
 
-  let unorder gid t = { t with ordered_nodes = CCList.remove ~eq:(=) ~key:gid t.ordered_nodes } 
+  let unorder gid t = { t with ordered_nodes = CCList.remove ~eq:(=) ~key:gid t.ordered_nodes }
 
   let insert_after inserted_gid site_gid t =
     let rec loop = function

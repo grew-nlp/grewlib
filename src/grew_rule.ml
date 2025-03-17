@@ -1,7 +1,7 @@
 (**********************************************************************************)
 (*    grewlib • a Graph Rewriting library dedicated to NLP applications           *)
 (*                                                                                *)
-(*    Copyright 2011-2024 Inria, Université de Lorraine                           *)
+(*    Copyright 2011-2025 Inria, Université de Lorraine                           *)
 (*                                                                                *)
 (*    Webpage: https://grew.fr                                                    *)
 (*    License: CeCILL (see LICENSE folder or "http://cecill.info/")               *)
@@ -109,11 +109,11 @@ module Constraint = struct
   let to_json ~config p_graph_list const =
     let pid_name pid = P_graph.get_name pid p_graph_list in
     let base_to_string = function
-    | Node_id pid -> pid_name pid
-    | Edge_id id -> id
-    | Lexicon_id id -> id in
-  
-    match const with 
+      | Node_id pid -> pid_name pid
+      | Edge_id id -> id
+      | Lexicon_id id -> id in
+
+    match const with
     | Cst_out (pid, label_cst) -> sprintf "%s -[%s]-> *" (pid_name pid) (Label_cst.to_string ~config label_cst)
     | Cst_in (pid, label_cst) -> sprintf "* -[%s]-> %s" (Label_cst.to_string ~config label_cst) (pid_name pid)
     | Feature_cmp (cmp,id1,fn1,id2,fn2) -> sprintf "%s.%s %s %s.%s" (base_to_string id1) fn1 (Cmp.to_string cmp) (base_to_string id2) fn2
@@ -122,8 +122,8 @@ module Constraint = struct
     | Feature_cmp_regexp (cmp,id,fn,regexp) -> sprintf "%s.%s %s %s" (base_to_string id) fn (Cmp.to_string cmp) (Regexp.to_string regexp)
     | Feature_ineq (_,id1,fn1,id2,fn2) -> sprintf "%s.%s < %s.%s" (base_to_string id1) fn1 (base_to_string id2) fn2
     | Feature_ineq_cst (_,id,fn,f) -> sprintf "%s.%s  %g" (base_to_string id) fn f
-    | Filter (pid, p_fs_list) -> 
-        (sprintf "%s %s" 
+    | Filter (pid, p_fs_list) ->
+        (sprintf "%s %s"
           (pid_name pid)
           (p_fs_list |> List.map P_fs.to_string |> List.map (sprintf "[%s]") |> String.concat "|")
         )
@@ -138,7 +138,8 @@ module Constraint = struct
     | Length (pid1, pid2, ineq, v) -> sprintf "length (%s,%s) %s %d" (pid_name pid1) (pid_name pid2) (Ast.string_of_ineq ineq) v
 
   let build ~config lexicons ker_table ext_table edge_ids const =
-    let parse_id loc id = match (Id.build_opt id ker_table, Id.build_opt id ext_table) with
+    let parse_id loc id =
+      match (Id.build_opt id ker_table, Id.build_opt id ext_table) with
       | (Some pid,_) -> Node_id (Pid.Ker pid)
       | (None, Some pid) -> Node_id (Pid.Ext pid)
       | (None, None) when List.mem id edge_ids -> Edge_id id
@@ -150,7 +151,7 @@ module Constraint = struct
       | Some i -> Pid.Ker i
       | None -> Pid.Ext (Id.build ~loc node_name ext_table) in
 
-      match const with
+    match const with
     | (Ast.Cst_out (id,label_cst), loc) ->
       Cst_out (pid_of_name loc id, Label_cst.of_ast ~loc ~config label_cst)
     | (Ast.Cst_in (id,label_cst), loc) ->
@@ -189,8 +190,8 @@ module Constraint = struct
       Edge_relative (Disjoint, eid1, eid2)
     | (Ast.Edge_crossing (eid1, eid2), _) ->
       Edge_relative (Crossing, eid1, eid2)
-    | (Ast.Delta (pid1, pid2, ineq, value), loc) -> Delta (pid_of_name loc pid1, pid_of_name loc pid2, ineq, value) 
-    | (Ast.Length  (pid1, pid2, ineq, value), loc) -> Length (pid_of_name loc pid1, pid_of_name loc pid2, ineq, value) 
+    | (Ast.Delta (pid1, pid2, ineq, value), loc) -> Delta (pid_of_name loc pid1, pid_of_name loc pid2, ineq, value)
+    | (Ast.Length  (pid1, pid2, ineq, value), loc) -> Length (pid_of_name loc pid1, pid_of_name loc pid2, ineq, value)
 
 end (* module Constraint *)
 
@@ -206,8 +207,8 @@ module Request = struct
     let bases = match base with Some g -> [g ; basic.graph] | None -> [basic.graph] in
     `List (
       (P_graph.to_json_list ~config ?base basic.graph)
-      @ 
-      (List.map 
+      @
+      (List.map
         (fun x -> `String (Constraint.to_json ~config bases x))
         basic.constraints
       )
@@ -216,9 +217,9 @@ module Request = struct
   let build_ker_basic ~config lexicons basic_ast =
     let (pre_graph, ker_table, edge_ids) = P_graph.of_ast ~config lexicons basic_ast in
     let pre_constraints = List.map (Constraint.build ~config lexicons ker_table [||] edge_ids) basic_ast.Ast.req_const in
-    
+
     (* optimisation: move constraints like "N.upos=VERB" into the graph *)
-    let (graph, constraints) = 
+    let (graph, constraints) =
       List.fold_left
         (fun (acc_graph, acc_constraints) constraint_ ->
           match constraint_ with
@@ -259,12 +260,12 @@ module Request = struct
     exts: (basic * bool) list; (* with iff true and without iff false *)
     table: Id.table;  (* needed to build whether *)
     edge_ids: string list;  (* needed to build whether *)
-    meta: (string * string) list 
+    meta: (string * string) list
   }
 
   let to_json ~config t =
-    let without_list = 
-      List.map 
+    let without_list =
+      List.map
       (function
         | (basic,false) -> `Assoc [("without", basic_to_json ~config ~base:t.ker.graph basic)]
         | (basic,true) -> `Assoc [("with", basic_to_json ~config ~base:t.ker.graph basic)]
@@ -275,7 +276,7 @@ module Request = struct
     | l -> let global = `Assoc [("global", `List (List.map (fun glob -> `String (Ast.glob_to_string glob)) l))] in
       `List (global:: pattern :: without_list )
 
-  let json_bound_names request = 
+  let json_bound_names request =
     let nodes = P_graph.pid_name_list request.ker.graph |> List.map (fun x -> `String x) in
     let edges = get_edge_ids request.ker |> List.map (fun x -> `String x) in
   `Assoc [("nodes", `List nodes); ("edges", `List edges)]
@@ -287,16 +288,16 @@ module Request = struct
     let exts =
       List_.try_map
         P_fs.Fail_unif (* Skip the without parts that are incompatible with the match part *)
-        (fun (basic_ast, flag) -> 
+        (fun (basic_ast, flag) ->
           (build_ext_basic ~config [] ker_table edge_ids basic_ast, flag)
         )
         request_ast.Ast.req_exts in
     { ker; exts; global=request_ast.req_glob; table=ker_table; edge_ids; meta=[]}
 
-  let load ~config file = 
+  let load ~config file =
     of_ast ~config (Grew_loader.Loader.request file)
 
-  let parse ~config code = 
+  let parse ~config code =
     of_ast ~config (Grew_loader.Parser.request code)
 
   let build_whether ~config request basic_ast =
@@ -306,7 +307,7 @@ module Request = struct
   type cluster_item =
     | Key of string
     | Whether of basic
-  
+
   (* Note that we need to know the request in order to build the basic type *)
   let parse_cluster_item ~config request s =
     let clean_s = CCString.trim s in
@@ -318,9 +319,9 @@ module Request = struct
     (* the function [string_and_meta_of_json] accepts two different kinds of JSON representation of requests
       1) the JSON rep used in grewpy
           ```
-          [ 
-            { "pattern": ["M -[det]-> N", "M[upos=NOUN]"] }; 
-            { "without": ["N[upos=DET]"] }; 
+          [
+            { "pattern": ["M -[det]-> N", "M[upos=NOUN]"] };
+            { "without": ["N[upos=DET]"] };
           ]
           ```
       2) the JSON rep used in the validator
@@ -334,11 +335,11 @@ module Request = struct
        *)
     let string_and_meta_of_json json_data =
     let open Yojson.Basic.Util in
-    try 
+    try
       let item_list = to_list json_data in
-      List.map 
-        (fun item -> 
-          item |> to_assoc |> 
+      List.map
+        (fun item ->
+          item |> to_assoc |>
           (function
           | [keyword, l] -> sprintf "  %s {%s}" keyword (l |> to_list |> List.map to_string |> String.concat ";\n")
           | _ -> Error.build "[Request.of_json] Not a list of unary assoc"
@@ -348,18 +349,18 @@ module Request = struct
       |> (fun x -> (x,[]))
     with Type_error _ ->
       let assoc_list = to_assoc json_data in
-      let request_string = 
+      let request_string =
         match List.assoc_opt "request" assoc_list with
         | Some (`String s) -> s
-        | Some (`List l) -> List.map to_string l |> String.concat "\n" 
+        | Some (`List l) -> List.map to_string l |> String.concat "\n"
         | _ -> Error.build "[Request.of_json] No `request` field in description" in
-      let meta = 
+      let meta =
         List.remove_assoc "request" assoc_list
-        |> List.map 
-          (fun (key, v) -> 
+        |> List.map
+          (fun (key, v) ->
             try (key, to_string v) with Type_error _ -> Error.build "[Request.of_json] key `%s` should be string" key
-          )
-    in
+          ) in
+
       (request_string, meta)
 
   let string_of_json json_data = json_data |> string_and_meta_of_json |> fst
@@ -508,7 +509,8 @@ module Matching = struct
 
   (*  ---------------------------------------------------------------------- *)
   let apply_cst ~config graph matching cst : t =
-    let get_value base feat_name = match base with
+    let get_value base feat_name =
+      match base with
       | Constraint.Node_id pid ->
         let (_,gid) = Pid_map.find pid matching.n_match in
         if feat_name = "__id__"
@@ -564,7 +566,7 @@ module Matching = struct
         | _ ->
           (* NB: we compute all bool before [List.exists] in order to have the same behavior (run exception) whathever is the order of fs *)
           let is_fs_match_list = List.map
-          (fun fs -> 
+          (fun fs ->
             try
               match P_fs.match_ ~lexicons:(matching.l_param) fs (G_node.get_fs gnode) with
               | (true, _) -> Error.run "Lexicons and disjunction on nodes are incompatible"
@@ -614,10 +616,10 @@ module Matching = struct
 
     | Feature_else (id1, feat_name1, feat_name2, value) ->
       begin
-        let value_in_graph = 
+        let value_in_graph =
           try
             match get_value id1 feat_name1 with
-           | Value fv -> fv 
+           | Value fv -> fv
            | _ -> raise Fail
           with Fail ->
             match get_value id1 feat_name2 with
@@ -685,7 +687,7 @@ module Matching = struct
         | Some _ -> raise Fail
         | (None) -> Error.run "Edge identifier '%s' not found" eid;
       end
-      | Delta (pid1, pid2, ineq, value) -> 
+      | Delta (pid1, pid2, ineq, value) ->
         let gnode1 = G_graph.find (Pid_map.find pid1 matching.n_match |> snd) graph in
         let gnode2 = G_graph.find (Pid_map.find pid2 matching.n_match |> snd) graph in
         begin
@@ -693,7 +695,7 @@ module Matching = struct
           | Some i1, Some i2 -> if Ast.check_ineq (i2 - i1) ineq value then matching else raise Fail
           | _ -> raise Fail
         end
-  
+
       | Length (pid1, pid2, ineq, value) ->
         let gnode1 = G_graph.find (Pid_map.find pid1 matching.n_match |> snd) graph in
         let gnode2 = G_graph.find (Pid_map.find pid2 matching.n_match |> snd) graph in
@@ -736,8 +738,8 @@ module Matching = struct
               List.map
                 (fun label ->
                    {partial with sub = e_match_add id (src_gid,label,tar_gid) partial.sub; unmatched_edges = tail_ue }
-                ) labels
-          in CCList.flat_map (extend_matching ~config (ker_graph,ext_graph) graph) new_partials
+                ) labels in
+          CCList.flat_map (extend_matching ~config (ker_graph,ext_graph) graph) new_partials
         with Not_found -> (* p_edge goes to an unmatched node *)
           let candidates = (* candidates (of type (gid, matching)) for m(tar_pid) = gid) with new partial matching m *)
             let (src_gid : Gid.t) = Pid_map.find src_pid partial.sub.n_match |> snd in
@@ -831,8 +833,8 @@ module Matching = struct
 
   let whether ~config (extension: Request.basic) request graph matching =
     let already_matched_gids =
-      Pid_map.fold 
-      (fun pid (_,gid) acc -> 
+      Pid_map.fold
+      (fun pid (_,gid) acc ->
         if P_graph.is_injective pid [request.Request.ker.graph; extension.graph]
         then gid::acc
         else acc
@@ -942,7 +944,7 @@ module Matching = struct
       List.map fst filtered_matching_list
 
   let subgraph graph matching depth =
-    let gid_list = Pid_map.fold (fun _ (_,gid) acc -> gid :: acc) matching.n_match [] in  
+    let gid_list = Pid_map.fold (fun _ (_,gid) acc -> gid :: acc) matching.n_match [] in
   G_graph.subgraph graph gid_list depth
 
 
@@ -960,7 +962,7 @@ module Matching = struct
           then raise (Found pid)
         ) matching.n_match;
       Error.run "The identifier `%s` is not declared in the positive part of the request" pid_name
-    with Found pid -> 
+    with Found pid ->
       let gid = Pid_map.find pid matching.n_match |> snd in
       let g_node = G_graph.find gid graph in
       (gid, g_node)
@@ -975,34 +977,34 @@ module Matching = struct
           | Some pos -> Some (pid_name, pos)
         ) pid_name_list
     |> (List.sort (fun (_,p1) (_,p2) -> Stdlib.compare p1 p2)) in
-    match pid_name_position_list with 
+    match pid_name_position_list with
     | [] -> None
     | l -> Some (l |> List.map fst |> String.concat " << ")
 
   let get_link ~config rev pid_name_1 pid_name_2 request graph matching =
     let (gid_1, node_1) = search_pid_name request graph matching pid_name_1 in
     let (gid_2, node_2) = search_pid_name request graph matching pid_name_2 in
-    match 
+    match
     (
       node_1 |> G_node.get_next |> (Gid_massoc.assoc gid_2) |> (List.filter G_edge.is_real_link),
       node_2 |> G_node.get_next |> (Gid_massoc.assoc gid_1) |> (List.filter G_edge.is_real_link)
-    ) with 
+    ) with
     | ([], []) -> "__none__"
     | ([], _) when not rev -> "__none__"
     | ([direct], []) -> G_edge.to_string_opt ~config direct |> CCOption.get_exn_or "BUG Matching.get_link"
     | ([direct], _) when not rev -> G_edge.to_string_opt ~config direct |> CCOption.get_exn_or "BUG Matching.get_link"
-    | ([], [reverse]) -> G_edge.to_string_opt ~config reverse |> CCOption.get_exn_or "BUG Matching.get_link" |> sprintf "-%s" 
+    | ([], [reverse]) -> G_edge.to_string_opt ~config reverse |> CCOption.get_exn_or "BUG Matching.get_link" |> sprintf "-%s"
     | _ -> "__multi__"
 
   (* [fold_until fct list] Apply [fct] to each element of the [list]
      until the result is Some v and output Some v
      None it return if [fct] return None of each element of the list *)
   let rec fold_until fct = function
-  | [] -> None
-  | x::t ->
-    match fct x with
-    | None -> fold_until fct t
-    | v -> v
+    | [] -> None
+    | x::t ->
+      match fct x with
+      | None -> fold_until fct t
+      | v -> v
 
   let get_feat_value_opt ?(json_label=false) ~config request graph matching (node_or_edge_id, splitted_feature_names) =
     match (String_map.find_opt node_or_edge_id matching.e_match, splitted_feature_names) with
@@ -1041,16 +1043,16 @@ module Matching = struct
       match (min_opt, max_opt) with
       | (Some m, _) when f < m -> sprintf "]-∞, %g[" m
       | (_, Some m) when f >= m -> sprintf "[%g, +∞[" m
-      | (Some m, Some ma) -> 
+      | (Some m, Some ma) ->
         let i = floor ((f -. m) /. gap) in
         sprintf "[%g, %g[" (m +. i *. gap) (min (m +. (i +. 1.) *. gap) ma)
-      | (Some m, None) -> 
+      | (Some m, None) ->
         let i = floor ((f -. m) /. gap) in
         sprintf "[%g, %g[" (m +. i *. gap) (m +. (i +. 1.) *. gap)
-      | (None,Some ma) -> 
+      | (None,Some ma) ->
         let i = ceil ((ma -. f) /. gap) in
         sprintf "[%g, %g[" (ma -. i *. gap) (ma -. (i -. 1.) *. gap)
-      | (None,_) -> 
+      | (None,_) ->
         let i = floor (f /. gap) in
         sprintf "[%g, %g[" (i *. gap) ((i +. 1.) *. gap)
 
@@ -1076,8 +1078,8 @@ module Matching = struct
     | Rel (pid_name_1, pid_name_2) -> Some (get_link ~config false pid_name_1 pid_name_2 request graph matching)
     | Feat (id, splitted_feature_names) -> get_feat_value_opt ~json_label ~config request graph matching (id, splitted_feature_names)
     | Continuous params -> Some (get_interval request graph matching params)
-    | Delta (pid1, pid2) -> delta request graph matching pid1 pid2 
-    | Length (pid1, pid2) -> length request graph matching pid1 pid2 
+    | Delta (pid1, pid2) -> delta request graph matching pid1 pid2
+    | Length (pid1, pid2) -> length request graph matching pid1 pid2
 
   let get_clust_value_opt ?(json_label=false) ~config cluster_item request graph matching =
     match cluster_item with
@@ -1140,9 +1142,9 @@ module Rule = struct
     `Assoc (
       [
         ("request", Request.to_json ~config t.request);
-        ("commands", 
+        ("commands",
         `List (
-          List.map 
+          List.map
             (Command.to_json ~config ~base:t.request.ker.graph) t.commands))
       ]
     )
@@ -1156,13 +1158,13 @@ module Rule = struct
     let nodes =
       Pid_map.fold
         (fun id node acc ->
-          let subword = match P_node.get_fs_disj node with
-          | [one] -> P_fs.to_dep one
-          | _ -> "__DISJUNCTION__" in
-            (node, sprintf "  N_%s { word=\"%s\"; subword=\"%s\"}"
-              (Pid.to_id id) (P_node.get_name node) subword
-            )
-            :: acc
+          let subword =
+            match P_node.get_fs_disj node with
+            | [one] -> P_fs.to_dep one
+            | _ -> "__DISJUNCTION__" in
+              (node, sprintf "  N_%s { word=\"%s\"; subword=\"%s\"}"
+                (Pid.to_id id) (P_node.get_name node) subword
+              ) :: acc
         ) ker_basic.graph [] in
 
     (* nodes are sorted to appear in the same order in dep picture and in input file *)
@@ -1247,12 +1249,12 @@ module Rule = struct
       List.fold_left
         (fun (acc,position) (basic_ast, flag) ->
           try ((Request.build_ext_basic ~config lexicons ker_table edge_ids basic_ast, flag) :: acc, position+1)
-          with 
+          with
           | P_fs.Fail_unif when flag ->
             Error.build ~loc:rule_ast.Ast.rule_loc
               "[Rule.build] in rule \"%s\": feature structures declared in the `with` clauses are inconsistent"
               rule_ast.Ast.rule_id
-          | P_fs.Fail_unif -> 
+          | P_fs.Fail_unif ->
             Warning.magenta ~loc:rule_ast.Ast.rule_loc "In rule \"%s\", the without number %d cannot be satisfied, it is skipped"
               rule_ast.Ast.rule_id position;
             (acc, position+1)
@@ -1271,10 +1273,10 @@ module Rule = struct
   (*  ---------------------------------------------------------------------- *)
   let string_of_json request commands =
     let open Yojson.Basic.Util in
-    let request_string =  Request.string_of_json request in 
+    let request_string =  Request.string_of_json request in
     let commands_string = try
-      sprintf "\n  commands {%s}" (commands |> to_list |> List.map to_string |> String.concat ";\n") 
-    with Type_error _ -> 
+      sprintf "\n  commands {%s}" (commands |> to_list |> List.map to_string |> String.concat ";\n")
+    with Type_error _ ->
       Error.build "[Rule.string_of_json]" in
     request_string ^ commands_string
 
@@ -1300,7 +1302,7 @@ module Rule = struct
     let node_find cnode = onf_find ~loc cnode (matching, state.created_nodes) in
 
     let feature_value_of_item feat_name = function
-      | (Command.String_item s, range) -> 
+      | (Command.String_item s, range) ->
         Feature_value.extract_range ~loc range (Feature_value.parse ~loc feat_name s)
       | (Command.Node_feat (cnode, feat_name), range) ->
         let gid = node_find cnode in
@@ -1974,8 +1976,8 @@ module Rule = struct
             | None when !Global.safe_commands -> Error.run ~loc "DEL_EDGE_FEAT: the edge feature name '%s' does not exist" feat_name
             | None -> Graph_with_history_set.singleton gwh
             | Some (new_graph, new_edge, capture) ->
-              let delta = 
-                if capture 
+              let delta =
+                if capture
                 then
                   gwh.Graph_with_history.delta
                   |> Delta.del_edge src_gid old_edge tar_gid
@@ -2092,7 +2094,7 @@ module Rule = struct
       else
         (* get the list of matching for kernel part of the request *)
         let matching_list = Matching.extend_matching ~config (ker.graph,P_graph.empty) graph (Matching.init ~lexicons:rule.lexicons ker) in
-          
+
         let rec loop_matching = function
           | [] -> None
           | (sub, already_matched_gids) :: tail ->
@@ -2117,6 +2119,6 @@ module Rule = struct
                 let down = Matching.down_deco (new_gwh.e_mapping, sub, new_gwh.added_gids_in_rule) rule.commands in
                 Some {new_gwh with graph = G_graph.track up (get_rule_info rule) down graph new_gwh.graph }
               with Dead_lock -> loop_matching tail (* failed to apply all commands -> move to the next matching *)
-            else loop_matching tail (* some ext part prevents rule app -> move to the next matching *)
-        in loop_matching matching_list
+            else loop_matching tail in (* some ext part prevents rule app -> move to the next matching *)
+        loop_matching matching_list
 end (* module Rule *)

@@ -1,7 +1,7 @@
 (**********************************************************************************)
 (*    grewlib • a Graph Rewriting library dedicated to NLP applications           *)
 (*                                                                                *)
-(*    Copyright 2011-2024 Inria, Université de Lorraine                           *)
+(*    Copyright 2011-2025 Inria, Université de Lorraine                           *)
 (*                                                                                *)
 (*    Webpage: https://grew.fr                                                    *)
 (*    License: CeCILL (see LICENSE folder or "http://cecill.info/")               *)
@@ -19,7 +19,7 @@ module Request : sig
 
   type t
 
-  (** [json_bound_names request] returns a JSON object with two items: "nodes" and "edges", 
+  (** [json_bound_names request] returns a JSON object with two items: "nodes" and "edges",
       each associated to a list of string for bound nodes and edges *)
   val json_bound_names: t -> Yojson.Basic.t
 
@@ -72,7 +72,7 @@ module Rule : sig
   val reset_rules: unit -> unit
 
   val set_max_rules: int -> unit
-  
+
   val get_nb_rules: unit -> int
 
   (** [get_name t] returns the name of the rule [t]. *)

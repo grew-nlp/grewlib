@@ -1,7 +1,7 @@
 (**********************************************************************************)
 (*    grewlib • a Graph Rewriting library dedicated to NLP applications           *)
 (*                                                                                *)
-(*    Copyright 2011-2024 Inria, Université de Lorraine                           *)
+(*    Copyright 2011-2025 Inria, Université de Lorraine                           *)
 (*                                                                                *)
 (*    Webpage: https://grew.fr                                                    *)
 (*    License: CeCILL (see LICENSE folder or "http://cecill.info/")               *)
@@ -14,27 +14,27 @@ open Grew_types
 
 (* ================================================================================ *)
 module Regexp = struct
-  type t = 
-  | All
-  | Re of string * Str.regexp
-  | Pcre of string * Re.re
-  | Pcri of string * Re.re
+  type t =
+    | All
+    | Re of string * Str.regexp
+    | Pcre of string * Re.re
+    | Pcri of string * Re.re
 
   let all = All
   let re s = Re (s, Str.regexp s)
   let pcre s = Pcre (s, Re__Pcre.regexp s)
   let pcri s = Pcri (s, Re__Pcre.regexp ~flags:[`CASELESS] s)
   let to_string = function
-  | All -> sprintf "re\".*\""
-  | Re (s,_) -> sprintf "re\"%s\"" s
-  | Pcre (s,_) -> sprintf "/%s/" s
-  | Pcri (s,_) -> sprintf "/%s/i" s
+    | All -> sprintf "re\".*\""
+    | Re (s,_) -> sprintf "re\"%s\"" s
+    | Pcre (s,_) -> sprintf "/%s/" s
+    | Pcri (s,_) -> sprintf "/%s/i" s
 
-  let re_match re string = 
-    match re with 
+  let re_match re string =
+    match re with
     | All -> true
-    | Re (_,re) -> String_.re_match re string 
-    | Pcre (_,rex) | Pcri (_,rex) -> 
+    | Re (_,re) -> String_.re_match re string
+    | Pcre (_,rex) | Pcri (_,rex) ->
         try let groups = Re__Pcre.extract ~rex string in groups.(0) = string
         with Not_found -> false
 end
@@ -85,7 +85,7 @@ module Ast = struct
 
   type key_ident = Id.name * string list
 
-  let parse_key_ident s = 
+  let parse_key_ident s =
     check_special "feature ident" ["."] s;
     match Str.full_split (Str.regexp "\\.") s with
     | [Str.Text feature_name; Str.Delim "."; Str.Text values] -> (feature_name, Str.split (Str.regexp "/") values)
@@ -240,7 +240,8 @@ module Ast = struct
 
   type glob = u_glob * Loc.t
 
-  let glob_to_string (u_glob,_) = match u_glob with
+  let glob_to_string (u_glob,_) =
+    match u_glob with
     | Glob_cst s -> s
     | Glob_eq_list (s,l) -> sprintf "%s = %s" s (String.concat "|" l)
     | Glob_diff_list (s,l) -> sprintf "%s <> %s" s (String.concat "|" l)
@@ -330,7 +331,7 @@ module Ast = struct
 
   type command = u_command * Loc.t
 
-  let string_of_u_command u_command = match u_command with
+  let string_of_u_command = function
     | Del_edge_expl (n1,n2,label) ->
       sprintf "del_edge %s -[%s]-> %s" n1 label n2
     | Del_edge_name name -> sprintf "del_edge %s" name
@@ -401,8 +402,8 @@ module Ast = struct
         | x::y::tail when x=y ->
           Warning.magenta "In the declaration of the feature name \"%s\", the value \"%s\" appears more than once" feature_name x;
           loop (y::tail)
-        | x::tail -> x:: (loop tail)
-      in loop sorted_list in
+        | x::tail -> x:: (loop tail) in
+      loop sorted_list in
     Closed (feature_name, without_duplicate)
 
   type gr = {
@@ -412,11 +413,12 @@ module Ast = struct
   }
 
   let complete id nodes =
-    let rec loop n = match n with
+    let rec loop n =
+      match n with
       | [] -> [{node_id=id; fs_disj=[default_fs id]},Loc.empty]
       | ({ node_id = head_id ; _},_)::_ when head_id = id -> n
-      | head::tail -> head :: (loop tail)
-    in loop nodes
+      | head::tail -> head :: (loop tail) in
+    loop nodes
 
   let complete_graph gr =
     let new_nodes =
@@ -476,16 +478,16 @@ module Ast = struct
         | _ -> acc
       ) [] grs
 
-  let fold_sub_strat fct init = 
+  let fold_sub_strat fct init =
     let rec loop acc = function
-    | Ref name -> fct name acc
-    | Pick s | Iter s | Onf s | Try s -> loop acc s
-    | Alt l | Seq l -> List.fold_left (fun acc2 s -> loop acc2 s) acc l
-    | If (s1, s2, s3) -> List.fold_left (fun acc2 s -> loop acc2 s) acc [s1;s2;s3]
-    in loop init
+      | Ref name -> fct name acc
+      | Pick s | Iter s | Onf s | Try s -> loop acc s
+      | Alt l | Seq l -> List.fold_left (fun acc2 s -> loop acc2 s) acc l
+      | If (s1, s2, s3) -> List.fold_left (fun acc2 s -> loop acc2 s) acc [s1;s2;s3] in
+    loop init
 
   let strat_lists grs =
-    let (strat_list, sub_strat_set) = 
+    let (strat_list, sub_strat_set) =
       List.fold_left
       (fun (acc_strat_list, acc_sub_strat_set) -> function
         | Strategy (_,name,strat) ->
@@ -541,8 +543,8 @@ module Lexicon = struct
   }
 
   let rec transpose = function
-    | []             -> []
-    | []   :: xss    -> transpose xss
+    | [] -> []
+    | [] :: xss -> transpose xss
     | (x::xs) :: xss -> (x :: List.map List.hd xss) :: transpose (xs :: List.map List.tl xss)
 
   exception Equal of string
@@ -590,7 +592,7 @@ module Lexicon = struct
   let load ?loc file =
     try
       Global.update_grs_timestamp file;
-      let lines = 
+      let lines =
         CCIO.(with_in file read_lines_l)
         |> CCList.mapi (fun i l -> (i+1,l))
         (* Blanks lines (empty or only with spaces and tabs) and lines starting with '%' are ignored. *)

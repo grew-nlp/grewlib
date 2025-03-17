@@ -1,7 +1,7 @@
 (**********************************************************************************)
 (*    grewlib • a Graph Rewriting library dedicated to NLP applications           *)
 (*                                                                                *)
-(*    Copyright 2011-2024 Inria, Université de Lorraine                           *)
+(*    Copyright 2011-2025 Inria, Université de Lorraine                           *)
 (*                                                                                *)
 (*    Webpage: https://grew.fr                                                    *)
 (*    License: CeCILL (see LICENSE folder or "http://cecill.info/")               *)
@@ -25,27 +25,27 @@ module Int_map = Map.Make (struct type t = int let compare = Stdlib.compare end)
 (* ================================================================================ *)
 module Clustered = struct
 
-  type 'a t = 
+  type 'a t =
     | Empty of int (* virtual depth *)
     | Leaf of 'a
     | Node of 'a t String_opt_map.t
-  
+
   let rec depth = function
     | Node som -> 1 + (som |> String_opt_map.choose |> snd |> depth)
     | _ -> 0
-  
+
   (* nbre of element *)
   let rec nb_clusters = function
     | Empty _ -> 0
     | Leaf _ -> 1
     | Node map -> String_opt_map.fold (fun _ t acc -> acc + (nb_clusters t)) map 0
-  
+
   let rec cardinal elt_size = function
     | Empty _ -> 0
     | Leaf x -> elt_size x
     | Node map -> String_opt_map.fold (fun _ t acc -> acc + (cardinal elt_size t)) map 0
-  
-  
+
+
   let merge_sizes s1 s2 =
     String_opt_map.merge
       (fun _ opt1 opt2 ->
@@ -54,14 +54,14 @@ module Clustered = struct
         | (None, Some s) -> Some s
         | (Some s, None) -> Some s
         | (None, None) -> None
-      ) s1 s2 
+      ) s1 s2
 
   (** outputs a raw display of the structure (to be used only for debug) *)
-  let _dump to_string t = 
-    let rec loop indent = function 
+  let _dump to_string t =
+    let rec loop indent = function
     | Empty depth -> printf "%s_EMPTY of depth %d_\n%!" (String.make indent ' ') depth
     | Leaf a -> printf "%s_LEAF_ %s\n%!" (String.make indent ' ') (to_string a)
-    | Node som -> 
+    | Node som ->
       String_opt_map.iter
       (fun key a ->
         printf "%s_NODE_ %s\n%!" (String.make indent ' ') (CCOption.get_or ~default:"__undefined__" key);
@@ -70,16 +70,16 @@ module Clustered = struct
     loop 0 t
 
   let rec sizes elt_size = function
-  | Empty d -> List.init d (fun _ -> String_opt_map.empty) 
-  | Leaf _ -> []
-  | Node map ->
-      let (first_layer: int String_opt_map.t) = 
+    | Empty d -> List.init d (fun _ -> String_opt_map.empty)
+    | Leaf _ -> []
+    | Node map ->
+      let (first_layer: int String_opt_map.t) =
         String_opt_map.map
           (fun sm -> cardinal elt_size sm
           ) map in
-      let sub_layers = 
+      let sub_layers =
         String_opt_map.fold
-          (fun _ sm acc -> 
+          (fun _ sm acc ->
             let (sub_sizes: int String_opt_map.t list) = sizes elt_size sm in
             match acc with
             | None -> Some sub_sizes
@@ -88,35 +88,35 @@ module Clustered = struct
       match sub_layers with
       | None -> failwith "[BUG] empty map"
       | Some s -> first_layer :: s
-  
-  
+
+
   let empty depth = Empty depth
-  
+
   let build_layer sub_fct key_fct item_list =
     match item_list with
     | [] -> failwith "[Clustered.build_layer] item_list cannot be empty"
-    | _ -> 
-      let som = 
+    | _ ->
+      let som =
         List.fold_left
         (fun acc item ->
           String_opt_map.add (key_fct item) (sub_fct item) acc
         ) String_opt_map.empty item_list in
       Node som
-  
-  
+
+
   let get_opt default key_list t =
     let rec loop = function
-    | (l, Empty d) when List.length l = d -> default
-    | ([], Leaf v) -> v
-    | (key::key_tail, Node som) -> 
-      begin
-        match String_opt_map.find_opt key som with
-      | None -> default
-      | Some t' -> loop (key_tail, t')
-      end
-    | _ -> failwith "[Clustered.get_opt] inconsistent path"
-    in loop (key_list,t)
-  
+      | (l, Empty d) when List.length l = d -> default
+      | ([], Leaf v) -> v
+      | (key::key_tail, Node som) ->
+        begin
+          match String_opt_map.find_opt key som with
+          | None -> default
+          | Some t' -> loop (key_tail, t')
+        end
+      | _ -> failwith "[Clustered.get_opt] inconsistent path" in
+    loop (key_list,t)
+
   let fold_layer default fct_leaf init fct_node closure t =
     let rec loop t =
       match t with
@@ -130,13 +130,13 @@ module Clustered = struct
     | ([], Empty _) -> Leaf (fct def)
     | ([], Leaf i) -> Leaf (fct i)
     | (value::tail, Empty _) ->
-      let sub = 
+      let sub =
         match tail with
         | [] -> Leaf def
         | _ -> Node String_opt_map.empty in
       Node (String_opt_map.add value (update fct tail def sub) String_opt_map.empty)
     | (value::tail, Node node) ->
-      let sub = 
+      let sub =
         match (tail, String_opt_map.find_opt value node) with
         | (_, Some t') -> t'
         | ([], None) -> Leaf def
@@ -149,8 +149,8 @@ module Clustered = struct
     | (1, Node map) ->
       Node (
         String_opt_map.fold
-          (fun k v acc -> 
-             if nb_clusters v > 1 
+          (fun k v acc ->
+             if nb_clusters v > 1
              then String_opt_map.add k v acc
              else acc
           ) map String_opt_map.empty
@@ -159,7 +159,7 @@ module Clustered = struct
     | _ -> failwith "[Clustered.prune_unambiguous] no enough depth in the projection"
 
   (* NB: unused function *)
-  (* let to_json keys t = 
+  (* let to_json keys t =
     let rec loop acc keys partial t =
       match (keys, t) with
       | ([], Leaf n) -> (`Assoc ["feats", (`Assoc (List.rev partial)); "freq", `Int n]) :: acc
@@ -174,19 +174,19 @@ module Clustered = struct
 
   let rec map (fct: 'a -> 'b) = function
     | Empty d -> Empty d
-    | Leaf a -> Leaf (fct a) 
+    | Leaf a -> Leaf (fct a)
     | Node m -> Node (String_opt_map.map (fun sm -> map fct sm) m)
-  
+
   let fold fct t init =
     let rec loop path acc = function
-    | Empty _ -> acc
-    | Leaf l -> fct path l acc
-    | Node som ->
-        String_opt_map.fold 
-          (fun k v acc2 -> 
+      | Empty _ -> acc
+      | Leaf l -> fct path l acc
+      | Node som ->
+        String_opt_map.fold
+          (fun k v acc2 ->
             loop (path @ [k]) acc2 v
           ) som acc in
-    loop [] init t 
+    loop [] init t
 
   let merge_keys misc_key merge_item default filter_list t =
     let d = depth t in
@@ -198,27 +198,26 @@ module Clustered = struct
 
   let iter fct t =
     let rec loop path = function
-    | Empty _ -> ()
-    | Leaf l -> fct path l
-    | Node som ->
+      | Empty _ -> ()
+      | Leaf l -> fct path l
+      | Node som ->
         String_opt_map.iter
-          (fun k v -> 
+          (fun k v ->
             loop (path @ [k]) v
           ) som in
     loop [] t
 
   let get_all_keys depth t =
     let rec loop = function
-    | (0, Node som) -> 
-      String_opt_map.fold 
-        (fun k _ acc -> String_opt_set.add k acc)
-        som String_opt_set.empty
-    | (i, Node som) when i > 0 -> 
-      String_opt_map.fold 
-        (fun _ v acc -> String_opt_set.union (loop (i-1,v)) acc)
-        som String_opt_set.empty
-    | _ -> String_opt_set.empty in
-
-    loop (depth,t) |> String_opt_set.to_list 
+      | (0, Node som) ->
+        String_opt_map.fold
+          (fun k _ acc -> String_opt_set.add k acc)
+          som String_opt_set.empty
+      | (i, Node som) when i > 0 ->
+        String_opt_map.fold
+          (fun _ v acc -> String_opt_set.union (loop (i-1,v)) acc)
+          som String_opt_set.empty
+      | _ -> String_opt_set.empty in
+    loop (depth,t) |> String_opt_set.to_list
 
 end (* module Clustered *)

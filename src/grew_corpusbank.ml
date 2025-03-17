@@ -1,7 +1,7 @@
 (**********************************************************************************)
 (*    grewlib • a Graph Rewriting library dedicated to NLP applications           *)
 (*                                                                                *)
-(*    Copyright 2011-2024 Inria, Université de Lorraine                           *)
+(*    Copyright 2011-2025 Inria, Université de Lorraine                           *)
 (*                                                                                *)
 (*    Webpage: https://grew.fr                                                    *)
 (*    License: CeCILL (see LICENSE folder or "http://cecill.info/")               *)
@@ -20,21 +20,21 @@ module Corpusbank = struct
   type t = Corpus_desc.t String_map.t
 
   let iter ?(filter=fun _ -> true) fct t =
-    String_map.iter 
+    String_map.iter
     (fun corpus_id corpus_desc ->
       if filter corpus_id
       then fct corpus_id corpus_desc
     ) t
 
   let fold ?(filter=fun _ -> true) fct t init =
-    String_map.fold 
+    String_map.fold
     (fun corpus_id corpus_desc acc ->
       if filter corpus_id
       then fct corpus_id corpus_desc acc
       else acc
     ) t init
 
-  let read_files files = 
+  let read_files files =
     let data =
       List.fold_left
         (fun acc file ->
@@ -48,7 +48,7 @@ module Corpusbank = struct
       ) String_map.empty files in
     data
 
-  let read_directory dir = 
+  let read_directory dir =
     Sys.readdir dir
     |> Array.to_list
     |> List.filter (fun file -> Filename.extension file = ".json")
@@ -63,46 +63,49 @@ module Corpusbank = struct
 
   let build_filter patterns =
     let extended_patterns = List.map (fun s -> "*"^s^"*") patterns in
-    let string_pattern = match extended_patterns with
+    let string_pattern =
+      match extended_patterns with
       | [] -> "match(*)"
       | _ ->String.concat " & " (List.map (fun s -> "match("^s^")") extended_patterns) in
     Info.green "<========= Corpora matching: %s =========>" string_pattern;
     let anon_regexp = List.map (fun s -> Re.compile (Re.Glob.glob ~anchored:true s)) extended_patterns in
-    let filter id = match anon_regexp with
-    | [] -> true
-    | l -> List.for_all (fun re -> Re.execp re id) l in
+    let filter id =
+      match anon_regexp with
+      | [] -> true
+      | l -> List.for_all (fun re -> Re.execp re id) l in
     filter
 
-  let get_corpus_desc_opt corpusbank corpus_id = 
+  let get_corpus_desc_opt corpusbank corpus_id =
     String_map.find_opt corpus_id corpusbank
 
   type status =
-  | Ok
-  | Need_validate
-  | Need_compile
-  | Need_build
-  | Need_rebuild of string list
-  | Err of string
+    | Ok
+    | Need_validate
+    | Need_compile
+    | Need_build
+    | Need_rebuild of string list
+    | Err of string
 
   let string_of_status = function
-  | Ok -> "Ok"
-  | Need_validate -> "Need_validate"
-  | Need_compile -> "Need_compile"
-  | Need_build -> "Need_build"
-  | Need_rebuild _ -> "Need_rebuild"
-  | Err _ -> "Error"
+    | Ok -> "Ok"
+    | Need_validate -> "Need_validate"
+    | Need_compile -> "Need_compile"
+    | Need_build -> "Need_build"
+    | Need_rebuild _ -> "Need_rebuild"
+    | Err _ -> "Error"
 
-  let print_of_status stat s = match stat with
-  | "Ok" -> Info.green s
-  | "Error" -> Info.red s
-  | "Need_build" -> Info.magenta s
-  | _ -> Info.blue s
+  let print_of_status stat s =
+    match stat with
+    | "Ok" -> Info.green s
+    | "Error" -> Info.red s
+    | "Need_build" -> Info.magenta s
+    | _ -> Info.blue s
 
   let _color_of_status = function
-  | "Ok" -> ANSITerminal.green
-  | "Error" -> ANSITerminal.red
-  | "Need_build" -> ANSITerminal.magenta
-  | _ -> ANSITerminal.blue
+    | "Ok" -> ANSITerminal.green
+    | "Error" -> ANSITerminal.red
+    | "Need_build" -> ANSITerminal.magenta
+    | _ -> ANSITerminal.blue
 
 
   let grs_timestamps = ref String_map.empty
@@ -152,7 +155,7 @@ module Corpusbank = struct
                 match String_map.find src_corpus_id new_acc with
                 | Err _ -> String_map.add corpus_id (Err (sprintf "depend on erroneous `%s`" src_corpus_id)) acc
                 | Need_build | Need_rebuild _ -> String_map.add corpus_id (Need_rebuild [sprintf "depend on unbuilt `%s`" src_corpus_id]) acc
-                | _ -> 
+                | _ ->
                   match get_corpus_desc_opt corpusbank src_corpus_id with
                   | None -> assert false (* None is caught in previous match as `Err` *)
                   | Some src_corpus_desc ->
@@ -164,24 +167,24 @@ module Corpusbank = struct
                       let msg_list = List.fold_left
                         (fun acc src ->
                           let tar_basename = Filename.basename src in (* TODO: handle replacement in names like ud -> sud *)
-                          let tar = Filename.concat directory tar_basename in 
+                          let tar = Filename.concat directory tar_basename in
                           old_tar_files := String_set.remove tar !old_tar_files;
                           if max grs_timestamp (File.last_modif src) > (File.last_modif tar)
                           then (sprintf "file `%s` need to be rebuilt" tar) :: acc
                           else acc
-                        ) [] src_files in 
+                        ) [] src_files in
                       match (msg_list, !old_tar_files |> String_set.to_seq |> List.of_seq) with
                       | ([], []) -> String_map.add corpus_id (status_when_build_ok corpus_desc) acc
-                      | (msg_list, unwanted_files) -> 
+                      | (msg_list, unwanted_files) ->
                         let unwanted_msg_list = List.map (fun f -> sprintf "file `%s` must be removed" f) unwanted_files in
                         String_map.add corpus_id (Need_rebuild (msg_list @ unwanted_msg_list)) acc
                     with exc -> String_map.add corpus_id (Err (sprintf "Unexpected exception, for corpus_id `%s`, %s" corpus_id (Printexc.to_string exc))) acc
-              end in 
+              end in
     fold ~filter (
       fun corpus_id _ acc -> update corpus_id acc
     ) corpusbank String_map.empty
 
-  let print_status ?(verbose=false) ?(filter=(fun _ -> true)) corpusbank = 
+  let print_status ?(verbose=false) ?(filter=(fun _ -> true)) corpusbank =
     let status = build_status_map ~filter corpusbank in
     let counters = ref String_map.empty in
     let count s =
@@ -204,7 +207,7 @@ module Corpusbank = struct
 
     ) status;
     Info.print "----------------------------------%!";
-    String_map.iter 
+    String_map.iter
       (fun stat count ->
         (print_of_status stat ) "%15s ----> %d%!" stat count
       ) !counters;
@@ -237,34 +240,35 @@ module Corpusbank = struct
     | (Some src_corpus_id, Some grs_file, strat_opt) ->
       match get_corpus_desc_opt corpusbank src_corpus_id with
       | None -> Info.red "ERROR: no description for src_corpus_id: `%s`" src_corpus_id
-      | Some src_corpus_desc -> 
+      | Some src_corpus_desc ->
           (* first, recursively build until native corpus *)
           let () = build_derived corpusbank src_corpus_desc in
-  
+
           let directory = Corpus_desc.get_directory corpus_desc in
           let text_from_tokens = Corpus_desc.get_flag "text_from_tokens" corpus_desc in
           File.ensure_directory directory;
 
-          let grs_config = match Corpus_desc.get_field_opt "grs_config" corpus_desc with
-          | Some c -> Conll_config.build c
-          | None -> Corpus_desc.get_config corpus_desc in (* If no grs_config is defined, tar_config is used *)
-  
+          let grs_config =
+            match Corpus_desc.get_field_opt "grs_config" corpus_desc with
+            | Some c -> Conll_config.build c
+            | None -> Corpus_desc.get_config corpus_desc in (* If no grs_config is defined, tar_config is used *)
+
           let grs = Grs.load ~config:grs_config grs_file in
           let grs_timestamp = grs |> Grs.get_timestamp_opt |> CCOption.get_exn_or "Bug grs_timestamp" in
           let strat = strat_opt |> CCOption.get_or ~default:"main" in
-  
+
           let src_files = Corpus_desc.get_files src_corpus_desc in
           let src_config = Corpus_desc.get_config src_corpus_desc in
-  
+
           let tar_config = Corpus_desc.get_config corpus_desc in
-  
+
           let old_tar_files = ref (String_set.of_list (Corpus_desc.get_files corpus_desc)) in
           let tgz_needed = ref false in
 
           let () = List.iter
             (fun src ->
               let tar_basename = Filename.basename src in (* TODO: handle replacement in names like ud -> sud *)
-              let tar = Filename.concat directory tar_basename in 
+              let tar = Filename.concat directory tar_basename in
               old_tar_files := String_set.remove tar !old_tar_files;
               if max grs_timestamp (File.last_modif src) > (File.last_modif tar)
               then
@@ -274,7 +278,7 @@ module Corpusbank = struct
                   transform grs_config columns grs strat text_from_tokens (src_config,src) (tar_config,tar)
                 end
             ) src_files in
-  
+
           let () = String_set.iter
             (fun f ->
               Info.green "remove file %s\n%!" f;
@@ -294,14 +298,14 @@ module Corpusbank = struct
                 match Sys.command cmd with
                 | 0 -> Info.green "updated file %s" tgz_file;
                 | _ -> Warning.magenta "error in %s.tgz production" tgz_file
-              end
+              end in
 
-          in ()
-  
+          ()
+
   let compile ?(filter=fun _ -> true) corpusbank =
     let status_map = build_status_map ~filter corpusbank in
-    iter ~filter 
-      (fun corpus_id corpus_desc -> 
+    iter ~filter
+      (fun corpus_id corpus_desc ->
         match String_map.find corpus_id status_map with
         | Need_compile -> Corpus_desc.compile corpus_desc
         | Need_build | Need_rebuild _ -> Warning.magenta "Skip `%s`, build is needed before compile" corpus_id
@@ -311,8 +315,8 @@ module Corpusbank = struct
 
   let build ?(filter=fun _ -> true) corpusbank =
     let status_map = build_status_map ~filter corpusbank in
-    iter ~filter 
-      (fun corpus_id corpus_desc -> 
+    iter ~filter
+      (fun corpus_id corpus_desc ->
         match String_map.find corpus_id status_map with
         | Need_build | Need_rebuild _ -> build_derived corpusbank corpus_desc
         | Err msg -> Warning.magenta "Skip `%s`, Error: %s" corpus_id msg

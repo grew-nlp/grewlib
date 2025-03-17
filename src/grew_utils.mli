@@ -1,7 +1,7 @@
 (**********************************************************************************)
 (*    grewlib • a Graph Rewriting library dedicated to NLP applications           *)
 (*                                                                                *)
-(*    Copyright 2011-2024 Inria, Université de Lorraine                           *)
+(*    Copyright 2011-2025 Inria, Université de Lorraine                           *)
 (*                                                                                *)
 (*    Webpage: https://grew.fr                                                    *)
 (*    License: CeCILL (see LICENSE folder or "http://cecill.info/")               *)
@@ -85,13 +85,13 @@ module File : sig
     val last_modif : string -> float
     val concat_names : string list -> string
 
-    type path_status = 
-    | File 
-    | Directory
-    | Dont_exist
+    type path_status =
+      | File
+      | Directory
+      | Dont_exist
 
     val get_path_status: string -> path_status
-  
+
     val ensure_directory: string -> unit
 end
 
@@ -284,7 +284,7 @@ module Timeout: sig
   val stop: unit -> unit
 
   val check: unit -> unit
-  
+
   val get_duration: unit -> float
 end
 
@@ -369,7 +369,7 @@ module Feature_value: sig
     | Float of float
 
   (** [parse feature_name feature_value] return a feature_value with type t above
-      NB: Typing float/string for feature value is hardcoded (this should evolve with a new config implementation) 
+      NB: Typing float/string for feature value is hardcoded (this should evolve with a new config implementation)
       See ml file for numeric feature list
       [Error.run] is raised if one tries to buils a numeric feature value with a non-numeric value *)
   val parse: ?loc:Loc.t -> string -> string -> t

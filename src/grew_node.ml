@@ -1,7 +1,7 @@
 (**********************************************************************************)
 (*    grewlib • a Graph Rewriting library dedicated to NLP applications           *)
 (*                                                                                *)
-(*    Copyright 2011-2024 Inria, Université de Lorraine                           *)
+(*    Copyright 2011-2025 Inria, Université de Lorraine                           *)
 (*                                                                                *)
 (*    Webpage: https://grew.fr                                                    *)
 (*    License: CeCILL (see LICENSE folder or "http://cecill.info/")               *)
@@ -27,13 +27,16 @@ module G_node = struct
     position: int option;
   }
 
-  let compare n1 n2 = match (n1.position, n2.position) with
+  let compare n1 n2 =
+    match (n1.position, n2.position) with
     | (Some i, Some j) -> Stdlib.compare i j
     | _ -> 0
 
-  let get_name gid t = match t.name with
+  let get_name gid t =
+    match t.name with
     | Some n -> n
     | None -> sprintf "_%s_" (Gid.to_string gid)
+
   let set_name n t = { t with name = Some n }
 
   let get_fs t = t.fs
@@ -53,13 +56,14 @@ module G_node = struct
 
   let is_conll_zero t = G_fs.get_value_opt "form" t.fs = Some (String "__0__")
 
-  let is_eud_empty t = match G_fs.get_value_opt "_UD_empty" t.fs with
+  let is_eud_empty t =
+    match G_fs.get_value_opt "_UD_empty" t.fs with
     | Some (String "Yes") -> true
     | _ -> false
 
   let out_edges n =
     Gid_massoc.fold (fun acc _ edge -> if G_edge.is_real_link edge then acc+1 else acc) 0 n.next
-  
+
   let _dump ~config t =
     Printf.sprintf "  fs=[%s]\n  next=%s\n"
       (G_fs.to_string t.fs)
@@ -181,7 +185,7 @@ module P_node = struct
     | fs_list ->
       (* NB: we compute all bool before [List.exists] in order to have the same behavior (run exception) whathever is the order of fs *)
       let is_fs_match_list = List.map
-      (fun fs -> 
+      (fun fs ->
         try
           match P_fs.match_ ~lexicons fs (G_node.get_fs g_node) with
           | (true, _) -> Error.run "Lexicons and disjunction on nodes are incompatible"

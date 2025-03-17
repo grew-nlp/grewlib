@@ -1,7 +1,7 @@
 (**********************************************************************************)
 (*    grewlib • a Graph Rewriting library dedicated to NLP applications           *)
 (*                                                                                *)
-(*    Copyright 2011-2024 Inria, Université de Lorraine                           *)
+(*    Copyright 2011-2025 Inria, Université de Lorraine                           *)
 (*                                                                                *)
 (*    Webpage: https://grew.fr                                                    *)
 (*    License: CeCILL (see LICENSE folder or "http://cecill.info/")               *)
@@ -22,8 +22,8 @@ module G_edge_fs = struct
   let build l = (List.sort (fun (x,_) (y,_) -> Stdlib.compare x y) l)
 
   let to_json = function
-  | [("1",s)] -> Feature_value.to_json s
-  | fs -> `Assoc (List.map (fun (k,v) -> (k, Feature_value.to_json v)) fs)
+    | [("1",s)] -> Feature_value.to_json s
+    | fs -> `Assoc (List.map (fun (k,v) -> (k, Feature_value.to_json v)) fs)
 
   (* returns either [Ok compact_string] or [Error long_string] if no compact representation can be built *)
   let to_string_result ~config fs = fs |> to_json |> Conll_label.of_json |> Conll_label.to_string ~config
@@ -35,9 +35,9 @@ module G_edge_fs = struct
     s
     |> (Conll_label.of_string ~config)
     |> Conll_label.to_json
-    |> to_assoc 
-    |> List.map 
-        (fun (f,json_v) -> 
+    |> to_assoc
+    |> List.map
+        (fun (f,json_v) ->
           (f, Feature_value.parse f (to_string json_v))
         )
     |> build
@@ -89,7 +89,8 @@ module G_edge = struct
     | Fs fs -> (match G_edge_fs.to_string_result ~config fs with Ok s -> Some s | _ -> None)
     | _ -> None
 
-  let to_string ?config edge = match (edge, config) with
+  let to_string ?config edge =
+    match (edge, config) with
     | (Fs fs, Some config) -> G_edge_fs.to_string ~config fs
     | (Fs fs, None) -> String.concat "," (List.map (fun (f,v) -> sprintf "%s=%s" f (Feature_value.to_string v)) fs)
     | (Sub, _) -> "__SUB__"
@@ -159,13 +160,14 @@ module G_edge = struct
               | Some (String "in") -> ["style=\"dotted\""] (* PMB link from Box-nodes to Sem-nodes *)
               | _ -> [] in
       let multi_line_label = Str.global_replace (Str.regexp_string ",") "\n" (G_edge_fs.to_string ~config fs) in
-      let label = match deco with
+      let label =
+        match deco with
         | true -> sprintf "<<TABLE BORDER=\"0\" CELLBORDER=\"0\"> <TR> <TD BGCOLOR=\"#8bf56e\">%s</TD> </TR> </TABLE>>" multi_line_label
         | false -> sprintf "\"%s\"" multi_line_label in
       Some (sprintf "[label=%s, %s]" label (String.concat ", " dot_items))
     | _ -> None
 
-  let to_json t = match t with
+  let to_json = function
     | Fs fs -> G_edge_fs.to_json fs
     | _ -> `Null
 
@@ -241,7 +243,8 @@ module Label_cst = struct
       end
     | Absent name -> not (List_.sort_mem_assoc name fs)
 
-  let match_ ~config cst g_edge = match (cst,g_edge) with
+  let match_ ~config cst g_edge =
+    match (cst,g_edge) with
     | (Succ, G_edge.Succ) -> true
     | (Pred, G_edge.Pred) -> true
     | (Pos fs_list, G_edge.Fs g_fs) -> List.exists (fun p_fs -> p_fs = g_fs) fs_list

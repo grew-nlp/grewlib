@@ -1,7 +1,7 @@
 (**********************************************************************************)
 (*    grewlib • a Graph Rewriting library dedicated to NLP applications           *)
 (*                                                                                *)
-(*    Copyright 2011-2024 Inria, Université de Lorraine                           *)
+(*    Copyright 2011-2025 Inria, Université de Lorraine                           *)
 (*                                                                                *)
 (*    Webpage: https://grew.fr                                                    *)
 (*    License: CeCILL (see LICENSE folder or "http://cecill.info/")               *)
@@ -42,7 +42,7 @@ module Command  = struct
 
   let ranged_item_to_string (item, range) =
     sprintf "%s%s" (item_to_string item) (Range.to_string range)
-  
+
   type p =
     | DEL_NODE of command_node
     | DEL_EDGE_EXPL of (command_node * command_node * G_edge.t)
@@ -69,41 +69,42 @@ module Command  = struct
 
   type t = p * Loc.t  (* remember command location to be able to localize a command failure *)
 
-  let is_increasing (p,_) = match p with
-  | NEW_NODE _ | NEW_BEFORE _ | NEW_AFTER _ -> true
-  | _ -> false
+  let is_increasing (p,_) =
+    match p with
+    | NEW_NODE _ | NEW_BEFORE _ | NEW_AFTER _ -> true
+    | _ -> false
 
   let to_json ~config ?(base=P_graph.empty) (p,_) =
     let node_to_string = function
-    | New s -> s
-    | Req pid -> P_graph.get_name pid [base] in
+      | New s -> s
+      | Req pid -> P_graph.get_name pid [base] in
 
     match p with
     | DEL_NODE cn -> `String (sprintf "del_node %s" (node_to_string cn))
 
-    | DEL_EDGE_EXPL (src,tar,edge) -> 
-      `String (sprintf "del_edge %s -[%s]-> %s" 
-        (node_to_string src) 
-        (CCOption.get_or ~default:"" (G_edge.to_string_opt ~config edge)) 
+    | DEL_EDGE_EXPL (src,tar,edge) ->
+      `String (sprintf "del_edge %s -[%s]-> %s"
+        (node_to_string src)
+        (CCOption.get_or ~default:"" (G_edge.to_string_opt ~config edge))
         (node_to_string tar))
 
     | DEL_EDGE_NAME edge_name -> `String (sprintf "del_edge %s" edge_name)
 
     | ADD_EDGE (src,tar,edge) ->
-      `String (sprintf "add_edge %s -[%s]-> %s" 
-        (node_to_string src) 
-        (CCOption.get_or ~default:"" (G_edge.to_string_opt ~config edge)) 
+      `String (sprintf "add_edge %s -[%s]-> %s"
+        (node_to_string src)
+        (CCOption.get_or ~default:"" (G_edge.to_string_opt ~config edge))
         (node_to_string tar))
 
     | ADD_EDGE_EXPL (src,tar,name) ->
-      `String (sprintf "add_edge %s: %s -> %s" 
+      `String (sprintf "add_edge %s: %s -> %s"
         name
-        (node_to_string src) 
+        (node_to_string src)
         (node_to_string tar))
 
     | ADD_EDGE_ITEMS (src, tar, items) ->
-      `String (sprintf "add_edge %s -[%s]-> %s" 
-        (node_to_string src) 
+      `String (sprintf "add_edge %s -[%s]-> %s"
+        (node_to_string src)
         (String.concat "," (List.map (fun (f,v) -> sprintf "%s=%s" f v) items))
         (node_to_string tar))
 
@@ -111,7 +112,7 @@ module Command  = struct
       `String (sprintf "del_feat %s.%s" (node_to_string cn) feature_name)
 
     | UPDATE_FEAT (cn, feature_name, items) ->
-      `String (sprintf "%s.%s=%s" 
+      `String (sprintf "%s.%s=%s"
         (node_to_string cn)
         feature_name
         (String.concat "+" (List.map ranged_item_to_string items))
@@ -122,8 +123,8 @@ module Command  = struct
     | SHIFT_EDGE (src,tar,label_cst) -> `String (sprintf "shift %s =[%s]=> %s" (node_to_string src) (Label_cst.to_string ~config label_cst) (node_to_string tar))
     | SHIFT_IN (src,tar,label_cst) -> `String (sprintf "shift_in %s =[%s]=> %s" (node_to_string src) (Label_cst.to_string ~config label_cst) (node_to_string tar))
     | SHIFT_OUT (src,tar,label_cst) -> `String (sprintf "shift_out %s =[%s]=> %s" (node_to_string src) (Label_cst.to_string ~config label_cst) (node_to_string tar))
-    | UPDATE_EDGE_FEAT (edge_id, feat_name, items) -> 
-      `String (sprintf "%s.%s=%s" 
+    | UPDATE_EDGE_FEAT (edge_id, feat_name, items) ->
+      `String (sprintf "%s.%s=%s"
         edge_id
         feat_name
         (String.concat "+" (List.map ranged_item_to_string items))
@@ -134,9 +135,9 @@ module Command  = struct
       `String (sprintf "%s%s %s =%s=> %s"
         (match side with Append -> "append_feats" | Prepend -> "prepend_feats")
         (match separator with "" -> "" | s -> sprintf "\"%s\"" s)
-        (node_to_string src) 
+        (node_to_string src)
         (sprintf "[%s]" (Regexp.to_string regexp))
-        (node_to_string tar) 
+        (node_to_string tar)
       )
     | UNORDER cn -> `String (sprintf "unorder %s" (node_to_string cn))
     | INSERT_BEFORE (cn1,cn2) -> `String (sprintf "insert %s :< %s" (node_to_string cn1) (node_to_string cn2))

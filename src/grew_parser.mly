@@ -1,7 +1,7 @@
 (**********************************************************************************)
 (*    grewlib • a Graph Rewriting library dedicated to NLP applications           *)
 (*                                                                                *)
-(*    Copyright 2011-2024 Inria, Université de Lorraine                           *)
+(*    Copyright 2011-2025 Inria, Université de Lorraine                           *)
 (*                                                                                *)
 (*    Webpage: https://grew.fr                                                    *)
 (*    License: CeCILL (see LICENSE folder or "http://cecill.info/")               *)
@@ -293,7 +293,7 @@ label_atom:
         | BANG name=simple_id_or_float { Ast.Atom_absent name }
 
 pfs:
-        | feats = delimited(LBRACKET,separated_list_final_opt(COMMA,node_features),RBRACKET) 
+        | feats = delimited(LBRACKET,separated_list_final_opt(COMMA,node_features),RBRACKET)
           { feats }
 
 clause_item:
@@ -855,7 +855,7 @@ range:
         | LBRACKET DDOT y=INT RBRACKET        { (None, Some y) }
         | LBRACKET x=INT DDOT RBRACKET        { (Some x, None) }
         | LBRACKET DDOT RBRACKET              { (None, None) }
-        
+
 /*=============================================================================================*/
 /* ISOLATED PATTERN (grep mode)                                                                */
 /*=============================================================================================*/
@@ -951,15 +951,15 @@ inkey:
   | i1 = simple_id SHARP l = separated_nonempty_list (SHARP, simple_id)  { Ast.Rel_order (i1 :: l) }
   | x = simple_id EDGE y = simple_id { Ast.Rel (x,y)}
   | x = simple_id BIEDGE y = simple_id { Ast.Sym_rel (x,y)}
-  | s = key_id { 
-      match s with 
+  | s = key_id {
+      match s with
       | ("global", [one]) -> Ast.Meta one
       | ("global", _) -> Error.build "syntax error in key: more then one feat value in global"
       | _ -> Ast.Feat s
   }
   | DELTA LPAREN x=simple_id COMMA y=simple_id RPAREN { Ast.Delta(x,y) }
   | LENGTH LPAREN x=simple_id COMMA y=simple_id RPAREN { Ast.Length(x,y) }
-  | fi = feature_ident LBRACKET l = separated_nonempty_list (COMMA, cont_key_value) RBRACKET  
+  | fi = feature_ident LBRACKET l = separated_nonempty_list (COMMA, cont_key_value) RBRACKET
       {
         match List.assoc_opt "gap" l with
         | None -> Error.build "syntax error in key: gap parameter is required"

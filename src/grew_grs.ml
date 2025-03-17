@@ -1,7 +1,7 @@
 (**********************************************************************************)
 (*    grewlib • a Graph Rewriting library dedicated to NLP applications           *)
 (*                                                                                *)
-(*    Copyright 2011-2024 Inria, Université de Lorraine                           *)
+(*    Copyright 2011-2025 Inria, Université de Lorraine                           *)
 (*                                                                                *)
 (*    Webpage: https://grew.fr                                                    *)
 (*    License: CeCILL (see LICENSE folder or "http://cecill.info/")               *)
@@ -50,7 +50,7 @@ module Decl = struct
         | (Some r, Some c, None) -> sprintf "rule %s {\n%s\n  }" key (Rule.string_of_json r c)
         | (None, None, Some p) -> sprintf "package %s { %s }" key (p |> to_assoc |> List.map string_of_json |> String.concat "\n")
         | _ -> Error.build "[Decl.string_of_json]"
-      with Type_error _ -> 
+      with Type_error _ ->
         Error.build "[Decl.string_of_json]"
 
   let rec _dump indent = function
@@ -59,7 +59,7 @@ module Decl = struct
     | Package (name, decl_list) ->
       printf "%spackage %s:\n" (String.make indent ' ') name;
       List.iter (_dump (indent + 2)) decl_list
-    
+
 end (* module Decl *)
 
 (* ================================================================================ *)
@@ -170,7 +170,7 @@ module Grs = struct
     loop (decl_list pointed)
 
   (* search for a decl named [name] defined in the working directory [wd] in [grs] *)
-  let rec search_at pointed path = match path with
+  let rec search_at pointed = function
     | [] -> None
     | [one] ->
       begin
@@ -513,19 +513,19 @@ module Grs = struct
       pattern { e:N -[enhanced=yes]-> M }
       commands { del_edge e}
     }
-  
+
     rule empty { % remove empty nodes
       pattern { N [wordform=__EMPTY__, textform=_] }
       commands { del_node N }
     }
   }
-  
+
   strat main { Onf(eud_to_ud) }
 "
 
   let eud2ud = parse ~config:(Conll_config.build "ud") eud2ud_string
 
-  let apply_eud2ud ~config graph = 
+  let apply_eud2ud ~config graph =
     match simple_rewrite ~config eud2ud "main" graph with
     | [one] -> one
     | _ -> Error.run "the conversion eud2ud is not deterministic"

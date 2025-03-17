@@ -1,7 +1,7 @@
 (**********************************************************************************)
 (*    grewlib • a Graph Rewriting library dedicated to NLP applications           *)
 (*                                                                                *)
-(*    Copyright 2011-2024 Inria, Université de Lorraine                           *)
+(*    Copyright 2011-2025 Inria, Université de Lorraine                           *)
 (*                                                                                *)
 (*    Webpage: https://grew.fr                                                    *)
 (*    License: CeCILL (see LICENSE folder or "http://cecill.info/")               *)
@@ -47,7 +47,7 @@ module Clustered : sig
       associates from each [item] in [item_list], [key_fct item] to [sub_fct item] *)
 
   val update: ('a -> 'a) -> string option list -> 'a -> 'a t -> 'a t
-  (** [update fct string_option_list default t] update the structure: 
+  (** [update fct string_option_list default t] update the structure:
       - if there is already an 'a value [x] at address [string_option_list],
         this value is updated to [fct x]
       - else a new entry is added with value [fct default]
@@ -70,29 +70,29 @@ module Clustered : sig
     ('c -> 'b) ->                        (* closure *)
     'a t ->
     'b
-  (** [fold default fct_leaf init fct_node closure] 
+  (** [fold default fct_leaf init fct_node closure]
       folds in all the structures (nodes and leaves).
       [fct_leaf] is applied on each leaf;
       on each node, [fct_node] is folded, starting from [init] and finally [closure] is applied to it
   *)
 
   val merge_keys: string option -> ('a -> 'a -> 'a) -> 'a -> (string option -> bool) list -> 'a t -> 'a t
-  (** [merge_keys new_key merge_cell_fct default filter_functions input] 
+  (** [merge_keys new_key merge_cell_fct default filter_functions input]
       builds a new Clustered.t with the same data but where some keys are merged.
       [new_key] is the name of the new key used for merged keys (__*__ in grew-match grids)
       [merge_cell_fct] on merged cells;
       [filter_functions] is a list of boolean functions [f] (one for each depth):
         * if [f key] is true, the key is kept
-        * if [f key] is false, the corresponding data is merge into the [new_key] data 
+        * if [f key] is false, the corresponding data is merge into the [new_key] data
   *)
 
   val prune_unambiguous: int -> 'a t -> 'a t
   (** [prune_unambiguous n t] prunes in input [t] with unambiguous structure at depth [n].
       For instance, if the keys are values for features [form, lemma, upos, Gender, Number],
-      [prune_unambiguous 3 t] will keep only clusters entries where there is 
+      [prune_unambiguous 3 t] will keep only clusters entries where there is
       more than one couple of value for Gender and Number with the same triple (form, lemma, upos).
   *)
 
   val get_all_keys: int -> _ t -> string option list
-  
+
 end (* module Clustered *)

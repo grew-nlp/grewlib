@@ -1,7 +1,7 @@
 (**********************************************************************************)
 (*    grewlib • a Graph Rewriting library dedicated to NLP applications           *)
 (*                                                                                *)
-(*    Copyright 2011-2024 Inria, Université de Lorraine                           *)
+(*    Copyright 2011-2025 Inria, Université de Lorraine                           *)
 (*                                                                                *)
 (*    Webpage: https://grew.fr                                                    *)
 (*    License: CeCILL (see LICENSE folder or "http://cecill.info/")               *)
@@ -103,11 +103,13 @@ module Range = struct
       | Some utf8_s ->
         let char_list = CCUtf8_string.to_list utf8_s in
         let len = CCUtf8_string.n_chars utf8_s in
-        let init = match iopt with
+        let init =
+          match iopt with
           | None -> 0
           | Some i when i < 0 -> max (len + i) 0
           | Some i -> min i len in
-        let final = match fopt with
+        let final =
+          match fopt with
           | None -> len
           | Some i when i < 0 -> max (len + i) 0
           | Some i -> min i len in
@@ -124,16 +126,16 @@ module File = struct
       let stat = Unix.stat file in
       stat.Unix.st_mtime
     with Unix.Unix_error _ -> Float.min_float
-  
+
   let concat_names l = List.fold_left Filename.concat "" l
 
-  type path_status = 
-  | File 
-  | Directory
-  | Dont_exist
+  type path_status =
+    | File
+    | Directory
+    | Dont_exist
 
   let get_path_status path =
-    try 
+    try
       match Sys.is_directory path with
       | true -> Directory
       | false -> File
@@ -190,7 +192,7 @@ module String_ = struct
   let nfc s = Uunf_string.normalize_utf_8 `NFC s
 
   let escape_lt_gt s =
-    s 
+    s
     |> Str.global_replace (Str.regexp_string ">") "&gt;"
     |> Str.global_replace (Str.regexp_string "<") "&lt;"
 end (* module String *)
@@ -404,8 +406,8 @@ module List_ = struct
     let rec loop prev = function
       | [] -> ()
       | [last] -> int_fct prev None last
-      | head::snd::tail -> int_fct prev (Some snd) head; loop (Some head) (snd::tail)
-    in loop None list
+      | head::snd::tail -> int_fct prev (Some snd) head; loop (Some head) (snd::tail) in
+    loop None list
 end (* module List_ *)
 
 (* ================================================================================ *)
@@ -643,7 +645,8 @@ module Global = struct
     current_loc := (None , Some 1);
     label_flag := false
 
-  let new_line () = match !current_loc with
+  let new_line () =
+    match !current_loc with
     | (_,None) -> ()
     | (fo, Some l) -> current_loc := (fo, Some (l+1))
 
@@ -751,7 +754,6 @@ module Gid_map =  Map.Make (Gid)
 (* ================================================================================ *)
 module Gid_set = Set.Make (Gid)
 
-
 (* ================================================================================ *)
 module Gid_massoc = Massoc_make (Gid)
 
@@ -806,7 +808,7 @@ module Feature_value = struct
     | String s -> s
       |> Str.global_replace (Str.regexp "\"") "\\\""
       |> sprintf (if quote then "\"%s\"" else "%s")
-    | Float f -> 
+    | Float f ->
       String_.of_float_clean f
 
   let to_json = function
@@ -842,8 +844,8 @@ module Sbn = struct
       | (Blank, c) when c <> ' ' -> loop (Token pos) (pos + 1)
       | (Token i, ' ') -> stack := String.sub l i (pos-i) :: !stack; loop Blank (pos+1)
       | (String i, '"') -> stack := String.sub l i (pos-i+1) :: !stack; loop Blank (pos+1)
-      | _ -> loop state (pos+1)
-    in loop (Token 0) 0;
+      | _ -> loop state (pos+1) in
+    loop (Token 0) 0;
     List.rev !stack
 
   type node = {
@@ -916,41 +918,41 @@ module Sbn = struct
   let graph_of_lines lines =
     List.fold_left
       (fun (node_index, acc_graph) line ->
-         match parse_line line with
-         (* Nothing before the first '%' --> skip the line *)
-         | [] -> (node_index, acc_graph)
+        match parse_line line with
+        (* Nothing before the first '%' --> skip the line *)
+        | [] -> (node_index, acc_graph)
 
-         (* Line statrting with white spaces (= empty token) --> relations between boxes *)
-         | [""; box_rel; index] ->
-           let new_box_index = acc_graph.box_number + 1 in
-           let new_box_edge = match int_of_string_opt index with
-             | Some i -> {src=new_box_index+i;label=box_rel;tar=new_box_index}
-             | None -> failwith ("Box ref not int: " ^ line)
-           in
-           (node_index, {acc_graph with box_edges = new_box_edge :: acc_graph.box_edges; box_number = new_box_index })
+        (* Line statrting with white spaces (= empty token) --> relations between boxes *)
+        | [""; box_rel; index] ->
+          let new_box_index = acc_graph.box_number + 1 in
+          let new_box_edge =
+            match int_of_string_opt index with
+            | Some i -> {src=new_box_index+i;label=box_rel;tar=new_box_index}
+            | None -> failwith ("Box ref not int: " ^ line) in
+          (node_index, {acc_graph with box_edges = new_box_edge :: acc_graph.box_edges; box_number = new_box_index })
 
-         (* Non empty token --> relations between sem_nodes *)
-         | node :: relations ->
-           let new_node_index = node_index + 1 in
-           let rec loop = function
-             | [] -> ([],[])
-             | label::tar::tail ->
-               let (acc_e, acc_f) = loop tail in
-               begin
-                 match (tar.[0], int_of_string_opt tar) with
-                 | ('+', Some i) | ('-', Some i) -> ({ src= new_node_index; label; tar=new_node_index+i }::acc_e, acc_f)
-                 | _ -> (acc_e, (label,tar) :: acc_f)
-               end
-             | _ -> failwith ("odd:" ^ line) in
-           let (new_node_edges, feats) = loop relations in
-           let new_node = { index = new_node_index; concept= node; feats; box= acc_graph.box_number } in
-           (new_node_index, {acc_graph with sem_nodes = new_node :: acc_graph.sem_nodes; sem_edges = new_node_edges @ acc_graph.sem_edges})
+        (* Non empty token --> relations between sem_nodes *)
+        | node :: relations ->
+          let new_node_index = node_index + 1 in
+          let rec loop = function
+            | [] -> ([],[])
+            | label::tar::tail ->
+              let (acc_e, acc_f) = loop tail in
+              begin
+                match (tar.[0], int_of_string_opt tar) with
+                | ('+', Some i) | ('-', Some i) -> ({ src= new_node_index; label; tar=new_node_index+i }::acc_e, acc_f)
+                | _ -> (acc_e, (label,tar) :: acc_f)
+              end
+            | _ -> failwith ("odd:" ^ line) in
+          let (new_node_edges, feats) = loop relations in
+          let new_node = { index = new_node_index; concept= node; feats; box= acc_graph.box_number } in
+          (new_node_index, {acc_graph with sem_nodes = new_node :: acc_graph.sem_nodes; sem_edges = new_node_edges @ acc_graph.sem_edges})
       ) (0, init) lines
     |> snd
 
   let parse sbn_string =
     let lines = Str.split (Str.regexp "\n") sbn_string in
     graph_of_lines lines
-  
+
   let to_json sbn_string = sbn_string |> parse |> graph_to_json
 end
