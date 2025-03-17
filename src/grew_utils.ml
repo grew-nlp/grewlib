@@ -139,13 +139,13 @@ module File = struct
       | false -> File
     with Sys_error _ -> Dont_exist
 
-    let ensure_directory dir =
-      match get_path_status dir with
-      | Directory -> ()
-      | File -> Error.run "Cannot build directory `%s`, a file with the same name already exists" dir
-      | Dont_exist -> Unix.mkdir dir 0o755
-    
-  end
+  let ensure_directory dir =
+    match get_path_status dir with
+    | Directory -> ()
+    | File -> Error.run "Cannot build directory `%s`, a file with the same name already exists" dir
+    | Dont_exist -> Unix.mkdir dir 0o755
+
+end
 
 (* ================================================================================ *)
 module String_ = struct
