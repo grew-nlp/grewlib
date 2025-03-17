@@ -18,26 +18,6 @@ open Grew_loader
 open Grew_graph
 open Grew_rule
 
-
-let now () =  (* TODO: move elsewhere *)
-let gm = Unix.localtime (Unix.time ()) in
-Printf.sprintf "%02d/%02d/%02d - %02d:%02d"
-  (gm.Unix.tm_year - 100)
-  (gm.Unix.tm_mon + 1)
-  gm.Unix.tm_mday
-  gm.Unix.tm_hour
-  gm.Unix.tm_min
-
-let getenv env key =
-match (List.assoc_opt key env, Sys.getenv_opt key) with
-| (Some v, _) -> v
-| (None, Some v) -> v
-| (None, None) -> Error.run "Can't find definition for `%s` env variable" key
-
-
-
-
-
 (* ==================================================================================================== *)
 module Pst_corpus = struct
   let load_files files =
@@ -270,8 +250,12 @@ module Corpus = struct
     let len = size corpus in
     let permut_fct =
       match ordering with
-      | Some "length" -> let perm = permut_length corpus in fun x -> perm.(x)
-      | Some "shuffle" -> let mix = Array_.shuffle_N len in fun x -> mix.(x)
+      | Some "length" -> 
+        let perm = permut_length corpus in fun x -> perm.(x)
+      | Some "shuffle" -> 
+        let mix = Array.init len CCFun.id in
+        let () = CCArray.shuffle mix in
+        fun x -> mix.(x)
       | _ -> fun x -> x in
     let matching_counter = ref 0 in
     let init_time = Unix.gettimeofday() in
@@ -371,7 +355,8 @@ module Corpus_desc = struct
       with Type_error _ -> None
 
   let get_kind corpus_desc =
-    try match (corpus_desc |> member "kind" |> to_string_option, corpus_desc |> member "columns" |> to_string_option) with
+    try 
+      match (corpus_desc |> member "kind" |> to_string_option, corpus_desc |> member "columns" |> to_string_option) with
       | (None, columns_opt) | (Some "conll", columns_opt) ->
           Corpus.Conll (CCOption.map (Conll_columns.of_list << (CCString.split_on_char ' ')) columns_opt)
       | (Some "pst",_) -> Pst
@@ -702,7 +687,7 @@ module Corpus_desc = struct
 
     let json = `Assoc [
         "corpus", `String corpus_id;
-        "date", `String (now ());
+        "date", `String (Time.now ());
         "modules", modules
       ] in
 
@@ -711,7 +696,7 @@ module Corpus_desc = struct
 
   let validate_sud ~verbose ~env corpus_desc =
     printf "====validate_sud=====\n%!";
-    let modules_directory = getenv env "SUDVALIDATION" in
+    let modules_directory = Env.get env "SUDVALIDATION" in
     let all_files = Sys.readdir modules_directory |> Array.to_list in
     let json_files = List.filter (fun file -> Filename.extension file = ".json") all_files in
     let full_files = List.map (fun file -> Filename.concat modules_directory file) json_files in
@@ -732,7 +717,7 @@ module Corpus_desc = struct
         end
 
   let validate_ud ~verbose ~env corpus_desc =
-    let validate_script = Filename.concat (getenv env "UDTOOLS") "validate.py" in
+    let validate_script = Filename.concat (Env.get env "UDTOOLS") "validate.py" in
     let corpus_id = get_id corpus_desc in
     let lang_opt = get_field_opt "lang" corpus_desc in
     let valid_file = Filename.concat (get_build_directory corpus_desc) "valid_ud.txt" in
@@ -743,7 +728,7 @@ module Corpus_desc = struct
     then (if verbose then Info.green "%s --> UD validation is uptodate" corpus_id)
     else
       let out_ch = open_out valid_file in
-      Printf.fprintf out_ch "%s\n" (now ());
+      Printf.fprintf out_ch "%s\n" (Time.now ());
       let args =
         match lang_opt with
         | Some l -> sprintf "--lang=%s" l

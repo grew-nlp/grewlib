@@ -10,6 +10,12 @@
 
 val (<<): ('a -> 'b) -> ('c -> 'a) -> ('c -> 'b)
 
+
+(* ================================================================================ *)
+module Time: sig
+  val now: unit -> string
+end
+
 (* ================================================================================ *)
 module Cmp: sig
   (** This module defines a two values type for Equality / Disequality *)
@@ -68,6 +74,11 @@ module Info : sig
 end
 
 (* ================================================================================ *)
+module Env: sig
+  val get: (string * string) list -> string -> string
+end
+
+(* ================================================================================ *)
 module Range: sig
   type t = (int option * int option)
 
@@ -116,6 +127,7 @@ module String_: sig
   (* dedicated "string_of_float" function which avoids the trailing dot
     string_of_float 2. --> "2."
     of_float_clean 2. --> "2"
+    NOTE: cannot be replace by sprintf "%g" which produces "1.23457e+06" for "1234567."
   *)
   val of_float_clean: float -> string
 
@@ -144,8 +156,6 @@ module Array_: sig
      Warning: the array MUST be sorted (with respect to the first component) and without duplicates. *)
   val dicho_find_assoc: 'a -> ('a * 'b) array -> int
 
-  (** [shuffle_N n] builds a array which contains 0...n-1 in a random order *)
-  val shuffle_N: int -> int array
 end (* module Array_ *)
 
 (* ================================================================================ *)

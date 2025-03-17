@@ -491,8 +491,6 @@ clause_item:
               | (Ineq_sofi (Ast.Simple n1), Ineq_sofi (Ast.Simple n2)) ->
                 Clause_edge ({Ast.edge_id = None; src=n1; edge_label_cst=Ast.Pred; tar=n2}, loc)
 
-(* TODO : axe lex_field *)
-
               (*  __ERRORS__   *)
               | (Ineq_float _, Ineq_float _) -> Error.build "the '<' symbol can be used with 2 constants"
               | _ -> Error.build "the '<' symbol can be used with 2 nodes or with 2 features but not in a mix inequality"
@@ -518,8 +516,6 @@ clause_item:
               (*   X > Y   *)
               | (Ineq_sofi (Ast.Simple n1), Ineq_sofi (Ast.Simple n2)) ->
                 Clause_edge ({Ast.edge_id = None; src=n2; edge_label_cst=Ast.Pred; tar=n1}, loc)
-
-(* TODO : axe lex_field *)
 
               (*  __ERRORS__   *)
               | (Ineq_float _, Ineq_float _) -> Error.build "the '>' symbol can be used with 2 constants"

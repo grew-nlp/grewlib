@@ -14,6 +14,18 @@ open Printf
 let (<<) f g x = f(g(x))
 
 (* ================================================================================ *)
+module Time = struct
+  let now () =
+  let gm = Unix.localtime (Unix.time ()) in
+  Printf.sprintf "%02d/%02d/%02d - %02d:%02d"
+    (gm.Unix.tm_year - 100)
+    (gm.Unix.tm_mon + 1)
+    gm.Unix.tm_mday
+    gm.Unix.tm_hour
+    gm.Unix.tm_min
+end
+
+(* ================================================================================ *)
 module Cmp = struct
   (** This module introduces a two values types for Equalty / Disequality *)
 
@@ -79,6 +91,15 @@ module Info = struct
   let red x = Printf.ksprintf (fun s -> ANSITerminal.printf [ANSITerminal.red] "%s\n" s; flush stdout) x
   let magenta x = Printf.ksprintf (fun s -> ANSITerminal.printf [ANSITerminal.magenta] "%s\n" s; flush stdout) x
 end
+
+(* ================================================================================ *)
+module Env = struct
+  let get env key =
+    match (List.assoc_opt key env, Sys.getenv_opt key) with
+    | (Some v, _) -> v
+    | (None, Some v) -> v
+    | (None, None) -> Error.run "Can't find definition for `%s` env variable" key
+  end
 
 (* ================================================================================ *)
 module Range = struct
@@ -230,16 +251,6 @@ module Array_ = struct
       | middle -> loop low (middle - 1) in
     loop 0 ((Array.length array) - 1)
 
-  let shuffle_N n =
-    Random.self_init ();
-    let a = Array.init n (fun x -> x) in
-    for i = n-1 downto 1 do
-      let j = Random.int (i+1) in
-      let tmp = a.(i) in
-      a.(i) <- a.(j);
-      a.(j) <- tmp
-    done;
-    a
 end (* module Array_ *)
 
 (* ================================================================================ *)
