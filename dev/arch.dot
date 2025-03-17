@@ -2,7 +2,7 @@ digraph grew {
   node [shape=Mrecord];
   rankdir = LR;
   Grew_types [fillcolor=yellow, shape=record, label="Grew_types|String_set\nString_map\n(String_opt_set)\nString_opt_map\nInt_set\nInt_map\nClustered"]
-  Grew_utils [label="Grew_utils|Cmp\nRange\nLoc\nError\nRange\nString_\nArray_\nList_\n&lt;S&gt;\nMassoc_make()\nId\nTimeout\nGlobal\nDependencies\nPid\nPid_set\nPid_map\nPid_massoc\nGid\nGid_map\nGid_set\nGid_massoc\nFeature_value"]
+  Grew_utils [label="Grew_utils|Cmp\nLoc\nError\nWarning\nInfo\nRange\nFile\nString_\nArray_\nList_\n&lt;S&gt;\nMassoc_make()\nId\nTimeout\nGlobal\nDependencies\nPid\nPid_set\nPid_map\nPid_massoc\nGid\nGid_map\nGid_set\nGid_massoc\nFeature_value\nSbn"]
   grew_ast [label="grew_ast|Ast\nLexicon\nLexicons"]
   grew_loader [label="grew_loader|Loader\nParser"]
   grew_fs [label="grew_fs|(G_feature)\n(P_feature)\nG_fs\nP_fs"]
@@ -13,7 +13,8 @@ digraph grew {
   grew_rule [label="grew_rule|(Constraint)\nRequest\nMatching\nRule"]
   grew_grs [label="grew_grs|(Decl)\nGrs"]
   grew_corpus [label="grew_corpus|(Pst_corpus)\nCorpus\nCorpus_desc"]
-  grewlib [fillcolor=yellow, shape=record, label="grewlib|Grewlib\nDeco\nGraph\nRequest\nMatching\nGrs\nRewrite\nCorpus\nCorpus_desc"]
+  grew_corpusbank [label="grew_corpusbank|Corpusbank"]
+  grewlib [fillcolor=yellow, shape=record, label="grewlib|Grewlib\nDeco\nGraph\nRequest\nMatching\nGrs\nRewrite\nCorpus\nCorpus_desc\nCorpusbank\nSbn"]
 grew_ast -> Grew_utils -> Grew_types
 grew_edge -> grew_ast
 grew_fs -> grew_ast
@@ -25,7 +26,8 @@ grew_rule -> grew_command
 grew_grs -> grew_rule
 grew_rule -> grew_loader -> grew_lexer -> grew_parser -> grew_ast
 grew_corpus -> grew_grs
-grewlib -> grew_corpus
+grew_corpusbank -> grew_corpus
+grewlib -> grew_corpusbank
 
 }
 
