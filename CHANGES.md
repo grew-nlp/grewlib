@@ -1,3 +1,6 @@
+# 1.17.0 (2025/04/02)
+  - Review Clustered code for multi-corpus grew-match
+
 ## 1.16.6 (2025/01/12)
   - Escape "<" and ">" in Graph.to_sentence*
 
