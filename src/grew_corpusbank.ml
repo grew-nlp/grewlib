@@ -115,7 +115,9 @@ module Corpusbank = struct
     | Some s -> s
     | None ->
       (* Load with a default config... just for getting the timestamp --> config must be in GRS!! *)
-      let grs = Grs.load ~config:(Conll_config.build "sud") grs_file in
+      let grs = 
+        try Grs.load ~config:(Conll_config.build "sud") grs_file 
+        with Error.Parse (msg,_) -> Error.parse "%s" msg in
       let grs_timestamp = grs |> Grs.get_timestamp_opt |> CCOption.get_exn_or "Bug grs_timestamp" in
       grs_timestamps := String_map.add grs_file grs_timestamp !grs_timestamps;
       grs_timestamp
@@ -178,7 +180,11 @@ module Corpusbank = struct
                       | (msg_list, unwanted_files) ->
                         let unwanted_msg_list = List.map (fun f -> sprintf "file `%s` must be removed" f) unwanted_files in
                         String_map.add corpus_id (Need_rebuild (msg_list @ unwanted_msg_list)) acc
-                    with exc -> String_map.add corpus_id (Err (sprintf "Unexpected exception, for corpus_id `%s`, %s" corpus_id (Printexc.to_string exc))) acc
+                    with 
+                    | Error.Parse (msg, _loc) -> 
+                        String_map.add corpus_id (Err (sprintf "%s" msg)) acc
+                    | exc -> 
+                        String_map.add corpus_id (Err (sprintf "Unexpected exception, %s" (Printexc.to_string exc))) acc
               end in
     fold ~filter (
       fun corpus_id _ acc -> update corpus_id acc
@@ -299,7 +305,7 @@ module Corpusbank = struct
               begin
                 match Sys.command cmd with
                 | 0 -> Info.green "updated file %s" tgz_file;
-                | _ -> Warning.magenta "error in %s.tgz production" tgz_file
+                | _ -> Warning.magenta "error in %s production" tgz_file
               end in
 
           ()

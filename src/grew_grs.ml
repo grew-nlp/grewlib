@@ -117,7 +117,6 @@ module Grs = struct
     }
 
   let load ~config filename =
-    let _ = Global.reset_grs_timestamp () in
     let grs_ast = Loader.grs filename in
     build ~config ~timestamp:(Global.get_grs_timestamp ()) filename grs_ast
 
