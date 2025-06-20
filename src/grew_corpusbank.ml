@@ -231,7 +231,7 @@ module Corpusbank = struct
       (* final (); *)
       close_out out_ch
 
-  let rec build_derived corpusbank corpus_desc =
+  let rec build_derived ~force corpusbank corpus_desc =
     let corpus_id = Corpus_desc.get_id corpus_desc in
     let columns = 
       Corpus_desc.get_field_opt "columns" corpus_desc 
@@ -244,7 +244,7 @@ module Corpusbank = struct
       | None -> Info.red "ERROR: no description for src_corpus_id: `%s`" src_corpus_id
       | Some src_corpus_desc ->
           (* first, recursively build until native corpus *)
-          let () = build_derived corpusbank src_corpus_desc in
+          let () = build_derived ~force corpusbank src_corpus_desc in
 
           let directory = Corpus_desc.get_directory corpus_desc in
           let text_from_tokens = Corpus_desc.get_flag "text_from_tokens" corpus_desc in
@@ -272,7 +272,7 @@ module Corpusbank = struct
               let tar_basename = Filename.basename src in (* TODO: handle replacement in names like ud -> sud *)
               let tar = Filename.concat directory tar_basename in
               old_tar_files := String_set.remove tar !old_tar_files;
-              if max grs_timestamp (File.last_modif src) > (File.last_modif tar)
+              if force || max grs_timestamp (File.last_modif src) > (File.last_modif tar)
               then
                 begin
                   Info.green "corpus `%s` build %s" corpus_id (Filename.basename tar) ;
@@ -304,24 +304,26 @@ module Corpusbank = struct
 
           ()
 
-  let compile ?(filter=fun _ -> true) corpusbank =
+  let compile ?(force=false) ?(filter=fun _ -> true) corpusbank =
     let status_map = build_status_map ~filter corpusbank in
     iter ~filter
       (fun corpus_id corpus_desc ->
-        match String_map.find corpus_id status_map with
-        | Need_compile -> Corpus_desc.compile corpus_desc
-        | Need_build | Need_rebuild _ -> Warning.magenta "Skip `%s`, build is needed before compile" corpus_id
-        | Err msg -> Warning.magenta "Skip `%s`, Error: %s" corpus_id msg
-        | Ok | Need_validate -> ()
+        match (force, String_map.find corpus_id status_map) with
+        | (_, Err msg) -> Warning.magenta "Skip `%s`, Error: %s" corpus_id msg
+        | (true, _)
+        | (false, Need_compile) -> Corpus_desc.compile corpus_desc
+        | (false, Need_build) | (false, Need_rebuild _) -> Warning.magenta "Skip `%s`, build is needed before compile" corpus_id
+        | (false, Ok) | (false, Need_validate) -> ()
       ) corpusbank
 
-  let build ?(filter=fun _ -> true) corpusbank =
+  let build ?(force=false) ?(filter=fun _ -> true) corpusbank =
     let status_map = build_status_map ~filter corpusbank in
     iter ~filter
       (fun corpus_id corpus_desc ->
-        match String_map.find corpus_id status_map with
-        | Need_build | Need_rebuild _ -> build_derived corpusbank corpus_desc
-        | Err msg -> Warning.magenta "Skip `%s`, Error: %s" corpus_id msg
-        | Need_compile | Ok | Need_validate -> ()
+        match (force, String_map.find corpus_id status_map) with
+        | (_, Err msg) -> Warning.magenta "Skip `%s`, Error: %s" corpus_id msg
+        | (true, _)
+        | (false, Need_build) | (false,Need_rebuild _) -> build_derived ~force corpusbank corpus_desc
+        | (false, Need_compile) | (false, Ok) | (false, Need_validate) -> ()
       ) corpusbank
 end
