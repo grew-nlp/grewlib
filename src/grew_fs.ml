@@ -101,7 +101,7 @@ module P_feature = struct
         | l -> Pfv_list (Eq,l)
       end
     | (Pfv_list (Neq,l1), Pfv_list (Neq,l2)) -> Pfv_list (Neq,List_.sort_union l1 l2)
-    | _ -> Error.bug "[P_feature.unif_value] inconsistent match case" (* HHH : change message error run not handled... *)
+    | _ -> Error.build "Cannot build a pattern with these constraints (See: https://grew.fr/doc/request#multiple-constraints-on-the-same-feature)"
 
   let to_string ?(quote=false) = function
     | (feat_name, Pfv_list (Neq,[])) -> sprintf "%s=*" feat_name
