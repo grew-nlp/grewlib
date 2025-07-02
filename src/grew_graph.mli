@@ -260,6 +260,9 @@ module G_graph: sig
     t -> int String_map.t String_map.t
 
   val subgraph: t -> Gid_map.key list -> int -> t
+
+  (* returns true iff the graph verify all structure constraints give in the list *)
+  val test_structure_constraints: t -> string list -> bool
 end (* module G_graph *)
 
 (* ================================================================================ *)

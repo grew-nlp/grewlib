@@ -62,6 +62,8 @@ module Constraint = struct
     | Node_id of Pid.t
     | Edge_id of string
     | Lexicon_id of string
+    | Meta
+    | Global
 
   (* let json_of_base = function
     | Node_id pid -> `String (Pid.to_string pid)
@@ -112,7 +114,9 @@ module Constraint = struct
     let base_to_string = function
       | Node_id pid -> pid_name pid
       | Edge_id id -> id
-      | Lexicon_id id -> id in
+      | Lexicon_id id -> id
+      | Meta -> "meta"
+      | Global -> "global" in
 
     match const with
     | Cst_out (pid, label_cst) -> sprintf "%s -[%s]-> *" (pid_name pid) (Label_cst.to_string ~config label_cst)
@@ -141,12 +145,16 @@ module Constraint = struct
 
   let build ~config lexicons ker_table ext_table edge_ids const =
     let parse_id loc id =
-      match (Id.build_opt id ker_table, Id.build_opt id ext_table) with
-      | (Some pid,_) -> Node_id (Pid.Ker pid)
-      | (None, Some pid) -> Node_id (Pid.Ext pid)
-      | (None, None) when List.mem id edge_ids -> Edge_id id
-      | (None, None) when List.mem_assoc id lexicons -> Lexicon_id id
-      | _ -> Error.build ~loc "[Constraint.build] Identifier '%s' not found" id in
+      match id with
+        | "meta" -> Meta
+        | "global" -> Global
+        | _ ->
+        match (Id.build_opt id ker_table, Id.build_opt id ext_table) with
+          | (Some pid,_) -> Node_id (Pid.Ker pid)
+          | (None, Some pid) -> Node_id (Pid.Ext pid)
+          | (None, None) when List.mem id edge_ids -> Edge_id id
+          | (None, None) when List.mem_assoc id lexicons -> Lexicon_id id
+          | _ -> Error.build ~loc "[Constraint.build] Identifier '%s' not found" id in
 
     let pid_of_name loc node_name =
       match Id.build_opt node_name ker_table with
@@ -516,7 +524,9 @@ module Matching = struct
   let apply_cst ~config graph matching cst : t =
     let absent base feat_name =
       match base with
-      | Constraint.Node_id pid ->
+      | Constraint.Meta -> 
+        G_graph.get_meta_opt feat_name graph == None
+      | Node_id pid ->
         let (_,gid) = Pid_map.find pid matching.n_match in
         let node = G_graph.find gid graph in
         let fs = G_node.get_fs node in
@@ -524,10 +534,17 @@ module Matching = struct
       | Edge_id edge_id -> 
         let (_,g_edge,_) = String_map.find edge_id matching.e_match in
         G_edge.get_sub_opt feat_name g_edge = None
-      | Lexicon_id _ -> Error.run "Cannot check absence of a lexical feature" in
+      | Lexicon_id _ -> Error.run "Cannot check absence of a lexical feature"
+      | Global -> Error.run "Cannot check absence of a global constraint" in
     let get_value base feat_name =
       match base with
-      | Constraint.Node_id pid ->
+      | Constraint.Meta ->
+        begin
+          match G_graph.get_meta_opt feat_name graph with
+          | Some v -> Value (String v)
+          | None -> raise Fail
+        end
+      | Node_id pid ->
         let (_,gid) = Pid_map.find pid matching.n_match in
         if feat_name = "__id__"
         then Value (Float (float_of_int gid))
@@ -550,7 +567,9 @@ module Matching = struct
             | None -> raise Fail
             | Some s -> Value s
         end
-      | Lexicon_id id -> Lex (id, feat_name) in
+      | Lexicon_id id -> Lex (id, feat_name)
+      | Global -> Error.run "Cannot check value of a global constraint" in
+
 
     match cst with
     | Constraint.Cst_out (pid,label_cst) ->
@@ -658,6 +677,11 @@ module Matching = struct
         | Value (Float f) -> if Ast.check_ineq f ineq constant then matching else raise Fail
         | _ -> Error.run "[Matching.apply_cst] Cannot check inequality on feature value %s (available only on numeric values)" feat_name
       end
+
+    | Feature_cmp_regexp (Eq, Constraint.Global, glob_key, _) ->
+      if G_graph.test_structure_constraints graph [glob_key]
+      then matching
+      else raise Fail
 
     | Feature_cmp_regexp (cmp, id, feat_name, regexp) ->
       begin
@@ -864,53 +888,12 @@ module Matching = struct
       ) matching.n_match [] in
     test_extension ~config request.Request.ker graph extension (matching, already_matched_gids)
 
-  (* returns true iff the graph verify all structure constraints give in the list *)
-  let test_structure_constraints graph = function
-    | [] -> true
-    | ["is_projective"] -> G_graph.is_projective graph
-    | ["is_not_projective"] -> not (G_graph.is_projective graph)
-    | l ->
-      let dfs = G_graph.depth_first_search graph in
-      let rec loop = function
-        | [] -> true
-        | "is_projective" :: tail ->
-          begin
-            match G_graph.is_projective graph with
-            | false -> false
-            | true -> loop tail
-          end
-        | "is_not_projective" :: tail ->
-          begin
-            match G_graph.is_projective graph with
-            | false -> loop tail
-            | true -> false
-          end
-
-        | "is_tree" :: tail when dfs.tree -> loop tail
-        | "is_tree" :: _ -> false
-
-        | "is_not_tree" :: tail when not dfs.tree -> loop tail
-        | "is_not_tree" :: _ -> false
-
-        | "is_forest" :: tail when dfs.forest -> loop tail
-        | "is_forest" :: _ -> false
-
-        | "is_not_forest" :: tail when not dfs.forest -> loop tail
-        | "is_not_forest" :: _ -> false
-
-        | "is_cyclic" :: tail when dfs.cyclic -> loop tail
-        | "is_cyclic" :: _ -> false
-
-        | "is_not_cyclic" :: tail when not dfs.cyclic -> loop tail
-        | "is_not_cyclic" :: _ -> false
-
-        | x :: _ -> Error.build "Unknown global requirement \"%s\"" x in
-      loop l
-
-
   let check_global_constraint glob_list graph =
-    let stuct_cst_list = List.fold_left (fun acc (glob,_) -> match glob with Ast.Glob_cst s -> s::acc | _ -> acc) [] glob_list in
-    if test_structure_constraints graph stuct_cst_list
+    let stuct_cst_list =
+      List.fold_left 
+        (fun acc (glob,_) -> match glob with Ast.Glob_cst s -> s::acc | _ -> acc)
+        [] glob_list in
+    if G_graph.test_structure_constraints graph stuct_cst_list
     then
       List.for_all
         (function

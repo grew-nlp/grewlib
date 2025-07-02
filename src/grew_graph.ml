@@ -1578,6 +1578,50 @@ module G_graph = struct
         cyclic = !info.back_edges <> [];
       }
 
+  let test_structure_constraints graph = function
+    | [] -> true
+    | ["is_projective"] -> is_projective graph
+    | ["is_not_projective"] -> not (is_projective graph)
+    | l ->
+      let dfs = depth_first_search graph in
+      let rec loop = function
+        | [] -> true
+        | "is_projective" :: tail ->
+          begin
+            match is_projective graph with
+            | false -> false
+            | true -> loop tail
+          end
+        | "is_not_projective" :: tail ->
+          begin
+            match is_projective graph with
+            | false -> loop tail
+            | true -> false
+          end
+
+        | "is_tree" :: tail when dfs.tree -> loop tail
+        | "is_tree" :: _ -> false
+
+        | "is_not_tree" :: tail when not dfs.tree -> loop tail
+        | "is_not_tree" :: _ -> false
+
+        | "is_forest" :: tail when dfs.forest -> loop tail
+        | "is_forest" :: _ -> false
+
+        | "is_not_forest" :: tail when not dfs.forest -> loop tail
+        | "is_not_forest" :: _ -> false
+
+        | "is_cyclic" :: tail when dfs.cyclic -> loop tail
+        | "is_cyclic" :: _ -> false
+
+        | "is_not_cyclic" :: tail when not dfs.cyclic -> loop tail
+        | "is_not_cyclic" :: _ -> false
+
+        | x :: _ -> Error.build "Unknown global requirement \"%s\"" x in
+      loop l
+
+
+
 end (* module G_graph *)
 
 
