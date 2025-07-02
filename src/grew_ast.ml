@@ -211,6 +211,7 @@ module Ast = struct
     | Feature_cmp_regexp of Cmp.t * feature_ident * Regexp.t
     | Feature_cmp_value of Cmp.t * feature_ident * Feature_value.t
     | Feature_else of feature_ident * string * Feature_value.t  (* N.ExtPos/upos = NOUN ==> Else ((N,ExtPos), upos, NOUN)  *)
+    | Feature_absent of feature_ident
     | Large_prec of Id.name * Id.name
     | Large_dom of Id.name * Id.name
     | Edge_disjoint of Id.name * Id.name

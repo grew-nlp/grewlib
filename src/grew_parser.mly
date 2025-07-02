@@ -421,6 +421,20 @@ clause_item:
         | feat_id1_loc=feature_ident_with_loc EQUAL rhs=number
             { let (feat_id1,loc)=feat_id1_loc in Clause_const (Ast.Feature_cmp_value (Eq, feat_id1, Float rhs), loc) }
 
+        /*   X.cat = re"regexp"   */
+        | feat_id_loc=feature_ident_with_loc EQUAL regexp=REGEXP
+            { let (feat_id,loc)=feat_id_loc in Clause_const (Ast.Feature_cmp_regexp (Eq, feat_id, regexp), loc) }
+
+        /*   X.cat = *   */
+        /*   X.cat   */
+        | feat_id_loc=feature_ident_with_loc EQUAL STAR
+        | feat_id_loc=feature_ident_with_loc
+            { let (feat_id,loc)=feat_id_loc in Clause_const (Ast.Feature_cmp_regexp (Eq, feat_id, Regexp.all), loc) }
+
+        /*   !X.cat    */
+        | BANG feat_id_loc=feature_ident_with_loc
+            { let (feat_id,loc)=feat_id_loc in Clause_const (Ast.Feature_absent (feat_id), loc) }
+
         /*   X.ExtPos/upos = "value"   */
         | feat_id1_loc=feature_ident_with_loc SLASH fn2=simple_id EQUAL rhs=STRING
             { let (feat_id1,loc)=feat_id1_loc in Clause_const (Ast.Feature_else (feat_id1, fn2, String rhs), loc) }
@@ -466,9 +480,6 @@ clause_item:
               | (_,loc) -> Error.build ~loc "syntax error in constraint"
             }
 
-        /*   X.cat = re"regexp"   */
-        | feat_id_loc=feature_ident_with_loc EQUAL regexp=REGEXP
-            { let (feat_id,loc)=feat_id_loc in Clause_const (Ast.Feature_cmp_regexp (Eq, feat_id, regexp), loc) }
 
         /*   X.feat < Y.feat    */
         /*   X < Y     */

@@ -90,6 +90,7 @@ module Constraint = struct
     | Feature_ineq of Ast.ineq * base * string * base * string
     (*   e1.level < 3   *)
     | Feature_ineq_cst of Ast.ineq * base * string * float
+    | Feature_absent of base * string
     (*   N [upos=VERB]   *)
     (* ⚠ used only when an extension imposes a fs on a node also defined by the kernel request part *)
     | Filter of Pid.t * P_fs.t list
@@ -122,6 +123,7 @@ module Constraint = struct
     | Feature_cmp_regexp (cmp,id,fn,regexp) -> sprintf "%s.%s %s %s" (base_to_string id) fn (Cmp.to_string cmp) (Regexp.to_string regexp)
     | Feature_ineq (_,id1,fn1,id2,fn2) -> sprintf "%s.%s < %s.%s" (base_to_string id1) fn1 (base_to_string id2) fn2
     | Feature_ineq_cst (_,id,fn,f) -> sprintf "%s.%s  %g" (base_to_string id) fn f
+    | Feature_absent (id,fn) -> sprintf "!%s.%s" (base_to_string id) fn
     | Filter (pid, p_fs_list) ->
         (sprintf "%s %s"
           (pid_name pid)
@@ -174,6 +176,9 @@ module Constraint = struct
 
     | (Ast.Feature_else ((id, feat_name1), feat_name2, value), loc) ->
       Feature_else (parse_id loc id, feat_name1, feat_name2, value)
+
+    | (Ast.Feature_absent (id, feat_name), loc) ->
+      Feature_absent (parse_id loc id, feat_name)
 
     | (Ast.Large_prec (id1, id2), loc) ->
       begin
@@ -509,6 +514,17 @@ module Matching = struct
 
   (*  ---------------------------------------------------------------------- *)
   let apply_cst ~config graph matching cst : t =
+    let absent base feat_name =
+      match base with
+      | Constraint.Node_id pid ->
+        let (_,gid) = Pid_map.find pid matching.n_match in
+        let node = G_graph.find gid graph in
+        let fs = G_node.get_fs node in
+        G_fs.get_value_opt feat_name fs == None 
+      | Edge_id edge_id -> 
+        let (_,g_edge,_) = String_map.find edge_id matching.e_match in
+        G_edge.get_sub_opt feat_name g_edge = None
+      | Lexicon_id _ -> Error.run "Cannot check absence of a lexical feature" in
     let get_value base feat_name =
       match base with
       | Constraint.Node_id pid ->
@@ -652,6 +668,13 @@ module Matching = struct
           match (cmp, Regexp.re_match regexp string_feat) with
           | (Eq, true) | (Neq, false) -> matching
           | _ -> raise Fail
+      end
+
+    | Feature_absent (id,feat_name) -> 
+      begin
+        if absent id feat_name
+        then matching
+        else raise Fail
       end
 
     | Node_large_prec (pid1, pid2) ->
