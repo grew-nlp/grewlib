@@ -960,8 +960,10 @@ inkey:
   | x = simple_id BIEDGE y = simple_id { Ast.Sym_rel (x,y)}
   | s = key_id {
       match s with
-      | ("global", [one]) -> Ast.Meta one
-      | ("global", _) -> Error.build "syntax error in key: more then one feat value in global"
+      | ("global", _) -> Error.build "**[DEPRECATED]** The cluster key `global.xxx` should be replaced by `meta.xxx`"
+
+      | ("meta", [one]) -> Ast.Meta one
+      | ("meta", _) -> Error.build "syntax error in key: more then one feat value in global"
       | _ -> Ast.Feat s
   }
   | DELTA LPAREN x=simple_id COMMA y=simple_id RPAREN { Ast.Delta(x,y) }
