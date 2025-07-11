@@ -101,8 +101,20 @@ module P_graph = struct
     let full_node_list = basic_ast.Ast.req_nodes
     and full_edge_list = basic_ast.Ast.req_edges in
 
-    let nodes_id = List.map (fun ({Ast.node_id; _},_) -> node_id) full_node_list in
-    let edges_id = CCList.filter_map (fun ({Ast.edge_id; _},_) -> edge_id) full_edge_list in
+    let check_id loc id = 
+      match id with
+      | "meta" | "global" -> 
+        Error.build ~loc "the name `%s` is reserved, it cannot be used as a node or edge identifier (see [doc](http://grew.fr))" id
+      | _ -> () in
+
+    let nodes_id =
+      List.map 
+        (fun ({Ast.node_id; _},loc) -> check_id loc node_id; node_id)
+        full_node_list in
+    let edges_id = 
+      CCList.filter_map 
+        (fun ({Ast.edge_id; _},loc) -> CCOption.iter (check_id loc) edge_id; edge_id) 
+        full_edge_list in
 
     begin
       match List_.intersect nodes_id edges_id with
