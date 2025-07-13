@@ -145,22 +145,19 @@ module Corpus = struct
         items_with_length in
     Array.map fst items_with_length
 
-  let from_json ?loc json =
+  let from_json_seq ?loc json_seq =
     try
-      match json with
-      | `List jsons ->
-        Array.of_list (
-          List.map (fun json -> json |> G_graph.of_json |> item_of_graph) jsons
-        )
-      | json -> [| json |> G_graph.of_json |> item_of_graph |]
+      let json_list = match List.of_seq json_seq with [`List jsons] -> jsons | l -> l in
+      List.map (fun json -> json |> G_graph.of_json |> item_of_graph) json_list
+      |> Array.of_list
     with
     | Yojson.Json_error msg -> Error.run ?loc "Error in the JSON file format: %s" msg
 
   let from_stdin ?ext ?log_file ?config () =
     match ext with
-    | Some ".json" ->
+    | Some ".json" | Some ".jsonl" ->
       let s = CCIO.read_all stdin in
-      { kind=Json; items = from_json (Yojson.Basic.from_string s)}
+      { kind=Json; items = from_json_seq (Yojson.Basic.seq_from_string s)}
     | Some ".conll" | Some ".conllu" | Some ".cupt" | Some ".orfeo" | Some ".frsemcor"
     | _ -> (* TODO: use Conll by default --> more robust stuff needed *)
       let lines = CCIO.read_lines_l stdin in
@@ -168,15 +165,20 @@ module Corpus = struct
 
   let from_string ?ext ?log_file ?config s =
     match ext with
-    | Some ".json" -> { kind=Json; items = from_json (Yojson.Basic.from_string s)}
+    | Some ".json" | Some ".jsonl" -> { kind=Json; items = from_json_seq (Yojson.Basic.seq_from_string s)}
     | Some ".conll" | Some ".conllu" | Some ".cupt" | Some ".orfeo" | Some ".frsemcor"
     | _ -> (* TODO: use Conll by default --> more robust stuff needed *)
       let lines = Str.split (Str.regexp "\n") s in
       of_conllx_corpus (Conll_corpus.of_lines ?log_file ?config lines)
 
   let of_json_file file =
-    try { kind=Json; items = from_json ~loc: (Loc.file file) (Yojson.Basic.from_file file)}
-    with Yojson.Json_error msg -> Error.run ~loc:(Loc.file file) "Error in the JSON file format: %s" msg
+    try 
+      { 
+        kind=Json; 
+        items = from_json_seq ~loc: (Loc.file file) (Yojson.Basic.seq_from_file file)
+      }
+    with 
+    | Yojson.Json_error msg -> Error.run ~loc:(Loc.file file) "Error in the JSON file format: %s" msg
 
   let from_file ?ext ?log_file ?config file =
     let extension = match ext with Some e -> e | None -> Filename.extension file in
@@ -185,7 +187,7 @@ module Corpus = struct
       of_conllx_corpus (Conll_corpus.load ?log_file ?config file)
     | ".amr" | ".txt" ->
       of_amr_file file
-    | ".json" ->
+    | ".json" | ".jsonl" ->
       of_json_file file
     | ext -> Error.run "Cannot load file `%s`, unknown extension `%s`" file ext
 
@@ -199,7 +201,7 @@ module Corpus = struct
            | ".conll" | ".conllu" | ".cupt" | ".orfeo" -> (full_file::conll_acc, amr_acc, txt_acc, json_acc)
            | ".amr" -> (conll_acc, full_file::amr_acc, txt_acc, json_acc)
            | ".txt" -> (conll_acc, amr_acc, full_file::txt_acc, json_acc)
-           | ".json" -> (conll_acc, amr_acc, txt_acc, full_file::json_acc)
+           | ".json" | ".jsonl" -> (conll_acc, amr_acc, txt_acc, full_file::json_acc)
            | _ -> (conll_acc, amr_acc, txt_acc, json_acc)
         ) files ([],[],[], []) in
 
@@ -541,7 +543,8 @@ module Corpus_desc = struct
             match full_files with
             | [one] -> Amr_corpus.load one
             | _ -> failwith "AMR multi-files corpus is not handled" in
-          let items = CCArray.filter_map (fun (sent_id,amr) ->
+          let items =
+            CCArray.filter_map (fun (sent_id,amr) ->
               try
                 let json = Amr.to_json ~unfold:true amr in
                 let graph = G_graph.of_json json in
@@ -552,17 +555,17 @@ module Corpus_desc = struct
           {Corpus.items; kind= Amr }
 
         | Json | Dmrs | Ucca as kind ->
-          let items = Array.concat (
-              List.map (
-                fun file ->
-                  try Corpus.from_json ~loc: (Loc.file file) (Yojson.Basic.from_file file)
-                  with Yojson.Json_error msg -> Error.run ~loc:(Loc.file file) "Error in the JSON file format: %s" msg
-              ) full_files
-            ) in
+          let items = 
+            List.map (
+              fun file ->
+                try Corpus.from_json_seq ~loc: (Loc.file file) (Yojson.Basic.seq_from_file file)
+                with Yojson.Json_error msg -> Error.run ~loc:(Loc.file file) "Error in the JSON file format: %s" msg
+            ) full_files
+            |> Array.concat in
             {Corpus.items; kind }
 
         | Gr -> Error.run "Gr corpora are not supported in file compilation" in
-      let _ = Info.green "[%s] %d graphs loaded" (get_id corpus_desc) (Array.length data.items) in
+      let () = Info.green "[%s] %d graphs loaded" (get_id corpus_desc) (Array.length data.items) in
       let out_ch = open_out_bin marshal_file in
       Marshal.to_channel out_ch data [];
       close_out out_ch
