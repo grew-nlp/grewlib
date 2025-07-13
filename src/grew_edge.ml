@@ -133,6 +133,9 @@ module G_edge = struct
         | _ ->
         match List_.sort_assoc_opt "1" fs with
         | Some (String "RSTR") -> ["bottom"]
+        | _ ->
+        match List_.sort_assoc_opt "type" fs with
+        | Some (String "attach") -> ["color=#12cd56"; "forecolor=#12cd56"; "bottom"]
         (* default *)
         | _ -> [] in
       let styles = if deco then "bgcolor=#8bf56e" :: styles else styles in
