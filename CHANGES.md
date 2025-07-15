@@ -1,3 +1,7 @@
+# 1.18.0 (2025/07/15)
+  - Constraint about global structure and metadata are now available in `pattern`, `with` or `without`
+  - let JSON reader accept sequences of JSON
+
 # 1.17.0 (2025/04/02)
   - Review Clustered code for multi-corpus grew-match
 

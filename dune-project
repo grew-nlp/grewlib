@@ -2,7 +2,7 @@
 
 (name grewlib)
 
-(version 1.17.0)
+(version 1.18.0)
 
 (using menhir 2.0)
 
@@ -32,8 +32,8 @@
    fileutils
    ANSITerminal
    (containers ( >= "3.6" ))
-   (amr ( >= "0.7.1" )) 
-   (conll ( >= "1.19.0" ))
+   (amr ( >= "0.9.1" )) 
+   (conll ( >= "1.19.4" ))
    uunf
  )
  (tags
