@@ -42,6 +42,8 @@ module G_edge_fs = struct
         )
     |> build
 
+  let del_feat = List_.sort_remove_assoc
+
   end (* module G_edge_fs *)
 
   (* ================================================================================ *)
@@ -165,11 +167,13 @@ module G_edge = struct
               ["color=\"red\""; "fontcolor=\"red\""]
               | Some (String "in") -> ["style=\"dotted\""] (* PMB link from Box-nodes to Sem-nodes *)
               | _ -> [] in
-      let multi_line_label = Str.global_replace (Str.regexp_string ",") "\n" (G_edge_fs.to_string ~config fs) in
+      let short_fs = fs |> G_edge_fs.del_feat "main_out" in
+      let multi_line_label = Str.global_replace (Str.regexp_string ",") "\n" (G_edge_fs.to_string ~config short_fs) in
       let label =
-        match deco with
-        | true -> sprintf "<<TABLE BORDER=\"0\" CELLBORDER=\"0\"> <TR> <TD BGCOLOR=\"#8bf56e\">%s</TD> </TR> </TABLE>>" multi_line_label
-        | false -> sprintf "\"%s\"" multi_line_label in
+        match (deco, multi_line_label) with
+        | (true, _) -> sprintf "<<TABLE BORDER=\"0\" CELLBORDER=\"0\"> <TR> <TD BGCOLOR=\"#8bf56e\">%s</TD> </TR> </TABLE>>" multi_line_label
+        | (false, "_") -> sprintf "\"\""
+        | (false, s) -> sprintf "\"%s\"" s in
       Some (sprintf "[label=%s, %s]" label (String.concat ", " dot_items))
     | _ -> None
 

@@ -1335,7 +1335,7 @@ module G_graph = struct
             let decorated_feat =
               try List.assoc id deco.G_deco.nodes
               with Not_found -> ("",[]) in
-            let fs = G_node.get_fs node |> G_fs.del_feat "layer" |> G_fs.del_feat "type" in
+            let fs = G_node.get_fs node |> G_fs.del_feat "layer" |> G_fs.del_feat "type" |> G_fs.del_feat "var" in
             bprintf buff "  N_%s [%s]\n" (Gid.to_string id) (G_fs.to_dot ~decorated_feat ?main_feat fs)
           ) node_list;
          CCOption.iter (fun _ -> bprintf buff "	}\n") layer_opt
