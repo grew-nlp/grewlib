@@ -217,7 +217,10 @@ module G_fs = struct
 
   (* ---------------------------------------------------------------------- *)
   let get_main ?main_feat t =
-    let default_list = ["form"; "lemma"; "gpred"; "label"; "SylForm"; "Cxn"] in
+    let default_list = [
+      "form"; "lemma"; "gpred"; "label"; "SylForm"; "Cxn";
+      "value"; "feat";   
+    ] in
     let main_list =
       match main_feat with
       | None -> default_list
@@ -230,6 +233,37 @@ module G_fs = struct
         | (_,Some atom) -> (Some (feat_name, atom), List_.sort_remove_assoc feat_name t)
         | (_,None) -> loop tail in
     loop main_list
+
+  let yarn_colors = [
+  "temp", "#0000FF";
+  "aspect", "#FF99CC";
+  "quant", "#CC0000";
+  "num", "#009900";
+  "def", "#D4B355";
+  "modal", "#00CC00";
+  "neg", "#FFD966";
+  "deixis", "#886BE5";
+  "question", "#BA61DE";
+  "focus", "#00CCCC";
+  "degree", "#DB6691";
+  "mod", "#3399FF";
+  "loc", "#FF7625";
+  "manner", "#FFB366";
+  "distr", "#7ABF44";
+  "freq", "#99CCFF";
+  "dir", "#FF0080";
+  "mood", "#6600CC";
+  "duration", "#99004D";
+  "topic", "#994C00";
+]
+
+  let dot_shape t =
+    match t |> get_value_opt "feat" |> CCOption.map Feature_value.to_string with
+    | None -> ""
+    | Some f ->
+      match List.assoc_opt f yarn_colors with
+      | None -> ""
+      | Some c -> sprintf "style=filled, color=\"%s\"" c
 
   (* ---------------------------------------------------------------------- *)
   let to_dot ?(decorated_feat=("",[])) ?main_feat t =
@@ -266,9 +300,10 @@ module G_fs = struct
          G_feature.buff_dot buff g_feat
       ) next;
 
+    let shape = dot_shape t in 
     match Buffer.contents buff with
-    | "" -> ""
-    | s -> sprintf "<TABLE BORDER=\"0\" CELLBORDER=\"0\" CELLSPACING=\"0\">\n%s</TABLE>\n" s
+    | "" -> sprintf "%slabel=\"\"" shape
+    | s -> sprintf "%slabel=<<TABLE BORDER=\"0\" CELLBORDER=\"0\" CELLSPACING=\"0\">\n%s</TABLE>>\n" shape s
 
   (* ---------------------------------------------------------------------- *)
   let to_word_opt (t:t) =

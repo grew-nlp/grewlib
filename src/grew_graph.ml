@@ -1332,29 +1332,11 @@ module G_graph = struct
         CCOption.iter (fun l -> bprintf buff "	subgraph cluster_%s {\n" l) layer_opt;
         List.iter (
           fun (id,node) ->
-            let fs = G_node.get_fs node in
-            let shape = match
-              (
-                fs |> G_fs.get_value_opt "type" |> CCOption.map Feature_value.to_string,
-                fs |> G_fs.get_value_opt "label" |> CCOption.map Feature_value.to_string
-              )
-            with
-            | (Some "v",_) -> "shape=oval, "
-            | (Some "f", Some "temp") -> "style=filled, color=\"#3e9fcf\", shape=invhouse, "
-            | (Some "f", Some "neg") -> "style=filled, color=\"#CFB464\", shape=invhouse, "
-            | (Some "f", Some "modal") -> "style=filled, color=\"#45a729\", shape=invhouse, "
-            | (Some "f", Some "quant") -> "style=filled, color=\"#f07065\", shape=invhouse, "
-            | (Some "f", Some "loc") -> "style=filled, color=\"pink\", shape=invhouse, "
-            | _ -> "" in
-
             let decorated_feat =
               try List.assoc id deco.G_deco.nodes
               with Not_found -> ("",[]) in
             let fs = G_node.get_fs node |> G_fs.del_feat "layer" |> G_fs.del_feat "type" in
-
-            match G_fs.to_dot ~decorated_feat ?main_feat fs with
-            | "" -> bprintf buff "  N_%s [%slabel=\"\"]\n" (Gid.to_string id) shape
-            | s -> bprintf buff "  N_%s [%slabel=<%s>]\n" (Gid.to_string id) shape s
+            bprintf buff "  N_%s [%s]\n" (Gid.to_string id) (G_fs.to_dot ~decorated_feat ?main_feat fs)
           ) node_list;
          CCOption.iter (fun _ -> bprintf buff "	}\n") layer_opt
       ) layers;

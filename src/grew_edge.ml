@@ -146,6 +146,9 @@ module G_edge = struct
   let to_dot_opt ?(deco=false) ~config = function
     | Fs fs ->
       let dot_items =
+        match List_.sort_assoc_opt "main_out" fs with
+        | Some (String "Yes") -> ["color=red"; "fontcolor=red"]
+        | _ -> 
         match List_.sort_assoc_opt "kind" fs with
         | Some (String "deep") -> ["color=blue"; "fontcolor=blue"]
         | Some (String "surf") -> ["color=red"; "fontcolor=red"]
