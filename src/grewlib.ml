@@ -292,6 +292,7 @@ end
 (* ==================================================================================================== *)
 module Rewrite = struct
   let set_max_rules bound = Grew_rule.Rule.set_max_rules bound
+  let set_max_incr_rules bound = Grew_rule.Rule.set_max_incr_rules bound
 
   let set_timeout t = Grew_utils.Timeout.timeout := t
 

@@ -72,6 +72,8 @@ module Rule : sig
   val reset_rules: unit -> unit
 
   val set_max_rules: int -> unit
+  
+  val set_max_incr_rules: int -> unit
 
   val get_nb_rules: unit -> int
 

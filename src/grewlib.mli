@@ -175,6 +175,7 @@ end
 (* ==================================================================================================== *)
 module Rewrite: sig
   val set_max_rules: int -> unit
+  val set_max_incr_rules: int -> unit
 
   val set_timeout: float option -> unit
 

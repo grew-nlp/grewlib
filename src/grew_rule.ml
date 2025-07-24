@@ -1107,24 +1107,36 @@ module Rule = struct
     incr: bool;
   }
 
+  let nb_rule_report = 10
+
+
   (* the number of rewriting steps is bounded to stop rewriting when the system is not terminating *)
   let max_rules = ref 10_000
   let set_max_rules n = max_rules := n
-
-  let nb_rule_report = 10
-
   let current_rules = ref 0
   let rule_report_list = ref []
 
-  let max_incr_rules = ref 100
+
+  let max_incr_rules = ref 300
+  let set_max_incr_rules n = max_incr_rules := n
   let current_incr_rules = ref 0
+  let incr_rule_report_list = ref []
 
   let reset_rules () = current_rules := 0; rule_report_list := []; current_incr_rules := 0
 
   let incr_rules rule =
-    if rule.incr then incr current_incr_rules;
-    if !current_incr_rules > !max_incr_rules
-    then Error.run "More than %d rewriting steps which increases graph size: check for loops!" !max_incr_rules;
+    if rule.incr then
+      begin
+        incr current_incr_rules;
+        if !current_incr_rules > !max_incr_rules - nb_rule_report
+        then
+          if !current_incr_rules > !max_incr_rules
+          then Error.run "More than %d rewriting steps which increases graph size: check for loops! Last rules are: […%s]" 
+              !max_incr_rules
+              (String.concat ", " (List.rev !incr_rule_report_list))
+        else incr_rule_report_list := rule.name :: !incr_rule_report_list
+      end;
+
     incr current_rules;
     if !current_rules > !max_rules - nb_rule_report
     then
