@@ -219,7 +219,7 @@ module G_fs = struct
   let get_main ?main_feat t =
     let default_list = [
       "form"; "lemma"; "gpred"; "label"; "SylForm"; "Cxn";
-      "value"; "feat";   
+      "value"; "feat"; "concept"; "pred"; "event"; "disc"; "rel"; "irel";
     ] in
     let main_list =
       match main_feat with
