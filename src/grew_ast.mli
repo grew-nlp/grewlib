@@ -296,6 +296,8 @@ module Ast : sig
     | Delta of (string * string)
     (* length (X,Y) *)
     | Length of (string * string)
+    (* (key_1, key_2, key_3) *)
+    | Tuple of key list
 
 end (* module Ast *)
 

@@ -974,6 +974,7 @@ inkey:
         | None -> Error.build "syntax error in key: gap parameter is required"
         | Some g -> Ast.Continuous (fi, g, List.assoc_opt "min" l, List.assoc_opt "max" l )
       }
+  | LPAREN sub=separated_nonempty_list (COMMA, inkey) RPAREN { Ast.Tuple sub }
 
 cont_key_value:
   | fn=simple_id EQUAL value = FLOAT  { (fn, value)}

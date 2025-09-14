@@ -1076,8 +1076,8 @@ module Matching = struct
     | (Some p1, Some p2) -> Some (string_of_int (Int.abs (p2 - p1)))
     | _ -> None
 
-  let get_value_opt ?(json_label=false) ~config string_key request graph matching =
-    match Parser.key string_key with
+  let rec get_value_opt ?(json_label=false) ~config request graph matching = 
+    function
     | Ast.Meta key -> graph |> G_graph.get_meta_list |> List.assoc_opt key
     | Rel_order pid_name_list -> get_relative_order pid_name_list request graph matching
     | Sym_rel (pid_name_1, pid_name_2) -> Some (get_link ~config true pid_name_1 pid_name_2 request graph matching)
@@ -1086,10 +1086,18 @@ module Matching = struct
     | Continuous params -> Some (get_interval request graph matching params)
     | Delta (pid1, pid2) -> delta request graph matching pid1 pid2
     | Length (pid1, pid2) -> length request graph matching pid1 pid2
+    | Tuple (key_list) -> 
+        key_list
+        |> List.map (get_value_opt ~json_label ~config request graph matching)
+        |> List.map (CCOption.get_or ~default: "__undefined__")
+        |> String.concat ","
+        |> (fun x -> Some ("("^x^")"))
 
   let get_clust_value_opt ?(json_label=false) ~config cluster_item request graph matching =
     match cluster_item with
-    | Request.Key key -> get_value_opt ~json_label ~config key request graph matching
+    | Request.Key string_key ->
+      let key =  Parser.key string_key in
+      get_value_opt ~json_label ~config request graph matching key
     | Whether basic -> if whether ~config basic request graph matching then Some "Yes" else Some "No"
 
 end (* module Matching *)
