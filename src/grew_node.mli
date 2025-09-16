@@ -42,7 +42,6 @@ module G_node: sig
   val unset_position: t -> t
 
   val is_conll_zero: t -> bool
-  val is_eud_empty: t -> bool
 
   val out_edges: t -> int
 

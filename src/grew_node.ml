@@ -56,11 +56,6 @@ module G_node = struct
 
   let is_conll_zero t = G_fs.get_value_opt "form" t.fs = Some (String "__0__")
 
-  let is_eud_empty t =
-    match G_fs.get_value_opt "_UD_empty" t.fs with
-    | Some (String "Yes") -> true
-    | _ -> false
-
   let out_edges n =
     Gid_massoc.fold (fun acc _ edge -> if G_edge.is_real_link edge then acc+1 else acc) 0 n.next
 
@@ -141,7 +136,10 @@ module G_node = struct
 
   let append_in_ag_lex feature_name_list t ag_lex =
     let fs = get_fs t in
-    let value_list = List.map (fun feature_name -> Feature_value.to_string <$> (G_fs.get_value_opt feature_name fs)) feature_name_list in
+    let value_list =
+      List.map 
+        (fun feature_name -> Feature_value.to_string <$> (G_fs.get_value_opt feature_name fs)
+        ) feature_name_list in
     Clustered.update (fun x -> x+1) value_list 0 ag_lex
 end (* module G_node *)
 

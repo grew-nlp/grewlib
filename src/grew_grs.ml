@@ -66,25 +66,26 @@ end (* module Decl *)
 module Grs = struct
 
   type t = {
-    filename: string;
+    filename: string option;
     decls: Decl.t list;
     ast: Ast.grs;
     timestamp: float option;
   }
 
   let empty = {
-    filename = "";
+    filename = None;
     decls = [Strategy ("main", Ast.Seq [])];
     ast = [];
     timestamp = None;
   }
 
   let to_json ~config t =
-    `Assoc [
-      "filename", `String t.filename;
-      "decls", `Assoc (List.map (fun x -> Decl.to_json ~config x) t.decls)
-    ]
-
+    let decls = `Assoc (List.map (fun x -> Decl.to_json ~config x) t.decls) in
+    `Assoc (
+      match t.filename with
+      | None -> ["decls", decls]
+      | Some f -> ["filename", `String f; "decls", decls]
+    )
   let get_strat_list grs = Ast.strat_list grs.ast
   let get_strat_lists grs = Ast.strat_lists grs.ast
   let get_package_list grs = Ast.package_list grs.ast
@@ -99,28 +100,24 @@ module Grs = struct
     ()
 
 
-  let build ~config ?timestamp filename ast =
-    let decls = CCList.filter_map
-        (fun x -> match x with
-           | Ast.Features _ -> None
-           | Ast.Labels _ -> None
-           | Ast.Conll_fields _ -> None
-           | Ast.Import _ -> Error.bug "[load] Import: inconsistent ast for grs"
-           | Ast.Include _ -> Error.bug "[load] Include: inconsistent ast for grs"
-           | x -> Some (Decl.build ~config x)
+  let build ~config ?timestamp ?filename ast =
+    let decls =
+      CCList.filter_map
+        (function
+          | Ast.Features _ -> None
+          | Ast.Labels _ -> None
+          | Ast.Conll_fields _ -> None
+          | Ast.Import _ -> Error.bug "[load] Import: inconsistent ast for grs"
+          | Ast.Include _ -> Error.bug "[load] Include: inconsistent ast for grs"
+          | x -> Some (Decl.build ~config x)
         ) ast in
-
-    { filename;
-      ast;
-      decls;
-      timestamp;
-    }
+    { filename; ast; decls; timestamp }
 
   let load ~config filename =
-    let grs_ast = Loader.grs filename in
-    build ~config ~timestamp:(Global.get_grs_timestamp ()) filename grs_ast
+    build ~config ~timestamp:(Global.get_grs_timestamp ()) ~filename (Loader.grs filename)
 
-  let parse ~config string_grs = build ~config "" (Parser.grs string_grs)
+  let parse ~config string_grs =
+    build ~config (Parser.grs string_grs)
 
   let string_of_json json =
     let open Yojson.Basic.Util in
@@ -130,9 +127,10 @@ module Grs = struct
     with Type_error _ -> "[Grs.string_of_json]"
 
   let of_json ~config json =
-    let s = string_of_json json in
-    let ast = Parser.grs s in
-    build ~config "" ast
+    json
+    |> string_of_json
+    |> Parser.grs
+    |> build ~config
 
 
 
