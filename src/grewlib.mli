@@ -116,6 +116,7 @@ module Request : sig
   (** [parse_cluster_item s] returns a whether if the input string is  *)
   val parse_cluster_item: config:Conll_config.t -> t -> string -> cluster_item
 
+  val string_list_of_cluster_item_list: cluster_item list -> string list
 end
 
 (* ==================================================================================================== *)
@@ -138,6 +139,9 @@ module Matching: sig
   val build_deco: Request.t -> t -> Deco.t
 
   val get_clust_value_opt: ?json_label:bool -> config:Conll_config.t -> Request.cluster_item ->  Request.t -> Graph.t -> t -> string option
+  val get_clust_value: ?json_label:bool -> config:Conll_config.t -> Request.cluster_item ->  Request.t -> Graph.t -> t -> string
+  val get_clust_value_list: ?json_label:bool -> config:Conll_config.t -> Request.cluster_item ->  Request.t -> Graph.t -> t -> string list
+
 end
 
 (* ==================================================================================================== *)

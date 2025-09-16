@@ -33,6 +33,7 @@ module Request : sig
 
   val parse_cluster_item: config:Conll.Conll_config.t -> t -> string -> cluster_item
   val get_meta_opt: string -> t -> string option
+  val string_list_of_cluster_item_list: cluster_item list -> string list
 end
 
 (* ================================================================================ *)
@@ -52,17 +53,11 @@ module Matching : sig
   (* NB: it can be computed independly from the graph itself! *)
   val build_deco: Request.t -> t -> G_deco.t
 
-  (* [get_value_opt cluster_key request graph matching] returns the value corresponding to the cluster_key in the result of a previous result of match
-     [cluster_key] can be:
-     * the name of a feature value [N.feat] where [N] is a node declared in the kernel part of the request
-     * the name of an edge featue [E.feat] where [e] is a edge declared in the kernel part of the request
-     * one of the pseudo features [e.label], [e.length] or [e.delta]
-  *)
-  val get_value_opt: ?json_label:bool -> config:Conll.Conll_config.t -> string -> Request.t -> G_graph.t -> t -> string option
-
   val subgraph: G_graph.t -> t -> int -> G_graph.t
 
   val get_clust_value_opt: ?json_label:bool -> config:Conll.Conll_config.t -> Request.cluster_item ->  Request.t -> G_graph.t -> t -> string option
+  val get_clust_value: ?json_label:bool -> config:Conll.Conll_config.t -> Request.cluster_item ->  Request.t -> G_graph.t -> t -> string
+  val get_clust_value_list: ?json_label:bool -> config:Conll.Conll_config.t -> Request.cluster_item ->  Request.t -> G_graph.t -> t -> string list
 end (* module Matching *)
 
 (* ================================================================================ *)

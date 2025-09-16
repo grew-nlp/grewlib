@@ -288,7 +288,7 @@ module Ast : sig
     | Sym_rel of (string * string)
     (* X -> Y *)
     | Rel of (string * string)
-    (* X.Number *)
+    (* X.CorrectNumber/Number *)
     | Feat of (string * string list)
     (* X.MeanFO [gap=10, min=20, max=100] *)
     | Continuous of ((string * string) * float * float option * float option)
@@ -296,7 +296,10 @@ module Ast : sig
     | Delta of (string * string)
     (* length (X,Y) *)
     | Length of (string * string)
+    (* (key_1, key_2, key_3) *)
+    | Tuple of key list
 
+  val key_to_string_list: key -> string list
 end (* module Ast *)
 
 (* ================================================================================ *)
