@@ -318,7 +318,7 @@ module Request = struct
 
   (* New type with a "real" whether type *)
   type cluster_item =
-    | Key of string
+    | Key of Ast.key
     | Whether of basic
 
   (* Note that we need to know the request in order to build the basic type *)
@@ -326,7 +326,7 @@ module Request = struct
     let clean_s = CCString.trim s in
     if clean_s.[0] = '{'
     then Whether (build_whether ~config request (Parser.basic clean_s))
-    else Key clean_s
+    else Key (Parser.key clean_s)
 
 
     (* the function [string_and_meta_of_json] accepts two different kinds of JSON representation of requests
@@ -384,6 +384,18 @@ module Request = struct
     { t with meta }
 
   let get_meta_opt key t = List.assoc_opt key t.meta
+
+  let string_list_of_cluster_item_list cil =
+    List.fold_right
+      (fun elt (acc, whether_counter)  ->
+        let new_acc =
+          match elt with
+          | Whether _ -> Printf.sprintf "whether_%d" whether_counter :: acc
+          | Key k -> Ast.key_to_string_list k @ acc in
+        (new_acc, whether_counter)
+      ) cil ([], 1)
+    |> fst
+
 end (* module Request *)
 
 (* ================================================================================ *)
@@ -1076,29 +1088,48 @@ module Matching = struct
     | (Some p1, Some p2) -> Some (string_of_int (Int.abs (p2 - p1)))
     | _ -> None
 
-  let rec get_value_opt ?(json_label=false) ~config request graph matching = 
+  let rec get_value_opt_list ?(json_label=false) ~config request graph matching = 
     function
-    | Ast.Meta key -> graph |> G_graph.get_meta_list |> List.assoc_opt key
-    | Rel_order pid_name_list -> get_relative_order pid_name_list request graph matching
-    | Sym_rel (pid_name_1, pid_name_2) -> Some (get_link ~config true pid_name_1 pid_name_2 request graph matching)
-    | Rel (pid_name_1, pid_name_2) -> Some (get_link ~config false pid_name_1 pid_name_2 request graph matching)
-    | Feat (id, splitted_feature_names) -> get_feat_value_opt ~json_label ~config request graph matching (id, splitted_feature_names)
-    | Continuous params -> Some (get_interval request graph matching params)
-    | Delta (pid1, pid2) -> delta request graph matching pid1 pid2
-    | Length (pid1, pid2) -> length request graph matching pid1 pid2
+    | Ast.Meta key -> [graph |> G_graph.get_meta_list |> List.assoc_opt key]
+    | Rel_order pid_name_list -> [get_relative_order pid_name_list request graph matching]
+    | Sym_rel (pid_name_1, pid_name_2) -> [Some (get_link ~config true pid_name_1 pid_name_2 request graph matching)]
+    | Rel (pid_name_1, pid_name_2) -> [Some (get_link ~config false pid_name_1 pid_name_2 request graph matching)]
+    | Feat (id, splitted_feature_names) -> [get_feat_value_opt ~json_label ~config request graph matching (id, splitted_feature_names)]
+    | Continuous params -> [Some (get_interval request graph matching params)]
+    | Delta (pid1, pid2) -> [delta request graph matching pid1 pid2]
+    | Length (pid1, pid2) -> [length request graph matching pid1 pid2]
     | Tuple (key_list) -> 
         key_list
-        |> List.map (get_value_opt ~json_label ~config request graph matching)
+        |> List.map (get_value_opt_list ~json_label ~config request graph matching)
+        |> List.flatten
+
+  let get_value_opt ?(json_label=false) ~config request graph matching key =
+    match get_value_opt_list ~json_label ~config request graph matching key with
+    | [one] -> one
+    | l ->
+        l
         |> List.map (CCOption.get_or ~default: "__undefined__")
         |> String.concat ","
         |> (fun x -> Some ("("^x^")"))
 
   let get_clust_value_opt ?(json_label=false) ~config cluster_item request graph matching =
     match cluster_item with
-    | Request.Key string_key ->
-      let key =  Parser.key string_key in
-      get_value_opt ~json_label ~config request graph matching key
+    | Request.Key key -> get_value_opt ~json_label ~config request graph matching key
     | Whether basic -> if whether ~config basic request graph matching then Some "Yes" else Some "No"
+
+  let get_clust_value ?(json_label=false) ~config cluster_item request graph matching =
+    match get_clust_value_opt ~json_label ~config cluster_item request graph matching with
+    | None -> "__undefined__"
+    | Some s -> s
+
+  let get_clust_value_list ?(json_label=false) ~config cluster_item request graph matching  =
+    match cluster_item with
+    | Request.Key key ->
+      get_value_opt_list ~json_label ~config request graph matching key
+      |> (List.map (CCOption.get_or ~default: "__undefined__"))
+    | Whether basic -> if whether ~config basic request graph matching then ["Yes"] else ["No"]
+
+
 
 end (* module Matching *)
 

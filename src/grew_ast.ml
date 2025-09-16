@@ -522,7 +522,7 @@ module Ast = struct
     | Sym_rel of (string * string)
     (* X -> Y *)
     | Rel of (string * string)
-    (* X.Number *)
+    (* X.CorrectNumber/Number *)
     | Feat of (string * string list)
     (* X.MeanFO [gap=10, min=20, max=100] *)
     | Continuous of ((string * string) * float * float option * float option)
@@ -532,6 +532,22 @@ module Ast = struct
     | Length of (string * string)
     (* (key_1, key_2, key_3) *)
     | Tuple of key list
+
+  let rec key_to_string_list = function
+    | Meta s -> [s]
+    | Rel_order l -> [String.concat "#" l]
+    | Sym_rel (x,y) -> [Printf.sprintf "%s <-> %s" x y]
+    | Rel (x,y) -> [Printf.sprintf "%s -> %s" x y]
+    | Feat (nid, feats) -> [Printf.sprintf "%s.%s" nid (String.concat "/" feats)]
+    | Continuous ((nid,fn), gap, min_opt, max_opt) ->
+      [Printf.sprintf "%s.%s [%g%s%s]"
+        nid fn gap
+      (match min_opt with None -> "" | Some m -> Printf.sprintf ", min=%g" m)
+        (match max_opt with None -> "" | Some m -> Printf.sprintf ", max=%g" m)
+      ]
+    | Delta (x,y) -> [Printf.sprintf "delta (%s,%s)" x y]
+    | Length (x,y) -> [Printf.sprintf "length (%s,%s)" x y]
+    | Tuple l -> l |> List.map key_to_string_list |> List.flatten
 
 end (* module Ast *)
 

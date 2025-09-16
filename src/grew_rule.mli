@@ -33,6 +33,7 @@ module Request : sig
 
   val parse_cluster_item: config:Conll.Conll_config.t -> t -> string -> cluster_item
   val get_meta_opt: string -> t -> string option
+  val string_list_of_cluster_item_list: cluster_item list -> string list
 end
 
 (* ================================================================================ *)
@@ -55,6 +56,8 @@ module Matching : sig
   val subgraph: G_graph.t -> t -> int -> G_graph.t
 
   val get_clust_value_opt: ?json_label:bool -> config:Conll.Conll_config.t -> Request.cluster_item ->  Request.t -> G_graph.t -> t -> string option
+  val get_clust_value: ?json_label:bool -> config:Conll.Conll_config.t -> Request.cluster_item ->  Request.t -> G_graph.t -> t -> string
+  val get_clust_value_list: ?json_label:bool -> config:Conll.Conll_config.t -> Request.cluster_item ->  Request.t -> G_graph.t -> t -> string list
 end (* module Matching *)
 
 (* ================================================================================ *)

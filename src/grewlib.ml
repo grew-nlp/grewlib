@@ -191,6 +191,9 @@ module Request = struct
     Grewlib.handle ~name:"Request.parse_cluster_item"
       (fun () -> Grew_rule.Request.parse_cluster_item ~config request string_item) ()
 
+  let string_list_of_cluster_item_list cluster_item_list =
+    Grewlib.handle ~name:"Request.string_list_of_cluster_item_list"
+      (fun () -> Grew_rule.Request.string_list_of_cluster_item_list cluster_item_list) ()
 end
 
 (* ==================================================================================================== *)
@@ -218,9 +221,17 @@ module Matching = struct
 
   let build_deco request matching = Grew_rule.Matching.build_deco request matching
 
-    let get_clust_value_opt =
+  let get_clust_value_opt =
     Grewlib.handle ~name:"Matching.get_clust_value_opt"
     (fun () -> Grew_rule.Matching.get_clust_value_opt) ()
+
+  let get_clust_value =
+    Grewlib.handle ~name:"Matching.get_clust_value"
+    (fun () -> Grew_rule.Matching.get_clust_value) ()
+
+  let get_clust_value_list =
+    Grewlib.handle ~name:"Matching.get_clust_value_list"
+    (fun () -> Grew_rule.Matching.get_clust_value_list) ()
 end
 
 
