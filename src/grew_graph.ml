@@ -96,6 +96,24 @@ module P_graph = struct
     | None -> None
     | Some new_node -> Some (Pid_map.add src_pid new_node map)
 
+  (* ast_node list to p_node list, taking into account multiple decl with the same name *)
+  let named_nodes_from_ast_node_list lexicons ast_node_list =
+    (* NB: insert searches for a previous node with the same name and uses unification rather than constraint *)
+    (* NB: insertion of new node at the end of the list: not efficient but graph building is not the hard part. *)
+    let rec insert (ast_node, loc) = function
+      | [] -> [P_node.of_ast lexicons (ast_node, loc)]
+      | (node_id,p_node)::tail when ast_node.Ast.node_id = node_id ->
+        begin
+          try
+            let new_p_node = P_node.unif_fs_disj (List.map (P_fs.of_ast lexicons) ast_node.Ast.fs_disj) p_node in
+            (node_id, new_p_node) :: tail
+          with Error.Build (msg,_) -> raise (Error.Build (msg,Some loc))
+        end
+      | (node_id,p_node) :: tail -> 
+          (node_id,p_node) :: (insert (ast_node, loc) tail) in
+
+    List.fold_left (fun acc ast_node -> insert ast_node acc) [] ast_node_list
+
   (* -------------------------------------------------------------------------------- *)
   let of_ast ~config lexicons basic_ast =
     let full_node_list = basic_ast.Ast.req_nodes
@@ -124,23 +142,7 @@ module P_graph = struct
         Error.build ~loc "The same identifier `%s` cannot be used both as a node identifier and as an edge identifier" id
     end;
 
-    (* NB: insert searches for a previous node with the same name and uses unification rather than constraint *)
-    (* NB: insertion of new node at the end of the list: not efficient but graph building is not the hard part. *)
-    let rec insert (ast_node, loc) = function
-      | [] -> [P_node.of_ast lexicons (ast_node, loc)]
-      | (node_id,p_node)::tail when ast_node.Ast.node_id = node_id ->
-        begin
-          try
-          (node_id, P_node.unif_fs_disj (List.map (P_fs.of_ast lexicons) ast_node.Ast.fs_disj) p_node) :: tail
-          with Error.Build (msg,_) -> raise (Error.Build (msg,Some loc))
-        end
-      | head :: tail -> head :: (insert (ast_node, loc) tail) in
-
-    let named_nodes =
-      List.fold_left
-        (fun acc ast_node -> insert ast_node acc)
-        [] full_node_list in
-
+    let named_nodes = named_nodes_from_ast_node_list lexicons full_node_list in
     let sorted_nodes = List.sort (fun (id1,_) (id2,_) -> Stdlib.compare id1 id2) named_nodes in
     let (sorted_ids, node_list) = List.split sorted_nodes in
 
@@ -185,7 +187,7 @@ module P_graph = struct
   (* It may raise [P_fs.Fail_unif] in case of contradiction on constraints *)
   let of_ast_extension ~config lexicons ker_table edge_ids full_node_list full_edge_list =
 
-    let built_nodes = List.map (P_node.of_ast lexicons) full_node_list in
+    let built_nodes = named_nodes_from_ast_node_list lexicons full_node_list in
 
     let (old_nodes, new_nodes) =
       List.partition
