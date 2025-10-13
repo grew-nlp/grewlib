@@ -294,24 +294,30 @@ module Request = struct
     let edges = get_edge_ids request.ker |> List.map (fun x -> `String x) in
   `Assoc [("nodes", `List nodes); ("edges", `List edges)]
 
-  let of_ast ~config request_ast =
-    let (ker, ker_table, edge_ids) =
-      try build_ker_basic ~config [] request_ast.Ast.req_pos
+  let of_ast ?loc ~config lexicons request_ast =
+    let (ker, table, edge_ids) =
+      try build_ker_basic ~config lexicons request_ast.Ast.req_pos
       with P_fs.Fail_unif -> Error.build "feature structures declared in the `pattern` clauses are inconsistent " in
-    let exts =
-      List_.try_map
-        P_fs.Fail_unif (* Skip the without parts that are incompatible with the match part *)
-        (fun (basic_ast, flag) ->
-          (build_ext_basic ~config [] ker_table edge_ids basic_ast, flag)
-        )
-        request_ast.Ast.req_exts in
-    { ker; exts; global=request_ast.req_glob; table=ker_table; edge_ids; meta=[]}
+
+    let (exts,_) =
+      List.fold_left
+        (fun (acc,position) (basic_ast, flag) ->
+          try ((build_ext_basic ~config lexicons table edge_ids basic_ast, flag) :: acc, position+1)
+          with
+          | P_fs.Fail_unif when flag ->
+            Error.build ?loc "Feature structures declared in the `with` clause number %d are inconsistent" position
+          | P_fs.Fail_unif ->
+            Warning.magenta ?loc "The `without` clause number %d cannot be satisfied, it is skipped" position;
+            (acc, position+1)
+        ) ([],1) request_ast.Ast.req_exts in
+    
+    { ker; exts; global=request_ast.req_glob; table; edge_ids; meta=[]}
 
   let load ~config file =
-    of_ast ~config (Grew_loader.Loader.request file)
+    of_ast ~config [] (Grew_loader.Loader.request file)
 
   let parse ~config code =
-    of_ast ~config (Grew_loader.Parser.request code)
+    of_ast ~config [] (Grew_loader.Parser.request code)
 
   let build_whether ~config request basic_ast =
     build_ext_basic ~config [] request.table request.edge_ids (Ast.complete_basic basic_ast)
@@ -380,7 +386,7 @@ module Request = struct
 
   let of_json ~config json_data =
     let (request_string, meta) = string_and_meta_of_json json_data in
-    let t = of_ast ~config (Parser.request request_string) in
+    let t = of_ast ~config [] (Parser.request request_string) in
     { t with meta }
 
   let get_meta_opt key t = List.assoc_opt key t.meta
@@ -1288,38 +1294,22 @@ module Rule = struct
 
   (* ====================================================================== *)
   let of_ast ~config rule_ast =
+    let loc = rule_ast.Ast.rule_loc in
     let lexicons =
-      List.fold_left (fun acc (name,lex) ->
+      List.fold_left
+        (fun acc (name,lex) ->
           try
             let prev = List.assoc name acc in
-            (name, (Lexicon.union prev (Lexicon.of_ast ~loc:rule_ast.Ast.rule_loc rule_ast.Ast.rule_dir lex))) :: (List.remove_assoc name acc)
-          with Not_found -> (name, Lexicon.of_ast ~loc:rule_ast.Ast.rule_loc rule_ast.Ast.rule_dir lex) :: acc
+            (name, (Lexicon.union prev (Lexicon.of_ast ~loc rule_ast.Ast.rule_dir lex))) :: (List.remove_assoc name acc)
+          with Not_found -> (name, Lexicon.of_ast ~loc rule_ast.Ast.rule_dir lex) :: acc
         ) [] rule_ast.Ast.lexicon_info in
 
-    let (ker, ker_table, edge_ids) =
-      try Request.build_ker_basic ~config lexicons rule_ast.Ast.request.Ast.req_pos
-      with P_fs.Fail_unif ->
-        Error.build ~loc:rule_ast.Ast.rule_loc
-          "[Rule.build] in rule \"%s\": feature structures declared in the `pattern` clauses are inconsistent"
-          rule_ast.Ast.rule_id in
-    let (exts,_) =
-      List.fold_left
-        (fun (acc,position) (basic_ast, flag) ->
-          try ((Request.build_ext_basic ~config lexicons ker_table edge_ids basic_ast, flag) :: acc, position+1)
-          with
-          | P_fs.Fail_unif when flag ->
-            Error.build ~loc:rule_ast.Ast.rule_loc
-              "[Rule.build] in rule \"%s\": feature structures declared in the `with` clauses are inconsistent"
-              rule_ast.Ast.rule_id
-          | P_fs.Fail_unif ->
-            Warning.magenta ~loc:rule_ast.Ast.rule_loc "In rule \"%s\", the without number %d cannot be satisfied, it is skipped"
-              rule_ast.Ast.rule_id position;
-            (acc, position+1)
-        ) ([],1) rule_ast.Ast.request.Ast.req_exts in
-    let commands = commands_of_ast ~config lexicons ker ker_table rule_ast.Ast.commands in
+    let request = Request.of_ast ~loc ~config lexicons rule_ast.Ast.request in
+
+    let commands = commands_of_ast ~config lexicons request.ker request.table rule_ast.Ast.commands in
     {
       name = rule_ast.Ast.rule_id;
-      request = { ker; exts; global=rule_ast.Ast.request.Ast.req_glob; table=ker_table; edge_ids; meta=[]; };
+      request;
       commands;
       loc = rule_ast.Ast.rule_loc;
       lexicons;
