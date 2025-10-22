@@ -320,9 +320,12 @@ module Corpus_desc = struct
 
   let get_field_opt field corpus_desc = corpus_desc |> member field |> to_string_option
 
+  let get_config_string_opt corpus_desc =
+    try corpus_desc |> member "config" |> to_string_option
+    with Type_error _ -> Error.run "[Corpus_desc.get_config_string_opt] \"config\" field must be a string in %s" (get_id corpus_desc)
+
   let get_config corpus_desc =
-    try corpus_desc |> member "config" |> to_string_option |> CCOption.map_or ~default:(Conll_config.build "ud") Conll_config.build
-    with Type_error _ -> Error.run "[Corpus_desc.get_config] \"config\" field must be a string in %s" (get_id corpus_desc)
+    corpus_desc |> get_config_string_opt |> CCOption.map_or ~default:(Conll_config.build "ud") Conll_config.build
 
   let get_directory corpus_desc =
     try corpus_desc |> member "directory" |> to_string
@@ -718,6 +721,50 @@ module Corpus_desc = struct
           Info.green "SUD validation of %s" corpus_id;
           check validator_list valid_file corpus_desc
         end
+
+  let dc_table ?(env=[]) out_file req_file row_key col_key filter corpus_desc =
+    let abs_out_file = Filename.concat (get_build_directory corpus_desc) out_file in
+    let script = File.concat_names [(Env.get env "SUDTOOLS"); "grewpy"; "build_table.py"] in
+    let abs_req_file = File.concat_names [(Env.get env "SUDTOOLS"); "grewpy"; req_file] in
+    let args = [
+      Some (sprintf "--corpus_id %s" (get_id corpus_desc));
+      Some (sprintf "--corpus_dir %s" (get_directory corpus_desc));
+      Some "--timestamp";
+      (if filter then Some "--filter" else None);
+      (corpus_desc |> get_config_string_opt |> CCOption.map (fun c -> sprintf "--config %s" c));
+      Some (sprintf "--request %s" abs_req_file);
+      Some (sprintf "--row_key %s" row_key);
+      Some (sprintf "--col_key %s" col_key);
+    ]
+    |> CCList.filter_map CCFun.id
+    |> (String.concat " ") in
+    let command = sprintf "python3 %s %s %s > %s" script "DC" args abs_out_file in
+      match Sys.command command with
+      | 0 -> ()
+      | _ -> Warning.magenta "Error when running dc_table"
+
+  let feat_upos ?(env=[]) corpus_desc =
+    let abs_out_file = Filename.concat (get_build_directory corpus_desc) "feat_upos.json" in
+    let script = File.concat_names [(Env.get env "SUDTOOLS"); "grewpy"; "pos_features.py"] in
+    let args = [
+      Some (sprintf "--corpus_id %s" (get_id corpus_desc));
+      Some (sprintf "--corpus_dir %s" (get_directory corpus_desc));
+      Some "--timestamp";
+      (corpus_desc |> get_config_string_opt |> CCOption.map (fun c -> sprintf "--config %s" c));
+    ]
+    |> CCList.filter_map CCFun.id
+    |> (String.concat " ") in
+    let command = sprintf "python3 %s %s > %s" script args abs_out_file in
+      match Sys.command command with
+      | 0 -> ()
+      | _ -> Warning.magenta "Error when running feat_upos"
+
+  let build_tables ?(env=[]) corpus_desc =
+    (* let _ = amb_lemmas ~env corpus_desc in *)
+    let () = dc_table ~env "amb_lemmas.json" "lemma.json" "N.lemma" "N.upos" true corpus_desc in
+    let () = dc_table ~env "dep_upos.json" "edge.json" "e.label" "N.ExtPos/upos" false corpus_desc in
+    let () = feat_upos ~env corpus_desc in
+    ()
 
   let validate_ud ~verbose ~env corpus_desc =
     let validate_script = Filename.concat (Env.get env "UDTOOLS") "validate.py" in

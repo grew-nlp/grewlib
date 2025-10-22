@@ -101,5 +101,6 @@ module Corpus_desc : sig
 
   val need_validate: t -> bool
   val validate: ?verbose:bool -> ?env: (string * string) list -> t -> unit
+  val build_tables: ?env: (string * string) list -> t -> unit
 end
 
