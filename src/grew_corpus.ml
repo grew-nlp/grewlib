@@ -749,7 +749,6 @@ module Corpus_desc = struct
     let args = [
       Some (sprintf "--corpus_id %s" (get_id corpus_desc));
       Some (sprintf "--corpus_dir %s" (get_directory corpus_desc));
-      Some "--timestamp";
       (corpus_desc |> get_config_string_opt |> CCOption.map (fun c -> sprintf "--config %s" c));
     ]
     |> CCList.filter_map CCFun.id
