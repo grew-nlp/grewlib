@@ -455,8 +455,8 @@ module Corpus_desc = struct
   let validate ?verbose ?env t =
     Grewlib.handle ~name:"Corpus_desc.validate" (fun () -> Grew_corpus.Corpus_desc.validate ?verbose ?env t) ()
 
-  let build_tables ?env t =
-    Grewlib.handle ~name:"Corpus_desc.build_tables" (fun () -> Grew_corpus.Corpus_desc.build_tables ?env t) ()
+  let build_tables ?verbose ?env t =
+    Grewlib.handle ~name:"Corpus_desc.build_tables" (fun () -> Grew_corpus.Corpus_desc.build_tables ?verbose ?env t) ()
   end (* module Corpus_desc *)
 
 
@@ -507,13 +507,13 @@ module Corpusbank = struct
       (fun () -> Grew_corpusbank.Corpusbank.print_status ?verbose ?filter t)
       ()
 
-  let compile ?(force=false) ?filter t  =
+  let compile ?(force=false) ?filter t =
     Grewlib.handle
       ~name:"Corpusbank.compile"
       (fun () -> Grew_corpusbank.Corpusbank.compile ~force ?filter t )
       ()
 
-  let build ?(force=false) ?filter t  =
+  let build ?(force=false) ?filter t =
     Grewlib.handle
       ~name:"Corpusbank.build"
       (fun () -> Grew_corpusbank.Corpusbank.build ~force ?filter t )

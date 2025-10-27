@@ -699,6 +699,10 @@ module Corpus_desc = struct
 
     CCIO.with_out out_file (fun out_ch -> fprintf out_ch "%s\n" (Yojson.Basic.pretty_to_string json))
 
+  let last_modif corpus_desc =
+    corpus_desc
+    |> get_files
+    |> List.fold_left (fun acc file -> max acc (File.last_modif file)) Float.min_float
 
   let validate_sud ~verbose ~env corpus_desc =
     printf "====validate_sud=====\n%!";
@@ -712,9 +716,7 @@ module Corpus_desc = struct
     let corpus_id = get_id corpus_desc in
     let valid_file = Filename.concat (get_build_directory corpus_desc) "valid_sud.json" in
     let valid_time = File.last_modif valid_file in
-    let files = get_files corpus_desc in
-    let files_time = List.fold_left (fun acc file -> max acc (File.last_modif file)) Float.min_float files in
-    if valid_time > files_time && valid_time > modules_time
+    if valid_time > (last_modif corpus_desc) && valid_time > modules_time
       then (if verbose then Info.green "%s --> SUD validation is uptodate" corpus_id)
       else
         begin
@@ -722,58 +724,12 @@ module Corpus_desc = struct
           check validator_list valid_file corpus_desc
         end
 
-  let dc_table ?(env=[]) out_file req_file row_key col_key filter corpus_desc =
-    let abs_out_file = Filename.concat (get_build_directory corpus_desc) out_file in
-    let script = File.concat_names [(Env.get env "SUDTOOLS"); "grewpy"; "build_table.py"] in
-    let abs_req_file = File.concat_names [(Env.get env "SUDTOOLS"); "grewpy"; req_file] in
-    let args = [
-      Some (sprintf "--corpus_id %s" (get_id corpus_desc));
-      Some (sprintf "--corpus_dir %s" (get_directory corpus_desc));
-      Some "--timestamp";
-      (if filter then Some "--filter" else None);
-      (corpus_desc |> get_config_string_opt |> CCOption.map (fun c -> sprintf "--config %s" c));
-      Some (sprintf "--request %s" abs_req_file);
-      Some (sprintf "--row_key %s" row_key);
-      Some (sprintf "--col_key %s" col_key);
-    ]
-    |> CCList.filter_map CCFun.id
-    |> (String.concat " ") in
-    let command = sprintf "python3 %s %s %s > %s" script "DC" args abs_out_file in
-      match Sys.command command with
-      | 0 -> ()
-      | _ -> Warning.magenta "Error when running dc_table"
-
-  let feat_upos ?(env=[]) corpus_desc =
-    let abs_out_file = Filename.concat (get_build_directory corpus_desc) "feat_upos.json" in
-    let script = File.concat_names [(Env.get env "SUDTOOLS"); "grewpy"; "pos_features.py"] in
-    let args = [
-      Some (sprintf "--corpus_id %s" (get_id corpus_desc));
-      Some (sprintf "--corpus_dir %s" (get_directory corpus_desc));
-      (corpus_desc |> get_config_string_opt |> CCOption.map (fun c -> sprintf "--config %s" c));
-    ]
-    |> CCList.filter_map CCFun.id
-    |> (String.concat " ") in
-    let command = sprintf "python3 %s %s > %s" script args abs_out_file in
-      match Sys.command command with
-      | 0 -> ()
-      | _ -> Warning.magenta "Error when running feat_upos"
-
-  let build_tables ?(env=[]) corpus_desc =
-    (* let _ = amb_lemmas ~env corpus_desc in *)
-    let () = dc_table ~env "amb_lemmas.json" "lemma.json" "N.lemma" "N.upos" true corpus_desc in
-    let () = dc_table ~env "dep_upos.json" "edge.json" "e.label" "N.ExtPos/upos" false corpus_desc in
-    let () = feat_upos ~env corpus_desc in
-    ()
-
   let validate_ud ~verbose ~env corpus_desc =
     let validate_script = Filename.concat (Env.get env "UDTOOLS") "validate.py" in
     let corpus_id = get_id corpus_desc in
     let lang_opt = get_field_opt "lang" corpus_desc in
     let valid_file = Filename.concat (get_build_directory corpus_desc) "valid_ud.txt" in
-    let valid_time = File.last_modif valid_file in
-    let files = get_files corpus_desc in
-    let files_time = List.fold_left (fun acc file -> max acc (File.last_modif file)) Float.min_float files in
-    if valid_time > files_time
+    if File.last_modif valid_file > last_modif corpus_desc
     then (if verbose then Info.green "%s --> UD validation is uptodate" corpus_id)
     else
       let out_ch = open_out valid_file in
@@ -794,7 +750,7 @@ module Corpus_desc = struct
         match Sys.command command with
           | 0 -> ()
           | _ -> Warning.magenta "Error when running UD Python validation script on file %s" (Filename.basename file);
-      ) files
+      ) (get_files corpus_desc)
 
 
 
@@ -807,6 +763,59 @@ module Corpus_desc = struct
       | Some s -> Error.run "Unknown validation `%s`" s
     with Unix.Unix_error (_x,_y,_z) -> Warning.magenta "Skip `%s`, Error %s %s" (get_id corpus_desc) _y _z
 
+
+  let dc_table ~verbose ~env out_file req_file row_key col_key filter corpus_desc =
+    let abs_out_file = Filename.concat (get_build_directory corpus_desc) out_file in
+    if File.last_modif abs_out_file > last_modif corpus_desc
+    then (if verbose then Info.green "%s --> %s table is uptodate" (get_id corpus_desc) out_file)
+    else
+      begin
+        Info.green "%s --> Build table %s" (get_id corpus_desc) out_file;
+        let script = File.concat_names [(Env.get env "SUDTOOLS"); "grewpy"; "build_table.py"] in
+        let abs_req_file = File.concat_names [(Env.get env "SUDTOOLS"); "grewpy"; req_file] in
+        let args = [
+          Some (sprintf "--corpus_id %s" (get_id corpus_desc));
+          Some (sprintf "--corpus_dir %s" (get_directory corpus_desc));
+          Some "--timestamp";
+          (if filter then Some "--filter" else None);
+          (corpus_desc |> get_config_string_opt |> CCOption.map (fun c -> sprintf "--config %s" c));
+          Some (sprintf "--request %s" abs_req_file);
+          Some (sprintf "--row_key %s" row_key);
+          Some (sprintf "--col_key %s" col_key);
+        ]
+        |> CCList.filter_map CCFun.id
+        |> (String.concat " ") in
+        let command = sprintf "python3 %s %s %s > %s" script "DC" args abs_out_file in
+          match Sys.command command with
+          | 0 -> ()
+          | _ -> Warning.magenta "Error when running dc_table"
+      end
+  let feat_upos ~verbose ~env corpus_desc =
+    let out_file = "feat_upos.json" in
+    let abs_out_file = Filename.concat (get_build_directory corpus_desc) out_file in
+    if File.last_modif abs_out_file > last_modif corpus_desc
+    then (if verbose then Info.green "%s --> %s table is uptodate" (get_id corpus_desc) out_file)
+    else
+      begin
+        Info.green "%s --> Build table %s" (get_id corpus_desc) out_file;
+        let script = File.concat_names [(Env.get env "SUDTOOLS"); "grewpy"; "pos_features.py"] in
+        let args = [
+          Some (sprintf "--corpus_id %s" (get_id corpus_desc));
+          Some (sprintf "--corpus_dir %s" (get_directory corpus_desc));
+          (corpus_desc |> get_config_string_opt |> CCOption.map (fun c -> sprintf "--config %s" c));
+        ]
+        |> CCList.filter_map CCFun.id
+        |> (String.concat " ") in
+        let command = sprintf "python3 %s %s > %s" script args abs_out_file in
+          match Sys.command command with
+          | 0 -> ()
+          | _ -> Warning.magenta "Error when running feat_upos"
+      end
+  let build_tables ?(verbose=false) ?(env=[]) corpus_desc =
+    let () = dc_table ~verbose ~env "amb_lemmas.json" "lemma.json" "N.lemma" "N.upos" true corpus_desc in
+    let () = dc_table ~verbose ~env "dep_upos.json" "edge.json" "e.label" "N.ExtPos/upos" false corpus_desc in
+    let () = feat_upos ~verbose ~env corpus_desc in
+    ()
   let show corpus_desc =
     Info.green "<><><> %s <><><>" (get_id corpus_desc) ;
     match corpus_desc with
