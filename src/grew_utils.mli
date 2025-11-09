@@ -209,6 +209,8 @@ module List_: sig
   val sort_remove_assoc_opt: 'a -> ('a * 'b) list -> ('a * 'b) list option
 
   val prev_next_iter: (?prev:'a -> ?next:'a -> 'a -> unit) -> 'a list -> unit
+
+  val map2_with_default: ('a -> 'a -> 'b) -> 'a -> 'a list -> 'a list -> 'b list
 end
 
 (* ================================================================================ *)

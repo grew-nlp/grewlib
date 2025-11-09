@@ -9,6 +9,7 @@
 (**********************************************************************************)
 
 open Printf
+open Grew_utils
 
 module String_set = Set.Make (String)
 
@@ -26,22 +27,20 @@ module Int_map = Map.Make (struct type t = int let compare = Stdlib.compare end)
 module Clustered = struct
 
   type 'a t =
-    | Empty of int (* virtual depth *)
+    | Empty
     | Leaf of 'a
     | Node of 'a t String_opt_map.t
 
-  let rec depth = function
-    | Node som -> 1 + (som |> String_opt_map.choose |> snd |> depth)
-    | _ -> 0
+  let empty = Empty
 
   (* nbre of element *)
   let rec nb_clusters = function
-    | Empty _ -> 0
+    | Empty -> 0
     | Leaf _ -> 1
     | Node map -> String_opt_map.fold (fun _ t acc -> acc + (nb_clusters t)) map 0
 
   let rec cardinal elt_size = function
-    | Empty _ -> 0
+    | Empty -> 0
     | Leaf x -> elt_size x
     | Node map -> String_opt_map.fold (fun _ t acc -> acc + (cardinal elt_size t)) map 0
 
@@ -59,7 +58,7 @@ module Clustered = struct
   (** outputs a raw display of the structure (to be used only for debug) *)
   let _dump to_string t =
     let rec loop indent = function
-    | Empty depth -> printf "%s_EMPTY of depth %d_\n%!" (String.make indent ' ') depth
+    | Empty -> printf "%s_EMPTY_\n%!" (String.make indent ' ')
     | Leaf a -> printf "%s_LEAF_ %s\n%!" (String.make indent ' ') (to_string a)
     | Node som ->
       String_opt_map.iter
@@ -70,7 +69,7 @@ module Clustered = struct
     loop 0 t
 
   let rec sizes elt_size = function
-    | Empty d -> List.init d (fun _ -> String_opt_map.empty)
+    | Empty -> []
     | Leaf _ -> []
     | Node map ->
       let (first_layer: int String_opt_map.t) =
@@ -83,14 +82,12 @@ module Clustered = struct
             let (sub_sizes: int String_opt_map.t list) = sizes elt_size sm in
             match acc with
             | None -> Some sub_sizes
-            | Some prev -> Some (List.map2 merge_sizes sub_sizes prev)
+            | Some prev -> 
+              Some (List_.map2_with_default merge_sizes String_opt_map.empty sub_sizes prev)
           ) map None in
       match sub_layers with
       | None -> failwith "[BUG] empty map"
       | Some s -> first_layer :: s
-
-
-  let empty depth = Empty depth
 
   let build_layer sub_fct key_fct item_list =
     match item_list with
@@ -106,7 +103,7 @@ module Clustered = struct
 
   let get_opt default key_list t =
     let rec loop = function
-      | (l, Empty d) when List.length l = d -> default
+      | (_, Empty) -> default
       | ([], Leaf v) -> v
       | (key::key_tail, Node som) ->
         begin
@@ -120,16 +117,16 @@ module Clustered = struct
   let fold_layer default fct_leaf init fct_node closure t =
     let rec loop t =
       match t with
-      | Empty _ -> fct_leaf default
+      | Empty -> fct_leaf default
       | Leaf l -> fct_leaf l
       | Node som -> closure (String_opt_map.fold (fun key sub acc -> fct_node key (loop sub) acc) som init) in
     loop t
 
   let rec update fct path def t =
     match (path, t) with
-    | ([], Empty _) -> Leaf (fct def)
+    | ([], Empty) -> Leaf (fct def)
     | ([], Leaf i) -> Leaf (fct i)
-    | (value::tail, Empty _) ->
+    | (value::tail, Empty) ->
       let sub =
         match tail with
         | [] -> Leaf def
@@ -173,13 +170,13 @@ module Clustered = struct
     `List (loop [] keys [] t) *)
 
   let rec map (fct: 'a -> 'b) = function
-    | Empty d -> Empty d
+    | Empty -> Empty
     | Leaf a -> Leaf (fct a)
     | Node m -> Node (String_opt_map.map (fun sm -> map fct sm) m)
 
   let fold fct t init =
     let rec loop path acc = function
-      | Empty _ -> acc
+      | Empty -> acc
       | Leaf l -> fct path l acc
       | Node som ->
         String_opt_map.fold
@@ -189,16 +186,15 @@ module Clustered = struct
     loop [] init t
 
   let merge_keys misc_key merge_item default filter_list t =
-    let d = depth t in
     fold
       (fun key_list item acc ->
         let new_key_list = List.map2 (fun f x -> if f x then x else misc_key) filter_list key_list in
         update (fun x -> merge_item item x) new_key_list default acc
-      ) t (Empty d)
+      ) t Empty
 
   let iter fct t =
     let rec loop path = function
-      | Empty _ -> ()
+      | Empty -> ()
       | Leaf l -> fct path l
       | Node som ->
         String_opt_map.iter

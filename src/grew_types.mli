@@ -24,9 +24,7 @@ module Clustered : sig
       the length of the list must correspond to the depth of the structure.
   *)
 
-  val depth: _ t -> int
-
-  val empty: int -> 'a t
+  val empty: 'a t
   (** The [empty] structure (the virtual depth should be given) *)
 
   val get_opt: 'a -> string option list -> 'a t -> 'a

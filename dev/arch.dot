@@ -15,7 +15,7 @@ digraph grew {
   grew_corpus [label="grew_corpus|(Pst_corpus)\nCorpus\nCorpus_desc"]
   grew_corpusbank [label="grew_corpusbank|Corpusbank"]
   grewlib [fillcolor=yellow, shape=record, label="grewlib|Grewlib\nDeco\nGraph\nRequest\nMatching\nGrs\nRewrite\nCorpus\nCorpus_desc\nCorpusbank\nSbn"]
-grew_ast -> Grew_utils -> Grew_types
+grew_ast -> Grew_types -> Grew_utils
 grew_edge -> grew_ast
 grew_fs -> grew_ast
 grew_command -> grew_graph

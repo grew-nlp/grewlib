@@ -419,6 +419,13 @@ module List_ = struct
       | [last] -> int_fct prev None last
       | head::snd::tail -> int_fct prev (Some snd) head; loop (Some head) (snd::tail) in
     loop None list
+
+  let rec map2_with_default f default lst1 lst2 =
+    match lst1, lst2 with
+    | [], [] -> []
+    | x::xs, [] -> f x default :: map2_with_default f default xs []
+    | [], y::ys -> f default y :: map2_with_default f default [] ys
+    | x::xs, y::ys -> f x y :: map2_with_default f default xs ys
 end (* module List_ *)
 
 (* ================================================================================ *)
