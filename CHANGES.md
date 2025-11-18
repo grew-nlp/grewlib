@@ -1,3 +1,10 @@
+# 1.19.0 (2025/11/18)
+  - tuples of clutering keys
+  - Fix bug with multiple declaration of the same node name in a with/without clause
+  - add Corpus_desc.build_tables function
+  - ⚠️ Clustered.empty has a new type `'a Clustered.t` (previously it wat `int -> 'a Clustered.t`')
+  - ⚠️ Fix typing problem with feature values when parsing
+
 # 1.18.0 (2025/07/15)
   - Constraint about global structure and metadata are now available in `pattern`, `with` or `without`
   - let JSON reader accept sequences of JSON

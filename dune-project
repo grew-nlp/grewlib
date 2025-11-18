@@ -2,7 +2,7 @@
 
 (name grewlib)
 
-(version 1.18.0)
+(version 1.19.0)
 
 (using menhir 2.0)
 
@@ -31,10 +31,10 @@
    yojson
    fileutils
    ANSITerminal
-   (containers ( >= "3.6" ))
+   (containers ( >= "3.16" ))
    (amr ( >= "0.9.1" )) 
-   (conll ( >= "1.19.4" ))
-   (uunf ( >= "16.0.0" ))
+   (conll ( >= "1.19.5" ))
+   (uunf ( >= "17.0.0" ))
  )
  (tags
   (nlp "graph rewriting")
