@@ -818,9 +818,14 @@ module Feature_value = struct
       begin
         match float_of_string_opt string_value with
         | Some f -> Float f
-        | None -> Error.run ?loc "The feature \"%s\" must be numeric, it cannot be associated with value: \"%s\"" feature_name string_value
+        | None -> Error.build ?loc "The feature \"%s\" must be numeric, it cannot be associated with value: \"%s\"" feature_name string_value
       end
     else String (string_value |> String_.nfc)
+
+  let from_float feature_name numeric_value =
+    if List.mem feature_name numeric_feature_values
+    then Float numeric_value
+    else String (String_.of_float_clean numeric_value) 
 
   let to_string ?(quote=false)= function
     | String s -> s

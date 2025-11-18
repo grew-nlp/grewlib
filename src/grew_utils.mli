@@ -383,8 +383,13 @@ module Feature_value: sig
   (** [parse feature_name feature_value] return a feature_value with type t above
       NB: Typing float/string for feature value is hardcoded (this should evolve with a new config implementation)
       See ml file for numeric feature list
-      [Error.run] is raised if one tries to buils a numeric feature value with a non-numeric value *)
+      [Error.build] is raised if one tries to build a numeric feature value with a non-numeric value *)
   val parse: ?loc:Loc.t -> string -> string -> t
+
+  (** [from_float feature_name feature_value] return a feature_value with type t above
+      NB: Typing float/string for feature value is hardcoded (this should evolve with a new config implementation)
+      See ml file for numeric feature list *)
+  val from_float: string -> float -> t
 
   (** [to_string t] returns a string for the feature value
       TODO: more about quote escaping *)

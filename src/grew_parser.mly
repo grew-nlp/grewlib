@@ -408,18 +408,18 @@ clause_item:
              { let (feat_id1,loc)=feat_id1_loc in
               match Ast.parse_simple_or_pointed rhs with
               | Ast.Simple value ->
-                Clause_const (Ast.Feature_cmp_value (Eq,feat_id1, String value), loc)
+                Clause_const (Ast.Feature_cmp_value (Eq,feat_id1, Feature_value.parse (snd feat_id1) value), loc)
               | Ast.Pointed (s1, s2) ->
                 Clause_const (Ast.Feature_cmp (Eq, feat_id1, (s1, s2)), loc)
              }
 
         /*   X.cat = "value"   */
         | feat_id1_loc=feature_ident_with_loc EQUAL rhs=STRING
-            { let (feat_id1,loc)=feat_id1_loc in Clause_const (Ast.Feature_cmp_value (Eq, feat_id1, String rhs), loc) }
+            { let (feat_id1,loc)=feat_id1_loc in Clause_const (Ast.Feature_cmp_value (Eq, feat_id1, Feature_value.parse (snd feat_id1) rhs), loc) }
 
         /*   X.cat = 12.34   */
         | feat_id1_loc=feature_ident_with_loc EQUAL rhs=number
-            { let (feat_id1,loc)=feat_id1_loc in Clause_const (Ast.Feature_cmp_value (Eq, feat_id1, Float rhs), loc) }
+            { let (feat_id1,loc)=feat_id1_loc in Clause_const (Ast.Feature_cmp_value (Eq, feat_id1, Feature_value.from_float (snd feat_id1) rhs), loc) }
 
         /*   X.cat = re"regexp"   */
         | feat_id_loc=feature_ident_with_loc EQUAL regexp=REGEXP
@@ -437,11 +437,11 @@ clause_item:
 
         /*   X.ExtPos/upos = "value"   */
         | feat_id1_loc=feature_ident_with_loc SLASH fn2=simple_id EQUAL rhs=STRING
-            { let (feat_id1,loc)=feat_id1_loc in Clause_const (Ast.Feature_else (feat_id1, fn2, String rhs), loc) }
+            { let (feat_id1,loc)=feat_id1_loc in Clause_const (Ast.Feature_else (feat_id1, fn2, Feature_value.parse (snd feat_id1) rhs), loc) }
 
         /*   X.ExtPos/upos = 22   */
         | feat_id1_loc=feature_ident_with_loc SLASH fn2=simple_id EQUAL rhs=number
-            { let (feat_id1,loc)=feat_id1_loc in Clause_const (Ast.Feature_else (feat_id1, fn2, Float rhs), loc) }
+            { let (feat_id1,loc)=feat_id1_loc in Clause_const (Ast.Feature_else (feat_id1, fn2, Feature_value.from_float (snd feat_id1) rhs), loc) }
 
         /*   X.cat <> value   */
         /*   X.cat <> Y.cat   */
@@ -450,7 +450,7 @@ clause_item:
         | lhs_loc=simple_or_pointed_with_loc DISEQUAL rhs =simple_or_pointed
              {  match (lhs_loc,rhs) with
               | ((Ast.Pointed feat_id,loc), Ast.Simple value) ->
-                Clause_const (Ast.Feature_cmp_value (Neq, feat_id, String value), loc)
+                Clause_const (Ast.Feature_cmp_value (Neq, feat_id, Feature_value.parse (snd feat_id) value), loc)
               | ((Ast.Pointed feat_id,loc), Ast.Pointed (s1, s2)) ->
                 Clause_const (Ast.Feature_cmp (Neq, feat_id, (s1, s2)), loc)
               | ((Ast.Simple edge_id1,loc), Ast.Simple edge_id2) ->
@@ -462,14 +462,14 @@ clause_item:
         /*   X.cat <> "value"   */
         | lhs_loc=simple_or_pointed_with_loc DISEQUAL rhs=STRING
             { match lhs_loc with
-              | (Ast.Pointed feat_id, loc) -> Clause_const (Ast.Feature_cmp_value (Neq, feat_id, String rhs), loc)
+              | (Ast.Pointed feat_id, loc) -> Clause_const (Ast.Feature_cmp_value (Neq, feat_id, Feature_value.parse (snd feat_id) rhs), loc)
               | (_,loc) -> Error.build ~loc "syntax error in constraint"
             }
 
         /*   X.cat <> 12.34   */
         | lhs_loc=simple_or_pointed_with_loc DISEQUAL rhs=number
             { match lhs_loc with
-              | (Ast.Pointed feat_id, loc) -> Clause_const (Ast.Feature_cmp_value (Neq, feat_id, Float rhs), loc)
+              | (Ast.Pointed feat_id, loc) -> Clause_const (Ast.Feature_cmp_value (Neq, feat_id, Feature_value.from_float (snd feat_id) rhs), loc)
               | (_,loc) -> Error.build ~loc "syntax error in constraint"
             }
 
