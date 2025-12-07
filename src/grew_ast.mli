@@ -132,7 +132,9 @@ module Ast : sig
     | Edge_crossing of Id.name * Id.name
     | Delta of Id.name * Id.name * ineq * int
     | Length of Id.name * Id.name * ineq * int
-
+    | Proj of Id.name * ineq * int
+    | Cont_proj of Id.name * ineq * int
+    | Depth of Id.name * ineq * int
 
   type const = u_const * Loc.t
 

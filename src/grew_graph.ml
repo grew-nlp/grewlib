@@ -1471,6 +1471,48 @@ module G_graph = struct
       else loop (Gid_set.singleton gid1, Gid_set.empty)
     with Found -> true
 
+
+
+  let projection init_gid graph =
+    let rec step acc_set = function
+    | [] -> acc_set
+    | gid :: tail -> 
+        let node = Gid_map.find gid graph.map in
+        let new_tail = Gid_massoc.fold
+          (fun acc next_gid _ ->
+            if Gid_set.mem next_gid acc_set
+            then acc
+            else next_gid :: acc
+          ) tail (G_node.get_next_micro node) in
+        step (Gid_set.add gid acc_set) new_tail 
+    in step Gid_set.empty [init_gid]
+
+  let continuous_projection init_gid graph =
+    let full_proj = projection init_gid graph in
+    let rec extend_side dir_fct gid acc =
+      if not (Gid_set.mem gid full_proj)
+      then acc
+      else
+        let new_acc = Gid_set.add gid acc in
+          match dir_fct (Gid_map.find gid graph.map) with
+          | Some next_gid -> extend_side dir_fct next_gid new_acc
+          | None -> new_acc
+        in
+    Gid_set.empty
+    |> extend_side G_node.get_succ_opt init_gid
+    |> extend_side G_node.get_pred_opt init_gid
+
+  let rec tree_depth gid graph =
+    let node = Gid_map.find gid graph.map in
+    let next = G_node.get_next_micro node in
+    if Gid_massoc.is_empty next
+    then 1
+    else 
+      1 + Gid_massoc.fold
+          (fun acc next_gid _ ->
+            max acc (tree_depth next_gid graph)
+          ) 0 next
+
   let is_projective t =
     let (arc_positions, _) =
       Gid_map.fold

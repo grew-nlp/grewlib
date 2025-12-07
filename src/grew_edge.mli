@@ -30,6 +30,8 @@ module G_edge: sig
       Used to get the subset of edges to take into account in graph structure checking. *)
   val is_basic: t -> bool
 
+  val is_micro: t -> bool
+
   val from_items: (string * Feature_value.t) list -> t
 
   (**  WARNING: [s] is supposed to be a compact representation. *)

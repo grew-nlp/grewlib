@@ -234,6 +234,10 @@ module G_graph: sig
 
   val check_large_dominance: t -> Gid.t -> Gid.t -> bool
 
+  val projection: Gid.t -> t -> Gid_set.t
+  val continuous_projection: Gid.t -> t -> Gid_set.t
+  val tree_depth: Gid.t -> t -> int 
+
   val is_projective: t -> bool
 
   type dfs_output = {

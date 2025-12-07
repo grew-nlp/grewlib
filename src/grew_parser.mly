@@ -563,6 +563,26 @@ clause_item:
         | n1_loc=simple_id_with_loc CROSSING n2=simple_id
             { let (n1,loc) = n1_loc in Clause_const (Ast.Edge_crossing (n1,n2), loc) }
 
+        /*    delta(X,Y) <= 2      */
+        /*    length(X,Y) = 4      */
+        | id0_loc=simple_id_with_loc LPAREN n1=simple_id COMMA n2=simple_id RPAREN ineq=ineq value = INT
+            { match (id0_loc) with
+             | ("delta", loc) -> Clause_const (Ast.Delta (n1, n2, ineq, value), loc)
+             | ("length", loc) -> Clause_const(Ast.Length (n1, n2, ineq, value), loc)
+             | (x, loc) -> Error.build ~loc "Unexpected operators '%s'" x
+            }
+
+        /*    proj(X) = 2      */
+        /*    cont_proj(X) < 4     */
+        /*    depth(X) >= 2     */
+        | id0_loc=simple_id_with_loc LPAREN n=simple_id RPAREN ineq=ineq value = INT
+            { match (id0_loc) with
+             | ("proj", loc) -> Clause_const (Ast.Proj (n, ineq, value), loc)
+             | ("cont_proj", loc) -> Clause_const (Ast.Cont_proj (n, ineq, value), loc)
+             | ("depth", loc) -> Clause_const (Ast.Depth (n, ineq, value), loc)
+             | (x, loc) -> Error.build ~loc "Unexpected operators '%s'" x
+            }
+
         /* Next items are temporarily kept for producing dedicated error message when using out of date syntax  /*
 
         /*   id(N) < id(M)   */
@@ -602,14 +622,6 @@ clause_item:
               | (n, m) -> Error.build ~loc "Unexpected operators '%s' and '%s'" n m
             }
 
-        /*    delta(X,Y) <= 2      */
-        /*    length(X,Y) = 4      */
-        | id0_loc=simple_id_with_loc LPAREN n1=simple_id COMMA n2=simple_id RPAREN ineq=ineq value = INT
-            { match (id0_loc) with
-             | ("delta", loc) -> Clause_const (Ast.Delta (n1, n2, ineq, value), loc)
-             | ("length", loc) -> Clause_const(Ast.Length (n1, n2, ineq, value), loc)
-             | (x, loc) -> Error.build ~loc "Unexpected operators '%s'" x
-            }
 
 /*** end clause_item ***/
 

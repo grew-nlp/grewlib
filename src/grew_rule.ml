@@ -108,6 +108,9 @@ module Constraint = struct
     | Covered of Pid.t * string (* node_id, edge_id *)
     | Delta of Pid.t * Pid.t * Ast.ineq * int
     | Length of Pid.t * Pid.t * Ast.ineq * int
+    | Proj of Pid.t * Ast.ineq * int
+    | Cont_proj of Pid.t * Ast.ineq * int
+    | Depth of Pid.t * Ast.ineq * int
 
   let to_json ~config p_graph_list const =
     let pid_name pid = P_graph.get_name pid p_graph_list in
@@ -142,6 +145,9 @@ module Constraint = struct
     | Edge_relative (Contained, _, _) -> Error.bug "Unexpected Edge_relative"
     | Delta (pid1, pid2, ineq, v) -> sprintf "delta (%s,%s) %s %d" (pid_name pid1) (pid_name pid2) (Ast.string_of_ineq ineq) v
     | Length (pid1, pid2, ineq, v) -> sprintf "length (%s,%s) %s %d" (pid_name pid1) (pid_name pid2) (Ast.string_of_ineq ineq) v
+    | Proj (pid, ineq, v) -> sprintf "proj (%s) %s %d" (pid_name pid) (Ast.string_of_ineq ineq) v
+    | Cont_proj (pid, ineq, v) -> sprintf "cpnt_proj (%s) %s %d" (pid_name pid) (Ast.string_of_ineq ineq) v
+    | Depth (pid, ineq, v) -> sprintf "depth (%s) %s %d" (pid_name pid) (Ast.string_of_ineq ineq) v
 
   let build ~config lexicons ker_table ext_table edge_ids const =
     let parse_id loc id =
@@ -205,6 +211,9 @@ module Constraint = struct
       Edge_relative (Crossing, eid1, eid2)
     | (Ast.Delta (pid1, pid2, ineq, value), loc) -> Delta (pid_of_name loc pid1, pid_of_name loc pid2, ineq, value)
     | (Ast.Length  (pid1, pid2, ineq, value), loc) -> Length (pid_of_name loc pid1, pid_of_name loc pid2, ineq, value)
+    | (Ast.Proj  (pid, ineq, value), loc) -> Proj (pid_of_name loc pid, ineq, value)
+    | (Ast.Cont_proj  (pid, ineq, value), loc) -> Cont_proj (pid_of_name loc pid, ineq, value)
+    | (Ast.Depth  (pid, ineq, value), loc) -> Depth (pid_of_name loc pid, ineq, value)
 
 end (* module Constraint *)
 
@@ -769,6 +778,25 @@ module Matching = struct
           | Some i1, Some i2 -> if Ast.check_ineq (Int.abs (i2 - i1)) ineq value then matching else raise Fail
           | _ -> raise Fail
         end
+
+        | Proj (pid, ineq, value) ->
+          let gid = Pid_map.find pid matching.n_match |> snd in
+          let proj_set = G_graph.projection gid graph in
+          if Ast.check_ineq (Gid_set.cardinal proj_set) ineq value
+          then matching
+          else raise Fail
+        | Cont_proj (pid, ineq, value) ->
+          let gid = Pid_map.find pid matching.n_match |> snd in
+          let cont_proj_set = G_graph.continuous_projection gid graph in
+          if Ast.check_ineq (Gid_set.cardinal cont_proj_set) ineq value
+          then matching
+          else raise Fail
+        | Depth (pid, ineq, value) ->
+          let gid = Pid_map.find pid matching.n_match |> snd in
+          let tree_depth = G_graph.tree_depth gid graph in
+          if Ast.check_ineq tree_depth ineq value
+          then matching
+          else raise Fail
 
 
   (*  ---------------------------------------------------------------------- *)
