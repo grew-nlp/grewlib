@@ -980,6 +980,13 @@ inkey:
   }
   | DELTA LPAREN x=simple_id COMMA y=simple_id RPAREN { Ast.Delta(x,y) }
   | LENGTH LPAREN x=simple_id COMMA y=simple_id RPAREN { Ast.Length(x,y) }
+  | op=simple_id LPAREN node=simple_id RPAREN { 
+    match op with
+    | "proj" -> Ast.Proj (node)
+    | "cont_proj" -> Ast.Cont_proj (node)
+    | "depth" -> Ast.Depth (node)
+    | unk_op -> Error.build "Unknown operator `%s`" unk_op
+  }
   | fi = feature_ident LBRACKET l = separated_nonempty_list (COMMA, cont_key_value) RBRACKET
       {
         match List.assoc_opt "gap" l with

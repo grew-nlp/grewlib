@@ -534,6 +534,12 @@ module Ast = struct
     | Delta of (string * string)
     (* length (X,Y) *)
     | Length of (string * string)
+    (* proj (X) *)
+    | Proj of string
+    (* cont_proj (X) *)
+    | Cont_proj of string
+    (* depth (X) *)
+    | Depth of string
     (* (key_1, key_2, key_3) *)
     | Tuple of key list
 
@@ -551,6 +557,9 @@ module Ast = struct
       ]
     | Delta (x,y) -> [Printf.sprintf "delta (%s,%s)" x y]
     | Length (x,y) -> [Printf.sprintf "length (%s,%s)" x y]
+    | Proj (x) -> [Printf.sprintf "proj (%s)" x]
+    | Cont_proj (x) -> [Printf.sprintf "cont_proj (%s)" x]
+    | Depth (x) -> [Printf.sprintf "depth (%s)" x]
     | Tuple l -> l |> List.map key_to_string_list |> List.flatten
 
 end (* module Ast *)

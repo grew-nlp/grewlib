@@ -1132,6 +1132,15 @@ module Matching = struct
     | Continuous params -> [Some (get_interval request graph matching params)]
     | Delta (pid1, pid2) -> [delta request graph matching pid1 pid2]
     | Length (pid1, pid2) -> [length request graph matching pid1 pid2]
+    | Proj(pid) -> 
+        let (gid, _) = search_pid_name request graph matching pid in
+        [Some (string_of_int (Gid_set.cardinal (G_graph.projection gid graph)))]
+    | Cont_proj(pid) ->
+        let (gid, _) = search_pid_name request graph matching pid in
+        [Some (string_of_int (Gid_set.cardinal (G_graph.continuous_projection gid graph)))]
+    | Depth(pid) ->
+        let (gid, _) = search_pid_name request graph matching pid in
+        [Some (string_of_int (G_graph.tree_depth gid graph))]
     | Tuple (key_list) -> 
         key_list
         |> List.map (get_value_opt_list ~json_label ~config request graph matching)

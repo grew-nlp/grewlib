@@ -298,6 +298,12 @@ module Ast : sig
     | Delta of (string * string)
     (* length (X,Y) *)
     | Length of (string * string)
+    (* proj (X) *)
+    | Proj of string
+    (* cont_proj (X) *)
+    | Cont_proj of string
+    (* depth (X) *)
+    | Depth of string
     (* (key_1, key_2, key_3) *)
     | Tuple of key list
 
