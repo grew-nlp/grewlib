@@ -339,6 +339,7 @@ module Request = struct
   (* Note that we need to know the request in order to build the basic type *)
   let parse_cluster_item ~config request s =
     let clean_s = CCString.trim s in
+    if clean_s = "" then Error.build "[Request.parse_cluster_item] empty cluster item";
     if clean_s.[0] = '{'
     then Whether (build_whether ~config request (Parser.basic clean_s))
     else Key (Parser.key clean_s)
