@@ -744,7 +744,7 @@ module Corpus_desc = struct
         let out_ch = open_out_gen [Open_append] 0o644 valid_file in
         Printf.fprintf out_ch "================================ %s ================================\n" (Filename.basename file);
         close_out out_ch;
-        let command = sprintf "%s %s --max-err 0 %s 2>>  %s || true" validate_script args file valid_file in
+        let command = sprintf "%s %s --max-err 0 \"%s\" 2>>  %s || true" validate_script args file valid_file in
         match Sys.command command with
           | 0 -> ()
           | _ -> Warning.magenta "Error when running UD Python validation script on file %s" (Filename.basename file);
