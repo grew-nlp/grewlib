@@ -71,6 +71,7 @@ module Info : sig
   val blue: ('a, unit, string, unit) format4 -> 'a
   val red: ('a, unit, string, unit) format4 -> 'a
   val magenta: ('a, unit, string, unit) format4 -> 'a
+  val style: ANSITerminal.style -> ('a, unit, string, unit) format4 -> 'a
 end
 
 (* ================================================================================ *)

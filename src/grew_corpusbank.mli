@@ -36,7 +36,7 @@ module Corpusbank : sig
 
   val build: ?force: bool -> ?filter: (string -> bool) -> t -> unit
 
-  val compile: ?force: bool -> ?filter: (string -> bool) -> t -> unit
+  val compile: ?force: bool -> ?verbose:bool -> ?filter: (string -> bool) -> t -> unit
 
 end
 

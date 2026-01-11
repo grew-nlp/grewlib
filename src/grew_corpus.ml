@@ -738,7 +738,6 @@ module Corpus_desc = struct
     |> List.fold_left (fun acc file -> max acc (File.last_modif file)) Float.min_float
 
   let validate_sud ~verbose ~env corpus_desc =
-    printf "====validate_sud=====\n%!";
     let modules_directory = Env.get env "SUDVALIDATION" in
     let all_files = Sys.readdir modules_directory |> Array.to_list in
     let json_files = List.filter (fun file -> Filename.extension file = ".json") all_files in

@@ -90,6 +90,7 @@ module Info = struct
   let blue x = Printf.ksprintf (fun s -> ANSITerminal.printf [ANSITerminal.blue] "%s\n" s; flush stdout) x
   let red x = Printf.ksprintf (fun s -> ANSITerminal.printf [ANSITerminal.red] "%s\n" s; flush stdout) x
   let magenta x = Printf.ksprintf (fun s -> ANSITerminal.printf [ANSITerminal.magenta] "%s\n" s; flush stdout) x
+  let style st x = Printf.ksprintf (fun s -> ANSITerminal.printf [st] "%s\n" s; flush stdout) x
 end
 
 (* ================================================================================ *)

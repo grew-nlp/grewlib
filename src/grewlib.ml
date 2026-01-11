@@ -511,10 +511,10 @@ module Corpusbank = struct
       (fun () -> Grew_corpusbank.Corpusbank.print_status ?verbose ?filter t)
       ()
 
-  let compile ?(force=false) ?filter t =
+  let compile ?(force=false) ?verbose ?filter t =
     Grewlib.handle
       ~name:"Corpusbank.compile"
-      (fun () -> Grew_corpusbank.Corpusbank.compile ~force ?filter t )
+      (fun () -> Grew_corpusbank.Corpusbank.compile ~force ?verbose ?filter t )
       ()
 
   let build ?(force=false) ?filter t =

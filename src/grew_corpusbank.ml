@@ -94,18 +94,29 @@ module Corpusbank = struct
     | Need_rebuild _ -> "Need_rebuild"
     | Err _ -> "Error"
 
-  let print_of_status stat s =
-    match stat with
-    | "Ok" -> Info.green s
-    | "Error" -> Info.red s
-    | "Need_build" -> Info.magenta s
-    | _ -> Info.blue s
-
-  let _color_of_status = function
-    | "Ok" -> ANSITerminal.green
-    | "Error" -> ANSITerminal.red
-    | "Need_build" -> ANSITerminal.magenta
+  let style_of_status = function
+    | Ok -> ANSITerminal.green
+    | Err _ -> ANSITerminal.red
+    | Need_build -> ANSITerminal.magenta
     | _ -> ANSITerminal.blue
+
+    let print_counters ?(verbose=false) count_list =
+    let indent = List.fold_left (fun acc (k,_,_) -> max acc (String.length k)) (String.length "Total") count_list in
+    let pad s = (String.make (indent - (String.length s)) ' ') ^ s in
+    Info.print "----------------------------------%!";
+    List.iter
+      (fun (stat, count, style) ->
+        if verbose || count > 0
+        then Info.style style "%s ----> %d%!" (pad stat) count
+      ) count_list;
+    Info.print "%s ----> %d%!" (pad "Total") (List.fold_left (fun acc (_,v,_) -> v + acc) 0 count_list);
+    Info.print "----------------------------------%!"
+
+  let count_up key counter_list = 
+    List.map (fun (k,v,c) -> if k = key then (k,v+1,c) else (k,v,c)) counter_list
+
+
+
 
 
   let grs_timestamps = ref String_map.empty
@@ -192,34 +203,39 @@ module Corpusbank = struct
 
   let print_status ?(verbose=false) ?(filter=(fun _ -> true)) corpusbank =
     let status = build_status_map ~filter corpusbank in
-    let counters = ref String_map.empty in
-    let count s =
-      let new_sum = match String_map.find_opt s !counters with None -> 1 | Some n -> n+1 in
-      counters := String_map.add s new_sum !counters in
+
+    let counters =
+      ref ( 
+        List.map 
+          (fun status -> (string_of_status status, 0, style_of_status status))
+          [Err ""; Need_build; Need_compile; Need_rebuild []; Need_validate; Ok]
+      ) in
+    let up s = counters := count_up (string_of_status s) !counters in
+    let print stat corpus_id =
+      let s = string_of_status stat in
+      match stat with
+      | Err msg ->
+         Info.style (style_of_status stat) 
+          "%s %s---> %s [%s]" s (String.make (20 - (String.length s)) '-') corpus_id msg
+      | _ -> 
+        Info.style (style_of_status stat) 
+          "%s %s---> %s" s (String.make (20 - (String.length s)) '-') corpus_id in
+
     String_map.iter (
       fun corpus_id stat_corpus ->
-        let string_status = string_of_status stat_corpus in
-        let () = count string_status in
-        let print = print_of_status string_status in
-        match stat_corpus with
-        | Ok -> if verbose then    print "OK -------------> %s" corpus_id
-        | Need_validate ->         print "need validate --> %s" corpus_id;
-        | Need_compile ->          print "need compile ---> %s" corpus_id;
-        | Need_build ->            print "need build -----> %s" corpus_id;
-        | Need_rebuild msg_list -> print "need rebuild ---> %s" corpus_id;
-            if verbose then List.iter (fun msg -> print "    ➔ %s%!" msg) msg_list
-        | Err msg -> Info.red "Error ----------> %s [%s]" corpus_id msg;
-          ()
-
+        let () = up stat_corpus in
+        let () = 
+          match (verbose, stat_corpus) with
+          | (false, Ok) -> ()
+          | (true, Need_rebuild msg_list) -> 
+            print stat_corpus corpus_id;
+            List.iter (fun msg -> Info.style (style_of_status stat_corpus) "    ➔ %s%!" msg) msg_list
+          | _ -> 
+            print stat_corpus corpus_id in
+        ()
     ) status;
-    Info.print "----------------------------------%!";
-    String_map.iter
-      (fun stat count ->
-        (print_of_status stat ) "%15s ----> %d%!" stat count
-      ) !counters;
+    print_counters ~verbose !counters
 
-    Info.print "%15s ----> %d%!" "Total" (String_map.fold (fun _ c acc -> c + acc) !counters 0);
-    Info.print "----------------------------------%!"
 
   let transform grs_config columns grs strat text_from_tokens (src_config, src_file) (tar_config, tar_file) =
     let fix = if text_from_tokens then Conll.text_from_tokens else CCFun.id in
@@ -316,18 +332,28 @@ module Corpusbank = struct
 
           ()
 
-  let compile ?(force=false) ?(filter=fun _ -> true) corpusbank =
+  let compile ?(force=false) ?(verbose=false) ?(filter=fun _ -> true) corpusbank =
     let status_map = build_status_map ~filter corpusbank in
+    let counters = ref [ 
+      ("Compiled",0, ANSITerminal.green); 
+      ("Already uptodate",0, ANSITerminal.green); 
+      ("Build needed",0, ANSITerminal.blue); 
+      ("Error",0, ANSITerminal.red); ] in
+    let up key = counters := count_up key !counters in
     iter ~filter
       (fun corpus_id corpus_desc ->
         match (force, String_map.find corpus_id status_map) with
-        | (_, Err msg) -> Warning.magenta "Skip `%s`, Error: %s" corpus_id msg
-        | (true, _) -> Corpus_desc.compile ~force corpus_desc
-        | (false, Need_compile) -> Corpus_desc.compile corpus_desc
-        | (false, Need_build) | (false, Need_rebuild _) -> Warning.magenta "Skip `%s`, build is needed before compile" corpus_id
-        | (false, Ok) | (false, Need_validate) -> ()
-      ) corpusbank
-
+        | (_, Err msg) -> 
+          Info.red "Error ----------> %s [%s]" corpus_id msg; up "Error"
+        | (true, _)
+        | (false, Need_compile) -> Corpus_desc.compile ~force corpus_desc; up "Compiled"
+        | (false, Need_build) 
+        | (false, Need_rebuild _) -> Warning.magenta "Skip `%s`, build is needed before compile" corpus_id; up "Build needed"
+        | (false, Ok) 
+        | (false, Need_validate) -> up "Already uptodate"
+      ) corpusbank;
+    print_counters ~verbose !counters
+  
   let build ?(force=false) ?(filter=fun _ -> true) corpusbank =
     let status_map = build_status_map ~filter corpusbank in
     iter ~filter
