@@ -1471,36 +1471,49 @@ module G_graph = struct
       else loop (Gid_set.singleton gid1, Gid_set.empty)
     with Found -> true
 
+  (* sort and merge consecutive intervals *)
+  (* the third component is the weight = nb of node accessible with microsyntax *)
+  let normalise_proj interval_list =
+    let sorted_interval_list = 
+      List.sort (fun (l1,_,_) (l2,_,_) -> Stdlib.compare l1 l2) interval_list in
+    let rec loop = function
+      | [] | [_] as l -> l
+      | (l1,r1,w1) :: (l2,r2,w2) :: tail when l2-r1 = 1 -> loop ((l1,r2,w1+w2)::tail)
+      | i1 :: tail -> i1 :: loop tail in
+    loop sorted_interval_list
 
 
-  let projection init_gid graph =
-    let rec step acc_set = function
-    | [] -> acc_set
-    | gid :: tail -> 
-        let node = Gid_map.find gid graph.map in
-        let new_tail = Gid_massoc.fold
-          (fun acc next_gid _ ->
-            if Gid_set.mem next_gid acc_set
-            then acc
-            else next_gid :: acc
-          ) tail (G_node.get_next_micro node) in
-        step (Gid_set.add gid acc_set) new_tail 
-    in step Gid_set.empty [init_gid]
 
-  let continuous_projection init_gid graph =
-    let full_proj = projection init_gid graph in
-    let rec extend_side dir_fct gid acc =
-      if not (Gid_set.mem gid full_proj)
-      then acc
-      else
-        let new_acc = Gid_set.add gid acc in
-          match dir_fct (Gid_map.find gid graph.map) with
-          | Some next_gid -> extend_side dir_fct next_gid new_acc
-          | None -> new_acc
-        in
-    Gid_set.empty
-    |> extend_side G_node.get_succ_opt init_gid
-    |> extend_side G_node.get_pred_opt init_gid
+  (* give a sorted list of int interval describing the projection *)
+  (* list of lenght 1 iff the node is projective *)
+  let rec projection gid graph =
+    let node = Gid_map.find gid graph.map in
+    let pos = G_node.get_position node in
+    let next = G_node.get_next node in
+    if Gid_massoc.is_empty next
+    then [(pos,pos,1)]
+    else
+      let sub_proj =
+        Gid_massoc.fold
+          (fun acc next_gid edge ->
+            if G_edge.is_real_link edge
+            then
+              let sub_proj = projection next_gid graph in
+              if G_edge.is_micro edge
+              then sub_proj @ acc
+              else (List.map (fun (i,j,_) -> (i,j,0)) sub_proj) @ acc
+            else acc
+          ) [(pos,pos,1)] next in
+      normalise_proj sub_proj
+
+  let proj_size gid graph =
+    List.fold_left (fun acc (_,_,w) -> acc+w ) 0 (projection gid graph)
+
+  let cont_proj_size gid graph = 
+    let node = Gid_map.find gid graph.map in
+    let pos = G_node.get_position node in
+    let (_,_,w) = List.find (fun (i,j,_) -> i<=pos && pos <=j) (projection gid graph) in
+    w
 
   let rec tree_depth gid graph =
     let node = Gid_map.find gid graph.map in

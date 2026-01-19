@@ -52,6 +52,9 @@ module G_node = struct
   let get_succ_opt t = Gid_massoc.find_opt (fun _ v -> v = G_edge.succ) t.next
 
   let get_position_opt t = t.position
+
+  let get_position t = CCOption.get_exn_or "[G_node] no position" t.position
+
   let set_position p t = { t with position = Some p }
   let unset_position t = { t with position = None }
 

@@ -39,6 +39,8 @@ module G_node: sig
   val get_succ_opt: t -> Gid.t option
 
   val get_position_opt: t -> int option
+  val get_position: t -> int
+
   val set_position: int -> t -> t
   val unset_position: t -> t
 

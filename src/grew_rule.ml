@@ -782,14 +782,12 @@ module Matching = struct
 
         | Proj (pid, ineq, value) ->
           let gid = Pid_map.find pid matching.n_match |> snd in
-          let proj_set = G_graph.projection gid graph in
-          if Ast.check_ineq (Gid_set.cardinal proj_set) ineq value
+          if Ast.check_ineq (G_graph.proj_size gid graph) ineq value
           then matching
           else raise Fail
         | Cont_proj (pid, ineq, value) ->
           let gid = Pid_map.find pid matching.n_match |> snd in
-          let cont_proj_set = G_graph.continuous_projection gid graph in
-          if Ast.check_ineq (Gid_set.cardinal cont_proj_set) ineq value
+          if Ast.check_ineq (G_graph.cont_proj_size gid graph) ineq value
           then matching
           else raise Fail
         | Depth (pid, ineq, value) ->
@@ -1135,10 +1133,10 @@ module Matching = struct
     | Length (pid1, pid2) -> [length request graph matching pid1 pid2]
     | Proj(pid) -> 
         let (gid, _) = search_pid_name request graph matching pid in
-        [Some (string_of_int (Gid_set.cardinal (G_graph.projection gid graph)))]
+        [Some (string_of_int (G_graph.proj_size gid graph))]
     | Cont_proj(pid) ->
         let (gid, _) = search_pid_name request graph matching pid in
-        [Some (string_of_int (Gid_set.cardinal (G_graph.continuous_projection gid graph)))]
+        [Some (string_of_int (G_graph.cont_proj_size gid graph))]
     | Depth(pid) ->
         let (gid, _) = search_pid_name request graph matching pid in
         [Some (string_of_int (G_graph.tree_depth gid graph))]
