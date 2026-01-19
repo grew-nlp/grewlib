@@ -71,7 +71,7 @@ module G_edge = struct
     | Fs fs when not (List.assoc_opt "enhanced" fs = Some (String "yes")) -> 
       begin
         match List.assoc_opt "1" fs with
-        | Some (String rel) when List.mem rel ["punct"; "discourse"; "vocative"; "parataxis"; "dislocated"] -> false 
+        | Some (String rel) when List.mem rel ["punct"; "discourse"; "vocative"; "parataxis"] -> false 
         | _ -> true
       end
     | _ -> false
