@@ -239,7 +239,7 @@ module G_graph: sig
   val proj_size: Gid.t -> t -> int
   val cont_proj_size: Gid.t -> t -> int
 
-  val tree_depth: Gid.t -> t -> int 
+  val tree_height: Gid.t -> t -> int 
 
   val is_projective: t -> bool
 

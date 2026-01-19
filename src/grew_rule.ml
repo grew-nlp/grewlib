@@ -108,9 +108,9 @@ module Constraint = struct
     | Covered of Pid.t * string (* node_id, edge_id *)
     | Delta of Pid.t * Pid.t * Ast.ineq * int
     | Length of Pid.t * Pid.t * Ast.ineq * int
-    | Proj of Pid.t * Ast.ineq * int
-    | Cont_proj of Pid.t * Ast.ineq * int
-    | Depth of Pid.t * Ast.ineq * int
+    | Proj_size of Pid.t * Ast.ineq * int
+    | Cont_proj_size of Pid.t * Ast.ineq * int
+    | Height of Pid.t * Ast.ineq * int
 
   let to_json ~config p_graph_list const =
     let pid_name pid = P_graph.get_name pid p_graph_list in
@@ -145,9 +145,9 @@ module Constraint = struct
     | Edge_relative (Contained, _, _) -> Error.bug "Unexpected Edge_relative"
     | Delta (pid1, pid2, ineq, v) -> sprintf "delta (%s,%s) %s %d" (pid_name pid1) (pid_name pid2) (Ast.string_of_ineq ineq) v
     | Length (pid1, pid2, ineq, v) -> sprintf "length (%s,%s) %s %d" (pid_name pid1) (pid_name pid2) (Ast.string_of_ineq ineq) v
-    | Proj (pid, ineq, v) -> sprintf "proj (%s) %s %d" (pid_name pid) (Ast.string_of_ineq ineq) v
-    | Cont_proj (pid, ineq, v) -> sprintf "cpnt_proj (%s) %s %d" (pid_name pid) (Ast.string_of_ineq ineq) v
-    | Depth (pid, ineq, v) -> sprintf "depth (%s) %s %d" (pid_name pid) (Ast.string_of_ineq ineq) v
+    | Proj_size (pid, ineq, v) -> sprintf "proj (%s) %s %d" (pid_name pid) (Ast.string_of_ineq ineq) v
+    | Cont_proj_size (pid, ineq, v) -> sprintf "cpnt_proj (%s) %s %d" (pid_name pid) (Ast.string_of_ineq ineq) v
+    | Height (pid, ineq, v) -> sprintf "height (%s) %s %d" (pid_name pid) (Ast.string_of_ineq ineq) v
 
   let build ~config lexicons ker_table ext_table edge_ids const =
     let parse_id loc id =
@@ -211,9 +211,9 @@ module Constraint = struct
       Edge_relative (Crossing, eid1, eid2)
     | (Ast.Delta (pid1, pid2, ineq, value), loc) -> Delta (pid_of_name loc pid1, pid_of_name loc pid2, ineq, value)
     | (Ast.Length  (pid1, pid2, ineq, value), loc) -> Length (pid_of_name loc pid1, pid_of_name loc pid2, ineq, value)
-    | (Ast.Proj  (pid, ineq, value), loc) -> Proj (pid_of_name loc pid, ineq, value)
-    | (Ast.Cont_proj  (pid, ineq, value), loc) -> Cont_proj (pid_of_name loc pid, ineq, value)
-    | (Ast.Depth  (pid, ineq, value), loc) -> Depth (pid_of_name loc pid, ineq, value)
+    | (Ast.Proj_size (pid, ineq, value), loc) -> Proj_size (pid_of_name loc pid, ineq, value)
+    | (Ast.Cont_proj_size (pid, ineq, value), loc) -> Cont_proj_size (pid_of_name loc pid, ineq, value)
+    | (Ast.Height  (pid, ineq, value), loc) -> Height (pid_of_name loc pid, ineq, value)
 
 end (* module Constraint *)
 
@@ -780,20 +780,20 @@ module Matching = struct
           | _ -> raise Fail
         end
 
-        | Proj (pid, ineq, value) ->
+        | Proj_size (pid, ineq, value) ->
           let gid = Pid_map.find pid matching.n_match |> snd in
           if Ast.check_ineq (G_graph.proj_size gid graph) ineq value
           then matching
           else raise Fail
-        | Cont_proj (pid, ineq, value) ->
+        | Cont_proj_size (pid, ineq, value) ->
           let gid = Pid_map.find pid matching.n_match |> snd in
           if Ast.check_ineq (G_graph.cont_proj_size gid graph) ineq value
           then matching
           else raise Fail
-        | Depth (pid, ineq, value) ->
+        | Height (pid, ineq, value) ->
           let gid = Pid_map.find pid matching.n_match |> snd in
-          let tree_depth = G_graph.tree_depth gid graph in
-          if Ast.check_ineq tree_depth ineq value
+          let tree_height = G_graph.tree_height gid graph in
+          if Ast.check_ineq tree_height ineq value
           then matching
           else raise Fail
 
@@ -995,8 +995,9 @@ module Matching = struct
       List.map fst filtered_matching_list
 
   let subgraph graph matching depth =
-    let gid_list = Pid_map.fold (fun _ (_,gid) acc -> gid :: acc) matching.n_match [] in
-  G_graph.subgraph graph gid_list depth
+    let gid_list =
+      Pid_map.fold (fun _ (_,gid) acc -> gid :: acc) matching.n_match [] in
+      G_graph.subgraph graph gid_list depth
 
 
 
@@ -1131,15 +1132,15 @@ module Matching = struct
     | Continuous params -> [Some (get_interval request graph matching params)]
     | Delta (pid1, pid2) -> [delta request graph matching pid1 pid2]
     | Length (pid1, pid2) -> [length request graph matching pid1 pid2]
-    | Proj(pid) -> 
+    | Proj_size (pid) -> 
         let (gid, _) = search_pid_name request graph matching pid in
         [Some (string_of_int (G_graph.proj_size gid graph))]
-    | Cont_proj(pid) ->
+    | Cont_proj_size (pid) ->
         let (gid, _) = search_pid_name request graph matching pid in
         [Some (string_of_int (G_graph.cont_proj_size gid graph))]
-    | Depth(pid) ->
+    | Height (pid) ->
         let (gid, _) = search_pid_name request graph matching pid in
-        [Some (string_of_int (G_graph.tree_depth gid graph))]
+        [Some (string_of_int (G_graph.tree_height gid graph))]
     | Tuple (key_list) -> 
         key_list
         |> List.map (get_value_opt_list ~json_label ~config request graph matching)

@@ -218,9 +218,9 @@ module Ast = struct
     | Edge_crossing of Id.name * Id.name
     | Delta of Id.name * Id.name * ineq * int
     | Length of Id.name * Id.name * ineq * int
-    | Proj of Id.name * ineq * int
-    | Cont_proj of Id.name * ineq * int
-    | Depth of Id.name * ineq * int
+    | Proj_size of Id.name * ineq * int
+    | Cont_proj_size of Id.name * ineq * int
+    | Height of Id.name * ineq * int
 
 
   type const = u_const * Loc.t
@@ -534,12 +534,12 @@ module Ast = struct
     | Delta of (string * string)
     (* length (X,Y) *)
     | Length of (string * string)
-    (* proj (X) *)
-    | Proj of string
-    (* cont_proj (X) *)
-    | Cont_proj of string
-    (* depth (X) *)
-    | Depth of string
+    (* proj_size (X) *)
+    | Proj_size of string
+    (* cont_proj_size (X) *)
+    | Cont_proj_size of string
+    (* height (X) *)
+    | Height of string
     (* (key_1, key_2, key_3) *)
     | Tuple of key list
 
@@ -557,9 +557,9 @@ module Ast = struct
       ]
     | Delta (x,y) -> [Printf.sprintf "delta (%s,%s)" x y]
     | Length (x,y) -> [Printf.sprintf "length (%s,%s)" x y]
-    | Proj (x) -> [Printf.sprintf "proj (%s)" x]
-    | Cont_proj (x) -> [Printf.sprintf "cont_proj (%s)" x]
-    | Depth (x) -> [Printf.sprintf "depth (%s)" x]
+    | Proj_size (x) -> [Printf.sprintf "proj (%s)" x]
+    | Cont_proj_size (x) -> [Printf.sprintf "cont_proj (%s)" x]
+    | Height (x) -> [Printf.sprintf "height (%s)" x]
     | Tuple l -> l |> List.map key_to_string_list |> List.flatten
 
 end (* module Ast *)

@@ -1515,7 +1515,7 @@ module G_graph = struct
     let (_,_,w) = List.find (fun (i,j,_) -> i<=pos && pos <=j) (projection gid graph) in
     w
 
-  let rec tree_depth gid graph =
+  let rec tree_height gid graph =
     let node = Gid_map.find gid graph.map in
     let next = G_node.get_next_micro node in
     if Gid_massoc.is_empty next
@@ -1523,7 +1523,7 @@ module G_graph = struct
     else 
       1 + Gid_massoc.fold
           (fun acc next_gid _ ->
-            max acc (tree_depth next_gid graph)
+            max acc (tree_height next_gid graph)
           ) 0 next
 
   let is_projective t =

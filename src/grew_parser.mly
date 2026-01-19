@@ -572,14 +572,14 @@ clause_item:
              | (x, loc) -> Error.build ~loc "Unexpected operators '%s'" x
             }
 
-        /*    proj(X) = 2      */
-        /*    cont_proj(X) < 4     */
-        /*    depth(X) >= 2     */
+        /*    proj_size(X) = 2      */
+        /*    cont_proj_size(X) < 4     */
+        /*    height(X) >= 2     */
         | id0_loc=simple_id_with_loc LPAREN n=simple_id RPAREN ineq=ineq value = INT
             { match (id0_loc) with
-             | ("proj", loc) -> Clause_const (Ast.Proj (n, ineq, value), loc)
-             | ("cont_proj", loc) -> Clause_const (Ast.Cont_proj (n, ineq, value), loc)
-             | ("depth", loc) -> Clause_const (Ast.Depth (n, ineq, value), loc)
+             | ("proj_size", loc) -> Clause_const (Ast.Proj_size (n, ineq, value), loc)
+             | ("cont_proj_size", loc) -> Clause_const (Ast.Cont_proj_size (n, ineq, value), loc)
+             | ("height", loc) -> Clause_const (Ast.Height (n, ineq, value), loc)
              | (x, loc) -> Error.build ~loc "Unexpected operators '%s'" x
             }
 
@@ -982,9 +982,9 @@ inkey:
   | LENGTH LPAREN x=simple_id COMMA y=simple_id RPAREN { Ast.Length(x,y) }
   | op=simple_id LPAREN node=simple_id RPAREN { 
     match op with
-    | "proj" -> Ast.Proj (node)
-    | "cont_proj" -> Ast.Cont_proj (node)
-    | "depth" -> Ast.Depth (node)
+    | "proj_size" -> Ast.Proj_size (node)
+    | "cont_proj_size" -> Ast.Cont_proj_size (node)
+    | "height" -> Ast.Height (node)
     | unk_op -> Error.build "Unknown operator `%s`" unk_op
   }
   | fi = feature_ident LBRACKET l = separated_nonempty_list (COMMA, cont_key_value) RBRACKET
