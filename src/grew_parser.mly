@@ -130,7 +130,7 @@ let localize t = (t,get_loc ())
 
 %start <Grew_ast.Ast.grs> grs
 %start <Grew_ast.Ast.strat> strat_alone
-%start <Grew_ast.Ast.key>  key
+%start <Grew_ast.Ast.Key.t>  key
 
 
 /* parsing of the string representation of the constituent representation of Sequoia */
@@ -565,64 +565,82 @@ clause_item:
 
         /*    delta(X,Y) <= 2      */
         /*    length(X,Y) = 4      */
-        | id0_loc=simple_id_with_loc LPAREN n1=simple_id COMMA n2=simple_id RPAREN ineq=ineq value = INT
-            { match (id0_loc) with
-             | ("delta", loc) -> Clause_const (Ast.Delta (n1, n2, ineq, value), loc)
-             | ("length", loc) -> Clause_const(Ast.Length (n1, n2, ineq, value), loc)
-             | (x, loc) -> Error.build ~loc "Unexpected operators '%s'" x
-            }
+        // | id0_loc=simple_id_with_loc LPAREN n1=simple_id COMMA n2=simple_id RPAREN ineq=ineq value = INT
+        //     { match (id0_loc) with
+        //      | ("delta", loc) -> Clause_const (Ast.Int_operator (Ast.Delta (n1, n2), ineq, value), loc)
+        //      | ("length", loc) -> Clause_const (Ast.Int_operator (Ast.Length (n1, n2), ineq, value), loc)
+        //      | (x, loc) -> Error.build ~loc "Unexpected operators '%s'" x
+        //     }
 
         /*    proj_size(X) = 2      */
         /*    cont_proj_size(X) < 4     */
         /*    height(X) >= 2     */
-        | id0_loc=simple_id_with_loc LPAREN n=simple_id RPAREN ineq=ineq value = INT
-            { match (id0_loc) with
-             | ("proj_size", loc) -> Clause_const (Ast.Proj_size (n, ineq, value), loc)
-             | ("cont_proj_size", loc) -> Clause_const (Ast.Cont_proj_size (n, ineq, value), loc)
-             | ("constituent_size", loc) -> Clause_const (Ast.Constituent_size (n, ineq, value), loc)
-             | ("height", loc) -> Clause_const (Ast.Height (n, ineq, value), loc)
-             | (x, loc) -> Error.build ~loc "Unexpected operators '%s'" x
-            }
+        // | id0_loc=simple_id_with_loc LPAREN n=simple_id RPAREN ineq=ineq value = INT
+        //     { match (id0_loc) with
+        //      | ("proj_size", loc) -> Clause_const (Ast.Int_operator (Ast.Proj_size n, ineq, value), loc)
+        //      | ("cont_proj_size", loc) -> Clause_const (Ast.Int_operator (Ast.Cont_proj_size n, ineq, value), loc)
+        //      | ("constituent_size", loc) -> Clause_const (Ast.Int_operator (Ast.Constituent_size n, ineq, value), loc)
+        //      | ("height", loc) -> Clause_const (Ast.Int_operator (Ast.Height n, ineq, value), loc)
+        //      | (x, loc) -> Error.build ~loc "Unexpected operators '%s'" x
+        //     }
+
+        | op_loc = int_op ineq=ineq value = INT
+           { let (op, loc) = op_loc in Clause_const (Ast.Int_operator(op, ineq, value), loc) }
 
         /* Next items are temporarily kept for producing dedicated error message when using out of date syntax  /*
 
         /*   id(N) < id(M)   */
-        | id1_loc=simple_id_with_loc LPAREN simple_id RPAREN LT id2=simple_id LPAREN simple_id RPAREN
-            { let (id1,loc) = id1_loc in
-              match (id1, id2) with
-              | ("id", "id") -> Error.build ~loc "The syntax `id(N) < id(M)` is no more available, see [Grew doc](https://grew.fr/trans_14)";
-              | ("id", n) | (n, "id") -> Error.build ~loc "Unexpected operator '%s'" n
-              | (n, m) -> Error.build ~loc "Unexpected operators '%s' and '%s'" n m
-            }
+        // | id1_loc=simple_id_with_loc LPAREN simple_id RPAREN LT id2=simple_id LPAREN simple_id RPAREN
+        //     { let (id1,loc) = id1_loc in
+        //       match (id1, id2) with
+        //       | ("id", "id") -> Error.build ~loc "The syntax `id(N) < id(M)` is no more available, see [Grew doc](https://grew.fr/trans_14)";
+        //       | ("id", n) | (n, "id") -> Error.build ~loc "Unexpected operator '%s'" n
+        //       | (n, m) -> Error.build ~loc "Unexpected operators '%s' and '%s'" n m
+        //     }
 
         /*   id(N) > id(M)   */
-        | id1_loc=simple_id_with_loc LPAREN simple_id RPAREN GT id2=simple_id LPAREN simple_id RPAREN
-            { let (id1,loc) = id1_loc in
-              match (id1, id2) with
-              | ("id", "id") -> Error.build ~loc "The syntax `id(N) > id(M)` is no more available, see [Grew doc](https://grew.fr/trans_14)";
-              | ("id", n) | (n, "id") -> Error.build ~loc "Unexpected operator '%s'" n
-              | (n, m) -> Error.build ~loc "Unexpected operators '%s' and '%s'" n m
-            }
+        // | id1_loc=simple_id_with_loc LPAREN simple_id RPAREN GT id2=simple_id LPAREN simple_id RPAREN
+        //     { let (id1,loc) = id1_loc in
+        //       match (id1, id2) with
+        //       | ("id", "id") -> Error.build ~loc "The syntax `id(N) > id(M)` is no more available, see [Grew doc](https://grew.fr/trans_14)";
+        //       | ("id", n) | (n, "id") -> Error.build ~loc "Unexpected operator '%s'" n
+        //       | (n, m) -> Error.build ~loc "Unexpected operators '%s' and '%s'" n m
+        //     }
 
         /*  DEPRECATED  label(e1) = label(e2)   */
-        | id1_loc=simple_id_with_loc LPAREN simple_id RPAREN EQUAL id2=simple_id LPAREN simple_id RPAREN
-            { let (id1,loc) = id1_loc in
-              match (id1, id2) with
-              | ("label", "label") -> Error.build ~loc "The syntax `label(N) = label(M)` is no more available, see [Grew doc](https://grew.fr/trans_14)";
-              | ("label", n) | (n, "label") -> Error.build ~loc "Unexpected operator '%s'" n
-              | (n, m) -> Error.build ~loc "Unexpected operators '%s' and '%s'" n m
-            }
+        // | id1_loc=simple_id_with_loc LPAREN simple_id RPAREN EQUAL id2=simple_id LPAREN simple_id RPAREN
+        //     { let (id1,loc) = id1_loc in
+        //       match (id1, id2) with
+        //       | ("label", "label") -> Error.build ~loc "The syntax `label(N) = label(M)` is no more available, see [Grew doc](https://grew.fr/trans_14)";
+        //       | ("label", n) | (n, "label") -> Error.build ~loc "Unexpected operator '%s'" n
+        //       | (n, m) -> Error.build ~loc "Unexpected operators '%s' and '%s'" n m
+        //     }
 
         /*   label(e1) <> label(e2)   */
         /* don't want to make "label" a keyword, matched as a ident and control the value */
-        | id1_loc=simple_id_with_loc LPAREN simple_id RPAREN DISEQUAL id2=simple_id LPAREN simple_id RPAREN
-            { let (id1,loc) = id1_loc in
-              match (id1, id2) with
-              | ("label", "label") -> Error.build ~loc "The syntax `label(N) <> label(M)` is no more available, see [Grew doc](https://grew.fr/trans_14)";
-              | ("label", n) | (n, "label") -> Error.build ~loc "Unexpected operator '%s'" n
-              | (n, m) -> Error.build ~loc "Unexpected operators '%s' and '%s'" n m
-            }
+        // | id1_loc=simple_id_with_loc LPAREN simple_id RPAREN DISEQUAL id2=simple_id LPAREN simple_id RPAREN
+        //     { let (id1,loc) = id1_loc in
+        //       match (id1, id2) with
+        //       | ("label", "label") -> Error.build ~loc "The syntax `label(N) <> label(M)` is no more available, see [Grew doc](https://grew.fr/trans_14)";
+        //       | ("label", n) | (n, "label") -> Error.build ~loc "Unexpected operator '%s'" n
+        //       | (n, m) -> Error.build ~loc "Unexpected operators '%s' and '%s'" n m
+        //     }
 
+int_op:
+        | id0_loc=simple_id_with_loc LPAREN n=simple_id RPAREN 
+            { match (id0_loc) with
+             | ("proj_size", loc) -> (Ast.Proj_size n, loc)
+             | ("cont_proj_size", loc) -> (Ast.Cont_proj_size n, loc)
+             | ("constituent_size", loc) -> (Ast.Constituent_size n, loc)
+             | ("height", loc) -> (Ast.Height n, loc)
+             | (x, loc) -> Error.build ~loc "Unexpected unary operator '%s'" x
+            }
+        | id0_loc=simple_id_with_loc LPAREN n1=simple_id COMMA n2=simple_id RPAREN 
+            { match (id0_loc) with
+             | ("delta", loc) -> (Ast.Delta (n1, n2), loc)
+             | ("length", loc) -> (Ast.Length (n1, n2), loc)
+             | (x, loc) -> Error.build ~loc "Unexpected binary operator '%s'" x
+            }
 
 /*** end clause_item ***/
 
@@ -968,34 +986,34 @@ key:
   | k = inkey EOF  { k }
 
 inkey:
-  | i1 = simple_id SHARP l = separated_nonempty_list (SHARP, simple_id)  { Ast.Rel_order (i1 :: l) }
-  | x = simple_id EDGE y = simple_id { Ast.Rel (x,y)}
-  | x = simple_id BIEDGE y = simple_id { Ast.Sym_rel (x,y)}
+  | i1 = simple_id SHARP l = separated_nonempty_list (SHARP, simple_id)  { Ast.Key.Rel_order (i1 :: l) }
+  | x = simple_id EDGE y = simple_id { Ast.Key.Rel (x,y)}
+  | x = simple_id BIEDGE y = simple_id { Ast.Key.Sym_rel (x,y)}
   | s = key_id {
       match s with
       | ("global", _) -> Error.build "**[DEPRECATED]** The cluster key `global.xxx` should be replaced by `meta.xxx`"
 
-      | ("meta", [one]) -> Ast.Meta one
+      | ("meta", [one]) -> Ast.Key.Meta one
       | ("meta", _) -> Error.build "syntax error in key: more then one feat value in global"
-      | _ -> Ast.Feat s
+      | _ -> Ast.Key.Feat s
   }
-  | DELTA LPAREN x=simple_id COMMA y=simple_id RPAREN { Ast.Delta(x,y) }
-  | LENGTH LPAREN x=simple_id COMMA y=simple_id RPAREN { Ast.Length(x,y) }
+  | DELTA LPAREN x=simple_id COMMA y=simple_id RPAREN { Ast.Key.Delta(x,y) }
+  | LENGTH LPAREN x=simple_id COMMA y=simple_id RPAREN { Ast.Key.Length(x,y) }
   | op=simple_id LPAREN node=simple_id RPAREN { 
     match op with
-    | "proj_size" -> Ast.Proj_size (node)
-    | "cont_proj_size" -> Ast.Cont_proj_size (node)
-    | "constituent_size" -> Ast.Constituent_size (node)
-    | "height" -> Ast.Height (node)
+    | "proj_size" -> Ast.Key.Proj_size (node)
+    | "cont_proj_size" -> Ast.Key.Cont_proj_size (node)
+    | "constituent_size" -> Ast.Key.Constituent_size (node)
+    | "height" -> Ast.Key.Height (node)
     | unk_op -> Error.build "Unknown operator `%s`" unk_op
   }
   | fi = feature_ident LBRACKET l = separated_nonempty_list (COMMA, cont_key_value) RBRACKET
       {
         match List.assoc_opt "gap" l with
         | None -> Error.build "syntax error in key: gap parameter is required"
-        | Some g -> Ast.Continuous (fi, g, List.assoc_opt "min" l, List.assoc_opt "max" l )
+        | Some g -> Ast.Key.Continuous (fi, g, List.assoc_opt "min" l, List.assoc_opt "max" l )
       }
-  | LPAREN sub=separated_nonempty_list (COMMA, inkey) RPAREN { Ast.Tuple sub }
+  | LPAREN sub=separated_nonempty_list (COMMA, inkey) RPAREN { Ast.Key.Tuple sub }
 
 cont_key_value:
   | fn=simple_id EQUAL value = FLOAT  { (fn, value)}

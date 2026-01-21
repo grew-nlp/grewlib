@@ -116,6 +116,14 @@ module Ast : sig
   val check_ineq: 'a -> ineq -> 'a -> bool
   val string_of_ineq: ineq -> string
 
+  type int_operator =
+    | Delta of Id.name * Id.name
+    | Length of Id.name * Id.name
+    | Proj_size of Id.name
+    | Cont_proj_size of Id.name
+    | Constituent_size of Id.name
+    | Height of Id.name
+
   type u_const =
     | Cst_out of Id.name * edge_label_cst
     | Cst_in of Id.name * edge_label_cst
@@ -130,12 +138,7 @@ module Ast : sig
     | Large_dom of Id.name * Id.name
     | Edge_disjoint of Id.name * Id.name
     | Edge_crossing of Id.name * Id.name
-    | Delta of Id.name * Id.name * ineq * int
-    | Length of Id.name * Id.name * ineq * int
-    | Proj_size of Id.name * ineq * int
-    | Cont_proj_size of Id.name * ineq * int
-    | Constituent_size of Id.name * ineq * int
-    | Height of Id.name * ineq * int
+    | Int_operator of int_operator  * ineq * int
 
   type const = u_const * Loc.t
 
@@ -282,35 +285,37 @@ module Ast : sig
   (* return the list of rules declared at the top level *)
   val rule_list: grs -> string list
 
-  type key =
-    (* global.text *)
-    | Meta of string
-    (* S#V#O *)
-    | Rel_order of string list
-    (* X <-> Y *)
-    | Sym_rel of (string * string)
-    (* X -> Y *)
-    | Rel of (string * string)
-    (* X.CorrectNumber/Number *)
-    | Feat of (string * string list)
-    (* X.MeanFO [gap=10, min=20, max=100] *)
-    | Continuous of ((string * string) * float * float option * float option)
-    (* delta (X,Y) *)
-    | Delta of (string * string)
-    (* length (X,Y) *)
-    | Length of (string * string)
-    (* proj_size (X) *)
-    | Proj_size of string
-    (* cont_proj_size (X) *)
-    | Cont_proj_size of string
-    (* constituent_size (X) *)
-    | Constituent_size of string
-    (* height (X) *)
-    | Height of string
-    (* (key_1, key_2, key_3) *)
-    | Tuple of key list
+  module Key : sig
+    type t =
+      (* global.text *)
+      | Meta of string
+      (* S#V#O *)
+      | Rel_order of string list
+      (* X <-> Y *)
+      | Sym_rel of (string * string)
+      (* X -> Y *)
+      | Rel of (string * string)
+      (* X.CorrectNumber/Number *)
+      | Feat of (string * string list)
+      (* X.MeanFO [gap=10, min=20, max=100] *)
+      | Continuous of ((string * string) * float * float option * float option)
+      (* delta (X,Y) *)
+      | Delta of (string * string)
+      (* length (X,Y) *)
+      | Length of (string * string)
+      (* proj_size (X) *)
+      | Proj_size of string
+      (* cont_proj_size (X) *)
+      | Cont_proj_size of string
+      (* constituent_size (X) *)
+      | Constituent_size of string
+      (* height (X) *)
+      | Height of string
+      (* (key_1, key_2, key_3) *)
+      | Tuple of t list
 
-  val key_to_string_list: key -> string list
+    val to_string_list: t -> string list
+  end (* module Key *)
 end (* module Ast *)
 
 (* ================================================================================ *)

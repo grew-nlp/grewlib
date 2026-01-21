@@ -202,6 +202,14 @@ module Ast = struct
     | Eq -> "="
     | Neq -> "≠"
 
+  type int_operator =
+    | Delta of Id.name * Id.name
+    | Length of Id.name * Id.name
+    | Proj_size of Id.name
+    | Cont_proj_size of Id.name
+    | Constituent_size of Id.name
+    | Height of Id.name
+
   type u_const =
     | Cst_out of Id.name * edge_label_cst
     | Cst_in of Id.name * edge_label_cst
@@ -216,13 +224,7 @@ module Ast = struct
     | Large_dom of Id.name * Id.name
     | Edge_disjoint of Id.name * Id.name
     | Edge_crossing of Id.name * Id.name
-    | Delta of Id.name * Id.name * ineq * int
-    | Length of Id.name * Id.name * ineq * int
-    | Proj_size of Id.name * ineq * int
-    | Cont_proj_size of Id.name * ineq * int
-    | Constituent_size of Id.name * ineq * int
-    | Height of Id.name * ineq * int
-
+    | Int_operator of int_operator * ineq * int
 
   type const = u_const * Loc.t
 
@@ -518,54 +520,55 @@ module Ast = struct
         | _ -> acc
       ) [] grs
 
-  type key =
-    (* global.text *)
-    | Meta of string
-    (* S#V#O *)
-    | Rel_order of string list
-    (* X <-> Y *)
-    | Sym_rel of (string * string)
-    (* X -> Y *)
-    | Rel of (string * string)
-    (* X.CorrectNumber/Number *)
-    | Feat of (string * string list)
-    (* X.MeanFO [gap=10, min=20, max=100] *)
-    | Continuous of ((string * string) * float * float option * float option)
-    (* delta (X,Y) *)
-    | Delta of (string * string)
-    (* length (X,Y) *)
-    | Length of (string * string)
-    (* proj_size (X) *)
-    | Proj_size of string
-    (* cont_proj_size (X) *)
-    | Cont_proj_size of string
-    (* constituent_size (X) *)
-    | Constituent_size of string
-    (* height (X) *)
-    | Height of string
-    (* (key_1, key_2, key_3) *)
-    | Tuple of key list
+  module Key = struct
+    type t =
+      (* global.text *)
+      | Meta of string
+      (* S#V#O *)
+      | Rel_order of string list
+      (* X <-> Y *)
+      | Sym_rel of (string * string)
+      (* X -> Y *)
+      | Rel of (string * string)
+      (* X.CorrectNumber/Number *)
+      | Feat of (string * string list)
+      (* X.MeanFO [gap=10, min=20, max=100] *)
+      | Continuous of ((string * string) * float * float option * float option)
+      (* delta (X,Y) *)
+      | Delta of (string * string)
+      (* length (X,Y) *)
+      | Length of (string * string)
+      (* proj_size (X) *)
+      | Proj_size of string
+      (* cont_proj_size (X) *)
+      | Cont_proj_size of string
+      (* constituent_size (X) *)
+      | Constituent_size of string
+      (* height (X) *)
+      | Height of string
+      (* (key_1, key_2, key_3) *)
+      | Tuple of t list
 
-  let rec key_to_string_list = function
-    | Meta s -> [s]
-    | Rel_order l -> [String.concat "#" l]
-    | Sym_rel (x,y) -> [Printf.sprintf "%s <-> %s" x y]
-    | Rel (x,y) -> [Printf.sprintf "%s -> %s" x y]
-    | Feat (nid, feats) -> [Printf.sprintf "%s.%s" nid (String.concat "/" feats)]
-    | Continuous ((nid,fn), gap, min_opt, max_opt) ->
-      [Printf.sprintf "%s.%s [%g%s%s]"
-        nid fn gap
-      (match min_opt with None -> "" | Some m -> Printf.sprintf ", min=%g" m)
-        (match max_opt with None -> "" | Some m -> Printf.sprintf ", max=%g" m)
-      ]
-    | Delta (x,y) -> [Printf.sprintf "delta (%s,%s)" x y]
-    | Length (x,y) -> [Printf.sprintf "length (%s,%s)" x y]
-    | Proj_size (x) -> [Printf.sprintf "proj (%s)" x]
-    | Cont_proj_size (x) -> [Printf.sprintf "cont_proj (%s)" x]
-    | Constituent_size (x) -> [Printf.sprintf "constituent_size (%s)" x]
-    | Height (x) -> [Printf.sprintf "height (%s)" x]
-    | Tuple l -> l |> List.map key_to_string_list |> List.flatten
-
+    let rec to_string_list = function
+      | Meta s -> [s]
+      | Rel_order l -> [String.concat "#" l]
+      | Sym_rel (x,y) -> [Printf.sprintf "%s <-> %s" x y]
+      | Rel (x,y) -> [Printf.sprintf "%s -> %s" x y]
+      | Feat (nid, feats) -> [Printf.sprintf "%s.%s" nid (String.concat "/" feats)]
+      | Continuous ((nid,fn), gap, min_opt, max_opt) ->
+        [Printf.sprintf "%s.%s [%g%s%s]"
+          nid fn gap
+        (match min_opt with None -> "" | Some m -> Printf.sprintf ", min=%g" m)
+          (match max_opt with None -> "" | Some m -> Printf.sprintf ", max=%g" m)
+        ]
+      | Delta (x,y) -> [Printf.sprintf "delta (%s,%s)" x y]
+      | Length (x,y) -> [Printf.sprintf "length (%s,%s)" x y]
+      | Proj_size (x) -> [Printf.sprintf "proj_size (%s)" x]
+      | Cont_proj_size (x) -> [Printf.sprintf "cont_proj_size (%s)" x]
+      | Constituent_size (x) -> [Printf.sprintf "constituent_size (%s)" x]
+      | Height (x) -> [Printf.sprintf "height (%s)" x]
+      | Tuple l -> l |> List.map to_string_list |> List.flatten
+  end (* module Key *)
 end (* module Ast *)
 
 (* ================================================================================ *)

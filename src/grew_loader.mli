@@ -34,5 +34,5 @@ module Parser : sig
 
   val strategy: string -> Ast.strat
 
-  val key: string -> Ast.key
+  val key: string -> Ast.Key.t
 end (* module Parser *)
