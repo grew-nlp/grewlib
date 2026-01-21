@@ -67,15 +67,14 @@ module G_edge = struct
     | Fs fs when not (List.assoc_opt "enhanced" fs = Some (String "yes")) -> true
     | _ -> false
 
-  let is_micro = function
+  let is_basic_filter ?(filter = fun _ -> true) = function
     | Fs fs when not (List.assoc_opt "enhanced" fs = Some (String "yes")) -> 
       begin
         match List.assoc_opt "1" fs with
-        | Some (String rel) when List.mem rel ["punct"; "discourse"; "vocative"; "parataxis"] -> false 
-        | _ -> true
+        | Some (String rel) when filter rel -> true
+        | _ -> false
       end
     | _ -> false
-
   let from_items l = Fs (G_edge_fs.build l)
 
   let from_string ~config s = Fs (G_edge_fs.from_string ~config s)

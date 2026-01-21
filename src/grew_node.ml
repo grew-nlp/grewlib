@@ -46,7 +46,7 @@ module G_node = struct
   let set_next next t = { t with next }
 
   let get_next_basic t = Gid_massoc.filter G_edge.is_basic t.next
-  let get_next_micro t = Gid_massoc.filter G_edge.is_micro t.next
+  let get_next_basic_filter ~filter t = Gid_massoc.filter (G_edge.is_basic_filter ~filter) t.next
 
   let get_pred_opt t = Gid_massoc.find_opt (fun _ v -> v = G_edge.pred) t.next
   let get_succ_opt t = Gid_massoc.find_opt (fun _ v -> v = G_edge.succ) t.next

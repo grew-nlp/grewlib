@@ -579,6 +579,7 @@ clause_item:
             { match (id0_loc) with
              | ("proj_size", loc) -> Clause_const (Ast.Proj_size (n, ineq, value), loc)
              | ("cont_proj_size", loc) -> Clause_const (Ast.Cont_proj_size (n, ineq, value), loc)
+             | ("constituent_size", loc) -> Clause_const (Ast.Constituent_size (n, ineq, value), loc)
              | ("height", loc) -> Clause_const (Ast.Height (n, ineq, value), loc)
              | (x, loc) -> Error.build ~loc "Unexpected operators '%s'" x
             }
@@ -984,6 +985,7 @@ inkey:
     match op with
     | "proj_size" -> Ast.Proj_size (node)
     | "cont_proj_size" -> Ast.Cont_proj_size (node)
+    | "constituent_size" -> Ast.Constituent_size (node)
     | "height" -> Ast.Height (node)
     | unk_op -> Error.build "Unknown operator `%s`" unk_op
   }

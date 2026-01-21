@@ -1482,42 +1482,51 @@ module G_graph = struct
       | i1 :: tail -> i1 :: loop tail in
     loop sorted_interval_list
 
-
-
   (* give a sorted list of int interval describing the projection *)
-  (* list of lenght 1 iff the node is projective *)
-  let rec projection gid graph =
-    let node = Gid_map.find gid graph.map in
-    let pos = G_node.get_position node in
-    let next = G_node.get_next node in
-    if Gid_massoc.is_empty next
-    then [(pos,pos,1)]
-    else
-      let sub_proj =
-        Gid_massoc.fold
-          (fun acc next_gid edge ->
-            if G_edge.is_real_link edge
-            then
-              let sub_proj = projection next_gid graph in
-              if G_edge.is_micro edge
-              then sub_proj @ acc
-              else (List.map (fun (i,j,_) -> (i,j,0)) sub_proj) @ acc
-            else acc
-          ) [(pos,pos,1)] next in
-      normalise_proj sub_proj
+  (* list of length 1 iff the node is projective *)
+  let projection filter_top filter_in gid graph =
+    let rec loop top gid =
+      let filter = if top then filter_top else filter_in in
+      let node = Gid_map.find gid graph.map in
+      let pos = G_node.get_position node in
+      let next = G_node.get_next node in
+      if Gid_massoc.is_empty next
+      then [(pos,pos,1)]
+      else
+        let sub_proj =
+          Gid_massoc.fold
+            (fun acc next_gid edge ->
+              if G_edge.is_real_link edge
+              then
+                let sub_proj = loop false next_gid in
+                if G_edge.is_basic_filter ~filter edge
+                then sub_proj @ acc
+                else (List.map (fun (i,j,_) -> (i,j,0)) sub_proj) @ acc
+              else acc
+            ) [(pos,pos,1)] next in
+        normalise_proj sub_proj in
+    loop true (gid)
+
+  let no_punct_filter = function "punct" -> false | _ -> true
+  let constituent_top_filter = function
+   | "punct" | "discourse" | "vocative" | "parataxis" | "conj" | "appos" | "orphan" | "list" | "reparandum" -> false
+   | _ -> true
 
   let proj_size gid graph =
-    List.fold_left (fun acc (_,_,w) -> acc+w ) 0 (projection gid graph)
+    List.fold_left (fun acc (_,_,w) -> acc+w ) 0 (projection no_punct_filter no_punct_filter gid graph)
+
+  let constituent_size gid graph =
+    List.fold_left (fun acc (_,_,w) -> acc+w ) 0 (projection constituent_top_filter no_punct_filter gid graph)
 
   let cont_proj_size gid graph = 
     let node = Gid_map.find gid graph.map in
     let pos = G_node.get_position node in
-    let (_,_,w) = List.find (fun (i,j,_) -> i<=pos && pos <=j) (projection gid graph) in
+    let (_,_,w) = List.find (fun (i,j,_) -> i<=pos && pos <=j) (projection no_punct_filter no_punct_filter gid graph) in
     w
 
   let rec tree_height gid graph =
     let node = Gid_map.find gid graph.map in
-    let next = G_node.get_next_micro node in
+    let next = G_node.get_next_basic_filter ~filter:no_punct_filter node in
     if Gid_massoc.is_empty next
     then 1
     else 

@@ -110,6 +110,7 @@ module Constraint = struct
     | Length of Pid.t * Pid.t * Ast.ineq * int
     | Proj_size of Pid.t * Ast.ineq * int
     | Cont_proj_size of Pid.t * Ast.ineq * int
+    | Constituent_size of Pid.t * Ast.ineq * int
     | Height of Pid.t * Ast.ineq * int
 
   let to_json ~config p_graph_list const =
@@ -145,8 +146,9 @@ module Constraint = struct
     | Edge_relative (Contained, _, _) -> Error.bug "Unexpected Edge_relative"
     | Delta (pid1, pid2, ineq, v) -> sprintf "delta (%s,%s) %s %d" (pid_name pid1) (pid_name pid2) (Ast.string_of_ineq ineq) v
     | Length (pid1, pid2, ineq, v) -> sprintf "length (%s,%s) %s %d" (pid_name pid1) (pid_name pid2) (Ast.string_of_ineq ineq) v
-    | Proj_size (pid, ineq, v) -> sprintf "proj (%s) %s %d" (pid_name pid) (Ast.string_of_ineq ineq) v
-    | Cont_proj_size (pid, ineq, v) -> sprintf "cpnt_proj (%s) %s %d" (pid_name pid) (Ast.string_of_ineq ineq) v
+    | Proj_size (pid, ineq, v) -> sprintf "proj_size (%s) %s %d" (pid_name pid) (Ast.string_of_ineq ineq) v
+    | Cont_proj_size (pid, ineq, v) -> sprintf "cont_proj_size (%s) %s %d" (pid_name pid) (Ast.string_of_ineq ineq) v
+    | Constituent_size (pid, ineq, v) -> sprintf "constituent_size (%s) %s %d" (pid_name pid) (Ast.string_of_ineq ineq) v
     | Height (pid, ineq, v) -> sprintf "height (%s) %s %d" (pid_name pid) (Ast.string_of_ineq ineq) v
 
   let build ~config lexicons ker_table ext_table edge_ids const =
@@ -213,6 +215,7 @@ module Constraint = struct
     | (Ast.Length  (pid1, pid2, ineq, value), loc) -> Length (pid_of_name loc pid1, pid_of_name loc pid2, ineq, value)
     | (Ast.Proj_size (pid, ineq, value), loc) -> Proj_size (pid_of_name loc pid, ineq, value)
     | (Ast.Cont_proj_size (pid, ineq, value), loc) -> Cont_proj_size (pid_of_name loc pid, ineq, value)
+    | (Ast.Constituent_size (pid, ineq, value), loc) -> Constituent_size (pid_of_name loc pid, ineq, value)
     | (Ast.Height  (pid, ineq, value), loc) -> Height (pid_of_name loc pid, ineq, value)
 
 end (* module Constraint *)
@@ -790,6 +793,11 @@ module Matching = struct
           if Ast.check_ineq (G_graph.cont_proj_size gid graph) ineq value
           then matching
           else raise Fail
+        | Constituent_size (pid, ineq, value) ->
+          let gid = Pid_map.find pid matching.n_match |> snd in
+          if Ast.check_ineq (G_graph.constituent_size gid graph) ineq value
+          then matching
+          else raise Fail
         | Height (pid, ineq, value) ->
           let gid = Pid_map.find pid matching.n_match |> snd in
           let tree_height = G_graph.tree_height gid graph in
@@ -1138,6 +1146,9 @@ module Matching = struct
     | Cont_proj_size (pid) ->
         let (gid, _) = search_pid_name request graph matching pid in
         [Some (string_of_int (G_graph.cont_proj_size gid graph))]
+    | Constituent_size (pid) ->
+        let (gid, _) = search_pid_name request graph matching pid in
+        [Some (string_of_int (G_graph.constituent_size gid graph))]
     | Height (pid) ->
         let (gid, _) = search_pid_name request graph matching pid in
         [Some (string_of_int (G_graph.tree_height gid graph))]

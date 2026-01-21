@@ -220,6 +220,7 @@ module Ast = struct
     | Length of Id.name * Id.name * ineq * int
     | Proj_size of Id.name * ineq * int
     | Cont_proj_size of Id.name * ineq * int
+    | Constituent_size of Id.name * ineq * int
     | Height of Id.name * ineq * int
 
 
@@ -538,6 +539,8 @@ module Ast = struct
     | Proj_size of string
     (* cont_proj_size (X) *)
     | Cont_proj_size of string
+    (* constituent_size (X) *)
+    | Constituent_size of string
     (* height (X) *)
     | Height of string
     (* (key_1, key_2, key_3) *)
@@ -559,6 +562,7 @@ module Ast = struct
     | Length (x,y) -> [Printf.sprintf "length (%s,%s)" x y]
     | Proj_size (x) -> [Printf.sprintf "proj (%s)" x]
     | Cont_proj_size (x) -> [Printf.sprintf "cont_proj (%s)" x]
+    | Constituent_size (x) -> [Printf.sprintf "constituent_size (%s)" x]
     | Height (x) -> [Printf.sprintf "height (%s)" x]
     | Tuple l -> l |> List.map key_to_string_list |> List.flatten
 

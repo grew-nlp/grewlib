@@ -134,6 +134,7 @@ module Ast : sig
     | Length of Id.name * Id.name * ineq * int
     | Proj_size of Id.name * ineq * int
     | Cont_proj_size of Id.name * ineq * int
+    | Constituent_size of Id.name * ineq * int
     | Height of Id.name * ineq * int
 
   type const = u_const * Loc.t
@@ -302,6 +303,8 @@ module Ast : sig
     | Proj_size of string
     (* cont_proj_size (X) *)
     | Cont_proj_size of string
+    (* constituent_size (X) *)
+    | Constituent_size of string
     (* height (X) *)
     | Height of string
     (* (key_1, key_2, key_3) *)

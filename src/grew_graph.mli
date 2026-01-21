@@ -234,9 +234,8 @@ module G_graph: sig
 
   val check_large_dominance: t -> Gid.t -> Gid.t -> bool
 
-  val projection: Gid.t -> t -> (int * int * int) list
-
   val proj_size: Gid.t -> t -> int
+  val constituent_size: Gid.t -> t -> int
   val cont_proj_size: Gid.t -> t -> int
 
   val tree_height: Gid.t -> t -> int 
