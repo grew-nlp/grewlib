@@ -564,82 +564,28 @@ clause_item:
             { let (n1,loc) = n1_loc in Clause_const (Ast.Edge_crossing (n1,n2), loc) }
 
         /*    delta(X,Y) <= 2      */
-        /*    length(X,Y) = 4      */
-        // | id0_loc=simple_id_with_loc LPAREN n1=simple_id COMMA n2=simple_id RPAREN ineq=ineq value = INT
-        //     { match (id0_loc) with
-        //      | ("delta", loc) -> Clause_const (Ast.Int_operator (Ast.Delta (n1, n2), ineq, value), loc)
-        //      | ("length", loc) -> Clause_const (Ast.Int_operator (Ast.Length (n1, n2), ineq, value), loc)
-        //      | (x, loc) -> Error.build ~loc "Unexpected operators '%s'" x
-        //     }
-
-        /*    proj_size(X) = 2      */
         /*    cont_proj_size(X) < 4     */
-        /*    height(X) >= 2     */
-        // | id0_loc=simple_id_with_loc LPAREN n=simple_id RPAREN ineq=ineq value = INT
-        //     { match (id0_loc) with
-        //      | ("proj_size", loc) -> Clause_const (Ast.Int_operator (Ast.Proj_size n, ineq, value), loc)
-        //      | ("cont_proj_size", loc) -> Clause_const (Ast.Int_operator (Ast.Cont_proj_size n, ineq, value), loc)
-        //      | ("constituent_size", loc) -> Clause_const (Ast.Int_operator (Ast.Constituent_size n, ineq, value), loc)
-        //      | ("height", loc) -> Clause_const (Ast.Int_operator (Ast.Height n, ineq, value), loc)
-        //      | (x, loc) -> Error.build ~loc "Unexpected operators '%s'" x
-        //     }
+        | op_loc = int_operator ineq=ineq value = INT
+           { Clause_const (Ast.Int_operator(fst op_loc, ineq, Ast.Int value), snd op_loc) }
 
-        | op_loc = int_op ineq=ineq value = INT
-           { let (op, loc) = op_loc in Clause_const (Ast.Int_operator(op, ineq, value), loc) }
+        /*     constituent_size (X) < proj_size(X)      */
+        | op1_loc = int_operator ineq=ineq op2_loc = int_operator 
+           { Clause_const (Ast.Int_operator(fst op1_loc, ineq, fst op2_loc), snd op1_loc) }
 
-        /* Next items are temporarily kept for producing dedicated error message when using out of date syntax  /*
-
-        /*   id(N) < id(M)   */
-        // | id1_loc=simple_id_with_loc LPAREN simple_id RPAREN LT id2=simple_id LPAREN simple_id RPAREN
-        //     { let (id1,loc) = id1_loc in
-        //       match (id1, id2) with
-        //       | ("id", "id") -> Error.build ~loc "The syntax `id(N) < id(M)` is no more available, see [Grew doc](https://grew.fr/trans_14)";
-        //       | ("id", n) | (n, "id") -> Error.build ~loc "Unexpected operator '%s'" n
-        //       | (n, m) -> Error.build ~loc "Unexpected operators '%s' and '%s'" n m
-        //     }
-
-        /*   id(N) > id(M)   */
-        // | id1_loc=simple_id_with_loc LPAREN simple_id RPAREN GT id2=simple_id LPAREN simple_id RPAREN
-        //     { let (id1,loc) = id1_loc in
-        //       match (id1, id2) with
-        //       | ("id", "id") -> Error.build ~loc "The syntax `id(N) > id(M)` is no more available, see [Grew doc](https://grew.fr/trans_14)";
-        //       | ("id", n) | (n, "id") -> Error.build ~loc "Unexpected operator '%s'" n
-        //       | (n, m) -> Error.build ~loc "Unexpected operators '%s' and '%s'" n m
-        //     }
-
-        /*  DEPRECATED  label(e1) = label(e2)   */
-        // | id1_loc=simple_id_with_loc LPAREN simple_id RPAREN EQUAL id2=simple_id LPAREN simple_id RPAREN
-        //     { let (id1,loc) = id1_loc in
-        //       match (id1, id2) with
-        //       | ("label", "label") -> Error.build ~loc "The syntax `label(N) = label(M)` is no more available, see [Grew doc](https://grew.fr/trans_14)";
-        //       | ("label", n) | (n, "label") -> Error.build ~loc "Unexpected operator '%s'" n
-        //       | (n, m) -> Error.build ~loc "Unexpected operators '%s' and '%s'" n m
-        //     }
-
-        /*   label(e1) <> label(e2)   */
-        /* don't want to make "label" a keyword, matched as a ident and control the value */
-        // | id1_loc=simple_id_with_loc LPAREN simple_id RPAREN DISEQUAL id2=simple_id LPAREN simple_id RPAREN
-        //     { let (id1,loc) = id1_loc in
-        //       match (id1, id2) with
-        //       | ("label", "label") -> Error.build ~loc "The syntax `label(N) <> label(M)` is no more available, see [Grew doc](https://grew.fr/trans_14)";
-        //       | ("label", n) | (n, "label") -> Error.build ~loc "Unexpected operator '%s'" n
-        //       | (n, m) -> Error.build ~loc "Unexpected operators '%s' and '%s'" n m
-        //     }
-
-int_op:
+int_operator:
         | id0_loc=simple_id_with_loc LPAREN n=simple_id RPAREN 
             { match (id0_loc) with
              | ("proj_size", loc) -> (Ast.Proj_size n, loc)
              | ("cont_proj_size", loc) -> (Ast.Cont_proj_size n, loc)
              | ("constituent_size", loc) -> (Ast.Constituent_size n, loc)
              | ("height", loc) -> (Ast.Height n, loc)
-             | (x, loc) -> Error.build ~loc "Unexpected unary operator '%s'" x
+             | (x, loc) -> Error.build ~loc "Unexpected unary operator `%s`" x
             }
         | id0_loc=simple_id_with_loc LPAREN n1=simple_id COMMA n2=simple_id RPAREN 
             { match (id0_loc) with
              | ("delta", loc) -> (Ast.Delta (n1, n2), loc)
              | ("length", loc) -> (Ast.Length (n1, n2), loc)
-             | (x, loc) -> Error.build ~loc "Unexpected binary operator '%s'" x
+             | (x, loc) -> Error.build ~loc "Unexpected binary operator `%s`" x
             }
 
 /*** end clause_item ***/

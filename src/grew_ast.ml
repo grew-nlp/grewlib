@@ -203,6 +203,7 @@ module Ast = struct
     | Neq -> "≠"
 
   type int_operator =
+    | Int of int
     | Delta of Id.name * Id.name
     | Length of Id.name * Id.name
     | Proj_size of Id.name
@@ -224,7 +225,7 @@ module Ast = struct
     | Large_dom of Id.name * Id.name
     | Edge_disjoint of Id.name * Id.name
     | Edge_crossing of Id.name * Id.name
-    | Int_operator of int_operator * ineq * int
+    | Int_operator of int_operator * ineq * int_operator
 
   type const = u_const * Loc.t
 

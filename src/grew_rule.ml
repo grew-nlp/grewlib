@@ -70,6 +70,7 @@ module Constraint = struct
     | Edge_id id -> `String id
     | Lexicon_id id -> `String id *)
   type int_operator =
+    | Int of int
     | Delta of Pid.t * Pid.t
     | Length of Pid.t * Pid.t
     | Proj_size of Pid.t
@@ -78,7 +79,8 @@ module Constraint = struct
     | Height of Pid.t
 
 
-  let string_of_int_operator pid_name = function 
+  let string_of_int_operator pid_name = function
+    | Int i -> sprintf "%d" i
     | Delta (pid1, pid2) -> sprintf "delta (%s,%s)" (pid_name pid1) (pid_name pid2)
     | Length (pid1, pid2) -> sprintf "length (%s,%s)" (pid_name pid1) (pid_name pid2)
     | Proj_size (pid) -> sprintf "proj_size (%s)" (pid_name pid)
@@ -123,7 +125,7 @@ module Constraint = struct
     (*   N << e2   *)
     | Covered of Pid.t * string (* node_id, edge_id *)
 
-    | Int_operator of int_operator * Ast.ineq * int
+    | Int_operator of int_operator * Ast.ineq * int_operator
 
   let to_json ~config p_graph_list const =
     let pid_name pid = P_graph.get_name pid p_graph_list in
@@ -156,10 +158,10 @@ module Constraint = struct
     | Edge_relative (Crossing, eid1, eid2) -> sprintf "%s >< %s" eid1 eid2
     | Edge_relative (Included, eid1, eid2) ->  sprintf "%s << %s" eid1 eid2
     | Edge_relative (Contained, _, _) -> Error.bug "Unexpected Edge_relative"
-    | Int_operator (op, ineq, v) -> sprintf "%s %s %d" (string_of_int_operator pid_name op) (Ast.string_of_ineq ineq) v
+    | Int_operator (op, ineq, op2) -> sprintf "%s %s %s" (string_of_int_operator pid_name op) (Ast.string_of_ineq ineq) (string_of_int_operator pid_name op2)
 
-  (* let build_int_operator pid_of_name (xxx : Ast.int_operator * Loc.t) = match xxx with *)
-  let build_int_operator pid_of_name (xxx : Ast.int_operator * Loc.t) = match xxx with
+  let build_int_operator pid_of_name = function
+    | (Ast.Int i, _) -> Int i
     | (Ast.Delta (pid1, pid2), loc) -> Delta (pid_of_name loc pid1, pid_of_name loc pid2)
     | (Ast.Length (pid1, pid2), loc) -> Length (pid_of_name loc pid1, pid_of_name loc pid2)
     | (Ast.Proj_size (pid), loc) -> Proj_size (pid_of_name loc pid)
@@ -227,8 +229,8 @@ module Constraint = struct
       Edge_relative (Disjoint, eid1, eid2)
     | (Ast.Edge_crossing (eid1, eid2), _) ->
       Edge_relative (Crossing, eid1, eid2)
-    | (Ast.Int_operator (op, ineq, value), loc) ->
-      Int_operator (build_int_operator pid_of_name (op,loc), ineq, value)
+    | (Ast.Int_operator (op1, ineq, op2), loc) ->
+      Int_operator (build_int_operator pid_of_name (op1,loc), ineq, build_int_operator pid_of_name (op2, loc))
 
 end (* module Constraint *)
 
@@ -563,37 +565,41 @@ module Matching = struct
     | Value of Feature_value.t
     | Lex of (string * string)
 
-  let check_int_operator matching graph (op : Constraint.int_operator) ineq value =
-    match op with
+  let evaluate_int_operator matching graph (op : Constraint.int_operator) = match op with
+    | Int i -> Some i
     | Delta (pid1, pid2) ->
         let gnode1 = G_graph.find (Pid_map.find pid1 matching.n_match |> snd) graph in
         let gnode2 = G_graph.find (Pid_map.find pid2 matching.n_match |> snd) graph in
         begin
           match (G_node.get_position_opt gnode1, G_node.get_position_opt gnode2) with
-          | Some i1, Some i2 -> Ast.check_ineq (i2 - i1) ineq value
-          | _ -> false
+          | Some i1, Some i2 -> Some (i2 - i1)
+          | _ -> None
         end
     | Length (pid1, pid2) ->
         let gnode1 = G_graph.find (Pid_map.find pid1 matching.n_match |> snd) graph in
         let gnode2 = G_graph.find (Pid_map.find pid2 matching.n_match |> snd) graph in
         begin
           match (G_node.get_position_opt gnode1, G_node.get_position_opt gnode2) with
-          | Some i1, Some i2 -> Ast.check_ineq (Int.abs (i2 - i1)) ineq value
-          | _ -> false
+          | Some i1, Some i2 -> Some (Int.abs (i2 - i1))
+          | _ -> None
         end
     | Proj_size (pid) ->
         let gid = Pid_map.find pid matching.n_match |> snd in
-        Ast.check_ineq (G_graph.proj_size gid graph) ineq value
+        Some (G_graph.proj_size gid graph)
     | Cont_proj_size pid ->
-          let gid = Pid_map.find pid matching.n_match |> snd in
-          Ast.check_ineq (G_graph.cont_proj_size gid graph) ineq value
+        let gid = Pid_map.find pid matching.n_match |> snd in
+        Some (G_graph.cont_proj_size gid graph)
     | Constituent_size pid ->
-          let gid = Pid_map.find pid matching.n_match |> snd in
-          Ast.check_ineq (G_graph.constituent_size gid graph) ineq value
+        let gid = Pid_map.find pid matching.n_match |> snd in
+        Some (G_graph.constituent_size gid graph)
     | Height pid ->
-          let gid = Pid_map.find pid matching.n_match |> snd in
-          let tree_height = G_graph.tree_height gid graph in
-          Ast.check_ineq tree_height ineq value
+        let gid = Pid_map.find pid matching.n_match |> snd in
+        Some (G_graph.tree_height gid graph)
+
+  let check_int_operator matching graph (op : Constraint.int_operator) ineq op2 =
+    match (evaluate_int_operator matching graph op, evaluate_int_operator matching graph op2) with
+    | Some i, Some j -> Ast.check_ineq i ineq j
+    | _ -> false
 
   (*  ---------------------------------------------------------------------- *)
   let apply_cst ~config graph matching cst : t =
