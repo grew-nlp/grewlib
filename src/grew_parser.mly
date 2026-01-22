@@ -44,6 +44,9 @@ let localize t = (t,get_loc ())
 %token COMMA                       /* , */
 %token SEMIC                       /* ; */
 %token PLUS                        /* + */
+%left PLUS
+%token MINUS                       /* - */
+%left MINUS
 %token EQUAL                       /* = */
 %token DISEQUAL                    /* <> */
 %token BANG                        /* ! */
@@ -98,9 +101,6 @@ let localize t = (t,get_loc ())
 %token PREPEND_FEATS               /* append_feats */
 %token UNORDER                     /* unorder */
 %token INSERT                      /* insert */
-
-%token DELTA                       /* delta */
-%token LENGTH                      /* length */
 
 %token PICK                        /* Pick */
 %token ALT                         /* Alt */
@@ -943,16 +943,22 @@ inkey:
       | ("meta", _) -> Error.build "syntax error in key: more then one feat value in global"
       | _ -> Ast.Key.Feat s
   }
-  | DELTA LPAREN x=simple_id COMMA y=simple_id RPAREN { Ast.Key.Delta(x,y) }
-  | LENGTH LPAREN x=simple_id COMMA y=simple_id RPAREN { Ast.Key.Length(x,y) }
+  | op=simple_id LPAREN x=simple_id COMMA y=simple_id  RPAREN { 
+    match op with
+    | "delta" -> Ast.Key.Delta(x,y)
+    | "length" -> Ast.Key.Length(x,y)
+    | unk_op -> Error.build "Unknown binary operator `%s`" unk_op
+  }
+
   | op=simple_id LPAREN node=simple_id RPAREN { 
     match op with
     | "proj_size" -> Ast.Key.Proj_size (node)
     | "cont_proj_size" -> Ast.Key.Cont_proj_size (node)
     | "constituent_size" -> Ast.Key.Constituent_size (node)
     | "height" -> Ast.Key.Height (node)
-    | unk_op -> Error.build "Unknown operator `%s`" unk_op
+    | unk_op -> Error.build "Unknown unary operator `%s`" unk_op
   }
+
   | fi = feature_ident LBRACKET l = separated_nonempty_list (COMMA, cont_key_value) RBRACKET
       {
         match List.assoc_opt "gap" l with
@@ -960,6 +966,9 @@ inkey:
         | Some g -> Ast.Key.Continuous (fi, g, List.assoc_opt "min" l, List.assoc_opt "max" l )
       }
   | LPAREN sub=separated_nonempty_list (COMMA, inkey) RPAREN { Ast.Key.Tuple sub }
+
+  | x = inkey PLUS y = inkey { Ast.Key.Plus(x, y) }
+  | x = inkey MINUS y = inkey { Ast.Key.Minus(x, y) }
 
 cont_key_value:
   | fn=simple_id EQUAL value = FLOAT  { (fn, value)}

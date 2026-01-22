@@ -317,10 +317,10 @@ and key = parse
   | '('              { LPAREN }
   | ')'              { RPAREN }
   | ','              { COMMA }
+  | '+'              { PLUS }
+  | '-'              { MINUS }
   | "->"             { EDGE }
   | "<->"            { BIEDGE }
-  | "delta"          { DELTA }
-  | "length"         { LENGTH }
   | float as number  { FLOAT (float_of_string number) }
   | int as number    { FLOAT (float_of_string number) }
   | key_ident as id  { ID id }

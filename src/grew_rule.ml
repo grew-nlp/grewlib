@@ -1147,8 +1147,8 @@ module Matching = struct
     | (Some p1, Some p2) -> Some (string_of_int (Int.abs (p2 - p1)))
     | _ -> None
 
-  let rec get_value_opt_list ?(json_label=false) ~config request graph matching = 
-    function
+  let get_value_opt_list ?(json_label=false) ~config request graph matching key =
+    let rec loop = function
     | Ast.Key.Meta key -> [graph |> G_graph.get_meta_list |> List.assoc_opt key]
     | Rel_order pid_name_list -> [get_relative_order pid_name_list request graph matching]
     | Sym_rel (pid_name_1, pid_name_2) -> [Some (get_link ~config true pid_name_1 pid_name_2 request graph matching)]
@@ -1171,8 +1171,31 @@ module Matching = struct
         [Some (string_of_int (G_graph.tree_height gid graph))]
     | Tuple (key_list) -> 
         key_list
-        |> List.map (get_value_opt_list ~json_label ~config request graph matching)
+        |> List.map loop
         |> List.flatten
+    | Plus (key1, key2) ->
+      begin
+        match (loop key1, loop key2) with 
+        | [Some v1], [Some v2] ->
+          begin
+            match (int_of_string_opt v1, int_of_string_opt v2) with 
+            | (Some i, Some j) ->  [Some (string_of_int (i+j))]
+            | _ -> Error.build "the operator `+` can be used only between interger unary operators"
+          end
+        | _ -> Error.build "the operator `+` can be used only between interger unary operators"
+      end
+    | Minus (key1, key2) ->
+      begin
+        match (loop key1, loop key2) with 
+        | [Some v1], [Some v2] ->
+          begin
+            match (int_of_string_opt v1, int_of_string_opt v2) with 
+            | (Some i, Some j) ->  [Some (string_of_int (i-j))]
+            | _ -> Error.build "the operator `-` can be used only between interger unary operators"
+          end
+        | _ -> Error.build "the operator `-` can be used only between interger unary operators"
+      end
+    in loop key
 
   let get_value_opt ?(json_label=false) ~config request graph matching key =
     match get_value_opt_list ~json_label ~config request graph matching key with

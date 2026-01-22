@@ -549,6 +549,9 @@ module Ast = struct
       | Height of string
       (* (key_1, key_2, key_3) *)
       | Tuple of t list
+      (* proj_size(X) - constituent_size (X) *)
+      | Plus of t * t
+      | Minus of t * t
 
     let rec to_string_list = function
       | Meta s -> [s]
@@ -569,6 +572,18 @@ module Ast = struct
       | Constituent_size (x) -> [Printf.sprintf "constituent_size (%s)" x]
       | Height (x) -> [Printf.sprintf "height (%s)" x]
       | Tuple l -> l |> List.map to_string_list |> List.flatten
+      | Plus (x,y) ->
+        begin
+          match (to_string_list x, to_string_list y) with
+          | [one_x], [one_y] -> [Printf.sprintf "%s + %s" one_x one_y]
+          | _ -> Error.build "[Ast.Key.to_string_list] unexpected used of `+`"
+        end
+      | Minus (x,y) -> 
+        begin
+          match (to_string_list x, to_string_list y) with
+          | [one_x], [one_y] -> [Printf.sprintf "%s - %s" one_x one_y]
+          | _ -> Error.build "[Ast.Key.to_string_list] unexpected used of `-`"
+        end
   end (* module Key *)
 end (* module Ast *)
 

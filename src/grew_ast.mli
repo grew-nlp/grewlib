@@ -314,6 +314,9 @@ module Ast : sig
       | Height of string
       (* (key_1, key_2, key_3) *)
       | Tuple of t list
+      (* proj_size(X) - constituent_size (X) *)
+      | Plus of t * t
+      | Minus of t * t
 
     val to_string_list: t -> string list
   end (* module Key *)
