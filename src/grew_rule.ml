@@ -1147,6 +1147,11 @@ module Matching = struct
     | (Some p1, Some p2) -> Some (string_of_int (Int.abs (p2 - p1)))
     | _ -> None
 
+  let split_extract sep index s =
+    match List.nth_opt (CCString.split ~by:sep s) index with
+    | Some s -> s
+    | None -> Error.run "Cannot extract [sep=\"%s\", index=%d] in `%s`" sep index s
+  
   let get_value_opt_list ?(json_label=false) ~config request graph matching key =
     let rec loop = function
     | Ast.Key.Meta key -> [graph |> G_graph.get_meta_list |> List.assoc_opt key]
@@ -1155,6 +1160,7 @@ module Matching = struct
     | Rel (pid_name_1, pid_name_2) -> [Some (get_link ~config false pid_name_1 pid_name_2 request graph matching)]
     | Feat (id, splitted_feature_names) -> [get_feat_value_opt ~json_label ~config request graph matching (id, splitted_feature_names)]
     | Continuous params -> [Some (get_interval request graph matching params)]
+    | Split_extract ((pid,fn),sep,index) -> [get_feat_value_opt ~json_label ~config request graph matching (pid, [fn]) |> CCOption.map (split_extract sep index)]
     | Delta (pid1, pid2) -> [delta request graph matching pid1 pid2]
     | Length (pid1, pid2) -> [length request graph matching pid1 pid2]
     | Proj_size (pid) -> 

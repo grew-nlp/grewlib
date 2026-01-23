@@ -959,17 +959,32 @@ inkey:
     | unk_op -> Error.build "Unknown unary operator `%s`" unk_op
   }
 
-  | fi = feature_ident LBRACKET l = separated_nonempty_list (COMMA, cont_key_value) RBRACKET
+  | fi = feature_ident LBRACKET l = separated_nonempty_list (COMMA, key_value) RBRACKET
       {
         match List.assoc_opt "gap" l with
-        | None -> Error.build "syntax error in key: gap parameter is required"
-        | Some g -> Ast.Key.Continuous (fi, g, List.assoc_opt "min" l, List.assoc_opt "max" l )
+        | Some g -> Ast.Key.Continuous (
+            fi, 
+            float_of_string g, 
+            List.assoc_opt "min" l |> CCOption.map float_of_string, 
+            List.assoc_opt "max" l |> CCOption.map float_of_string
+          )
+        | None -> 
+          match (List.assoc_opt "sep" l, List.assoc_opt "index" l) with
+          | (Some sep, Some index) -> Ast.Key.Split_extract (fi, sep, int_of_string index)
+          | _ -> Error.build "syntax error in keys: `gap` or (`sep` and `index`) parameter is required"
       }
+
   | LPAREN sub=separated_nonempty_list (COMMA, inkey) RPAREN { Ast.Key.Tuple sub }
 
   | x = inkey PLUS y = inkey { Ast.Key.Plus(x, y) }
   | x = inkey MINUS y = inkey { Ast.Key.Minus(x, y) }
 
-cont_key_value:
-  | fn=simple_id EQUAL value = FLOAT  { (fn, value)}
+// cont_key_value:
+//   | fn=simple_id EQUAL value = FLOAT  { (fn, value) }
+
+key_value:
+  | fn=simple_id EQUAL value = number  { (fn, String_.of_float_clean value) }
+  | fn=simple_id EQUAL value = STRING  { (fn, value) }
+  | fn=simple_id EQUAL value = ID  { (fn, value) }
+
 %%

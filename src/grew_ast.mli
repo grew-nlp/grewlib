@@ -300,6 +300,8 @@ module Ast : sig
       | Feat of (string * string list)
       (* X.MeanFO [gap=10, min=20, max=100] *)
       | Continuous of ((string * string) * float * float option * float option)
+      (* X.Coconstruct[sep="::", index=0] *)
+      | Split_extract of ((string * string) * string * int)
       (* delta (X,Y) *)
       | Delta of (string * string)
       (* length (X,Y) *)

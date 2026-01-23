@@ -324,5 +324,6 @@ and key = parse
   | float as number  { FLOAT (float_of_string number) }
   | int as number    { FLOAT (float_of_string number) }
   | key_ident as id  { ID id }
+  | '"'              { Buffer.clear buff; string_lex false global lexbuf }
   | eof              { EOF }
   | _ as c           { raise (Error (sprintf "unexpected character '%c'" c)) }

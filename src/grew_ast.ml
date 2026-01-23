@@ -535,6 +535,8 @@ module Ast = struct
       | Feat of (string * string list)
       (* X.MeanFO [gap=10, min=20, max=100] *)
       | Continuous of ((string * string) * float * float option * float option)
+      (* X.Coconstruct[sep="::", index=0] *)
+      | Split_extract of ((string * string) * string * int)
       (* delta (X,Y) *)
       | Delta of (string * string)
       (* length (X,Y) *)
@@ -565,6 +567,7 @@ module Ast = struct
         (match min_opt with None -> "" | Some m -> Printf.sprintf ", min=%g" m)
           (match max_opt with None -> "" | Some m -> Printf.sprintf ", max=%g" m)
         ]
+      | Split_extract ((nid,fn),sep, index) -> [Printf.sprintf "%s.%s [sep=%s, index=%d]" nid fn sep index]
       | Delta (x,y) -> [Printf.sprintf "delta (%s,%s)" x y]
       | Length (x,y) -> [Printf.sprintf "length (%s,%s)" x y]
       | Proj_size (x) -> [Printf.sprintf "proj_size (%s)" x]
