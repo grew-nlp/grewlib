@@ -216,4 +216,13 @@ module Clustered = struct
       | _ -> String_opt_set.empty in
     loop (depth,t) |> String_opt_set.to_list
 
+  let to_json (cell_to_json: 'a -> Yojson.Basic.t) (def : 'a) (t: 'a t) =
+    fold_layer
+      def
+      cell_to_json
+      []
+      (fun key json acc -> ((CCOption.get_or ~default:"__undefined__" key), json) :: acc)
+      (fun l -> `Assoc l)
+      t
+
 end (* module Clustered *)

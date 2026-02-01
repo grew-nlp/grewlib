@@ -93,4 +93,5 @@ module Clustered : sig
 
   val get_all_keys: int -> _ t -> string option list
 
+  val to_json: ('a -> Yojson.Basic.t) -> 'a -> 'a t -> Yojson.Basic.t
 end (* module Clustered *)
