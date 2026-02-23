@@ -145,7 +145,9 @@ module G_edge = struct
         | Some (String "RSTR") -> ["bottom"]
         | _ ->
         match List_.sort_assoc_opt "type" fs with
-        | Some (String "attach") -> ["color=#12cd56"; "forecolor=#12cd56"; "bottom"]
+        | Some (String "lifted") -> ["color=blue"; "forecolor=blue"]
+        | Some (String "attach") -> ["color=#12cd56"; "forecolor=#12cd56"]
+        | Some (String "sb") -> ["color=red"; "forecolor=red"]
         (* default *)
         | _ -> [] in
       let styles = if deco then "bgcolor=#8bf56e" :: styles else styles in

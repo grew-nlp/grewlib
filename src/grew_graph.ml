@@ -1505,7 +1505,7 @@ module G_graph = struct
               else acc
             ) [(pos,pos,1)] next in
         normalise_proj sub_proj in
-    loop true (gid)
+    loop true gid
 
   let no_punct_filter = function "punct" -> false | _ -> true
   let constituent_top_filter = function
