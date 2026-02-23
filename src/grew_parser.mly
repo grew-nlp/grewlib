@@ -932,9 +932,13 @@ key:
   | k = inkey EOF  { k }
 
 inkey:
+  (*  S#V#O  *)
   | i1 = simple_id SHARP l = separated_nonempty_list (SHARP, simple_id)  { Ast.Key.Rel_order (i1 :: l) }
+  (*  X -> Y  *)
   | x = simple_id EDGE y = simple_id { Ast.Key.Rel (x,y)}
+  (*  X <-> Y  *)
   | x = simple_id BIEDGE y = simple_id { Ast.Key.Sym_rel (x,y)}
+  (*  X.f/g/h  *)
   | s = key_id {
       match s with
       | ("global", _) -> Error.build "**[DEPRECATED]** The cluster key `global.xxx` should be replaced by `meta.xxx`"
@@ -943,6 +947,8 @@ inkey:
       | ("meta", _) -> Error.build "syntax error in key: more then one feat value in global"
       | _ -> Ast.Key.Feat s
   }
+  (*  delta(X,Y)  *)
+  (*  length(X,Y)  *)
   | op=simple_id LPAREN x=simple_id COMMA y=simple_id  RPAREN { 
     match op with
     | "delta" -> Ast.Key.Delta(x,y)
@@ -950,6 +956,7 @@ inkey:
     | unk_op -> Error.build "Unknown binary operator `%s`" unk_op
   }
 
+  (*  proj_size(X)  *)
   | op=simple_id LPAREN node=simple_id RPAREN { 
     match op with
     | "proj_size" -> Ast.Key.Proj_size (node)
@@ -959,6 +966,8 @@ inkey:
     | unk_op -> Error.build "Unknown unary operator `%s`" unk_op
   }
 
+  (*  X.duration[gap=100, max=300]  *)
+  (*  X.coconstruct[sep="::", index=0]  *)
   | fi = feature_ident LBRACKET l = separated_nonempty_list (COMMA, key_value) RBRACKET
       {
         match List.assoc_opt "gap" l with
@@ -974,13 +983,13 @@ inkey:
           | _ -> Error.build "syntax error in keys: `gap` or (`sep` and `index`) parameter is required"
       }
 
+  (*  (X.upos, Y.Number )  *)
   | LPAREN sub=separated_nonempty_list (COMMA, inkey) RPAREN { Ast.Key.Tuple sub }
 
+  (*  proj_size(X) + cont_proj_size(X)  *)
   | x = inkey PLUS y = inkey { Ast.Key.Plus(x, y) }
+  (*  proj_size(X) - cont_proj_size(X)  *)
   | x = inkey MINUS y = inkey { Ast.Key.Minus(x, y) }
-
-// cont_key_value:
-//   | fn=simple_id EQUAL value = FLOAT  { (fn, value) }
 
 key_value:
   | fn=simple_id EQUAL value = number  { (fn, String_.of_float_clean value) }
