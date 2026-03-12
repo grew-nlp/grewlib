@@ -56,6 +56,15 @@ module Corpus = struct
     kind: kind;
   }
 
+  let unshare_meta shared_metadata (raw_corpus : t) =
+    let new_items =
+      Array.map
+      (fun item ->
+        let new_graph = G_graph.unshare_meta shared_metadata item.graph in
+        { item with graph = new_graph }
+      ) raw_corpus.items in
+    { raw_corpus with items = new_items }
+
   let graph_of_sent_id sent_id corpus =
     match CCArray.find_idx (fun item -> item.sent_id = sent_id) corpus.items with
     | Some (_,item) -> Some item.graph
@@ -203,12 +212,20 @@ module Corpus = struct
            | ".txt" -> (conll_acc, amr_acc, full_file::txt_acc, json_acc)
            | ".json" | ".jsonl" -> (conll_acc, amr_acc, txt_acc, full_file::json_acc)
            | _ -> (conll_acc, amr_acc, txt_acc, json_acc)
-        ) files ([],[],[], []) in
+        ) files ([],[],[],[]) in
 
     (* txt files are interpreted as AMR files only if there is no conll-like files (eg: UD containts txt files in parallel to conllu) *)
     match (conll_files, amr_files, txt_files, json_files) with
     | ([],[],[], []) -> Error.run "The directory `%s` does not contain any graphs" dir
-    | (_::_ as conll_files,_,_,_) -> of_conllx_corpus (Conll_corpus.load_list ?log_file ?config conll_files)
+    | (_::_ as conll_files,_,_,_) ->
+      let raw_corpus = of_conllx_corpus (Conll_corpus.load_list ?log_file ?config conll_files) in
+      begin
+        if Array.mem "metadata.json" files
+        then
+          let shared_metadata = Yojson.Basic.from_file (Filename.concat dir "metadata.json") in
+          unshare_meta shared_metadata raw_corpus
+        else raw_corpus
+      end
     | ([], (_::_ as amr_files), txt_files, _) | ([], amr_files, (_::_ as txt_files), _) -> (amr_files @ txt_files) |> List.map of_amr_file |> merge
     | ([],[],[],json_files) -> json_files |> List.map of_json_file |> merge
 
@@ -440,15 +457,26 @@ module Corpus_desc = struct
     | `List l -> List.map (fun f -> Filename.concat directory (to_string f)) l
     | _ -> Error.run "[Corpus_desc] ill-formed JSON file (unexpected `files` field)"
 
+  let get_shared_metadata corpus_desc =
+    let file = Filename.concat (get_directory corpus_desc) "metadata.json" in
+    if Sys.file_exists file
+    then Yojson.Basic.from_file file
+    else `Assoc[] 
+
   (* ---------------------------------------------------------------------------------------------------- *)
   let build_corpus corpus_desc =
     let config = get_config corpus_desc in
     let conll_corpus = Conll_corpus.load_list ~config (get_files corpus_desc) in
+    let shared_metadata = get_shared_metadata corpus_desc in
     let columns = Conll_corpus.get_columns conll_corpus in
     let items =
       CCArray.filter_map (fun (sent_id,conll) ->
         try
-          let graph = G_graph.of_json (Conll.to_json conll) in
+          let graph =
+            conll
+            |> Conll.to_json
+            |> G_graph.of_json
+            |> G_graph.unshare_meta shared_metadata in
           Some {Corpus.sent_id; text=G_graph.to_sentence graph; graph }
           with Error.Build (msg, loc_opt) ->
             Warning.magenta "[build_corpus, sent_id=%s%s] skipped: %s"
@@ -498,9 +526,9 @@ module Corpus_desc = struct
   let build_marshal_file corpus_desc =
     let config = get_config corpus_desc in
     let full_files = get_files corpus_desc in
-
     let build_dir = get_build_directory corpus_desc in
     let marshal_file = Filename.concat build_dir "marshal" in
+    let shared_metadata = get_shared_metadata corpus_desc in
 
     (* remove the previous log file (if any) *)
     let _ = try Unix.unlink (Filename.concat build_dir "log") with Unix.Unix_error _ -> () in
@@ -510,16 +538,20 @@ module Corpus_desc = struct
       | _ -> None in
 
     try
-
       let (data : Corpus.t) =
         match get_kind corpus_desc with
         | Conll columns ->
           let conll_corpus = Conll_corpus.load_list ?log_file ~config ?columns full_files in
           let columns = Conll_corpus.get_columns conll_corpus in
           let () = table_and_desc corpus_desc conll_corpus in
-          let items = CCArray.filter_map (fun (sent_id,conllx) ->
+          let items = CCArray.filter_map
+            (fun (sent_id,conllx) ->
               try
-                let graph = G_graph.of_json (Conll.to_json conllx) in
+                let graph =
+                  conllx
+                  |> Conll.to_json
+                  |> G_graph.of_json
+                  |> G_graph.unshare_meta shared_metadata in
                 Some {Corpus.sent_id; text=G_graph.to_sentence graph; graph }
               with Error.Build (msg, loc_opt) ->
                 Warning.magenta "[build_marshal_file, sent_id=%s%s] skipped: %s"

@@ -320,6 +320,28 @@ module G_graph = struct
 
   let set_meta key value t = {t with meta = (key,value) :: List.remove_assoc key t.meta}
 
+  let json_get key (json : Yojson.Basic.t) =
+    match json with 
+    | `Assoc l -> List.assoc_opt key l
+    | _ -> None
+
+  (* [shared_metadata] is the Yojson.Basic.t loadede from `metadata.json` *)
+  let unshare_meta shared_metadata t = 
+    List.fold_left
+      (fun acc (key,value) ->
+        match json_get key shared_metadata with
+        | None -> acc
+        | Some subdict ->
+          match json_get value subdict with
+          | Some `Assoc meta_to_add -> 
+            List.fold_left
+              (fun acc2 (sub_key, sub_value) ->
+                match sub_value with
+                | `String sv -> set_meta (sprintf "%s>%s" key sub_key) sv acc2
+                | _ -> acc2
+              ) acc meta_to_add
+          | _ -> acc
+      ) t t.meta
   let empty = { meta=[]; map=Gid_map.empty; highest_index=0; rules=[]; trace=None; impact=G_deco.empty }
 
   let is_initial g = g.rules = []

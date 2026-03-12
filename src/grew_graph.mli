@@ -256,6 +256,8 @@ module G_graph: sig
 
   val set_meta: string -> string -> t -> t
 
+  val unshare_meta: Yojson.Basic.t -> t -> t
+
   val get_feature_values: string -> t -> String_set.t
   val get_relations:  config:Conll_config.t -> t -> String_set.t
   val get_features: t -> String_set.t
