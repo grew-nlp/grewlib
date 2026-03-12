@@ -1507,8 +1507,21 @@ module G_graph = struct
       else loop (Gid_set.singleton gid1, Gid_set.empty)
     with Found -> true
 
-  (* sort and merge consecutive intervals *)
-  (* the third component is the weight = nb of node accessible with microsyntax *)
+  (* ==================================================================================================== *)
+  (** {2 proj_size, cont_proj_size and constituent_size} *)
+  (* ==================================================================================================== *)
+  (*  We represent the "projection" of a node as a list of triples (start, end, weight).
+      A triple (start, end, weight) represents the continuous segment from token_start to token_end,
+      and the weight the number of node to consider in this segment.
+      NOTE: weight can be less that (end-start+1) because of relation filtering:
+      We want punctuation to be 
+       - ignored from size point of vue
+       - taken into account from continuity point of view *)
+  (* A list of intervals [(s_1, e_1, w_1), ..., (s_n, e_n, w_n)] is a normal form if
+      e_i + 1 < s_{j+1}: ordered without two consecutice intervals  *)
+  (* list of length 1 iff the node is projective *)
+
+  (* normalisation: sort and merge consecutive intervals *)
   let normalise_proj interval_list =
     let sorted_interval_list = 
       List.sort (fun (l1,_,_) (l2,_,_) -> Stdlib.compare l1 l2) interval_list in
@@ -1518,29 +1531,38 @@ module G_graph = struct
       | i1 :: tail -> i1 :: loop tail in
     loop sorted_interval_list
 
-  (* give a sorted list of int interval describing the projection *)
-  (* list of length 1 iff the node is projective *)
+  (* Build the "projection" of a node in a dependency tree *)
+  (* In order to cover different usage, we consider 
+     - filter_top: boolean function indicating relations to consider at the top level
+     - filter_in: boolean function indicating relations to consider in recursive call (in practise: all except punct)
+     NOTE: inside the tree, we weed to consider even "filtered" relation (punct in practise) 
+              because punct dep are taken into account for computing continuity (see [inside_fold] in the code) *)
   let projection filter_top filter_in gid graph =
     let rec loop top gid =
-      let filter = if top then filter_top else filter_in in
       let node = Gid_map.find gid graph.map in
       let pos = G_node.get_position node in
-      let next = G_node.get_next node in
-      if Gid_massoc.is_empty next
-      then [(pos,pos,1)]
-      else
-        let sub_proj =
+      let sub_proj =
+        if top
+        then
+          (* at the top level, we just ignore dependant the don't pass the filter *)
+          Gid_massoc.fold
+            (fun acc next_gid _ -> (loop false next_gid) @ acc)
+            [(pos,pos,1)]
+            (G_node.get_next_basic_filter ~filter:filter_top node)
+        else
+          (* [inside_fold] *)
           Gid_massoc.fold
             (fun acc next_gid edge ->
-              if G_edge.is_real_link edge
-              then
-                let sub_proj = loop false next_gid in
-                if G_edge.is_basic_filter ~filter edge
-                then sub_proj @ acc
-                else (List.map (fun (i,j,_) -> (i,j,0)) sub_proj) @ acc
-              else acc
-            ) [(pos,pos,1)] next in
-        normalise_proj sub_proj in
+              if G_edge.is_basic_filter ~filter:filter_in edge
+              then (loop false next_gid) @ acc
+              else
+                match (loop false next_gid) with
+                | [(i,j,_)] -> (i,j,0) :: acc
+                | _ -> Error.run "[G_graph.projection] unexpected tree structure"
+              )
+            [(pos,pos,1)]
+            (G_node.get_next_basic node) in
+      normalise_proj sub_proj in
     loop true gid
 
   let no_punct_filter = function "punct" -> false | _ -> true
