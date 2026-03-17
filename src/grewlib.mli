@@ -51,6 +51,8 @@ module Graph : sig
   val load: config:Conll_config.t -> string -> t
 
   val of_json: Yojson.Basic.t -> t
+
+  (* Note: unshared metadata (with key "main>sub" are filtered) *)
   val to_json: t -> Yojson.Basic.t
 
   val of_pst: string -> t
@@ -206,7 +208,6 @@ module Corpus: sig
 
   (* [size t] returns the number of graphs in the corpus *)
   val size: t -> int
-
   val graph_of_sent_id: string -> t -> Graph.t option
 
   val get_graph: int -> t -> Graph.t
@@ -222,10 +223,10 @@ module Corpus: sig
 
   val permut_length: t -> int array
 
-  val of_conllx_corpus: Conll_corpus.t -> t
   val from_stdin: ?ext:string -> ?log_file:string -> ?config:Conll_config.t -> unit -> t
   val from_string: ?ext:string -> ?log_file:string -> ?config:Conll_config.t -> string -> t
-  val from_file: ?ext:string -> ?log_file:string -> ?config:Conll_config.t -> string -> t
+  val from_file: ?log_file:string -> ?config:Conll_config.t -> string -> t
+  val from_files: ?log_file:string -> ?config:Conll_config.t -> string array -> t
   val from_dir: ?config:Conll_config.t -> string -> t
 
   val from_assoc_list: (string * Graph.t) list -> t

@@ -38,10 +38,10 @@ module Corpus : sig
 
   val permut_length: t -> int array
 
-  val of_conllx_corpus: Conll_corpus.t -> t
   val from_stdin: ?ext:string -> ?log_file: string -> ?config:Conll_config.t -> unit -> t
   val from_string: ?ext:string -> ?log_file: string -> ?config:Conll_config.t -> string -> t
-  val from_file: ?ext:string -> ?log_file: string -> ?config:Conll_config.t -> string -> t
+  val from_file: ?log_file: string -> ?config:Conll_config.t -> string -> t
+  val from_files: ?log_file: string -> ?config:Conll_config.t -> string array -> t
   val from_dir: ?log_file: string -> ?config:Conll_config.t -> string -> t
   val from_assoc_list: (string * G_graph.t) list -> t
 

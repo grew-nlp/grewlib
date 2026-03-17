@@ -230,7 +230,13 @@ module Corpusbank = struct
       (* Counter.print index len sent_id; *)
       (* Grew_grs.Grs.simple_rewrite ~config grs strat gr *)
         match Grs.simple_rewrite ~config:grs_config grs strat gr with
-          | [graph] -> fprintf out_ch "%s\n" (graph |> G_graph.to_json |> Conll.of_json |> fix |> Conll.to_string ~config:tar_config ~columns)
+          | [graph] -> 
+              graph 
+              |> G_graph.to_json
+              |> Conll.of_json
+              |> fix
+              |> Conll.to_string ~config:tar_config ~columns
+              |> fprintf out_ch "%s\n"
           | _ -> Error.run "More than one normal form (src_file=%s)" src_file
       ) src_corpus;
       (* Counter.finish (); *)

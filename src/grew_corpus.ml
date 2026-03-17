@@ -89,7 +89,7 @@ module Corpus = struct
       then Error.run "Cannot merge corpora with incompatible kinds"
       else {h with items = Array.concat (List.map (fun t -> t.items) (h::t)) }
 
-  let of_conllx_corpus conllx_corpus =
+  let of_conll_corpus conllx_corpus =
     let items =
       Array.map
         (fun (sent_id, conllx) ->
@@ -170,7 +170,7 @@ module Corpus = struct
     | Some ".conll" | Some ".conllu" | Some ".cupt" | Some ".orfeo" | Some ".frsemcor"
     | _ -> (* TODO: use Conll by default --> more robust stuff needed *)
       let lines = CCIO.read_lines_l stdin in
-      of_conllx_corpus (Conll_corpus.of_lines ?log_file ?config lines)
+      of_conll_corpus (Conll_corpus.of_lines ?log_file ?config lines)
 
   let from_string ?ext ?log_file ?config s =
     match ext with
@@ -178,7 +178,7 @@ module Corpus = struct
     | Some ".conll" | Some ".conllu" | Some ".cupt" | Some ".orfeo" | Some ".frsemcor"
     | _ -> (* TODO: use Conll by default --> more robust stuff needed *)
       let lines = Str.split (Str.regexp "\n") s in
-      of_conllx_corpus (Conll_corpus.of_lines ?log_file ?config lines)
+      of_conll_corpus (Conll_corpus.of_lines ?log_file ?config lines)
 
   let of_json_file file =
     try 
@@ -189,45 +189,48 @@ module Corpus = struct
     with 
     | Yojson.Json_error msg -> Error.run ~loc:(Loc.file file) "Error in the JSON file format: %s" msg
 
-  let from_file ?ext ?log_file ?config file =
-    let extension = match ext with Some e -> e | None -> Filename.extension file in
-    match extension with
+  let from_file ?log_file ?config file =
+    match Filename.extension file with
     | ".conll" | ".conllu" | ".cupt" | ".orfeo" | ".frsemcor" ->
-      of_conllx_corpus (Conll_corpus.load ?log_file ?config file)
+      of_conll_corpus (Conll_corpus.load ?log_file ?config file)
     | ".amr" | ".txt" ->
       of_amr_file file
     | ".json" | ".jsonl" ->
       of_json_file file
     | ext -> Error.run "Cannot load file `%s`, unknown extension `%s`" file ext
 
-  let from_dir ?log_file ?config dir =
-    let files = Sys.readdir dir in
-    let (conll_files, amr_files, txt_files, json_files) =
+  (* let from_dir ?log_file ?config dir = *)
+  let from_files ?log_file ?config files =
+    let metadata = ref None in
+    let (conll_files, amr_files, json_files) =
       Array.fold_right
-        (fun file (conll_acc, amr_acc, txt_acc, json_acc) ->
-          let full_file = Filename.concat dir file in
+        (fun file (conll_acc, amr_acc, json_acc) ->
            match Filename.extension file with
-           | ".conll" | ".conllu" | ".cupt" | ".orfeo" -> (full_file::conll_acc, amr_acc, txt_acc, json_acc)
-           | ".amr" -> (conll_acc, full_file::amr_acc, txt_acc, json_acc)
-           | ".txt" -> (conll_acc, amr_acc, full_file::txt_acc, json_acc)
-           | ".json" | ".jsonl" -> (conll_acc, amr_acc, txt_acc, full_file::json_acc)
-           | _ -> (conll_acc, amr_acc, txt_acc, json_acc)
-        ) files ([],[],[],[]) in
+           | ".json" when Filename.basename file = "metadata.json" -> metadata := Some file; (conll_acc, amr_acc, json_acc)
+           | ".conll" | ".conllu" | ".cupt" | ".orfeo" -> (file::conll_acc, amr_acc, json_acc)
+           | ".amr" | ".txt" -> (conll_acc, file::amr_acc, json_acc)
+           | ".json" | ".jsonl" -> (conll_acc, amr_acc, file::json_acc)
+           | _ -> (conll_acc, amr_acc, json_acc)
+        ) files ([],[],[]) in
 
     (* txt files are interpreted as AMR files only if there is no conll-like files (eg: UD containts txt files in parallel to conllu) *)
-    match (conll_files, amr_files, txt_files, json_files) with
-    | ([],[],[], []) -> Error.run "The directory `%s` does not contain any graphs" dir
-    | (_::_ as conll_files,_,_,_) ->
-      let raw_corpus = of_conllx_corpus (Conll_corpus.load_list ?log_file ?config conll_files) in
+    match (conll_files, amr_files, json_files) with
+    | ([],[],[]) -> Error.run "No files with a format known by Grew"
+    | (_::_ as conll_files,_,_) ->
+      let raw_corpus = of_conll_corpus (Conll_corpus.load_list ?log_file ?config conll_files) in
       begin
-        if Array.mem "metadata.json" files
-        then
-          let shared_metadata = Yojson.Basic.from_file (Filename.concat dir "metadata.json") in
-          unshare_meta shared_metadata raw_corpus
-        else raw_corpus
+        match !metadata with
+        | None -> raw_corpus
+        | Some md -> unshare_meta (Yojson.Basic.from_file md) raw_corpus
       end
-    | ([], (_::_ as amr_files), txt_files, _) | ([], amr_files, (_::_ as txt_files), _) -> (amr_files @ txt_files) |> List.map of_amr_file |> merge
-    | ([],[],[],json_files) -> json_files |> List.map of_json_file |> merge
+    | ([], (_::_ as amr_files), []) -> amr_files |> List.map of_amr_file |> merge
+    | ([],[],json_files) -> json_files |> List.map of_json_file |> merge
+    | _ -> Error.run "Cannot handle mix of data files"
+
+  let from_dir ?log_file ?config dir =
+    let files = Sys.readdir dir in
+    let full_files = Array.map (Filename.concat dir) files in
+    from_files ?log_file ?config full_files
 
   (* val from_assoc_list: (string * G_graph.t) list -> t *)
   let from_assoc_list l =

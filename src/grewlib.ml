@@ -353,17 +353,17 @@ module Corpus = struct
   (* NB: no handle here because it's sensible to raise out onw exception in [iteri] *)
   let iteri = Grew_corpus.Corpus.iteri
 
-  let of_conllx_corpus conllx_corpus =
-    Grewlib.handle ~name:"Corpus.of_conllx_corpus" (fun () -> Grew_corpus.Corpus.of_conllx_corpus conllx_corpus) ()
-
   let from_stdin ?ext ?log_file ?config () =
     Grewlib.handle ~name:"Corpus.from_stdin" (fun () -> Grew_corpus.Corpus.from_stdin ?ext ?log_file ?config ()) ()
 
   let from_string ?ext ?log_file ?config s =
     Grewlib.handle ~name:"Corpus.from_string" (fun () -> Grew_corpus.Corpus.from_string ?ext ?log_file ?config s) ()
 
-  let from_file ?ext ?log_file ?config file =
-    Grewlib.handle ~name:"Corpus.from_file" (fun () -> Grew_corpus.Corpus.from_file ?ext ?log_file ?config file) ()
+  let from_file ?log_file ?config file =
+    Grewlib.handle ~name:"Corpus.from_file" (fun () -> Grew_corpus.Corpus.from_file ?log_file ?config file) ()
+
+  let from_files ?log_file ?config files =
+    Grewlib.handle ~name:"Corpus.from_file" (fun () -> Grew_corpus.Corpus.from_files ?log_file ?config files) ()
 
   let from_dir ?config dir =
     Grewlib.handle ~name:"Corpus.from_dir" (fun () -> Grew_corpus.Corpus.from_dir ?config dir) ()

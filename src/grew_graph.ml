@@ -707,7 +707,11 @@ module G_graph = struct
 
   (* -------------------------------------------------------------------------------- *)
   let to_json graph =
-    let meta = `Assoc (List.map (fun (k,v) -> (k, `String v)) graph.meta) in
+    let meta = `Assoc 
+      (CCList.filter_map
+        (fun (k,v) -> if CCString.contains k '>' then None else Some (k, `String v)
+        ) graph.meta
+      ) in
 
     let nodes =
       Gid_map.fold
