@@ -1154,7 +1154,7 @@ module Matching = struct
   
   let get_value_opt_list ?(json_label=false) ~config request graph matching key =
     let rec loop = function
-    | Ast.Key.Meta key -> [graph |> G_graph.get_meta_list |> List.assoc_opt key]
+    | Ast.Key.Meta key -> [G_graph.get_meta_opt key graph]
     | Rel_order pid_name_list -> [get_relative_order pid_name_list request graph matching]
     | Sym_rel (pid_name_1, pid_name_2) -> [Some (get_link ~config true pid_name_1 pid_name_2 request graph matching)]
     | Rel (pid_name_1, pid_name_2) -> [Some (get_link ~config false pid_name_1 pid_name_2 request graph matching)]

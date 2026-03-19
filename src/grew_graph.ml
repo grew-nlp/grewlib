@@ -314,7 +314,14 @@ module G_graph = struct
     impact: G_deco.t;
   }
 
-  let get_meta_opt key t = List.assoc_opt key t.meta
+  let get_meta_opt key t =
+    let rec loop = function
+      | [] -> None
+      | (k,v) :: tail ->
+        match String.split_on_char '>' k with
+        | [_;sk] -> if sk=key then Some v else loop tail
+        | _ -> if k=key then Some v else loop tail
+      in loop t.meta
 
   let get_meta_list t = t.meta
 
@@ -325,7 +332,7 @@ module G_graph = struct
     | `Assoc l -> List.assoc_opt key l
     | _ -> None
 
-  (* [shared_metadata] is the Yojson.Basic.t loadede from `metadata.json` *)
+  (* [shared_metadata] is the Yojson.Basic.t loaded from `metadata.json` *)
   let unshare_meta shared_metadata t = 
     List.fold_left
       (fun acc (key,value) ->
