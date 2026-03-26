@@ -157,6 +157,10 @@ module Graph = struct
 
   let trace_depth t =
     Grew_graph.G_graph.trace_depth t
+  
+  let unshare_meta shared_metadata graph =
+    Grewlib.handle ~name:"Graph.to_dot" (fun () -> Grew_graph.G_graph.unshare_meta shared_metadata graph) ()
+
 end
 
 (* ==================================================================================================== *)

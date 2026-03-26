@@ -91,6 +91,9 @@ module Graph : sig
 
   val get_history: t -> (Deco.t * (string * int) * Deco.t * t) list
   val trace_depth: t -> int
+
+  val unshare_meta: Yojson.Basic.t -> t -> t
+
 end
 
 (* ==================================================================================================== *)
