@@ -713,10 +713,13 @@ module G_graph = struct
     List.map fst (List.sort (fun (_,p1) (_,p2) -> Stdlib.compare p1 p2) gid_position_list)
 
   (* -------------------------------------------------------------------------------- *)
-  let to_json graph =
+  let to_json ?(filter_shared=true) graph =
     let meta = `Assoc 
       (CCList.filter_map
-        (fun (k,v) -> if CCString.contains k '>' then None else Some (k, `String v)
+        (fun (k,v) -> 
+          if filter_shared && (CCString.contains k '>' || k = "document_id") 
+          then None
+          else Some (k, `String v)
         ) graph.meta
       ) in
 

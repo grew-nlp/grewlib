@@ -128,8 +128,8 @@ module Graph = struct
   let of_json graph =
     Grewlib.handle ~name:"Graph.of_json" (fun () -> Grew_graph.G_graph.of_json graph) ()
 
-  let to_json graph =
-    Grewlib.handle ~name:"Graph.to_json" (fun () -> Grew_graph.G_graph.to_json graph) ()
+  let to_json ?filter_shared graph =
+    Grewlib.handle ~name:"Graph.to_json" (fun () -> Grew_graph.G_graph.to_json ?filter_shared graph) ()
 
   let to_sentence ?pivot ?deco gr =
     Grewlib.handle ~name:"Graph.to_sentence"

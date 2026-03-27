@@ -52,8 +52,8 @@ module Graph : sig
 
   val of_json: Yojson.Basic.t -> t
 
-  (* Note: unshared metadata (with key "main>sub" are filtered) *)
-  val to_json: t -> Yojson.Basic.t
+  (* if filter_shared is true (default) keys "main>sub" are filtered as well as "document_id" key) *)
+  val to_json: ?filter_shared:bool -> t -> Yojson.Basic.t
 
   val of_pst: string -> t
 

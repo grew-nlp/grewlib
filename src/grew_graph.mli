@@ -228,7 +228,7 @@ module G_graph: sig
 
   val to_dep: ?filter: (string -> bool) -> ?no_root:bool -> ?pid:bool -> ?main_feat:string -> ?deco:G_deco.t -> config:Conll_config.t -> t -> string
 
-  val to_json: t -> Yojson.Basic.t
+  val to_json: ?filter_shared:bool -> t -> Yojson.Basic.t
 
   val append_in_ag_lex: string list -> t -> int Clustered.t -> int Clustered.t
 
