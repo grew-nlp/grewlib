@@ -1,3 +1,7 @@
+# 1.20.0 (2026/04/26)
+  - new clustering keys `proj_size`, `cont_proj_size`, `constituent_size` and `height`
+  - handling of shared metadata (see https://grew.fr/spoken-language-guidelines/workgroups/spoken-data/treebank_structure.html)
+
 # 1.19.0 (2025/11/18)
   - tuples of clutering keys
   - Fix bug with multiple declaration of the same node name in a with/without clause
