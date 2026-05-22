@@ -1454,6 +1454,12 @@ module Rule = struct
           | None -> Error.run ~loc "Node feature named `%s` is undefined" feat_name
           | Some v -> Feature_value.extract_range ~loc range v
         end
+      | (Command.Meta key, range) ->
+        begin
+          match G_graph.get_meta_opt key state.graph with
+          | Some value -> Feature_value.String (Range.extract range value)
+          | None -> Error.run "Metadata key `%s` is undefined" key
+        end
       | (Command.Edge_feat (edge_id, feat_name), range) ->
         begin
           match String_map.find_opt edge_id state.e_mapping with
@@ -1638,6 +1644,12 @@ module Rule = struct
          }
       )
 
+    | Command.UPDATE_META (key, item_list) -> 
+      let feature_value_list = List.map (feature_value_of_item key) item_list in
+      let new_feature_value = Feature_value.concat ~loc feature_value_list in
+      let new_graph = G_graph.set_meta key (Feature_value.to_string new_feature_value) state.graph in
+      {state with graph = new_graph; effective = true}
+
     | Command.UPDATE_FEAT (tar_cn, tar_feat_name, item_list) ->
       let tar_gid = node_find tar_cn in
       let feature_value_list = List.map (feature_value_of_item tar_feat_name) item_list in
@@ -1802,6 +1814,12 @@ module Rule = struct
           | None -> Error.run ~loc "Node feature named `%s` is undefined" feat_name
           | Some v -> [Feature_value.extract_range ~loc range v]
         end
+      | (Command.Meta key, range) ->
+        begin
+          match G_graph.get_meta_opt key gwh.Graph_with_history.graph with
+          | Some value -> [Feature_value.String (Range.extract range value)]
+          | None -> Error.run "Metadata key `%s` is undefined" key
+        end
       | (Command.Edge_feat (edge_id, feat_name), range) ->
         begin
           let (_,edge,_) =
@@ -1925,8 +1943,20 @@ module Rule = struct
                              }
       )
 
-
-
+    | Command.UPDATE_META (key, item_list) ->
+      begin
+        match List.map (feature_value_list_of_item key) item_list with
+        | [feature_value_list] ->
+          let new_value = Feature_value.to_string (Feature_value.concat ~loc feature_value_list) in
+          let new_graph = G_graph.set_meta key new_value gwh.Graph_with_history.graph in
+          let new_gwh = 
+            { gwh with
+               Graph_with_history.graph = new_graph;
+               delta = Delta.set_meta gwh.Graph_with_history.seed key (Some new_value) gwh.Graph_with_history.delta;
+             } in 
+          Graph_with_history_set.singleton new_gwh
+        | _ -> Error.run ~loc "Non deterministic UPDATE_META not implemented"
+        end
 
     | Command.UPDATE_FEAT (tar_cn, tar_feat_name, item_list) ->
       let tar_gid = node_find tar_cn in

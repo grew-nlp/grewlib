@@ -1758,9 +1758,10 @@ module Delta = struct
     ordered_nodes: Gid.t list;
     edges: ((Gid.t * G_edge.t * Gid.t) * status) list;
     feats: ((Gid.t * string) * (Feature_value.t option)) list;
+    meta: (string * (string option)) list;
   }
 
-  let init ordered_nodes = { del_nodes=[]; ordered_nodes; edges=[]; feats=[]; }
+  let init ordered_nodes = { del_nodes=[]; ordered_nodes; edges=[]; feats=[]; meta=[]; }
 
   let del_node gid t =
     match List_.usort_insert_opt gid t.del_nodes with
@@ -1770,6 +1771,7 @@ module Delta = struct
         ordered_nodes = List.filter (fun g -> g <> gid) t.ordered_nodes;
         edges = List.filter (fun ((g1,_,g2),_) -> g1 <> gid && g2 <> gid) t.edges;
         feats = List.filter (fun ((g,_),_) -> g <> gid) t.feats;
+        meta = t.meta;
       }
 
   let add_edge src lab tar t =
@@ -1804,6 +1806,18 @@ module Delta = struct
       | ((_,_),_)::tail when (* (g,f)=(gid,feat_name) && *) equal_orig -> tail
       | ((g,f),_)::tail (* when (g,f)=(gid,feat_name) *)               -> ((g,f), new_val_opt) :: tail in
     { t with feats = loop t.feats }
+
+  let set_meta seed_graph key new_val_opt t =
+    let equal_orig = G_graph.get_meta_opt key seed_graph = new_val_opt in
+    let rec loop = fun old -> match old with
+      | [] when equal_orig                           -> []
+      | []                                           -> [key, new_val_opt]
+      | (f,_)::_ when key < f && equal_orig          -> old
+      | (f,_)::_ when key < f                        -> (key, new_val_opt)::old
+      | (f,v)::tail when key > f                     -> (f,v)::(loop tail)
+      | (_,_)::tail when (* f = key && *) equal_orig -> tail
+      | (f,_)::tail (* when f = key *)               -> (f, new_val_opt) :: tail in
+    { t with meta = loop t.meta }
 
   let unorder gid t = { t with ordered_nodes = CCList.remove ~eq:(=) ~key:gid t.ordered_nodes }
 

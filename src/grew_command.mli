@@ -22,6 +22,7 @@ module Command : sig
   type item =
     | Node_feat of (command_node * string)
     | Edge_feat of (string * string)
+    | Meta of string
     | String_item of string
     | Lexical_field of (string * string)
 
@@ -36,6 +37,7 @@ module Command : sig
     | ADD_EDGE_ITEMS of (command_node * command_node * (string * string) list)
     | DEL_FEAT of (command_node * string)
     | DEL_EDGE_FEAT of (string * string) (* (edge identifier, feature_name) *)
+    | UPDATE_META of (string * ranged_item list)
     | UPDATE_FEAT of (command_node * string * ranged_item list)
     | UPDATE_EDGE_FEAT of (string * string * ranged_item list) (* edge identifier, feat_name, new_value *)
     (* *)

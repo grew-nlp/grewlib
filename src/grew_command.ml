@@ -29,12 +29,14 @@ module Command  = struct
   type item =
     | Node_feat of (command_node * string)
     | Edge_feat of (string * string)
+    | Meta of string
     | String_item of string
     | Lexical_field of Ast.pointed
 
   let item_to_string = function
     | Node_feat (cn, feature_name) -> sprintf "%s.%s" (command_node_to_string cn) feature_name
     | Edge_feat (edge_id, feat_name) -> sprintf "%s.%s" edge_id feat_name
+    | Meta key -> sprintf "meta.%s" key
     | String_item s -> sprintf "\"%s\"" s
     | Lexical_field (lex,field) -> sprintf "%s.%s" lex field
 
@@ -52,6 +54,7 @@ module Command  = struct
     | ADD_EDGE_ITEMS of (command_node * command_node * (string * string) list)
     | DEL_FEAT of (command_node * string)
     | DEL_EDGE_FEAT of (string * string) (* (edge identifier, feature_name) *)
+    | UPDATE_META of (string * ranged_item list)
     | UPDATE_FEAT of (command_node * string * ranged_item list)
     | UPDATE_EDGE_FEAT of (string * string * ranged_item list) (* edge identifier, feat_name, new_value *)
     (* *)
@@ -111,6 +114,11 @@ module Command  = struct
     | DEL_FEAT (cn, feature_name) ->
       `String (sprintf "del_feat %s.%s" (node_to_string cn) feature_name)
 
+    | UPDATE_META (key, items) ->
+      `String (sprintf "meta.%s=%s"
+        key
+        (String.concat "+" (List.map ranged_item_to_string items))
+      )
     | UPDATE_FEAT (cn, feature_name, items) ->
       `String (sprintf "%s.%s=%s"
         (node_to_string cn)
@@ -150,6 +158,26 @@ module Command  = struct
       match Id.build_opt node_id table with
       | Some x -> Req (Pid.Ker x)
       | None   -> New node_id in
+
+    let of_ast_item ~loc = function
+      | Ast.Qfn_or_lex_item (("meta",key), range) ->
+        (Meta key, range)
+      | Ast.Qfn_or_lex_item ((id_or_lex,feature_name_or_lex_field), range) ->
+        if List.mem_assoc id_or_lex lexicons
+        then
+          begin
+            Lexicons.check ~loc id_or_lex feature_name_or_lex_field lexicons;
+            (Lexical_field (id_or_lex, feature_name_or_lex_field), range)
+          end
+        else if List.mem id_or_lex kni
+        then
+          begin
+            (Node_feat (cn_of_node_id id_or_lex, feature_name_or_lex_field), range)
+          end
+        else if List.mem id_or_lex kei
+        then (Edge_feat (id_or_lex, feature_name_or_lex_field), range)
+        else Error.build ~loc "Unknown identifier \"%s\"" id_or_lex
+      | Ast.String_item (s, range) -> (String_item s, range) in
 
     let check_node_id_msg loc msg node_id kni =
       if not (List.mem node_id kni)
@@ -253,39 +281,25 @@ module Command  = struct
       check_node_id loc id2 kni;
       ((INSERT_AFTER (cn_of_node_id id1,cn_of_node_id id2), loc), (kni, kei))
 
-    | (Ast.Update_feat ((node_or_edge_id, feat_name), ast_items), loc) ->
-      let of_ast_item = function
-        | Ast.Qfn_or_lex_item ((id_or_lex,feature_name_or_lex_field), range) ->
-          if List.mem_assoc id_or_lex lexicons
-          then
-            begin
-              Lexicons.check ~loc id_or_lex feature_name_or_lex_field lexicons;
-              (Lexical_field (id_or_lex, feature_name_or_lex_field), range)
-            end
-          else if List.mem id_or_lex kni
-          then
-            begin
-              (Node_feat (cn_of_node_id id_or_lex, feature_name_or_lex_field), range)
-            end
-          else if List.mem id_or_lex kei
-          then (Edge_feat (id_or_lex, feature_name_or_lex_field), range)
-          else Error.build ~loc "Unknown identifier \"%s\"" id_or_lex
-        | Ast.String_item (s, range) -> (String_item s, range) in
+    | (Ast.Update_feat (("meta", key), ast_items), loc) ->
+      let items = List.map (of_ast_item ~loc) ast_items in
+      ((UPDATE_META (key, items), loc), (kni, kei))
 
+    | (Ast.Update_feat ((node_or_edge_id, feat_name), ast_items), loc) ->
       begin
         match (List.mem node_or_edge_id kni, List.mem node_or_edge_id kei) with
 
         (* [node_or_edge_id] is a node id *)
         | (true, false) when feat_name = "__id__" -> Error.build ~loc "The node feature name \"__id__\" is reserved and cannot be used in commands"
         | (true, false) ->
-          let items = List.map of_ast_item ast_items in
+          let items = List.map (of_ast_item ~loc) ast_items in
           ((UPDATE_FEAT (cn_of_node_id node_or_edge_id, feat_name, items), loc), (kni, kei))
 
         (* [node_or_edge_id] is a edge id *)
         | (false, true) when List.mem feat_name ["length"; "delta"] ->
           Error.build ~loc "The edge feature name \"%s\" is reserved and cannot be used in commands" feat_name
         | (false, true) ->
-          let items = List.map of_ast_item ast_items in
+          let items = List.map (of_ast_item ~loc) ast_items in
           ((UPDATE_EDGE_FEAT (node_or_edge_id, feat_name, items), loc), (kni, kei))
 
         (* other cases *)
