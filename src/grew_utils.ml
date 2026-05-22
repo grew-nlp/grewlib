@@ -789,6 +789,7 @@ module Feature_value = struct
     "_start"; "_stop";              (* nodes in Orfeo timestamps *)
     "AlignBegin"; "AlignEnd";       (* nodes in SUD_Naija *)
     "length"; "delta"; "weight";
+    "__out__";
     "Duration";
     "MeanF0";
     "SemitonesFromUtteranceMean";
@@ -819,7 +820,7 @@ module Feature_value = struct
       begin
         match float_of_string_opt string_value with
         | Some f -> Float f
-        | None -> Error.build ?loc "The feature \"%s\" must be numeric, it cannot be associated with value: \"%s\"" feature_name string_value
+        | None -> Error.build ?loc "The feature `%s` must be numeric, it cannot be associated with value: `%s`" feature_name string_value
       end
     else String (string_value |> String_.nfc)
 
