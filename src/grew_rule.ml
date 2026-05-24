@@ -1696,6 +1696,13 @@ module Rule = struct
         effective = true;
       }
 
+    | Command.DEL_META key ->
+        let new_graph = G_graph.del_meta key state.graph in
+        { state with
+          graph=new_graph;
+          effective = true;
+        }
+
     | Command.DEL_FEAT (tar_cn,feat_name) ->
       let tar_gid = node_find tar_cn in
       (match G_graph.del_feat_opt state.graph tar_gid feat_name with
@@ -1984,6 +1991,13 @@ module Rule = struct
       then Error.run ~loc "UPDATE_FEAT: no changes"
       else new_graphs
 
+    | Command.DEL_META key ->
+        let new_graph = G_graph.del_meta key gwh.Graph_with_history.graph in
+        Graph_with_history_set.singleton
+          { gwh with
+            Graph_with_history.graph = new_graph;
+            delta = Delta.set_meta gwh.Graph_with_history.seed key None gwh.Graph_with_history.delta;
+          }
 
     | Command.DEL_FEAT (tar_cn,feat_name) ->
       let tar_gid = node_find tar_cn in

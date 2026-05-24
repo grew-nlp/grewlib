@@ -330,6 +330,7 @@ module Ast = struct
     | Del_node of Id.name
 
     | Del_feat of feature_ident
+    | Del_meta of string
     | Update_feat of feature_ident * concat_item list
     (* Concat_feats (side, src, tar, regexp, separator)*)
     | Concat_feats of (side * Id.name * Id.name * Regexp.t * string)
@@ -366,6 +367,8 @@ module Ast = struct
       sprintf "%s.%s = %s" act_id feat_name (String.concat " + " (List.map string_of_concat_item item_list))
     | Del_feat (act_id, feat_name) ->
       sprintf "del_feat %s.%s" act_id feat_name
+    | Del_meta key ->
+      sprintf "del_meta %s" key
     | Concat_feats (Append, src, tar, regexp, "") ->
       sprintf "append_feats %s =%s=> %s" src (Regexp.to_string regexp) tar
     | Concat_feats (Append, src, tar, regexp, separator) ->

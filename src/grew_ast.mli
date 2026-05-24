@@ -200,6 +200,7 @@ module Ast : sig
     | Del_node of Id.name
 
     | Del_feat of feature_ident
+    | Del_meta of string
     | Update_feat of feature_ident * concat_item list
 
     | Concat_feats of (side * Id.name * Id.name * Regexp.t * string)

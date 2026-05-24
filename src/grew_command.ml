@@ -53,6 +53,7 @@ module Command  = struct
     | ADD_EDGE_EXPL of (command_node * command_node * string)
     | ADD_EDGE_ITEMS of (command_node * command_node * (string * string) list)
     | DEL_FEAT of (command_node * string)
+    | DEL_META of string
     | DEL_EDGE_FEAT of (string * string) (* (edge identifier, feature_name) *)
     | UPDATE_META of (string * ranged_item list)
     | UPDATE_FEAT of (command_node * string * ranged_item list)
@@ -113,6 +114,9 @@ module Command  = struct
 
     | DEL_FEAT (cn, feature_name) ->
       `String (sprintf "del_feat %s.%s" (node_to_string cn) feature_name)
+
+    | DEL_META key ->
+      `String (sprintf "del_meta %s" key)
 
     | UPDATE_META (key, items) ->
       `String (sprintf "meta.%s=%s"
@@ -252,6 +256,9 @@ module Command  = struct
     | (Ast.Del_node node_n, loc) ->
       check_node_id loc node_n kni;
       ((DEL_NODE (cn_of_node_id node_n), loc), (List_.remove node_n kni, kei))
+
+    | (Ast.Del_meta key, loc) ->
+      ((DEL_META key, loc), (kni, kei))
 
     | (Ast.Del_feat (node_or_edge_id, feat_name), loc) ->
       begin

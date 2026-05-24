@@ -36,6 +36,7 @@ module Command : sig
     | ADD_EDGE_EXPL of (command_node * command_node * string)
     | ADD_EDGE_ITEMS of (command_node * command_node * (string * string) list)
     | DEL_FEAT of (command_node * string)
+    | DEL_META of string
     | DEL_EDGE_FEAT of (string * string) (* (edge identifier, feature_name) *)
     | UPDATE_META of (string * ranged_item list)
     | UPDATE_FEAT of (command_node * string * ranged_item list)

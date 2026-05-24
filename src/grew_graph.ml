@@ -327,6 +327,8 @@ module G_graph = struct
 
   let set_meta key value t = {t with meta = (key,value) :: List.remove_assoc key t.meta}
 
+  let del_meta key t = {t with meta = List.remove_assoc key t.meta}
+
   let json_get key (json : Yojson.Basic.t) =
     match json with 
     | `Assoc l -> List.assoc_opt key l

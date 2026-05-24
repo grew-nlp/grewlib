@@ -211,6 +211,7 @@ and standard target = parse
 | "del_node"      { DEL_NODE }
 | "add_node"      { ADD_NODE }
 | "del_feat"      { DEL_FEAT }
+| "del_meta"      { DEL_META }
 | "append_feats"  { APPEND_FEATS }
 | "prepend_feats" { PREPEND_FEATS }
 | "unorder"       { UNORDER }

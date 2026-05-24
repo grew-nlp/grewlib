@@ -97,6 +97,7 @@ let localize t = (t,get_loc ())
 %token DEL_NODE                    /* del_node */
 %token ADD_NODE                    /* add_node */
 %token DEL_FEAT                    /* del_feat */
+%token DEL_META                    /* del_meta */
 %token APPEND_FEATS                /* append_feats */
 %token PREPEND_FEATS               /* append_feats */
 %token UNORDER                     /* unorder */
@@ -768,6 +769,10 @@ command:
         /*   del_feat m.cat   */
         | DEL_FEAT com_fead_id_loc= feature_ident_with_loc
             { let (com_fead_id,loc) = com_fead_id_loc in (Ast.Del_feat com_fead_id, loc) }
+
+        /*   del_meta sound_url   */
+        | DEL_META key_loc= simple_id_with_loc
+            { let (key,loc) = key_loc in (Ast.Del_meta key, loc) }
 
         /*   m.cat = n.x + "_" + nn.y   */
         | com_fead_id_loc= feature_ident_with_loc EQUAL items=separated_nonempty_list (PLUS, concat_item)
