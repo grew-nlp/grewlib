@@ -771,14 +771,20 @@ module Corpus_desc = struct
         | Some l -> sprintf "--lang=%s" l
         | None ->
           Printf.fprintf out_ch "WARNING: no lang defined, validation only up to level 3\n";
-          "--lang=unknown --level=3" in
+          "--lang=ud --level=3" in
       close_out out_ch;
         List.iter (fun file ->
           Info.green "UD validation of file %s [in corpus %s]" (Filename.basename file) corpus_id;
         let out_ch = open_out_gen [Open_append] 0o644 valid_file in
         Printf.fprintf out_ch "================================ %s ================================\n" (Filename.basename file);
         close_out out_ch;
-        let command = sprintf "%s %s --max-err 0 \"%s\" 2>>  %s || true" validate_script args file valid_file in
+        let command = 
+          sprintf "%s %s%s --max-err 0 \"%s\" 2>> %s || true" 
+            validate_script
+            (if get_flag "no-warnings" corpus_desc then " --no_warnings" else "")
+            args 
+            file 
+            valid_file in
         match Sys.command command with
           | 0 -> ()
           | _ -> Warning.magenta "Error when running UD Python validation script on file %s" (Filename.basename file);

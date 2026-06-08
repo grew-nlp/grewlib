@@ -310,6 +310,8 @@ module Corpus_desc : sig
 
   val get_display: t -> int option
 
+  (** [get_flat flag_name t] returns true iff [flag_name] is set as [true] in corpus_desc [t].
+      [false] is returned in any other cases (defined as false, defined as not boolean or undefined) *)
   val get_flag: string -> t -> bool
 
   (** [build_corpus t] returns the corpus described *)
