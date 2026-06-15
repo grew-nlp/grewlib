@@ -781,16 +781,26 @@ module Corpus_desc = struct
         let command = 
           sprintf "%s %s%s --max-err 0 \"%s\" 2>> %s || true" 
             validate_script
-            (if get_flag "no-warnings" corpus_desc then " --no_warnings" else "")
+            (if get_flag "no-warnings" corpus_desc then "--no-warnings " else "")
             args 
             file 
             valid_file in
         match Sys.command command with
           | 0 -> ()
           | _ -> Warning.magenta "Error when running UD Python validation script on file %s" (Filename.basename file);
-      ) (get_files corpus_desc)
+      ) (get_files corpus_desc);
 
-
+    let diag_script = File.concat_names [(Env.get env "SUDTOOLS"); "UD"; "diag.py"] in
+    let diag_file = Filename.concat (get_build_directory corpus_desc) "diag_ud.txt" in
+    let command = 
+          sprintf "%s %s > %s"
+          diag_script
+          valid_file
+          diag_file in
+    match Sys.command command with
+      | 0 -> ()
+      | _ -> Warning.magenta "Error when running UD Python diag script on corpus %s" corpus_id;
+    ()
 
   let validate ?(verbose=false) ?(env=[]) corpus_desc =
     try
@@ -845,6 +855,7 @@ module Corpus_desc = struct
         |> CCList.filter_map CCFun.id
         |> (String.concat " ") in
         let command = sprintf "python3 %s %s > %s" script args abs_out_file in
+        
           match Sys.command command with
           | 0 -> ()
           | _ -> Warning.magenta "Error when running feat_upos"
