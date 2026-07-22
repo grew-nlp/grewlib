@@ -55,10 +55,6 @@ module Graph : sig
   (* if filter_shared is true (default) keys "main>sub" are filtered as well as "document_id" key) *)
   val to_json: ?filter_shared:bool -> t -> Yojson.Basic.t
 
-  val of_pst: string -> t
-
-  val sentence_of_pst: string -> string
-
   val to_sentence: ?pivot: string -> ?deco:Deco.t -> t -> string
 
   (** [to_sentence_audio ~deco graph] computes the needed information for Grew-match with audio.

@@ -9,6 +9,7 @@
 (**********************************************************************************)
 
 open Printf
+open Conll
 
 open Grew_types
 open Grew_ast
@@ -313,7 +314,6 @@ module G_graph = struct
     trace: trace_item option;     (* if the rewriting history is kept *)
     impact: G_deco.t;
   }
-
   let get_meta_opt key t =
     let rec loop = function
       | [] -> None
@@ -702,6 +702,18 @@ module G_graph = struct
       map;
       highest_index = final_index - 1;
     }
+
+  (* -------------------------------------------------------------------------------- *)
+  let load_conll ~config file =
+    Conll.load ~config file 
+    |> Conll.to_json 
+    |> of_json
+
+  let load ~config file =
+    match Grew_utils.String_.get_suffix_opt file with
+    | Some ".conll" | Some ".conllu" -> load_conll ~config file
+    | Some ".json" -> of_json (Yojson.Basic.from_file file)
+    | _ -> Error.run "Unknown file format for input graph '%s'" file
 
   (* -------------------------------------------------------------------------------- *)
   let get_ordered_gids graph =

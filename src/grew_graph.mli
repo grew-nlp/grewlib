@@ -126,6 +126,11 @@ module G_graph: sig
   val of_pst: Ast.pst -> t
 
   val of_json: Yojson.Basic.t -> t
+
+  val load_conll: config:Conll_config.t -> string -> t
+
+  val load: config:Conll_config.t -> string -> t
+
   (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
   (* Update functions *)
   (* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ *)
