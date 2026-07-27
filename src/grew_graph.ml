@@ -585,12 +585,12 @@ module G_graph = struct
               let fs =
                 try
                   (* if [json_edge] is of type string, it is interpreted as [1=value] *)
-                  try [("1", Feature_value.parse "1" (json_edge |> member "label" |> to_string))]
+                  try [("1", json_edge |> member "label" |> to_string)]
                   with Type_error _ ->
                     json_edge
                     |> member "label"
                     |> to_assoc
-                    |> List.map (fun (x,y) -> (x, y |> to_string |> Feature_value.parse x))
+                    |> List.map (fun (x,y) -> (x, to_string y))
                 with Type_error _ ->
                   Error.build
                     "[G_graph.of_json%s] Cannot parse field json `edge` (See https://grew.fr/doc/json):\n%s"
@@ -802,15 +802,15 @@ module G_graph = struct
     let leaf_list = ref [] in
 
     let rec loop nodes = function
-      | Ast.Leaf (loc, phon) ->
+      | Ast.Leaf (_, phon) ->
         let fid = fresh_id () in
-        let node = G_node.build_pst_leaf ~loc phon in
+        let node = G_node.build_pst_leaf phon in
         leaf_list := fid :: ! leaf_list;
         (fid, Gid_map.add fid node nodes)
 
-      | Ast.T (loc, cat, daughters) ->
+      | Ast.T (_, cat, daughters) ->
         let fid = fresh_id () in
-        let new_node = G_node.build_pst_node ~loc cat in
+        let new_node = G_node.build_pst_node cat in
         let with_mother = Gid_map.add fid new_node nodes in
         let new_nodes =
           List.fold_left
@@ -1104,10 +1104,10 @@ module G_graph = struct
     { graph with map = Gid_map.add node_id new_node graph.map }
 
   (* -------------------------------------------------------------------------------- *)
-  let concat_feats_opt ?loc graph side src_id tar_id separator regexp =
+  let concat_feats_opt graph side src_id tar_id separator regexp =
     let src_node = Gid_map.find src_id graph.map in
     let tar_node = Gid_map.find tar_id graph.map in
-    match G_node.concat_feats_opt ?loc side src_node tar_node separator regexp with
+    match G_node.concat_feats_opt side src_node tar_node separator regexp with
     | Some (new_tar_node, updated_feats) ->
       Some ({ graph with map = Gid_map.add tar_id new_tar_node graph.map }, updated_feats)
     | None -> None
@@ -1122,7 +1122,7 @@ module G_graph = struct
   (* -------------------------------------------------------------------------------- *)
   let space_after node =
     match G_fs.get_value_opt "SpaceAfter" (G_node.get_fs node) with
-    | Some (String "No") -> false
+    | Some "No" -> false
     | _ -> true
 
   let to_sentence ?pivot ?(deco=G_deco.empty) graph =
@@ -1168,11 +1168,11 @@ module G_graph = struct
         let fs = G_node.get_fs node in
         let (new_current_form, new_flag_highlight, new_flag_sa) =
           match (G_fs.get_value_opt "wordform" fs, G_fs.get_value_opt "textform" fs, G_fs.get_value_opt "form" fs) with
-          | (Some (String "__EMPTY__"), _, _) -> (current_form, flag_highlight, flag_sa)
-          | (_, Some (String "_"),_) -> (current_form, flag_highlight || (is_highlighted_gid gid), space_after node)
-          | (_, None, Some (String "__0__")) -> (current_form, flag_highlight, false)
-          | (_, Some (String form), _)
-          | (_, None, Some (String form)) ->
+          | (Some "__EMPTY__", _, _) -> (current_form, flag_highlight, flag_sa)
+          | (_, Some "_",_) -> (current_form, flag_highlight || (is_highlighted_gid gid), space_after node)
+          | (_, None, Some "__0__") -> (current_form, flag_highlight, false)
+          | (_, Some form, _)
+          | (_, None, Some form) ->
             let form = match form with "UNDERSCORE" -> "_" | x -> x in (* '_' is escaped in textform to avoid ambiguity with textform=_ in multi-word tokens *)
             to_buff (current_form, flag_highlight, flag_sa); (Some form, is_highlighted_gid gid, space_after node)
           | _ -> (current_form, flag_highlight, space_after node) in
@@ -1186,13 +1186,13 @@ module G_graph = struct
     let fs = G_node.get_fs gnode in
     let start_opt =
       match (G_fs.get_value_opt "_start" fs, G_fs.get_value_opt "AlignBegin" fs) with
-      | (Some (Float start),_) -> Some start
-      | (_,Some (Float align_begin)) -> Some (align_begin /. 1000.)
+      | (Some start,_) -> Some (Feature_value.get_float "_start" start)
+      | (_,Some align_begin) -> Some ((Feature_value.get_float "align_begin" align_begin) /. 1000.)
       | _ -> None
     and ending_opt =
       match (G_fs.get_value_opt "_stop" fs, G_fs.get_value_opt "AlignEnd" fs) with
-      | (Some (Float stop),_) -> Some stop
-      | (_,Some (Float align_end)) -> Some (align_end /. 1000.)
+      | (Some stop,_) -> Some (Feature_value.get_float "_stop" stop)
+      | (_,Some align_end) -> Some ((Feature_value.get_float "align_end" align_end) /. 1000.)
       | _ -> None in
     match (start_opt, ending_opt) with
     | (Some s, Some e) -> Some (s,e)
@@ -1308,10 +1308,10 @@ module G_graph = struct
 
         let style =
           match G_fs.get_value_opt "void" fs with
-          | Some (String "y") -> "; forecolor=red; subcolor=red; "
+          | Some "y" -> "; forecolor=red; subcolor=red; "
           | _ ->
           match G_fs.get_value_opt "wordform" fs with
-          | Some (String "__EMPTY__") -> "; forecolor=#cc00cb; subcolor=#cc00cb; "
+          | Some "__EMPTY__" -> "; forecolor=#cc00cb; subcolor=#cc00cb; "
           | _ -> "" in
 
         bprintf buff "N_%s { %s%s }\n"

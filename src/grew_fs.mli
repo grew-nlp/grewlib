@@ -21,10 +21,6 @@ module G_fs: sig
 
   val get_features: t -> String_set.t
 
-  (** [set_atom feature_name atom t] adds the feature ([feature_name],[atom]) in [t].
-      If [t] already contains a feature named [feature_name], the old value is erased by the new one. *)
-  val set_atom: ?loc:Loc.t -> string -> string -> t ->  t
-
   val set_value: string -> Feature_value.t -> t ->  t
 
   (** [del_feat_opt feature_name t] remove the feature with name [feature_name] in [t].
@@ -56,10 +52,10 @@ module G_fs: sig
 
   val of_items: (string * string) list -> t
 
-  val pst_leaf: ?loc:Loc.t -> string -> t
-  val pst_node: ?loc:Loc.t -> string -> t
+  val pst_leaf: string -> t
+  val pst_node: string -> t
 
-  val concat_feats_opt: ?loc:Loc.t -> Ast.side -> t -> t -> string -> Regexp.t -> (t * (string * Feature_value.t) list) option
+  val concat_feats_opt: Ast.side -> t -> t -> string -> Regexp.t -> (t * (string * Feature_value.t) list) option
 
 end (* module G_fs *)
 

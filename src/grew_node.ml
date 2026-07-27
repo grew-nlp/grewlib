@@ -60,7 +60,7 @@ module G_node = struct
   let set_position p t = { t with position = Some p }
   let unset_position t = { t with position = None }
 
-  let is_conll_zero t = G_fs.get_value_opt "form" t.fs = Some (String "__0__")
+  let is_conll_zero t = G_fs.get_value_opt "form" t.fs = Some "__0__"
 
   let out_edges n =
     Gid_massoc.fold (fun acc _ edge -> if G_edge.is_real_link edge then acc+1 else acc) 0 n.next
@@ -77,11 +77,11 @@ module G_node = struct
     position = None;
   }
 
-  let build_pst_leaf ?loc phon =
-    { empty with fs = G_fs.pst_leaf ?loc phon }
+  let build_pst_leaf phon =
+    { empty with fs = G_fs.pst_leaf phon }
 
-  let build_pst_node ?loc cat =
-    { empty with fs = G_fs.pst_node ?loc cat }
+  let build_pst_node cat =
+    { empty with fs = G_fs.pst_node cat }
 
 
   let add_edge g_edge gid_tar t =
@@ -117,17 +117,17 @@ module G_node = struct
 
   let rename mapping n = {n with next = Gid_massoc.rename mapping n.next}
 
-  let concat_feats_opt ?loc side src tar separator regexp =
+  let concat_feats_opt side src tar separator regexp =
     let src_fs = get_fs src in
     let tar_fs = get_fs tar in
-    match G_fs.concat_feats_opt ?loc side src_fs tar_fs separator regexp with
+    match G_fs.concat_feats_opt side src_fs tar_fs separator regexp with
     | Some (new_tar_fs, updated_feats) -> Some (set_fs new_tar_fs tar, updated_feats)
     | None -> None
 
   let shift user_id delta t =
     { t with
       name = CCOption.map (fun n -> user_id ^ "_" ^ n) t.name;
-      fs = G_fs.set_atom "user" user_id t.fs;
+      fs = G_fs.set_value "user" user_id t.fs;
       next = Gid_massoc.map_key ((+) delta) t.next;
     }
 

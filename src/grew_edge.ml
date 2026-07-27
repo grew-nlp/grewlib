@@ -36,10 +36,7 @@ module G_edge_fs = struct
     |> (Conll_label.of_string ~config)
     |> Conll_label.to_json
     |> to_assoc
-    |> List.map
-        (fun (f,json_v) ->
-          (f, Feature_value.parse f (to_string json_v))
-        )
+    |> List.map (fun (f,json_v) -> (f, to_string json_v))
     |> build
 
   let del_feat = List_.sort_remove_assoc
@@ -64,14 +61,14 @@ module G_edge = struct
     | _ -> false
 
   let is_basic = function
-    | Fs fs when not (List.assoc_opt "enhanced" fs = Some (String "yes")) -> true
+    | Fs fs when not (List.assoc_opt "enhanced" fs = Some "yes") -> true
     | _ -> false
 
   let is_basic_filter ?(filter = fun _ -> true) = function
-    | Fs fs when not (List.assoc_opt "enhanced" fs = Some (String "yes")) -> 
+    | Fs fs when not (List.assoc_opt "enhanced" fs = Some "yes") -> 
       begin
         match List.assoc_opt "1" fs with
-        | Some (String rel) when filter rel -> true
+        | Some rel when filter rel -> true
         | _ -> false
       end
     | _ -> false
@@ -116,38 +113,38 @@ module G_edge = struct
     | Fs fs ->
       let styles =
         match List_.sort_assoc_opt "kind" fs with
-        | Some (String "deep") -> ["color=blue"; "forecolor=blue"; "bottom"]
-        | Some (String "surf") -> ["color=red"; "forecolor=red"]
+        | Some "deep" -> ["color=blue"; "forecolor=blue"; "bottom"]
+        | Some "surf" -> ["color=red"; "forecolor=red"]
         | _ ->
         match List_.sort_assoc_opt "enhanced" fs with
-        | Some (String "yes") -> ["color=blue"; "forecolor=blue"; "bottom"]
+        | Some "yes" -> ["color=blue"; "forecolor=blue"; "bottom"]
         | _ ->
         match List_.sort_assoc_opt "parseme" fs with
-        | Some (String "MWE") -> ["color=#ffa000"; "forecolor=#ffa000"; "bottom"]
-        | Some (String "NE") -> ["color=#9900FF"; "forecolor=#9900FF"; "bottom"]
+        | Some "MWE" -> ["color=#ffa000"; "forecolor=#ffa000"; "bottom"]
+        | Some "NE" -> ["color=#9900FF"; "forecolor=#9900FF"; "bottom"]
         | _ ->
         match List_.sort_assoc_opt "Cxn" fs with
-        | Some (String _) -> ["color=#12cd56"; "forecolor=#12cd56"; "bottom"]
+        | Some _ -> ["color=#12cd56"; "forecolor=#12cd56"; "bottom"]
         | _ ->
         match List_.sort_assoc_opt "frsemcor" fs with
-        | Some (String _) -> ["color=#12cd56"; "forecolor=#12cd56"; "bottom"]
+        | Some _ -> ["color=#12cd56"; "forecolor=#12cd56"; "bottom"]
         | _ ->
         match List_.sort_assoc_opt "span" fs with
-        | Some (String _) -> ["color=pink"; "forecolor=pink"; "bottom"]
+        | Some _ -> ["color=pink"; "forecolor=pink"; "bottom"]
         | _ ->
         match List_.sort_assoc_opt "Syl" fs with
-        | Some (String _) -> ["color=blue"; "forecolor=blue"; "bottom"]
+        | Some _ -> ["color=blue"; "forecolor=blue"; "bottom"]
         | _ ->
         match List_.sort_assoc_opt "ExternalOnset" fs with
-        | Some (String _) -> ["color=#f57f17"; "forecolor=#f57f17"; "bottom"]
+        | Some _ -> ["color=#f57f17"; "forecolor=#f57f17"; "bottom"]
         | _ ->
         match List_.sort_assoc_opt "1" fs with
-        | Some (String "RSTR") -> ["bottom"]
+        | Some "RSTR" -> ["bottom"]
         | _ ->
         match List_.sort_assoc_opt "type" fs with
-        | Some (String "lifted") -> ["color=blue"; "forecolor=blue"]
-        | Some (String "attach") -> ["color=#12cd56"; "forecolor=#12cd56"]
-        | Some (String "sb") -> ["color=red"; "forecolor=red"]
+        | Some "lifted" -> ["color=blue"; "forecolor=blue"]
+        | Some "attach" -> ["color=#12cd56"; "forecolor=#12cd56"]
+        | Some "sb" -> ["color=red"; "forecolor=red"]
         (* default *)
         | _ -> [] in
       let styles = if deco then "bgcolor=#8bf56e" :: styles else styles in
@@ -159,23 +156,23 @@ module G_edge = struct
     | Fs fs ->
       let dot_items =
         match List_.sort_assoc_opt "main_out" fs with
-        | Some (String "Yes") -> ["color=red"; "fontcolor=red"]
+        | Some "Yes" -> ["color=red"; "fontcolor=red"]
         | _ -> 
         match List_.sort_assoc_opt "kind" fs with
-        | Some (String "deep") -> ["color=blue"; "fontcolor=blue"]
-        | Some (String "surf") -> ["color=red"; "fontcolor=red"]
+        | Some "deep" -> ["color=blue"; "fontcolor=blue"]
+        | Some "surf" -> ["color=red"; "fontcolor=red"]
         | _ ->
           match List_.sort_assoc_opt "enhanced" fs with
-          | Some (String "yes") -> ["color=blue"; "fontcolor=blue"]
+          | Some "yes" -> ["color=blue"; "fontcolor=blue"]
           | _ ->
             match List_.sort_assoc_opt "parseme" fs with
-            | Some (String "MWE") -> ["color=#ffa000"; "fontcolor=#ffa000"]
-            | Some (String "NE") -> ["color=#9900FF"; "fontcolor=#9900FF"]
+            | Some "MWE" -> ["color=#ffa000"; "fontcolor=#ffa000"]
+            | Some "NE" -> ["color=#9900FF"; "fontcolor=#9900FF"]
             | _ ->
               match List_.sort_assoc_opt "1" fs with
-              | Some (String "unscoped") | Some (String "wider") | Some (String "equal") | Some (String "dual") ->
+              | Some "unscoped" | Some "wider" | Some "equal" | Some "dual" ->
               ["color=\"red\""; "fontcolor=\"red\""]
-              | Some (String "in") -> ["style=\"dotted\""] (* PMB link from Box-nodes to Sem-nodes *)
+              | Some "in" -> ["style=\"dotted\""] (* PMB link from Box-nodes to Sem-nodes *)
               | _ -> [] in
       let short_fs = fs |> G_edge_fs.del_feat "main_out" in
       let multi_line_label = Str.global_replace (Str.regexp_string ",") "\n" (G_edge_fs.to_string ~config short_fs) in
@@ -197,7 +194,7 @@ module G_edge = struct
     | Ast.Atom_list list ->
       let unordered_fs =
         List.map
-          (function Ast.Atom_eq (x,[y]) -> (x,Feature_value.parse ~loc x y) | _ -> Error.build ~loc "[G_edge.build] cannot interpret Atom_list")
+          (function Ast.Atom_eq (x,[y]) -> (x, y) | _ -> Error.build ~loc "[G_edge.build] cannot interpret Atom_list")
           list in
       Fs (G_edge_fs.build unordered_fs)
     | Ast.Neg_list _ -> Error.build ~loc "Negative edge spec are forbidden in graphs"
@@ -278,16 +275,19 @@ module Label_cst = struct
       end
     | _ -> false
 
-  let build_atom ?loc = function
-    | Ast.Atom_eq (name, atoms) -> Eq (name, List.map (Feature_value.parse ?loc name) (List.sort Stdlib.compare atoms))
-    | Ast.Atom_diseq (name, atoms) -> Diseq (name, List.map (Feature_value.parse ?loc name) (List.sort Stdlib.compare atoms))
-    | Ast.Atom_absent name -> Absent name
+  let build_atom = function
+    | Ast.Atom_eq (name, atoms) ->
+      Eq (name, (List.sort Stdlib.compare atoms))
+    | Ast.Atom_diseq (name, atoms) ->
+      Diseq (name, (List.sort Stdlib.compare atoms))
+    | Ast.Atom_absent name ->
+      Absent name
 
-  let of_ast ?loc ~config = function
+  let of_ast ~config = function
     | Ast.Neg_list p_labels -> Neg (List.sort compare (List.map (G_edge_fs.from_string ~config) p_labels))
     | Ast.Pos_list p_labels -> Pos (List.sort compare (List.map (G_edge_fs.from_string ~config) p_labels))
     | Ast.Regexp re -> Regexp re
-    | Ast.Atom_list l -> Atom_list (List.map (build_atom ?loc) l)
+    | Ast.Atom_list l -> Atom_list (List.map build_atom l)
     | Ast.Pred -> Error.bug "[Label_cst.of_ast]"
 end (* module Label_cst *)
 
@@ -303,9 +303,9 @@ module P_edge = struct
 
   let get_id_opt t = t.id
 
-  let of_ast ~config (ast_edge, loc) =
+  let of_ast ~config (ast_edge, _) =
     { id = ast_edge.Ast.edge_id;
-      label_cst = Label_cst.of_ast ~loc ~config ast_edge.Ast.edge_label_cst
+      label_cst = Label_cst.of_ast ~config ast_edge.Ast.edge_label_cst
     }
 
   let to_string ~config t =

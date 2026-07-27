@@ -189,9 +189,9 @@ module Constraint = struct
 
     match const with
     | (Ast.Cst_out (id,label_cst), loc) ->
-      Cst_out (pid_of_name loc id, Label_cst.of_ast ~loc ~config label_cst)
+      Cst_out (pid_of_name loc id, Label_cst.of_ast ~config label_cst)
     | (Ast.Cst_in (id,label_cst), loc) ->
-      Cst_in (pid_of_name loc id, Label_cst.of_ast ~loc ~config label_cst)
+      Cst_in (pid_of_name loc id, Label_cst.of_ast ~config label_cst)
 
     | (Ast.Feature_cmp (cmp, (id1, feat_name1),(id2, feat_name2)), loc)  ->
       Feature_cmp (cmp, parse_id loc id1, feat_name1, parse_id loc id2, feat_name2)
@@ -622,13 +622,13 @@ module Matching = struct
       | Constraint.Meta ->
         begin
           match G_graph.get_meta_opt feat_name graph with
-          | Some v -> Value (String v)
+          | Some v -> Value v
           | None -> raise Fail
         end
       | Node_id pid ->
         let (_,gid) = Pid_map.find pid matching.n_match in
         if feat_name = "__id__"
-        then Value (Float (float_of_int gid))
+        then Value (string_of_int gid)
         else
           let node = G_graph.find gid graph in
           begin
@@ -640,9 +640,9 @@ module Matching = struct
         let (_,g_edge,_) as e = String_map.find edge_id matching.e_match in
         begin
           match feat_name with
-          | "label" -> (match G_edge.to_string_opt ~config g_edge with Some s -> Value (String s) | None -> raise Fail)
-          | "length" -> (match G_graph.edge_length_opt e graph with Some s -> Value (Float (float_of_int s)) | None -> raise Fail)
-          | "delta" -> (match G_graph.edge_delta_opt e graph with Some s -> Value (Float (float_of_int s)) | None -> raise Fail)
+          | "label" -> (match G_edge.to_string_opt ~config g_edge with Some s -> Value s | None -> raise Fail)
+          | "length" -> (match G_graph.edge_length_opt e graph with Some s -> Value (string_of_int s) | None -> raise Fail)
+          | "delta" -> (match G_graph.edge_delta_opt e graph with Some s -> Value (string_of_int s) | None -> raise Fail)
           | _ ->
             match G_edge.get_sub_opt feat_name g_edge with
             | None -> raise Fail
@@ -707,8 +707,9 @@ module Matching = struct
           end
         | _ -> Error.run "[Matching.apply_cst] cannot compare two lexicon fields"
       end
-    | Feature_cmp_value (cmp, Node_id pid, "__out__", Feature_value.Float v) ->
+    | Feature_cmp_value (cmp, Node_id pid, "__out__", value) ->
       begin
+        let v = Feature_value.get_float "__out__" value in
         let (_,gid) = Pid_map.find pid matching.n_match in
         let gnode = G_graph.find gid graph in
         let out_degree = G_node.out_edges gnode in
@@ -747,7 +748,10 @@ module Matching = struct
     | Feature_ineq (ineq, base1, feat_name1, base2, feat_name2) ->
       begin
         match (get_value base1 feat_name1, get_value base2 feat_name2) with
-        | (Value (Float v1), Value (Float v2)) -> if Ast.check_ineq v1 ineq v2 then matching else raise Fail
+        | (Value s1, Value s2) ->
+            let v1 = Feature_value.get_float feat_name1 s1
+            and v2 = Feature_value.get_float feat_name2 s2 in
+            if Ast.check_ineq v1 ineq v2 then matching else raise Fail
         | (_, _) ->
           Error.run "[Matching.apply_cst] Cannot check inequality on feature values %s and %s (available only on numeric values)"
             feat_name1 feat_name2
@@ -755,7 +759,9 @@ module Matching = struct
     | Feature_ineq_cst (ineq, base, feat_name, constant) ->
       begin
         match (get_value base feat_name) with
-        | Value (Float f) -> if Ast.check_ineq f ineq constant then matching else raise Fail
+        | Value s -> 
+          let f = Feature_value.get_float feat_name s in
+          if Ast.check_ineq f ineq constant then matching else raise Fail
         | _ -> Error.run "[Matching.apply_cst] Cannot check inequality on feature value %s (available only on numeric values)" feat_name
       end
 
@@ -768,8 +774,7 @@ module Matching = struct
       begin
         match get_value id feat_name with
         | Lex _ -> Error.run "[Matching.apply_cst] test regexp against lexicon is not available"
-        | Value (Float _) -> Error.run "[Matching.apply_cst] test regexp against numeric value is not available"
-        | Value (String string_feat) ->
+        | Value string_feat ->
           match (cmp, Regexp.re_match regexp string_feat) with
           | (Eq, true) | (Neq, false) -> matching
           | _ -> raise Fail
@@ -1113,10 +1118,15 @@ module Matching = struct
 
   let get_interval request graph matching ((pid_name,feature_name), gap, min_opt, max_opt) =
     let (_, node) = search_pid_name request graph matching pid_name in
-    match G_fs.get_value_opt feature_name (G_node.get_fs node) with
-    | None -> Error.run "Cannot cluster by interval with undefined values. Change the pattern to ensure that `%s` is always defined on node `%s`" feature_name pid_name
-    | Some String _ -> Error.run "Cannot cluster by interval: feature name `%s` is not a numeric value" feature_name
-    | Some Float f ->
+    let f_opt = 
+      node
+      |> G_node.get_fs
+      |> G_fs.get_value_opt feature_name
+      |> CCOption.map (Feature_value.get_float feature_name) in
+
+    match f_opt with
+   | None -> Error.run "Cannot cluster by interval with undefined values. Change the pattern to ensure that `%s` is always defined on node `%s`" feature_name pid_name
+   | Some f ->
       match (min_opt, max_opt) with
       | (Some m, _) when f < m -> sprintf "]-∞, %g[" m
       | (_, Some m) when f >= m -> sprintf "[%g, +∞[" m
@@ -1442,9 +1452,9 @@ module Rule = struct
   let onf_apply_command ~config matching (command,loc) state =
     let node_find cnode = onf_find ~loc cnode (matching, state.created_nodes) in
 
-    let feature_value_of_item feat_name = function
+    let feature_value_of_item = function
       | (Command.String_item s, range) ->
-        Feature_value.extract_range ~loc range (Feature_value.parse ~loc feat_name s)
+        Range.extract range s
       | (Command.Node_feat (cnode, feat_name), range) ->
         let gid = node_find cnode in
         let node = G_graph.find gid state.graph in
@@ -1452,12 +1462,12 @@ module Rule = struct
         begin
           match G_fs.get_value_opt feat_name fs with
           | None -> Error.run ~loc "Node feature named `%s` is undefined" feat_name
-          | Some v -> Feature_value.extract_range ~loc range v
+          | Some v -> Range.extract range v
         end
       | (Command.Meta key, range) ->
         begin
           match G_graph.get_meta_opt key state.graph with
-          | Some value -> Feature_value.String (Range.extract range value)
+          | Some value -> Range.extract range value
           | None -> Error.run "Metadata key `%s` is undefined" key
         end
       | (Command.Edge_feat (edge_id, feat_name), range) ->
@@ -1469,13 +1479,13 @@ module Rule = struct
             then
               begin
                 match G_edge.to_string_opt ~config edge with
-                | Some s -> Feature_value.extract_range ~loc range (String s)
+                | Some s -> Range.extract range s
                 | None -> Error.run "Cannot use not regular edge label as a concat item"
               end
             else
               match G_edge.get_sub_opt feat_name edge with
               | None -> Error.run ~loc "[onf_apply_command] Edge feature named %s is undefined" feat_name
-              | Some fv -> Feature_value.extract_range ~loc range fv
+              | Some fv -> Range.extract range fv
         end
       | (Command.Lexical_field (lex_id, field), range) ->
         begin
@@ -1484,7 +1494,7 @@ module Rule = struct
           | Some lexicon ->
             match Lexicon.get_opt field lexicon with
             | None -> Error.bug "Inconsistent lexicon lex_id=%s field=%s" lex_id field
-            | Some value -> Feature_value.extract_range ~loc range (Feature_value.parse ~loc feat_name value)
+            | Some value -> Range.extract range value
         end in
 
     match command with
@@ -1534,7 +1544,7 @@ module Rule = struct
                    | Some new_value -> (name, new_value)
                    | None -> Error.run ~loc "ADD_EDGE_ITEMS: no items edge feature name '%s' in matched edge '%s'" feat_name edge_id
                end
-             | _ -> (name, Feature_value.parse ~loc name value)
+             | _ -> (name, value)
           ) items in
       let edge = G_edge.from_items direct_items in
       begin
@@ -1601,11 +1611,10 @@ module Rule = struct
                 | Some (_,edge,_) -> edge
               end
             | _ ->
-              let feature_value_list = List.map (feature_value_of_item feat_name) item_list in
-              let new_feature_value = Feature_value.concat ~loc feature_value_list in
+              let feature_value_list = List.map feature_value_of_item item_list in
+              let new_feature_value = Feature_value.concat feature_value_list in
               match (feat_name, new_feature_value) with
-              | ("label", Feature_value.String s) -> G_edge.from_string ~config s
-              | ("label", Float _) -> Error.run "Cannot set a edge feature label as numeric"
+              | ("label", s) -> G_edge.from_string ~config s
               | _ -> G_edge.update feat_name new_feature_value old_edge in
 
           let new_state_opt =
@@ -1645,15 +1654,15 @@ module Rule = struct
       )
 
     | Command.UPDATE_META (key, item_list) -> 
-      let feature_value_list = List.map (feature_value_of_item key) item_list in
-      let new_feature_value = Feature_value.concat ~loc feature_value_list in
+      let feature_value_list = List.map feature_value_of_item item_list in
+      let new_feature_value = Feature_value.concat feature_value_list in
       let new_graph = G_graph.set_meta key (Feature_value.to_string new_feature_value) state.graph in
       {state with graph = new_graph; effective = true}
 
     | Command.UPDATE_FEAT (tar_cn, tar_feat_name, item_list) ->
       let tar_gid = node_find tar_cn in
-      let feature_value_list = List.map (feature_value_of_item tar_feat_name) item_list in
-      let new_feature_value = Feature_value.concat ~loc feature_value_list in
+      let feature_value_list = List.map feature_value_of_item item_list in
+      let new_feature_value = Feature_value.concat feature_value_list in
       let new_graph = G_graph.update_feat state.graph tar_gid tar_feat_name new_feature_value in
       {state with graph = new_graph; effective = true}
 
@@ -1810,8 +1819,8 @@ module Rule = struct
   let gwh_apply_command ~config (command,loc) matching gwh =
     let node_find cnode = find ~loc cnode gwh matching in
 
-    let feature_value_list_of_item feat_name = function
-      | (Command.String_item s, range) -> [Feature_value.extract_range ~loc range (Feature_value.parse ~loc feat_name s)]
+    let feature_value_list_of_item = function
+      | (Command.String_item s, range) -> [Range.extract range s]
       | (Command.Node_feat (cnode, feat_name), range) ->
         let gid = node_find cnode in
         let node = G_graph.find gid gwh.graph in
@@ -1819,12 +1828,12 @@ module Rule = struct
         begin
           match G_fs.get_value_opt feat_name fs with
           | None -> Error.run ~loc "Node feature named `%s` is undefined" feat_name
-          | Some v -> [Feature_value.extract_range ~loc range v]
+          | Some v -> [Range.extract range v]
         end
       | (Command.Meta key, range) ->
         begin
           match G_graph.get_meta_opt key gwh.Graph_with_history.graph with
-          | Some value -> [Feature_value.String (Range.extract range value)]
+          | Some value -> [Range.extract range value]
           | None -> Error.run "Metadata key `%s` is undefined" key
         end
       | (Command.Edge_feat (edge_id, feat_name), range) ->
@@ -1835,13 +1844,13 @@ module Rule = struct
             | None -> Error.run ~loc "The edge identifier '%s' is undefined" edge_id in
           match G_edge.get_sub_opt feat_name edge with
           | None -> Error.run ~loc "[gwh_apply_command] Edge feature named %s is undefined" feat_name
-          | Some fv -> [Feature_value.extract_range ~loc range fv]
+          | Some fv -> [Range.extract range fv]
         end
       | (Command.Lexical_field (lex_id, field), range) ->
         begin
           match List.assoc_opt lex_id matching.l_param with
           | None -> Error.run ~loc "Undefined lexicon %s" lex_id
-          | Some lexicon -> List.map (fun x -> Feature_value.extract_range ~loc range (Feature_value.parse ~loc feat_name x)) (Lexicon.read_all field lexicon)
+          | Some lexicon -> List.map (fun x -> Range.extract range x) (Lexicon.read_all field lexicon)
         end in
 
     match command with
@@ -1895,7 +1904,7 @@ module Rule = struct
                 | Some new_value -> (name, new_value)
                 | None -> Error.run ~loc "ADD_EDGE_ITEMS: no items edge feature name '%s' in matched edge '%s'" feat_name edge_id
             end
-          | _ -> (name, Feature_value.parse ~loc name value)
+          | _ -> (name, value)
         ) items in
       let edge = G_edge.from_items direct_items in
       begin
@@ -1952,9 +1961,9 @@ module Rule = struct
 
     | Command.UPDATE_META (key, item_list) ->
       begin
-        match List.map (feature_value_list_of_item key) item_list with
+        match List.map feature_value_list_of_item item_list with
         | [feature_value_list] ->
-          let new_value = Feature_value.to_string (Feature_value.concat ~loc feature_value_list) in
+          let new_value = Feature_value.to_string (Feature_value.concat feature_value_list) in
           let new_graph = G_graph.set_meta key new_value gwh.Graph_with_history.graph in
           let new_gwh = 
             { gwh with
@@ -1971,7 +1980,7 @@ module Rule = struct
       (* not deterministic because of non functional lexicons *)
       let new_feature_value_list_list =
         item_list
-        |> List.map (feature_value_list_of_item tar_feat_name)
+        |> List.map feature_value_list_of_item
         |> CCList.cartesian_product in
 
       let new_feature_value_list = List.map Feature_value.concat new_feature_value_list_list in
@@ -2036,7 +2045,7 @@ module Rule = struct
             (* not deterministic because of non functional lexicons *)
             let new_feature_value_list_list =
               item_list
-              |> List.map (feature_value_list_of_item feat_name)
+              |> List.map feature_value_list_of_item
               |> CCList.cartesian_product in
 
             let new_feature_value_list = List.map Feature_value.concat new_feature_value_list_list in
@@ -2044,8 +2053,7 @@ module Rule = struct
               (fun acc new_feature_value ->
                  let test_new_edge =
                    match (feat_name, new_feature_value) with
-                   | ("label", Feature_value.String s) -> G_edge.from_string ~config s
-                   | ("label", Float _) -> Error.run "Cannot set a edge feature label as numeric"
+                   | ("label", s) -> G_edge.from_string ~config s
                    | _ -> G_edge.update feat_name new_feature_value old_edge in
                  if test_new_edge = old_edge
                  then acc

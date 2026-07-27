@@ -778,82 +778,25 @@ module Gid_massoc = Massoc_make (Gid)
 
 (* ================================================================================ *)
 module Feature_value = struct
-  type t =
-    | String of string
-    | Float of float
+  type t = string
 
-  (* Typing float/string for feature value is hardcoded, should evolve with a new config implementation *)
-  let numeric_feature_values = [
-    "level";                        (* used for edges in UDtoSUD grs *)
-    "freq"; "freq_old"; "freq_new"; (* used for nodes in POStoSSQ grs *)
-    "_start"; "_stop";              (* nodes in Orfeo timestamps *)
-    "AlignBegin"; "AlignEnd";       (* nodes in SUD_Naija *)
-    "length"; "delta"; "weight";
-    "__out__";
-    "Duration";
-    "MeanF0";
-    "SemitonesFromUtteranceMean";
-    "AvgAmplitude";
-    "AvgAmplitudeNormalized";
-    "MaxAmplitude";
-    "MaxAmplitudeNormalized";
-    "MeanF0Normalized";
-    "DurationNormalized";
-    "MeanF0Normalized";
-    "MeanF0NormalizedGlobal";
-    "MaxAmplitudeNormalizedGlobal";
-    "DurationNormalizedGlobal";
-    "AvgAmplitudeNormalizedGlobal";
-    "DurationGlobalZscore";
-    "DurationLocalZscore";
-    "MeanF0GlobalZscore";
-    "MeanF0LocalZscore";
-    "AvgAmplitudeGlobalZscore";
-    "AvgAmplitudeLocalZscore";
-    "MaxAmplitudeGlobalZscore";
-    "MaxAmplitudeLocalZscore";
-  ]
+  let get_float ?loc feature_name feature_value =
+    match float_of_string_opt feature_value with
+    | Some f -> f
+    | None -> Error.build ?loc 
+      "The feature `%s` must be numeric, it cannot be associated with value: `%s`" feature_name feature_value
 
-  let parse ?loc feature_name string_value =
-    if List.mem feature_name numeric_feature_values
-    then
-      begin
-        match float_of_string_opt string_value with
-        | Some f -> Float f
-        | None -> Error.build ?loc "The feature `%s` must be numeric, it cannot be associated with value: `%s`" feature_name string_value
-      end
-    else String (string_value |> String_.nfc)
+  let of_float numeric_value = String_.of_float_clean numeric_value
 
-  let from_float feature_name numeric_value =
-    if List.mem feature_name numeric_feature_values
-    then Float numeric_value
-    else String (String_.of_float_clean numeric_value) 
-
-  let to_string ?(quote=false)= function
-    | String s -> s
+  let to_string ?(quote=false) s =
+      s
       |> Str.global_replace (Str.regexp "\"") "\\\""
       |> sprintf (if quote then "\"%s\"" else "%s")
-    | Float f ->
-      String_.of_float_clean f
 
-  let to_json = function
-    | String s -> `String s
-    | Float f -> `String (String_.of_float_clean f)
+  let to_json s = `String s
 
-  let extract_range ?loc range = function
-    | String s -> String (Range.extract range s)
-    | Float f when range = (None, None) -> Float f
-    | Float f -> Error.run ?loc "Cannot extract substring from a numeric feature \"%g\"" f
-
-  let concat ?loc = function
-    | [one] -> one
-    | l ->
-      let rec loop = function
-        | [] -> ""
-        | String s :: tail -> s ^ (loop tail)
-        | Float _ :: _ -> Error.run ?loc "Cannot concat with numeric value" in
-      String (loop l)
-    end (* module Feature_value *)
+  let concat l = String.concat "" l 
+end (* module Feature_value *)
 
 (* ================================================================================ *)
 module Sbn = struct

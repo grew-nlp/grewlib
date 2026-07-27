@@ -35,8 +35,8 @@ module G_feature = struct
     | (None, None) -> Stdlib.compare name1 name2
 
   let build = function
-    | ({Ast.kind=Ast.Feat_kind_list (Eq,[atom]); name=name},loc) ->
-      (name, Feature_value.parse ~loc name atom)
+    | ({Ast.kind=Ast.Feat_kind_list (Eq,[atom]); name=name},_) ->
+      (name, atom)
     | (uf,loc) -> Error.build ~loc "in graph nodes, features must follow the shape \"name = value\" (error on feature: \"%s\")" (Ast.u_feature_to_string uf)
 
   let to_string (feat_name, feat_val) = sprintf "%s=%s" feat_name (Feature_value.to_string feat_val)
@@ -112,10 +112,9 @@ module P_feature = struct
     | (feat_name, Else (fv1,fn2,fv2)) -> sprintf "%s=%s/%s=%s" feat_name (Feature_value.to_string ~quote fv1) fn2 (Feature_value.to_string ~quote fv2)
 
   let build lexicons = function
-    | ({Ast.kind=Ast.Feat_kind_list (cmp,unsorted_values); name}, loc) ->
+    | ({Ast.kind=Ast.Feat_kind_list (cmp,unsorted_values); name}, _) ->
       let values = unsorted_values
-        |> List.sort Stdlib.compare
-        |> List.map (Feature_value.parse ~loc name) in
+        |> List.sort Stdlib.compare in
       (name, Pfv_list (cmp,values))
 
     | ({Ast.kind=Ast.Feat_kind_lex (cmp,lex,fn); name}, loc) ->
@@ -127,10 +126,8 @@ module P_feature = struct
     | ({Ast.kind=Ast.Absent; name}, _) ->
       (name, Absent)
 
-    | ({Ast.kind=Ast.Else (fv1,fn2,fv2); name}, loc) ->
-      let v1 = Feature_value.parse ~loc name fv1 in
-      let v2 = Feature_value.parse ~loc name fv2 in
-      (name, Else (v1,fn2,v2))
+    | ({Ast.kind=Ast.Else (fv1,fn2,fv2); name}, _) ->
+      (name, Else (fv1,fn2,fv2))
 end (* module P_feature *)
 
 (* ================================================================================ *)
@@ -154,11 +151,6 @@ module G_fs = struct
     loop t
 
   (* ---------------------------------------------------------------------- *)
-  let set_atom ?loc feature_name atom t =
-    let value = Feature_value.parse ?loc feature_name atom in
-    set_value feature_name value t
-
-  (* ---------------------------------------------------------------------- *)
   let del_feat_opt = List_.sort_remove_assoc_opt
 
   (* ---------------------------------------------------------------------- *)
@@ -171,7 +163,7 @@ module G_fs = struct
   let to_string t = String.concat "," (List.map G_feature.to_string t)
   (* ---------------------------------------------------------------------- *)
   let to_json = function
-    | ["label", Feature_value.String label] -> `String label
+    | ["label", label] -> `String label
     | feat_list -> `Assoc (List.map G_feature.to_json feat_list)
 
   (* ---------------------------------------------------------------------- *)
@@ -181,22 +173,21 @@ module G_fs = struct
 
   (* ---------------------------------------------------------------------- *)
   let of_items items =
-    let unsorted = List.map (fun (f,v) -> (f, Feature_value.parse f v)) items in
+    let unsorted = List.map (fun (f,v) -> (f, v)) items in
     List.sort G_feature.compare unsorted
 
   (* ---------------------------------------------------------------------- *)
-  let pst_leaf ?loc form = [("form", Feature_value.parse ?loc "form" form)]
-  let pst_node ?loc upos = [("upos", Feature_value.parse ?loc "upos" upos)]
+  let pst_leaf form = [("form", form)]
+  let pst_node upos = [("upos", upos)]
 
   (* ---------------------------------------------------------------------- *)
-  let concat_values ?loc side separator v1 v2 =
+  let concat_values side separator v1 v2 =
     match (side, v1, v2) with
-    | (Ast.Append, Feature_value.String v1, Feature_value.String v2) -> Feature_value.String (v1 ^ separator ^ v2)
-    | (Ast.Prepend, Feature_value.String v1, Feature_value.String v2) -> Feature_value.String (v2 ^ separator ^ v1)
-    | _ -> Error.run ?loc "Cannot concat numerical values"
+    | (Ast.Append, v1, v2) -> (v1 ^ separator ^ v2)
+    | (Ast.Prepend, v1, v2) -> (v2 ^ separator ^ v1)
 
   (* ---------------------------------------------------------------------- *)
-  let concat_feats_opt ?loc side src tar separator regexp =
+  let concat_feats_opt side src tar separator regexp =
     match List.filter
             (fun (feature_name,_) ->
                match feature_name with
@@ -210,7 +201,7 @@ module G_fs = struct
              match List_.sort_assoc_opt feat tar with
              | None -> (set_value feat value acc_tar, (feat, value)::acc_updated_feats)
              | Some v ->
-               let new_value = concat_values ?loc side separator v value in
+               let new_value = concat_values side separator v value in
                (set_value feat new_value acc_tar, (feat, new_value)::acc_updated_feats)
           ) (tar,[]) sub_src in
       Some (new_tar, updated_feats)
@@ -229,7 +220,7 @@ module G_fs = struct
       | [] -> (None, t)
       | feat_name :: tail ->
         match (feat_name, List_.sort_assoc_opt feat_name t) with
-        | ("form", Some (Feature_value.String "_")) | ("form", Some (Feature_value.String "__NOFORM__")) -> loop tail
+        | ("form", Some "_") | ("form", Some "__NOFORM__") -> loop tail
         | (_,Some atom) -> (Some (feat_name, atom), List_.sort_remove_assoc feat_name t)
         | (_,None) -> loop tail in
     loop main_list
@@ -343,8 +334,8 @@ module G_fs = struct
 
     let color =
       match get_value_opt "parseme" t with
-      | Some (Feature_value.String "NE") -> ":C:#9900FF"
-      | Some (Feature_value.String "MWE") -> ":C:#ffa000"
+      | Some "NE" -> ":C:#9900FF"
+      | Some "MWE" -> ":C:#ffa000"
       | _ ->
       match get_value_opt "frsemcor" t with
       | Some _ -> ":C:#12CD56"

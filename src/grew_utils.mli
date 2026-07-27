@@ -10,7 +10,6 @@
 
 val (<<): ('a -> 'b) -> ('c -> 'a) -> ('c -> 'b)
 
-
 (* ================================================================================ *)
 module Time: sig
   val now: unit -> string
@@ -376,34 +375,22 @@ module Gid_massoc : S with type key = Gid.t
 
 (* ================================================================================ *)
 module Feature_value: sig
-  (** Feature values can be string or a number *)
-  type t =
-    | String of string
-    | Float of float
+  (** Feature values can be string or a number, but are stored as strings *)
+  type t = string
 
-  (** [parse feature_name feature_value] return a feature_value with type t above
-      NB: Typing float/string for feature value is hardcoded (this should evolve with a new config implementation)
-      See ml file for numeric feature list
-      [Error.build] is raised if one tries to build a numeric feature value with a non-numeric value *)
-  val parse: ?loc:Loc.t -> string -> string -> t
+  (** [get_float ?loc feature_name feature_value] return the float represented by the [feature_value]
+      [Error.build] is raised if conversion to float is not possible.
+      [loc] and [feature_name] are used only for error reporting.
+  *)
+  val get_float: ?loc:Loc.t -> string -> t -> float
 
-  (** [from_float feature_name feature_value] return a feature_value with type t above
-      NB: Typing float/string for feature value is hardcoded (this should evolve with a new config implementation)
-      See ml file for numeric feature list *)
-  val from_float: string -> float -> t
+  val of_float: float -> t
 
-  (** [to_string t] returns a string for the feature value
-      TODO: more about quote escaping *)
   val to_string: ?quote:bool -> t -> string
 
-  (** [to_json t] returns a JSON encoding of f as a JSON string (even for numeric values) *)
-   val to_json: t -> Yojson.Basic.t
+  val to_json: t -> Yojson.Basic.t
 
-  (* val Feature_value.extract_range: Range.t -> feature_value -> feature_value *)
-  val extract_range: ?loc:Loc.t -> Range.t -> t -> t
-
-  (* val Feature_value.concat: ?loc:Loc.t -> feature_value list -> feature_value *)
-  val concat: ?loc:Loc.t -> t list -> t
+  val concat: t list -> t
 
 end (* module Feature_value *)
 

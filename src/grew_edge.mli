@@ -81,7 +81,7 @@ module Label_cst : sig
   val to_string: config:Conll_config.t -> t -> string
   val all: t
   val match_: config:Conll_config.t -> t -> G_edge.t -> bool
-  val of_ast: ?loc:Loc.t -> config:Conll_config.t -> Ast.edge_label_cst -> t
+  val of_ast: config:Conll_config.t -> Ast.edge_label_cst -> t
 end (* module Label_cst *)
 
 

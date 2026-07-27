@@ -49,8 +49,8 @@ module G_node: sig
   val out_edges: t -> int
 
 
-  val build_pst_leaf: ?loc:Loc.t -> string -> t
-  val build_pst_node: ?loc:Loc.t -> string -> t
+  val build_pst_leaf: string -> t
+  val build_pst_node: string -> t
 
 
   val remove_edge_opt: Gid.t -> G_edge.t -> t -> t option
@@ -66,7 +66,7 @@ module G_node: sig
 
   val rename: (Gid.t * Gid.t) list -> t -> t
 
-  val concat_feats_opt: ?loc:Loc.t -> Ast.side -> t -> t -> string -> Regexp.t -> (t * (string * Feature_value.t) list) option
+  val concat_feats_opt: Ast.side -> t -> t -> string -> Regexp.t -> (t * (string * Feature_value.t) list) option
   val shift: string -> int -> t -> t
   val unshift: string -> t -> t
 
