@@ -114,6 +114,8 @@ module Ast : sig
 
   type ineq = Eq | Neq| Lt | Gt | Le | Ge
   val check_ineq: 'a -> ineq -> 'a -> bool
+  val check_ineq_int: int -> ineq -> int -> bool
+  val check_ineq_float: float -> ineq -> float -> bool
   val string_of_ineq: ineq -> string
 
   type int_operator =

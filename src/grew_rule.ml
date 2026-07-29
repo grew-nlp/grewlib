@@ -598,7 +598,7 @@ module Matching = struct
 
   let check_int_operator matching graph (op : Constraint.int_operator) ineq op2 =
     match (evaluate_int_operator matching graph op, evaluate_int_operator matching graph op2) with
-    | Some i, Some j -> Ast.check_ineq i ineq j
+    | Some i, Some j -> Ast.check_ineq_int i ineq j
     | _ -> false
 
   (*  ---------------------------------------------------------------------- *)
@@ -627,14 +627,17 @@ module Matching = struct
         end
       | Node_id pid ->
         let (_,gid) = Pid_map.find pid matching.n_match in
-        if feat_name = "__id__"
-        then Value (string_of_int gid)
-        else
-          let node = G_graph.find gid graph in
-          begin
-            match G_fs.get_value_opt feat_name (G_node.get_fs node) with
-            | Some f -> Value f
-            | None -> raise Fail (* no such feat_name here *)
+        begin
+          match feat_name with
+          | "__id__" -> Value (string_of_int gid)
+          | "__out__" -> 
+            let node = G_graph.find gid graph in
+            Value (string_of_int (G_node.out_edges node))
+          | _ ->
+            let node = G_graph.find gid graph in
+              match G_fs.get_value_opt feat_name (G_node.get_fs node) with
+              | Some f -> Value f
+              | None -> raise Fail (* no such feat_name here *)
           end
       | Edge_id edge_id ->
         let (_,g_edge,_) as e = String_map.find edge_id matching.e_match in
@@ -751,7 +754,7 @@ module Matching = struct
         | (Value s1, Value s2) ->
             let v1 = Feature_value.get_float feat_name1 s1
             and v2 = Feature_value.get_float feat_name2 s2 in
-            if Ast.check_ineq v1 ineq v2 then matching else raise Fail
+            if Ast.check_ineq_float v1 ineq v2 then matching else raise Fail
         | (_, _) ->
           Error.run "[Matching.apply_cst] Cannot check inequality on feature values %s and %s (available only on numeric values)"
             feat_name1 feat_name2
@@ -761,7 +764,7 @@ module Matching = struct
         match (get_value base feat_name) with
         | Value s -> 
           let f = Feature_value.get_float feat_name s in
-          if Ast.check_ineq f ineq constant then matching else raise Fail
+          if Ast.check_ineq_float f ineq constant then matching else raise Fail
         | _ -> Error.run "[Matching.apply_cst] Cannot check inequality on feature value %s (available only on numeric values)" feat_name
       end
 

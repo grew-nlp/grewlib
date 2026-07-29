@@ -202,6 +202,25 @@ module Ast = struct
     | Eq -> "="
     | Neq -> "≠"
 
+  let check_ineq_int (v1 : int) ineq (v2 : int) =
+    match ineq with
+    | Eq -> v1 = v2
+    | Neq -> v1 <> v2
+    | Lt -> v1 < v2
+    | Gt -> v1 > v2
+    | Le -> v1 <= v2
+    | Ge -> v1 >= v2
+  let epsilon = 1e-3
+
+  let check_ineq_float (f1 : float) ineq (f2 : float) =
+    match ineq with
+    | Eq -> Float.abs (f1 -. f2) < epsilon
+    | Neq -> Float.abs (f1 -. f2) > epsilon
+    | Lt -> f1 < f2
+    | Gt -> f1 > f2
+    | Le -> f1 <= f2
+    | Ge -> f1 >= f2
+
   type int_operator =
     | Int of int
     | Delta of Id.name * Id.name
