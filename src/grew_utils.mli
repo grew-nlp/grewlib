@@ -15,17 +15,6 @@ module Time: sig
   val now: unit -> string
 end
 
-(* ================================================================================ *)
-module Cmp: sig
-  (** This module defines a two values type for Equality / Disequality *)
-  type t = Eq | Neq
-
-  val to_string: t -> string
-
-  val fct: t -> ('a -> 'a -> bool)
-  (** [fct t] return a function of type 'a -> 'a -> bool which corresponds either to equality or disequality *)
-end
-
 
 (* ================================================================================ *)
 (* [Loc] general module to describe errors location: (file name, line number in file) *)
@@ -393,6 +382,30 @@ module Feature_value: sig
   val concat: t list -> t
 
 end (* module Feature_value *)
+
+(* ================================================================================ *)
+module Eq_diseq: sig
+  (** This module defines a two values type for Equality / Disequality *)
+  type t = Eq | Neq
+
+  val to_string: t -> string
+
+  val compare_int: t -> (int -> int -> bool)
+
+  val compare_feature_value: t -> (Feature_value.t -> Feature_value.t -> bool)
+  (** [fct t] return a function of type 'a -> 'a -> bool which corresponds either to equality or disequality *)
+
+end
+
+(* ================================================================================ *)
+module Ineq: sig
+  type t = Eq | Neq| Lt | Gt | Le | Ge
+
+  val to_string: t -> string
+
+  val check_int: int -> t -> int -> bool
+  val check_float: float -> t -> float -> bool
+end
 
 (* ================================================================================ *)
 module Sbn: sig

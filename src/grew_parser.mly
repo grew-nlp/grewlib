@@ -489,15 +489,15 @@ clause_item:
               match (id1, id2) with
               (*   X.feat < Y.feat   *)
               | (Ineq_sofi (Ast.Pointed (n1, f1)), Ineq_sofi (Ast.Pointed (n2, f2))) ->
-                Clause_const (Ast.Feature_ineq (Ast.Lt, (n1,f1), (n2,f2)), loc)
+                Clause_const (Ast.Feature_ineq (Ineq.Lt, (n1,f1), (n2,f2)), loc)
 
               (*   X.feat < 12.34   *)
               | (Ineq_sofi (Ast.Pointed (n1, f1)), Ineq_float num) ->
-                Clause_const (Ast.Feature_ineq_cst (Ast.Lt, (n1,f1), num), loc)
+                Clause_const (Ast.Feature_ineq_cst (Ineq.Lt, (n1,f1), num), loc)
 
               (*   12.34 < Y.feat   *)
               | (Ineq_float num, Ineq_sofi (Ast.Pointed (n1, f1))) ->
-                Clause_const (Ast.Feature_ineq_cst (Ast.Gt, (n1,f1), num), loc)
+                Clause_const (Ast.Feature_ineq_cst (Ineq.Gt, (n1,f1), num), loc)
 
               (*   X < Y   *)
               | (Ineq_sofi (Ast.Simple n1), Ineq_sofi (Ast.Simple n2)) ->
@@ -515,15 +515,15 @@ clause_item:
               match (id1, id2) with
               (*   X.feat > Y.feat   *)
               | (Ineq_sofi (Ast.Pointed (n1, f1)), Ineq_sofi (Ast.Pointed (n2, f2))) ->
-                Clause_const (Ast.Feature_ineq (Ast.Gt, (n1,f1), (n2,f2)), loc)
+                Clause_const (Ast.Feature_ineq (Ineq.Gt, (n1,f1), (n2,f2)), loc)
 
               (*   X.feat > 12.34   *)
               | (Ineq_sofi (Ast.Pointed (n1, f1)), Ineq_float num) ->
-                Clause_const (Ast.Feature_ineq_cst (Ast.Gt, (n1,f1), num), loc)
+                Clause_const (Ast.Feature_ineq_cst (Ineq.Gt, (n1,f1), num), loc)
 
               (*   12.34 > Y.feat   *)
               | (Ineq_float num, Ineq_sofi (Ast.Pointed (n1, f1))) ->
-                Clause_const (Ast.Feature_ineq_cst (Ast.Lt, (n1,f1), num), loc)
+                Clause_const (Ast.Feature_ineq_cst (Ineq.Lt, (n1,f1), num), loc)
 
               (*   X > Y   *)
               | (Ineq_sofi (Ast.Simple n1), Ineq_sofi (Ast.Simple n2)) ->
@@ -536,21 +536,21 @@ clause_item:
 
         /*   X.position <= Y.position   */
         | feat_id1_loc=feature_ident_with_loc LE feat_id2=feature_ident
-            { let (feat_id1,loc)=feat_id1_loc in Clause_const (Ast.Feature_ineq (Ast.Le, feat_id1, feat_id2), loc) }
+            { let (feat_id1,loc)=feat_id1_loc in Clause_const (Ast.Feature_ineq (Ineq.Le, feat_id1, feat_id2), loc) }
 
         /*   X.position >= Y.position   */
         | feat_id1_loc=feature_ident_with_loc GE feat_id2=feature_ident
-            { let (feat_id1,loc)=feat_id1_loc in Clause_const (Ast.Feature_ineq (Ast.Ge, feat_id1, feat_id2), loc) }
+            { let (feat_id1,loc)=feat_id1_loc in Clause_const (Ast.Feature_ineq (Ineq.Ge, feat_id1, feat_id2), loc) }
 
         /*   X.feat >= 12.34   */
         | feat_id1_loc=feature_ident_with_loc GE num=number
         | num=number LE feat_id1_loc=feature_ident_with_loc
-            { let (feat_id1,loc)=feat_id1_loc in Clause_const (Ast.Feature_ineq_cst (Ast.Ge, feat_id1, num), loc)  }
+            { let (feat_id1,loc)=feat_id1_loc in Clause_const (Ast.Feature_ineq_cst (Ineq.Ge, feat_id1, num), loc)  }
 
         /*   X.feat <= 12.34   */
         | feat_id1_loc=feature_ident_with_loc LE num=number
         | num=number GE feat_id1_loc=feature_ident_with_loc
-            { let (feat_id1,loc)=feat_id1_loc in Clause_const (Ast.Feature_ineq_cst (Ast.Le, feat_id1, num), loc)  }
+            { let (feat_id1,loc)=feat_id1_loc in Clause_const (Ast.Feature_ineq_cst (Ineq.Le, feat_id1, num), loc)  }
 
         /*   A << B   */
         | n1_loc=simple_id_with_loc LPREC n2=simple_id
@@ -592,12 +592,12 @@ int_operator:
 /*** end clause_item ***/
 
 ineq:
-  | DISEQUAL { Ast.Neq }
-  | EQUAL    { Ast.Eq }
-  | LT       { Ast.Lt }
-  | GT       { Ast.Gt }
-  | LE       { Ast.Le }
-  | GE       { Ast.Ge }
+  | DISEQUAL { Ineq.Neq }
+  | EQUAL    { Ineq.Eq }
+  | LT       { Ineq.Lt }
+  | GT       { Ineq.Gt }
+  | LE       { Ineq.Le }
+  | GE       { Ineq.Ge }
 
 
 node_features:

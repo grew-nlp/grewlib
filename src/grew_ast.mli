@@ -66,9 +66,9 @@ module Ast : sig
 
   (* ---------------------------------------------------------------------- *)
   type feature_kind =
-    | Feat_kind_list of Cmp.t * string list
-    | Feat_kind_lex of Cmp.t * string * string
-    | Feat_kind_re of Cmp.t * Regexp.t
+    | Feat_kind_list of Eq_diseq.t * string list
+    | Feat_kind_lex of Eq_diseq.t * string * string
+    | Feat_kind_re of Eq_diseq.t * Regexp.t
     | Absent
     | Else of (string * string * string)
 
@@ -112,11 +112,11 @@ module Ast : sig
   }
   type edge = u_edge * Loc.t
 
-  type ineq = Eq | Neq| Lt | Gt | Le | Ge
+  (* type ineq = Eq | Neq| Lt | Gt | Le | Ge
   val check_ineq: 'a -> ineq -> 'a -> bool
   val check_ineq_int: int -> ineq -> int -> bool
   val check_ineq_float: float -> ineq -> float -> bool
-  val string_of_ineq: ineq -> string
+  val string_of_ineq: ineq -> string *)
 
   type int_operator =
     | Int of int
@@ -130,18 +130,18 @@ module Ast : sig
   type u_const =
     | Cst_out of Id.name * edge_label_cst
     | Cst_in of Id.name * edge_label_cst
-    | Feature_cmp of Cmp.t * feature_ident * feature_ident
-    | Feature_ineq of ineq * feature_ident * feature_ident
-    | Feature_ineq_cst of ineq * feature_ident * float
-    | Feature_cmp_regexp of Cmp.t * feature_ident * Regexp.t
-    | Feature_cmp_value of Cmp.t * feature_ident * Feature_value.t
+    | Feature_cmp of Eq_diseq.t * feature_ident * feature_ident
+    | Feature_ineq of Ineq.t * feature_ident * feature_ident
+    | Feature_ineq_cst of Ineq.t * feature_ident * float
+    | Feature_cmp_regexp of Eq_diseq.t * feature_ident * Regexp.t
+    | Feature_cmp_value of Eq_diseq.t * feature_ident * Feature_value.t
     | Feature_else of feature_ident * string * Feature_value.t  (* N.ExtPos/upos = NOUN ==> Else ((N,ExtPos), upos, NOUN)  *)
     | Feature_absent of feature_ident
     | Large_prec of Id.name * Id.name
     | Large_dom of Id.name * Id.name
     | Edge_disjoint of Id.name * Id.name
     | Edge_crossing of Id.name * Id.name
-    | Int_operator of int_operator  * ineq * int_operator
+    | Int_operator of int_operator  * Ineq.t * int_operator
 
   type const = u_const * Loc.t
 
@@ -344,7 +344,7 @@ module Lexicon : sig
   val union: t -> t -> t
 
   (** [filter_opt head value] returns the sublexicon with only items where the [head] column is match (Eq or Neq) to [value] if any, else returns None *)
-  val filter_opt: Cmp.t -> string -> string -> t -> t option
+  val filter_opt: Eq_diseq.t -> string -> string -> t -> t option
 
   (** [read head lexicon] return the list of [value] of all items having in the [head] column equals to [value] *)
   val read_all: string -> t -> string list

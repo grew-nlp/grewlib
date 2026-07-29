@@ -111,17 +111,17 @@ module Ast = struct
 
   (* ---------------------------------------------------------------------- *)
   type feature_kind =
-    | Feat_kind_list of Cmp.t * string list
-    | Feat_kind_lex of Cmp.t * string * string
-    | Feat_kind_re of Cmp.t * Regexp.t
+    | Feat_kind_list of Eq_diseq.t * string list
+    | Feat_kind_lex of Eq_diseq.t * string * string
+    | Feat_kind_re of Eq_diseq.t * Regexp.t
     | Absent
     | Else of (string * string * string)
 
   let feature_kind_to_string = function
     | Feat_kind_list (Neq, []) -> ""
-    | Feat_kind_list (cmp, fv_list) -> sprintf " %s %s" (Cmp.to_string cmp) (String.concat "|" fv_list)
-    | Feat_kind_lex (cmp,lex,fn) -> sprintf " %s %s.%s" (Cmp.to_string cmp) lex fn
-    | Feat_kind_re (cmp,re) -> sprintf " %s re\"%s\"" (Cmp.to_string cmp) (Regexp.to_string re)
+    | Feat_kind_list (cmp, fv_list) -> sprintf " %s %s" (Eq_diseq.to_string cmp) (String.concat "|" fv_list)
+    | Feat_kind_lex (cmp,lex,fn) -> sprintf " %s %s.%s" (Eq_diseq.to_string cmp) lex fn
+    | Feat_kind_re (cmp,re) -> sprintf " %s re\"%s\"" (Eq_diseq.to_string cmp) (Regexp.to_string re)
     | Absent -> " <> *"
     | Else (fv1, fn2, fv2) -> sprintf " = %s/%s = %s" fv1 fn2 fv2
 
@@ -183,44 +183,6 @@ module Ast = struct
   }
   type edge = u_edge * Loc.t
 
-  type ineq = Eq | Neq| Lt | Gt | Le | Ge
-
-  let check_ineq v1 ineq v2 =
-    match ineq with
-    | Eq -> v1 = v2
-    | Neq -> v1 <> v2
-    | Lt -> v1 < v2
-    | Gt -> v1 > v2
-    | Le -> v1 <= v2
-    | Ge -> v1 >= v2
-
-  let string_of_ineq = function
-    | Lt -> "<"
-    | Gt -> ">"
-    | Le -> "≤"
-    | Ge -> "≥"
-    | Eq -> "="
-    | Neq -> "≠"
-
-  let check_ineq_int (v1 : int) ineq (v2 : int) =
-    match ineq with
-    | Eq -> v1 = v2
-    | Neq -> v1 <> v2
-    | Lt -> v1 < v2
-    | Gt -> v1 > v2
-    | Le -> v1 <= v2
-    | Ge -> v1 >= v2
-  let epsilon = 1e-3
-
-  let check_ineq_float (f1 : float) ineq (f2 : float) =
-    match ineq with
-    | Eq -> Float.abs (f1 -. f2) < epsilon
-    | Neq -> Float.abs (f1 -. f2) > epsilon
-    | Lt -> f1 < f2
-    | Gt -> f1 > f2
-    | Le -> f1 <= f2
-    | Ge -> f1 >= f2
-
   type int_operator =
     | Int of int
     | Delta of Id.name * Id.name
@@ -233,18 +195,18 @@ module Ast = struct
   type u_const =
     | Cst_out of Id.name * edge_label_cst
     | Cst_in of Id.name * edge_label_cst
-    | Feature_cmp of Cmp.t * feature_ident * feature_ident
-    | Feature_ineq of ineq * feature_ident * feature_ident
-    | Feature_ineq_cst of ineq * feature_ident * float
-    | Feature_cmp_regexp of Cmp.t * feature_ident * Regexp.t
-    | Feature_cmp_value of Cmp.t * feature_ident * Feature_value.t
+    | Feature_cmp of Eq_diseq.t * feature_ident * feature_ident
+    | Feature_ineq of Ineq.t * feature_ident * feature_ident
+    | Feature_ineq_cst of Ineq.t * feature_ident * float
+    | Feature_cmp_regexp of Eq_diseq.t * feature_ident * Regexp.t
+    | Feature_cmp_value of Eq_diseq.t * feature_ident * Feature_value.t
     | Feature_else of feature_ident * string * Feature_value.t  (* N.ExtPos/upos = NOUN ==> Else ((N,ExtPos), upos, NOUN)  *)
     | Feature_absent of feature_ident
     | Large_prec of Id.name * Id.name
     | Large_dom of Id.name * Id.name
     | Edge_disjoint of Id.name * Id.name
     | Edge_crossing of Id.name * Id.name
-    | Int_operator of int_operator * ineq * int_operator
+    | Int_operator of int_operator * Ineq.t * int_operator
 
   type const = u_const * Loc.t
 
@@ -689,7 +651,7 @@ module Lexicon = struct
     match List_.index_opt head lex.header with
     | None -> Error.build ?loc:lex.loc "[Lexicon.filter_opt] cannot find the fiels \"%s\" in lexicon" head
     | Some index ->
-      let new_set = Line_set.filter (fun line -> Cmp.fct cmp (List.nth line index) value) lex.lines in
+      let new_set = Line_set.filter (fun line -> Eq_diseq.compare_feature_value cmp (List.nth line index) value) lex.lines in
       if Line_set.is_empty new_set
       then None
       else Some { lex with lines = new_set }

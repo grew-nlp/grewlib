@@ -68,7 +68,7 @@ module P_fs: sig
 
   val of_ast: Lexicons.t -> Ast.feature list -> t
 
-  val build_atom: Cmp.t -> string -> Feature_value.t -> t
+  val build_atom: Eq_diseq.t -> string -> Feature_value.t -> t
 
   val to_string: t -> string
 

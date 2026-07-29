@@ -97,19 +97,19 @@ module Constraint = struct
     (*   e1.2 = e2.2   *)
     (*   N.upos = lex.pos   *)
     (*   N.upos <> M.upos   *)
-    | Feature_cmp of Cmp.t * base * string * base * string
+    | Feature_cmp of Eq_diseq.t * base * string * base * string
     (*   N.upos = VERB   *)
     (*   e.2 = comp   *)
     (*   e.2 <> comp   *)
-    | Feature_cmp_value of Cmp.t * base * string * Feature_value.t
+    | Feature_cmp_value of Eq_diseq.t * base * string * Feature_value.t
     (*   N.ExtPos/upos = NOUN *)
     | Feature_else of base * string * string * Feature_value.t
     (*   e.2 = re"…"   *)
-    | Feature_cmp_regexp of Cmp.t * base * string * Regexp.t
+    | Feature_cmp_regexp of Eq_diseq.t * base * string * Regexp.t
     (*   e1.level < e2.level   *)
-    | Feature_ineq of Ast.ineq * base * string * base * string
+    | Feature_ineq of Ineq.t * base * string * base * string
     (*   e1.level < 3   *)
-    | Feature_ineq_cst of Ast.ineq * base * string * float
+    | Feature_ineq_cst of Ineq.t * base * string * float
     | Feature_absent of base * string
     (*   N [upos=VERB]   *)
     (* ⚠ used only when an extension imposes a fs on a node also defined by the kernel request part *)
@@ -125,7 +125,7 @@ module Constraint = struct
     (*   N << e2   *)
     | Covered of Pid.t * string (* node_id, edge_id *)
 
-    | Int_operator of int_operator * Ast.ineq * int_operator
+    | Int_operator of int_operator * Ineq.t * int_operator
 
   let to_json ~config p_graph_list const =
     let pid_name pid = P_graph.get_name pid p_graph_list in
@@ -139,10 +139,10 @@ module Constraint = struct
     match const with
     | Cst_out (pid, label_cst) -> sprintf "%s -[%s]-> *" (pid_name pid) (Label_cst.to_string ~config label_cst)
     | Cst_in (pid, label_cst) -> sprintf "* -[%s]-> %s" (Label_cst.to_string ~config label_cst) (pid_name pid)
-    | Feature_cmp (cmp,id1,fn1,id2,fn2) -> sprintf "%s.%s %s %s.%s" (base_to_string id1) fn1 (Cmp.to_string cmp) (base_to_string id2) fn2
-    | Feature_cmp_value (cmp,id,fn,value) -> sprintf "%s.%s %s %s" (base_to_string id) fn (Cmp.to_string cmp) (Feature_value.to_string ~quote:true value)
+    | Feature_cmp (cmp,id1,fn1,id2,fn2) -> sprintf "%s.%s %s %s.%s" (base_to_string id1) fn1 (Eq_diseq.to_string cmp) (base_to_string id2) fn2
+    | Feature_cmp_value (cmp,id,fn,value) -> sprintf "%s.%s %s %s" (base_to_string id) fn (Eq_diseq.to_string cmp) (Feature_value.to_string ~quote:true value)
     | Feature_else (id, fn1, fn2, value) -> sprintf "%s.%s/%s %s" (base_to_string id) fn1 fn2 (Feature_value.to_string ~quote:true value)
-    | Feature_cmp_regexp (cmp,id,fn,regexp) -> sprintf "%s.%s %s %s" (base_to_string id) fn (Cmp.to_string cmp) (Regexp.to_string regexp)
+    | Feature_cmp_regexp (cmp,id,fn,regexp) -> sprintf "%s.%s %s %s" (base_to_string id) fn (Eq_diseq.to_string cmp) (Regexp.to_string regexp)
     | Feature_ineq (_,id1,fn1,id2,fn2) -> sprintf "%s.%s < %s.%s" (base_to_string id1) fn1 (base_to_string id2) fn2
     | Feature_ineq_cst (_,id,fn,f) -> sprintf "%s.%s  %g" (base_to_string id) fn f
     | Feature_absent (id,fn) -> sprintf "!%s.%s" (base_to_string id) fn
@@ -158,7 +158,7 @@ module Constraint = struct
     | Edge_relative (Crossing, eid1, eid2) -> sprintf "%s >< %s" eid1 eid2
     | Edge_relative (Included, eid1, eid2) ->  sprintf "%s << %s" eid1 eid2
     | Edge_relative (Contained, _, _) -> Error.bug "Unexpected Edge_relative"
-    | Int_operator (op, ineq, op2) -> sprintf "%s %s %s" (string_of_int_operator pid_name op) (Ast.string_of_ineq ineq) (string_of_int_operator pid_name op2)
+    | Int_operator (op, ineq, op2) -> sprintf "%s %s %s" (string_of_int_operator pid_name op) (Ineq.to_string ineq) (string_of_int_operator pid_name op2)
 
   let build_int_operator pid_of_name = function
     | (Ast.Int i, _) -> Int i
@@ -257,14 +257,16 @@ module Request = struct
     let (pre_graph, ker_table, edge_ids) = P_graph.of_ast ~config lexicons basic_ast in
     let pre_constraints = List.map (Constraint.build ~config lexicons ker_table [||] edge_ids) basic_ast.Ast.req_const in
 
-    (* optimisation: move constraints like "N.upos=VERB" into the graph *)
+    (* optimisation: move constraints like "N.upos=VERB" into the graph
+       Note: X.__out__ should be skipped and interpreted as a constraint
+    *)
     let (graph, constraints) =
       List.fold_left
         (fun (acc_graph, acc_constraints) constraint_ ->
           match constraint_ with
-          | Constraint.Feature_cmp_value (_cmp, Node_id node_id, _feat_name, _feat_value) ->
+          | Constraint.Feature_cmp_value (cmp, Node_id node_id, feat_name, feat_value) when not (String.starts_with ~prefix:"__" feat_name) ->
             let p_node = P_graph.find node_id acc_graph in
-            let p_fs = P_fs.build_atom _cmp _feat_name _feat_value in
+            let p_fs = P_fs.build_atom cmp feat_name feat_value in
             let new_p_node = P_node.unif_fs_disj [p_fs] p_node in
             let new_graph = P_graph.set_node node_id new_p_node acc_graph in
             (new_graph, acc_constraints)
@@ -598,7 +600,7 @@ module Matching = struct
 
   let check_int_operator matching graph (op : Constraint.int_operator) ineq op2 =
     match (evaluate_int_operator matching graph op, evaluate_int_operator matching graph op2) with
-    | Some i, Some j -> Ast.check_ineq_int i ineq j
+    | Some i, Some j -> Ineq.check_int i ineq j
     | _ -> false
 
   (*  ---------------------------------------------------------------------- *)
@@ -699,7 +701,7 @@ module Matching = struct
     | Feature_cmp (cmp, base1, feat_name1, base2, feat_name2) ->
       begin
         match (get_value base1 feat_name1, get_value base2 feat_name2) with
-        | (Value v1, Value v2) -> if Cmp.fct cmp v1 v2 then matching else raise Fail
+        | (Value v1, Value v2) -> if Eq_diseq.compare_feature_value cmp v1 v2 then matching else raise Fail
         | (Value v, Lex (lexicon,field))
         | (Lex (lexicon,field), Value v) ->
           let old_lex = List.assoc lexicon matching.l_param in
@@ -716,14 +718,14 @@ module Matching = struct
         let (_,gid) = Pid_map.find pid matching.n_match in
         let gnode = G_graph.find gid graph in
         let out_degree = G_node.out_edges gnode in
-        if Cmp.fct cmp out_degree (int_of_float (Float.round v))
+        if Eq_diseq.compare_int cmp out_degree (int_of_float (Float.round v))
         then matching
         else raise Fail
       end
   | Feature_cmp_value (cmp, id1, feat_name1, value) ->
       begin
         match get_value id1 feat_name1 with
-        | Value fv when Cmp.fct cmp fv value -> matching
+        | Value fv when Eq_diseq.compare_feature_value cmp fv value -> matching
         | Lex (lexicon,field) ->
           let old_lex = List.assoc lexicon matching.l_param in
           begin
@@ -754,7 +756,7 @@ module Matching = struct
         | (Value s1, Value s2) ->
             let v1 = Feature_value.get_float feat_name1 s1
             and v2 = Feature_value.get_float feat_name2 s2 in
-            if Ast.check_ineq_float v1 ineq v2 then matching else raise Fail
+            if Ineq.check_float v1 ineq v2 then matching else raise Fail
         | (_, _) ->
           Error.run "[Matching.apply_cst] Cannot check inequality on feature values %s and %s (available only on numeric values)"
             feat_name1 feat_name2
@@ -764,7 +766,7 @@ module Matching = struct
         match (get_value base feat_name) with
         | Value s -> 
           let f = Feature_value.get_float feat_name s in
-          if Ast.check_ineq_float f ineq constant then matching else raise Fail
+          if Ineq.check_float f ineq constant then matching else raise Fail
         | _ -> Error.run "[Matching.apply_cst] Cannot check inequality on feature value %s (available only on numeric values)" feat_name
       end
 

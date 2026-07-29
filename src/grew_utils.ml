@@ -26,18 +26,6 @@ module Time = struct
 end
 
 (* ================================================================================ *)
-module Cmp = struct
-  (** This module introduces a two values types for Equalty / Disequality *)
-
-  type t = Eq | Neq
-
-  let to_string = function Eq -> "=" | Neq -> "<>"
-
-  let fct = function Eq -> (=) | Neq -> (<>)
-  (** [fct t] return a function of type 'a -> 'a -> bool which corresponds either to equlaity or disequality *)
-end
-
-(* ================================================================================ *)
 module Loc = struct
   type t = string option * int option
 
@@ -797,6 +785,60 @@ module Feature_value = struct
 
   let concat l = String.concat "" l 
 end (* module Feature_value *)
+
+(* ================================================================================ *)
+module Eq_diseq = struct
+  (** This module introduces a two values types for Equalty / Disequality *)
+  let epsilon = 1e-3
+
+  type t = Eq | Neq
+
+  let to_string = function Eq -> "=" | Neq -> "<>"
+
+  let compare = function Eq -> (=) | Neq -> (<>)
+
+  let compare_int = compare
+
+  let compare_feature_value t fv1 fv2 =
+    match (t, float_of_string_opt fv1, float_of_string_opt fv2) with
+    | (Eq, Some f1, Some f2) -> Float.abs (f1 -. f2) <= epsilon
+    | (Neq, Some f1, Some f2) -> Float.abs (f1 -. f2) > epsilon
+    | _ -> compare t fv1 fv2
+  (** [fct t] return a function of type 'a -> 'a -> bool which corresponds either to equlaity or disequality *)
+
+end
+
+(* ================================================================================ *)
+module Ineq = struct
+  type t = Eq | Neq | Lt | Gt | Le | Ge
+
+  let to_string = function
+    | Lt -> "<"
+    | Gt -> ">"
+    | Le -> "≤"
+    | Ge -> "≥"
+    | Eq -> "="
+    | Neq -> "≠"
+
+  let check_int (v1 : int) ineq (v2 : int) =
+    match ineq with
+    | Eq -> v1 = v2
+    | Neq -> v1 <> v2
+    | Lt -> v1 < v2
+    | Gt -> v1 > v2
+    | Le -> v1 <= v2
+    | Ge -> v1 >= v2
+  let epsilon = 1e-3
+
+  let check_float (f1 : float) ineq (f2 : float) =
+    match ineq with
+    | Eq -> Float.abs (f1 -. f2) <= epsilon
+    | Neq -> Float.abs (f1 -. f2) > epsilon
+    | Lt -> f1 < f2
+    | Gt -> f1 > f2
+    | Le -> f1 <= f2
+    | Ge -> f1 >= f2
+end
 
 (* ================================================================================ *)
 module Sbn = struct

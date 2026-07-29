@@ -54,9 +54,9 @@ end (* module G_feature *)
 module P_feature = struct
 
   type p_feature_value =
-    | Pfv_list of Cmp.t * Feature_value.t list (* value (Eq,[]) must not be used *)
-    | Pfv_lex of Cmp.t * string * string
-    | Pfv_re of Cmp.t * Regexp.t
+    | Pfv_list of Eq_diseq.t * Feature_value.t list (* value (Eq,[]) must not be used *)
+    | Pfv_lex of Eq_diseq.t * string * string
+    | Pfv_re of Eq_diseq.t * Regexp.t
     | Absent
     | Else of (Feature_value.t * string * Feature_value.t)
 
@@ -72,9 +72,9 @@ module P_feature = struct
       feature_name
       (match p_feature_value with
        | Pfv_list (Neq, []) -> "=*"
-       | Pfv_list (cmp,l) -> sprintf "%s%s" (Cmp.to_string cmp) (String.concat "|" (List.map Feature_value.to_string l))
-       | Pfv_lex (cmp,lex,fn) -> sprintf "%s %s.%s" (Cmp.to_string cmp) lex fn
-       | Pfv_re (cmp,re) -> sprintf "%s %s" (Cmp.to_string cmp) (Regexp.to_string re)
+       | Pfv_list (cmp,l) -> sprintf "%s%s" (Eq_diseq.to_string cmp) (String.concat "|" (List.map Feature_value.to_string l))
+       | Pfv_lex (cmp,lex,fn) -> sprintf "%s %s.%s" (Eq_diseq.to_string cmp) lex fn
+       | Pfv_re (cmp,re) -> sprintf "%s %s" (Eq_diseq.to_string cmp) (Regexp.to_string re)
        | Absent -> " must be Absent!"
        | Else (fv1,fn2,fv2) -> sprintf " = %s/%s = %s" (Feature_value.to_string fv1) fn2 (Feature_value.to_string fv2));
     printf "%!"
@@ -105,9 +105,9 @@ module P_feature = struct
 
   let to_string ?(quote=false) = function
     | (feat_name, Pfv_list (Neq,[])) -> sprintf "%s=*" feat_name
-    | (feat_name, Pfv_list (cmp,atoms)) -> sprintf "%s%s%s" feat_name (Cmp.to_string cmp) (String.concat "|" (List.map (Feature_value.to_string ~quote) atoms))
-    | (feat_name, Pfv_lex (cmp,lex,fn)) -> sprintf "%s%s%s.%s" feat_name (Cmp.to_string cmp) lex fn
-    | (feat_name, Pfv_re (cmp,re)) -> sprintf "%s%s%s" feat_name (Cmp.to_string cmp) (Regexp.to_string re)
+    | (feat_name, Pfv_list (cmp,atoms)) -> sprintf "%s%s%s" feat_name (Eq_diseq.to_string cmp) (String.concat "|" (List.map (Feature_value.to_string ~quote) atoms))
+    | (feat_name, Pfv_lex (cmp,lex,fn)) -> sprintf "%s%s%s.%s" feat_name (Eq_diseq.to_string cmp) lex fn
+    | (feat_name, Pfv_re (cmp,re)) -> sprintf "%s%s%s" feat_name (Eq_diseq.to_string cmp) (Regexp.to_string re)
     | (feat_name, Absent) -> sprintf "!%s" feat_name
     | (feat_name, Else (fv1,fn2,fv2)) -> sprintf "%s=%s/%s=%s" feat_name (Feature_value.to_string ~quote fv1) fn2 (Feature_value.to_string ~quote fv2)
 
