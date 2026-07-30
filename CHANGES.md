@@ -1,3 +1,10 @@
+# 1.21.0 (2026/07/30)
+  - Make `meta` accessible in commands
+    - new command: `meta.key = new_value`
+    - new command: `del_meta key`
+    - pseudo feature `__out__` can be used in pattern
+  - ⚠️ Corpora must be recompiled after update
+
 # 1.20.0 (2026/04/26)
   - new clustering keys `proj_size`, `cont_proj_size`, `constituent_size` and `height`
   - handling of shared metadata (see https://grew.fr/spoken-language-guidelines/workgroups/spoken-data/treebank_structure.html)
