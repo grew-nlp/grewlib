@@ -26,6 +26,7 @@
     re
     ANSITerminal
     containers
+    containers.unix
     fileutils
     yojson
     amr

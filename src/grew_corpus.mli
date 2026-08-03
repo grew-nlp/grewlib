@@ -76,6 +76,7 @@ module Corpus_desc : sig
 
   val build_corpus: t -> Corpus.t
   val load_corpus_opt: t -> Corpus.t option
+  val get_md5_opt: t -> string option
 
   val get_config: t -> Conll_config.t
 

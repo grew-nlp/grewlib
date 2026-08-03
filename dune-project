@@ -32,6 +32,7 @@
    fileutils
    ANSITerminal
    (containers ( >= "3.16" ))
+   (containers-data ( >= "3.16" ))
    (amr ( >= "0.9.1" )) 
    (conll ( >= "1.19.7" ))
    (uunf ( >= "17.0.0" ))

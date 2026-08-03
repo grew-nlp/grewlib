@@ -501,6 +501,13 @@ module Corpus_desc = struct
     with Sys_error _ -> None
 
   (* ---------------------------------------------------------------------------------------------------- *)
+  let get_md5_opt corpus_desc =
+    let marshal_file = Filename.concat (get_build_directory corpus_desc) "marshal" in
+    let md5_command = sprintf "md5sum %s | cut -f 1 -d \" \"" marshal_file in
+    let md5 = CCUnix.call_stdout "%s" md5_command |> String.trim in
+    Some md5
+
+  (* ---------------------------------------------------------------------------------------------------- *)
   let table_and_desc corpus_desc conll_corpus =
     let config = get_config corpus_desc in
     let corpus_id = get_id corpus_desc in

@@ -13,12 +13,13 @@ bug-reports: "https://github.com/grew-nlp/grewlib/issues"
 depends: [
   "ocaml" {>= "4.13.0"}
   "dune" {>= "3.5"}
-  "menhir"
+  "menhir" {>= "20180523"}
   "re"
   "yojson"
   "fileutils"
   "ANSITerminal"
   "containers" {>= "3.16"}
+  "containers-data" {>= "3.16"}
   "amr" {>= "0.9.1"}
   "conll" {>= "1.19.7"}
   "uunf" {>= "17.0.0"}

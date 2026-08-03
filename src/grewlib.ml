@@ -398,6 +398,12 @@ module Corpus_desc = struct
       (fun () -> Grew_corpus.Corpus_desc.load_corpus_opt t)
       ()
 
+  let get_md5_opt t =
+    Grewlib.handle
+      ~name:"Corpus.get_md5_opt"
+      (fun () -> Grew_corpus.Corpus_desc.get_md5_opt t)
+      ()
+
   let get_files t =
     Grewlib.handle
       ~name:"Corpus.get_files"

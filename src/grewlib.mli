@@ -316,6 +316,8 @@ module Corpus_desc : sig
   (** [load_corpus_opt t] returns the corpus if it is compiled *)
   val load_corpus_opt: t -> Corpus.t option
 
+  val get_md5_opt: t -> string option
+
   (** [get_files t] returns the list of full path of files considered in the corpus *)
   val get_files: t -> string list
 
