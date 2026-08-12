@@ -14,7 +14,11 @@ open Grew_types
 open Grew_utils
 open Grew_ast
 
-let decode_feat_name s = Str.global_replace (Str.regexp "__\\([0-9a-zA-Z]+\\)$") "[\\1]" s
+let decode_feat_name s = 
+      if String.starts_with ~prefix:"__" s then
+      s
+    else
+      Str.global_replace (Str.regexp "__\\([0-9a-zA-Z]+\\)$") "[\\1]" s
 
 (* ================================================================================ *)
 module G_feature = struct
