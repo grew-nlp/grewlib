@@ -242,9 +242,10 @@ module Corpusbank = struct
     let src_corpus = Corpus.from_file ~config:src_config src_file in
     let out_ch = open_out tar_file in
     Corpus.iteri
-      (fun _ _ gr ->
+      (fun _ sent_id gr ->
       (* Counter.print index len sent_id; *)
       (* Grew_grs.Grs.simple_rewrite ~config grs strat gr *)
+        try
         match Grs.simple_rewrite ~config:grs_config grs strat gr with
           | [graph] -> 
               graph 
@@ -253,7 +254,9 @@ module Corpusbank = struct
               |> fix
               |> Conll.to_string ~config:tar_config ~columns
               |> fprintf out_ch "%s\n"
-          | _ -> Error.run "More than one normal form (src_file=%s)" src_file
+          | _ -> Error.run ~loc:(Loc.file src_file) "sent_id: `%s` More than one normal form" sent_id
+          with Conll_error err ->
+            Warning.magenta ~loc:(Loc.file src_file) "sent_id: `%s` Conll_error: %s" sent_id (Yojson.Basic.to_string err)
       ) src_corpus;
       (* Counter.finish (); *)
       (* final (); *)
