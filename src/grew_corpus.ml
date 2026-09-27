@@ -529,11 +529,15 @@ module Corpus_desc = struct
     let marshal_file = Filename.concat build_dir "marshal" in
     let shared_metadata = get_shared_metadata corpus_desc in
 
+    let log_filename = Filename.concat build_dir "log" in
+
     (* remove the previous log file (if any) *)
-    let _ = try Unix.unlink (Filename.concat build_dir "log") with Unix.Unix_error _ -> () in
+    let _ = try Unix.unlink log_filename with Unix.Unix_error _ -> () in
+    (* if [strict : true]: the process stops on the first error,
+       else sentences with errors are skipped, and errors are reported in a `log` file *)
     let log_file =
-      match get_kind corpus_desc with
-      | Conll _ -> Some (Filename.concat build_dir "log")
+      match (get_flag "strict" corpus_desc, get_kind corpus_desc) with
+      | (false, Conll _) -> Some log_filename
       | _ -> None in
 
     try
