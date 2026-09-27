@@ -316,6 +316,8 @@ module Corpus_desc : sig
   (** [load_corpus_opt t] returns the corpus if it is compiled *)
   val load_corpus_opt: t -> Corpus.t option
 
+  (** [get_md5_opt] returns the hash of the `marshal` file associated to a corpus.
+    `None` is returned is such a file does not exists (if the corpus is not compiled). *)
   val get_md5_opt: t -> string option
 
   (** [get_files t] returns the list of full path of files considered in the corpus *)
