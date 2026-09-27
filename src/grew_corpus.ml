@@ -491,16 +491,6 @@ module Corpus_desc = struct
       { Corpus.items; kind=Conll (Some columns) }
 
   (* ---------------------------------------------------------------------------------------------------- *)
-  let load_corpus_opt corpus_desc =
-    let marshal_file = Filename.concat (get_build_directory corpus_desc) "marshal" in
-    try
-      let in_ch = open_in_bin marshal_file in
-      let data = (Marshal.from_channel in_ch : Corpus.t) in
-      close_in in_ch;
-      Some data
-    with Sys_error _ -> None
-
-  (* ---------------------------------------------------------------------------------------------------- *)
   let get_md5_opt corpus_desc =
     let marshal_file = Filename.concat (get_build_directory corpus_desc) "marshal" in
     try Some (Digest.MD5.file marshal_file |> Digest.MD5.to_hex)
@@ -610,12 +600,13 @@ module Corpus_desc = struct
       let () = Info.green "[%s] %d graphs loaded" (get_id corpus_desc) (Array.length data.items) in
       let out_ch = open_out_bin marshal_file in
       Marshal.to_channel out_ch data [];
-      close_out out_ch
+      close_out out_ch;
+      Some data
     with
-    | Conll_error json -> Warning.magenta "[Conll_error] skip corpus `%s`:\n%s" (get_id corpus_desc) (Yojson.Basic.pretty_to_string json)
-    | Sys_error msg -> Warning.magenta "[Sys_error] skip corpus `%s`: %s" (get_id corpus_desc) msg
-    | Error.Run (msg,_) -> Warning.magenta "[Error] skip corpus `%s`: %s" (get_id corpus_desc) msg
-    | exc -> Warning.magenta "[Unexepected error] skip corpus %s\nexception: %s" (get_id corpus_desc) (Printexc.to_string exc)
+    | Conll_error json -> Warning.magenta "[Conll_error] skip corpus `%s`:\n%s" (get_id corpus_desc) (Yojson.Basic.pretty_to_string json); None
+    | Sys_error msg -> Warning.magenta "[Sys_error] skip corpus `%s`: %s" (get_id corpus_desc) msg; None
+    | Error.Run (msg,_) -> Warning.magenta "[Error] skip corpus `%s`: %s" (get_id corpus_desc) msg; None
+    | exc -> Warning.magenta "[Unexepected error] skip corpus %s\nexception: %s" (get_id corpus_desc) (Printexc.to_string exc); None
 
   (* ---------------------------------------------------------------------------------------------------- *)
   let outdated corpus_desc built_file =
@@ -625,7 +616,7 @@ module Corpus_desc = struct
       List.exists (fun f -> (Unix.stat f).Unix.st_mtime > built_file_time) (get_files corpus_desc)
     with Unix.Unix_error _ -> true
 
-    (* ---------------------------------------------------------------------------------------------------- *)
+  (* ---------------------------------------------------------------------------------------------------- *)
   let need_compile corpus_desc = outdated corpus_desc "marshal"
 
   (* ---------------------------------------------------------------------------------------------------- *)
@@ -638,7 +629,21 @@ module Corpus_desc = struct
 
   (* ---------------------------------------------------------------------------------------------------- *)
   let compile ?(force=false) corpus_desc =
-    if force || (need_compile corpus_desc) then build_marshal_file corpus_desc
+    if force || (need_compile corpus_desc)
+    then ignore (build_marshal_file corpus_desc)
+
+  (* ---------------------------------------------------------------------------------------------------- *)
+  let load_corpus_opt corpus_desc =
+    if need_compile corpus_desc
+    then build_marshal_file corpus_desc
+    else
+      let marshal_file = Filename.concat (get_build_directory corpus_desc) "marshal" in
+      try
+        let in_ch = open_in_bin marshal_file in
+        let data = (Marshal.from_channel in_ch : Corpus.t) in
+        close_in in_ch;
+        Some data
+      with Sys_error _ -> None
 
   (* ---------------------------------------------------------------------------------------------------- *)
   let clean corpus_desc =

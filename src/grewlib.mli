@@ -313,7 +313,7 @@ module Corpus_desc : sig
   (** [build_corpus t] returns the corpus described *)
   val build_corpus: t -> Corpus.t
 
-  (** [load_corpus_opt t] returns the corpus if it is compiled *)
+  (** [load_corpus_opt t] tries to compile the corpus if needed and returns it *)
   val load_corpus_opt: t -> Corpus.t option
 
   (** [get_md5_opt] returns the hash of the `marshal` file associated to a corpus.
