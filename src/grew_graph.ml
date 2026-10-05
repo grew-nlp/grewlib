@@ -1185,14 +1185,16 @@ module G_graph = struct
   let bound_time gnode =
     let fs = G_node.get_fs gnode in
     let start_opt =
-      match (G_fs.get_value_opt "_start" fs, G_fs.get_value_opt "AlignBegin" fs) with
-      | (Some start,_) -> Some (Feature_value.get_float "_start" start)
-      | (_,Some align_begin) -> Some ((Feature_value.get_float "align_begin" align_begin) /. 1000.)
+      match (G_fs.get_value_opt "_start" fs, G_fs.get_value_opt "WordAlignmentBegin" fs, G_fs.get_value_opt "AlignBegin" fs) with
+      | (Some start,_,_) -> Some (Feature_value.get_float "_start" start)
+      | (_,Some align_begin,_) -> Some ((Feature_value.get_float "align_begin" align_begin) /. 1000.)
+      | (_,_,Some align_begin) -> Some ((Feature_value.get_float "align_begin" align_begin) /. 1000.)
       | _ -> None
     and ending_opt =
-      match (G_fs.get_value_opt "_stop" fs, G_fs.get_value_opt "AlignEnd" fs) with
-      | (Some stop,_) -> Some (Feature_value.get_float "_stop" stop)
-      | (_,Some align_end) -> Some ((Feature_value.get_float "align_end" align_end) /. 1000.)
+      match (G_fs.get_value_opt "_stop" fs, G_fs.get_value_opt "WordAlignmentEnd" fs, G_fs.get_value_opt "AlignEnd" fs) with
+      | (Some stop,_,_) -> Some (Feature_value.get_float "_stop" stop)
+      | (_,Some align_end,_) -> Some ((Feature_value.get_float "align_end" align_end) /. 1000.)
+      | (_,_,Some align_end) -> Some ((Feature_value.get_float "align_end" align_end) /. 1000.)
       | _ -> None in
     match (start_opt, ending_opt) with
     | (Some s, Some e) -> Some (s,e)
