@@ -95,7 +95,7 @@ module Ast = struct
   (* simple_or_pointed: union of simple_ident, feature_ident and lex field *)
   (* Note: used for parsing of "X < Y" and "X.feat < Y.feat" without conflicts *)
   type pointed = string * string
-  let _dump_pointed (s1,s2) = sprintf "%s.%s" s1 s2
+  let pointed_to_string (s1,s2) = sprintf "%s.%s" s1 s2
 
   type simple_or_pointed =
     | Simple of Id.name
@@ -287,8 +287,8 @@ module Ast = struct
     | String_item of (string * Range.t)
 
   let string_of_concat_item = function
-    | Qfn_or_lex_item (pointed,_) -> sprintf "%s.%s" (fst pointed) (snd pointed)
-    | String_item (s,_) -> sprintf "\"%s\"" s
+    | Qfn_or_lex_item (pointed,r) -> sprintf "%s%s" (pointed_to_string pointed) (Range.to_string r)
+    | String_item (s,r) -> sprintf "\"%s\"%s" s (Range.to_string r)
 
   type side = Prepend | Append
 

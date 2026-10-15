@@ -1609,7 +1609,7 @@ module Rule = struct
         | Some (src_gid,old_edge,tar_gid) ->
           let new_edge =
             match (feat_name, item_list) with
-            | ("label", [Command.Edge_feat (src_edge_id, "label"), (None,None)]) -> (* special case of label copy "e.label = f.label" *)
+            | ("label", [Command.Edge_feat (src_edge_id, "label"), Slice (None,None)]) -> (* special case of label copy "e.label = f.label" *)
               begin
                 match String_map.find_opt src_edge_id state.e_mapping with
                 | None -> Error.run ~loc "UPDATE_EDGE_FEAT (RHS) The edge identifier '%s' is undefined" src_edge_id
@@ -2038,7 +2038,7 @@ module Rule = struct
 
         let new_edges =
           match (feat_name, item_list) with
-          | ("label", [Command.Edge_feat (src_edge_id, "label"), (None,None)]) -> (* special case of label copy "e.label = f.label" *)
+          | ("label", [Command.Edge_feat (src_edge_id, "label"), Slice (None,None)]) -> (* special case of label copy "e.label = f.label" *)
 
             let src_edge =
               match String_map.find_opt src_edge_id gwh.e_mapping with

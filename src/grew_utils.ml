@@ -92,24 +92,33 @@ module Env = struct
 
 (* ================================================================================ *)
 module Range = struct
-  type t = (int option * int option)
+  type t =
+    (* Python like substring extraction
+       [get_range (Slice (init_opt, final_opt)) s] return the python output of s[init_opt:final_opt]
+       NB: indexes correspond to UTF-8 chars. ex: [get_range Slice (None, Some (-1)) "été"] ==> "ét"
+    *)
+    | Slice of (int option * int option)
+    | Extract of (string * int)
 
   let to_string = function
-    | (None, None) -> ""
-    | (Some x, None) -> sprintf "[%d:]" x
-    | (None, Some y) -> sprintf "[:%d]" y
-    | (Some x, Some y) -> sprintf "[%d:%d]" x y
+    | Slice (None, None) -> ""
+    | Slice (Some x, None) -> sprintf "[%d:]" x
+    | Slice (None, Some y) -> sprintf "[:%d]" y
+    | Slice (Some x, Some y) -> sprintf "[%d:%d]" x y
+    | Extract (sep,index) -> sprintf "[sep=\"%s\", index=%d]" sep index
 
-  (** Python like substring extraction
-     [get_range (init_opt, final_opt) s] return the python output of s[init_opt:final_opt]
-     NB: indexes correspond to UTF-8 chars. ex: [get_range (None, Some (-1)) "été"] ==> "ét"
-  *)
-  let extract (iopt,fopt) s =
-    match (iopt, fopt) with
-    | (None, None) -> s
-    | _ ->
+  let extract range s =
+    match range with
+    | Extract (sep,index) ->
+      begin
+        match List.nth_opt (CCString.split ~by:sep s) index with
+        | Some s -> s
+        | None -> Error.run "[Range.extract] Cannot extract with params sep=\"%s\", index=%d in `%s`" sep index s
+      end
+    | Slice (None, None) -> s
+    | Slice (iopt, fopt) ->
       match CCUtf8_string.of_string s with
-      | None -> Error.run "[String_.get_range] '%s' is not a valid UTF-8 string encoding" s
+      | None -> Error.run "[Range.extract] '%s' is not a valid UTF-8 string encoding" s
       | Some utf8_s ->
         let char_list = CCUtf8_string.to_list utf8_s in
         let len = CCUtf8_string.n_chars utf8_s in

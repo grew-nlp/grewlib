@@ -824,26 +824,41 @@ command:
 
 
 concat_item:
-        | gi=ID
+        | ci=simple_or_pointed r=range /* range can be: empty OR Python style substring OR sep/index extraction */
           {
-            match Ast.parse_simple_or_pointed gi with
-            | Ast.Simple value -> Ast.String_item (value, (None,None))
-            | Ast.Pointed (s1, s2) -> Ast.Qfn_or_lex_item ((s1, s2),(None,None))
-          }
-        | gi=ID r=range /* Python style substring */
-          {
-            match Ast.parse_simple_or_pointed gi with
+            match ci with
             | Ast.Simple value -> Ast.String_item (value, r)
             | Ast.Pointed (s1, s2) -> Ast.Qfn_or_lex_item ((s1, s2), r)
           }
-        | s=STRING         { Ast.String_item (s, (None,None)) }
-        | f=number         { Ast.String_item (String_.of_float_clean f, (None,None)) }
+
+        | s=STRING         { Ast.String_item (s, Range.Slice (None,None)) }
+        | f=number         { Ast.String_item ((String_.of_float_clean f), Range.Slice (None,None)) }
+
 
 range:
-        | LBRACKET x=INT DDOT y=INT RBRACKET  { (Some x, Some y) }
-        | LBRACKET DDOT y=INT RBRACKET        { (None, Some y) }
-        | LBRACKET x=INT DDOT RBRACKET        { (Some x, None) }
-        | LBRACKET DDOT RBRACKET              { (None, None) }
+        (*  __no_range__  *) 
+        |                                     { Range.Slice (None, None) }
+
+        (*  [:]  *)
+        | LBRACKET DDOT RBRACKET              { Range.Slice (None, None) }
+
+        (*  [1:2]  *)
+        | LBRACKET x=INT DDOT y=INT RBRACKET  { Range.Slice (Some x, Some y) }
+
+        (*  [:2]  *)
+        | LBRACKET DDOT y=INT RBRACKET        { Range.Slice (None, Some y) }
+
+        (*  [3:]  *)
+        | LBRACKET x=INT DDOT RBRACKET        { Range.Slice (Some x, None) }
+
+        (*  [sep="::", index=0]  *)
+        | LBRACKET l = separated_nonempty_list (COMMA, key_value) RBRACKET 
+          {
+            match (List.assoc_opt "sep" l, List.assoc_opt "index" l) with
+            | (Some sep, Some index) -> Range.Extract (sep, int_of_string index)
+            | _ -> Error.build ~loc:(get_loc()) "syntax error in concat item `sep` and `index` parameters are required"
+          }
+
 
 /*=============================================================================================*/
 /* ISOLATED PATTERN (grep mode)                                                                */
