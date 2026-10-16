@@ -68,7 +68,7 @@ module Env: sig
 end
 
 (* ================================================================================ *)
-module Range: sig
+module String_op: sig
   type t =
     | Slice of int option * int option
     | Extract of string * int

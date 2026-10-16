@@ -91,7 +91,7 @@ module Env = struct
   end
 
 (* ================================================================================ *)
-module Range = struct
+module String_op = struct
   type t =
     (* Python like substring extraction
        [get_range (Slice (init_opt, final_opt)) s] return the python output of s[init_opt:final_opt]
@@ -115,13 +115,13 @@ module Range = struct
       begin
         match List.nth_opt (CCString.split ~by:sep s) index with
         | Some s -> s
-        | None -> Error.run "[Range.extract] Cannot extract with params sep=\"%s\", index=%d in `%s`" sep index s
+        | None -> Error.run "[String_op.extract] Cannot extract with params sep=\"%s\", index=%d in `%s`" sep index s
       end
     | Replace (sub, by) -> String.replace_all ~sub ~by s
     | Slice (None, None) -> s
     | Slice (iopt, fopt) ->
       match CCUtf8_string.of_string s with
-      | None -> Error.run "[Range.extract] '%s' is not a valid UTF-8 string encoding" s
+      | None -> Error.run "[String_op.extract] '%s' is not a valid UTF-8 string encoding" s
       | Some utf8_s ->
         let char_list = CCUtf8_string.to_list utf8_s in
         let len = CCUtf8_string.n_chars utf8_s in
@@ -138,7 +138,7 @@ module Range = struct
         if final < init
         then ""
         else char_list |> CCList.drop init |> CCList.take (final - init) |> CCUtf8_string.of_list |> CCUtf8_string.to_string
-end (* module Range *)
+end (* module String_op *)
 
 (* ==================================================================================================== *)
 module File = struct

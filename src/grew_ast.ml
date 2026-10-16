@@ -283,12 +283,12 @@ module Ast = struct
     { request with req_pos = new_req_pos; req_exts = new_req_exts;}
 
   type concat_item =
-    | Qfn_or_lex_item of (pointed * Range.t)
-    | String_item of (string * Range.t)
+    | Qfn_or_lex_item of (pointed * String_op.t)
+    | String_item of (string * String_op.t)
 
   let string_of_concat_item = function
-    | Qfn_or_lex_item (pointed,r) -> sprintf "%s%s" (pointed_to_string pointed) (Range.to_string r)
-    | String_item (s,r) -> sprintf "\"%s\"%s" s (Range.to_string r)
+    | Qfn_or_lex_item (pointed,r) -> sprintf "%s%s" (pointed_to_string pointed) (String_op.to_string r)
+    | String_item (s,r) -> sprintf "\"%s\"%s" s (String_op.to_string r)
 
   type side = Prepend | Append
 

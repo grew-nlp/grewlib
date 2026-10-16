@@ -26,7 +26,7 @@ module Command : sig
     | String_item of string
     | Lexical_field of (string * string)
 
-  type ranged_item = item * Range.t
+  type ranged_item = item * String_op.t
 
   type p =
     | DEL_NODE of command_node

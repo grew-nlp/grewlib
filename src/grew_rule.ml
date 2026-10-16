@@ -1459,7 +1459,7 @@ module Rule = struct
 
     let feature_value_of_item = function
       | (Command.String_item s, range) ->
-        Range.extract range s
+        String_op.extract range s
       | (Command.Node_feat (cnode, feat_name), range) ->
         let gid = node_find cnode in
         let node = G_graph.find gid state.graph in
@@ -1467,12 +1467,12 @@ module Rule = struct
         begin
           match G_fs.get_value_opt feat_name fs with
           | None -> Error.run ~loc "Node feature named `%s` is undefined" feat_name
-          | Some v -> Range.extract range v
+          | Some v -> String_op.extract range v
         end
       | (Command.Meta key, range) ->
         begin
           match G_graph.get_meta_opt key state.graph with
-          | Some value -> Range.extract range value
+          | Some value -> String_op.extract range value
           | None -> Error.run "Metadata key `%s` is undefined" key
         end
       | (Command.Edge_feat (edge_id, feat_name), range) ->
@@ -1484,13 +1484,13 @@ module Rule = struct
             then
               begin
                 match G_edge.to_string_opt ~config edge with
-                | Some s -> Range.extract range s
+                | Some s -> String_op.extract range s
                 | None -> Error.run "Cannot use not regular edge label as a concat item"
               end
             else
               match G_edge.get_sub_opt feat_name edge with
               | None -> Error.run ~loc "[onf_apply_command] Edge feature named %s is undefined" feat_name
-              | Some fv -> Range.extract range fv
+              | Some fv -> String_op.extract range fv
         end
       | (Command.Lexical_field (lex_id, field), range) ->
         begin
@@ -1499,7 +1499,7 @@ module Rule = struct
           | Some lexicon ->
             match Lexicon.get_opt field lexicon with
             | None -> Error.bug "Inconsistent lexicon lex_id=%s field=%s" lex_id field
-            | Some value -> Range.extract range value
+            | Some value -> String_op.extract range value
         end in
 
     match command with
@@ -1825,7 +1825,7 @@ module Rule = struct
     let node_find cnode = find ~loc cnode gwh matching in
 
     let feature_value_list_of_item = function
-      | (Command.String_item s, range) -> [Range.extract range s]
+      | (Command.String_item s, range) -> [String_op.extract range s]
       | (Command.Node_feat (cnode, feat_name), range) ->
         let gid = node_find cnode in
         let node = G_graph.find gid gwh.graph in
@@ -1833,12 +1833,12 @@ module Rule = struct
         begin
           match G_fs.get_value_opt feat_name fs with
           | None -> Error.run ~loc "Node feature named `%s` is undefined" feat_name
-          | Some v -> [Range.extract range v]
+          | Some v -> [String_op.extract range v]
         end
       | (Command.Meta key, range) ->
         begin
           match G_graph.get_meta_opt key gwh.Graph_with_history.graph with
-          | Some value -> [Range.extract range value]
+          | Some value -> [String_op.extract range value]
           | None -> Error.run "Metadata key `%s` is undefined" key
         end
       | (Command.Edge_feat (edge_id, feat_name), range) ->
@@ -1849,13 +1849,13 @@ module Rule = struct
             | None -> Error.run ~loc "The edge identifier '%s' is undefined" edge_id in
           match G_edge.get_sub_opt feat_name edge with
           | None -> Error.run ~loc "[gwh_apply_command] Edge feature named %s is undefined" feat_name
-          | Some fv -> [Range.extract range fv]
+          | Some fv -> [String_op.extract range fv]
         end
       | (Command.Lexical_field (lex_id, field), range) ->
         begin
           match List.assoc_opt lex_id matching.l_param with
           | None -> Error.run ~loc "Undefined lexicon %s" lex_id
-          | Some lexicon -> List.map (fun x -> Range.extract range x) (Lexicon.read_all field lexicon)
+          | Some lexicon -> List.map (fun x -> String_op.extract range x) (Lexicon.read_all field lexicon)
         end in
 
     match command with

@@ -178,8 +178,8 @@ module Ast : sig
   val complete_and_check_request : request -> request
 
   type concat_item =
-    | Qfn_or_lex_item of (pointed * Range.t)
-    | String_item of (string * Range.t)
+    | Qfn_or_lex_item of (pointed * String_op.t)
+    | String_item of (string * String_op.t)
 
   type side = Prepend | Append
 

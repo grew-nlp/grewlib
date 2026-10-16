@@ -40,10 +40,10 @@ module Command  = struct
     | String_item s -> sprintf "\"%s\"" s
     | Lexical_field (lex,field) -> sprintf "%s.%s" lex field
 
-  type ranged_item = item * Range.t
+  type ranged_item = item * String_op.t
 
   let ranged_item_to_string (item, range) =
-    sprintf "%s%s" (item_to_string item) (Range.to_string range)
+    sprintf "%s%s" (item_to_string item) (String_op.to_string range)
 
   type p =
     | DEL_NODE of command_node

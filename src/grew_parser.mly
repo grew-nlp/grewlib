@@ -831,34 +831,34 @@ concat_item:
             | Ast.Pointed (s1, s2) -> Ast.Qfn_or_lex_item ((s1, s2), r)
           }
 
-        | s=STRING         { Ast.String_item (s, Range.Slice (None,None)) }
-        | f=number         { Ast.String_item ((String_.of_float_clean f), Range.Slice (None,None)) }
+        | s=STRING         { Ast.String_item (s, String_op.Slice (None,None)) }
+        | f=number         { Ast.String_item ((String_.of_float_clean f), String_op.Slice (None,None)) }
 
 
 range:
         (*  __no_range__  *) 
-        |                                     { Range.Slice (None, None) }
+        |                                     { String_op.Slice (None, None) }
 
         (*  [:]  *)
-        | LBRACKET DDOT RBRACKET              { Range.Slice (None, None) }
+        | LBRACKET DDOT RBRACKET              { String_op.Slice (None, None) }
 
         (*  [1:2]  *)
-        | LBRACKET x=INT DDOT y=INT RBRACKET  { Range.Slice (Some x, Some y) }
+        | LBRACKET x=INT DDOT y=INT RBRACKET  { String_op.Slice (Some x, Some y) }
 
         (*  [:2]  *)
-        | LBRACKET DDOT y=INT RBRACKET        { Range.Slice (None, Some y) }
+        | LBRACKET DDOT y=INT RBRACKET        { String_op.Slice (None, Some y) }
 
         (*  [3:]  *)
-        | LBRACKET x=INT DDOT RBRACKET        { Range.Slice (Some x, None) }
+        | LBRACKET x=INT DDOT RBRACKET        { String_op.Slice (Some x, None) }
 
         (*  [sep="::", index=0]  *)
         | LBRACKET l = separated_nonempty_list (COMMA, key_value) RBRACKET 
           {
             match (List.assoc_opt "sep" l, List.assoc_opt "index" l) with
-            | (Some sep, Some index) -> Range.Extract (sep, int_of_string index)
+            | (Some sep, Some index) -> String_op.Extract (sep, int_of_string index)
             | _ -> 
               match (List.assoc_opt "sub" l, List.assoc_opt "by" l) with
-              | (Some sub, Some by) -> Range.Replace(sub,by)
+              | (Some sub, Some by) -> String_op.Replace(sub,by)
               | _ -> Error.build ~loc:(get_loc())
               "syntax error in concat item (`sep` and `index`) or (`sub` and `by`) parameters are required"
           }
