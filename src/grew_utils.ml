@@ -97,8 +97,9 @@ module Range = struct
        [get_range (Slice (init_opt, final_opt)) s] return the python output of s[init_opt:final_opt]
        NB: indexes correspond to UTF-8 chars. ex: [get_range Slice (None, Some (-1)) "été"] ==> "ét"
     *)
-    | Slice of (int option * int option)
-    | Extract of (string * int)
+    | Slice of int option * int option
+    | Extract of string * int
+    | Replace of string * string
 
   let to_string = function
     | Slice (None, None) -> ""
@@ -106,6 +107,7 @@ module Range = struct
     | Slice (None, Some y) -> sprintf "[:%d]" y
     | Slice (Some x, Some y) -> sprintf "[%d:%d]" x y
     | Extract (sep,index) -> sprintf "[sep=\"%s\", index=%d]" sep index
+    | Replace (sub, by) -> sprintf "[repl=\"%s\", by=\"%s\"]" sub by
 
   let extract range s =
     match range with
@@ -115,6 +117,7 @@ module Range = struct
         | Some s -> s
         | None -> Error.run "[Range.extract] Cannot extract with params sep=\"%s\", index=%d in `%s`" sep index s
       end
+    | Replace (sub, by) -> String.replace_all ~sub ~by s
     | Slice (None, None) -> s
     | Slice (iopt, fopt) ->
       match CCUtf8_string.of_string s with

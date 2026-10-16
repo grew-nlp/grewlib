@@ -856,7 +856,11 @@ range:
           {
             match (List.assoc_opt "sep" l, List.assoc_opt "index" l) with
             | (Some sep, Some index) -> Range.Extract (sep, int_of_string index)
-            | _ -> Error.build ~loc:(get_loc()) "syntax error in concat item `sep` and `index` parameters are required"
+            | _ -> 
+              match (List.assoc_opt "sub" l, List.assoc_opt "by" l) with
+              | (Some sub, Some by) -> Range.Replace(sub,by)
+              | _ -> Error.build ~loc:(get_loc())
+              "syntax error in concat item (`sep` and `index`) or (`sub` and `by`) parameters are required"
           }
 
 
@@ -1000,7 +1004,7 @@ inkey:
         | None -> 
           match (List.assoc_opt "sep" l, List.assoc_opt "index" l) with
           | (Some sep, Some index) -> Ast.Key.Split_extract (fi, sep, int_of_string index)
-          | _ -> Error.build "syntax error in keys: `gap` or (`sep` and `index`) parameter is required"
+          | _ -> Error.build "syntax error (!) in keys: `gap` or (`sep` and `index`) parameter is required"
       }
 
   (*  (X.upos, Y.Number )  *)

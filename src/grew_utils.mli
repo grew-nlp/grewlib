@@ -70,8 +70,9 @@ end
 (* ================================================================================ *)
 module Range: sig
   type t =
-    | Slice of (int option * int option)
-    | Extract of (string * int)
+    | Slice of int option * int option
+    | Extract of string * int
+    | Replace of string * string
 
   val to_string: t -> string
 
