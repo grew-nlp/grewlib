@@ -802,7 +802,7 @@ module Corpus_desc = struct
             valid_file in
         match Sys.command command with
           | 0 -> ()
-          | _ -> Warning.magenta "Error when running UD Python validation script on file %s" (Filename.basename file);
+          | _ -> Warning.magenta "Error when running UD Python validation script on file %s\ncommmand: %s" (Filename.basename file) command;
       ) (get_files corpus_desc);
 
     let diag_script = File.concat_names [(Env.get env "SUDTOOLS"); "UD"; "diag.py"] in
@@ -814,7 +814,7 @@ module Corpus_desc = struct
           diag_file in
     match Sys.command command with
       | 0 -> ()
-      | _ -> Warning.magenta "Error when running UD Python diag script on corpus %s" corpus_id;
+      | _ -> Warning.magenta "Error when running UD Python diag script on corpus %s\ncommmand: %s" corpus_id command;
     ()
 
   let validate ?(verbose=false) ?(env=[]) corpus_desc =
@@ -851,7 +851,7 @@ module Corpus_desc = struct
         let command = sprintf "python3 %s %s %s > %s" script "DC" args abs_out_file in
           match Sys.command command with
           | 0 -> ()
-          | _ -> Warning.magenta "Error when running dc_table"
+          | _ -> Warning.magenta "Error when running dc_table\ncommand: %s" command
       end
   let feat_upos ~verbose ~env corpus_desc =
     let out_file = "feat_upos.json" in
@@ -873,7 +873,7 @@ module Corpus_desc = struct
         
           match Sys.command command with
           | 0 -> ()
-          | _ -> Warning.magenta "Error when running feat_upos"
+          | _ -> Warning.magenta "Error when running feat_upos\ncommand: %s" command
       end
   let build_tables ?(verbose=false) ?(env=[]) corpus_desc =
     let () = dc_table ~verbose ~env "amb_lemmas.json" "lemma.json" "N.lemma" "N.upos" true corpus_desc in
