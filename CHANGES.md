@@ -1,3 +1,10 @@
+# 1.22.0 (2026/10/30)
+  - New operations on strings in commands
+    - `X.f = X.g[sep="-", index=2]` (extract substring at position 2 after a split on dashes)
+    - `X.f = X.g[sub="-", by="."]` (replace all dashes by periods)
+  - New function `Corpus_desc.get_md5_opt`
+  - Accept WordAlignmentBegin / WordAlignmentEnd for sound alignment 
+
 # 1.21.0 (2026/07/30)
   - Make `meta` accessible in commands
     - new command: `meta.key = new_value`

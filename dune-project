@@ -2,7 +2,7 @@
 
 (name grewlib)
 
-(version 1.21.0)
+(version 1.22.0)
 
 (using menhir 2.0)
 
@@ -24,7 +24,7 @@
  (synopsis "The main library for the Grew system")
  (description "Grew implements a Graph Rewriting system to be used in NLP")
  (depends 
-   (ocaml ( >= "4.13.0" ))
+   (ocaml ( >= "5.5.0" ))
    dune 
    menhir
    re
@@ -34,7 +34,7 @@
    (containers ( >= "3.16" ))
    (containers-data ( >= "3.16" ))
    (amr ( >= "0.9.1" )) 
-   (conll ( >= "1.19.7" ))
+   (conll ( >= "1.20.1" ))
    (uunf ( >= "17.0.0" ))
  )
  (tags
